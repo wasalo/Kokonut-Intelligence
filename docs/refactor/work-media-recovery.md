@@ -4,6 +4,10 @@
 records, keys, uploads or jobs were created. No acceptance suites or media commands
 were executed; Ruff passed for both new scripts. Existing deployments unchanged.
 
+Set `SOPS_AGE_KEY_FILE` to the private age identity path before running recovery
+commands; keep the identity outside the repository and share only its public
+recipient when encryption requires one.
+
 ## Operator commands
 
 scripts/kernel-media-checkpoint.py archives existing encrypted LocalMediaStore
@@ -44,7 +48,7 @@ retain both partial directories; no automatic cleanup/pruning is performed.
 ```bash
 python3 scripts/kernel-media-restore.py \
   --checkpoint backups/MEDIA_CHECKPOINT \
-  --identity /Users/gilbertoadon/.config/sops/age/keys.txt \
+  --identity "$SOPS_AGE_KEY_FILE" \
   --destination /ABSOLUTE/NEW_RECOVERED_MEDIA
 ```
 

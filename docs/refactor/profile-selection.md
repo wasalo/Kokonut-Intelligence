@@ -1,5 +1,12 @@
 # Kernel candidate command planner
 
+> **Status reference:** This page documents the planner's current source-level
+> options and Compose selections. It is not a deployment or rollout ledger.
+> Acceptance snapshots elsewhere on this page and in linked records are dated
+> evidence; they do not establish the state of a local or production target.
+> For present gates, current migration source, and deployment limits, see the
+> [current refactor status and implementation guide](current-state-and-implementation.md).
+
 `python3 scripts/kernel-profile.py PROFILE` prints a shell-quoted Compose
 command with absolute manifest paths and the explicit isolated candidate project.
 It does not invoke Docker, load secrets, inspect containers, migrate data, or
@@ -23,20 +30,32 @@ build/runtime evidence and dedicated platform overlays. This is software
 compatibility evidence under QEMU, not a Raspberry Pi resource/performance
 recommendation.
 Image environment overrides must preserve the selected architecture.
-Current-source minimal ARM64 runtime,
-schema replay through migration 402, restore, and short recovery checks now pass
-under QEMU; this does not certify Raspberry Pi hardware. See the
+An earlier 15 October 2026 ARM64 evidence record documents a minimal runtime,
+schema replay through migration 402, restore, and short recovery checks under
+QEMU. That snapshot is superseded by later schema-replay records and does not
+certify Raspberry Pi hardware. See the
 [ARM64 profile record](arm64-database.md).
 
 | Selection | Services/configuration | Acceptance remaining |
 | --- | --- | --- |
-| core | PostgreSQL + combined API/workers with only the hash-locked kernel runtime | Capability parity, multi-arch OCI build, and recovery |
-| minimal | PostgreSQL + combined API/workers | Capability parity and recovery |
-| edge | Minimal + encrypted local media/resource limits | Media/storage recovery and physical-device behavior |
-| standard | PostgreSQL + separate API and worker; PostgreSQL shared limiter by default | Migration 373, role cutover, and worker progress monitoring |
-| analytics | Minimal + private ClickHouse | Schema bootstrap and projection parity |
-| analytics --separate-workers | Standard + ClickHouse settings for both roles | Same gates plus worker analytics parity |
-| scale | Rejected with an explanation | Multi-host failover, replica concurrency, recovery and measured sizing |
+| core | PostgreSQL + combined API/workers with only the selected kernel dependency set | Release CI, full capability parity, upgrade/restore recovery, and target resource acceptance |
+| minimal | PostgreSQL + combined API/workers | End-to-end governed workflow, populated-data parity, backup/restore, and operational recovery |
+| edge | Minimal + encrypted local media/resource limits | Media failure/recovery, offline/device acceptance, and physical-hardware behavior |
+| standard | PostgreSQL + separate API and worker; PostgreSQL shared limiter by default | Current-target ordered migration/role rollout, worker progress monitoring, ingress, backups, and recovery acceptance |
+| analytics | Minimal + private ClickHouse | Schema bootstrap, projection parity, and outage/rebuild acceptance |
+| analytics --separate-workers | Standard + ClickHouse settings for both roles | Standard gates plus worker analytics parity and recovery |
+| scale | Rejected with an explanation | Shared rate limits, replica/failover behavior, recovery, and measured sizing |
+
+The source architecture plan includes Caddy in its Standard profile, while the
+current planner keeps the proxy optional. `standard` alone has no TLS/public
+ingress; add `--proxy` only after the ingress and trusted-proxy acceptance gates
+are satisfied. This plan/code difference is tracked in the
+[current-state guide](current-state-and-implementation.md#deployment-profiles-in-the-current-planner).
+
+Migration numbers referenced below (including 371–373) identify when specific
+features were introduced. They are not a current target's migration status or
+a complete deployment instruction. New and existing targets must use the full
+ordered checksummed migration runner and inspect that target's ledger.
 
 `core` is an additive opt-in package profile. It does not change `minimal` or
 the existing profile defaults. Web3, spreadsheet/S3, and encrypted local-media

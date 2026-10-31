@@ -1,8 +1,8 @@
 # Regen Network Compatibility
 
-Kokonut Intelligence provides a PostgreSQL/Directus compatibility model for selected Regen Network data standards, ecocredit concepts, metadata concepts, and Data module v2 concepts. This is schema and service parity, not a claim of complete Regen blockchain-module interoperability.
+Kokonut Intelligence provides a PostgreSQL-backed compatibility model for selected Regen Network data standards, ecocredit concepts, metadata concepts, and Data module v2 concepts. Directus is an optional compatibility/admin adapter. This is schema and service parity, not a claim of complete Regen blockchain-module interoperability.
 
-Canonical records remain in PostgreSQL/Directus. Local CLI operations write governed database records. EAS anchoring, external registry recognition, cross-chain token movement, and other on-chain execution require separate configured flows and human approval.
+Canonical records remain in PostgreSQL. Local CLI operations write governed database records. EAS anchoring, external registry recognition, cross-chain token movement, and other on-chain execution require separate configured flows and human approval.
 
 ## CreditClassInfo Compatibility
 

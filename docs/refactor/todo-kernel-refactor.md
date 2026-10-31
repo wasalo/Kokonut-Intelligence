@@ -1,12 +1,56 @@
 # Kokonut Kernel refactor TODO
 
-Updated: 30 October 2026. This is the active cross-phase work queue for the
+Updated: 31 October 2026. This is the active cross-phase work queue for the
 owner-provided [architecture implementation plan](implementation-plan-alignment.md).
 The detailed, historically preserved acceptance records remain in
 [batches.md](batches.md); this file groups their remaining gates into work that
 can proceed now and gates that need an owner, provider, populated source data,
 or production environment. Check an item only when its evidence is recorded in
 the batch log and the affected capability/progress records are updated.
+
+**Current queue snapshot (31 October 2026):** 746 checked / 28 open across the
+TODO's dated and active checklist sections. Historical snapshots below this
+active queue remain dated records and do not replace the current count.
+
+## Current continuation — documentation and C1 integration checks
+
+- [x] Consolidate the refactor status, architecture, deployment profiles,
+  phase mapping, evidence rules, and open gates in
+  [current-state-and-implementation.md](current-state-and-implementation.md).
+- [x] Align the root README, AGENTS.md, architecture/deployment/operator guides,
+  service README files, and the refactor index with current Kernel behavior;
+  repository-wide local Markdown-link audit passed for 416 files and 10,243
+  links ([audit](builds/2026-10-30-recovery/documentation-link-audit.json)).
+- [x] Pass focused tests and isolated PostgreSQL/PostGIS checks for migrations
+  700–703; the grouped Gateway/action/console/runtime/migration selection
+  passes 216 tests, and no candidate, legacy, or production database was used
+  ([test record](builds/2026-10-30-recovery/c1-700-703-focused-tests.json),
+  [migration 700](builds/2026-10-30-recovery/governance-tension-location-actions-700-disposable.json),
+  [migration 703](builds/2026-10-30-recovery/metric-value-kernel-disposable.json)).
+- [x] Complete native ordered replay through migration 703: 694/694 schema
+  files and 38 two-tenant operator checks; no seeds or host ports, with
+  disposable cleanup ([evidence](builds/2026-10-30-recovery/kernel-c1-full-schema-703-native-r2.json)).
+- [x] Refresh runtime SQL and worker SQL reachability inventories and the
+  native source/ACL report; 148 declared boundaries have zero policy
+  mismatches or direct table/column privilege violations
+  ([report](builds/2026-10-30-recovery/runtime-privilege-callsite-report-703.json)).
+- [x] Complete full ARM64/QEMU replay through 703: 694/694 schemas and 38
+  two-tenant operator checks passed with no seeds or host ports; disposable
+  cleanup completed ([evidence](builds/2026-10-30-recovery/kernel-c1-full-schema-703-arm64-r1.json)). This is software portability evidence, not physical Raspberry Pi acceptance.
+- [x] Validate ClickHouse schema 011 on the pinned 25.8 image using a
+  network-disabled disposable server: fresh bootstrap, conditional removal
+  from eight synthetic legacy TTLs, repeat application, and old-row survival
+  all pass ([evidence](builds/2026-10-30-recovery/clickhouse-retention-no-prune-disposable.json)).
+- [ ] Replace the Field Collector's fixed 30-day unattached-media expiry with
+  an owner-configurable, jurisdiction-aware policy; existing migration-358
+  expiries are a technical behavior, not an approved retention schedule.
+- [ ] Apply `scripts/apply-clickhouse-retention.py` and verify all eight tables
+  on each existing analytics target before enabling ingestion; disposable
+  acceptance does not change a persistent ClickHouse database.
+- [ ] Define source-type semantics and validate metric `source_record_ids`
+  against the requested location at the SQL boundary. Migration 703 checks
+  shape/bounds; the current Gateway derives IDs from its scoped calculator,
+  but polymorphic references are not independently location-validated in SQL.
 
 ## Completed in the current continuation
 
@@ -524,7 +568,7 @@ the batch log and the affected capability/progress records are updated.
   declared boundaries with zero gaps across 1,511 relations. Its 1,026
   table-level DML/RLS-disabled count includes the intentionally insert-only
   audit ledger; it does not mean all those relations allow UPDATE/DELETE. See
-  [migration](../schemas/postgres/652_runtime_append_only_data_access_log.sql),
+  [migration](../../schemas/postgres/652_runtime_append_only_data_access_log.sql),
   [isolated acceptance](builds/2026-10-27-recovery/runtime-append-only-data-access-log-disposable.json),
   [full-schema acceptance](builds/2026-10-27-recovery/runtime-role-full-schema-disposable.json),
   and [policy report](builds/2026-10-27-recovery/sprint-runtime-privilege-callsite-report.json).
@@ -606,7 +650,7 @@ the batch log and the affected capability/progress records are updated.
   unmatched source candidate. Source review traced the analytics reference to
   `INSERT ... SELECT` statements that write other tables; the complete writer
   set and optional Directus behavior for this core relation are not established,
-  so its grants remain unchanged. See [migration](../schemas/postgres/653_runtime_advisory_rule_read_only.sql),
+  so its grants remain unchanged. See [migration](../../schemas/postgres/653_runtime_advisory_rule_read_only.sql),
   [disposable ACL check](builds/2026-10-27-recovery/advisory-rule-runtime-read-only-disposable.json),
   [full-schema acceptance](builds/2026-10-27-recovery/runtime-role-full-schema-653-disposable.json),
   and [policy report](builds/2026-10-27-recovery/sprint-runtime-privilege-callsite-report.json).
@@ -627,7 +671,7 @@ the batch log and the affected capability/progress records are updated.
   and matrix validation pass. Candidate and legacy databases were untouched.
   Rollback may revert application code while retaining migration 654; restoring
   writes requires a separately reviewed forward migration. See
-  [migration](../schemas/postgres/654_runtime_crop_family_read_only.sql),
+  [migration](../../schemas/postgres/654_runtime_crop_family_read_only.sql),
   [disposable ACL check](builds/2026-10-27-recovery/crop-family-runtime-read-only-disposable.json),
   [full-schema acceptance](builds/2026-10-27-recovery/runtime-role-full-schema-654-disposable.json),
   and [policy report](builds/2026-10-27-recovery/sprint-runtime-privilege-callsite-report.json).
@@ -656,7 +700,7 @@ the batch log and the affected capability/progress records are updated.
   compilation, source inventories, dependency/provider checks, and capability
   validation. Candidate and legacy databases were untouched. Retain migration
   655 on code rollback; restoring runtime writes requires a separately reviewed
-  forward migration ([migration](../schemas/postgres/655_runtime_crop_nutrient_removal_factor_read_only.sql);
+  forward migration ([migration](../../schemas/postgres/655_runtime_crop_nutrient_removal_factor_read_only.sql);
   [ACL evidence](builds/2026-10-27-recovery/crop-nutrient-factor-runtime-read-only-disposable.json);
   [full-schema evidence](builds/2026-10-27-recovery/runtime-role-full-schema-655-disposable.json);
   [policy report](builds/2026-10-27-recovery/sprint-runtime-privilege-callsite-report.json)).
@@ -686,7 +730,7 @@ the batch log and the affected capability/progress records are updated.
   RLS is disabled. The 131-test focused selection and static boundary checks
   pass. Candidate and legacy databases were untouched. Retain migration 656 on
   code rollback; restoring runtime writes requires a separately reviewed
-  forward migration ([migration](../schemas/postgres/656_runtime_certification_type_read_only.sql);
+  forward migration ([migration](../../schemas/postgres/656_runtime_certification_type_read_only.sql);
   [native ACL check](builds/2026-10-27-recovery/certification-type-runtime-read-only-disposable.json);
   [full-schema acceptance](builds/2026-10-27-recovery/runtime-role-full-schema-656-disposable.json);
   [source-policy report](builds/2026-10-27-recovery/sprint-runtime-privilege-callsite-report.json)).
@@ -713,7 +757,7 @@ the batch log and the affected capability/progress records are updated.
   Ruff, compilation, SQL/worker inventories, dependency/provider checks, and
   matrix validation. Candidate and legacy databases were untouched. Retain
   additive migration 657 on code rollback; restoring writes requires a
-  separately reviewed forward migration ([migration](../schemas/postgres/657_runtime_reference_catalogs_read_only.sql);
+  separately reviewed forward migration ([migration](../../schemas/postgres/657_runtime_reference_catalogs_read_only.sql);
   [native ACL](builds/2026-10-27-recovery/reference-catalogs-runtime-read-only-disposable.json);
   [full-schema acceptance](builds/2026-10-27-recovery/runtime-role-full-schema-657-disposable.json);
   [policy report](builds/2026-10-27-recovery/sprint-runtime-privilege-callsite-report.json)).
@@ -1009,7 +1053,7 @@ that its full source-plan phase is complete.
   unchanged. The harness covers 127 synthetic relations (79 private, 46
   mutation-denied, two append-only); this does not establish RLS or tenant
   isolation. The fresh native full-schema ACL replay now reaches migration 681
-  ([migration](../schemas/postgres/681_runtime_metric_definition_read_only.sql);
+  ([migration](../../schemas/postgres/681_runtime_metric_definition_read_only.sql);
   [focused acceptance](builds/2026-10-28-recovery/runtime-scoped-write-boundary-disposable.json);
   [full-schema replay](builds/2026-10-28-recovery/runtime-role-full-schema-681-native-disposable.json)).
   The source review found
@@ -1999,7 +2043,7 @@ effective table DML while RLS is disabled, so C1 remains open. Checklist:
   pass 68 tests. No optional seeds or farm data were loaded; candidate and
   legacy databases were untouched. Directus API parity, populated credential
   records, physical Raspberry Pi, and production acceptance remain open
-  ([batch](batches.md#L4814); [migration](../schemas/postgres/677_runtime_farmer_credential_type_read_only.sql);
+  ([batch](batches.md#L4814); [migration](../../schemas/postgres/677_runtime_farmer_credential_type_read_only.sql);
   [native ACL](builds/2026-10-27-recovery/farmer-credential-type-runtime-read-only-disposable.json);
   [ARM64 ACL](builds/2026-10-27-recovery/farmer-credential-type-runtime-read-only-arm64-disposable.json);
   [full schema and tenant probe](builds/2026-10-27-recovery/runtime-role-full-schema-677-native-disposable.json);
@@ -4165,7 +4209,7 @@ private Gateway response contracts total 226.
   focused migration-697 ARM64/QEMU ACL acceptance passes. The count is
   privilege reach, not confirmed tenant-data leaks. No candidate/legacy or
   production state changed
-  ([migration](../schemas/postgres/697_runtime_process_benchmark_read_only.sql);
+  ([migration](../../schemas/postgres/697_runtime_process_benchmark_read_only.sql);
   [native ACL](builds/2026-10-30-recovery/runtime-process-benchmark-697-disposable.json);
   [ARM64/QEMU ACL](builds/2026-10-30-recovery/runtime-process-benchmark-697-arm64-disposable.json);
   [native replay](builds/2026-10-30-recovery/native-resource-limited-schema-697-operator-probe.json);
@@ -4344,3 +4388,73 @@ and 36 prepared across 67 rows; strict private Gateway response contracts total
 No database was changed. Evidence:
 [living-wage benchmark source audit](builds/2026-10-30-recovery/living-wage-benchmark-c1-source-audit.json).
 Checklist: 2,134 complete / 26 open; TODO: 733 checked / 17 open.
+
+## C1 code-first continuation — governance-tension lifecycle — 30 October 2026
+
+- [x] Add the strict location-scoped Gateway lifecycle route and source helper
+  for triage, start, link, work-item link, resolve, and defer. Preserve
+  idempotency binding, signed operator context, exact action grants, bounded
+  JSON input, identity-minimized response, and no-store behavior.
+- [ ] Add migration-backed action receipts and atomic location-bound tension,
+  link, and event transitions; verify role grants, replay, and cross-location
+  denial after all code cohorts are integrated.
+- [ ] Design authenticated organization/network scope contracts before
+  retiring the legacy tension service/CLI or other writers whose current
+  capabilities exceed location-only Gateway routes.
+- [ ] Keep `living_wage_benchmark` grants unchanged until the owner confirms
+  whether an external importer uses `kokonut_runtime`.
+
+The code-only source sweep found no exact Gateway replacement for the audited
+planning, finance, consent, cooperative, marketplace, agronomic,
+extension-training, metric computation/verification, identity, coordination,
+event, mobile-manifest, attestation, and certificate writers. Preserve those
+capabilities until their scoped operations exist. No tests or migrations were
+added or run in this code-first tranche.
+
+Current checklist: 734 checked / 19 open. Capability classifications remain
+24 baseline-retained, 7 deployed, and 36 prepared across 67 rows; strict
+private Gateway response contracts remain at the last verified count pending
+the final test/inventory phase.
+
+
+## C1 code-first source batch — 30 October 2026
+
+- [x] Add location-bound Gateway tension lifecycle contracts for triage,
+  start, record/work-item links, resolve, and defer. Keep network and
+  organization-scoped legacy actions active until matching authorization
+  contracts exist.
+- [x] Add extension peer-network create and progress-update contracts, exact
+  action policies, signed tenant-context calls, idempotency, strict input/output
+  models, and the peer-network create form. Participant roster/detail surfaces
+  remain private and out of scope.
+- [x] Add location-bound, record-only landscape captures for habitats,
+  corridors, hedgerows, buffer checks, and biodiversity assessments.
+- [ ] Implement the corresponding bounded SQL functions, database receipts,
+  atomic audit writes, grants, and source-defined defaults/derivations.
+- [ ] Add/run focused Gateway, console, and disposable PostgreSQL checks after
+  the code-first cohort is assembled; then refresh runtime ACL/inventory reports.
+- [ ] Only after parity acceptance, migrate the remaining direct writers and
+  apply per-relation DML boundaries. Preserve unreviewed external/importer and
+  multi-scope behavior until owner evidence is available.
+
+These source contracts are not yet database-backed or deployable. No migration
+or test suite was added/run, no capability was retired, and no candidate,
+legacy, or production state changed. Owner-confirmed `process_benchmark`
+external-writer absence remains represented by migration 697; the separate
+`living_wage_benchmark` importer question remains unresolved.
+
+### C1 source continuation — metrics and planning — 30 October 2026
+
+- [x] Add calculator-only metric draft production with no insert/commit, retain
+  the compatibility CLI writer, and add strict signed location Gateway
+  list/compute/verify contracts plus a console workflow with session-derived
+  reviewer identity.
+- [x] Add canonical date and ordered-range preflight for planning creation at
+  both CLI and service boundaries.
+- [ ] Add bounded metric list/draft/verification functions, grants, receipts,
+  and cross-scope/self-review/idempotency guarantees in the migration phase.
+- [ ] Verify all C1 source cohorts together, then replay migrations and run
+  disposable privilege/tenant probes before updating acceptance counts.
+
+No tests or migrations were run for this continuation. Metric routes remain
+non-deployable until their functions exist; the old CLI remains intact.

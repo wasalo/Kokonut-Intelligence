@@ -40,7 +40,7 @@
       "local_import_edges": [
         {
           "source": "services/analytics/carbon_balance.py",
-          "line": 13,
+          "line": 14,
           "target": "services.common.database",
           "kind": "from"
         },
@@ -469,13 +469,13 @@
         },
         {
           "source": "services/events/bus.py",
-          "line": 63,
+          "line": 81,
           "target": "services.common.database",
           "kind": "from"
         },
         {
           "source": "services/events/bus.py",
-          "line": 371,
+          "line": 395,
           "target": "services.events.retention",
           "kind": "from"
         },
@@ -505,181 +505,187 @@
         },
         {
           "source": "services/events/cli.py",
-          "line": 86,
+          "line": 83,
+          "target": "services.events.bus",
+          "kind": "from"
+        },
+        {
+          "source": "services/events/cli.py",
+          "line": 89,
           "target": "services.core.features",
           "kind": "from"
         },
         {
           "source": "services/events/cli.py",
-          "line": 118,
+          "line": 121,
           "target": "services.events.dispatch_worker",
           "kind": "from"
         },
         {
           "source": "services/events/cli.py",
-          "line": 124,
+          "line": 127,
           "target": "services.events.backend",
           "kind": "from"
         },
         {
           "source": "services/events/cli.py",
-          "line": 130,
+          "line": 133,
           "target": "services.events.notification_delivery_worker",
           "kind": "from"
         },
         {
           "source": "services/events/cli.py",
-          "line": 136,
+          "line": 139,
           "target": "services.common.database",
           "kind": "from"
         },
         {
           "source": "services/events/cli.py",
-          "line": 137,
+          "line": 140,
           "target": "services.events.notification_outbox",
           "kind": "from"
         },
         {
           "source": "services/events/cli.py",
-          "line": 209,
+          "line": 212,
           "target": "services.events.backend",
           "kind": "from"
         },
         {
           "source": "services/events/cli.py",
-          "line": 223,
+          "line": 226,
           "target": "services.events.retention",
           "kind": "from"
         },
         {
           "source": "services/events/cli.py",
-          "line": 231,
+          "line": 234,
           "target": "services.events.backend",
           "kind": "from"
         },
         {
           "source": "services/events/cli.py",
-          "line": 246,
+          "line": 249,
           "target": "services.common.database",
           "kind": "from"
         },
         {
           "source": "services/events/cli.py",
-          "line": 275,
+          "line": 278,
           "target": "services.common.database",
           "kind": "from"
         },
         {
           "source": "services/events/cli.py",
-          "line": 307,
+          "line": 310,
           "target": "services.events.backend",
           "kind": "from"
         },
         {
           "source": "services/events/cli.py",
-          "line": 319,
+          "line": 322,
           "target": "services.events.backend",
           "kind": "from"
         },
         {
           "source": "services/events/cli.py",
-          "line": 334,
+          "line": 337,
           "target": "services.common.database",
           "kind": "from"
         },
         {
           "source": "services/events/cli.py",
-          "line": 335,
+          "line": 338,
           "target": "services.events.notification_outbox",
           "kind": "from"
         },
         {
           "source": "services/events/cli.py",
-          "line": 344,
+          "line": 347,
           "target": "services.common.database",
           "kind": "from"
         },
         {
           "source": "services/events/cli.py",
-          "line": 345,
+          "line": 348,
           "target": "services.events.notification_outbox",
           "kind": "from"
         },
         {
           "source": "services/events/cli.py",
-          "line": 354,
+          "line": 357,
           "target": "services.common.database",
           "kind": "from"
         },
         {
           "source": "services/events/cli.py",
-          "line": 355,
+          "line": 358,
           "target": "services.events.notification_outbox",
           "kind": "from"
         },
         {
           "source": "services/events/cli.py",
-          "line": 364,
+          "line": 367,
           "target": "services.common.database",
           "kind": "from"
         },
         {
           "source": "services/events/cli.py",
-          "line": 365,
+          "line": 368,
           "target": "services.events.notification_outbox",
           "kind": "from"
         },
         {
           "source": "services/events/cli.py",
-          "line": 376,
+          "line": 379,
           "target": "services.common.database",
           "kind": "from"
         },
         {
           "source": "services/events/cli.py",
-          "line": 377,
+          "line": 380,
           "target": "services.events.notification_outbox",
           "kind": "from"
         },
         {
           "source": "services/events/cli.py",
-          "line": 535,
+          "line": 538,
           "target": "services.events.fork_detector",
           "kind": "from"
         },
         {
           "source": "services/events/cli.py",
-          "line": 543,
+          "line": 546,
           "target": "services.events.fork_detector",
           "kind": "from"
         },
         {
           "source": "services/events/cli.py",
-          "line": 555,
+          "line": 558,
           "target": "services.events.insight_transfer",
           "kind": "from"
         },
         {
           "source": "services/events/cli.py",
-          "line": 567,
+          "line": 570,
           "target": "services.events.insight_transfer",
           "kind": "from"
         },
         {
           "source": "services/events/cli.py",
-          "line": 576,
+          "line": 579,
           "target": "services.events.insight_transfer",
           "kind": "from"
         },
         {
           "source": "services/events/cli.py",
-          "line": 585,
+          "line": 588,
           "target": "services.events.insight_transfer",
           "kind": "from"
         },
         {
           "source": "services/events/cli.py",
-          "line": 596,
+          "line": 599,
           "target": "services.common.database",
           "kind": "from"
         },
@@ -778,7 +784,7 @@
       "dynamic_import_sites": [
         {
           "source": "services/events/bus.py",
-          "line": 46,
+          "line": 63,
           "kind": "dynamic module expression"
         }
       ]
@@ -1047,13 +1053,13 @@
         },
         {
           "source": "services/events/bus.py",
-          "line": 63,
+          "line": 81,
           "target": "services.common.database",
           "kind": "from"
         },
         {
           "source": "services/events/bus.py",
-          "line": 371,
+          "line": 395,
           "target": "services.events.retention",
           "kind": "from"
         },
@@ -1290,7 +1296,7 @@
       "dynamic_import_sites": [
         {
           "source": "services/events/bus.py",
-          "line": 46,
+          "line": 63,
           "kind": "dynamic module expression"
         }
       ]
@@ -2644,13 +2650,13 @@
         },
         {
           "source": "services/events/bus.py",
-          "line": 63,
+          "line": 81,
           "target": "services.common.database",
           "kind": "from"
         },
         {
           "source": "services/events/bus.py",
-          "line": 371,
+          "line": 395,
           "target": "services.events.retention",
           "kind": "from"
         },
@@ -2710,7 +2716,7 @@
         },
         {
           "source": "services/ingestion/data_freshness.py",
-          "line": 576,
+          "line": 583,
           "target": "services.ingestion.base",
           "kind": "from"
         }
@@ -2719,7 +2725,7 @@
       "dynamic_import_sites": [
         {
           "source": "services/events/bus.py",
-          "line": 46,
+          "line": 63,
           "kind": "dynamic module expression"
         }
       ]
@@ -3209,13 +3215,13 @@
         },
         {
           "source": "services/events/bus.py",
-          "line": 63,
+          "line": 81,
           "target": "services.common.database",
           "kind": "from"
         },
         {
           "source": "services/events/bus.py",
-          "line": 371,
+          "line": 395,
           "target": "services.events.retention",
           "kind": "from"
         },
@@ -3275,7 +3281,7 @@
         },
         {
           "source": "services/ingestion/data_freshness.py",
-          "line": 576,
+          "line": 583,
           "target": "services.ingestion.base",
           "kind": "from"
         },
@@ -3308,7 +3314,7 @@
       "dynamic_import_sites": [
         {
           "source": "services/events/bus.py",
-          "line": 46,
+          "line": 63,
           "kind": "dynamic module expression"
         }
       ]
@@ -5325,13 +5331,13 @@
         },
         {
           "source": "services/events/bus.py",
-          "line": 63,
+          "line": 81,
           "target": "services.common.database",
           "kind": "from"
         },
         {
           "source": "services/events/bus.py",
-          "line": 371,
+          "line": 395,
           "target": "services.events.retention",
           "kind": "from"
         },
@@ -5476,7 +5482,7 @@
         },
         {
           "source": "services/events/bus.py",
-          "line": 46,
+          "line": 63,
           "kind": "dynamic module expression"
         }
       ]
@@ -6347,6 +6353,12 @@
           "line": 16,
           "target": "services.ingestion.weather_forecast",
           "kind": "from"
+        },
+        {
+          "source": "services/ingestion/weather_forecast_worker.py",
+          "line": 155,
+          "target": "services.common.logging",
+          "kind": "from"
         }
       ],
       "unresolved_local_modules": [],
@@ -6600,6 +6612,12 @@
           "line": 17,
           "target": "services.ingestion.weather",
           "kind": "from"
+        },
+        {
+          "source": "services/ingestion/weather_worker.py",
+          "line": 173,
+          "target": "services.common.logging",
+          "kind": "from"
         }
       ],
       "unresolved_local_modules": [],
@@ -6787,13 +6805,13 @@
         },
         {
           "source": "services/events/bus.py",
-          "line": 63,
+          "line": 81,
           "target": "services.common.database",
           "kind": "from"
         },
         {
           "source": "services/events/bus.py",
-          "line": 371,
+          "line": 395,
           "target": "services.events.retention",
           "kind": "from"
         },
@@ -7042,7 +7060,7 @@
       "dynamic_import_sites": [
         {
           "source": "services/events/bus.py",
-          "line": 46,
+          "line": 63,
           "kind": "dynamic module expression"
         }
       ]
@@ -7974,13 +7992,13 @@
         },
         {
           "source": "services/events/bus.py",
-          "line": 63,
+          "line": 81,
           "target": "services.common.database",
           "kind": "from"
         },
         {
           "source": "services/events/bus.py",
-          "line": 371,
+          "line": 395,
           "target": "services.events.retention",
           "kind": "from"
         },
@@ -8013,7 +8031,7 @@
       "dynamic_import_sites": [
         {
           "source": "services/events/bus.py",
-          "line": 46,
+          "line": 63,
           "kind": "dynamic module expression"
         }
       ]
@@ -12044,13 +12062,13 @@
         },
         {
           "source": "services/events/bus.py",
-          "line": 63,
+          "line": 81,
           "target": "services.common.database",
           "kind": "from"
         },
         {
           "source": "services/events/bus.py",
-          "line": 371,
+          "line": 395,
           "target": "services.events.retention",
           "kind": "from"
         },
@@ -12287,7 +12305,7 @@
       "dynamic_import_sites": [
         {
           "source": "services/events/bus.py",
-          "line": 46,
+          "line": 63,
           "kind": "dynamic module expression"
         }
       ]

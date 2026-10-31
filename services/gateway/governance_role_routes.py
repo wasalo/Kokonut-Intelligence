@@ -14,6 +14,7 @@ from pydantic import (
     field_validator,
     model_validator,
 )
+from starlette.requests import Request
 
 
 def _response_uuid(value):
@@ -147,6 +148,167 @@ class GovernanceTensionSubmittedResponse(_GovernanceTensionResponseBase):
     """Public submission receipt with the only valid resulting lifecycle state."""
 
     status: Literal["submitted"]
+
+
+class _GovernanceTensionLifecycleActionRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    request_id: _GovernanceResponseUUID
+    reason: str = Field(min_length=1, max_length=2000, strict=True)
+
+    @field_validator("reason")
+    @classmethod
+    def validate_reason(cls, value: str) -> str:
+        if not value.strip() or "\x00" in value:
+            raise ValueError("reason must not be blank or contain null characters")
+        return value.strip()
+
+
+class GovernanceTensionTriageRequest(_GovernanceTensionLifecycleActionRequest):
+    owner_role_id: _GovernanceResponseUUID | None = None
+    owner_party_id: _GovernanceResponseUUID | None = None
+    review_due_at: AwareDatetime | None = None
+    note: str | None = Field(default=None, max_length=2000, strict=True)
+
+    @field_validator("review_due_at", mode="before")
+    @classmethod
+    def parse_review_due_at(cls, value):
+        if value is None or isinstance(value, datetime):
+            return value
+        if isinstance(value, str):
+            try:
+                return datetime.fromisoformat(value.replace("Z", "+00:00"))
+            except ValueError as exc:
+                raise ValueError("review_due_at must be an ISO timestamp") from exc
+        raise ValueError("review_due_at must be an ISO timestamp or null")
+
+    @model_validator(mode="after")
+    def require_owner(self):
+        if self.owner_role_id is None and self.owner_party_id is None:
+            raise ValueError("triage requires an owner role or party")
+        if self.note is not None and "\x00" in self.note:
+            raise ValueError("note cannot contain null characters")
+        return self
+
+
+class GovernanceTensionStartRequest(_GovernanceTensionLifecycleActionRequest):
+    pass
+
+
+class GovernanceTensionLinkRequest(_GovernanceTensionLifecycleActionRequest):
+    link_type: Literal[
+        "interest", "commitment", "work_item", "decision", "grievance",
+        "evidence", "relationship", "proposal", "outcome",
+    ]
+    entity_type: str = Field(min_length=1, max_length=80, strict=True)
+    entity_id: _GovernanceResponseUUID
+    summary: str | None = Field(default=None, max_length=4000, strict=True)
+
+    @field_validator("entity_type")
+    @classmethod
+    def validate_entity_type(cls, value: str) -> str:
+        import re
+
+        if re.fullmatch(r"[a-z][a-z0-9_]{0,79}", value) is None:
+            raise ValueError("entity_type is invalid")
+        return value
+
+    @field_validator("summary")
+    @classmethod
+    def validate_summary(cls, value: str | None) -> str | None:
+        if value is not None and "\x00" in value:
+            raise ValueError("summary cannot contain null characters")
+        return value.strip() or None if value is not None else None
+
+
+class GovernanceTensionLinkWorkItemRequest(_GovernanceTensionLifecycleActionRequest):
+    work_item_id: _GovernanceResponseUUID
+
+
+class GovernanceTensionResolveRequest(_GovernanceTensionLifecycleActionRequest):
+    resolution_summary: str = Field(min_length=1, max_length=4000, strict=True)
+
+    @field_validator("resolution_summary")
+    @classmethod
+    def validate_resolution_summary(cls, value: str) -> str:
+        if not value.strip() or "\x00" in value:
+            raise ValueError("resolution_summary must not be blank or contain null characters")
+        return value.strip()
+
+
+class GovernanceTensionDeferRequest(_GovernanceTensionLifecycleActionRequest):
+    deferred_until: AwareDatetime
+    note: str | None = Field(default=None, max_length=2000, strict=True)
+
+    @field_validator("deferred_until", mode="before")
+    @classmethod
+    def parse_deferred_until(cls, value):
+        if isinstance(value, datetime):
+            return value
+        if isinstance(value, str):
+            try:
+                return datetime.fromisoformat(value.replace("Z", "+00:00"))
+            except ValueError as exc:
+                raise ValueError("deferred_until must be an ISO timestamp") from exc
+        raise ValueError("deferred_until must be an ISO timestamp")
+
+    @field_validator("note")
+    @classmethod
+    def validate_note(cls, value: str | None) -> str | None:
+        if value is not None and "\x00" in value:
+            raise ValueError("note cannot contain null characters")
+        return value.strip() or None if value is not None else None
+
+
+class GovernanceTensionLifecycleResponse(BaseModel):
+    """Identity-minimized receipt returned by migration-backed transitions."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    location_id: _GovernanceResponseUUID
+    tension_id: _GovernanceResponseUUID
+    action: Literal["triage", "start", "link", "link_work_item", "resolve", "defer"]
+    status: _GOVERNANCE_TENSION_STATUS
+    updated_at: AwareDatetime
+    request_id: _GovernanceResponseUUID
+    link_id: _GovernanceResponseUUID | None
+
+    @field_validator("updated_at", mode="before")
+    @classmethod
+    def parse_updated_at(cls, value):
+        if isinstance(value, datetime):
+            return value
+        if isinstance(value, str):
+            try:
+                return datetime.fromisoformat(value.replace("Z", "+00:00"))
+            except ValueError as exc:
+                raise ValueError("tension action timestamp is invalid") from exc
+        raise ValueError("tension action timestamp must be ISO formatted")
+
+    @model_validator(mode="after")
+    def validate_action_receipt(self):
+        expected_status = {
+            "triage": "triaged",
+            "start": "in_progress",
+            "resolve": "resolved",
+            "defer": "deferred",
+        }.get(self.action)
+        if expected_status is not None and self.status != expected_status:
+            raise ValueError("tension action status does not match the requested action")
+        expects_link = self.action in {"link", "link_work_item"}
+        if expects_link != (self.link_id is not None):
+            raise ValueError("tension action link receipt does not match the requested action")
+        return self
+
+
+_GOVERNANCE_TENSION_ACTION_REQUESTS = {
+    "triage": GovernanceTensionTriageRequest,
+    "start": GovernanceTensionStartRequest,
+    "link": GovernanceTensionLinkRequest,
+    "link_work_item": GovernanceTensionLinkWorkItemRequest,
+    "resolve": GovernanceTensionResolveRequest,
+    "defer": GovernanceTensionDeferRequest,
+}
 
 
 class GovernanceTensionActionError(BaseModel):
@@ -1304,10 +1466,11 @@ class GovernanceDefinitionLifecycleError(BaseModel):
 
 
 def register_governance_role_routes(router, provider, run_in_threadpool, psycopg2):
+    import json
+
     from fastapi import Query
     from fastapi.encoders import jsonable_encoder
     from fastapi.responses import JSONResponse
-    from starlette.requests import Request
 
     from services.common.tenant_context import TenantContextDenied
     from services.gateway.governance_assignment_proposal_reads import (
@@ -1361,6 +1524,7 @@ def register_governance_role_routes(router, provider, run_in_threadpool, psycopg
     from services.gateway.governance_tension_actions import (
         GovernanceTensionConflict,
         GovernanceTensionInvalid,
+        mutate_governance_tension_action,
         report_governance_tension,
         submit_governance_tension,
     )
@@ -1387,6 +1551,7 @@ def register_governance_role_routes(router, provider, run_in_threadpool, psycopg
             403: "The operator lacks an active exact-location action grant.",
             404: "Operator OIDC is disabled or the tension is unavailable.",
             409: "The requested tension action conflicts with current state.",
+            413: "The governance-tension request body exceeds its size limit.",
             500: "The governance-tension result failed its response contract.",
             503: "The governance-tension action is unavailable.",
         }.items()
@@ -3647,4 +3812,149 @@ def register_governance_role_routes(router, provider, run_in_threadpool, psycopg
             )
         return JSONResponse(
             jsonable_encoder(response.model_dump(mode="python")), headers=headers
+        )
+
+    tension_lifecycle_request_schema = {
+        "oneOf": [
+            model.model_json_schema()
+            for model in _GOVERNANCE_TENSION_ACTION_REQUESTS.values()
+        ]
+    }
+
+    async def bounded_tension_action_payload(request):
+        body = bytearray()
+        async for chunk in request.stream():
+            if len(body) + len(chunk) > 32 * 1024:
+                return None, JSONResponse(
+                    status_code=413,
+                    content={"error": "Governance-tension request body exceeds 32 KiB"},
+                    headers={"Cache-Control": "no-store", "Vary": "Cookie"},
+                )
+            body.extend(chunk)
+        def reject_duplicate_json_keys(pairs):
+            value = {}
+            for key, item in pairs:
+                if key in value:
+                    raise ValueError("duplicate JSON object key")
+                value[key] = item
+            return value
+
+        try:
+            payload = json.loads(body, object_pairs_hook=reject_duplicate_json_keys)
+        except (ValueError, RecursionError):
+            return None, JSONResponse(
+                status_code=400,
+                content={"error": "Governance tension action must be valid JSON"},
+                headers={"Cache-Control": "no-store", "Vary": "Cookie"},
+            )
+        if not isinstance(payload, dict):
+            return None, JSONResponse(
+                status_code=400,
+                content={"error": "Governance tension action must be an object"},
+                headers={"Cache-Control": "no-store", "Vary": "Cookie"},
+            )
+        return payload, None
+
+    @router.post(
+        "/operator/api/governance/{location_id}/tensions/{tension_id}/actions/{action}",
+        response_model=GovernanceTensionLifecycleResponse,
+        responses={
+            200: {
+                "model": GovernanceTensionLifecycleResponse,
+                "description": (
+                    "The requested location-scoped lifecycle action was applied, or an "
+                    "idempotent retry returned its original receipt. Actor identities "
+                    "and private request material are omitted."
+                ),
+                "headers": {
+                    "Cache-Control": {"schema": {"type": "string", "example": "no-store"}},
+                    "Vary": {"schema": {"type": "string", "example": "Cookie"}},
+                },
+            },
+            **tension_action_error_responses,
+        },
+        openapi_extra={
+            "requestBody": {
+                "required": True,
+                "content": {
+                    "application/json": {"schema": tension_lifecycle_request_schema}
+                },
+            }
+        },
+    )
+    async def mutate_location_governance_tension(
+        request: Request,
+        location_id: str,
+        tension_id: str,
+        action: str,
+    ):
+        headers = {"Cache-Control": "no-store", "Vary": "Cookie"}
+        if provider is None:
+            return JSONResponse(
+                status_code=404,
+                content={"error": "Operator OIDC is disabled"},
+                headers=headers,
+            )
+        request_model = _GOVERNANCE_TENSION_ACTION_REQUESTS.get(action)
+        if request_model is None:
+            return JSONResponse(
+                status_code=404,
+                content={"error": "Governance tension action is unavailable"},
+                headers=headers,
+            )
+        payload, body_error = await bounded_tension_action_payload(request)
+        if body_error is not None:
+            return body_error
+        try:
+            action_request = request_model.model_validate(payload)
+            requested_location_id = UUID(location_id)
+            requested_tension_id = UUID(tension_id)
+            operator_id = str(UUID(request.state.operator_session.operator.operator_id))
+        except (ValidationError, TypeError, ValueError):
+            return JSONResponse(
+                status_code=400,
+                content={"error": "Governance tension action is invalid"},
+                headers=headers,
+            )
+        try:
+            result = await run_in_threadpool(
+                mutate_governance_tension_action,
+                operator_id,
+                str(requested_location_id),
+                str(requested_tension_id),
+                action,
+                action_request.model_dump(mode="json"),
+            )
+        except (
+            TenantContextDenied,
+            GovernanceTensionInvalid,
+            GovernanceTensionConflict,
+            psycopg2.Error,
+        ) as exc:
+            return error_response(exc, headers=headers)
+        try:
+            response = GovernanceTensionLifecycleResponse.model_validate(
+                {"location_id": str(requested_location_id), **result}
+            )
+            if (
+                response.location_id != requested_location_id
+                or response.tension_id != requested_tension_id
+                or response.action != action
+                or response.request_id != action_request.request_id
+            ):
+                raise ValueError("Governance tension action receipt does not match its request")
+        except (ValidationError, TypeError, ValueError) as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.governance_tensions").warning(
+                "Governance tension lifecycle response rejected (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=500,
+                content={"error": "Governance tension action unavailable"},
+                headers=headers,
+            )
+        return JSONResponse(
+            jsonable_encoder(response.model_dump(mode="python")),
+            headers=headers,
         )

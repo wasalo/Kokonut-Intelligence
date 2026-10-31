@@ -119,4 +119,4 @@ For URI utility operations, `expand_prefixed_term()` expands a prefix using the 
 - RDF graph construction and evidence chains: `services/rdf/`
 - Metadata graph resolution: `services/metadata_api/`
 
-Schema.org alignment does not make a record public, verified, attested, or registry-eligible. Lifecycle, evidence, consent, and publication controls remain authoritative in PostgreSQL/Directus.
+Schema.org alignment does not make a record public, verified, attested, or registry-eligible. Lifecycle, evidence, consent, and publication controls remain authoritative in PostgreSQL and its governed services/views.

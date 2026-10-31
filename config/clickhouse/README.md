@@ -1,6 +1,8 @@
 # ClickHouse Configuration
 
-XML configuration files for the ClickHouse analytical database engine. The entire `config.d/` directory is mounted read-only into the ClickHouse container.
+XML configuration files for the optional ClickHouse analytical database. The
+legacy Compose stack and the Kernel analytics overlay mount `config.d/`
+read-only; ClickHouse is not part of the Kernel base or standard profile.
 
 ## Files
 
@@ -34,7 +36,9 @@ Drop any `.xml` file into `config/clickhouse/config.d/`. ClickHouse reads all fi
 </clickhouse>
 ```
 
-Restart ClickHouse to apply: `docker compose restart clickhouse`.
+Restart the selected ClickHouse service to apply. For the legacy Compose stack,
+use `docker compose restart clickhouse`; Kernel analytics uses its separate
+Compose project and service.
 
 ## Docker Volume Mount
 
@@ -45,3 +49,5 @@ clickhouse:
 ```
 
 The `:ro` mount means config files cannot be modified from inside the container.
+The example is the legacy Compose service shape; the optional Kernel analytics
+overlay mounts the same directory without making ClickHouse a base dependency.

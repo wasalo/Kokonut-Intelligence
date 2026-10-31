@@ -24,6 +24,41 @@ incomplete in the inventory.
 
 ## Current evidence and decisions
 
+### Current cohort — migrations 700–703, 31 October 2026
+
+The location-scoped tension, extension-learning, landscape-capture, and metric
+value source contracts now have additive SQL functions, isolated function
+owners, exact runtime grants, and private receipts/audit rows. Focused disposable
+PostgreSQL/PostGIS acceptance passes for each migration; the native full-schema
+replay through 703 applies 694/694 files and passes all 38 two-tenant operator
+checks. The full ARM64/QEMU replay also passes 694/694 schemas and all 38
+two-tenant operator checks ([evidence](builds/2026-10-30-recovery/kernel-c1-full-schema-703-arm64-r1.json)); it used no seeds or host ports and cleaned up its disposable project. This is software emulation, not physical Raspberry Pi acceptance. The refreshed 703 report records
+148 declared policy boundaries, zero mismatches, zero direct table/column
+privilege violations, 1,367 public relations with some DML, and 979 tables with
+runtime DML while RLS is disabled. The 41 unresolved write candidates remain
+open; these counts measure ACL reach, not confirmed tenant-data exposure.
+The grouped focused Gateway/console/source/ACL/migration selection passes 216
+tests ([evidence](builds/2026-10-30-recovery/c1-700-703-focused-tests.json)).
+
+These additive routes do not retire the legacy tension/metric/extension/
+landscape writers, revoke their DML, or prove universal tenant isolation. No
+candidate, legacy, or production database/role was changed. Current evidence:
+[native full replay](builds/2026-10-30-recovery/kernel-c1-full-schema-703-native-r2.json),
+[source/ACL report](builds/2026-10-30-recovery/runtime-privilege-callsite-report-703.json),
+[migration 700](builds/2026-10-30-recovery/governance-tension-location-actions-700-disposable.json),
+[migration 701](builds/2026-10-30-recovery/extension-learning-writes-701-disposable.json),
+[migration 702](builds/2026-10-30-recovery/landscape-capture-702-disposable.json),
+[migration 703](builds/2026-10-30-recovery/metric-value-kernel-disposable.json).
+
+Migration 703 bounds `source_record_ids` and rejects NULL elements, but does
+not verify that the polymorphic records belong to the requested location. The
+Gateway currently derives them from the scoped metric calculation. Keep
+provenance acceptance open until a source-type/discriminator contract makes
+location validation possible at the database boundary.
+
+The detailed entries below are dated historical checkpoints through migration
+699 unless they link explicitly to the current 700–703 evidence above.
+
 - The native full-schema migration-699 probe covers 1,513 public relations
   and reports 979 tables with runtime DML while RLS is disabled. The ARM64/QEMU
   full-schema replay through 696 applied 687/687 schema files and passed the
@@ -351,7 +386,7 @@ retained global SELECT is not tenant-isolated. `farm_task_framework_step`
 remains unresolved because 20 of 41 historical edges lack confirmed scope.
 No candidate, legacy, or production role/database was changed.
 
-Evidence: [migration](../schemas/postgres/697_runtime_process_benchmark_read_only.sql),
+Evidence: [migration](../../schemas/postgres/697_runtime_process_benchmark_read_only.sql),
 [native ACL](builds/2026-10-30-recovery/runtime-process-benchmark-697-disposable.json),
 [ARM64/QEMU ACL](builds/2026-10-30-recovery/runtime-process-benchmark-697-arm64-disposable.json),
 [native full-schema replay](builds/2026-10-30-recovery/native-resource-limited-schema-697-operator-probe.json),
@@ -384,7 +419,7 @@ no external importer relies on positional `INSERT ... VALUES` and reconcile or
 dispose unresolved edges. No candidate, legacy, or production database or role
 changed.
 
-Evidence: [migration](../schemas/postgres/698_farm_task_framework_step_location_scope.sql),
+Evidence: [migration](../../schemas/postgres/698_farm_task_framework_step_location_scope.sql),
 [native focused check](builds/2026-10-30-recovery/farm-task-framework-step-698-disposable.json),
 [ARM64/QEMU focused check](builds/2026-10-30-recovery/farm-task-framework-step-698-arm64-disposable.json),
 [source/ACL regression selection](builds/2026-10-30-recovery/farm-task-framework-step-698-source-checks.json),
@@ -417,7 +452,7 @@ portability evidence, not physical Raspberry Pi acceptance; full QEMU schema
 replay remains through 696. No candidate, legacy, or production database or
 role changed.
 
-Evidence: [migration](../schemas/postgres/699_runtime_public_farm_summary_read_only.sql),
+Evidence: [migration](../../schemas/postgres/699_runtime_public_farm_summary_read_only.sql),
 [native ACL](builds/2026-10-30-recovery/runtime-public-farm-summary-699-disposable.json),
 [ARM64/QEMU ACL](builds/2026-10-30-recovery/runtime-public-farm-summary-699-arm64-disposable.json),
 [native schema replay](builds/2026-10-30-recovery/native-resource-limited-schema-699-operator-probe.json),
@@ -437,3 +472,66 @@ forward migration can retain SELECT while revoking runtime table/column writes
 and preserving the separately controlled maintenance/import path.
 
 Evidence: [source audit](builds/2026-10-30-recovery/living-wage-benchmark-c1-source-audit.json).
+
+## Code-first continuation — governance-tension lifecycle — 30 October 2026
+
+Added a location-scoped Gateway action surface for triage, start, record link,
+work-item link, resolve, and defer. Requests have strict action-specific
+schemas and a 32 KiB body limit; responses bind location, tension, action, and
+idempotency request ID, omit actor identities, and use no-store headers. The
+helper sets signed operator tenant context and calls the planned bounded
+`kokonut_security.mutate_governance_tension_action` contract. Exact OIDC action
+policies are registered for the six operations.
+
+The database function, grants, replay receipt, atomic event/link writes, and
+disposable acceptance are deferred to the final migration/test phase. Legacy
+service/CLI writers remain enabled because the schema supports network,
+organization, farm, cooperative, value-stream, initiative, and decision scopes;
+the new route covers location scope only. It must reject non-location
+tensions until matching authenticated scope contracts are designed. Candidate,
+legacy, and production databases and roles were not touched. Other audited C1
+writers without exact Gateway equivalents remain open rather than being
+retired and losing capabilities.
+
+## Code-first continuation — extension learning and landscape capture — 30 October 2026
+
+Added strict, location-bound Gateway write contracts for extension peer-network
+creation, extension progress updates, and five record-only landscape captures
+(habitat, corridor, hedgerow, buffer check, and biodiversity assessment). These
+routes use exact OIDC action policies, signed tenant context, bounded request
+bodies, idempotency receipts, identity-minimized no-store responses, and reject
+duplicate JSON keys and NUL characters. Extension Learning adds a peer-network
+creation form; progress writes remain an API operation because the source data
+contains participant-linked records and no safe roster/detail UI is defined.
+
+The planned database functions must retain the legacy defaults and derivations:
+fair corridor/hedgerow condition, current-date defaults for omitted observation
+dates, width-based buffer compliance when both widths are present, and validated
+location geometry. The bounded SQL contracts, role grants, database acceptance,
+and console/browser checks are deferred to the final migration/test phase. The
+legacy services and CLIs remain enabled until those gates pass; no capability
+is retired in this source-only tranche. These routes are not deployable before
+their functions exist, and no tests or migrations were added or run.
+
+## Code-first continuation — metric writes and planning preflight — 30 October 2026
+
+The metric engine now exposes a calculator-only draft function that does not
+insert or commit. New Gateway source contracts provide exact-location draft
+computation, a paginated identity-minimized list, and a separate
+human-verification action. The operator console can compute, inspect, and
+verify using the matching location grants. The writer adapter sets signed
+tenant context before source reads and the bounded write, validates calculator
+output, derives reviewer identity from the operator session, rejects self-review
+in the planned function contract, and maps documented SQLSTATEs. The existing
+CLI adapter remains unchanged until migration and rollout.
+
+The future SQL functions are
+`kokonut_security.create_location_metric_value_draft`,
+`kokonut_security.list_location_metric_values`, and
+`kokonut_security.verify_location_metric_value`. They must own grant checks,
+location binding, draft/verified lifecycle, bounded pagination,
+cross-operation idempotency, self-review exclusion, and identity-minimized
+receipts. Separately, the planning CLI and service now reject noncanonical or
+reversed plan dates before acquiring PostgreSQL. No tests or migrations were
+added or run; these routes are not deployable until their functions and grants
+exist.

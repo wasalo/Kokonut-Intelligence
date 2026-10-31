@@ -29,7 +29,8 @@ python3 -m services.delphi.cli --help
 The legacy `Facilitator`, `PanelManager`, and `MinorityReportManager`
 database-backed methods are compatibility facades and raise before using a
 connection or cursor. Use the authenticated, location-scoped Gateway for the
-study and participant workflows it implements. Direct panel administration,
-diversity assessment, minority-report operations, and panel calibration are
-not available until their authorization, privacy, and review contracts exist.
+study and participant workflows it implements, including minority-report
+submission and independent reviewer decisions. Direct panel administration,
+diversity assessment, and panel calibration remain unavailable until their
+authorization, privacy, and review contracts exist.
 `ConsensusCalculator` remains available for pure, in-memory consensus math.

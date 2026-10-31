@@ -1,25 +1,67 @@
 # ClickHouse Schemas
 
-Analytical event store for time-series data. PostgreSQL is the canonical source of truth; ClickHouse is a write-only analytical mirror consumed by the `Exporter` (`--source clickhouse`).
+Optional analytical event store for time-series data. PostgreSQL is the
+canonical source of truth; ClickHouse is a rebuildable analytical projection
+used by selected exporters and reports. It is not required by the Kernel base
+or standard profile; select the analytics overlay only after its parity and
+recovery gates are accepted.
 
 ## Application
 
-`scripts/seed.sh` applies all `*.sql` files in filename order via `clickhouse-client --database "$CH_DB" --multiquery` (`CH_DB` defaults to `kokonut_analytics`). All statements are idempotent (`CREATE TABLE IF NOT EXISTS`, `CREATE MATERIALIZED VIEW IF NOT EXISTS`, `ALTER TABLE ADD COLUMN IF NOT EXISTS`).
+For the legacy integration stack, `scripts/seed.sh` applies all `*.sql` files
+in filename order through `clickhouse-client --database "$CH_DB" --multiquery`
+(`CH_DB` defaults to `kokonut_analytics`). All bootstrap statements use
+idempotent DDL. The Kernel candidate uses a separately selected analytics
+overlay and does not make this seed step part of its base startup.
 
 There is no migration tracker. Bootstrap DDL is re-applied on seed runs; table data and materialized rollups are persistent state. `IF NOT EXISTS` does not reconcile changed definitions. The selected database must already exist; never silently fall back to `default`.
 
+Retention and legal holds are not configured in ClickHouse today. The interim
+policy is **no automated pruning**. Fresh table definitions contain no TTL.
+`011_retention_policy_no_prune.sql` is a manifest consumed by
+`scripts/apply-clickhouse-retention.py`; the helper checks each table and runs
+`REMOVE TTL` only where a table-level TTL still exists. This makes fresh
+bootstrap and repeat application safe. Removing a TTL does not itself delete
+rows; rows removed by an earlier TTL cannot be recovered by this change. The
+legacy `scripts/seed.sh` uses this helper automatically. For a Kernel analytics
+deployment, apply it to the selected project and database before enabling
+ingestion, then verify the table definitions contain no TTL. For example, with
+the candidate and analytics overlay selected, provide the matching Compose
+project name and loaded secret environment:
+
+```bash
+source scripts/load-secrets.sh
+python3 scripts/apply-clickhouse-retention.py \
+  --compose-file docker-compose.kernel-candidate.yml \
+  --compose-file docker-compose.kernel-analytics.yml \
+  --project-name kokonut-kernel-dev \
+  --service clickhouse --database kokonut_analytics
+```
+
+Use the actual project name selected by the profile planner. Do not pipe
+`011_retention_policy_no_prune.sql` directly to `clickhouse-client`; ClickHouse
+rejects `REMOVE TTL` when the table has no table TTL. Do not enable Analytics on
+an older database until the helper has completed and the table definitions
+have been verified. Any future retention must be configurable,
+jurisdiction-aware, owner-approved, and preserve legal holds.
+
+The network-disabled disposable check applies the full schema on the pinned
+25.8 image, verifies fresh-install skip behavior, removes eight synthetic
+legacy TTLs, replays the helper, and confirms an old-dated synthetic event
+survives a merge ([evidence](../../docs/refactor/builds/2026-10-30-recovery/clickhouse-retention-no-prune-disposable.json)).
+
 ## Tables
 
-| Table | TTL | Purpose |
-|-------|-----|---------|
-| `events_raw` | 2 years | Generic time-series events |
-| `wallet_events` | 2 years | On-chain wallet activity |
-| `sensor_readings` | 1 year | IoT sensor data |
-| `weather_events` | 2 years | Weather observations |
-| `financial_events` | 2 years | Financial transaction mirror |
-| `dlego_events` | 2 years | Digital Lego protocol usage |
-| `remote_sensing_events` | 2 years | NDVI/NDRE/EVI/SAVI satellite observations |
-| `attestation_events` | 2 years | EAS attestation records |
+| Table | Automated expiry | Purpose |
+|-------|-------------------|---------|
+| `events_raw` | None | Generic time-series events |
+| `wallet_events` | None | On-chain wallet activity |
+| `sensor_readings` | None | IoT sensor data |
+| `weather_events` | None | Weather observations |
+| `financial_events` | None | Financial transaction mirror |
+| `dlego_events` | None | Digital Lego protocol usage |
+| `remote_sensing_events` | None | NDVI/NDRE/EVI/SAVI satellite observations |
+| `attestation_events` | None | EAS attestation records |
 
 ## Materialized Views
 

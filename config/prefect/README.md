@@ -1,6 +1,11 @@
 # Prefect Workflow Deployments
 
-Deployment configuration for Prefect workflow orchestration.
+Deployment configuration for the optional Prefect workflow adapter.
+
+Prefect is an optional legacy orchestration adapter, not the default Kernel
+scheduler. Kernel scheduling and durable job state use the native scheduler
+and worker runtime; keep Prefect disabled unless the compatibility profile and
+its dependency/provider requirements are deliberately selected.
 
 ## Files
 
@@ -23,7 +28,7 @@ All flows are defined in `services/flows/pipelines.py`.
 ## Usage
 
 ```bash
-# Apply all deployments
+# Apply all deployments to an explicitly configured Prefect server/work-pool
 prefect deployment apply deployment.yaml
 
 # Run a specific deployment

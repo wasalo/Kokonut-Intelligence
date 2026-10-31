@@ -386,23 +386,36 @@ def parse_operator_scope_probe(output: str) -> dict[str, object]:
     }
     if not isinstance(scoped_write, dict) or set(scoped_write) != expected_scoped_fields:
         raise ValueError("operator scope probe did not report the runtime scoped-write boundary")
-    if (
-        scoped_write["private_relations_expected"] != len(_RUNTIME_PRIVATE_TABLES)
-        or scoped_write["mutation_denied_relations_expected"] != len(_RUNTIME_MUTATION_TABLES)
-        or scoped_write["private_relations_verified"] != len(_RUNTIME_PRIVATE_TABLES)
-        or scoped_write["mutation_denied_relations_verified"] != len(_RUNTIME_MUTATION_TABLES)
-        or scoped_write["direct_table_privilege_violations"] != 0
-        or scoped_write["direct_column_privilege_violations"] != 0
-        or scoped_write["farm_activity_ledger_readable"] != 1
-        or type(scoped_write["service_registry_read_only_verified"]) is not int
-        or scoped_write["service_registry_read_only_verified"] != 1
-        or scoped_write["append_only_relations_expected"] != 2
-        or scoped_write["append_only_relations_verified"] != 2
-        or scoped_write["append_only_select_insert_verified"] != 2
-        or scoped_write["append_only_mutations_denied"] != 2
-        or scoped_write["append_only_column_grants_denied"] != 2
-    ):
-        raise ValueError("operator scope probe did not verify every runtime scoped-write ACL")
+    expected_scoped_values = {
+        "private_relations_expected": len(_RUNTIME_PRIVATE_TABLES),
+        "mutation_denied_relations_expected": len(_RUNTIME_MUTATION_TABLES),
+        "private_relations_verified": len(_RUNTIME_PRIVATE_TABLES),
+        "mutation_denied_relations_verified": len(_RUNTIME_MUTATION_TABLES),
+        "direct_table_privilege_violations": 0,
+        "direct_column_privilege_violations": 0,
+        "farm_activity_ledger_readable": 1,
+        "service_registry_read_only_verified": 1,
+        "append_only_relations_expected": 2,
+        "append_only_relations_verified": 2,
+        "append_only_select_insert_verified": 2,
+        "append_only_mutations_denied": 2,
+        "append_only_column_grants_denied": 2,
+    }
+    mismatched_scoped_values = {
+        key: {"expected": expected, "observed": scoped_write[key]}
+        for key, expected in expected_scoped_values.items()
+        if scoped_write[key] != expected
+    }
+    if type(scoped_write["service_registry_read_only_verified"]) is not int:
+        mismatched_scoped_values["service_registry_read_only_verified"] = {
+            "expected": 1,
+            "observed_type": type(scoped_write["service_registry_read_only_verified"]).__name__,
+        }
+    if mismatched_scoped_values:
+        raise ValueError(
+            "operator scope probe scoped-write ACL mismatch: "
+            + json.dumps(mismatched_scoped_values, sort_keys=True)
+        )
     if result.get("runtime_api_key_policy") != {
         "select_columns": [
             "id", "key_hash", "key_prefix", "role_id", "scopes", "expires_at", "is_active"

@@ -1779,9 +1779,9 @@
       ]
     },
     {
-      "id": "services/analytics/carbon_balance.py:42:4",
+      "id": "services/analytics/carbon_balance.py:43:4",
       "source": "services/analytics/carbon_balance.py",
-      "line": 42,
+      "line": 43,
       "column": 4,
       "scope": "compute_ghg_emissions",
       "method": "execute",
@@ -1794,9 +1794,9 @@
       ]
     },
     {
-      "id": "services/analytics/carbon_balance.py:140:8",
+      "id": "services/analytics/carbon_balance.py:141:8",
       "source": "services/analytics/carbon_balance.py",
-      "line": 140,
+      "line": 141,
       "column": 8,
       "scope": "compute_carbon_balance",
       "method": "execute",
@@ -1805,15 +1805,15 @@
       "candidate_relations": [
         "climate_impact_summary"
       ],
-      "static_sql_sha256": "2049c211f18fe176df56a84a71b50faf59952b32ec19a62198c45b837ad030c2",
+      "static_sql_sha256": "191b57324850fbbc761490a70d3feeebe1c31ba832c33e74d530033ecdaaf250",
       "operation_refs": [
         "scheduled_module:services.analytics.carbon_credit_adjustment_check"
       ]
     },
     {
-      "id": "services/analytics/carbon_balance.py:147:8",
+      "id": "services/analytics/carbon_balance.py:154:8",
       "source": "services/analytics/carbon_balance.py",
-      "line": 147,
+      "line": 154,
       "column": 8,
       "scope": "compute_carbon_balance",
       "method": "execute",
@@ -1822,15 +1822,15 @@
       "candidate_relations": [
         "climate_impact_summary"
       ],
-      "static_sql_sha256": "caf843e140857614061a65e58dfab525f47cc202505287de1ea83027d7a0bf81",
+      "static_sql_sha256": "eb5f39662eddf98b6f7264c2c481a11c5481e77634c3f01da0beb5f0a41927f5",
       "operation_refs": [
         "scheduled_module:services.analytics.carbon_credit_adjustment_check"
       ]
     },
     {
-      "id": "services/analytics/carbon_balance.py:168:8",
+      "id": "services/analytics/carbon_balance.py:181:8",
       "source": "services/analytics/carbon_balance.py",
-      "line": 168,
+      "line": 181,
       "column": 8,
       "scope": "compute_carbon_balance",
       "method": "execute",
@@ -1845,9 +1845,9 @@
       ]
     },
     {
-      "id": "services/analytics/carbon_balance.py:177:8",
+      "id": "services/analytics/carbon_balance.py:190:8",
       "source": "services/analytics/carbon_balance.py",
-      "line": 177,
+      "line": 190,
       "column": 8,
       "scope": "compute_carbon_balance",
       "method": "execute",
@@ -1862,9 +1862,9 @@
       ]
     },
     {
-      "id": "services/analytics/carbon_balance.py:205:8",
+      "id": "services/analytics/carbon_balance.py:218:8",
       "source": "services/analytics/carbon_balance.py",
-      "line": 205,
+      "line": 218,
       "column": 8,
       "scope": "compute_carbon_balance",
       "method": "execute",
@@ -1879,9 +1879,9 @@
       ]
     },
     {
-      "id": "services/analytics/carbon_balance.py:297:4",
+      "id": "services/analytics/carbon_balance.py:310:4",
       "source": "services/analytics/carbon_balance.py",
-      "line": 297,
+      "line": 310,
       "column": 4,
       "scope": "list_emission_factors",
       "method": "execute",
@@ -1894,9 +1894,9 @@
       ]
     },
     {
-      "id": "services/analytics/carbon_balance.py:326:4",
+      "id": "services/analytics/carbon_balance.py:339:4",
       "source": "services/analytics/carbon_balance.py",
-      "line": 326,
+      "line": 339,
       "column": 4,
       "scope": "list_carbon_benchmarks",
       "method": "execute",
@@ -1969,11 +1969,9 @@
       "expression_kind": "literal",
       "statement_kind": "SELECT",
       "candidate_relations": [
-        "climate_impact_summary",
-        "period_end",
-        "period_start"
+        "climate_impact_summary"
       ],
-      "static_sql_sha256": "aacad1cbf410263b30e4db1b2ef85dbec133d7d0fc24b5bc25e35f18d776cd62",
+      "static_sql_sha256": "f006c7a5cdf581cc5abbb3d92704d00058a94fa51709f4ccfd1d4cd02924a3a7",
       "operation_refs": [
         "scheduled_module:services.analytics.carbon_credit_adjustment_check"
       ]
@@ -4029,9 +4027,9 @@
       ]
     },
     {
-      "id": "services/events/bus.py:88:16",
+      "id": "services/events/bus.py:106:16",
       "source": "services/events/bus.py",
-      "line": 88,
+      "line": 106,
       "column": 16,
       "scope": "EventBus.publish",
       "method": "execute",
@@ -4053,9 +4051,9 @@
       ]
     },
     {
-      "id": "services/events/bus.py:107:12",
+      "id": "services/events/bus.py:125:12",
       "source": "services/events/bus.py",
-      "line": 107,
+      "line": 125,
       "column": 12,
       "scope": "EventBus._claim",
       "method": "execute",
@@ -4079,9 +4077,9 @@
       ]
     },
     {
-      "id": "services/events/bus.py:157:12",
+      "id": "services/events/bus.py:175:12",
       "source": "services/events/bus.py",
-      "line": 157,
+      "line": 175,
       "column": 12,
       "scope": "EventBus._process_event",
       "method": "execute",
@@ -4104,9 +4102,9 @@
       ]
     },
     {
-      "id": "services/events/bus.py:176:16",
+      "id": "services/events/bus.py:200:16",
       "source": "services/events/bus.py",
-      "line": 176,
+      "line": 200,
       "column": 16,
       "scope": "EventBus._process_event",
       "method": "execute",
@@ -4128,9 +4126,9 @@
       ]
     },
     {
-      "id": "services/events/bus.py:188:16",
+      "id": "services/events/bus.py:212:16",
       "source": "services/events/bus.py",
-      "line": 188,
+      "line": 212,
       "column": 16,
       "scope": "EventBus._process_event",
       "method": "execute",
@@ -4153,9 +4151,9 @@
       ]
     },
     {
-      "id": "services/events/bus.py:204:16",
+      "id": "services/events/bus.py:228:16",
       "source": "services/events/bus.py",
-      "line": 204,
+      "line": 228,
       "column": 16,
       "scope": "EventBus._process_event",
       "method": "execute",
@@ -4177,9 +4175,9 @@
       ]
     },
     {
-      "id": "services/events/bus.py:209:16",
+      "id": "services/events/bus.py:233:16",
       "source": "services/events/bus.py",
-      "line": 209,
+      "line": 233,
       "column": 16,
       "scope": "EventBus._process_event",
       "method": "execute",
@@ -4201,9 +4199,9 @@
       ]
     },
     {
-      "id": "services/events/bus.py:275:12",
+      "id": "services/events/bus.py:299:12",
       "source": "services/events/bus.py",
-      "line": 275,
+      "line": 299,
       "column": 12,
       "scope": "EventBus._complete",
       "method": "execute",
@@ -4225,9 +4223,9 @@
       ]
     },
     {
-      "id": "services/events/bus.py:290:12",
+      "id": "services/events/bus.py:314:12",
       "source": "services/events/bus.py",
-      "line": 290,
+      "line": 314,
       "column": 12,
       "scope": "EventBus._retry_or_dead_letter",
       "method": "execute",
@@ -4249,9 +4247,9 @@
       ]
     },
     {
-      "id": "services/events/bus.py:299:16",
+      "id": "services/events/bus.py:323:16",
       "source": "services/events/bus.py",
-      "line": 299,
+      "line": 323,
       "column": 16,
       "scope": "EventBus._retry_or_dead_letter",
       "method": "execute",
@@ -4275,9 +4273,9 @@
       ]
     },
     {
-      "id": "services/events/bus.py:315:12",
+      "id": "services/events/bus.py:339:12",
       "source": "services/events/bus.py",
-      "line": 315,
+      "line": 339,
       "column": 12,
       "scope": "EventBus.replay_dead_letter",
       "method": "execute",
@@ -4303,9 +4301,9 @@
       ]
     },
     {
-      "id": "services/events/bus.py:352:12",
+      "id": "services/events/bus.py:376:12",
       "source": "services/events/bus.py",
-      "line": 352,
+      "line": 376,
       "column": 12,
       "scope": "EventBus.dispose_dead_letter",
       "method": "execute",
@@ -4327,9 +4325,9 @@
       ]
     },
     {
-      "id": "services/events/bus.py:364:12",
+      "id": "services/events/bus.py:388:12",
       "source": "services/events/bus.py",
-      "line": 364,
+      "line": 388,
       "column": 12,
       "scope": "EventBus.get_stats",
       "method": "execute",
@@ -4351,9 +4349,9 @@
       ]
     },
     {
-      "id": "services/events/bus.py:377:16",
+      "id": "services/events/bus.py:401:16",
       "source": "services/events/bus.py",
-      "line": 377,
+      "line": 401,
       "column": 16,
       "scope": "EventBus.cleanup_old_events",
       "method": "execute",
@@ -4373,9 +4371,9 @@
       ]
     },
     {
-      "id": "services/events/bus.py:380:16",
+      "id": "services/events/bus.py:404:16",
       "source": "services/events/bus.py",
-      "line": 380,
+      "line": 404,
       "column": 16,
       "scope": "EventBus.cleanup_old_events",
       "method": "execute",
@@ -4397,9 +4395,9 @@
       ]
     },
     {
-      "id": "services/events/bus.py:421:16",
+      "id": "services/events/bus.py:445:16",
       "source": "services/events/bus.py",
-      "line": 421,
+      "line": 445,
       "column": 16,
       "scope": "EventBus.cleanup_old_events",
       "method": "execute",
@@ -4425,9 +4423,9 @@
       ]
     },
     {
-      "id": "services/events/bus.py:450:16",
+      "id": "services/events/bus.py:474:16",
       "source": "services/events/bus.py",
-      "line": 450,
+      "line": 474,
       "column": 16,
       "scope": "EventBus.cleanup_old_events",
       "method": "execute",
@@ -4449,9 +4447,9 @@
       ]
     },
     {
-      "id": "services/events/bus.py:458:16",
+      "id": "services/events/bus.py:482:16",
       "source": "services/events/bus.py",
-      "line": 458,
+      "line": 482,
       "column": 16,
       "scope": "EventBus.cleanup_old_events",
       "method": "execute",
@@ -4473,9 +4471,9 @@
       ]
     },
     {
-      "id": "services/events/cli.py:251:12",
+      "id": "services/events/cli.py:254:12",
       "source": "services/events/cli.py",
-      "line": 251,
+      "line": 254,
       "column": 12,
       "scope": "cmd_list_handlers",
       "method": "execute",
@@ -4490,9 +4488,9 @@
       ]
     },
     {
-      "id": "services/events/cli.py:280:12",
+      "id": "services/events/cli.py:283:12",
       "source": "services/events/cli.py",
-      "line": 280,
+      "line": 283,
       "column": 12,
       "scope": "cmd_list_dead_letter",
       "method": "execute",
@@ -7073,7 +7071,7 @@
       "candidate_relations": [
         "v_data_freshness_summary"
       ],
-      "static_sql_sha256": "5cf5e69cad7d4c732757fbf3ec9e0c2fd5befa70c62234dff2e16d4c8caa4875",
+      "static_sql_sha256": "8db9376316fcc7b212c908536f26c58cff40b881eb2624fad0358424bd0bc1c7",
       "operation_refs": [
         "scheduled_module:services.ingestion.data_freshness",
         "scheduled_module:services.ingestion.freshness_worker"
@@ -9645,10 +9643,11 @@
       "expression_kind": "literal",
       "statement_kind": "SELECT",
       "candidate_relations": [
+        "farm",
         "plot",
         "soil_carbon_measurement"
       ],
-      "static_sql_sha256": "00460061584e764a46da73d2bc712a33d378f871bbe39b848ea3db282838cd05",
+      "static_sql_sha256": "23366e654ff8cb16efcb4925556b45a549b01b6d0c05f902c7814f9ffb74fdcb",
       "operation_refs": [
         "scheduled_module:services.metrics"
       ]
@@ -9778,26 +9777,9 @@
       ]
     },
     {
-      "id": "services/metrics/engine.py:47:8",
+      "id": "services/metrics/engine.py:54:8",
       "source": "services/metrics/engine.py",
-      "line": 47,
-      "column": 8,
-      "scope": "compute_metric",
-      "method": "execute",
-      "expression_kind": "literal",
-      "statement_kind": "SELECT",
-      "candidate_relations": [
-        "metric_definition"
-      ],
-      "static_sql_sha256": "6d60a617fc6cb5c3005868cc90ce3534c1d2f53af66658726b08a8bfb410da22",
-      "operation_refs": [
-        "scheduled_module:services.metrics"
-      ]
-    },
-    {
-      "id": "services/metrics/engine.py:75:8",
-      "source": "services/metrics/engine.py",
-      "line": 75,
+      "line": 54,
       "column": 8,
       "scope": "compute_metric",
       "method": "execute",
@@ -9812,9 +9794,26 @@
       ]
     },
     {
-      "id": "services/metrics/engine.py:117:4",
+      "id": "services/metrics/engine.py:107:8",
       "source": "services/metrics/engine.py",
-      "line": 117,
+      "line": 107,
+      "column": 8,
+      "scope": "compute_metric_draft",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "metric_definition"
+      ],
+      "static_sql_sha256": "6d60a617fc6cb5c3005868cc90ce3534c1d2f53af66658726b08a8bfb410da22",
+      "operation_refs": [
+        "scheduled_module:services.metrics"
+      ]
+    },
+    {
+      "id": "services/metrics/engine.py:163:4",
+      "source": "services/metrics/engine.py",
+      "line": 163,
       "column": 4,
       "scope": "compute_all",
       "method": "execute",
@@ -9829,9 +9828,9 @@
       ]
     },
     {
-      "id": "services/metrics/engine.py:180:8",
+      "id": "services/metrics/engine.py:226:8",
       "source": "services/metrics/engine.py",
-      "line": 180,
+      "line": 226,
       "column": 8,
       "scope": "verify_metric_value",
       "method": "execute",

@@ -24,7 +24,10 @@ def test_learning_panel_is_hidden_until_exact_location_read_scope():
     assert panel is not None
     assert 'id="extension-learning" hidden' in panel.group()
     assert 'scope.resource === "extension_learning" && scope.action === "read"' in source
-    assert "extensionLearningLocations = new Set(extensionLearningLocationIds)" in source
+    assert "extensionLearningLocations = new Set(extensionLearningReadLocationIds)" in source
+    assert "extensionLearningPeerNetworkCreateLocations = new Set(extensionLearningCreateLocationIds)" in source
+    assert "...extensionLearningReadLocationIds" in source
+    assert "...extensionLearningCreateLocationIds" in source
     assert "extensionLearning.hidden = false" in source
     assert "participant identities, individual scores, notes" in panel.group()
 

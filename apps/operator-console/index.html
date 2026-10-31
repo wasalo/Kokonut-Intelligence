@@ -111,6 +111,33 @@
             <pre id="report-data"></pre>
           </section>
         </section>
+        <section id="metric-value-review" hidden aria-labelledby="metric-value-review-heading">
+          <h2 id="metric-value-review-heading">Metric computation and review</h2>
+          <p class="muted">Compute an unverified draft or inspect a location-scoped metric page. Verification is a separate human decision under its own grant; source IDs, metadata, reviewer identities, and verification notes are not shown here.</p>
+          <div class="toolbar">
+            <label for="metric-value-location">Granted location</label>
+            <select id="metric-value-location"></select>
+            <button id="metric-value-refresh" type="button">Refresh location metrics</button>
+          </div>
+          <p id="metric-value-status" class="muted" role="status" aria-live="polite"></p>
+          <form id="metric-value-compute-form" class="form-grid" hidden>
+            <h3>Compute metric draft</h3>
+            <label for="metric-value-key">Metric key</label>
+            <input id="metric-value-key" type="text" required maxlength="100" pattern="[a-z][a-z0-9_]*" autocomplete="off">
+            <label for="metric-value-period-start">Period start (optional)</label>
+            <input id="metric-value-period-start" type="date">
+            <label for="metric-value-period-end">Period end (optional)</label>
+            <input id="metric-value-period-end" type="date">
+            <button id="metric-value-compute-submit" type="submit">Compute unverified draft</button>
+          </form>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Metric</th><th>Period</th><th>Value</th><th>State</th><th>Computed</th><th>Verified</th><th></th></tr></thead>
+              <tbody id="metric-value-rows"></tbody>
+            </table>
+          </div>
+          <button id="metric-value-more" class="secondary" type="button" hidden>Load more metrics</button>
+        </section>
         <section id="report-exports" hidden aria-labelledby="report-exports-heading">
           <h2 id="report-exports-heading">Private report exports</h2>
           <p class="muted">Request a private JSON copy of a verified or published report snapshot. Reading eligible snapshots, creating an export, and downloading completed bytes require separate location grants. Export artifacts are private and are never published or shared by this console.</p>
@@ -462,6 +489,63 @@
             <h4>Lifecycle history</h4>
             <ol id="governance-tension-events"></ol>
             <p id="governance-tension-detail-status" class="muted" role="status"></p>
+            <section id="governance-tension-actions" hidden aria-labelledby="governance-tension-actions-heading">
+              <h4 id="governance-tension-actions-heading">Governed lifecycle action</h4>
+              <p class="muted">Actions require a separate grant for this location. Each change records a reason and an idempotency receipt; retries reuse the same request ID.</p>
+              <form id="governance-tension-action-form">
+                <label for="governance-tension-action">Action</label>
+                <select id="governance-tension-action" required></select>
+                <label for="governance-tension-action-reason">Reason</label>
+                <textarea id="governance-tension-action-reason" rows="3" maxlength="2000" required></textarea>
+                <fieldset id="governance-tension-triage-fields" hidden>
+                  <legend>Triage ownership</legend>
+                  <label for="governance-tension-owner-role">Owner role ID (optional)</label>
+                  <input id="governance-tension-owner-role" type="text" inputmode="text" autocomplete="off">
+                  <label for="governance-tension-owner-party">Owner party ID (optional)</label>
+                  <input id="governance-tension-owner-party" type="text" inputmode="text" autocomplete="off">
+                  <label for="governance-tension-review-due">Review due (optional)</label>
+                  <input id="governance-tension-review-due" type="datetime-local">
+                  <label for="governance-tension-triage-note">Note (optional)</label>
+                  <textarea id="governance-tension-triage-note" rows="2" maxlength="2000"></textarea>
+                </fieldset>
+                <fieldset id="governance-tension-link-fields" hidden>
+                  <legend>Governance record link</legend>
+                  <label for="governance-tension-link-type">Link type</label>
+                  <select id="governance-tension-link-type">
+                    <option value="interest">Interest</option><option value="commitment">Commitment</option>
+                    <option value="work_item">Work item</option><option value="decision">Decision</option>
+                    <option value="grievance">Grievance</option><option value="evidence">Evidence</option>
+                    <option value="relationship">Relationship</option><option value="proposal">Proposal</option>
+                    <option value="outcome">Outcome</option>
+                  </select>
+                  <label for="governance-tension-link-entity-type">Entity type</label>
+                  <input id="governance-tension-link-entity-type" type="text" maxlength="80" autocomplete="off">
+                  <label for="governance-tension-link-entity-id">Entity ID</label>
+                  <input id="governance-tension-link-entity-id" type="text" autocomplete="off">
+                  <label for="governance-tension-link-summary">Summary (optional)</label>
+                  <textarea id="governance-tension-link-summary" rows="2" maxlength="4000"></textarea>
+                </fieldset>
+                <fieldset id="governance-tension-work-item-fields" hidden>
+                  <legend>Work item link</legend>
+                  <label for="governance-tension-work-item-id">Work item ID</label>
+                  <input id="governance-tension-work-item-id" type="text" autocomplete="off">
+                </fieldset>
+                <fieldset id="governance-tension-resolve-fields" hidden>
+                  <legend>Resolution</legend>
+                  <label for="governance-tension-resolution-summary">Resolution summary</label>
+                  <textarea id="governance-tension-resolution-summary" rows="3" maxlength="4000"></textarea>
+                </fieldset>
+                <fieldset id="governance-tension-defer-fields" hidden>
+                  <legend>Deferral</legend>
+                  <label for="governance-tension-deferred-until">Deferred until</label>
+                  <input id="governance-tension-deferred-until" type="datetime-local">
+                  <label for="governance-tension-defer-note">Note (optional)</label>
+                  <textarea id="governance-tension-defer-note" rows="2" maxlength="2000"></textarea>
+                </fieldset>
+                <button id="governance-tension-action-submit" type="submit">Apply action</button>
+                <p id="governance-tension-action-status" class="muted" role="status" aria-live="polite"></p>
+              </form>
+            </section>
           </section>
         </section>
         <section id="governance-role-registry" hidden aria-labelledby="governance-role-registry-heading">
@@ -2082,13 +2166,42 @@
         </section>
         <section id="extension-learning" hidden aria-labelledby="extension-learning-heading">
           <h2 id="extension-learning-heading">Extension learning and peer groups</h2>
-          <p class="muted">Read-only location-scoped learning activity and the active public module catalog. Activity is shown as grouped counts; participant identities, individual scores, notes, contact details, delivery errors, and private module content are omitted.</p>
+          <p class="muted">Location-scoped learning activity and the active public module catalog. Activity is shown as grouped counts; participant identities, individual scores, notes, contact details, delivery errors, and private module content are omitted. Separate grants can create peer networks and update a progress record by its ID without exposing participant identity.</p>
           <div class="toolbar">
             <label for="extension-learning-location">Granted location</label>
             <select id="extension-learning-location"></select>
             <button id="extension-learning-refresh" type="button">Refresh activity</button>
           </div>
           <p id="extension-learning-status" class="muted" role="status" aria-live="polite"></p>
+          <section id="extension-learning-peer-network-create" hidden aria-labelledby="extension-learning-peer-network-heading">
+            <h3 id="extension-learning-peer-network-heading">Create a peer learning network</h3>
+            <p class="muted">The network is created for the selected location. Member enrollment and participant identity remain separate operations.</p>
+            <form id="extension-learning-peer-network-form">
+              <label for="extension-learning-peer-network-name">Network name</label>
+              <input id="extension-learning-peer-network-name" type="text" maxlength="255" required>
+              <label for="extension-learning-peer-network-type">Network type</label>
+              <select id="extension-learning-peer-network-type" required>
+                <option value="learning_group">Learning group</option>
+                <option value="mentorship">Mentorship</option>
+                <option value="community_of_practice">Community of practice</option>
+                <option value="farmer_field_school">Farmer field school</option>
+                <option value="cooperative">Cooperative</option>
+                <option value="other">Other</option>
+              </select>
+              <label for="extension-learning-peer-network-description">Description (optional)</label>
+              <textarea id="extension-learning-peer-network-description" rows="3" maxlength="10000"></textarea>
+              <label for="extension-learning-peer-network-max-members">Member capacity (optional)</label>
+              <input id="extension-learning-peer-network-max-members" type="number" min="1" step="1">
+              <label for="extension-learning-peer-network-cadence">Meeting cadence (optional)</label>
+              <input id="extension-learning-peer-network-cadence" type="text" maxlength="100">
+              <label for="extension-learning-peer-network-language">Language</label>
+              <input id="extension-learning-peer-network-language" type="text" maxlength="50" value="en" required>
+              <label for="extension-learning-peer-network-metadata">Metadata JSON object (optional)</label>
+              <textarea id="extension-learning-peer-network-metadata" rows="3" maxlength="8192" placeholder="{}">{}</textarea>
+              <button id="extension-learning-peer-network-submit" type="submit">Create peer network</button>
+              <p id="extension-learning-peer-network-status" class="muted" role="status" aria-live="polite"></p>
+            </form>
+          </section>
           <div id="extension-learning-summary"></div>
           <section aria-labelledby="extension-learning-catalog-heading">
             <h3 id="extension-learning-catalog-heading">Public learning modules</h3>
@@ -3219,6 +3332,17 @@
       const governanceTensionEvents = document.querySelector("#governance-tension-events");
       const governanceTensionDetailStatus = document.querySelector("#governance-tension-detail-status");
       const governanceTensionMore = document.querySelector("#governance-tension-more");
+      const governanceTensionActions = document.querySelector("#governance-tension-actions");
+      const governanceTensionActionForm = document.querySelector("#governance-tension-action-form");
+      const governanceTensionAction = document.querySelector("#governance-tension-action");
+      const governanceTensionActionReason = document.querySelector("#governance-tension-action-reason");
+      const governanceTensionActionSubmit = document.querySelector("#governance-tension-action-submit");
+      const governanceTensionActionStatus = document.querySelector("#governance-tension-action-status");
+      const governanceTensionTriageFields = document.querySelector("#governance-tension-triage-fields");
+      const governanceTensionLinkFields = document.querySelector("#governance-tension-link-fields");
+      const governanceTensionWorkItemFields = document.querySelector("#governance-tension-work-item-fields");
+      const governanceTensionResolveFields = document.querySelector("#governance-tension-resolve-fields");
+      const governanceTensionDeferFields = document.querySelector("#governance-tension-defer-fields");
       const governanceRoleRegistry = document.querySelector("#governance-role-registry");
       const governanceRoleLocation = document.querySelector("#governance-role-location");
       const governanceRoleStatusFilter = document.querySelector("#governance-role-status-filter");
@@ -4024,10 +4148,34 @@
       const extensionLearningCatalogStatus = document.querySelector("#extension-learning-catalog-status");
       const extensionLearningModules = document.querySelector("#extension-learning-modules");
       const extensionLearningMore = document.querySelector("#extension-learning-more");
+      const extensionLearningPeerNetworkCreate = document.querySelector("#extension-learning-peer-network-create");
+      const extensionLearningPeerNetworkForm = document.querySelector("#extension-learning-peer-network-form");
+      const extensionLearningPeerNetworkSubmit = document.querySelector("#extension-learning-peer-network-submit");
+      const extensionLearningPeerNetworkStatus = document.querySelector("#extension-learning-peer-network-status");
+      const extensionLearningPeerNetworkPending = new Map();
       let extensionLearningLocations = new Set();
+      let extensionLearningPeerNetworkCreateLocations = new Set();
       let extensionLearningSummaryRequestVersion = 0;
       let extensionLearningCatalogRequestVersion = 0;
       let extensionLearningOffset = 0;
+      const metricValueReview = document.querySelector("#metric-value-review");
+      const metricValueLocation = document.querySelector("#metric-value-location");
+      const metricValueStatus = document.querySelector("#metric-value-status");
+      const metricValueRows = document.querySelector("#metric-value-rows");
+      const metricValueMore = document.querySelector("#metric-value-more");
+      const metricValueComputeForm = document.querySelector("#metric-value-compute-form");
+      const metricValueComputeSubmit = document.querySelector("#metric-value-compute-submit");
+      const metricValueKey = document.querySelector("#metric-value-key");
+      const metricValuePeriodStart = document.querySelector("#metric-value-period-start");
+      const metricValuePeriodEnd = document.querySelector("#metric-value-period-end");
+      const metricValuePendingComputations = new Map();
+      const metricValuePendingVerifications = new Map();
+      let metricValueReadLocations = new Set();
+      let metricValueComputeLocations = new Set();
+      let metricValueVerifyLocations = new Set();
+      let metricValueNextCursor = null;
+      let metricValueRequestVersion = 0;
+      let metricValueSeenIds = new Set();
       const cooperativeManagement = document.querySelector("#cooperative-management");
       const cooperativeManagementLocation = document.querySelector("#cooperative-management-location");
       const cooperativeManagementStatus = document.querySelector("#cooperative-management-status");
@@ -4379,6 +4527,9 @@
       let farmActivityRecordEditLocations = new Set();
       let farmActivityRecordActionLocations = new Map();
       let governanceTensionReadLocations = new Set();
+      let governanceTensionActionLocations = new Map();
+      let governanceTensionCurrentDetail = null;
+      const governanceTensionPendingActions = new Map();
       let governanceTensionNextCursor = null;
       let governanceTensionQueueRequestVersion = 0;
       let governanceTensionDetailRequestVersion = 0;
@@ -16586,6 +16737,474 @@
         }
       }
 
+      async function submitExtensionPeerNetwork(event) {
+        event.preventDefault();
+        const locationId = extensionLearningLocation.value;
+        if (!extensionLearningPeerNetworkCreateLocations.has(locationId)) {
+          extensionLearningPeerNetworkStatus.textContent = "A peer-network creation grant for this location is required.";
+          return;
+        }
+        const csrf = csrfToken();
+        if (!csrf) {
+          extensionLearningPeerNetworkStatus.textContent = "The session security token is unavailable. Reload the console and retry.";
+          return;
+        }
+        let payload;
+        try {
+          const capacityValue = document.querySelector("#extension-learning-peer-network-max-members").value;
+          const metadataText = document.querySelector("#extension-learning-peer-network-metadata").value.trim() || "{}";
+          const metadata = JSON.parse(metadataText);
+          if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) {
+            throw new Error("Metadata must be a JSON object.");
+          }
+          if (new TextEncoder().encode(JSON.stringify(metadata)).length > 8192) {
+            throw new Error("Metadata must be at most 8 KiB.");
+          }
+          payload = {
+            network_name: document.querySelector("#extension-learning-peer-network-name").value.trim(),
+            network_type: document.querySelector("#extension-learning-peer-network-type").value,
+            description: document.querySelector("#extension-learning-peer-network-description").value.trim() || null,
+            max_members: capacityValue ? Number(capacityValue) : null,
+            meeting_cadence: document.querySelector("#extension-learning-peer-network-cadence").value.trim() || null,
+            language: document.querySelector("#extension-learning-peer-network-language").value.trim(),
+            metadata,
+          };
+          if (!payload.network_name || payload.network_name.length > 255) throw new Error("Enter a network name of 1–255 characters.");
+          if (payload.description && payload.description.length > 10000) throw new Error("Description must be at most 10,000 characters.");
+          if (payload.max_members !== null && (!Number.isSafeInteger(payload.max_members) || payload.max_members < 1)) {
+            throw new Error("Member capacity must be a positive whole number.");
+          }
+          if (payload.meeting_cadence && payload.meeting_cadence.length > 100) throw new Error("Meeting cadence must be at most 100 characters.");
+          if (!payload.language || payload.language.length > 50) throw new Error("Enter a language code of 1–50 characters.");
+        } catch (error) {
+          extensionLearningPeerNetworkStatus.textContent = error instanceof SyntaxError
+            ? "Metadata must be valid JSON."
+            : error.message;
+          return;
+        }
+        const signature = JSON.stringify({ location_id: locationId, payload });
+        let pending = extensionLearningPeerNetworkPending.get(locationId);
+        if (!pending || pending.signature !== signature) {
+          const requestId = globalThis.crypto?.randomUUID?.();
+          if (!requestId) {
+            extensionLearningPeerNetworkStatus.textContent = "A secure request ID could not be created in this browser.";
+            return;
+          }
+          pending = { signature, request_id: requestId };
+          extensionLearningPeerNetworkPending.set(locationId, pending);
+        }
+        extensionLearningPeerNetworkSubmit.disabled = true;
+        extensionLearningPeerNetworkStatus.textContent = "Creating the peer network…";
+        try {
+          const response = await fetch(
+            `/operator/api/extension-learning/${encodeURIComponent(locationId)}/peer-networks`,
+            {
+              method: "POST",
+              credentials: "same-origin",
+              cache: "no-store",
+              headers: {
+                "Accept": "application/json",
+                "Content-Type": "application/json",
+                "X-CSRF-Token": csrf,
+              },
+              body: JSON.stringify({ ...payload, request_id: pending.request_id }),
+            },
+          );
+          const result = await response.json().catch(() => ({}));
+          if (response.status === 401 || response.status === 403) {
+            extensionLearningPeerNetworkPending.delete(locationId);
+            throw new Error("Your session or location-scoped peer-network grant is not valid.");
+          }
+          if (!response.ok) {
+            if (response.status < 500) extensionLearningPeerNetworkPending.delete(locationId);
+            throw new Error(result.error || "The peer network could not be created.");
+          }
+          const expected = ["created", "created_at", "location_id", "network_name", "network_type", "peer_network_id", "request_id", "status"].sort().join(",");
+          if (!result || typeof result !== "object" || Array.isArray(result)
+              || Object.keys(result).sort().join(",") !== expected
+              || result.location_id !== locationId
+              || result.request_id !== pending.request_id
+              || result.network_name !== payload.network_name
+              || result.network_type !== payload.network_type
+              || result.status !== "active"
+              || typeof result.created !== "boolean"
+              || !reportExportUuidPattern.test(result.peer_network_id)
+              || !reportExportUuidPattern.test(result.request_id)
+              || typeof result.created_at !== "string"
+              || Number.isNaN(Date.parse(result.created_at))) {
+            throw new Error("The creation receipt did not match this request. Retry unchanged values to confirm the same request ID.");
+          }
+          extensionLearningPeerNetworkPending.delete(locationId);
+          extensionLearningPeerNetworkForm.reset();
+          document.querySelector("#extension-learning-peer-network-metadata").value = "{}";
+          document.querySelector("#extension-learning-peer-network-language").value = "en";
+          extensionLearningPeerNetworkStatus.textContent = result.created
+            ? "Peer network created for this location."
+            : "The original peer-network creation receipt was confirmed; no duplicate was created.";
+          await loadExtensionLearningSummary();
+        } catch (error) {
+          extensionLearningPeerNetworkStatus.textContent = `${error.message} Retrying unchanged values will reuse the same request ID.`;
+        } finally {
+          extensionLearningPeerNetworkSubmit.disabled = false;
+        }
+      }
+
+      const metricValueUuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      const metricValueItemKeys = [
+        "computed_at", "display_name", "metric_key", "metric_value_id", "period_end",
+        "period_start", "status", "unit", "value", "verified_at"
+      ].sort().join(",");
+      const metricValuePageKeys = [
+        "cursor", "has_more", "items", "limit", "location_id", "next_cursor"
+      ].sort().join(",");
+
+      function metricValueExactKeys(value, expected) {
+        return value && typeof value === "object" && !Array.isArray(value)
+          && Object.keys(value).sort().join(",") === expected;
+      }
+
+      function metricValueIsDate(value) {
+        if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+        const parsed = new Date(`${value}T00:00:00.000Z`);
+        return Number.isFinite(parsed.getTime()) && parsed.toISOString().slice(0, 10) === value;
+      }
+
+      function metricValueIsTimestamp(value) {
+        return typeof value === "string" && value.includes("T")
+          && /(?:Z|[+-]\d{2}:\d{2})$/i.test(value) && Number.isFinite(Date.parse(value));
+      }
+
+      function validateMetricValuePage(page, locationId, cursor, limit) {
+        if (!metricValueExactKeys(page, metricValuePageKeys)
+            || page.location_id !== locationId
+            || page.cursor !== cursor
+            || page.limit !== limit
+            || typeof page.has_more !== "boolean"
+            || !Array.isArray(page.items)
+            || page.items.length > limit
+            || !/^(0|[1-9][0-9]*)$/.test(cursor)
+            || cursor.length > 5
+            || Number(cursor) > 10000) {
+          throw new Error("The metric page did not match this location and request.");
+        }
+        const offset = Number(cursor);
+        if (page.has_more) {
+          if (page.items.length !== limit || offset + limit > 10000
+              || page.next_cursor !== String(offset + limit)) {
+            throw new Error("The metric page continuation was invalid.");
+          }
+        } else if (page.next_cursor !== null) {
+          throw new Error("The final metric page included an invalid continuation.");
+        }
+        const seen = new Set();
+        let previousTime = Number.POSITIVE_INFINITY;
+        let previousId = "";
+        for (const item of page.items) {
+          if (!metricValueExactKeys(item, metricValueItemKeys)
+              || typeof item.metric_value_id !== "string" || !metricValueUuidPattern.test(item.metric_value_id)
+              || seen.has(item.metric_value_id.toLowerCase())
+              || typeof item.metric_key !== "string" || !/^[a-z][a-z0-9_]{0,99}$/.test(item.metric_key)
+              || typeof item.display_name !== "string" || !item.display_name.trim() || item.display_name.length > 255
+              || (item.period_start !== null && !metricValueIsDate(item.period_start))
+              || (item.period_end !== null && !metricValueIsDate(item.period_end))
+              || (item.period_start !== null && item.period_end !== null && item.period_start > item.period_end)
+              || (item.value !== null && (typeof item.value !== "number" || !Number.isFinite(item.value)))
+              || (item.unit !== null && (typeof item.unit !== "string" || item.unit.length > 50))
+              || !["draft", "verified"].includes(item.status)
+              || !metricValueIsTimestamp(item.computed_at)
+              || (item.verified_at !== null && !metricValueIsTimestamp(item.verified_at))
+              || ((item.status === "draft") !== (item.verified_at === null))) {
+            throw new Error("The metric page contained an invalid item.");
+          }
+          const computedTime = Date.parse(item.computed_at);
+          const metricId = item.metric_value_id.replace(/-/g, "").toLowerCase();
+          if (computedTime > previousTime || (computedTime === previousTime && metricId > previousId)) {
+            throw new Error("The metric page ordering was invalid.");
+          }
+          previousTime = computedTime;
+          previousId = metricId;
+          seen.add(item.metric_value_id.toLowerCase());
+        }
+        return page.items;
+      }
+
+      function renderMetricValueItem(item) {
+        const row = document.createElement("tr");
+        const values = [
+          `${item.display_name} (${item.metric_key})`,
+          item.period_start || item.period_end
+            ? `${item.period_start || "—"} – ${item.period_end || "—"}` : "All available data",
+          item.value === null ? "—" : `${item.value}${item.unit ? ` ${item.unit}` : ""}`,
+          item.status,
+          new Date(item.computed_at).toLocaleString(),
+          item.verified_at ? new Date(item.verified_at).toLocaleString() : "—"
+        ];
+        for (const value of values) {
+          const cell = document.createElement("td");
+          cell.textContent = value;
+          row.append(cell);
+        }
+        const actionCell = document.createElement("td");
+        if (item.status === "draft" && metricValueVerifyLocations.has(metricValueLocation.value)) {
+          const verify = document.createElement("button");
+          verify.type = "button";
+          verify.textContent = "Verify draft";
+          verify.addEventListener("click", () => verifyMetricValue(item, verify));
+          actionCell.append(verify);
+        }
+        row.append(actionCell);
+        return row;
+      }
+
+      function updateMetricValueAccess() {
+        const locationId = metricValueLocation.value;
+        metricValueComputeForm.hidden = !metricValueComputeLocations.has(locationId);
+        metricValueMore.hidden = true;
+        if (!metricValueReadLocations.has(locationId)) {
+          metricValueRows.replaceChildren();
+          metricValueNextCursor = null;
+          metricValueSeenIds = new Set();
+          metricValueStatus.textContent = "An exact location read grant is required to inspect metric drafts before verification.";
+        }
+      }
+
+      async function loadMetricValues(append = false) {
+        const locationId = metricValueLocation.value;
+        const requestVersion = ++metricValueRequestVersion;
+        if (!metricValueReadLocations.has(locationId)) {
+          updateMetricValueAccess();
+          return;
+        }
+        const cursor = append ? metricValueNextCursor : "0";
+        if (append && cursor === null) return;
+        const limit = 25;
+        const refresh = document.querySelector("#metric-value-refresh");
+        refresh.disabled = true;
+        metricValueMore.disabled = true;
+        if (!append) {
+          metricValueNextCursor = null;
+          metricValueSeenIds = new Set();
+          metricValueRows.replaceChildren();
+          metricValueMore.hidden = true;
+        }
+        metricValueStatus.textContent = append ? "Loading more metrics…" : "Loading location metrics…";
+        try {
+          const url = new URL(`/operator/api/metrics/${encodeURIComponent(locationId)}/values`, window.location.origin);
+          url.searchParams.set("cursor", cursor);
+          url.searchParams.set("limit", String(limit));
+          const response = await fetch(url, {
+            credentials: "same-origin",
+            cache: "no-store",
+            headers: { "Accept": "application/json" }
+          });
+          if (response.status === 401 || response.status === 403) {
+            throw new Error("Your session or exact location metric-read grant is no longer valid.");
+          }
+          if (response.status === 404) throw new Error("Metric review is unavailable for this location.");
+          if (!response.ok) throw new Error("Location metrics could not be loaded. Retry when the service is available.");
+          const result = await response.json();
+          if (requestVersion !== metricValueRequestVersion || locationId !== metricValueLocation.value) return;
+          const items = validateMetricValuePage(result, locationId, cursor, limit);
+          const pageIds = items.map((item) => item.metric_value_id.toLowerCase());
+          if (new Set(pageIds).size !== pageIds.length
+              || pageIds.some((id) => metricValueSeenIds.has(id))) {
+            throw new Error("The metric page repeated a prior record.");
+          }
+          for (const item of items) {
+            const id = item.metric_value_id.toLowerCase();
+            metricValueSeenIds.add(id);
+            metricValueRows.append(renderMetricValueItem(item));
+          }
+          metricValueNextCursor = result.next_cursor;
+          metricValueMore.hidden = !result.has_more;
+          metricValueStatus.textContent = items.length
+            ? `${metricValueRows.querySelectorAll("tr").length} location metric(s) shown. Drafts remain unverified until a separately authorized human decision.`
+            : append ? "No additional metrics are available." : "No metrics are available for this location.";
+        } catch (error) {
+          if (requestVersion !== metricValueRequestVersion) return;
+          if (!append) metricValueRows.replaceChildren();
+          metricValueMore.hidden = true;
+          metricValueStatus.textContent = error.message;
+        } finally {
+          if (requestVersion === metricValueRequestVersion) {
+            refresh.disabled = false;
+            metricValueMore.disabled = false;
+          }
+        }
+      }
+
+      function validateMetricComputeReceipt(receipt, locationId, requestId, metricKey, periodStart, periodEnd) {
+        const expected = [
+          "created", "created_at", "display_name", "location_id", "metric_key", "metric_value_id",
+          "period_end", "period_start", "request_id", "status", "unit", "value", "verified"
+        ].sort().join(",");
+        if (!metricValueExactKeys(receipt, expected)
+            || !metricValueUuidPattern.test(String(receipt.metric_value_id))
+            || receipt.location_id !== locationId || receipt.request_id !== requestId
+            || receipt.metric_key !== metricKey || receipt.period_start !== periodStart
+            || receipt.period_end !== periodEnd || receipt.status !== "draft" || receipt.verified !== false
+            || typeof receipt.created !== "boolean" || typeof receipt.display_name !== "string"
+            || !receipt.display_name.trim() || receipt.display_name.length > 255
+            || !metricValueIsTimestamp(receipt.created_at)
+            || (receipt.value !== null && (typeof receipt.value !== "number" || !Number.isFinite(receipt.value)))
+            || (receipt.unit !== null && (typeof receipt.unit !== "string" || receipt.unit.length > 50))) {
+          throw new Error("The metric draft receipt did not match this request. Retry unchanged values to confirm it.");
+        }
+        return receipt;
+      }
+
+      async function submitMetricValueCompute(event) {
+        event.preventDefault();
+        const locationId = metricValueLocation.value;
+        const metricKey = metricValueKey.value.trim();
+        const periodStart = metricValuePeriodStart.value || null;
+        const periodEnd = metricValuePeriodEnd.value || null;
+        if (!metricValueComputeLocations.has(locationId) || !/^[a-z][a-z0-9_]{0,99}$/.test(metricKey)
+            || (periodStart !== null && !metricValueIsDate(periodStart))
+            || (periodEnd !== null && !metricValueIsDate(periodEnd))
+            || (periodStart !== null && periodEnd !== null && periodStart > periodEnd)) {
+          metricValueStatus.textContent = "Choose an authorized location, a valid metric key, and an ordered optional date range.";
+          return;
+        }
+        const fingerprint = JSON.stringify({ location_id: locationId, metric_key: metricKey, period_start: periodStart, period_end: periodEnd });
+        const pendingKey = `${locationId}:${fingerprint}`;
+        let pending = metricValuePendingComputations.get(pendingKey);
+        if (pending && pending.fingerprint !== fingerprint) {
+          metricValueStatus.textContent = "An earlier request is unresolved. Retry its unchanged values first.";
+          return;
+        }
+        const csrf = csrfToken();
+        if (!csrf) {
+          metricValueStatus.textContent = "Refresh the operator session before computing a metric.";
+          return;
+        }
+        if (!pending) {
+          if (!window.crypto || typeof window.crypto.randomUUID !== "function") {
+            metricValueStatus.textContent = "A secure browser context is required to compute a metric.";
+            return;
+          }
+          pending = { fingerprint, request_id: window.crypto.randomUUID() };
+          metricValuePendingComputations.set(pendingKey, pending);
+        }
+        metricValueComputeSubmit.disabled = true;
+        metricValueStatus.textContent = "Computing an unverified metric draft…";
+        try {
+          const response = await fetch(`/operator/api/metrics/${encodeURIComponent(locationId)}/values`, {
+            method: "POST",
+            credentials: "same-origin",
+            cache: "no-store",
+            headers: { "Accept": "application/json", "Content-Type": "application/json", "X-CSRF-Token": csrf },
+            body: JSON.stringify({
+              request_id: pending.request_id,
+              metric_key: metricKey,
+              period_start: periodStart,
+              period_end: periodEnd
+            })
+          });
+          const result = await response.json().catch(() => ({}));
+          if (response.status === 401 || response.status === 403) {
+            metricValuePendingComputations.delete(pendingKey);
+            throw new Error("Your session or exact location compute grant is no longer valid.");
+          }
+          if (!response.ok) {
+            if (response.status < 500 && response.status !== 408 && response.status !== 429) {
+              metricValuePendingComputations.delete(pendingKey);
+            }
+            throw new Error(result.error || "The metric draft could not be computed.");
+          }
+          const receipt = validateMetricComputeReceipt(result, locationId, pending.request_id, metricKey, periodStart, periodEnd);
+          if ((receipt.created && response.status !== 201) || (!receipt.created && response.status !== 200)) {
+            throw new Error("The metric draft receipt status did not match the response.");
+          }
+          metricValuePendingComputations.delete(pendingKey);
+          metricValueComputeForm.reset();
+          metricValueStatus.textContent = receipt.created
+            ? "Unverified metric draft computed. A human must verify it separately."
+            : "The earlier metric draft receipt was confirmed; no duplicate was created.";
+          if (metricValueReadLocations.has(locationId)) await loadMetricValues();
+          else metricValueStatus.textContent += " A separate location read grant is needed to inspect it.";
+        } catch (error) {
+          metricValueStatus.textContent = metricValuePendingComputations.has(pendingKey)
+            ? `${error.message} Retry the unchanged metric request to reuse its request ID.` : error.message;
+        } finally {
+          metricValueComputeSubmit.disabled = false;
+        }
+      }
+
+      function validateMetricVerifyReceipt(receipt, locationId, item, requestId) {
+        const expected = [
+          "location_id", "metric_key", "metric_value_id", "replayed", "request_id", "status", "verified", "verified_at"
+        ].sort().join(",");
+        if (!metricValueExactKeys(receipt, expected)
+            || receipt.location_id !== locationId || receipt.metric_value_id !== item.metric_value_id
+            || receipt.metric_key !== item.metric_key || receipt.request_id !== requestId
+            || receipt.status !== "verified" || receipt.verified !== true
+            || typeof receipt.replayed !== "boolean" || !metricValueIsTimestamp(receipt.verified_at)) {
+          throw new Error("The verification receipt did not match this metric and location. Retry the unchanged decision.");
+        }
+        return receipt;
+      }
+
+      async function verifyMetricValue(item, button) {
+        const locationId = metricValueLocation.value;
+        if (!metricValueVerifyLocations.has(locationId) || !metricValueReadLocations.has(locationId)
+            || !metricValueUuidPattern.test(item.metric_value_id) || item.status !== "draft") {
+          metricValueStatus.textContent = "An exact location read and verify grant are required for a draft.";
+          return;
+        }
+        if (!window.confirm(`Verify the draft “${item.display_name}” (${item.metric_key}) for this location? This is a human lifecycle decision.`)) return;
+        const csrf = csrfToken();
+        if (!csrf) {
+          metricValueStatus.textContent = "Refresh the operator session before verifying a metric.";
+          return;
+        }
+        let pending = metricValuePendingVerifications.get(item.metric_value_id);
+        if (!pending) {
+          if (!window.crypto || typeof window.crypto.randomUUID !== "function") {
+            metricValueStatus.textContent = "A secure browser context is required to verify a metric.";
+            return;
+          }
+          pending = { location_id: locationId, request_id: window.crypto.randomUUID() };
+          metricValuePendingVerifications.set(item.metric_value_id, pending);
+        }
+        button.disabled = true;
+        try {
+          const response = await fetch(
+            `/operator/api/metrics/${encodeURIComponent(locationId)}/values/${encodeURIComponent(item.metric_value_id)}/verify`,
+            {
+              method: "POST",
+              credentials: "same-origin",
+              cache: "no-store",
+              headers: { "Accept": "application/json", "Content-Type": "application/json", "X-CSRF-Token": csrf },
+              body: JSON.stringify({ request_id: pending.request_id, verification_notes: null })
+            }
+          );
+          const result = await response.json().catch(() => ({}));
+          if (response.status === 401 || response.status === 403) {
+            metricValuePendingVerifications.delete(item.metric_value_id);
+            throw new Error("Your session or exact location verify grant is no longer valid.");
+          }
+          if (!response.ok) {
+            if (response.status < 500 && response.status !== 408 && response.status !== 429) {
+              metricValuePendingVerifications.delete(item.metric_value_id);
+            }
+            throw new Error(result.error || "The metric draft could not be verified.");
+          }
+          const receipt = validateMetricVerifyReceipt(result, locationId, item, pending.request_id);
+          if (response.status !== 200) throw new Error("The verification response status was invalid.");
+          metricValuePendingVerifications.delete(item.metric_value_id);
+          metricValueStatus.textContent = receipt.replayed
+            ? "The prior human verification receipt was confirmed."
+            : "Metric draft verified by the signed-in operator.";
+          await loadMetricValues();
+        } catch (error) {
+          metricValueStatus.textContent = metricValuePendingVerifications.has(item.metric_value_id)
+            ? `${error.message} Retry the same metric to reuse its request ID.` : error.message;
+        } finally {
+          button.disabled = false;
+        }
+      }
+
       async function loadExtensionLearningSummary() {
         const locationId = extensionLearningLocation.value;
         const requestVersion = ++extensionLearningSummaryRequestVersion;
@@ -22012,12 +22631,45 @@
             .filter((locationId) => typeof locationId === "string"
               && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(locationId)))];
           coordinationSummaryLocations = new Set(coordinationLocationIds);
-          const extensionLearningLocationIds = [...new Set((data.scopes || [])
+          const extensionLearningReadLocationIds = [...new Set((data.scopes || [])
             .filter((scope) => scope.resource === "extension_learning" && scope.action === "read")
             .map((scope) => scope.location_id)
             .filter((locationId) => typeof locationId === "string"
               && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(locationId)))];
-          extensionLearningLocations = new Set(extensionLearningLocationIds);
+          extensionLearningLocations = new Set(extensionLearningReadLocationIds);
+          const extensionLearningCreateLocationIds = [...new Set((data.scopes || [])
+            .filter((scope) => scope.resource === "extension_learning" && scope.action === "create_peer_network")
+            .map((scope) => scope.location_id)
+            .filter((locationId) => typeof locationId === "string"
+              && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(locationId)))];
+          extensionLearningPeerNetworkCreateLocations = new Set(extensionLearningCreateLocationIds);
+          const extensionLearningLocationIds = [...new Set([
+            ...extensionLearningReadLocationIds,
+            ...extensionLearningCreateLocationIds,
+          ])];
+          const metricValueReadLocationIds = [...new Set((data.scopes || [])
+            .filter((scope) => scope.resource === "metric_value" && scope.action === "read")
+            .map((scope) => scope.location_id)
+            .filter((locationId) => typeof locationId === "string"
+              && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(locationId)))];
+          metricValueReadLocations = new Set(metricValueReadLocationIds);
+          const metricValueComputeLocationIds = [...new Set((data.scopes || [])
+            .filter((scope) => scope.resource === "metric_value" && scope.action === "compute")
+            .map((scope) => scope.location_id)
+            .filter((locationId) => typeof locationId === "string"
+              && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(locationId)))];
+          metricValueComputeLocations = new Set(metricValueComputeLocationIds);
+          const metricValueVerifyLocationIds = [...new Set((data.scopes || [])
+            .filter((scope) => scope.resource === "metric_value" && scope.action === "verify")
+            .map((scope) => scope.location_id)
+            .filter((locationId) => typeof locationId === "string"
+              && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(locationId)))];
+          metricValueVerifyLocations = new Set(metricValueVerifyLocationIds);
+          const metricValueLocationIds = [...new Set([
+            ...metricValueReadLocationIds,
+            ...metricValueComputeLocationIds,
+            ...metricValueVerifyLocationIds,
+          ])];
           const cooperativeManagementLocationIds = [...new Set((data.scopes || [])
             .filter((scope) => scope.resource === "cooperative_management" && scope.action === "read")
             .map((scope) => scope.location_id)
@@ -22273,6 +22925,15 @@
             .filter((locationId) => typeof locationId === "string"
               && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(locationId)))];
           governanceTensionReadLocations = new Set(governanceTensionLocations);
+          governanceTensionActionLocations = new Map(
+            ["triage", "start", "link", "link_work_item", "resolve", "defer"].map((action) => [
+              action,
+              new Set((data.scopes || [])
+                .filter((scope) => scope.resource === "governance_tension" && scope.action === action)
+                .map((scope) => scope.location_id)
+                .filter((locationId) => governanceTensionReadLocations.has(locationId)))
+            ])
+          );
           const governanceRoleLocations = [...new Set((data.scopes || [])
             .filter((scope) => scope.resource === "governance_roles" && scope.action === "read")
             .map((scope) => scope.location_id)
@@ -22543,10 +23204,28 @@
               extensionLearningLocation.append(option);
             }
             extensionLearning.hidden = false;
-            await Promise.all([
-              loadExtensionLearningSummary(),
-              loadExtensionLearningModules()
-            ]);
+            extensionLearningPeerNetworkCreate.hidden = !extensionLearningPeerNetworkCreateLocations
+              .has(extensionLearningLocation.value);
+            if (extensionLearningLocations.has(extensionLearningLocation.value)) {
+              await Promise.all([
+                loadExtensionLearningSummary(),
+                loadExtensionLearningModules()
+              ]);
+            }
+            hasAuthorizedSurface = true;
+          }
+          if (metricValueLocationIds.length) {
+            for (const locationId of metricValueLocationIds) {
+              const option = document.createElement("option");
+              option.value = locationId;
+              option.textContent = locationId;
+              metricValueLocation.append(option);
+            }
+            metricValueReview.hidden = false;
+            updateMetricValueAccess();
+            if (metricValueReadLocations.has(metricValueLocation.value)) {
+              await loadMetricValues();
+            }
             hasAuthorizedSurface = true;
           }
           if (cooperativeManagementLocationIds.length) {
@@ -26631,7 +27310,9 @@
       async function loadGovernanceTensionDetail(tensionId) {
         const locationId = governanceTensionLocation.value;
         const requestVersion = ++governanceTensionDetailRequestVersion;
+        governanceTensionCurrentDetail = null;
         governanceTensionDetail.hidden = true;
+        governanceTensionActions.hidden = true;
         governanceTensionFields.replaceChildren();
         governanceTensionDescription.textContent = "";
         governanceTensionEvents.replaceChildren();
@@ -26653,6 +27334,7 @@
           if (!response.ok) throw new Error("The governance tension detail is unavailable.");
           const result = await response.json();
           const tension = result.tension;
+          governanceTensionCurrentDetail = tension;
           for (const [label, value] of [
             ["Type", tension.tension_type], ["Severity", tension.severity],
             ["Urgency", tension.urgency], ["Status", tension.status],
@@ -26676,6 +27358,7 @@
           governanceTensionDetailStatus.textContent = result.events_truncated
             ? "Showing the latest 100 lifecycle events; earlier history is not displayed."
             : "Lifecycle history omits actor identities and private event notes.";
+          updateGovernanceTensionActionForm(tension);
         } catch (error) {
           if (requestVersion === governanceTensionDetailRequestVersion) {
             governanceTensionDetailStatus.textContent = error.message;
@@ -26683,6 +27366,208 @@
           }
         }
       }
+
+      function availableGovernanceTensionActions(tension) {
+        const byStatus = {
+          submitted: ["triage"],
+          triaged: ["start", "link", "link_work_item", "resolve", "defer"],
+          in_progress: ["link", "link_work_item", "resolve", "defer"],
+          deferred: ["start", "link", "link_work_item", "resolve"],
+        };
+        const locationId = governanceTensionLocation.value;
+        return (byStatus[tension.status] || [])
+          .filter((action) => governanceTensionActionLocations.get(action)?.has(locationId));
+      }
+
+      function updateGovernanceTensionActionForm(tension) {
+        const actions = availableGovernanceTensionActions(tension);
+        governanceTensionAction.replaceChildren();
+        const labels = {
+          triage: "Triage and assign",
+          start: "Start work",
+          link: "Link a governance record",
+          link_work_item: "Link a work item",
+          resolve: "Resolve",
+          defer: "Defer",
+        };
+        for (const action of actions) {
+          const option = document.createElement("option");
+          option.value = action;
+          option.textContent = labels[action];
+          governanceTensionAction.append(option);
+        }
+        governanceTensionActions.hidden = actions.length === 0;
+        governanceTensionActionStatus.textContent = "";
+        syncGovernanceTensionActionFields();
+      }
+
+      function syncGovernanceTensionActionFields() {
+        const action = governanceTensionAction.value;
+        const sections = [
+          [governanceTensionTriageFields, action === "triage"],
+          [governanceTensionLinkFields, action === "link"],
+          [governanceTensionWorkItemFields, action === "link_work_item"],
+          [governanceTensionResolveFields, action === "resolve"],
+          [governanceTensionDeferFields, action === "defer"],
+        ];
+        for (const [section, visible] of sections) {
+          section.hidden = !visible;
+          section.querySelectorAll("input, select, textarea").forEach((field) => {
+            field.required = false;
+          });
+        }
+        if (action === "link") {
+          document.querySelector("#governance-tension-link-entity-type").required = true;
+          document.querySelector("#governance-tension-link-entity-id").required = true;
+        } else if (action === "link_work_item") {
+          document.querySelector("#governance-tension-work-item-id").required = true;
+        } else if (action === "resolve") {
+          document.querySelector("#governance-tension-resolution-summary").required = true;
+        } else if (action === "defer") {
+          document.querySelector("#governance-tension-deferred-until").required = true;
+        }
+      }
+
+      function buildGovernanceTensionActionPayload(action) {
+        const payload = { reason: governanceTensionActionReason.value.trim() };
+        const optionalText = (selector) => {
+          const value = document.querySelector(selector).value.trim();
+          return value || null;
+        };
+        const optionalDate = (selector) => {
+          const value = document.querySelector(selector).value;
+          return value ? new Date(value).toISOString() : null;
+        };
+        if (action === "triage") {
+          const ownerRole = optionalText("#governance-tension-owner-role");
+          const ownerParty = optionalText("#governance-tension-owner-party");
+          if (ownerRole) payload.owner_role_id = ownerRole;
+          if (ownerParty) payload.owner_party_id = ownerParty;
+          const reviewDue = optionalDate("#governance-tension-review-due");
+          if (reviewDue) payload.review_due_at = reviewDue;
+          const note = optionalText("#governance-tension-triage-note");
+          if (note) payload.note = note;
+        } else if (action === "link") {
+          payload.link_type = document.querySelector("#governance-tension-link-type").value;
+          payload.entity_type = document.querySelector("#governance-tension-link-entity-type").value.trim();
+          payload.entity_id = document.querySelector("#governance-tension-link-entity-id").value.trim();
+          const summary = optionalText("#governance-tension-link-summary");
+          if (summary) payload.summary = summary;
+        } else if (action === "link_work_item") {
+          payload.work_item_id = document.querySelector("#governance-tension-work-item-id").value.trim();
+        } else if (action === "resolve") {
+          payload.resolution_summary = document.querySelector("#governance-tension-resolution-summary").value.trim();
+        } else if (action === "defer") {
+          payload.deferred_until = optionalDate("#governance-tension-deferred-until");
+          const note = optionalText("#governance-tension-defer-note");
+          if (note) payload.note = note;
+        }
+        return payload;
+      }
+
+      async function submitGovernanceTensionAction(event) {
+        event.preventDefault();
+        const tension = governanceTensionCurrentDetail;
+        const locationId = governanceTensionLocation.value;
+        const action = governanceTensionAction.value;
+        if (!tension || !action || !governanceTensionActionLocations.get(action)?.has(locationId)) {
+          governanceTensionActionStatus.textContent = "A matching location action grant and tension detail are required.";
+          return;
+        }
+        const csrf = csrfToken();
+        if (!csrf) {
+          governanceTensionActionStatus.textContent = "The session security token is unavailable. Reload the console and retry.";
+          return;
+        }
+        let payload;
+        try {
+          payload = buildGovernanceTensionActionPayload(action);
+          if (!payload.reason || payload.reason.length > 2000) throw new Error("Enter a reason of at most 2,000 characters.");
+          for (const [key, value] of Object.entries(payload)) {
+            if (key.endsWith("_id") && (!value || !reportExportUuidPattern.test(value))) {
+              throw new Error(`${key.replaceAll("_", " ")} must be a UUID.`);
+            }
+          }
+          if (action === "triage" && !payload.owner_role_id && !payload.owner_party_id) {
+            throw new Error("Triage requires an owner role or party UUID.");
+          }
+          if (action === "link" && !/^[a-z][a-z0-9_]{0,79}$/.test(payload.entity_type)) {
+            throw new Error("Entity type must use lowercase letters, digits, and underscores.");
+          }
+          if (action === "resolve" && (!payload.resolution_summary.trim() || payload.resolution_summary.length > 4000)) {
+            throw new Error("Enter a resolution summary of at most 4,000 characters.");
+          }
+          if (action === "defer" && !payload.deferred_until) throw new Error("Choose when to resume the tension.");
+        } catch (error) {
+          governanceTensionActionStatus.textContent = error.message;
+          return;
+        }
+        const signature = JSON.stringify({ location_id: locationId, tension_id: tension.id, action, payload });
+        let pending = governanceTensionPendingActions.get(tension.id);
+        if (!pending || pending.signature !== signature) {
+          pending = { signature, request_id: globalThis.crypto?.randomUUID?.() };
+          if (!pending.request_id) {
+            governanceTensionActionStatus.textContent = "A secure request ID could not be created in this browser.";
+            return;
+          }
+          governanceTensionPendingActions.set(tension.id, pending);
+        }
+        governanceTensionActionSubmit.disabled = true;
+        governanceTensionActionStatus.textContent = "Applying the governed lifecycle action…";
+        try {
+          const response = await fetch(
+            `/operator/api/governance/${encodeURIComponent(locationId)}/tensions/${encodeURIComponent(tension.id)}/actions/${encodeURIComponent(action)}`,
+            {
+              method: "POST",
+              credentials: "same-origin",
+              cache: "no-store",
+              headers: {
+                "Accept": "application/json",
+                "Content-Type": "application/json",
+                "X-CSRF-Token": csrf,
+              },
+              body: JSON.stringify({ ...payload, request_id: pending.request_id }),
+            },
+          );
+          const result = await response.json().catch(() => ({}));
+          if (response.status === 401 || response.status === 403) {
+            governanceTensionPendingActions.delete(tension.id);
+            throw new Error("Your session or location-scoped action grant is not valid.");
+          }
+          if (!response.ok) {
+            if (response.status < 500) governanceTensionPendingActions.delete(tension.id);
+            throw new Error(result.error || "The governance-tension action is unavailable.");
+          }
+          const expectedFields = ["action", "link_id", "location_id", "request_id", "status", "tension_id", "updated_at"].sort().join(",");
+          if (!result || typeof result !== "object" || Array.isArray(result)
+              || Object.keys(result).sort().join(",") !== expectedFields
+              || result.location_id !== locationId || result.tension_id !== tension.id
+              || result.action !== action || result.request_id !== pending.request_id
+              || !reportExportUuidPattern.test(result.request_id)
+              || (result.link_id !== null && !reportExportUuidPattern.test(result.link_id))
+              || typeof result.updated_at !== "string" || Number.isNaN(Date.parse(result.updated_at))) {
+            throw new Error("The lifecycle receipt did not match this request. Retry unchanged values to confirm the same request ID.");
+          }
+          governanceTensionPendingActions.delete(tension.id);
+          governanceTensionActionStatus.textContent = `Action recorded (${result.status}). Refreshing tension history…`;
+          await loadGovernanceTensionQueue();
+          if (["submitted", "triaged", "in_progress", "deferred"].includes(result.status)) {
+            await loadGovernanceTensionDetail(tension.id);
+          } else {
+            governanceTensionCurrentDetail = null;
+            governanceTensionDetail.hidden = true;
+            governanceTensionActions.hidden = true;
+            governanceTensionActionStatus.textContent = `Action recorded (${result.status}); this tension is no longer in the open queue.`;
+          }
+        } catch (error) {
+          governanceTensionActionStatus.textContent = `${error.message} Retrying unchanged values will reuse the same request ID.`;
+        } finally {
+          governanceTensionActionSubmit.disabled = false;
+        }
+      }
+
+      governanceTensionAction.addEventListener("change", syncGovernanceTensionActionFields);
+      governanceTensionActionForm.addEventListener("submit", submitGovernanceTensionAction);
 
       async function loadQueue() {
         queue.replaceChildren();
@@ -28643,7 +29528,9 @@
             || solutionLifecyclePendingReplicationReview
             || solutionLifecyclePendingRetirementProposal
             || solutionLifecyclePendingRetirementApproval
-            || solutionLifecyclePendingRetirementTransition) {
+            || solutionLifecyclePendingRetirementTransition
+            || metricValuePendingComputations.size > 0
+            || metricValuePendingVerifications.size > 0) {
           event.preventDefault();
           event.returnValue = "";
         }
@@ -28654,7 +29541,10 @@
         loadExtensionLearningSummary();
         loadExtensionLearningModules();
       });
+      extensionLearningPeerNetworkForm.addEventListener("submit", submitExtensionPeerNetwork);
       extensionLearningLocation.addEventListener("change", () => {
+        extensionLearningPeerNetworkCreate.hidden = !extensionLearningPeerNetworkCreateLocations
+          .has(extensionLearningLocation.value);
         loadExtensionLearningSummary();
         loadExtensionLearningModules();
       });
@@ -28664,6 +29554,16 @@
         document.querySelector(selector).addEventListener("change", () => loadExtensionLearningModules());
       }
       extensionLearningMore.addEventListener("click", () => loadExtensionLearningModules(true));
+      document.querySelector("#metric-value-refresh").addEventListener("click", () => loadMetricValues());
+      metricValueLocation.addEventListener("change", () => {
+        metricValueRows.replaceChildren();
+        metricValueNextCursor = null;
+        metricValueSeenIds = new Set();
+        updateMetricValueAccess();
+        if (metricValueReadLocations.has(metricValueLocation.value)) loadMetricValues();
+      });
+      metricValueComputeForm.addEventListener("submit", submitMetricValueCompute);
+      metricValueMore.addEventListener("click", () => loadMetricValues(true));
       document.querySelector("#cooperative-management-refresh").addEventListener("click", loadCooperativeManagementSummary);
       cooperativeManagementLocation.addEventListener("change", loadCooperativeManagementSummary);
       document.querySelector("#trend-analysis-refresh").addEventListener("click", () => loadTrendEstimates());

@@ -20,30 +20,35 @@ expect, so KI-11 (crypto-asset compliance) and external audits have a trace.
 
 ## ISO 27001:2022 — Annex A (selected)
 
+This table is an evidence map, not an audit result or proof that a control is
+operating in a deployed environment. Entries involving hosting, ingress,
+backups, time synchronization, and privileged access require current owner and
+runtime evidence before they are reported as implemented controls.
+
 | Clause | Control | KI evidence |
 |--------|---------|-------------|
 | A.5.1 | Policies | `isms-policy.md` |
 | A.5.2 | Roles/responsibilities | role model docs |
 | A.6.1 | Screening | Core Team approval gate |
-| A.7.1 | Physical security | `cerberus` hardening; co-host isolation |
+| A.7.1 | Physical security | Current host hardening and co-host isolation evidence required; the historical `cerberus` reference is not verified here |
 | A.8.1 | User access | gateway auth, SOPS, RBAC |
-| A.8.2 | Privileged access | host key host-only; agent no prod secrets |
-| A.8.3 | Info access restriction | Directus roles; opt-in public routes |
-| A.8.4 | Source code | private repo; CI-only secrets |
-| A.8.5 | Secure config | compose port isolation; namespace pin |
-| A.8.6 | Boundary protection | cloudflared tunnel; app-level auth |
-| A.8.7 | Data masking | PII residency (data-handling.md) |
+| A.8.2 | Privileged access | SOPS+age key custody and CI secret isolation; deployment-specific evidence required |
+| A.8.3 | Info access restriction | Gateway route policies, tenant/operator grants, database privileges; Directus roles and hooks where the adapter is enabled |
+| A.8.4 | Source code | GitHub repository governance and branch protections; repository is open source, so source confidentiality is not an assumed control |
+| A.8.5 | Secure config | Compose network/port isolation and pinned images; verify the selected profile |
+| A.8.6 | Boundary protection | Active ingress configuration and application auth; verify any Cloudflare Tunnel deployment separately |
+| A.8.7 | Data masking | Public-safe projections and access policy; confirm masking/residency against data-handling policy |
 | A.8.8 | Mgmt of secrets | SOPS+age; `check-tracked-secrets.sh` |
-| A.8.9 | Data backup | nightly verified backup |
+| A.8.9 | Data backup | Active backup configuration, retention policy, and restore evidence required |
 | A.8.10 | Logging | scheduler/event durability tests |
 | A.8.11 | Ops resilience | backup + restore rehearsal |
 | A.8.12 | Data leakage | resolver-gated attestation; no raw PII sync |
-| A.8.13 | Info backup | same as A.8.9 |
+| A.8.13 | Info backup | Active backup configuration, retention policy, and restore evidence required |
 | A.8.14 | Redundancy | (KI-8 planned — edge replicas) |
 | A.8.15 | Logging/monitoring | CI + durability |
 | A.8.16 | Monitoring activities | event bus |
-| A.8.17 | Clock sync | container NTP |
-| A.8.18 | Use of privileged util | sudo audit |
+| A.8.17 | Clock sync | Host time-synchronization evidence required; containers use host time and no container NTP control is claimed |
+| A.8.18 | Use of privileged util | Host privilege and audit evidence required for each deployment |
 
 ## Coverage gaps (to close in v1.1)
 

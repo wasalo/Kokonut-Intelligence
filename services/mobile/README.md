@@ -1,5 +1,9 @@
 # Kokonut Field Collector
 
+Deployment-state statements in this README are dated recovery snapshots, not
+live database status. Before acting on an environment, inspect its ordered
+`schema_migration` ledger and verify the running application image separately.
+
 The Field Collector is a dependency-free HTML companion tool for field workers.
 It encrypts device credentials, settings, form cache, and offline records in
 IndexedDB with a passphrase-derived AES-GCM key. Create or unlock the vault on
@@ -30,6 +34,11 @@ browser profile and synced records sensitive.
 
 ## Entry points
 
+The following static `/field/*` and Directus paths belong to the legacy
+integration stack. Kernel deployments serve the Field Collector through the
+Gateway at `/mobile/`; the optional Kernel Caddy overlay proxies to the Gateway
+and does not serve the legacy static `/field/*` route.
+
 - Gateway (preferred): `/mobile/` or `/api/mobile/app`; `/mobile` redirects to
   `/mobile/` so relative HTML, vault, and service-worker assets stay under the
   configured proxy route.
@@ -37,11 +46,18 @@ browser profile and synced records sensitive.
 - Directus endpoint: `/field-collector/` (redirects to the Caddy route)
 - Direct file: open `field-collector.html` directly in a browser
 
-Base Compose runs the gateway service and Caddy proxies `/mobile*` and
-`/api/mobile/*` to it, so phones on the LAN can use same-origin sync without
-manual Settings.
+The legacy root Compose stack runs the gateway and Caddy routes described here.
+That stack is not the Kernel candidate. For Kernel, use the profile planner and
+an explicit candidate project; the default candidate publishes only loopback,
+and LAN/remote HTTPS requires the optional proxy profile plus its trusted-proxy
+and certificate configuration.
 
-## Local network access
+## Legacy local network access
+
+These `https://<lan-ip>` examples apply only to the legacy root Compose stack.
+The Kernel candidate defaults to `http://127.0.0.1:8098/mobile/` on the host and
+is not reachable from other devices until the optional proxy and certificate
+configuration have been deliberately selected and accepted.
 
 Replace `<lan-ip>` with the host machine's LAN address (for example
 `192.168.1.42`). Dev Caddy uses an internal CA, so phones may need to accept a
@@ -49,13 +65,18 @@ self-signed certificate warning for HTTPS.
 
 | Path | URL | Notes |
 |------|-----|-------|
-| Preferred (gateway via Caddy) | `https://<lan-ip>/mobile/` | HTML + `/api/mobile` same origin |
-| Static HTML via Caddy | `https://<lan-ip>/field/field-collector.html` | API also same-origin via `/api/mobile/*` proxy |
+| Legacy gateway via Caddy | `https://<lan-ip>/mobile/` | HTML + `/api/mobile` same origin |
+| Legacy static HTML via Caddy | `https://<lan-ip>/field/field-collector.html` | API also same-origin via `/api/mobile/*` proxy |
+| Kernel candidate (host only) | `http://127.0.0.1:8098/mobile/` | Loopback only unless a reviewed proxy is selected |
 | Loopback gateway | `http://127.0.0.1:8099/mobile` | Host-only; not reachable from phones |
 | Direct file | `file://.../field-collector.html` | Set Settings → API URL to `https://<lan-ip>` or `http://<lan-ip>:8099` |
 
-Start the stack with `docker compose up -d` (includes `gateway`). Host-only
-fallback: `python3 -m services.gateway.cli --serve --port 8099`.
+For the legacy integration stack only, start the stack with
+`docker compose up -d` (includes `gateway`). For Kernel, inspect the planned
+command with `python3 scripts/kernel-profile.py edge --project
+kokonut-kernel-edge --proxy --action config` and complete the separate proxy
+and certificate acceptance before exposing it to a LAN. Host-only fallback:
+`python3 -m services.gateway.cli --serve --port 8099`.
 
 When opened directly as a file, configure the API origin in Settings before
 syncing. The app does not require a connection to record data.
@@ -95,9 +116,11 @@ and invalid values. This does not detect sensitive content inside free text or
 inspect photos. Do not enter worker
 identifiers, personal receipts/account details, or person-centered/sensitive
 notes; use a separate consent-required workflow for participant-focused data.
-The local candidate now serves the five `1.2.0` revisions and matching app.
-Other environments must follow the same checksummed migration and seed
-workflow. See the [policy decision record](../../docs/refactor/mobile-form-classification-review.md)
+The 2026-10-12 candidate rollout evidence records five `1.2.0` revisions and
+the matching app at that point in time; it is not a statement of current
+candidate or production state. Other environments must follow the same
+checksummed migration and seed workflow. See the
+[policy decision record](../../docs/refactor/mobile-form-classification-review.md)
 and [candidate rollout evidence](../../docs/refactor/builds/2026-10-12-recovery/candidate-mobile-consent-rollout.json).
 
 ### Custom form manifest validation
@@ -141,10 +164,11 @@ instead of location or organization UUIDs, and counts known mobile and
 downstream rows. Organization relationships are review evidence only; the
 command never assigns an owner or changes data. With `--location-id`, the
 location rows are filtered but `records_without_location` remains a
-database-wide total. The local candidate run returned zero locations and zero
-inventoried rows; it is empty and does not establish ownership for a populated
-installation. Review a populated deployment's output with accountable data
-owners before any ownership backfill, tenant grant, or RLS migration. See the
+database-wide total. A historical local-candidate run returned zero locations
+and zero inventoried rows; that empty-database result does not establish
+ownership for a populated installation or current environment state. Review a
+populated deployment's output with accountable data owners before any ownership
+backfill, tenant grant, or RLS migration. See the
 [tenant isolation contract](../../docs/refactor/mobile-tenant-isolation.md).
 
 The report also returns aggregate status for the five owner-confirmed Kokonut
@@ -198,8 +222,11 @@ evidence](../../docs/refactor/builds/2026-10-13-recovery/field-collector-tenant-
   `MOBILE_MEDIA_S3_REGION`. Leave credentials unset to fail closed and disable
   uploads. For R2, use its S3 API endpoint and the `auto` region. Do not enable
   public bucket access or expose object keys.
-- The media metadata migration gives unattached uploads a 30-day expiry, and
-  sync rejects expired references. Operators can preview eligible rows with
+- Migration 358 currently assigns unattached uploads a fixed 30-day expiry, and
+  sync rejects expired references. This is a technical default, not an
+  owner-approved retention schedule; replace it with configurable,
+  jurisdiction-aware policy before treating the media lifecycle as production
+  accepted. Operators can preview eligible rows with
   `python3 -m services.cli mobile-media-cleanup`; deleting bytes and marking
   expired rows requires explicit `--apply` and is limited to unattached uploads.
   Attached media remains for governed retention/erasure review. Operators can
@@ -267,12 +294,13 @@ The trusted-device flow uses schema migration `357_field_collector_enrollment_ha
 
 Migration 381 adds immutable form revisions, reviewer-created participant
 links, consent validation metadata, and the downstream
-`v_mobile_collection_use_eligibility` gate. Migration 381 and the curated form
-seed are applied to the local candidate; it has 372 applied schemas, zero
-pending migrations, five active `1.2.0` forms, five retired `1.1.0` revisions,
-and no mobile collection rows. The new validator is deployed in the candidate
-app. A fresh encrypted checkpoint restored successfully into an isolated
-template0-derived database before the seed and app rollout.
+`v_mobile_collection_use_eligibility` gate. A dated recovery record captured
+migration 381 and the curated form seed applied to the local candidate, with
+372 applied schemas, zero pending migrations, five active `1.2.0` forms, five
+retired `1.1.0` revisions, and no mobile collection rows. It also records a
+successful restore rehearsal before that rollout. These counts and deployment
+claims are historical; inspect the target ledger and running image before
+relying on them.
 Other populated deployments must apply 381 and the curated seed in order;
 legacy rows remain unassessed. The older
 `services.analytics.mobile_offline` CLI and direct service helpers now fail
@@ -295,13 +323,16 @@ collection lineage, active immutable form revision, and current consent/form
 eligibility after draft promotion. Retiring
 or inactivating a form revision moves linked collections back into private
 review. Ineligible canonical rows remain visible to authorized operators for
-disposition, while edits and forward lifecycle actions are blocked. Migration
-386 and the matching app source are not yet database-tested or deployed to the
-local candidate; see the Batch 5 checklist.
-Registered-upload expiry cleanup passed an isolated PostgreSQL/local-media
-acceptance. Provider-neutral orphan reconciliation is implemented with a
-dry-run default; live S3/R2 acceptance and production retention remain open, as
-does full live mobile workflow acceptance before production use.
+disposition, while edits and forward lifecycle actions are blocked. Earlier
+recovery notes recorded migration 386 and matching app source as untested and
+not yet deployed at that time. That note is historical; verify the selected
+target's ledger and running image before deployment or acceptance.
+Earlier isolated recovery evidence records registered-upload expiry cleanup
+passing against PostgreSQL and local media. At that point, provider-neutral
+orphan reconciliation defaulted to dry-run, while live S3/R2 acceptance,
+production retention, and full live mobile workflow acceptance remained open.
+Check current evidence before treating any of those rollout gates as open or
+closed.
 
 See the implemented [`mobile access contract`](../../docs/refactor/mobile-access-contract.md)
 for the full policy, review gates, and rollback. Enrollment and location binding

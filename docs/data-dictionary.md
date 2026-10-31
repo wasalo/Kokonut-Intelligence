@@ -756,7 +756,7 @@ All metrics include `validation_tests` (JSONB), `report_usage` (TEXT[]), and `de
 
 ## Common Schema Conventions
 
-- PostgreSQL and Directus are the canonical application data layer; ClickHouse is the analytical event store.
+- PostgreSQL/PostGIS is the canonical data store. The native Gateway and Python services provide application APIs and operations; Directus is a compatibility/admin adapter. ClickHouse is an optional analytical projection in the Kernel profiles and is not a source of truth.
 - UUID primary keys and `created_at`/`updated_at` audit fields are common but not universal. Confirm the migration before relying on them.
 - Public views must apply lifecycle, evidence maturity, consent, and registry gates defined by their source migrations.
 - `metric_value` rows produced by computation are drafts and unverified until a human reviewer verifies them.

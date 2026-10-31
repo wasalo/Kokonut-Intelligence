@@ -66,10 +66,11 @@ can still be substantial on an edge device; ARM64 software builds do not
 establish runtime resource suitability.
 
 The standard, optional ClickHouse, and optional ML image lockfiles pin resolved
-versions and artifact hashes. The optional ML worker's AMD64 and ARM64 images
-measure about 955 MB and 987 MB respectively. Package resolution, locked-wheel
-installation, runtime imports, compatibility suites, and ARM64 software builds
-pass for this slice, but image weight remains material for edge devices.
+versions and artifact hashes. The optional ML worker includes substantial
+numerical dependencies; image size depends on the selected architecture and
+image build. Rebuild to measure the current artifact. Package installation or
+ARM64 emulation does not establish resource suitability on Raspberry Pi
+hardware.
 Do not remove packages from legacy images until capability checks pass. Keep
 constraints synchronized with `requirements.txt` during transition.
 

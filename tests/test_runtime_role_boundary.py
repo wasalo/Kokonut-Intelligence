@@ -26,7 +26,7 @@ def test_runtime_acl_policy_matches_all_recorded_migration_revokes():
         (
             root
             / "docs/refactor/builds/2026-10-30-recovery/"
-            "native-resource-limited-schema-699-operator-probe.json"
+            "kernel-c1-full-schema-703-native-r2.json"
         ).read_text()
     )
     inventory = build_inventory()
@@ -62,7 +62,7 @@ def test_runtime_acl_policy_matches_all_recorded_migration_revokes():
     assert configured_boundaries["service_registry"] == "runtime_mutations_denied"
 
 
-def test_current_full_schema_acl_snapshot_matches_source_policy():
+def test_historical_full_schema_acl_snapshot_matches_its_recorded_source_policy():
     root = Path(__file__).resolve().parents[1]
     probe = json.loads(
         (
@@ -78,8 +78,14 @@ def test_current_full_schema_acl_snapshot_matches_source_policy():
     assert acceptance["full_schema_replay_passed"] is True
     assert acceptance["scoped_acl_checks_passed"] is True
     assert acceptance["acl_snapshot_latest_migration_number"] == 699
-    assert acceptance["repository_latest_migration_number"] == 699
-    assert acceptance["current_migration_chain_observed"] is True
+    latest_repository_migration = max(
+        int(path.name.split("_", maxsplit=1)[0])
+        for path in (root / "schemas/postgres").glob("*.sql")
+        if path.name.split("_", maxsplit=1)[0].isdigit()
+    )
+    assert acceptance["repository_latest_migration_number"] == latest_repository_migration
+    assert acceptance["repository_latest_migration_number"] == 703
+    assert acceptance["current_migration_chain_observed"] is False
     assert acceptance["production_or_candidate_state_established"] is False
 
     metric_definition = next(
@@ -1981,6 +1987,76 @@ def test_baal_indexer_provisioning_requires_paired_credentials_and_distinct_owne
             baal_indexer_user="kokonut_baal_indexer_owner",
             baal_indexer_password="b" * 32,
         )
+
+
+def test_c1_gateway_writer_functions_are_private_and_owned_by_isolated_roles():
+    expected = {
+        "kokonut_security.mutate_governance_tension_action(uuid,uuid,text,uuid,jsonb,text)":
+            "kokonut_governance_action_owner",
+        "kokonut_security.create_extension_peer_network(uuid,uuid,text,text,text,integer,text,text,jsonb)":
+            "kokonut_extension_learning_writer",
+        "kokonut_security.update_extension_learning_progress(uuid,uuid,uuid,text,numeric,numeric,integer,jsonb)":
+            "kokonut_extension_learning_writer",
+        "kokonut_security.extension_learning_grant_allows(uuid,text,uuid)":
+            "kokonut_extension_learning_writer",
+        "kokonut_security.extension_compact_json_text(jsonb)":
+            "kokonut_extension_learning_writer",
+        "kokonut_security.create_location_landscape_record(uuid,text,uuid,jsonb,text)":
+            "kokonut_landscape_capture_writer",
+        "kokonut_security.create_location_metric_value_draft(uuid,uuid,uuid,text,date,date,numeric,text,text,uuid[],jsonb)":
+            "kokonut_metric_value_manager",
+        "kokonut_security.verify_location_metric_value(uuid,uuid,uuid,text)":
+            "kokonut_metric_value_manager",
+        "kokonut_security.list_location_metric_values(uuid,text,integer)":
+            "kokonut_metric_value_manager",
+    }
+    owner_map = dict(runtime_role._SECURITY_DEFINER_OWNERS)
+    assert set(expected) <= set(runtime_role._PRIVATE_RUNTIME_FUNCTIONS)
+    assert {function: owner_map[function] for function in expected} == expected
+
+
+@pytest.mark.parametrize(
+    "owner,owner_label",
+    [
+        ("kokonut_governance_action_owner", "governance-action"),
+        ("kokonut_extension_learning_writer", "extension-learning"),
+        ("kokonut_landscape_capture_writer", "landscape-capture"),
+        ("kokonut_metric_value_manager", "metric-value"),
+    ],
+)
+def test_c1_function_owner_roles_cannot_be_application_logins(owner, owner_label):
+    with pytest.raises(ValueError, match=f"differ from the {owner_label} function owner"):
+        runtime_role.provision_runtime_role(
+            None,
+            database="kokonut_intelligence",
+            admin_user="kokonut",
+            admin_password="admin-password",
+            runtime_user=owner,
+            runtime_password="runtime-password",
+            operator_auth_user="kokonut_operator_auth",
+            operator_auth_password="operator-password",
+        )
+
+
+def test_c1_receipt_and_audit_tables_stay_private_after_runtime_reprovisioning():
+    expected_private_tables = {
+        "governance_tension_action_request",
+        "extension_peer_network_create_receipt",
+        "extension_learning_progress_update_receipt",
+        "landscape_capture_receipt",
+        "metric_value_compute_receipt",
+        "metric_value_verification_receipt",
+        "metric_value_operator_audit",
+    }
+    private_tables = set(runtime_role._RUNTIME_PRIVATE_TABLES)
+    boundaries, _ = REPORTER["_runtime_role_boundaries"]()
+
+    assert expected_private_tables <= private_tables
+    assert expected_private_tables.isdisjoint(runtime_role._RUNTIME_MUTATION_TABLES)
+    assert {
+        table: boundaries[table]
+        for table in expected_private_tables
+    } == {table: "no_direct_runtime_access" for table in expected_private_tables}
 
 
 def test_freshness_worker_has_an_execute_only_role_contract():

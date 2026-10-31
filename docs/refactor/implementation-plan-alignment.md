@@ -3,9 +3,10 @@
 **Source:** owner-provided *Architecture refactor implementation plan*,
 prepared 9 October 2026. The supplied file is in the owner's Downloads folder
 and is not copied into this repository. This crosswalk maps its Phase 0–8
-criteria to the current tracked phase ledger and the 26 October sprint evidence.
-The phase table in [progress.md](progress.md#phase-ledger) remains the detailed
-repository status record.
+criteria to the tracked phase ledger and dated evidence. For current readiness,
+read [the consolidated current-state guide](current-state-and-implementation.md);
+the phase table in [progress.md](progress.md#phase-ledger) and sprint notes below
+are historical snapshots unless explicitly refreshed.
 
 The source plan's governing decisions remain the right frame for implementation:
 PostgreSQL/PostGIS is canonical, Kokonut owns policy and domain behavior,
@@ -25,7 +26,7 @@ human review, consent, evidence privacy, and Web3 as a proof layer.
 | 5 — Make Redis optional | Optional cache path exists; complete minimal-without-Redis acceptance remains open. | Show cache loss only affects performance and prove durable auth, revocation, audit, retry, and multi-replica behavior. |
 | 6 — Make IoT, gRPC and proxy optional edges | Compose/profile boundaries and substantial transport tests exist; external transport parity remains open. | Verify HTTP/MQTT semantics, gRPC authorization parity, trusted proxy behavior, and Caddy/external ingress paths while minimal has no edge dependency. |
 | 7 — Replace Directus as primary application API | Active, partial route-by-route Gateway migration. | Complete collection/workflow parity for fields, authorization, lifecycle, audit, consent, exports, SDKs, and reviewer/agent boundaries; keep unmigrated Directus paths available during transition. |
-| 8 — ARM64, scale and retire transition dependencies | ARM64 build and emulated schema/runtime preparation exists; the current full schema replay passed. | Complete constrained-runtime, offline backup/restore, scale reliability, and removal/rollback criteria. Physical Raspberry Pi measurement cannot be claimed without hardware; use ARM64 emulation and code-based resource checks until hardware is available. |
+| 8 — ARM64, scale and retire transition dependencies | ARM64 builds and emulated schema/runtime checks exist; current full-schema replay status is tracked in the consolidated guide and dated evidence. | Complete constrained-runtime, offline backup/restore, scale reliability, and removal/rollback criteria. Physical Raspberry Pi measurement cannot be claimed without hardware; use ARM64 emulation and code-based resource checks until hardware is available. |
 
 ## How the current sprint maps
 
@@ -36,13 +37,25 @@ the source plan's canonical API, same-policy transports, location scope,
 governed lifecycle, and durable recovery invariants. It is deliberately not a
 claim that any full source phase is complete.
 
-The recent isolated 642-schema replay and two-tenant operator probe support
-Phase 0/2/7/8 evidence. The ZITADEL startup/discovery check supports only the
-identity infrastructure prerequisite for Phase 7; browser PKCE, trusted HTTPS,
-client provisioning, Gateway sessions and end-to-end tenant authorization
-remain open. The observed 1,101 public tables with runtime DML and RLS disabled
-are a concrete Phase 7 least-privilege/RLS gap, not proof of cross-tenant data
-exposure in every table.
+The 642-schema replay and the 1,101-relation runtime-DML observation were
+reported in an earlier sprint snapshot and are superseded by the migration-699
+ACL report and later migration/replay evidence. They measure different schema
+revisions and must not be read as current counts. The ZITADEL
+startup/discovery check supports only the identity infrastructure prerequisite
+for Phase 7; browser PKCE, trusted HTTPS, client provisioning, Gateway sessions
+and end-to-end tenant authorization remain open. Current C1 counts and replay
+status are maintained in the [consolidated guide](current-state-and-implementation.md)
+and [C1 closure plan](c1-runtime-acl-closure-plan.md).
+
+## Deployment-profile deviation
+
+The source plan's Standard profile includes Caddy as the TLS ingress layer.
+The current `scripts/kernel-profile.py standard` composition selects the
+candidate and the standard API/worker overlay; Caddy is included only when the
+operator explicitly adds `--proxy`. Standard therefore does not currently
+provide public TLS ingress by default. Resolve this plan/code divergence before
+declaring Standard ready for public production use; see the
+[current profile summary](current-state-and-implementation.md#deployment-profiles-in-the-current-planner).
 
 ## Source-plan caveats for current execution
 

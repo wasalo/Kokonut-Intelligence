@@ -98,14 +98,16 @@ writes, the `_table` virtual column, ClickHouse TimeSeries functions, Parquet
 v3 ingestion, or CPU slot preemption. These are upstream capabilities, not
 implemented platform features.
 
-## Directus 12.1.1
+## Directus 12.1.1 — Compatibility/Admin Adapter
 
-Directus is the canonical API and administration layer. It exposes PostgreSQL
-collections, manages metadata, and runs the repository's governance extensions.
+Directus exposes PostgreSQL collections, manages adapter metadata, and runs the
+repository's governance extensions when deployed. The legacy Compose stack
+includes Directus; the Kernel profile planner makes it opt-in. PostgreSQL is
+canonical, and native Gateway/Python service contracts provide the Kernel API.
 
 ### Verified Usage
 
-- REST and GraphQL access to canonical collections.
+- REST and GraphQL access to PostgreSQL-backed collections.
 - Lifecycle and role checks in `extensions/kokonut-hooks`.
 - Governed collection validation and agent-safety hooks.
 - Schema metadata tests and Directus health checks.

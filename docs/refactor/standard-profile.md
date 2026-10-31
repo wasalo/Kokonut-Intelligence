@@ -1,5 +1,14 @@
 # Standard candidate: separate API and durable workers
 
+> **Current rollout status:** This document describes the source and acceptance
+> evidence for the role-separated profile; it does not show that the latest
+> source or full migration chain has been rolled onto a candidate. The full
+> current state and gates are tracked in the
+> [refactor status guide](current-state-and-implementation.md). Before any
+> target starts, use the ordered checksummed migration runner and check that
+> target's ledger; the older migration numbers below are feature-introduction
+> references only.
+
 Combine `docker-compose.kernel-candidate.yml` with
 `docker-compose.kernel-standard.yml`. The app overrides its command to run only
 the API; the new worker service runs the same Dockerfile/package with
@@ -19,18 +28,20 @@ Existing process-group shutdown,
 shared 30-second drain budget, unexpected-exit failure, init process, and
 40-second Compose grace period apply to both roles. Lease and delivery state
 remain PostgreSQL state; unique identities do not prove concurrency safety.
-The API defaults to the shared PostgreSQL rate limiter in this profile, so
-migration 373 must be applied before serving traffic. An explicit provider
-override is available for a reviewed deployment topology; multi-replica APIs
-must retain a shared limiter.
+The API defaults to the shared PostgreSQL rate limiter in this profile. A
+current target must have the complete ordered schema applied before serving
+traffic; migration 373 is the historical feature-introduction reference for
+that limiter. An explicit provider override is available for a reviewed
+deployment topology; multi-replica APIs must retain a shared limiter.
 
 ## Deployment prerequisites
 
-This overlay is prepared source, not a production certification. Apply migration
-371 through the checksummed runner before starting these scheduler workers.
-Migration 373 is also required before the standard profile's default shared
-rate limiter can serve requests. Migration 372 is additionally required when
-selecting the MQTT receipt path.
+This overlay is prepared source, not a production certification. Migration
+371 introduced the scheduler worker contract, migration 373 the standard
+profile's shared rate limiter, and migration 372 the MQTT receipt path. For a
+fresh or existing target, apply the entire current ordered migration ledger,
+then confirm readiness before starting workers; do not select those historical
+IDs as a substitute for the full migration run.
 Inspect existing schedules, handler registrations, leases, and Prefect/cron
 ownership before switching roles. Rebuild both roles from the same reviewed
 source and dependency resolution; the current build is not release-pinned.
@@ -38,7 +49,7 @@ source and dependency resolution; the current build is not release-pinned.
 After acceptance, use encrypted secrets and the explicit candidate project:
 
 ```sh
-export SOPS_AGE_KEY_FILE=/Users/gilbertoadon/.config/sops/age/keys.txt
+: "${SOPS_AGE_KEY_FILE:?Set this to your private age identity path}"
 export KOKONUT_ALLOW_PLAINTEXT_ENV=false
 source scripts/load-secrets.sh
 docker compose -p kokonut-kernel-candidate \

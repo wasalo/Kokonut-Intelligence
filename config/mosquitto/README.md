@@ -1,6 +1,8 @@
 # Mosquitto MQTT Broker Configuration
 
-Configuration for the Eclipse Mosquitto MQTT broker used for IoT sensor ingestion.
+Configuration for the optional Eclipse Mosquitto MQTT broker used by sensor
+ingestion adapters. The root `docker-compose.yml` service belongs to the
+legacy integration stack; Kernel MQTT is selected with the dedicated overlay.
 
 ## Files
 
@@ -12,16 +14,25 @@ Configuration for the Eclipse Mosquitto MQTT broker used for IoT sensor ingestio
 
 ## Quick Start
 
-1. Provision TLS certificates (see `certs/README.md`)
-2. Start the broker: `docker compose up -d mosquitto`
-3. Verify health: `mosquitto_sub -h localhost -p 8883 --cafile certs/ca.crt --cert certs/healthcheck.crt --key certs/healthcheck.key -t '$SYS/#'`
+1. Provision TLS certificates (see `certs/README.md`) and a Mosquitto-format
+   password file at `/mosquitto/data/passwd`. The Kernel overlay requires the
+   existing host password-file path explicitly; it does not generate it.
+2. Start the legacy broker with `docker compose up -d mosquitto`, or have the
+   Kernel profile planner print an MQTT-enabled command, for example
+   `python3 scripts/kernel-profile.py edge --mqtt`. Review the command before
+   running it. The Kernel overlay requires explicit certificate and
+   password-file paths.
+3. For the legacy stack, verify the loopback-published broker with
+   `mosquitto_sub -h localhost -p 8883 --cafile certs/ca.crt --cert certs/healthcheck.crt --key certs/healthcheck.key -t '$SYS/#'`.
+   The Kernel overlay publishes no broker host port; its authenticated
+   container healthcheck is the local probe.
 
 ## Broker Settings
 
 | Setting | Value | Description |
 |---|---|---|
 | Port | 8883 | TLS-only (no plaintext) |
-| Auth | Client certificates | `require_certificate true`, `use_identity_as_username true` |
+| Auth | Mutual TLS plus a Mosquitto password file | `require_certificate true`, `use_identity_as_username true`, `allow_anonymous false` |
 | ACL | `acl` file | Topic-based read permissions |
 | Persistence | Enabled | Data at `/mosquitto/data/` |
 | Message limit | 10,240 bytes | Maximum payload size |
@@ -34,13 +45,14 @@ Configuration for the Eclipse Mosquitto MQTT broker used for IoT sensor ingestio
 | `sensor-ingestion` | Read | `sensors/+/+/readings` |
 | `healthcheck` | Read | `$SYS/#` |
 
-Device certificate identities are added by the provisioning workflow with exact topic permissions.
+Device certificate identities and their exact topic permissions must be
+provisioned separately; no repository workflow automatically creates them.
 
 ## TLS PKI
 
 The broker uses mutual TLS (mTLS) — both server and client certificates are required. See `certs/README.md` for the full certificate list and provisioning instructions.
 
-## Docker Mounts
+## Legacy Docker Mounts
 
 ```yaml
 mosquitto:
@@ -53,7 +65,7 @@ mosquitto:
 ## Modifying ACL
 
 1. Edit `config/mosquitto/acl`
-2. Restart Mosquitto: `docker compose restart mosquitto`
+2. Restart the selected broker. For the legacy stack: `docker compose restart mosquitto`.
 3. No rebuild required — the file is mounted read-only but Mosquitto reads it at runtime
 
 ## Troubleshooting

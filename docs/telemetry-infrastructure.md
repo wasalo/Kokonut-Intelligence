@@ -1,9 +1,10 @@
 # Telemetry Infrastructure
 
 Telemetry covers data collection, freshness monitoring, anomaly detection, and
-analytics feeds for Kokonut Intelligence. PostgreSQL/Directus is canonical.
-ClickHouse is an analytical mirror for selected streams, not an atomic second
-database.
+analytics feeds for Kokonut Intelligence. PostgreSQL is the canonical store.
+Directus is an optional compatibility/admin adapter. ClickHouse can mirror
+selected streams in deployments that enable the analytics profile; it is not
+an atomic second database or source of truth.
 
 ## Runtime Status
 
@@ -21,16 +22,20 @@ storage semantics:
 | Climate covariates | `climate_data.py` and GEE integrations | Implemented mixed sources; WorldClim values are currently approximations |
 | Price oracle | Yahoo Finance, aggregator, attestation modules | Components exist, but production consensus and EAS submission are not fully wired |
 
-Most ingestion jobs write PostgreSQL first and then attempt analytical writes.
-ClickHouse errors are commonly logged as warnings, so PostgreSQL and ClickHouse
-can diverge until a later reconciliation or refresh.
+In the legacy stack and deployments with the analytics profile enabled, some
+ingestion jobs write PostgreSQL first and then attempt analytical writes.
+ClickHouse errors are commonly logged as warnings, so the analytical
+projection can diverge until a later reconciliation or refresh. Kernel
+profiles that omit ClickHouse keep PostgreSQL as the only required store.
 
 ## Scheduling And Topology
 
-The default worker remains cron-based through `config/worker/crontab`.
-Prefect flows are an available orchestration layer, not a complete replacement
-for cron. Do not run both schedulers for the same jobs during migration; the
-worker Compose configuration explicitly warns about duplicate scheduling.
+The legacy Compose worker remains cron-based through
+`config/worker/crontab`. Kernel profiles that enable worker functionality use
+the native database-backed scheduler/worker; the standard profile separates
+API and worker roles. Prefect is an optional orchestration adapter, not a
+required replacement for these paths. Do not enable duplicate schedules for
+the same job; the legacy worker Compose configuration warns about duplicates.
 
 Base Compose keeps PostgreSQL and ClickHouse private. Inside worker containers,
 use Compose service names such as `database` and `clickhouse`. Host execution

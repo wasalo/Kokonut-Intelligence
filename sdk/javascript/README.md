@@ -1,6 +1,9 @@
 # @kokonut-intelligence/sdk
 
-JavaScript/TypeScript SDK for the Kokonut Intelligence Platform. Typed REST client wrapping Directus collections for farm, crop, harvest, sales, expenses, sensors, attestations, and reports.
+JavaScript/TypeScript SDK for the Kokonut Intelligence Platform. Its collection
+client wraps the optional legacy Directus REST adapter for farm, crop,
+harvest, sales, expenses, sensors, attestations, and reports. The separate
+`KokonutPublicApiClient` covers the native Gateway's bounded public-read contract.
 
 The published package uses ECMAScript modules and supports Node.js 18 or newer.
 Running the development test toolchain requires Node.js 22.12 or newer.

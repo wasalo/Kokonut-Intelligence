@@ -1,6 +1,9 @@
 # kokonut-intelligence
 
-Python SDK for the Kokonut Intelligence Platform. Typed REST client wrapping Directus collections for farm, crop, harvest, sales, expenses, sensors, attestations, and reports.
+Python SDK for the Kokonut Intelligence Platform. Its collection client wraps
+the optional legacy Directus REST adapter for farm, crop, harvest, sales,
+expenses, sensors, attestations, and reports. The separate
+`KokonutPublicApiClient` covers the native Gateway's bounded public-read contract.
 
 > The collection methods cover the Directus REST API. Optional generated gRPC
 > stubs for the IRI, content hash, ecocredit, marketplace, and bridge services

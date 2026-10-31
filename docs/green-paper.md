@@ -3,6 +3,7 @@
 **Version:** 2.0
 **Date:** July 2026
 **Status:** Codebase Parity Draft
+**Codebase parity checked:** 2026-10-30
 **License:** Apache License 2.0
 **Review status:** Human stakeholder, privacy, and execution review required before public release.
 
@@ -86,7 +87,7 @@ Reviewers and partners should use the Evidence Maturity Model (Section 6) and Pu
 
 Kokonut Intelligence is an open-source intelligence layer for regenerative farm operations, financial performance, ecological outcomes, partner reporting, and Web3 verification. It is designed to make regenerative farm evidence comparable while preserving privacy and surfacing uncertainty.
 
-The platform combines PostgreSQL and Directus as the canonical schema and API layer, ClickHouse for analytical events, Python services for metrics and forecasting, EAS on Celo for public attestation metadata, and Gnosis governance records for treasury coordination. The current governance layer includes a read-first Moloch v3/Baal adapter, while the legacy Moloch v2 indexer remains a separate historical integration. The system is built to serve farm operators, partners, reviewers, and the broader regenerative agriculture community.
+The platform uses PostgreSQL as its canonical schema and data store, with native Gateway and Python services for application APIs and operations. Directus provides an optional compatibility/admin surface; ClickHouse and Metabase are optional analytics and BI adapters in the Kernel profiles. EAS on Celo provides public attestation metadata, and Gnosis governance records support treasury coordination. The current governance layer includes a read-first Moloch v3/Baal adapter, while the legacy Moloch v2 indexer remains a separate historical integration. The system is built to serve farm operators, partners, reviewers, and the broader regenerative agriculture community.
 
 ### Core Principles
 
@@ -102,7 +103,7 @@ The platform combines PostgreSQL and Directus as the canonical schema and API la
 
 | Category | Capability | What it provides |
 |---|---|---|
-| **Data Infrastructure** | Governed schema | Versioned PostgreSQL schema with 331 ordered migrations, role-based access, and Directus workflows. |
+| **Data Infrastructure** | Governed schema | Versioned PostgreSQL schema with 694 migration files through migration ID 703, database access boundaries, and application/adapter workflows. |
 | | Multi-source ingestion | Weather, market prices, remote sensing, sensors, EAS attestations, and Gnosis DAO activity. |
 | | Versioned metrics | Calculator-backed metrics, governed metric definitions, public aggregate views, dashboard datasets, and separate human verification. |
 | | Evidence maturity | Levels 0-6 enforced across claims, feedback, MRV, and reporting. |
@@ -173,119 +174,62 @@ Kokonut Intelligence addresses these challenges through governed data models, ev
 
 | Layer | Technology | Role |
 |-------|------------|------|
-| Canonical core | PostgreSQL 16 + PostGIS 3.4 + Directus 12.1.1 | Schema, API, permissions, workflows, data entry UI |
-| Analytics | ClickHouse 25.8 LTS | Time-series events and high-volume analytical queries |
-| BI | Metabase 0.62.4 | Internal dashboards, aggregate reporting, custom visualizations, and MCP |
+| Canonical data | PostgreSQL 16 + PostGIS 3.4 | Canonical schema, transactions, governed records, and geospatial data |
+| Application/API | Kokonut Gateway + Python services | Native application routes, scoped API contracts, operations, and integrations |
+| Compatibility/admin | Directus 12.1.1 | Collection API and administration adapter; included by the legacy stack and optional in Kernel profiles |
+| Analytics | ClickHouse 25.8 LTS | Optional Kernel projection for selected high-volume event and analytical queries; the legacy stack also retains a service definition |
+| BI | Metabase 0.62.4 | Optional dashboards and aggregate reporting; not required by the Kernel core |
 | Intelligence | Python 3.11 services | Metrics, forecasts, scoring, exports, ingestion, AI summaries, and ML anomaly detection |
 | Verification | EAS on Celo + offchain evidence storage | Onchain attestations, offchain signed claims, MRV proof metadata |
 | Governance and Guilds | Gnosis Moloch DAO + Colony metadata | Treasury governance, Guild contribution records, reputation snapshots |
 | Contracts | Foundry + Solidity + OpenZeppelin | KokonutResolver attester gating for EAS schemas |
-| Workflow orchestration | Prefect 3.x + durable scheduler | Pipelines, event-driven automations, leases, retries, and run history |
-| External API | gRPC + Protobuf | Type-safe API, streaming, API-key authentication, and generated SDKs |
+| Workflow orchestration | Prefect 3.x + durable scheduler | Optional Prefect orchestration plus database-backed leases, retries, and run history |
+| External API adapter | gRPC + Protobuf | Optional type-safe API, streaming, API-key authentication, and generated SDKs |
 
 ### Data Flow
 
-```
-┌─────────────────────────────────────────────────────────┐
-│                    INTERFACES                           │
-│  Directus Studio │ Metabase │ API │ Agents             │
-└────────┬────────┴─────┬─────┴──┬──┴────┬───────────────┘
-         │              │        │       │
-┌────────▼──────────────▼────────▼───────▼───────────────┐
-│                    DIRECTUS                             │
-│          REST API │ GraphQL │ SDK │ Flows              │
-│          Permissions │ Automations │ Webhooks           │
-└────────┬───────────────────────────────────────────────┘
-         │
-┌────────▼───────────────────────────────────────────────┐
-│                 POSTGRESQL + POSTGIS                     │
-│                                                         │
-│  Master Data    Operational Facts    Financial Facts    │
-│  ──────────     ────────────────     ──────────────    │
-│  locations      farm_activity        financial_txn      │
-│  farms          harvest_event        expense_event      │
-│  plots          sales_event          crop_cost_alloc    │
-│  crops          loss_event           noi_snapshot       │
-│  crop_cycle     labor_event          cash_flow_snap     │
-│  partners       field_note           value_flow_event   │
-│  farm_registry  inventory_event      revenue_event      │
-│                 maintenance_event                       │
-│                                                         │
-│  Environmental    Web3/Attestation    Modeled Outputs   │
-│  ─────────────    ────────────────    ──────────────    │
-│  soil_sample      wallet_profile      forecast_scenario  │
-│  species_obs      attestation_record  forecast_output    │
-│  remote_sensing   digital_lego_usage  metric_definition  │
-│  weather_obs      attestation_schema  report_snapshot    │
-│  sensor_reading   mrv_event           ai_summary         │
-│  attestation_req  governance_event    agent_task         │
-│  price_observation                    ingestion_log      │
-│                                                         │
-│  EBF Scoring (032-033)                                  │
-│  ─────────────────────                                  │
-│  ebf_pillar           ebf_scorecard                     │
-│  ebf_rubric_band      ebf_score                         │
-│  ebf_score_evidence   ebf_farm_metric_profile           │
-│  ebf_calibration_*    ebf_trust_graph_*                 │
-│  ebf_improvement_recommendation                         │
-└────────┬───────────────────────────────────────────────┘
-         │
-┌────────▼───────────────────────────────────────────────┐
-│              PYTHON INGESTION LAYER                     │
-│                                                         │
-│  weather.py / forecast.py → weather and climate APIs      │
-│  rpc_indexer.py / DAO indexers → chain events             │
-│  market_data.py / yahoo_finance.py → market prices        │
-│  remote sensing / GEE / Copernicus → spatial evidence     │
-│  sensors / MQTT / HTTP → telemetry and device events      │
-│  eas_indexer.py → EAS attestations                        │
-│                                                         │
-│  All scripts: services/ingestion/                       │
-│  Common framework: base.py (DB, logging, retry)         │
-└────────┬───────────────────────────────────────────────┘
-         │
-┌────────▼───────────────────────────────────────────────┐
-│                   CLICKHOUSE                            │
-│                                                         │
-│  events_raw │ wallet_events │ sensor_readings           │
-│  weather_events │ financial_events │ dlego_events       │
-│                                                         │
-│  Materialized Views:                                     │
-│  daily_event_counts │ hourly_sensor_stats               │
-│  daily_wallet_activity │ monthly_financial_summary      │
-│  daily_weather_summary │ daily_sensor_summary           │
-│  sensor_reading_rate                                    │
-└─────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TD
+    Clients[Farm operators, partners, agents, SDKs] --> Ingress[Optional Caddy ingress]
+    Ingress --> Gateway[Kokonut Gateway]
+    Gateway --> PG[(PostgreSQL / PostGIS<br/>canonical records)]
+    Services[Python services and workers] --> PG
+    Directus[Optional Directus compatibility/admin adapter] --> PG
+    PG --> Projection[Optional event/analytics projection]
+    Projection --> CH[(ClickHouse)]
+    PG --> Views[Governed views and report services]
+    Views --> MB[Optional Metabase / partner dashboards]
+    PG --> EAS[EAS on Celo<br/>explicit proof/attestation path]
 ```
 
 ### API Layers
 
 | Layer | Protocol | Auth | Use Case |
 |-------|----------|------|----------|
-| Directus REST | HTTP REST | Bearer token | CRUD, admin, integrations |
-| Directus GraphQL | GraphQL | Bearer token | Complex queries, frontend |
-| Directus SDK | JavaScript | Session | Application integration |
-| ClickHouse HTTP | HTTP | Basic auth | Analytical queries |
-| Directus MCP | MCP | Scoped token | AI agent access |
+| Kokonut Gateway | HTTP REST | Route-specific API key, capability token, operator session, or device token | Native Kernel APIs and governed operations |
+| Directus REST/GraphQL | HTTP REST/GraphQL | Directus bearer token | Optional compatibility/admin access |
+| Directus SDK | JavaScript | Directus session/token | Integration with the optional Directus adapter |
+| ClickHouse HTTP | HTTP | Basic auth | Optional analytical queries |
+| Directus MCP | — | — | Not implemented in this repository |
 | Helper CLIs | Python modules | Local process auth | Registry validation, local CID prep, attestation request prep, agent manifest prep |
 
-The optional Kokonut gateway is a separate FastAPI process, not part of the Directus API or base Caddy routing. Its protected routes accept gateway API keys or capability tokens according to route policy; Directus bearer authentication remains a separate boundary.
+The Kokonut Gateway is a FastAPI application and Compose service in the current stack, and the native API layer in Kernel profiles. Base Caddy routes only configured paths; check the selected Caddy file before assuming an API route is proxied. Gateway and Directus authentication are separate boundaries.
 
 ### Security Model
 
 - **Roles:** Administrator, Field Worker, Supervisor, Manager, Finance, Analyst, Auditor, Agent Read-Only, Agent Write, Agent Full.
-- **Policies:** Per-collection, per-action, per-field permissions enforced through Directus metadata, hooks, gateway policy, and service-level safety checks.
+- **Policies:** Database privileges, tenant context, Gateway route policy, service safety checks, and (when enabled) Directus metadata/hooks each enforce their defined boundary.
 - **Field-level:** Sensitive fields hidden per role.
 - **Row-level:** Filter rules restrict record visibility.
-- **Audit:** All mutations logged to `audit_log`.
+- **Audit:** Governed mutations have audit records on implemented paths; Gateway audit logging and coverage are not yet uniform, so this is not a claim that every mutation is captured.
 - **Evidence:** Raw evidence stored off-chain; hashes/CIDs on-chain.
 - **Agent scope:** This repository stores agent metadata and tasks only; marketplace identity, payment, escrow, and reputation logic are external.^[1]^
 
 ### Schema Management
 
-Schemas are version-controlled as SQL files in `schemas/postgres/`. Directus snapshots capture the API-layer state. ClickHouse schemas live in `schemas/clickhouse/`. Seed data lives in `schemas/seeds/`.
+Schemas are version-controlled as SQL files in `schemas/postgres/`. Directus snapshots capture optional adapter metadata; they are not canonical schema migrations. ClickHouse schemas live in `schemas/clickhouse/`. Seed data lives in `schemas/seeds/`.
 
-The repository currently contains 331 ordered PostgreSQL migrations, six ClickHouse schema files, and 117 seed files. Migration application is checksummed and fails closed on drift. The migration sequence, not this paper, is the authoritative source for exact database structure.
+As of 2026-10-30, the repository contains 694 PostgreSQL migration files through migration ID 703, 11 ClickHouse schema files, and 122 seed files. Migration application is ordered, checksummed, and fails closed on drift. These counts change with development; the migration sequence, not this paper, is the authoritative source for exact database structure.
 
 ---
 
@@ -405,7 +349,7 @@ EBF score publication is gated by `services/scoring/gates.py`, which checks evid
 
 ## 7. CIDS Mapping and Export
 
-Kokonut targets Common Impact Data Standard (CIDS) v3.2.0 Essential Tier. PostgreSQL/Directus remains the canonical data layer; CIDS is an export compatibility layer.^[8]^
+Kokonut targets Common Impact Data Standard (CIDS) v3.2.0 Essential Tier. PostgreSQL remains the canonical data layer; CIDS is an export compatibility layer.^[8]^
 
 ### Mapping
 
@@ -448,13 +392,13 @@ python3 -m services.agents.cids_agent --location-id UUID --summary
 
 ### Governance Boundary
 
-CIDS export does not create or publish canonical records. Directus/PostgreSQL lifecycle state, evidence maturity, consent fields, public-safe views, and exporter-side public filters determine what may appear in partner-facing outputs. Stakeholder feedback is exported only when `is_public = TRUE`, consent is explicit and public-scoped, status is `published`, and `public_summary` is non-empty.
+CIDS export does not create or publish canonical records. PostgreSQL lifecycle state, evidence maturity, consent fields, public-safe views, and exporter-side public filters determine what may appear in partner-facing outputs. Stakeholder feedback is exported only when `is_public = TRUE`, consent is explicit and public-scoped, status is `published`, and `public_summary` is non-empty.
 
 ### Compatibility Notes
 
 - Public carbon claims require Evidence Maturity Level 6 before export as public claims.
 - Private stakeholder feedback is not exported as public feedback.
-- CIDS export is a compatibility layer; PostgreSQL/Directus remains canonical.
+- CIDS export is a compatibility layer; PostgreSQL remains canonical.
 
 ---
 
@@ -525,7 +469,9 @@ Impact claims are governed records that connect farm outcomes to evidence, matur
 
 **Claim Validation:**
 
-Directus hooks validate public claims at creation and update time:
+When writes pass through Directus, its hooks validate public claims at creation
+and update time. Database and Gateway/service boundaries enforce their own
+defined rules; Directus hooks do not govern writes through other paths:
 
 - Public claims must have evidence maturity >= 4.
 - Carbon claims must have `claim_type = 'third_party_verified_claim'`.
@@ -629,7 +575,15 @@ Reviewers may use agent outputs as evidence preparation, but final publication, 
 
 ## 11. Web3 Attestation Metadata
 
-Celo is the primary chain for Kokonut attestations. EAS v1.3.0 is deployed on Celo mainnet, and `KokonutResolver` gates attestation to allowed attesters under Kokonut multisig ownership.^[17]^ An EAS record proves that an attestation was submitted under a schema and resolver policy; it does not independently prove the underlying measurement, methodology, or verifier's conclusion. Public claims still require the applicable evidence, lifecycle, consent, registry, and external-verification gates.
+Celo is the configured primary chain for Kokonut attestations. Repository
+records list EAS v1.3.0 and `KokonutResolver` addresses on Celo, with the
+resolver intended to gate allowed attesters under Kokonut multisig ownership.^[17]^
+These records do not verify current bytecode, registry entries, or authority;
+confirm live chain state before use or external claims. An EAS record proves
+that an attestation was submitted under a schema and resolver policy; it does
+not independently prove the underlying measurement, methodology, or verifier's
+conclusion. Public claims still require the applicable evidence, lifecycle,
+consent, registry, and external-verification gates.
 
 ### Deployed Contracts
 
@@ -1000,7 +954,7 @@ The platform's identity and semantic layers make governed records addressable an
 
 The linked-data and stream interfaces are projections over governed records. Hashes, CIDs, UIDs, and transaction references may be public; private source evidence remains subject to consent and access policy.
 
-The gateway is an optional FastAPI process with explicit route policy, API-key or capability-token authentication, rate limiting, audit logging, and fail-closed unknown-route behavior. The sandbox provides isolated analysis environments and monitoring. SDKs for Python, TypeScript, and JavaScript expose supported integration paths without bypassing canonical permissions. GeoNode-oriented services provide shapefile, KML, raster metadata, CSW, ISO 19115, thesaurus, and map-viewer interoperability. These are integration and operating surfaces, not alternate sources of truth.
+The Gateway is a FastAPI application and Compose service with explicit route policy, API-key, capability-token, operator-session, or device-token authentication as applicable, rate limiting, audit support, and fail-closed unknown-route behavior. Base Caddy routes only configured paths. The sandbox provides isolated analysis environments and monitoring. SDKs for Python, TypeScript, and JavaScript expose supported integration paths without bypassing canonical permissions. GeoNode-oriented services provide shapefile, KML, raster metadata, CSW, ISO 19115, thesaurus, and map-viewer interoperability. These are integration and operating surfaces, not alternate sources of truth.
 
 ## 13F. Resilience, Capital, and Simulation
 
@@ -1031,7 +985,7 @@ Kokonut Green Paper reports should be useful to partners without overstating evi
 - Cultural context and well-being reports use consented summaries, governed metric observations, and aggregate language coverage only.
 - Positive claims should be paired with limitations, evidence gaps, and uncertainty notes.
 - Public carbon claims require Evidence Maturity Level 6, external verifier text, methodology reference, and published status.
-- CIDS export is a compatibility layer; PostgreSQL and Directus remain the canonical record of governance, consent, and evidence maturity.
+- CIDS export is a compatibility layer; PostgreSQL remains the canonical record of governance, consent, and evidence maturity.
 
 ### Report Snapshot Fields
 
@@ -1107,7 +1061,7 @@ Use this checklist before publishing impact claims, report snapshots, or Green P
 
 ### 3. Feasible Data
 
-- Are source records available in PostgreSQL/Directus?
+- Are source records available in PostgreSQL through an authorized interface?
 - Are source lineage fields populated?
 - Is evidence maturity appropriate for the intended use?
 
@@ -1161,7 +1115,7 @@ This section defines what the Green Paper claims and what it does not claim.
 
 ### Suggested Narrative
 
-Kokonut combines PostgreSQL/Directus governance, ClickHouse analytics, Celo EAS attestations, CIDS-compatible export, stakeholder consent, agent-safe workflows, EBF pillar scoring, and seven additional evidence modules (capital efficiency, commons liberation, GNH alignment, regenerative outcomes, open-source scaling, commons governance, and bio-factory operations). The system is designed to make regenerative farm evidence comparable while preserving privacy and surfacing uncertainty.
+Kokonut combines PostgreSQL-backed governance, native Gateway and Python services, optional analytics adapters, Celo EAS attestations, CIDS-compatible export, stakeholder consent, agent-safe workflows, EBF pillar scoring, and seven additional evidence modules (capital efficiency, commons liberation, GNH alignment, regenerative outcomes, open-source scaling, commons governance, and bio-factory operations). The system is designed to make regenerative farm evidence comparable while preserving privacy and surfacing uncertainty.
 
 ---
 

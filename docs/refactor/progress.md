@@ -389,7 +389,7 @@ DML boundary, not RLS or tenant-isolation evidence: RLS remains disabled and
 full-schema replay remains through migration 679. Candidate/legacy databases,
 seeds, and farm data were untouched.
 
-Evidence: [migration](../schemas/postgres/680_runtime_yield_benchmark_read_only.sql),
+Evidence: [migration](../../schemas/postgres/680_runtime_yield_benchmark_read_only.sql),
 [focused PostgreSQL 16 acceptance](builds/2026-10-28-recovery/yield-benchmark-runtime-read-only-disposable.json),
 [pre-migration full-schema ACL](builds/2026-10-28-recovery/runtime-role-full-schema-679-native-disposable.json),
 [refreshed runtime callsite report](builds/2026-10-28-recovery/sprint-runtime-privilege-callsite-report.json),
@@ -542,8 +542,8 @@ classifications remain 24 baseline-retained, 7 deployed, and 36 prepared.
 
 
 Evidence: [contract and checks](builds/2026-10-28-recovery/sdk-typed-extension-query-parity.json),
-[Python README](../sdk/python/README.md),
-[JavaScript README](../sdk/javascript/README.md).
+[Python README](../../sdk/python/README.md),
+[JavaScript README](../../sdk/javascript/README.md).
 
 ### Progress addendum — C1 quantity-unit catalog ACL — 28 October 2026
 
@@ -572,7 +572,7 @@ forward migration. Capability classifications and MAN-CAP acceptance are
 unchanged. Checklist: 1,299 complete / 25 open (1,324 total); 24
 baseline-retained, 7 deployed, and 36 prepared across 67 rows.
 
-Evidence: [migration](../schemas/postgres/679_runtime_quantity_unit_read_only.sql),
+Evidence: [migration](../../schemas/postgres/679_runtime_quantity_unit_read_only.sql),
 [native ACL](builds/2026-10-28-recovery/quantity-unit-runtime-read-only-disposable.json),
 [ARM64/QEMU ACL](builds/2026-10-28-recovery/quantity-unit-runtime-read-only-arm64-disposable.json),
 [full native replay and tenant probe](builds/2026-10-28-recovery/runtime-role-full-schema-679-native-disposable.json),
@@ -609,7 +609,7 @@ migration. Capability classifications and MAN-CAP acceptance are unchanged.
 Checklist: 1,298 complete / 25 open (1,323 total); 24 baseline-retained,
 7 deployed, and 36 prepared across 67 rows.
 
-Evidence: [migration](../schemas/postgres/678_runtime_market_reference_data_read_only.sql),
+Evidence: [migration](../../schemas/postgres/678_runtime_market_reference_data_read_only.sql),
 [native ACL](builds/2026-10-28-recovery/market-reference-data-runtime-read-only-disposable.json),
 [ARM64/QEMU ACL](builds/2026-10-28-recovery/market-reference-data-runtime-read-only-arm64-disposable.json),
 [full native replay and tenant probe](builds/2026-10-28-recovery/runtime-role-full-schema-678-native-disposable.json),
@@ -631,7 +631,7 @@ Capability classifications and MAN-CAP acceptance are unchanged. Checklist:
 36 prepared across 67 rows.
 
 Evidence: [failure and repair record](builds/2026-10-28-recovery/ci-kernel-release-lock-repair.json),
-[release lock](../config/kernel/release-input-lock.json).
+[release lock](../../config/kernel/release-input-lock.json).
 
 ### Progress addendum — C2 calculated NOI snapshot SDK boundary — 27 October 2026
 
@@ -650,8 +650,8 @@ classifications and MAN-CAP acceptance are unchanged. Checklist: 1,296 complete
 across 67 rows.
 
 Evidence: [contract and checks](builds/2026-10-27-recovery/sdk-noi-snapshot-read-only-contract.json),
-[Python SDK](../sdk/python/kokonut/methods.py),
-[TypeScript SDK](../sdk/javascript/src/methods.ts).
+[Python SDK](../../sdk/python/kokonut/methods.py),
+[TypeScript SDK](../../sdk/javascript/src/methods.ts).
 
 ### Progress addendum — C2 attestation record SDK boundary — 27 October 2026
 
@@ -671,8 +671,8 @@ classifications and MAN-CAP acceptance are unchanged. Checklist: 1,295 complete
 across 67 rows.
 
 Evidence: [contract and checks](builds/2026-10-27-recovery/sdk-attestation-read-only-contract.json),
-[Python SDK](../sdk/python/kokonut/methods.py),
-[TypeScript SDK](../sdk/javascript/src/methods.ts).
+[Python SDK](../../sdk/python/kokonut/methods.py),
+[TypeScript SDK](../../sdk/javascript/src/methods.ts).
 
 ### Progress addendum — C2 report snapshot SDK boundary — 27 October 2026
 
@@ -696,8 +696,8 @@ candidate/legacy service, or report data was used. Checklist: 1,294 complete /
 67 rows.
 
 Evidence: [contract and checks](builds/2026-10-27-recovery/sdk-report-snapshot-read-only-contract.json),
-[Python SDK](../sdk/python/kokonut/methods.py),
-[TypeScript SDK](../sdk/javascript/src/methods.ts).
+[Python SDK](../../sdk/python/kokonut/methods.py),
+[TypeScript SDK](../../sdk/javascript/src/methods.ts).
 
 ### Progress addendum — C2 canonical export-log SDK contract — 27 October 2026
 
@@ -722,8 +722,8 @@ classifications are unchanged. Checklist: 1,293 complete / 25 open
 rows.
 
 Evidence: [contract and checks](builds/2026-10-27-recovery/sdk-export-audit-read-only-contract.json),
-[Python SDK](../sdk/python/kokonut/methods.py),
-[TypeScript SDK](../sdk/javascript/src/methods.ts).
+[Python SDK](../../sdk/python/kokonut/methods.py),
+[TypeScript SDK](../../sdk/javascript/src/methods.ts).
 
 ### Progress addendum — C1 farmer credential-type catalog ACL — 27 October 2026
 
@@ -756,7 +756,7 @@ acceptance. Capability classifications remain 24 baseline-retained, 7
 deployed, and 36 prepared across 67 rows. Checklist: 1,292 complete / 25 open
 (1,317 total).
 
-Evidence: [migration](../schemas/postgres/677_runtime_farmer_credential_type_read_only.sql),
+Evidence: [migration](../../schemas/postgres/677_runtime_farmer_credential_type_read_only.sql),
 [native ACL](builds/2026-10-27-recovery/farmer-credential-type-runtime-read-only-disposable.json),
 [ARM64/QEMU ACL](builds/2026-10-27-recovery/farmer-credential-type-runtime-read-only-arm64-disposable.json),
 [full schema and tenant probe](builds/2026-10-27-recovery/runtime-role-full-schema-677-native-disposable.json),
@@ -783,8 +783,8 @@ open (1,316 total); 24 baseline-retained, 7 deployed, and 36 prepared across
 67 rows.
 
 Evidence: [SDK lifecycle contract](builds/2026-10-27-recovery/sdk-export-create-lifecycle-contract.json),
-[Python implementation](../sdk/python/kokonut/methods.py),
-[TypeScript implementation](../sdk/javascript/src/methods.ts).
+[Python implementation](../../sdk/python/kokonut/methods.py),
+[TypeScript implementation](../../sdk/javascript/src/methods.ts).
 
 ### Progress addendum — C1 governed reference-class runtime ACL — 27 October 2026
 
@@ -824,7 +824,7 @@ Directus API parity, physical Raspberry Pi, or production acceptance. Checklist:
 1,290 complete / 25 open (1,315 total); classifications remain 24
 baseline-retained, 7 deployed, and 36 prepared across 67 rows.
 
-Evidence: [migration](../schemas/postgres/676_runtime_reference_class_read_only.sql),
+Evidence: [migration](../../schemas/postgres/676_runtime_reference_class_read_only.sql),
 [native ACL](builds/2026-10-27-recovery/reference-class-runtime-read-only-disposable.json),
 [ARM64 ACL](builds/2026-10-27-recovery/reference-class-runtime-read-only-arm64-disposable.json),
 [full schema and tenant probe](builds/2026-10-27-recovery/runtime-role-full-schema-676-native-disposable.json),
@@ -859,7 +859,7 @@ claimed. Capability classifications remain 24 baseline-retained, 7 deployed,
 and 36 prepared across 67 rows; no MAN-CAP is marked accepted. The checklist
 now records 1,265 complete / 26 open (1,291 total).
 
-Evidence: [migration 662](../schemas/postgres/662_runtime_access_audit_log_append_only.sql),
+Evidence: [migration 662](../../schemas/postgres/662_runtime_access_audit_log_append_only.sql),
 [native disposable ACL](builds/2026-10-27-recovery/runtime-access-audit-log-append-only-disposable.json),
 [ARM64 disposable ACL](builds/2026-10-27-recovery/runtime-access-audit-log-append-only-arm64-disposable.json),
 [source privilege report](builds/2026-10-27-recovery/sprint-runtime-privilege-callsite-report.json),
@@ -894,7 +894,7 @@ baseline-retained, 7 deployed, and 36 prepared across 67 rows; no MAN-CAP is
 marked accepted. The checklist now records 1,264 complete / 26 open (1,290
 total).
 
-Evidence: [migration 661](../schemas/postgres/661_runtime_graph_projection_types_read_only.sql),
+Evidence: [migration 661](../../schemas/postgres/661_runtime_graph_projection_types_read_only.sql),
 [native focused ACL](builds/2026-10-27-recovery/runtime-graph-types-652-661-disposable.json),
 [ARM64 focused ACL](builds/2026-10-27-recovery/runtime-graph-types-652-661-arm64-disposable.json),
 [source policy report](builds/2026-10-27-recovery/sprint-runtime-privilege-callsite-report.json),
@@ -968,10 +968,10 @@ old grants on the four new catalogs. A read-only Docker daemon query timed out
 after eight seconds, so no disposable PostgreSQL acceptance has run through
 migration 660. Candidate and legacy databases were not contacted.
 
-Evidence: [migration 658](../schemas/postgres/658_runtime_evidence_maturity_read_only.sql),
-[migration 659](../schemas/postgres/659_runtime_sensor_type_read_only.sql),
-[migration 660](../schemas/postgres/660_runtime_waste_reference_catalogs_read_only.sql),
-[disposable ACL checker](../scripts/check-runtime-scoped-write-boundary-disposable.py),
+Evidence: [migration 658](../../schemas/postgres/658_runtime_evidence_maturity_read_only.sql),
+[migration 659](../../schemas/postgres/659_runtime_sensor_type_read_only.sql),
+[migration 660](../../schemas/postgres/660_runtime_waste_reference_catalogs_read_only.sql),
+[disposable ACL checker](../../scripts/check-runtime-scoped-write-boundary-disposable.py),
 [static policy report](builds/2026-10-27-recovery/sprint-runtime-privilege-callsite-report.json),
 [last full-schema probe](builds/2026-10-27-recovery/runtime-role-full-schema-657-disposable.json).
 Checklist: 1,261 complete / 27 open (1,288 total); capability classifications
@@ -993,8 +993,8 @@ and schema parity checks pass. No database or provider was contacted. This
 closes the public-snapshot export gap only; it does not close broader
 Gateway/SDK parity.
 
-Evidence: [exporter](../scripts/export_public_api_openapi.py),
-[regression](../tests/test_public_api_openapi.py),
+Evidence: [exporter](../../scripts/export_public_api_openapi.py),
+[regression](../../tests/test_public_api_openapi.py),
 [public OpenAPI snapshot](native-public-api-v1.openapi.json).
 Checklist: 1,258 complete / 25 open (1,283 total); capability classifications
 remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows.
@@ -1028,7 +1028,7 @@ retain effective table DML while RLS is disabled. The 132-test focused suite,
 Ruff, compilation, dependency/provider checks, and SQL/worker inventories pass.
 No candidate or legacy database was used.
 
-Evidence: [migration](../schemas/postgres/657_runtime_reference_catalogs_read_only.sql),
+Evidence: [migration](../../schemas/postgres/657_runtime_reference_catalogs_read_only.sql),
 [native ACL check](builds/2026-10-27-recovery/reference-catalogs-runtime-read-only-disposable.json),
 [ARM64/QEMU ACL check](builds/2026-10-27-recovery/reference-catalogs-runtime-read-only-arm64-disposable.json),
 [full-schema acceptance](builds/2026-10-27-recovery/runtime-role-full-schema-657-disposable.json),
@@ -1051,7 +1051,7 @@ relations still retain table DML while RLS is disabled. The 131-test focused
 selection, Ruff, compilation, SQL/worker inventories, dependency/provider
 checks, and matrix validation pass. No candidate or legacy database was used.
 
-Evidence: [migration](../schemas/postgres/656_runtime_certification_type_read_only.sql),
+Evidence: [migration](../../schemas/postgres/656_runtime_certification_type_read_only.sql),
 [native ACL check](builds/2026-10-27-recovery/certification-type-runtime-read-only-disposable.json),
 [ARM64/QEMU ACL check](builds/2026-10-27-recovery/certification-type-runtime-read-only-arm64-disposable.json),
 [full-schema acceptance](builds/2026-10-27-recovery/runtime-role-full-schema-656-disposable.json),
@@ -1088,7 +1088,7 @@ RLS is disabled. The 130-test focused selection, Ruff, Python compilation,
 dependency/provider boundaries, SQL/worker inventories, and matrix validation
 pass. Candidate and legacy databases were untouched.
 
-Evidence: [migration](../schemas/postgres/655_runtime_crop_nutrient_removal_factor_read_only.sql),
+Evidence: [migration](../../schemas/postgres/655_runtime_crop_nutrient_removal_factor_read_only.sql),
 [native ACL check](builds/2026-10-27-recovery/crop-nutrient-factor-runtime-read-only-disposable.json),
 [native full-schema probe](builds/2026-10-27-recovery/runtime-role-full-schema-655-disposable.json),
 [source-policy report](builds/2026-10-27-recovery/sprint-runtime-privilege-callsite-report.json).
@@ -1136,7 +1136,7 @@ relations; 1,024 relations still have effective table DML while RLS is
 disabled. The 129-test focused selection, Ruff, compilation, source inventory,
 and capability validation pass. Candidate and legacy databases were not used.
 
-Evidence: [migration](../schemas/postgres/654_runtime_crop_family_read_only.sql),
+Evidence: [migration](../../schemas/postgres/654_runtime_crop_family_read_only.sql),
 [native ACL check](builds/2026-10-27-recovery/crop-family-runtime-read-only-disposable.json),
 [ARM64 ACL check](builds/2026-10-27-recovery/crop-family-runtime-read-only-arm64-disposable.json),
 [full-schema acceptance](builds/2026-10-27-recovery/runtime-role-full-schema-654-disposable.json),
@@ -1161,7 +1161,7 @@ claimed.
 This checks process liveness only: it has no PostgreSQL or provider
 connectivity, and does not establish schema readiness or feature data paths.
 No candidate, legacy, or production database was used. The reusable
-[checker](../scripts/check-kernel-app-resource-disposable.py) and
+[checker](../../scripts/check-kernel-app-resource-disposable.py) and
 [evidence](builds/2026-10-27-recovery/kernel-app-arm64-constrained-runtime.json)
 record the verified Docker limits and cleanup. Ruff, Python compilation, the
 live disposable smoke, and `git diff --check` pass. C7 remains open for the
@@ -1193,7 +1193,7 @@ six-module selection passes 136 tests; Ruff, compilation, requirement/provider
 boundaries, SQL-inventory freshness, capability validation, and diff checks
 pass. Directus API behavior and owner-approved reference editing remain
 unverified; no candidate/legacy DB or farm rows were touched. Evidence:
-[migration](../schemas/postgres/664_runtime_carbon_benchmark_read_only.sql),
+[migration](../../schemas/postgres/664_runtime_carbon_benchmark_read_only.sql),
 [native ACL](builds/2026-10-27-recovery/carbon-benchmark-runtime-read-only-disposable.json),
 [ARM64/QEMU ACL](builds/2026-10-27-recovery/carbon-benchmark-runtime-read-only-arm64-disposable.json),
 [full-schema replay and probe](builds/2026-10-27-recovery/runtime-role-full-schema-664-native-disposable.json),
@@ -1210,7 +1210,7 @@ image. It passes against `kokonut-kernel-postgis-arm64:local` with
 read synthetic advisory rules but cannot insert, update, delete, or reference
 them, and the provisioner removes simulated broad table and column grants.
 The temporary container was removed; no candidate or legacy database was used
-([checker](../scripts/check-runtime-scoped-write-boundary-disposable.py);
+([checker](../../scripts/check-runtime-scoped-write-boundary-disposable.py);
 [evidence](builds/2026-10-27-recovery/advisory-rule-runtime-read-only-arm64-disposable.json)).
 This is a focused ARM64-platform check; full-chain ARM64 schema evidence still
 covers migrations through 652, and no physical Raspberry Pi acceptance is
@@ -1233,7 +1233,7 @@ runtime-role provisioning and the two-tenant signed-context probe. It covered
 runtime DML/RLS-disabled count decreased from 1,026 to 1,025. No seeds, farm
 data, candidate, legacy service, or production database were used, and all
 disposable resources were removed
-([migration](../schemas/postgres/653_runtime_advisory_rule_read_only.sql);
+([migration](../../schemas/postgres/653_runtime_advisory_rule_read_only.sql);
 [focused acceptance](builds/2026-10-27-recovery/advisory-rule-runtime-read-only-disposable.json);
 [full-schema acceptance](builds/2026-10-27-recovery/runtime-role-full-schema-653-disposable.json);
 [policy report](builds/2026-10-27-recovery/sprint-runtime-privilege-callsite-report.json)).
@@ -1268,8 +1268,8 @@ are the two unmatched candidates; no grant or database change was made. Thirteen
 focused tests pass, as do Ruff, Python compilation, inventory freshness,
 dependency/provider boundary checks, capability validation, and diff checks
 ([inventory](builds/2026-10-27-recovery/analytics-runtime-write-candidate-inventory.json);
-[SQL scanner](../scripts/worker_sql_inventory.py);
-[candidate join](../scripts/runtime-analytics-write-candidate-inventory.py)).
+[SQL scanner](../../scripts/worker_sql_inventory.py);
+[candidate join](../../scripts/runtime-analytics-write-candidate-inventory.py)).
 This improves review precision but does not reduce the remaining broad runtime
 DML or establish caller authorization. Checklist: 1,246 complete / 25 open
 (1,271 total); capability classifications are unchanged.
@@ -1290,7 +1290,7 @@ The first restore exposed PostgreSQL's default `max_locks_per_transaction`
 budget as insufficient for the full schema when `pg_restore` uses one atomic
 transaction. The standalone recovery Compose target now sets a 4096 lock budget;
 normal application Compose is unchanged. The corrected full restore passed
-([checker](../scripts/check-kernel-checkpoint-restore-disposable.py);
+([checker](../../scripts/check-kernel-checkpoint-restore-disposable.py);
 [recovery procedure](recovery-preparation.md);
 [evidence](builds/2026-10-27-recovery/kernel-checkpoint-restore-disposable.json)).
 This synthetic single-database result does not establish populated-data, external
@@ -1687,7 +1687,7 @@ passes 252 tests. Ruff, compilation, dependency-group alignment, and provider
 boundaries pass. Network-isolated disposable PostgreSQL 16 applies and replays
 migration 649 under forced RLS, checks signed-location denial, source/device
 matching, duplicate-event suppression, per-reading/rule receipt completion,
-EventBus crash/retry recovery, and direct table-access denial ([migration](../schemas/postgres/649_signed_sensor_anomaly_replay_inventory.sql); [runner](../scripts/check-sensor-anomaly-worker-delivery-disposable.py); [evidence](builds/2026-10-26-recovery/sensor-anomaly-replay-inventory-disposable.json)). The candidate and legacy databases and all providers remain untouched. No database login, worker secret, active grant, feature activation, or persisted schedule was provisioned.
+EventBus crash/retry recovery, and direct table-access denial ([migration](../../schemas/postgres/649_signed_sensor_anomaly_replay_inventory.sql); [runner](../../scripts/check-sensor-anomaly-worker-delivery-disposable.py); [evidence](builds/2026-10-26-recovery/sensor-anomaly-replay-inventory-disposable.json)). The candidate and legacy databases and all providers remain untouched. No database login, worker secret, active grant, feature activation, or persisted schedule was provisioned.
 
 This closes the source-level scheduled replay boundary only; baseline and ML
 worker isolation, legacy source rows without matching events, candidate rollout,
@@ -1754,9 +1754,9 @@ RLS on native `x86_64` and emulated `aarch64`, verifying lease owner/token
 fencing, success/retry/dead-letter paths, bounded expired-lease recovery,
 bounded grants, and direct table denial. ARM64 is container/QEMU software
 evidence, not physical Raspberry Pi acceptance
-([migration](../schemas/postgres/646_isolated_clickhouse_outbox_worker.sql);
-[worker](../services/ingestion/clickhouse_outbox_worker.py);
-[disposable runner](../scripts/check-clickhouse-outbox-worker-disposable.py);
+([migration](../../schemas/postgres/646_isolated_clickhouse_outbox_worker.sql);
+[worker](../../services/ingestion/clickhouse_outbox_worker.py);
+[disposable runner](../../scripts/check-clickhouse-outbox-worker-disposable.py);
 [database evidence](builds/2026-10-25-recovery/clickhouse-outbox-worker-disposable.json);
 [ARM64 evidence](builds/2026-10-25-recovery/clickhouse-outbox-worker-arm64-disposable.json);
 [source evidence](builds/2026-10-25-recovery/clickhouse-outbox-worker-source-checks.json)).
@@ -1816,8 +1816,8 @@ compilation, and Compose profile parsing pass. Network-disabled disposable
 PostgreSQL 16 applies/replays migration 645 under forced RLS and checks bounded source reads,
 atomic check/state/history/event writes, rollback after enqueue denial, exact
 function access, and direct relation/sequence denial
-([worker](../services/ingestion/freshness_worker.py);
-[migration](../schemas/postgres/645_isolated_data_freshness_worker.sql);
+([worker](../../services/ingestion/freshness_worker.py);
+[migration](../../schemas/postgres/645_isolated_data_freshness_worker.sql);
 [evidence](builds/2026-10-25-recovery/freshness-worker-disposable.json)). Worker
 inventories and the operation map were regenerated. No candidate or legacy
 database, provider, or live schedule was used; credentials are unprovisioned.
@@ -2759,7 +2759,7 @@ network-disabled disposable PostgreSQL 16 apply/replay passes 206 grouped
 CAP-037 assertions. Candidate and legacy databases remain untouched and
 migration 605 is not rolled out. Checklist: 1,109 complete / 25 open (1,134
 total) ([contract](operating-pilot-kernel-read-contract.md);
-[migration](../schemas/postgres/605_location_own_operating_pilot_learning_plans.sql);
+[migration](../../schemas/postgres/605_location_own_operating_pilot_learning_plans.sql);
 [evidence](builds/2026-10-24-recovery/cap-037-learning-plan-own-read-disposable.json)).
 
 ### Progress addendum — CAP-006 migration-153 disposable waste-management acceptance, 24 October 2026
@@ -2773,7 +2773,7 @@ compost pH/yield, reporter attribution, and incident resolution. The test
 container used an ephemeral loopback port and was removed; candidate and
 legacy databases were untouched. The reusable runner passes Ruff and
 compilation. Checklist: 1,108 complete / 25 open (1,133 total)
-([runner](../scripts/check-waste-management-disposable.py);
+([runner](../../scripts/check-waste-management-disposable.py);
 [evidence](builds/2026-10-24-recovery/cap-006-waste-management-disposable.json)).
 
 ### Progress addendum — CAP-006 recycling material category fallback, 24 October 2026
@@ -3684,12 +3684,12 @@ checks pass. No candidate or legacy database, provider, or chain was used.
 Historical currency reconciliation and populated parity remain open. Checklist:
 1,044 complete / 25 open (1,069 total); matrix: 28 baseline-retained, 7
 deployed, and 32 prepared across 67 rows; 0/67 MAN-CAP checks accepted.
-[Contract](nutrient-events-kernel-read-contract.md); [migration](../schemas/postgres/601_nutrient_input_cost_currency.sql);
+[Contract](nutrient-events-kernel-read-contract.md); [migration](../../schemas/postgres/601_nutrient_input_cost_currency.sql);
 [evidence](builds/2026-10-23-recovery/nutrient-input-cost-currency-disposable.json).
 
 ### Progress addendum — CAP-002 deterministic crop-simulation baseline, 23 October 2026
 
-The legacy daily weather variation no longer uses Python’s process-salted `hash()`. It now derives stable SHA-256 buckets from integer `weather_seed` and day/channel, defaults the seed to 0, records it in each run’s parameter overrides, returns it to the simulation caller, and rejects booleans/non-integers before inserting a run. A synthetic 30-day maize regression fixture pins summaries and selected daily states for seeds 0 and 42. The fixture passes in separate processes with `PYTHONHASHSEED=1` and `98765`. The combined Gateway, digital-twin, and operator-auth selection passes 114 tests; Ruff, Python compilation, and diff checks pass. No migration, candidate/legacy database, or provider was used. This establishes repeatability of current code only, not agronomic correctness or legacy/populated output parity. CAP-002 remains prepared; owner/populated reference parity, nutrient cost currency semantics, live OIDC/browser behavior, RLS, and MAN-CAP-002 remain open. Checklist: 1,043 complete / 25 open (1,068 total); matrix: 28 baseline-retained, 7 deployed, and 32 prepared across 67 rows; 0/67 MAN-CAP checks accepted. [Contract](crop-simulation-runs-kernel-read-contract.md); [fixture](../tests/fixtures/crop_simulation_reference_v1.json); [evidence](builds/2026-10-23-recovery/cap-002-simulation-determinism.json).
+The legacy daily weather variation no longer uses Python’s process-salted `hash()`. It now derives stable SHA-256 buckets from integer `weather_seed` and day/channel, defaults the seed to 0, records it in each run’s parameter overrides, returns it to the simulation caller, and rejects booleans/non-integers before inserting a run. A synthetic 30-day maize regression fixture pins summaries and selected daily states for seeds 0 and 42. The fixture passes in separate processes with `PYTHONHASHSEED=1` and `98765`. The combined Gateway, digital-twin, and operator-auth selection passes 114 tests; Ruff, Python compilation, and diff checks pass. No migration, candidate/legacy database, or provider was used. This establishes repeatability of current code only, not agronomic correctness or legacy/populated output parity. CAP-002 remains prepared; owner/populated reference parity, nutrient cost currency semantics, live OIDC/browser behavior, RLS, and MAN-CAP-002 remain open. Checklist: 1,043 complete / 25 open (1,068 total); matrix: 28 baseline-retained, 7 deployed, and 32 prepared across 67 rows; 0/67 MAN-CAP checks accepted. [Contract](crop-simulation-runs-kernel-read-contract.md); [fixture](../../tests/fixtures/crop_simulation_reference_v1.json); [evidence](builds/2026-10-23-recovery/cap-002-simulation-determinism.json).
 
 ### Progress addendum — CAP-002 crop-simulation run detail and daily state, 23 October 2026
 
@@ -4223,8 +4223,8 @@ view remains count-only and exposes only ID/location to the calculator, while
 row IDs are intentionally omitted from reviewer provenance. The focused
 synthesis/source/worker selection passes 123 tests; Ruff and Python compilation
 pass. This source contract does not establish populated data parity or MAN-CAP-038
-acceptance. Evidence: [source map and regression](../tests/test_synthesis_source_references.py),
-[organic source contract](../schemas/postgres/549_signed_organic_readiness_synthesis_source.sql).
+acceptance. Evidence: [source map and regression](../../tests/test_synthesis_source_references.py),
+[organic source contract](../../schemas/postgres/549_signed_organic_readiness_synthesis_source.sql).
 Checklist: 969 complete / 24 open (993 total); capability matrix: 30 baseline-retained,
 7 deployed, and 29 prepared across 66 entries.
 
@@ -4244,8 +4244,8 @@ Metabase, proxy, and the legacy stack were left in place. No seeds or farm rows
 were written. The restore and candidate had no location data, so populated
 output parity remains open. MAN-CAP-038, real worker credentials/OIDC,
 production recovery, and physical Raspberry Pi acceptance remain open. Evidence:
-[migration](../schemas/postgres/551_ecological_synthesis_provenance_capacity.sql),
-[focused tests](../tests/test_synthesis_source_references.py),
+[migration](../../schemas/postgres/551_ecological_synthesis_provenance_capacity.sql),
+[focused tests](../../tests/test_synthesis_source_references.py),
 [native disposable check](builds/2026-10-22-recovery/cap-038-ecological-modeling-provenance-capacity-disposable.json),
 [ARM64/QEMU check](builds/2026-10-22-recovery/cap-038-ecological-modeling-provenance-capacity-arm64-disposable.json),
 [checkpoint and rollout](builds/2026-10-22-recovery/candidate-migration-551-rollout.json).
@@ -4367,9 +4367,9 @@ providers, and real credentials were not used; migration 548 and its worker
 grant are not deployed. Other legacy Delphi study/panel operations remain
 open, along with Directus parity, populated
 output parity, runtime recovery, and MAN-CAP-038 owner acceptance. Evidence:
-[migration](../schemas/postgres/548_signed_delphi_agent_summary_source.sql),
-[agent](../services/agents/delphi_facilitator_agent.py),
-[tests](../tests/test_agent_worker_cli.py),
+[migration](../../schemas/postgres/548_signed_delphi_agent_summary_source.sql),
+[agent](../../services/agents/delphi_facilitator_agent.py),
+[tests](../../tests/test_agent_worker_cli.py),
 [native PostgreSQL](builds/2026-10-22-recovery/cap-038-delphi-agent-source-disposable.json),
 [ARM64/QEMU PostgreSQL](builds/2026-10-22-recovery/cap-038-delphi-agent-source-arm64-disposable.json).
 Checklist: 955 complete / 24 open (979 total); matrix remains 30 baseline-retained,
@@ -4397,9 +4397,9 @@ credential was used; migration 547 and its worker credentials/grants are not
 rolled out. This closes only the standalone summary inspection source boundary.
 Human operator authentication, populated parity, other non-synthesis worker
 reads, and MAN-CAP-038 acceptance remain open. Evidence:
-[migration](../schemas/postgres/547_signed_ai_summary_inspection_source.sql),
-[worker](../services/agents/worker_cli.py),
-[CLI](../services/agents/ai_summary.py),
+[migration](../../schemas/postgres/547_signed_ai_summary_inspection_source.sql),
+[worker](../../services/agents/worker_cli.py),
+[CLI](../../services/agents/ai_summary.py),
 [native disposable acceptance](builds/2026-10-22-recovery/cap-038-ai-summary-inspection-source-disposable.json),
 [ARM64/QEMU acceptance](builds/2026-10-22-recovery/cap-038-ai-summary-inspection-source-arm64-disposable.json).
 Checklist: 954 complete / 24 open (978 total); matrix remains 30 baseline-retained,
@@ -4423,9 +4423,9 @@ AI-summary scope. No candidate or legacy database, provider, or real
 credential was used; migration 546 and worker grants are not deployed.
 Populated CIDS parity, operator grant provisioning, live runtime acceptance,
 universal RLS, and MAN-CAP-013 remain open. Evidence:
-[migration](../schemas/postgres/546_signed_cids_export_source.sql),
-[worker](../services/agents/worker_cli.py),
-[tests](../tests/test_cids_export.py),
+[migration](../../schemas/postgres/546_signed_cids_export_source.sql),
+[worker](../../services/agents/worker_cli.py),
+[tests](../../tests/test_cids_export.py),
 [native disposable acceptance](builds/2026-10-22-recovery/cap-038-cids-export-source-worker-disposable.json),
 [ARM64/QEMU acceptance](builds/2026-10-22-recovery/cap-038-cids-export-source-worker-arm64-disposable.json).
 Checklist: 953 complete / 24 open (977 total); capability classifications
@@ -4477,8 +4477,8 @@ password, worker credential and per-location grant are not provisioned;
 candidate and legacy databases remain untouched. Other agent/worker paths,
 universal RLS, populated parity, and MAN-CAP-038 acceptance remain open.
 Evidence:
-[migration](../schemas/postgres/544_tenant_scoped_deterministic_summary_source_views.sql),
-[worker](../services/agents/worker_cli.py),
+[migration](../../schemas/postgres/544_tenant_scoped_deterministic_summary_source_views.sql),
+[worker](../../services/agents/worker_cli.py),
 [native database acceptance](builds/2026-10-22-recovery/cap-038-tenant-scoped-deterministic-summary-source-views-disposable.json),
 [ARM64/QEMU acceptance](builds/2026-10-22-recovery/cap-038-tenant-scoped-deterministic-summary-source-views-arm64-disposable.json).
 
@@ -4500,8 +4500,8 @@ databases remain untouched. Migration 543, its source credential, and exact
 location grants are not deployed. Deterministic-summary source isolation,
 non-synthesis worker coverage, populated parity, and MAN-CAP-038 acceptance
 remain open. Evidence:
-[migration](../schemas/postgres/543_tenant_scoped_agent_synthesis_source_views.sql),
-[worker tests](../tests/test_agent_worker_cli.py),
+[migration](../../schemas/postgres/543_tenant_scoped_agent_synthesis_source_views.sql),
+[worker tests](../../tests/test_agent_worker_cli.py),
 [database acceptance](builds/2026-10-22-recovery/cap-038-tenant-scoped-agent-synthesis-source-views-disposable.json).
 Checklist: 948 complete / 24 open (972 total); no capability acceptance status
 changed.
@@ -5365,13 +5365,13 @@ remain approval-blocked. Populated parity, live OIDC/browser behavior, runtime
 recovery, full source snapshots, and MAN-CAP-038 remain open. Checklist: 786 complete /
 24 open; matrix: 31 baseline-retained, 7 deployed, 28 prepared across 66 rows.
 Evidence: [contract](agent-ecosystem-kernel-contract.md),
-[migration](../schemas/postgres/522_authenticated_ai_summary_drafts.sql),
-[source-reference migration](../schemas/postgres/523_ai_summary_source_references.sql),
-[shared-reference migration](../schemas/postgres/524_ai_summary_global_source_references.sql),
-[draft tests](../tests/test_gateway_ai_summary_draft.py),
-[review tests](../tests/test_gateway_ai_summary_review.py),
-[source-reference tests](../tests/test_ai_summary_source_references.py),
-[console tests](../tests/test_operator_console_ai_summary_review.py), and
+[migration](../../schemas/postgres/522_authenticated_ai_summary_drafts.sql),
+[source-reference migration](../../schemas/postgres/523_ai_summary_source_references.sql),
+[shared-reference migration](../../schemas/postgres/524_ai_summary_global_source_references.sql),
+[draft tests](../../tests/test_gateway_ai_summary_draft.py),
+[review tests](../../tests/test_gateway_ai_summary_review.py),
+[source-reference tests](../../tests/test_ai_summary_source_references.py),
+[console tests](../../tests/test_operator_console_ai_summary_review.py), and
 [disposable acceptance](builds/2026-10-20-recovery/cap-038-ai-summary-global-source-references-disposable.json).
 
 ### CAP-035 consent-aware adoption event capture — 20 October 2026
@@ -5399,9 +5399,9 @@ recovery, and MAN-CAP-035 owner acceptance. Checklist: 772 complete / 24 open;
 capability classifications remain 31 baseline-retained, 7 deployed, and 28
 prepared across 66 rows. See the [source-to-route audit](solution-lifecycle-source-route-audit.md),
 [write contract](solution-lifecycle-kernel-write-contract.md),
-[migration](../schemas/postgres/520_location_solution_adoption_consent_events.sql),
-[Gateway tests](../tests/test_gateway_solution_lifecycle_adoption_program.py),
-[console tests](../tests/test_operator_console_solution_lifecycle.py), and
+[migration](../../schemas/postgres/520_location_solution_adoption_consent_events.sql),
+[Gateway tests](../../tests/test_gateway_solution_lifecycle_adoption_program.py),
+[console tests](../../tests/test_operator_console_solution_lifecycle.py), and
 [disposable checker](../../scripts/check-solution-adoption-program-disposable.py).
 
 ### CAP-035 location solution-configuration draft and review — 20 October 2026
@@ -5410,31 +5410,31 @@ Migration 517 adds exact-location versioned solution-configuration drafts for ac
 
 The operator console exposes configuration creation, own-draft submission, and independent review under separate exact `solution_lifecycle:create`, `submit`, and `review` grants. It uses bounded JSON objects, CSRF/no-store writes, safe text rendering, pagination, and stable request IDs that remain bound to the original location after uncertain outcomes. Program enablement, participant consent/event linkage, and adoption launch remain separate.
 
-The focused Gateway, route-policy, and console selection passes 82 tests, including inline JavaScript syntax. Ruff, Python compilation, capability-matrix validation, runtime SQL inventory, and diff checks pass. Disposable PostgreSQL 16 applies and replays migrations 513–517 and passes 26 grouped adoption-program, readiness, configuration, retry, review, trigger, and privilege checks ([evidence](builds/2026-10-20-recovery/cap-035-adoption-program-disposable.json)). Candidate and legacy databases are untouched; migration 517 is not rolled out. CAP-035 remains prepared pending program enablement review, consent-aware participant events, populated legacy parity, live ZITADEL/browser acceptance, broader runtime ACL/RLS review, recovery, and MAN-CAP-035 owner acceptance. Checklist: 771 complete / 24 open; matrix: 31 baseline-retained, 7 deployed, 28 prepared across 66 rows. See the [source-to-route audit](solution-lifecycle-source-route-audit.md), [write contract](solution-lifecycle-kernel-write-contract.md), [migration](../schemas/postgres/517_location_solution_configuration_draft_review.sql), [Gateway tests](../tests/test_gateway_solution_lifecycle_configuration.py), and [console tests](../tests/test_operator_console_solution_lifecycle.py).
+The focused Gateway, route-policy, and console selection passes 82 tests, including inline JavaScript syntax. Ruff, Python compilation, capability-matrix validation, runtime SQL inventory, and diff checks pass. Disposable PostgreSQL 16 applies and replays migrations 513–517 and passes 26 grouped adoption-program, readiness, configuration, retry, review, trigger, and privilege checks ([evidence](builds/2026-10-20-recovery/cap-035-adoption-program-disposable.json)). Candidate and legacy databases are untouched; migration 517 is not rolled out. CAP-035 remains prepared pending program enablement review, consent-aware participant events, populated legacy parity, live ZITADEL/browser acceptance, broader runtime ACL/RLS review, recovery, and MAN-CAP-035 owner acceptance. Checklist: 771 complete / 24 open; matrix: 31 baseline-retained, 7 deployed, 28 prepared across 66 rows. See the [source-to-route audit](solution-lifecycle-source-route-audit.md), [write contract](solution-lifecycle-kernel-write-contract.md), [migration](../../schemas/postgres/517_location_solution_configuration_draft_review.sql), [Gateway tests](../../tests/test_gateway_solution_lifecycle_configuration.py), and [console tests](../../tests/test_operator_console_solution_lifecycle.py).
 
 ### CAP-035 independently reviewed adoption readiness — 20 October 2026
 
 Migration 516 adds a location-scoped readiness assessment and independent review. Exact `solution_lifecycle:create` submission stores an immutable assessment and leaves readiness pending. Exact `solution_lifecycle:review` exposes a bounded queue that excludes the assessor; a different active human must acknowledge and record a decision. PostgreSQL rejects below-threshold ready decisions, requires a plan for remediation, binds reviews to the current assessment, and uses a trigger to prevent unreviewed direct changes to `ready`. New assessments invalidate previous readiness; historical `ready` rows without independent review receipts are retained but marked `expired`. The console now shows assessment and review controls under separate create/review grants, supports paging, uses CSRF/no-store, and preserves request IDs for uncertain retries.
 
-The combined Gateway/action, route-policy, console, adoption-program, and migration-metadata selection passes 129 tests. Ruff, Python compilation, inline JavaScript syntax, dependency-group alignment, capability-matrix validation, runtime SQL inventory, and diff checks pass. Disposable PostgreSQL 16 applies and replays migrations 513–516 and passes 16 grouped adoption-program/readiness checks ([evidence](builds/2026-10-20-recovery/cap-035-adoption-program-disposable.json)). Candidate and legacy databases are untouched; migration 516 is not rolled out. CAP-035 remains prepared pending configuration draft/approval, program enablement review, consent-aware participant events, populated legacy parity, live ZITADEL/browser acceptance, broader runtime ACL/RLS review, recovery, and MAN-CAP-035 owner acceptance. Checklist: 770 complete / 24 open; matrix: 31 baseline-retained, 7 deployed, 28 prepared across 66 rows. See the [source-to-route audit](solution-lifecycle-source-route-audit.md), [write contract](solution-lifecycle-kernel-write-contract.md), [migration](../schemas/postgres/516_location_solution_adoption_readiness_review.sql), [Gateway tests](../tests/test_gateway_solution_lifecycle_adoption_readiness.py), and [console tests](../tests/test_operator_console_solution_lifecycle.py).
+The combined Gateway/action, route-policy, console, adoption-program, and migration-metadata selection passes 129 tests. Ruff, Python compilation, inline JavaScript syntax, dependency-group alignment, capability-matrix validation, runtime SQL inventory, and diff checks pass. Disposable PostgreSQL 16 applies and replays migrations 513–516 and passes 16 grouped adoption-program/readiness checks ([evidence](builds/2026-10-20-recovery/cap-035-adoption-program-disposable.json)). Candidate and legacy databases are untouched; migration 516 is not rolled out. CAP-035 remains prepared pending configuration draft/approval, program enablement review, consent-aware participant events, populated legacy parity, live ZITADEL/browser acceptance, broader runtime ACL/RLS review, recovery, and MAN-CAP-035 owner acceptance. Checklist: 770 complete / 24 open; matrix: 31 baseline-retained, 7 deployed, 28 prepared across 66 rows. See the [source-to-route audit](solution-lifecycle-source-route-audit.md), [write contract](solution-lifecycle-kernel-write-contract.md), [migration](../../schemas/postgres/516_location_solution_adoption_readiness_review.sql), [Gateway tests](../../tests/test_gateway_solution_lifecycle_adoption_readiness.py), and [console tests](../../tests/test_operator_console_solution_lifecycle.py).
 
 ### CAP-035 protocol-bound experiment completion — 20 October 2026
 
 Migration 512 adds `POST /operator/api/solution-lifecycle/{location_id}/experiments/{experiment_id}/complete` under exact-location `solution_lifecycle:transition`. PostgreSQL closes data collection only after it sees a fresh, current-consent analysis for every primary metric, matching the approved protocol and current observation-source digest. Every primary metric must reach a terminal sequential boundary; benefit/futility results meet the approved sample floor, while a safety stop or elapsed duration may close earlier. Completion stores an immutable receipt and derived analysis digest; it does not write a result or bypass the separate human result-review action.
 
-The action uses repeatable-read, active-human attribution, exact-origin checks, and stable retries. A dedicated completion receipt is protected by forced RLS and private role grants; runtime and Directus cannot read or mutate it directly. The console shows completion only to operators with exact transition and analyze grants, requires acknowledgement, and explains that independent result review remains required. The focused completion/Gateway/console/route-policy/migration selection passes 161 tests; Ruff and Python compilation pass. Disposable PostgreSQL 16 applies and replays migrations 510–512 and passes 20 grouped capture, directional-analysis, early-completion denial, completion retry, result-review separation, consent-withdrawal, RLS, and ACL checks ([evidence](builds/2026-10-20-recovery/cap-035-solution-experiment-observation-disposable.json)). Candidate and legacy databases remain untouched; migration 512 is not rolled out. Checklist: 765 complete / 24 open; matrix: 31 baseline-retained, 7 deployed, 28 prepared across 66 rows. CAP-035 remains prepared pending populated comparison, live ZITADEL/browser acceptance, broader ACL/RLS review, recovery, and owner acceptance ([write contract](solution-lifecycle-kernel-write-contract.md); [source-route audit](solution-lifecycle-source-route-audit.md); [migration](../schemas/postgres/512_location_solution_experiment_completion.sql); [Gateway tests](../tests/test_gateway_solution_lifecycle_experiment_completion.py); [disposable checker](../../scripts/check-solution-experiment-observation-disposable.py)).
+The action uses repeatable-read, active-human attribution, exact-origin checks, and stable retries. A dedicated completion receipt is protected by forced RLS and private role grants; runtime and Directus cannot read or mutate it directly. The console shows completion only to operators with exact transition and analyze grants, requires acknowledgement, and explains that independent result review remains required. The focused completion/Gateway/console/route-policy/migration selection passes 161 tests; Ruff and Python compilation pass. Disposable PostgreSQL 16 applies and replays migrations 510–512 and passes 20 grouped capture, directional-analysis, early-completion denial, completion retry, result-review separation, consent-withdrawal, RLS, and ACL checks ([evidence](builds/2026-10-20-recovery/cap-035-solution-experiment-observation-disposable.json)). Candidate and legacy databases remain untouched; migration 512 is not rolled out. Checklist: 765 complete / 24 open; matrix: 31 baseline-retained, 7 deployed, 28 prepared across 66 rows. CAP-035 remains prepared pending populated comparison, live ZITADEL/browser acceptance, broader ACL/RLS review, recovery, and owner acceptance ([write contract](solution-lifecycle-kernel-write-contract.md); [source-route audit](solution-lifecycle-source-route-audit.md); [migration](../../schemas/postgres/512_location_solution_experiment_completion.sql); [Gateway tests](../../tests/test_gateway_solution_lifecycle_experiment_completion.py); [disposable checker](../../scripts/check-solution-experiment-observation-disposable.py)).
 
 ### CAP-035 consent-aware sequential experiment analysis — 20 October 2026
 
 Migration 511 adds the exact-location `POST /operator/api/solution-lifecycle/{location_id}/experiments/{experiment_id}/analyze` route and grant-gated operator-console panel. Analysis accepts only an active, exact-origin experiment and a protocol-declared metric; benefit direction, minimum sample counts, posterior threshold, and adverse-event limit are fixed by the reviewed protocol. PostgreSQL computes the directional treatment effect, interval, posterior benefit probability, and safety counts from a repeatable-read snapshot, and records immutable request receipts plus private observation lineage. Analysis is advisory and does not change experiment or solution lifecycle state.
 
-The dedicated analyst role has column-scoped access and forced RLS. Both observations and derived analyses are visible only while their source consent and exact-location participant link remain current; withdrawal hides affected source rows and analysis results. Historical unassessed analyses remain hidden, and runtime/Directus cannot access analysis rows, source maps, or receipts. The focused Gateway/console/route-policy/migration selection passes 152 tests; Ruff and Python compilation pass. Disposable PostgreSQL 16 applies and replays migrations 510–511 and passes 17 grouped consent, directional-effect, adverse-event, retry, withdrawal, RLS, and ACL checks ([evidence](builds/2026-10-20-recovery/cap-035-solution-experiment-observation-disposable.json)). Candidate and legacy databases remain untouched; migration 511 is not rolled out. Checklist: 764 complete / 24 open; matrix: 31 baseline-retained, 7 deployed, 28 prepared across 66 rows. CAP-035 remains prepared pending completion/report review, populated parity, live ZITADEL/browser acceptance, broader ACL/RLS review, recovery, and owner acceptance ([write contract](solution-lifecycle-kernel-write-contract.md); [source-route audit](solution-lifecycle-source-route-audit.md); [migration](../schemas/postgres/511_location_solution_experiment_sequential_analysis.sql); [Gateway tests](../tests/test_gateway_solution_lifecycle_experiment_analysis.py); [disposable checker](../../scripts/check-solution-experiment-observation-disposable.py)).
+The dedicated analyst role has column-scoped access and forced RLS. Both observations and derived analyses are visible only while their source consent and exact-location participant link remain current; withdrawal hides affected source rows and analysis results. Historical unassessed analyses remain hidden, and runtime/Directus cannot access analysis rows, source maps, or receipts. The focused Gateway/console/route-policy/migration selection passes 152 tests; Ruff and Python compilation pass. Disposable PostgreSQL 16 applies and replays migrations 510–511 and passes 17 grouped consent, directional-effect, adverse-event, retry, withdrawal, RLS, and ACL checks ([evidence](builds/2026-10-20-recovery/cap-035-solution-experiment-observation-disposable.json)). Candidate and legacy databases remain untouched; migration 511 is not rolled out. Checklist: 764 complete / 24 open; matrix: 31 baseline-retained, 7 deployed, 28 prepared across 66 rows. CAP-035 remains prepared pending completion/report review, populated parity, live ZITADEL/browser acceptance, broader ACL/RLS review, recovery, and owner acceptance ([write contract](solution-lifecycle-kernel-write-contract.md); [source-route audit](solution-lifecycle-source-route-audit.md); [migration](../../schemas/postgres/511_location_solution_experiment_sequential_analysis.sql); [Gateway tests](../../tests/test_gateway_solution_lifecycle_experiment_analysis.py); [disposable checker](../../scripts/check-solution-experiment-observation-disposable.py)).
 
 ### CAP-035 consent-aware experiment observation capture — 20 October 2026
 
 Migration 510 adds the scoped `POST /operator/api/solution-lifecycle/{location_id}/experiments/{experiment_id}/observations` action and a grant-gated console form for active experiments. Protocol drafts now declare either an exact participant consent purpose/version or one of three bounded non-personal measurement bases. Participant captures require the current exact-location participant link and latest matching consent event; the database function validates experiment state, metric, arm, tenant context, explicit acknowledgement, and a private idempotency receipt in one transaction. Forced RLS exposes only current-consent observations to authorized location reviewers and hides withdrawn and unassessed legacy rows. Runtime and Directus retain no direct write or receipt access.
 
-The console requires exact `solution_lifecycle:collect`, active experiment state, CSRF, and no-store requests. It accepts only an opaque participant-link UUID, keeps evidence private, omits observation details from status lists, and preserves request IDs for unchanged retries. The focused experiment/Gateway/console/route-policy/migration selection passes 177 tests; Ruff, Python compilation, inline JavaScript syntax, and diff checks pass. Disposable PostgreSQL 16 applies and replays migration 510 and passes eight grouped capture, consent-withdrawal, retry, legacy-row, RLS, and ACL checks ([evidence](builds/2026-10-20-recovery/cap-035-solution-experiment-observation-disposable.json)). Candidate and legacy databases remain untouched; migration 510 has not been rolled out. Checklist: 763 complete / 24 open; matrix: 31 baseline-retained, 7 deployed, 28 prepared across 66 rows. CAP-035 remains prepared pending scoped analysis/completion, populated parity, live ZITADEL/browser acceptance, broader ACL/RLS review, recovery, and owner acceptance ([write contract](solution-lifecycle-kernel-write-contract.md); [source-route audit](solution-lifecycle-source-route-audit.md); [migration](../schemas/postgres/510_location_solution_experiment_observation_capture.sql); [Gateway and console tests](../tests/test_gateway_solution_lifecycle_experiment_observation.py); [console contract](../tests/test_operator_console_solution_lifecycle.py); [disposable checker](../../scripts/check-solution-experiment-observation-disposable.py)).
+The console requires exact `solution_lifecycle:collect`, active experiment state, CSRF, and no-store requests. It accepts only an opaque participant-link UUID, keeps evidence private, omits observation details from status lists, and preserves request IDs for unchanged retries. The focused experiment/Gateway/console/route-policy/migration selection passes 177 tests; Ruff, Python compilation, inline JavaScript syntax, and diff checks pass. Disposable PostgreSQL 16 applies and replays migration 510 and passes eight grouped capture, consent-withdrawal, retry, legacy-row, RLS, and ACL checks ([evidence](builds/2026-10-20-recovery/cap-035-solution-experiment-observation-disposable.json)). Candidate and legacy databases remain untouched; migration 510 has not been rolled out. Checklist: 763 complete / 24 open; matrix: 31 baseline-retained, 7 deployed, 28 prepared across 66 rows. CAP-035 remains prepared pending scoped analysis/completion, populated parity, live ZITADEL/browser acceptance, broader ACL/RLS review, recovery, and owner acceptance ([write contract](solution-lifecycle-kernel-write-contract.md); [source-route audit](solution-lifecycle-source-route-audit.md); [migration](../../schemas/postgres/510_location_solution_experiment_observation_capture.sql); [Gateway and console tests](../../tests/test_gateway_solution_lifecycle_experiment_observation.py); [console contract](../../tests/test_operator_console_solution_lifecycle.py); [disposable checker](../../scripts/check-solution-experiment-observation-disposable.py)).
 
 ### CAP-035 retirement of legacy experiment writers — 20 October 2026
 
@@ -5453,43 +5453,43 @@ capability-matrix validation, requirement-group alignment, runtime SQL
 inventory, and diff checks pass. Disposable PostgreSQL 16 applies/replays
 migration 509 and passes seven acceptance groups, including a direct runtime
 status-update denial and checks that starting creates neither consent nor
-observations and leaves the solution stage unchanged ([evidence](builds/2026-10-20-recovery/cap-035-solution-experiment-start-disposable.json)). Candidate and legacy databases remain untouched; migration 509 is not rolled out. Checklist: 762 complete / 24 open; matrix: 31 baseline-retained, 7 deployed, 28 prepared across 66 rows. [Audit](solution-lifecycle-source-route-audit.md); [write contract](solution-lifecycle-kernel-write-contract.md); [tests](../tests/test_solution_experiments.py).
+observations and leaves the solution stage unchanged ([evidence](builds/2026-10-20-recovery/cap-035-solution-experiment-start-disposable.json)). Candidate and legacy databases remain untouched; migration 509 is not rolled out. Checklist: 762 complete / 24 open; matrix: 31 baseline-retained, 7 deployed, 28 prepared across 66 rows. [Audit](solution-lifecycle-source-route-audit.md); [write contract](solution-lifecycle-kernel-write-contract.md); [tests](../../tests/test_solution_experiments.py).
 
 ### CAP-035 exact-location approved experiment start — 20 October 2026
 
 Migration 509 adds `POST /operator/api/solution-lifecycle/{location_id}/experiments/{experiment_id}/start` under signed exact-location `solution_lifecycle:transition` scope. PostgreSQL requires an active human binding, a current active exact-origin solution at `experiment_ready` or `testing`, `protocol_approved` state, and a private approval receipt whose reviewer matches the experiment attribution. It atomically marks the experiment active and appends an immutable idempotency receipt; it does not assert participant consent, collect observations, or change the solution stage. The console offers this only for approved experiments to operators with the exact read and transition grants. Migration 509 revokes direct experiment lifecycle updates from runtime and Directus. The legacy direct start, observation, analysis, completion, result-review, and replication helpers now fail before database access.
 
-The focused Gateway, route-policy, console, legacy, and migration selection passes 118 tests. Ruff, Python compilation, inline JavaScript syntax, capability-matrix validation, runtime SQL inventory, dependency-group alignment, and diff checks pass. Disposable PostgreSQL 16 applies/replays migration 509 after the ordered experiment review chain and passes seven grouped checks for exact scope, approval-receipt validation, retries/collisions, consent and observation separation, unchanged solution stage, and role boundaries ([evidence](builds/2026-10-20-recovery/cap-035-solution-experiment-start-disposable.json)). Candidate and legacy databases remain untouched; migration 509 is not rolled out. CAP-035 remains prepared pending consent-aware observations, analysis/completion, populated comparison, live OIDC/browser acceptance, broader ACL/RLS, recovery, and owner review. Checklist: 761 complete / 24 open; matrix: 31 baseline-retained, 7 deployed, 28 prepared across 66 rows. [Write contract](solution-lifecycle-kernel-write-contract.md); [source-to-route audit](solution-lifecycle-source-route-audit.md); [migration](../schemas/postgres/509_location_solution_experiment_start.sql); [Gateway tests](../tests/test_gateway_solution_lifecycle_experiment_start.py); [disposable checker](../../scripts/check-solution-experiment-start-disposable.py).
+The focused Gateway, route-policy, console, legacy, and migration selection passes 118 tests. Ruff, Python compilation, inline JavaScript syntax, capability-matrix validation, runtime SQL inventory, dependency-group alignment, and diff checks pass. Disposable PostgreSQL 16 applies/replays migration 509 after the ordered experiment review chain and passes seven grouped checks for exact scope, approval-receipt validation, retries/collisions, consent and observation separation, unchanged solution stage, and role boundaries ([evidence](builds/2026-10-20-recovery/cap-035-solution-experiment-start-disposable.json)). Candidate and legacy databases remain untouched; migration 509 is not rolled out. CAP-035 remains prepared pending consent-aware observations, analysis/completion, populated comparison, live OIDC/browser acceptance, broader ACL/RLS, recovery, and owner review. Checklist: 761 complete / 24 open; matrix: 31 baseline-retained, 7 deployed, 28 prepared across 66 rows. [Write contract](solution-lifecycle-kernel-write-contract.md); [source-to-route audit](solution-lifecycle-source-route-audit.md); [migration](../../schemas/postgres/509_location_solution_experiment_start.sql); [Gateway tests](../../tests/test_gateway_solution_lifecycle_experiment_start.py); [disposable checker](../../scripts/check-solution-experiment-start-disposable.py).
 
 ### CAP-035 independent experiment protocol review — 20 October 2026
 
 Migration 508 adds private submitted-protocol review at `GET /operator/api/solution-lifecycle/{location_id}/experiments/{experiment_id}/protocol-review` and independent approval at the matching `POST`. Both require exact signed location review scope. Detail returns bounded protocol content and conflict booleans without owner or submitter identities. Approval requires an active human distinct from both protocol owner and submitter, an attributable Kernel submission, and an active exact-origin solution still at `experiment_ready` or `testing`. It records an immutable retry receipt and changes only protocol status and reviewer attribution; consent, experiment start, and solution-stage changes remain separate. The console displays protocol text safely, blocks self-review, binds the form to its loaded location, and uses acknowledgement, CSRF/no-store requests, and stable retries. The legacy direct `approve_protocol` helper now fails before database access.
 
-The focused Gateway, route-policy, console, legacy, and migration selection passes 104 tests with one database-backed skip. Ruff, Python compilation, inline JavaScript syntax, capability-matrix validation, runtime SQL inventory, dependency-group alignment, and diff checks pass. Disposable PostgreSQL 16 applies/replays migration 508 after the ordered experiment submission chain and passes eight grouped checks for exact scope, human independence, private detail, retries/collisions, lifecycle isolation, and role boundaries ([evidence](builds/2026-10-20-recovery/cap-035-solution-experiment-protocol-review-disposable.json)). Candidate and legacy databases remain untouched; migration 508 is not rolled out. CAP-035 remains prepared pending consent-aware observation, start, analysis/completion, populated comparison, live OIDC/browser acceptance, broader ACL/RLS, recovery, and owner review. Checklist: 760 complete / 24 open; matrix: 31 baseline-retained, 7 deployed, 28 prepared across 66 rows. [Write contract](solution-lifecycle-kernel-write-contract.md); [source-to-route audit](solution-lifecycle-source-route-audit.md); [migration](../schemas/postgres/508_location_solution_experiment_protocol_review.sql); [Gateway tests](../tests/test_gateway_solution_lifecycle_experiment_protocol_review.py); [disposable checker](../../scripts/check-solution-experiment-protocol-review-disposable.py).
+The focused Gateway, route-policy, console, legacy, and migration selection passes 104 tests with one database-backed skip. Ruff, Python compilation, inline JavaScript syntax, capability-matrix validation, runtime SQL inventory, dependency-group alignment, and diff checks pass. Disposable PostgreSQL 16 applies/replays migration 508 after the ordered experiment submission chain and passes eight grouped checks for exact scope, human independence, private detail, retries/collisions, lifecycle isolation, and role boundaries ([evidence](builds/2026-10-20-recovery/cap-035-solution-experiment-protocol-review-disposable.json)). Candidate and legacy databases remain untouched; migration 508 is not rolled out. CAP-035 remains prepared pending consent-aware observation, start, analysis/completion, populated comparison, live OIDC/browser acceptance, broader ACL/RLS, recovery, and owner review. Checklist: 760 complete / 24 open; matrix: 31 baseline-retained, 7 deployed, 28 prepared across 66 rows. [Write contract](solution-lifecycle-kernel-write-contract.md); [source-to-route audit](solution-lifecycle-source-route-audit.md); [migration](../../schemas/postgres/508_location_solution_experiment_protocol_review.sql); [Gateway tests](../../tests/test_gateway_solution_lifecycle_experiment_protocol_review.py); [disposable checker](../../scripts/check-solution-experiment-protocol-review-disposable.py).
 
 ### CAP-035 location-origin experiment protocol submission — 20 October 2026
 
 Migration 507 adds `POST /operator/api/solution-lifecycle/{location_id}/experiments/{experiment_id}/submit`. It requires signed exact-location `solution_lifecycle:submit` context, an active human binding, and that the bound human owns an eligible draft for an active solution exactly originated at that location and currently in `experiment_ready` or `testing`. Submission atomically changes only `draft` to `submitted` and appends a private receipt; independent approval, participant consent, observations, execution, analysis, and completion remain separate. Exact retries return the original receipt; changed request reuse, other owners, other locations, and resubmission under a new request ID fail. The legacy direct `submit_protocol` helper now fails before database access. The console exposes the action only under exact read/submit grants, requires acknowledgement and CSRF, and retains a stable retry ID for uncertain responses.
 
-The focused Gateway, route-policy, console, legacy, and migration selection passes 98 tests with one database-backed skip. Ruff, Python compilation, inline JavaScript parsing, capability-matrix validation, runtime SQL inventory, dependency-group alignment, and diff checks pass. Disposable PostgreSQL 16 applies/replays migration 507 after the ordered experiment-draft chain and passes eight owner, scope, retry, lifecycle, and privilege groups ([evidence](builds/2026-10-20-recovery/cap-035-solution-experiment-submission-disposable.json)). Candidate and legacy databases remain untouched; migration 507 is not rolled out. CAP-035 remains prepared pending protocol approval/start, consent-aware observations, analysis/completion, populated comparison, live OIDC/browser acceptance, broader ACL/RLS, recovery, and owner review. Checklist: 759 complete / 24 open; matrix: 31 baseline-retained, 7 deployed, 28 prepared across 66 rows. [Write contract](solution-lifecycle-kernel-write-contract.md); [source-to-route audit](solution-lifecycle-source-route-audit.md); [migration](../schemas/postgres/507_location_solution_experiment_submission.sql); [Gateway tests](../tests/test_gateway_solution_lifecycle_experiment_submission.py); [disposable checker](../../scripts/check-solution-experiment-submission-disposable.py).
+The focused Gateway, route-policy, console, legacy, and migration selection passes 98 tests with one database-backed skip. Ruff, Python compilation, inline JavaScript parsing, capability-matrix validation, runtime SQL inventory, dependency-group alignment, and diff checks pass. Disposable PostgreSQL 16 applies/replays migration 507 after the ordered experiment-draft chain and passes eight owner, scope, retry, lifecycle, and privilege groups ([evidence](builds/2026-10-20-recovery/cap-035-solution-experiment-submission-disposable.json)). Candidate and legacy databases remain untouched; migration 507 is not rolled out. CAP-035 remains prepared pending protocol approval/start, consent-aware observations, analysis/completion, populated comparison, live OIDC/browser acceptance, broader ACL/RLS, recovery, and owner review. Checklist: 759 complete / 24 open; matrix: 31 baseline-retained, 7 deployed, 28 prepared across 66 rows. [Write contract](solution-lifecycle-kernel-write-contract.md); [source-to-route audit](solution-lifecycle-source-route-audit.md); [migration](../../schemas/postgres/507_location_solution_experiment_submission.sql); [Gateway tests](../../tests/test_gateway_solution_lifecycle_experiment_submission.py); [disposable checker](../../scripts/check-solution-experiment-submission-disposable.py).
 
 ### CAP-035 location-origin experiment protocol drafts — 20 October 2026
 
 Migration 506 adds `POST /operator/api/solution-lifecycle/{location_id}/solutions/{solution_id}/experiments` for immutable `draft` protocol creation. PostgreSQL requires signed exact-location `solution_lifecycle:create` context, an active operator-to-human binding, an active solution whose origin exactly matches that location, and the current `experiment_ready` or `testing` stage. Protocol fields and JSON structures are allowlisted and bounded; the private receipt makes exact retries safe and rejects changed-payload reuse. The action does not submit or approve a protocol, collect consent/observations, start an experiment, analyze results, or change solution stage. Direct legacy `create_experiment` now fails before database access. Runtime and Directus cannot insert or edit protocol definitions or delete experiments; runtime's narrow lifecycle-column updates remain available, and the migration bootstrap reapplies the boundary after broad compatibility grants. The console form requires exact read/create grants, CSRF/no-store, and a stable request ID.
 
-The focused Gateway, route-policy, console, runtime-role, and legacy selection passes 137 tests with one skip. Ruff, Python compilation, inline JavaScript syntax, and `git diff --check` pass. Disposable PostgreSQL 16 applies/replays migration 506 after the ordered CAP-035 lifecycle chain and passes 11 grouped scope, validation, origin/stage, retry, draft-only, protocol immutability, and privilege checks ([evidence](builds/2026-10-20-recovery/cap-035-solution-experiment-create-disposable.json)). Candidate and legacy databases remain untouched; migration 506 is not rolled out. CAP-035 remains prepared pending experiment submission/review/start/observation/result parity, populated comparison, live OIDC/browser acceptance, broader ACL/RLS, recovery, and owner review. Checklist: 758 complete / 24 open; matrix: 31 baseline-retained, 7 deployed, 28 prepared across 66 rows. [Write contract](solution-lifecycle-kernel-write-contract.md); [source-to-route audit](solution-lifecycle-source-route-audit.md); [migration](../schemas/postgres/506_location_solution_experiment_create.sql); [Gateway tests](../tests/test_gateway_solution_lifecycle_experiment_create.py); [disposable checker](../../scripts/check-solution-experiment-create-disposable.py).
+The focused Gateway, route-policy, console, runtime-role, and legacy selection passes 137 tests with one skip. Ruff, Python compilation, inline JavaScript syntax, and `git diff --check` pass. Disposable PostgreSQL 16 applies/replays migration 506 after the ordered CAP-035 lifecycle chain and passes 11 grouped scope, validation, origin/stage, retry, draft-only, protocol immutability, and privilege checks ([evidence](builds/2026-10-20-recovery/cap-035-solution-experiment-create-disposable.json)). Candidate and legacy databases remain untouched; migration 506 is not rolled out. CAP-035 remains prepared pending experiment submission/review/start/observation/result parity, populated comparison, live OIDC/browser acceptance, broader ACL/RLS, recovery, and owner review. Checklist: 758 complete / 24 open; matrix: 31 baseline-retained, 7 deployed, 28 prepared across 66 rows. [Write contract](solution-lifecycle-kernel-write-contract.md); [source-to-route audit](solution-lifecycle-source-route-audit.md); [migration](../../schemas/postgres/506_location_solution_experiment_create.sql); [Gateway tests](../../tests/test_gateway_solution_lifecycle_experiment_create.py); [disposable checker](../../scripts/check-solution-experiment-create-disposable.py).
 
 ### CAP-035 location-origin promotion-gate drafts — 20 October 2026
 
 Migration 505 adds `POST /operator/api/solution-lifecycle/{location_id}/solutions/{solution_id}/gates`. It creates an immutable draft only for an active solution whose origin exactly matches the signed location and whose operator has an exact `solution_lifecycle:create` grant plus an active human binding. The criterion and thresholds are bounded; supported promotions are fixed to the four current lifecycle mappings, require at least one evaluation, and require independent human approval. The write uses a private append-only retry receipt. It does not evaluate, approve, or transition the solution. Existing gate list and review projections expose a criterion only to the solution's origin location; linked cross-origin entries remain redacted. The console form requires exact read/create grants and uses CSRF, no-store, stale-location guards, and stable retry IDs. The legacy `create_gate` SQL helper remains fail-closed; location sharing remains a separate policy gate.
 
-The focused Gateway, gate-read/review, route-policy, console, migration, and runtime-role-boundary selection passes 239 tests. Ruff, Python compilation, inline JavaScript syntax, capability-matrix validation, runtime SQL inventory validation, and diff checks pass. Disposable PostgreSQL 16 applies/replays migration 505 after its gate-review predecessor and CAP-035 chain, passing ten authorization, validation, origin, privacy, retry, draft-only, and role-boundary groups; it first restores broad table and column grants to runtime/Directus to prove migration 505 revokes them ([evidence](builds/2026-10-20-recovery/cap-035-solution-gate-create-disposable.json)). Runtime-role unit checks verify the bootstrap restores this boundary after its broad compatibility grant. Candidate and legacy databases remain untouched; migration 505 is not rolled out. CAP-035 remains prepared pending populated legacy parity, live ZITADEL/browser acceptance, broader ACL/RLS review, recovery, remaining workflow parity, and MAN-CAP-035 owner acceptance. Checklist: 757 complete / 24 open; matrix: 31 baseline-retained, 7 deployed, 28 prepared across 66 rows. [Write contract](solution-lifecycle-kernel-write-contract.md); [source-to-route audit](solution-lifecycle-source-route-audit.md); [migration](../schemas/postgres/505_location_solution_gate_definition.sql); [Gateway tests](../tests/test_gateway_solution_lifecycle_gate_create.py); [console tests](../tests/test_operator_console_solution_lifecycle.py); [disposable checker](../scripts/check-solution-gate-create-disposable.py).
+The focused Gateway, gate-read/review, route-policy, console, migration, and runtime-role-boundary selection passes 239 tests. Ruff, Python compilation, inline JavaScript syntax, capability-matrix validation, runtime SQL inventory validation, and diff checks pass. Disposable PostgreSQL 16 applies/replays migration 505 after its gate-review predecessor and CAP-035 chain, passing ten authorization, validation, origin, privacy, retry, draft-only, and role-boundary groups; it first restores broad table and column grants to runtime/Directus to prove migration 505 revokes them ([evidence](builds/2026-10-20-recovery/cap-035-solution-gate-create-disposable.json)). Runtime-role unit checks verify the bootstrap restores this boundary after its broad compatibility grant. Candidate and legacy databases remain untouched; migration 505 is not rolled out. CAP-035 remains prepared pending populated legacy parity, live ZITADEL/browser acceptance, broader ACL/RLS review, recovery, remaining workflow parity, and MAN-CAP-035 owner acceptance. Checklist: 757 complete / 24 open; matrix: 31 baseline-retained, 7 deployed, 28 prepared across 66 rows. [Write contract](solution-lifecycle-kernel-write-contract.md); [source-to-route audit](solution-lifecycle-source-route-audit.md); [migration](../../schemas/postgres/505_location_solution_gate_definition.sql); [Gateway tests](../../tests/test_gateway_solution_lifecycle_gate_create.py); [console tests](../../tests/test_operator_console_solution_lifecycle.py); [disposable checker](../../scripts/check-solution-gate-create-disposable.py).
 
 ### CAP-035 location-origin solution creation — 20 October 2026
 
 Migration 504 adds `POST /operator/api/solution-lifecycle/{location_id}/solutions` under an exact signed `solution_lifecycle:create` grant. It creates a discovered solution with immutable location origin, an active bound-human creator, a private opening lifecycle event, and an append-only exact-retry receipt. The console form is hidden unless the operator also has exact read access; it uses acknowledgement, CSRF, no-store, and stable request IDs. The legacy `create_solution`, `add_link`, and `create_gate` helpers now fail before database access. Cross-location links and gate-definition authoring stay unavailable until their sharing and review policies have defined boundaries.
 
-The focused Gateway, console, route-policy, legacy, and migration selection passes 123 tests with four database-backed skips. Ruff and Python compilation pass; the runtime SQL inventory is refreshed and current. Disposable PostgreSQL 16 applies and replays migration 504, then passes nine groups covering exact location scope, active human attribution, input validation, creation and opening-event atomicity, exact retries, changed payload rejection, and receipt privacy. Candidate and legacy databases remain untouched; migration 504 is not rolled out. CAP-035 remains prepared pending populated comparison, live OIDC/browser, broader ACL/RLS, recovery, remaining lifecycle parity, and MAN-CAP-035 review. Checklist: 756 complete / 24 open; matrix: 31 baseline-retained, 7 deployed, 28 prepared across 66 rows. [Write contract](solution-lifecycle-kernel-write-contract.md); [source-to-route audit](solution-lifecycle-source-route-audit.md); [migration](../schemas/postgres/504_location_solution_create.sql); [tests](../tests/test_gateway_solution_lifecycle_create.py); [disposable checker](../scripts/check-solution-create-disposable.py); [evidence](builds/2026-10-20-recovery/cap-035-solution-create-disposable.json).
+The focused Gateway, console, route-policy, legacy, and migration selection passes 123 tests with four database-backed skips. Ruff and Python compilation pass; the runtime SQL inventory is refreshed and current. Disposable PostgreSQL 16 applies and replays migration 504, then passes nine groups covering exact location scope, active human attribution, input validation, creation and opening-event atomicity, exact retries, changed payload rejection, and receipt privacy. Candidate and legacy databases remain untouched; migration 504 is not rolled out. CAP-035 remains prepared pending populated comparison, live OIDC/browser, broader ACL/RLS, recovery, remaining lifecycle parity, and MAN-CAP-035 review. Checklist: 756 complete / 24 open; matrix: 31 baseline-retained, 7 deployed, 28 prepared across 66 rows. [Write contract](solution-lifecycle-kernel-write-contract.md); [source-to-route audit](solution-lifecycle-source-route-audit.md); [migration](../../schemas/postgres/504_location_solution_create.sql); [tests](../../tests/test_gateway_solution_lifecycle_create.py); [disposable checker](../../scripts/check-solution-create-disposable.py); [evidence](builds/2026-10-20-recovery/cap-035-solution-create-disposable.json).
 
 ### CAP-035 legacy stage-transition writer retirement — 20 October 2026
 
@@ -5510,7 +5510,7 @@ populated comparison, live OIDC/browser, ACL/RLS, recovery, and owner acceptance
 remain open. Checklist: 754 complete / 24 open; capability matrix: 31
 baseline-retained, 7 deployed, 28 prepared across 66 rows ([source-to-route
 audit](solution-lifecycle-source-route-audit.md); [write
-contract](solution-lifecycle-kernel-write-contract.md); [tests](../tests/test_solution_lifecycle.py)).
+contract](solution-lifecycle-kernel-write-contract.md); [tests](../../tests/test_solution_lifecycle.py)).
 
 ### CAP-035 legacy learning-write retirement and source-to-route audit — 20 October 2026
 
@@ -5531,8 +5531,8 @@ CAP-035 source audit is linked from the capability matrix and checklist.
 Checklist: 751 complete / 24 open; capability matrix: 31 baseline-retained,
 7 deployed, 28 prepared across 66 rows ([source-to-route audit](solution-lifecycle-source-route-audit.md);
 [write contract](solution-lifecycle-kernel-write-contract.md);
-[service](../services/innovation/solution_scale.py);
-[test](../tests/test_solution_scale.py)).
+[service](../../services/innovation/solution_scale.py);
+[test](../../tests/test_solution_scale.py)).
 
 ### CAP-036 repository subject-lineage audit — 20 October 2026
 
@@ -5540,25 +5540,25 @@ The repository-only CAP-036 lineage inventory is complete. A built-in Python sou
 
 ### CAP-035 replication completion-report proposal — 20 October 2026
 
-Migration 497 adds a private exact-location completion-report proposal API for an active, approved, started replication. Submission requires the signed `solution_lifecycle:submit` grant, an active human binding, current validated source/result lineage, bounded outcome/maturity/summary/evidence, acknowledgement, and a stable request ID. It creates only a pending report; replication and solution lifecycle fields remain unchanged until a future independent review decision. There is no console form or decision queue in this slice. The focused Gateway, route-policy, replication proposal/review/activation, console-regression, and migration selection passes 122 tests. Ruff and Python compilation pass. Disposable PostgreSQL 16 applies/replays migration 497 and passes ten grouped scope, validation, retry, pending-report, lineage, privacy, and privilege checks. Candidate and legacy databases remain untouched; migration 497 is not rolled out. CAP-035 remains prepared pending completion review/decision, populated parity, live OIDC/browser acceptance, broader ACL/RLS, recovery, and MAN-CAP-035 owner review. Checklist: 742 complete / 24 open; capability matrix: 31 baseline-retained, 7 deployed, 28 prepared across 66 rows. [Write contract](solution-lifecycle-kernel-write-contract.md); [migration](../schemas/postgres/497_location_solution_replication_completion_proposal.sql); [tests](../../tests/test_gateway_solution_replication_completion_proposals.py); [disposable checker](../../scripts/check-solution-replication-completion-proposal-disposable.py); [evidence](builds/2026-10-20-recovery/cap-035-solution-replication-completion-proposal-disposable.json).
+Migration 497 adds a private exact-location completion-report proposal API for an active, approved, started replication. Submission requires the signed `solution_lifecycle:submit` grant, an active human binding, current validated source/result lineage, bounded outcome/maturity/summary/evidence, acknowledgement, and a stable request ID. It creates only a pending report; replication and solution lifecycle fields remain unchanged until a future independent review decision. There is no console form or decision queue in this slice. The focused Gateway, route-policy, replication proposal/review/activation, console-regression, and migration selection passes 122 tests. Ruff and Python compilation pass. Disposable PostgreSQL 16 applies/replays migration 497 and passes ten grouped scope, validation, retry, pending-report, lineage, privacy, and privilege checks. Candidate and legacy databases remain untouched; migration 497 is not rolled out. CAP-035 remains prepared pending completion review/decision, populated parity, live OIDC/browser acceptance, broader ACL/RLS, recovery, and MAN-CAP-035 owner review. Checklist: 742 complete / 24 open; capability matrix: 31 baseline-retained, 7 deployed, 28 prepared across 66 rows. [Write contract](solution-lifecycle-kernel-write-contract.md); [migration](../../schemas/postgres/497_location_solution_replication_completion_proposal.sql); [tests](../../tests/test_gateway_solution_replication_completion_proposals.py); [disposable checker](../../scripts/check-solution-replication-completion-proposal-disposable.py); [evidence](builds/2026-10-20-recovery/cap-035-solution-replication-completion-proposal-disposable.json).
 
 ### CAP-035 controlled replication activation — 20 October 2026
 
 Added `POST /operator/api/solution-lifecycle/{location_id}/replications/{replication_id}/start` under the exact signed `solution_lifecycle:transition` grant. Migration 496 rechecks active operator/human identity, the independently approved proposal receipt, exact target location, current validated source experiment/result, and solution visibility. It atomically changes only the replication to `active`, records starter party/time, and appends an immutable idempotency receipt. A trigger blocks direct lifecycle edits and elevated proposal-role inserts while preserving proposed drafts. Activation does not set outcome/evidence/maturity/completion or change the solution stage. The console action requires the transition grant and acknowledgement and uses CSRF, no-store, same-origin requests, and a stable retry ID.
 
-The focused Gateway, route-policy, console, proposal, review, and migration selection passes 108 tests. Ruff, Python compilation, inline JavaScript syntax, and diff checks pass. Disposable PostgreSQL 16 applies and replays migration 496 and passes ten grouped checks for role/trigger boundaries, exact scope and source lineage, independent approval, retries/collisions, denial paths, atomic attribution, and unchanged outcome/stage. Candidate and legacy databases remain untouched; migration 496 is not rolled out. CAP-035 remains prepared pending populated parity, live OIDC/browser acceptance, broader ACL/RLS, recovery, and MAN-CAP-035 owner review. Checklist: 741 complete / 24 open; matrix: 31 baseline-retained, 7 deployed, 28 prepared across 66 rows. [Write contract](solution-lifecycle-kernel-write-contract.md); [migration](../schemas/postgres/496_location_solution_replication_activation.sql); [Gateway tests](../tests/test_gateway_solution_replication_activation.py); [disposable checker](../../scripts/check-solution-replication-activation-disposable.py); [evidence](builds/2026-10-20-recovery/cap-035-solution-replication-activation-disposable.json).
+The focused Gateway, route-policy, console, proposal, review, and migration selection passes 108 tests. Ruff, Python compilation, inline JavaScript syntax, and diff checks pass. Disposable PostgreSQL 16 applies and replays migration 496 and passes ten grouped checks for role/trigger boundaries, exact scope and source lineage, independent approval, retries/collisions, denial paths, atomic attribution, and unchanged outcome/stage. Candidate and legacy databases remain untouched; migration 496 is not rolled out. CAP-035 remains prepared pending populated parity, live OIDC/browser acceptance, broader ACL/RLS, recovery, and MAN-CAP-035 owner review. Checklist: 741 complete / 24 open; matrix: 31 baseline-retained, 7 deployed, 28 prepared across 66 rows. [Write contract](solution-lifecycle-kernel-write-contract.md); [migration](../../schemas/postgres/496_location_solution_replication_activation.sql); [Gateway tests](../../tests/test_gateway_solution_replication_activation.py); [disposable checker](../../scripts/check-solution-replication-activation-disposable.py); [evidence](builds/2026-10-20-recovery/cap-035-solution-replication-activation-disposable.json).
 
 ### CAP-035 independent funding tranche approval — 20 October 2026
 
 Added private exact-location tranche review at `GET /operator/api/solution-lifecycle/{location_id}/funding/{funding_case_id}/tranches/{tranche_id}/review` and independent approval at the matching `/approve` route. Migration 492 requires the funding case already be approved, the tranche still be proposed, explicit acknowledgement, an exact signed `solution_lifecycle:review` grant, and an active human distinct from both the case submitter and case approver. It updates only tranche status and reviewer attribution and appends an immutable retry receipt; it does not release money or advance the solution stage. The operator console exposes the action only for approved cases and proposed tranches, renders private milestone terms as text, uses CSRF/no-store requests, and retains the same request ID for uncertain retries.
 
-The focused Gateway, route-policy, console, and migration suite passes 117 tests. Ruff, Python compilation, inline JavaScript syntax, capability-matrix validation, and runtime SQL inventory checks pass. Disposable PostgreSQL 16 applies and replays migration 492 after migrations 488–491 and verifies exact review scope, reviewer independence, retry/collision handling, denial of duplicate approval and missing acknowledgement, narrow role grants, Directus/runtime boundaries, one tranche left proposed, and unchanged solution stage. Candidate and legacy databases remain untouched; migration 492 is not rolled out. CAP-035 remains prepared pending populated parity, live OIDC/browser acceptance, broader ACL/RLS, recovery, and MAN-CAP-035 owner review. Checklist: 737 complete / 24 open; matrix: 31 baseline-retained, 7 deployed, 28 prepared across 66 rows. [Write contract](solution-lifecycle-kernel-write-contract.md); [migration](../schemas/postgres/492_location_solution_funding_tranche_review.sql); [Gateway and route tests](../tests/test_gateway_solution_lifecycle_funding_proposals.py); [console tests](../tests/test_operator_console_solution_lifecycle.py); [disposable checker](../../scripts/check-solution-lifecycle-funding-disposable.py); [evidence](builds/2026-10-20-recovery/cap-035-solution-funding-tranche-approval-disposable.json).
+The focused Gateway, route-policy, console, and migration suite passes 117 tests. Ruff, Python compilation, inline JavaScript syntax, capability-matrix validation, and runtime SQL inventory checks pass. Disposable PostgreSQL 16 applies and replays migration 492 after migrations 488–491 and verifies exact review scope, reviewer independence, retry/collision handling, denial of duplicate approval and missing acknowledgement, narrow role grants, Directus/runtime boundaries, one tranche left proposed, and unchanged solution stage. Candidate and legacy databases remain untouched; migration 492 is not rolled out. CAP-035 remains prepared pending populated parity, live OIDC/browser acceptance, broader ACL/RLS, recovery, and MAN-CAP-035 owner review. Checklist: 737 complete / 24 open; matrix: 31 baseline-retained, 7 deployed, 28 prepared across 66 rows. [Write contract](solution-lifecycle-kernel-write-contract.md); [migration](../../schemas/postgres/492_location_solution_funding_tranche_review.sql); [Gateway and route tests](../../tests/test_gateway_solution_lifecycle_funding_proposals.py); [console tests](../../tests/test_operator_console_solution_lifecycle.py); [disposable checker](../../scripts/check-solution-lifecycle-funding-disposable.py); [evidence](builds/2026-10-20-recovery/cap-035-solution-funding-tranche-approval-disposable.json).
 
 ### CAP-035 independent funding case approval — 20 October 2026
 
 Added `POST /operator/api/solution-lifecycle/{location_id}/funding/{funding_case_id}/approve` under the exact signed `solution_lifecycle:review` grant. Migration 491 requires an active human binding, explicit acknowledgement, an attributed submitted case from the exact location, and a reviewer distinct from its submitter. It atomically records only the case decision/reviewer and an immutable retry receipt; proposed tranches, disbursement, and solution stage remain unchanged. The console exposes approval only for an attributed non-self-authored case and protects retries with a stable request ID, CSRF, and no-store same-origin requests.
 
-The focused Gateway, route-policy, console, and migration suite passes 108 tests; Ruff, Python compilation, inline JavaScript syntax, capability-matrix validation, and runtime SQL inventory checks pass. The disposable PostgreSQL 16 checker applies/replays migration 491 after migrations 488–490 and verifies exact retries, request collisions, duplicate decisions, missing/mismatched grants, self-review, unattributed legacy denial, role boundaries, unchanged proposed tranche state, and unchanged solution stage. Candidate and legacy databases remain untouched; migration 491 is not rolled out. CAP-035 remains prepared pending populated parity, live OIDC/browser acceptance, broader ACL/RLS, recovery, and MAN-CAP-035 owner review. Checklist: 736 complete / 24 open; matrix: 31 baseline-retained, 7 deployed, 28 prepared across 66 rows. [Write contract](solution-lifecycle-kernel-write-contract.md); [migration](../schemas/postgres/491_location_solution_funding_approval.sql); [Gateway and route tests](../tests/test_gateway_solution_lifecycle_funding_proposals.py); [console tests](../tests/test_operator_console_solution_lifecycle.py); [disposable checker](../../scripts/check-solution-lifecycle-funding-disposable.py); [evidence](builds/2026-10-20-recovery/cap-035-solution-funding-approval-disposable.json).
+The focused Gateway, route-policy, console, and migration suite passes 108 tests; Ruff, Python compilation, inline JavaScript syntax, capability-matrix validation, and runtime SQL inventory checks pass. The disposable PostgreSQL 16 checker applies/replays migration 491 after migrations 488–490 and verifies exact retries, request collisions, duplicate decisions, missing/mismatched grants, self-review, unattributed legacy denial, role boundaries, unchanged proposed tranche state, and unchanged solution stage. Candidate and legacy databases remain untouched; migration 491 is not rolled out. CAP-035 remains prepared pending populated parity, live OIDC/browser acceptance, broader ACL/RLS, recovery, and MAN-CAP-035 owner review. Checklist: 736 complete / 24 open; matrix: 31 baseline-retained, 7 deployed, 28 prepared across 66 rows. [Write contract](solution-lifecycle-kernel-write-contract.md); [migration](../../schemas/postgres/491_location_solution_funding_approval.sql); [Gateway and route tests](../../tests/test_gateway_solution_lifecycle_funding_proposals.py); [console tests](../../tests/test_operator_console_solution_lifecycle.py); [disposable checker](../../scripts/check-solution-lifecycle-funding-disposable.py); [evidence](builds/2026-10-20-recovery/cap-035-solution-funding-approval-disposable.json).
 
 ### CAP-035 private funding submission review reads — 20 October 2026
 
@@ -5584,45 +5584,45 @@ other workflow parity, populated fixture comparison, live OIDC/browser,
 broader ACL/RLS, recovery, and MAN-CAP-035 owner review. Checklist: 735
 complete / 24 open; matrix: 31 baseline-retained, 7 deployed, 28 prepared
 across 66 rows. [Write contract](solution-lifecycle-kernel-write-contract.md);
-[migration](../schemas/postgres/490_location_solution_funding_review.sql);
-[tests](../tests/test_gateway_solution_lifecycle_funding_proposals.py);
+[migration](../../schemas/postgres/490_location_solution_funding_review.sql);
+[tests](../../tests/test_gateway_solution_lifecycle_funding_proposals.py);
 [disposable evidence](builds/2026-10-20-recovery/cap-035-solution-funding-review-disposable.json).
 
 ### CAP-035 funding draft submission — 20 October 2026
 
 Added a separate exact-location submit action for funding drafts. Migration 489 requires signed `solution_lifecycle:submit`, an active human operator binding, explicit acknowledgement, and a draft created by the same operator and party for the exact location-origin solution. It atomically changes only the case from `draft` to `submitted` and writes a private immutable retry receipt; proposed tranches remain proposed, and approval, release, and solution-stage transition remain separate. The console gates this second step on the submit grant and a separate acknowledgement.
 
-The focused Gateway, route-policy, console, and migration selection passes 196 tests; Ruff, Python compilation, and inline JavaScript parsing pass. Disposable PostgreSQL 16 applies/replays migrations 488 and 489 and verifies exact retries, request collisions, duplicate submissions, missing-grant denial, role boundaries, preserved tranche states, and unchanged solution stage. Candidate and legacy databases remain untouched; migration 489 is not rolled out. CAP-035 remains prepared pending populated parity, live OIDC/browser acceptance, broader ACL/RLS, recovery, and MAN-CAP-035 owner review. Checklist: 734 complete / 24 open; matrix: 31 baseline-retained, 7 deployed, 28 prepared across 66 rows. [Write contract](solution-lifecycle-kernel-write-contract.md); [migration](../schemas/postgres/489_location_solution_funding_submission.sql); [Gateway tests](../tests/test_gateway_solution_lifecycle_funding_proposals.py); [console tests](../tests/test_operator_console_solution_lifecycle.py); [disposable check](../../scripts/check-solution-lifecycle-funding-disposable.py); [evidence](builds/2026-10-20-recovery/cap-035-solution-funding-submission-disposable.json).
+The focused Gateway, route-policy, console, and migration selection passes 196 tests; Ruff, Python compilation, and inline JavaScript parsing pass. Disposable PostgreSQL 16 applies/replays migrations 488 and 489 and verifies exact retries, request collisions, duplicate submissions, missing-grant denial, role boundaries, preserved tranche states, and unchanged solution stage. Candidate and legacy databases remain untouched; migration 489 is not rolled out. CAP-035 remains prepared pending populated parity, live OIDC/browser acceptance, broader ACL/RLS, recovery, and MAN-CAP-035 owner review. Checklist: 734 complete / 24 open; matrix: 31 baseline-retained, 7 deployed, 28 prepared across 66 rows. [Write contract](solution-lifecycle-kernel-write-contract.md); [migration](../../schemas/postgres/489_location_solution_funding_submission.sql); [Gateway tests](../../tests/test_gateway_solution_lifecycle_funding_proposals.py); [console tests](../../tests/test_operator_console_solution_lifecycle.py); [disposable check](../../scripts/check-solution-lifecycle-funding-disposable.py); [evidence](builds/2026-10-20-recovery/cap-035-solution-funding-submission-disposable.json).
 
 ### CAP-035 funding proposal draft — 20 October 2026
 
 Added exact-location funding targets and a draft-only funding proposal action. Migration 488 requires signed `solution_lifecycle:read` and `solution_lifecycle:create` grants plus an active human binding; it validates exact location-origin solutions, bounded amount/currency/rationale/evidence/tranches, and atomically creates a private draft case, proposed tranches, and immutable retry receipt. Changed-payload retries, cross-location/global targets, and tranche totals above the proposal ceiling fail closed. The console uses CSRF, same-origin/no-store requests, acknowledgement, and stable retry IDs. No submit, approval, release, or lifecycle transition is exposed.
 
-The focused Gateway, route-policy, console, and migration selection passes 189 tests; Ruff, Python compilation, and inline JavaScript parsing pass. Disposable PostgreSQL 16 applies/replays migration 488 and verifies target scope, grants/identity, bounds, retry behavior, private ACLs, draft-only effects, and unchanged solution stage. Candidate and legacy databases remain untouched; migration 488 is not rolled out. CAP-035 remains prepared pending populated parity, live OIDC/browser acceptance, broader ACL/RLS, recovery, and MAN-CAP-035 owner review. Checklist: 733 complete / 24 open; matrix: 31 baseline-retained, 7 deployed, 28 prepared across 66 rows. [Write contract](solution-lifecycle-kernel-write-contract.md); [migration](../schemas/postgres/488_location_solution_funding_proposals.sql); [Gateway tests](../tests/test_gateway_solution_lifecycle_funding_proposals.py); [console tests](../tests/test_operator_console_solution_lifecycle.py); [disposable check](../../scripts/check-solution-lifecycle-funding-disposable.py); [evidence](builds/2026-10-20-recovery/cap-035-solution-funding-proposal-disposable.json).
+The focused Gateway, route-policy, console, and migration selection passes 189 tests; Ruff, Python compilation, and inline JavaScript parsing pass. Disposable PostgreSQL 16 applies/replays migration 488 and verifies target scope, grants/identity, bounds, retry behavior, private ACLs, draft-only effects, and unchanged solution stage. Candidate and legacy databases remain untouched; migration 488 is not rolled out. CAP-035 remains prepared pending populated parity, live OIDC/browser acceptance, broader ACL/RLS, recovery, and MAN-CAP-035 owner review. Checklist: 733 complete / 24 open; matrix: 31 baseline-retained, 7 deployed, 28 prepared across 66 rows. [Write contract](solution-lifecycle-kernel-write-contract.md); [migration](../../schemas/postgres/488_location_solution_funding_proposals.sql); [Gateway tests](../../tests/test_gateway_solution_lifecycle_funding_proposals.py); [console tests](../../tests/test_operator_console_solution_lifecycle.py); [disposable check](../../scripts/check-solution-lifecycle-funding-disposable.py); [evidence](builds/2026-10-20-recovery/cap-035-solution-funding-proposal-disposable.json).
 
 ### CAP-035 experiment result review — 20 October 2026
 
 Added exact-location pending-review detail and result submission at `GET` and `POST /operator/api/solution-lifecycle/{location_id}/experiments/{experiment_id}/review`. Migration 487 exposes bounded protocol, latest analysis, and at most 100 recent observations only for location-origin experiments under signed `solution_lifecycle:review` scope. The console renders private evidence as text and shows the form only for completed experiments when the exact review grant is present. PostgreSQL requires an active human distinct from both the experiment owner and protocol approver, and atomically records the result, updates the experiment outcome, and inserts an immutable payload receipt. Identical retries replay; changed payloads and cross-location reuse fail closed. Result review does not advance the solution stage.
 
-The focused Gateway, route-policy, console, and migration selection passes 74 tests; Ruff and Python compilation pass, and the console selection parses inline JavaScript. Disposable PostgreSQL 16 applies/replays migrations 483–487 and passes ten experiment-review groups plus the prior eight gate-evaluation, seven gate-review, and seven transition groups. Candidate and legacy databases remain untouched; migration 487 is not rolled out. CAP-035 remains prepared pending populated parity, live OIDC/browser acceptance, broader ACL/RLS, recovery, and MAN-CAP-035 owner review. Checklist: 732 complete / 24 open; matrix: 31 baseline-retained, 7 deployed, 28 prepared across 66 rows. [Contract](solution-lifecycle-kernel-read-contract.md); [migration](../schemas/postgres/487_location_solution_experiment_review.sql); [Gateway tests](../tests/test_gateway_solution_lifecycle_experiment_review.py); [console tests](../tests/test_operator_console_solution_lifecycle.py); [disposable evidence](builds/2026-10-20-recovery/cap-035-solution-experiment-review-disposable.json).
+The focused Gateway, route-policy, console, and migration selection passes 74 tests; Ruff and Python compilation pass, and the console selection parses inline JavaScript. Disposable PostgreSQL 16 applies/replays migrations 483–487 and passes ten experiment-review groups plus the prior eight gate-evaluation, seven gate-review, and seven transition groups. Candidate and legacy databases remain untouched; migration 487 is not rolled out. CAP-035 remains prepared pending populated parity, live OIDC/browser acceptance, broader ACL/RLS, recovery, and MAN-CAP-035 owner review. Checklist: 732 complete / 24 open; matrix: 31 baseline-retained, 7 deployed, 28 prepared across 66 rows. [Contract](solution-lifecycle-kernel-read-contract.md); [migration](../../schemas/postgres/487_location_solution_experiment_review.sql); [Gateway tests](../../tests/test_gateway_solution_lifecycle_experiment_review.py); [console tests](../../tests/test_operator_console_solution_lifecycle.py); [disposable evidence](builds/2026-10-20-recovery/cap-035-solution-experiment-review-disposable.json).
 
 ### CAP-035 gated solution stage transition — 20 October 2026
 
 Added `POST /operator/api/solution-lifecycle/{location_id}/gates/{gate_id}/transition` under exact signed `solution_lifecycle:transition`. Migration 486 requires an approved gate for the solution's current stage, a latest passing evaluation and configured minimum pass count, plus a still-distinct approver when human approval is required. It preserves the legacy promotion prerequisites for evidence maturity, validated experiments, approved funding, adoption readiness/configuration, and location scale gates. The stage update, attributed lifecycle event, and immutable idempotency receipt are one transaction; matching retries return the same event and request collisions fail closed. The console exposes the form only for an approved passing promotion gate when the exact transition grant is present.
 
-The focused Gateway/console/route-policy selection passes 35 tests; Ruff, Python compilation, and inline JavaScript checks pass. Disposable PostgreSQL 16 applies and replays migrations 483–486 and passes eight evaluation, seven review/approval, and seven transition acceptance groups, including non-human compatibility, independence revalidation, atomicity, retries, and runtime/Directus boundaries. Candidate and legacy databases are untouched; migration 486 is not rolled out. CAP-035 remains prepared pending populated parity, live OIDC/browser acceptance, broader ACL/RLS, recovery, and MAN-CAP-035 owner review. Checklist: 731 complete / 24 open; matrix: 31 baseline-retained, 7 deployed, 28 prepared across 66 rows. [Contract](solution-lifecycle-kernel-read-contract.md); [migration](../schemas/postgres/486_location_solution_gate_transition.sql); [Gateway tests](../tests/test_gateway_solution_lifecycle_gate_transitions.py); [console tests](../tests/test_operator_console_solution_lifecycle.py); [disposable evidence](builds/2026-10-20-recovery/cap-035-solution-gate-transition-disposable.json).
+The focused Gateway/console/route-policy selection passes 35 tests; Ruff, Python compilation, and inline JavaScript checks pass. Disposable PostgreSQL 16 applies and replays migrations 483–486 and passes eight evaluation, seven review/approval, and seven transition acceptance groups, including non-human compatibility, independence revalidation, atomicity, retries, and runtime/Directus boundaries. Candidate and legacy databases are untouched; migration 486 is not rolled out. CAP-035 remains prepared pending populated parity, live OIDC/browser acceptance, broader ACL/RLS, recovery, and MAN-CAP-035 owner review. Checklist: 731 complete / 24 open; matrix: 31 baseline-retained, 7 deployed, 28 prepared across 66 rows. [Contract](solution-lifecycle-kernel-read-contract.md); [migration](../../schemas/postgres/486_location_solution_gate_transition.sql); [Gateway tests](../../tests/test_gateway_solution_lifecycle_gate_transitions.py); [console tests](../../tests/test_operator_console_solution_lifecycle.py); [disposable evidence](builds/2026-10-20-recovery/cap-035-solution-gate-transition-disposable.json).
 
 ### CAP-035 non-independent gate confirmation compatibility — 20 October 2026
 
 Migration 485 restores the legacy approval behavior for gates where `requires_human_approval` is false: an active operator with the exact review grant and a passing latest evaluation can confirm the gate, with request-id idempotency. When the flag is true, evaluator/reviewer independence remains mandatory. The console labels the two paths distinctly and keeps both behind the exact review grant. Approval still does not advance the solution stage.
 
-Disposable PostgreSQL 16 applies/replays migrations 483–485 and passes the evaluation, independent-review, compatibility, retry, and role-boundary groups. The combined Gateway, route-policy, console, and migration-metadata selection passes 82 tests; Ruff, Python compilation, capability validation, runtime SQL inventory, and JavaScript syntax checks pass. Candidate and legacy databases are untouched; migration 485 is not rolled out. Checklist: 730 complete / 24 open; matrix: 31 baseline-retained, 7 deployed, 28 prepared across 66 rows. [Migration](../schemas/postgres/485_solution_gate_nonhuman_approval_compatibility.sql); [evidence](builds/2026-10-20-recovery/cap-035-solution-gate-review-disposable.json).
+Disposable PostgreSQL 16 applies/replays migrations 483–485 and passes the evaluation, independent-review, compatibility, retry, and role-boundary groups. The combined Gateway, route-policy, console, and migration-metadata selection passes 82 tests; Ruff, Python compilation, capability validation, runtime SQL inventory, and JavaScript syntax checks pass. Candidate and legacy databases are untouched; migration 485 is not rolled out. Checklist: 730 complete / 24 open; matrix: 31 baseline-retained, 7 deployed, 28 prepared across 66 rows. [Migration](../../schemas/postgres/485_solution_gate_nonhuman_approval_compatibility.sql); [evidence](builds/2026-10-20-recovery/cap-035-solution-gate-review-disposable.json).
 
 ### CAP-035 independent stage-gate review and approval — 20 October 2026
 
 Added separate private evidence review and independent approval for location-origin CAP-035 gates. `GET /operator/api/solution-lifecycle/{location_id}/gates/{gate_id}/review` requires exact signed `solution_lifecycle:review` context and an active human binding, then returns the latest bounded observation/evidence without evaluator identity. `POST /operator/api/solution-lifecycle/{location_id}/gates/{gate_id}/approve` requires a draft/ready gate, a latest passing evaluation, and an active reviewer party distinct from the evaluator. Migration 484 records the approval and append-only idempotency receipt atomically. Gate approval does not advance the solution stage. The console keeps evidence review and approval behind the review grant and preserves the separate create-grant evaluation action.
 
-The combined Gateway, exact route-policy, console, and migration-metadata selection passes 82 tests; Ruff, compilation, and inline JavaScript syntax checks pass. Disposable PostgreSQL 16 applies/replays migrations 483 and 484 and passes eight evaluation plus seven review/approval acceptance groups. Candidate and legacy databases are untouched; migration 484 is not rolled out. CAP-035 remains prepared pending remaining workflow parity, populated fixture comparison, live OIDC/browser acceptance, broader ACL/RLS, recovery, and MAN-CAP-035 owner review. Checklist: 729 complete / 24 open; matrix: 31 baseline-retained, 7 deployed, 28 prepared across 66 rows. [Contract](solution-lifecycle-kernel-read-contract.md); [migration](../schemas/postgres/484_location_solution_gate_review.sql); [tests](../tests/test_gateway_solution_lifecycle_gate_review.py); [evidence](builds/2026-10-20-recovery/cap-035-solution-gate-review-disposable.json).
+The combined Gateway, exact route-policy, console, and migration-metadata selection passes 82 tests; Ruff, compilation, and inline JavaScript syntax checks pass. Disposable PostgreSQL 16 applies/replays migrations 483 and 484 and passes eight evaluation plus seven review/approval acceptance groups. Candidate and legacy databases are untouched; migration 484 is not rolled out. CAP-035 remains prepared pending remaining workflow parity, populated fixture comparison, live OIDC/browser acceptance, broader ACL/RLS, recovery, and MAN-CAP-035 owner review. Checklist: 729 complete / 24 open; matrix: 31 baseline-retained, 7 deployed, 28 prepared across 66 rows. [Contract](solution-lifecycle-kernel-read-contract.md); [migration](../../schemas/postgres/484_location_solution_gate_review.sql); [tests](../../tests/test_gateway_solution_lifecycle_gate_review.py); [evidence](builds/2026-10-20-recovery/cap-035-solution-gate-review-disposable.json).
 
 ### CAP-035 retirement review inbox and approval console — 20 October 2026
 
@@ -5648,7 +5648,7 @@ not rolled out. CAP-035 remains prepared pending broader lifecycle parity,
 populated fixture comparison, live OIDC/browser, universal ACL/RLS, recovery,
 and MAN-CAP-035 owner review. Checklist: 727 complete / 24 open; matrix:
 31 baseline-retained, 7 deployed, 28 prepared across 66 rows. [Contract](solution-lifecycle-kernel-read-contract.md);
-[migration](../schemas/postgres/482_location_solution_retirement_review_queue.sql);
+[migration](../../schemas/postgres/482_location_solution_retirement_review_queue.sql);
 [evidence](builds/2026-10-20-recovery/cap-035-solution-retirement-review-disposable.json).
 
 ### CAP-035 location-origin retirement proposal console — 20 October 2026
@@ -5671,7 +5671,7 @@ databases are untouched; migration 481 is not rolled out. CAP-035 remains
 prepared pending workflow and populated-data parity, live OIDC/browser
 acceptance, broader ACL/RLS, recovery, and MAN-CAP-035 owner acceptance.
 Checklist: 726 complete / 24 open; matrix: 31 baseline-retained, 7 deployed,
-28 prepared. [Contract](solution-lifecycle-kernel-read-contract.md); [migration](../schemas/postgres/481_location_solution_retirement_candidates.sql); [evidence](builds/2026-10-20-recovery/cap-035-solution-retirement-candidates-disposable.json).
+28 prepared. [Contract](solution-lifecycle-kernel-read-contract.md); [migration](../../schemas/postgres/481_location_solution_retirement_candidates.sql); [evidence](builds/2026-10-20-recovery/cap-035-solution-retirement-candidates-disposable.json).
 
 ### CAP-035 learning-proposal operator form — 20 October 2026
 
@@ -5690,7 +5690,7 @@ database was needed; candidate and legacy state were untouched. CAP-035 remains
 prepared pending remaining lifecycle parity, populated fixtures, live OIDC/browser,
 broader ACL/RLS, recovery, and owner acceptance. Checklist: 725 complete / 24
 open; matrix: 31 baseline-retained, 7 deployed, 28 prepared. [Contract](solution-lifecycle-kernel-read-contract.md);
-[console](../apps/operator-console/index.html); [tests](../tests/test_operator_console_solution_lifecycle.py).
+[console](../../apps/operator-console/index.html); [tests](../../tests/test_operator_console_solution_lifecycle.py).
 
 ### CAP-035 supplemental lifecycle status console — 20 October 2026
 
@@ -5706,7 +5706,7 @@ pass. No database or migration was used. CAP-035 remains prepared pending
 remaining workflow and populated parity, live OIDC/browser, broader ACL/RLS,
 recovery, and owner acceptance. Checklist: 724 complete / 24 open; matrix: 31
 baseline-retained, 7 deployed, 28 prepared. [Contract](solution-lifecycle-kernel-read-contract.md);
-[console](../apps/operator-console/index.html); [tests](../tests/test_operator_console_solution_lifecycle.py).
+[console](../../apps/operator-console/index.html); [tests](../../tests/test_operator_console_solution_lifecycle.py).
 The five-commit batch is pushed to PR #68 at `d200c72cee37819a2d01948d9bf48072b955d7b6`;
 Security #282 passed and CI #558 is pending.
 
@@ -5725,7 +5725,7 @@ provider was contacted. CAP-026 remains prepared pending live OIDC/browser,
 populated parity, broader ACL/RLS, and MAN-CAP-026 owner acceptance. Checklist:
 719 complete / 24 open; matrix: 31 baseline-retained, 7 deployed, 28 prepared.
 [Read contract](threatcasting-kernel-read-contract.md);
-[console checks](../tests/test_operator_console_threatcasting.py).
+[console checks](../../tests/test_operator_console_threatcasting.py).
 
 ### CAP-028 strategy plans operator-console read — 20 October 2026
 
@@ -5742,7 +5742,7 @@ databases remain untouched; migration 452 is not rolled out. CAP-028 remains
 prepared pending complete workflow parity, populated fixtures, live OIDC/browser,
 broader ACL/RLS, and MAN-CAP-028 owner review. Checklist: 718 complete / 24
 open; matrix: 31 baseline-retained, 7 deployed, 28 prepared. [Read contract](strategy-kernel-read-contract.md);
-[console checks](../tests/test_operator_console_strategy.py).
+[console checks](../../tests/test_operator_console_strategy.py).
 
 ### CAP-029 competitive landscape operator-console read — 20 October 2026
 
@@ -5759,7 +5759,7 @@ is not rolled out. CAP-029 remains prepared pending full workflow/report/
 dashboard parity, populated fixtures, live OIDC/browser, broader ACL/RLS, and
 MAN-CAP-029 owner review. Checklist: 717 complete / 24 open; matrix: 31
 baseline-retained, 7 deployed, 28 prepared. [Read contract](competitive-landscape-kernel-read-contract.md);
-[console checks](../tests/test_operator_console_competitive_landscape.py).
+[console checks](../../tests/test_operator_console_competitive_landscape.py).
 
 ### CAP-030 management summary operator-console read — 20 October 2026
 
@@ -5776,7 +5776,7 @@ rolled out. CAP-030 remains prepared pending assignment/transition and SLA/
 escalation parity, populated fixtures, live OIDC/browser, broader ACL/RLS, and
 MAN-CAP-030 owner review. Checklist: 716 complete / 24 open; matrix: 31
 baseline-retained, 7 deployed, 28 prepared. [Read contract](management-work-kernel-read-contract.md);
-[console checks](../tests/test_operator_console_management_work.py).
+[console checks](../../tests/test_operator_console_management_work.py).
 
 ### CAP-031 planning budget operator-console read — 20 October 2026
 
@@ -5794,7 +5794,7 @@ lifecycle, objectives/KPIs, portfolio, revenue/cash-flow, S&OP, populated parity
 live OIDC/browser, broader ACL/RLS, and MAN-CAP-031 owner review. Checklist:
 715 complete / 24 open; matrix: 31 baseline-retained, 7 deployed, 28 prepared.
 [Read contract](planning-budget-kernel-read-contract.md);
-[console checks](../tests/test_operator_console_planning_budget.py).
+[console checks](../../tests/test_operator_console_planning_budget.py).
 
 ### CAP-032 business architecture operator-console read — 20 October 2026
 
@@ -5811,7 +5811,7 @@ databases remain untouched, and migration 456 is not rolled out. CAP-032
 remains prepared pending populated parity, live OIDC/browser acceptance, broader
 ACL/RLS, and MAN-CAP-032 owner review. Checklist: 714 complete / 24 open;
 matrix: 31 baseline-retained, 7 deployed, 28 prepared. [Read contract](business-architecture-kernel-read-contract.md);
-[console checks](../tests/test_operator_console_business_architecture.py).
+[console checks](../../tests/test_operator_console_business_architecture.py).
 
 ### CAP-033 business canvas operator-console read — 20 October 2026
 
@@ -5828,7 +5828,7 @@ prepared pending generated-pitch and assembled-plan parity, populated fixtures,
 live OIDC/browser acceptance, broader ACL/RLS, and MAN-CAP-033 owner review.
 Checklist: 713 complete / 24 open; matrix: 31 baseline-retained, 7 deployed,
 28 prepared. [Read contract](business-planning-kernel-read-contract.md);
-[console checks](../tests/test_operator_console_business_planning.py).
+[console checks](../../tests/test_operator_console_business_planning.py).
 
 ### CAP-034 coordination summary console — 20 October 2026
 
@@ -5842,7 +5842,7 @@ validation pass. No database was used. CAP-034 remains prepared pending populate
 parity, live OIDC/browser, trigger/worker recovery, broader ACL/RLS, and owner
 review. Checklist: 712 complete / 24 open; matrix: 31 baseline-retained, 7
 deployed, 28 prepared. [Contract](coordination-kernel-read-contract.md);
-[console](../apps/operator-console/index.html); [tests](../tests/test_operator_console_coordination.py).
+[console](../../apps/operator-console/index.html); [tests](../../tests/test_operator_console_coordination.py).
 
 ### CAP-035 solution-lifecycle console summary — 20 October 2026
 
@@ -5857,7 +5857,7 @@ database was used. CAP-035 remains prepared pending workflow/detail parity,
 populated fixture comparison, live OIDC/browser, broader ACL/RLS, recovery,
 and owner acceptance. Checklist: 711 complete / 24 open; matrix: 31
 baseline-retained, 7 deployed, 28 prepared. [Contract](solution-lifecycle-kernel-read-contract.md);
-[console](../apps/operator-console/index.html); [tests](../tests/test_operator_console_solution_lifecycle.py).
+[console](../../apps/operator-console/index.html); [tests](../../tests/test_operator_console_solution_lifecycle.py).
 
 ### CAP-036 sequential-evidence console reads — 19 October 2026
 
@@ -5873,7 +5873,7 @@ CAP-036 remains prepared pending
 full source lineage, populated parity, live OIDC/browser behavior, broader
 ACL/RLS, recovery, and owner review. Checklist: 710 complete / 24 open; matrix:
 31 baseline-retained, 7 deployed, 28 prepared. [Contract](sequential-decision-kernel-read-contract.md);
-[console](../apps/operator-console/index.html); [tests](../tests/test_operator_console_sequential_evidence.py).
+[console](../../apps/operator-console/index.html); [tests](../../tests/test_operator_console_sequential_evidence.py).
 
 ### CAP-037 operating-pilot console reads — 19 October 2026
 
@@ -5890,19 +5890,19 @@ remains prepared pending item-level workflows, populated scope and legacy
 parity, audience review, live OIDC/browser behavior, broader ACL/RLS, recovery,
 and owner acceptance. Checklist: 709 complete / 24 open; matrix: 31
 baseline-retained, 7 deployed, 28 prepared. [Contract](operating-pilot-kernel-read-contract.md);
-[console](../apps/operator-console/index.html); [tests](../tests/test_operator_console_operating_pilot.py).
+[console](../../apps/operator-console/index.html); [tests](../../tests/test_operator_console_operating_pilot.py).
 
 ### CAP-036 location-scoped evidence timeline — 19 October 2026
 
 Added `GET /operator/api/sequential-evidence/{location_id}/events` under exact signed `sequential_evidence:read` context. Migration 478 returns a stable, bounded evidence/posterior timeline for exact location-scoped strategy plans, threats, and location-origin or explicitly linked solutions. Each page exposes only sequence ordinals, observed/ingested timestamps, evidence class/quality, and posterior update sequence/version; statements, row IDs, source references, raw values, likelihoods, posterior values, threshold outcomes, and identities remain private. Unknown subject types remain excluded.
 
-The focused Gateway/route-policy selection passes 23 tests; Ruff and compilation pass. Disposable PostgreSQL 16 applies and replays migration 478 and passes eight groups covering ordering, pagination, lineage, privacy, tenant denial, and role boundaries. Candidate and legacy databases remain untouched; migration 478 is not rolled out. CAP-036 remains prepared pending complete subject-type lineage, populated reference parity, live OIDC/browser acceptance, broader ACL/RLS, recovery, and MAN-CAP-036 owner review. Checklist: 706 complete / 24 open; matrix: 31 baseline-retained, 7 deployed, 28 prepared. [Contract](sequential-decision-kernel-read-contract.md); [migration](../schemas/postgres/478_location_sequential_evidence_timeline.sql); [evidence](builds/2026-10-19-recovery/cap-036-sequential-evidence-timeline-disposable.json).
+The focused Gateway/route-policy selection passes 23 tests; Ruff and compilation pass. Disposable PostgreSQL 16 applies and replays migration 478 and passes eight groups covering ordering, pagination, lineage, privacy, tenant denial, and role boundaries. Candidate and legacy databases remain untouched; migration 478 is not rolled out. CAP-036 remains prepared pending complete subject-type lineage, populated reference parity, live OIDC/browser acceptance, broader ACL/RLS, recovery, and MAN-CAP-036 owner review. Checklist: 706 complete / 24 open; matrix: 31 baseline-retained, 7 deployed, 28 prepared. [Contract](sequential-decision-kernel-read-contract.md); [migration](../../schemas/postgres/478_location_sequential_evidence_timeline.sql); [evidence](builds/2026-10-19-recovery/cap-036-sequential-evidence-timeline-disposable.json).
 
 ### CAP-035 location-scoped learning proposals — 19 October 2026
 
 Added `POST /operator/api/solution-lifecycle/{location_id}/replications/{replication_id}/learning` under exact signed `solution_lifecycle:create` context. Migration 477 creates a learning record only from a completed replication actively reviewed by a current person, targeted to the exact location, and linked to a solution originated in or explicitly associated with that location. An active OIDC-to-person binding attributes the proposer independently of the optional learning-record owner. The Gateway and PostgreSQL enforce allowlisted lesson types and confidence/transferability bands, bounded finding/recommendation/reference arrays, and nonempty bounded evidence. The function writes `decision_status = 'proposed'` and an append-only receipt atomically; exact retries return the original receipt and changed-input reuse fails closed. Runtime cannot read or write the learning records or receipt table directly, and Directus cannot execute the write function.
 
-The focused Gateway/route-policy selection passes 16 tests; Ruff and compilation pass. Disposable PostgreSQL 16 applies and replays migration 477 and passes nine acceptance groups covering exact source lineage, reviewer state, signed context/grant, bounds, idempotency, draft-only behavior, and role boundaries. Candidate and legacy databases remain untouched; migration 477 is not rolled out. CAP-035 remains prepared pending the other lifecycle workflows, populated legacy parity, live OIDC/browser acceptance, broader ACL/RLS, recovery, and MAN-CAP-035 owner review. Checklist: 705 complete / 24 open; matrix: 31 baseline-retained, 7 deployed, 28 prepared. [Contract](solution-lifecycle-kernel-read-contract.md); [migration](../schemas/postgres/477_location_solution_learning_proposal.sql); [disposable evidence](builds/2026-10-19-recovery/cap-035-solution-learning-proposal-disposable.json).
+The focused Gateway/route-policy selection passes 16 tests; Ruff and compilation pass. Disposable PostgreSQL 16 applies and replays migration 477 and passes nine acceptance groups covering exact source lineage, reviewer state, signed context/grant, bounds, idempotency, draft-only behavior, and role boundaries. Candidate and legacy databases remain untouched; migration 477 is not rolled out. CAP-035 remains prepared pending the other lifecycle workflows, populated legacy parity, live OIDC/browser acceptance, broader ACL/RLS, recovery, and MAN-CAP-035 owner review. Checklist: 705 complete / 24 open; matrix: 31 baseline-retained, 7 deployed, 28 prepared. [Contract](solution-lifecycle-kernel-read-contract.md); [migration](../../schemas/postgres/477_location_solution_learning_proposal.sql); [disposable evidence](builds/2026-10-19-recovery/cap-035-solution-learning-proposal-disposable.json).
 
 ### CAP-035 location-scoped retirement proposals — 19 October 2026
 
@@ -5950,7 +5950,7 @@ legacy databases remain untouched; migration 468 is not rolled out. Funding
 workflow writes, monetary detail policy, evidence review, other lifecycle item
 workflows, populated parity, live OIDC/browser, broader ACL/RLS, recovery, and
 MAN-CAP-035 review remain open. Checklist: 696 complete / 24 open; matrix:
-31 baseline-retained, 7 deployed, 28 prepared ([contract](solution-lifecycle-kernel-read-contract.md); [tests](../tests/test_gateway_solution_lifecycle_reads.py); [migration](../schemas/postgres/468_location_scoped_solution_funding.sql); [disposable check](../scripts/check-solution-lifecycle-funding-disposable.py); [evidence](builds/2026-10-19-recovery/cap-035-solution-funding-disposable.json)).
+31 baseline-retained, 7 deployed, 28 prepared ([contract](solution-lifecycle-kernel-read-contract.md); [tests](../../tests/test_gateway_solution_lifecycle_reads.py); [migration](../../schemas/postgres/468_location_scoped_solution_funding.sql); [disposable check](../../scripts/check-solution-lifecycle-funding-disposable.py); [evidence](builds/2026-10-19-recovery/cap-035-solution-funding-disposable.json)).
 
 ### CAP-035 solution experiment status read — 19 October 2026
 
@@ -5970,7 +5970,7 @@ untouched; migration 467 is not rolled out. Experiment evidence review and write
 parity, other lifecycle item workflows, populated fixture parity, live
 OIDC/browser, broader ACL/RLS, recovery, and MAN-CAP-035 review remain open.
 Checklist: 695 complete / 24 open; matrix: 31 baseline-retained, 7 deployed,
-28 prepared ([contract](solution-lifecycle-kernel-read-contract.md); [tests](../tests/test_gateway_solution_lifecycle_reads.py); [migration](../schemas/postgres/467_location_scoped_solution_experiments.sql); [disposable check](../scripts/check-solution-lifecycle-experiments-disposable.py); [evidence](builds/2026-10-19-recovery/cap-035-solution-experiments-disposable.json)).
+28 prepared ([contract](solution-lifecycle-kernel-read-contract.md); [tests](../../tests/test_gateway_solution_lifecycle_reads.py); [migration](../../schemas/postgres/467_location_scoped_solution_experiments.sql); [disposable check](../../scripts/check-solution-lifecycle-experiments-disposable.py); [evidence](builds/2026-10-19-recovery/cap-035-solution-experiments-disposable.json)).
 
 ### CAP-065 Gateway canvas block editing and version history — 19 October 2026
 
@@ -5986,7 +5986,7 @@ pass. Candidate and legacy databases remain untouched; migration 464 is not
 rolled out. Existing CLI/Directus writers can bypass Kernel history, while
 metadata/lifecycle editing, populated parity, live OIDC/browser, universal
 ACL/RLS, and MAN-CAP-065 review remain open. Checklist: 692 complete / 24 open;
-matrix: 31 baseline-retained, 7 deployed, 28 prepared ([edit contract](business-planning-kernel-edit-contract.md); [tests](../tests/test_gateway_business_planning_edits.py); [disposable evidence](builds/2026-10-19-recovery/cap-065-business-canvas-edit-disposable.json)).
+matrix: 31 baseline-retained, 7 deployed, 28 prepared ([edit contract](business-planning-kernel-edit-contract.md); [tests](../../tests/test_gateway_business_planning_edits.py); [disposable evidence](builds/2026-10-19-recovery/cap-065-business-canvas-edit-disposable.json)).
 
 ### CAP-065 Gateway comprehensive-status read — 19 October 2026
 
@@ -6002,7 +6002,7 @@ passes 59 mocked tests, Ruff, and compilation. No database or migration was
 used. Populated output parity, role provisioning, live OIDC/browser, universal
 ACL/RLS, and MAN-CAP-065 review remain open. Checklist: 691 complete / 24 open;
 matrix: 31 baseline-retained, 7 deployed, 28 prepared. See the
-[read contract](comprehensive-status-kernel-read-contract.md), [tests](../tests/test_gateway_comprehensive_status_reads.py),
+[read contract](comprehensive-status-kernel-read-contract.md), [tests](../../tests/test_gateway_comprehensive_status_reads.py),
 and [evidence](builds/2026-10-19-recovery/cap-065-comprehensive-status-read.json).
 
 ### CAP-065 Gateway-generated BMC draft — 19 October 2026
@@ -6027,7 +6027,7 @@ edit/version routes, populated output parity, live OIDC/browser, universal
 ACL/RLS, and MAN-CAP-065 review remain open. Checklist: 690 complete / 24 open;
 matrix: 31 baseline-retained, 7 deployed, 28 prepared.
 [Contract](business-planning-kernel-write-contract.md),
-[tests](../tests/test_gateway_business_planning_writes.py), and
+[tests](../../tests/test_gateway_business_planning_writes.py), and
 [evidence](builds/2026-10-19-recovery/cap-065-gateway-generated-draft.json).
 
 ### CAP-066 unit-safe harvest report rollups — 19 October 2026
@@ -6067,7 +6067,7 @@ fourteen-section status, edit/version and populated-output parity, live
 OIDC/browser, universal ACL/RLS, and MAN-CAP-065 review remain open. Checklist:
 688 complete / 24 open; matrix: 31 baseline-retained, 7 deployed, 28 prepared.
 See the [write contract](business-planning-kernel-write-contract.md),
-[Gateway tests](../tests/test_gateway_business_planning_writes.py), and
+[Gateway tests](../../tests/test_gateway_business_planning_writes.py), and
 [disposable evidence](builds/2026-10-19-recovery/cap-065-business-canvas-create-disposable.json).
 
 ### CAP-036 first sequential evidence Kernel summary — 19 October 2026
@@ -6185,7 +6185,7 @@ revenue/cash flow, objectives/KPIs, portfolio allocation, S&OP, currency
 conversion, populated parity, live OIDC/browser, universal ACL/RLS, and
 MAN-CAP-031 owner review remain open. Checklist: 672 complete / 19 open;
 classifications: 39 baseline-retained, 7 deployed, 20 prepared ([contract](planning-budget-kernel-read-contract.md);
-[migration](../schemas/postgres/455_location_scoped_budget_summary.sql);
+[migration](../../schemas/postgres/455_location_scoped_budget_summary.sql);
 [evidence](builds/2026-10-19-recovery/cap-031-budget-summary-disposable.json)).
 
 ### CAP-030 first management workflow Kernel summary — 19 October 2026
@@ -6206,7 +6206,7 @@ mutation and detailed audit parity, unscoped work-item review, populated
 fixtures, live OIDC/browser acceptance, universal ACL/RLS, and MAN-CAP-030
 owner review remain open. Checklist: 671 complete / 19 open; classifications:
 39 baseline-retained, 7 deployed, 20 prepared ([contract](management-work-kernel-read-contract.md);
-[migration](../schemas/postgres/454_location_scoped_management_work_summary.sql);
+[migration](../../schemas/postgres/454_location_scoped_management_work_summary.sql);
 [evidence](builds/2026-10-19-recovery/cap-030-management-work-summary-disposable.json)).
 
 ### CAP-029 first competitive landscape Kernel read projection — 19 October 2026
@@ -6226,7 +6226,7 @@ remains prepared: complete report/dashboard and workflow parity, populated
 reference comparison, live OIDC/browser acceptance, universal ACL/RLS, and
 MAN-CAP-029 owner review remain open. Checklist: 670 complete / 19 open;
 classifications: 40 baseline-retained, 7 deployed, 19 prepared ([contract](competitive-landscape-kernel-read-contract.md);
-[migration](../schemas/postgres/453_location_scoped_competitive_landscape_read.sql);
+[migration](../../schemas/postgres/453_location_scoped_competitive_landscape_read.sql);
 [evidence](builds/2026-10-19-recovery/cap-029-competitive-landscape-disposable.json)).
 
 ### CAP-028 first strategy Kernel read projection — 19 October 2026
@@ -6247,7 +6247,7 @@ prepared; complete allocation/cascade/consultation/execution parity, populated
 fixtures, live OIDC/browser acceptance, universal ACL/RLS, and owner review are
 open. Checklist: 669 complete / 19 open; classifications: 41 baseline-retained,
 7 deployed, 18 prepared ([contract](strategy-kernel-read-contract.md);
-[migration](../schemas/postgres/452_location_scoped_strategy_plan_read.sql);
+[migration](../../schemas/postgres/452_location_scoped_strategy_plan_read.sql);
 [evidence](builds/2026-10-19-recovery/cap-028-strategy-read-disposable.json)).
 
 ### CAP-027 reviewer console source implementation — 19 October 2026
@@ -6345,8 +6345,8 @@ out. Checklist: 656 complete / 19 open (675 total); capability counts remain
 45 baseline-retained, 7 deployed, 14 prepared. CAP-024 remains prepared, not
 accepted; item edit parity, populated fixtures, least-privilege rollout, tenant
 RLS, live OIDC/browser acceptance, and MAN-CAP-024 remain open
-([contract](governance-tactical-session-creation-contract.md); [migration](../schemas/postgres/444_governance_tactical_session_creation.sql);
-[tests](../tests/test_gateway_governance_tactical_session_mutations.py); [database evidence](builds/2026-10-19-recovery/governance-tactical-session-creation-disposable.json)).
+([contract](governance-tactical-session-creation-contract.md); [migration](../../schemas/postgres/444_governance_tactical_session_creation.sql);
+[tests](../../tests/test_gateway_governance_tactical_session_mutations.py); [database evidence](builds/2026-10-19-recovery/governance-tactical-session-creation-disposable.json)).
 
 ### CAP-024 tactical session registry — 18 October 2026
 
@@ -6400,8 +6400,8 @@ broader parity, populated fixtures, domain-table RLS, and MAN-CAP-024 remain
 open. Revert route/service/console code before rollout; if the ordered
 migration is applied later, retain its append-only history and guards rather
 than editing or reversing it ([contract](governance-definition-lifecycle-contract.md);
-[migration](../schemas/postgres/443_governance_definition_mutations.sql);
-[tests](../tests/test_gateway_governance_definition_mutations.py);
+[migration](../../schemas/postgres/443_governance_definition_mutations.sql);
+[tests](../../tests/test_gateway_governance_definition_mutations.py);
 [database evidence](builds/2026-10-18-recovery/governance-definition-mutations-disposable.json)).
 
 ### CAP-024 circle and role definition lifecycle — 18 October 2026
@@ -6438,9 +6438,9 @@ parity, console controls, populated fixtures, RLS, live acceptance, and
 MAN-CAP-024 remain open. Before rollout, revert the routes and service if
 needed; after migration application, keep the additive schema and never edit
 or reverse an ordered migration ([contract](governance-definition-lifecycle-contract.md);
-[migration](../schemas/postgres/442_governance_definition_lifecycle.sql);
-[service](../services/gateway/governance_definition_actions.py);
-[tests](../tests/test_gateway_governance_definition_actions.py);
+[migration](../../schemas/postgres/442_governance_definition_lifecycle.sql);
+[service](../../services/gateway/governance_definition_actions.py);
+[tests](../../tests/test_gateway_governance_definition_actions.py);
 [database evidence](builds/2026-10-18-recovery/governance-lifecycle-actions-disposable.json)).
 
 Checklist: 652 complete / 19 open; CAP-024 remains prepared and the matrix
@@ -6470,8 +6470,8 @@ and legacy databases were not accessed; the candidate remains at migration
 441 there until the least-privilege runtime login replaces that connection.
 No live OIDC/browser acceptance or real tactical action occurred; CAP-024 stays
 prepared pending live identity, populated parity, RLS, and MAN-CAP review
-([contract](governance-tactical-action-contract.md); [migration](../schemas/postgres/441_governance_tactical_actions.sql);
-[tests](../tests/test_gateway_governance_tactical_actions.py); [database evidence](builds/2026-10-18-recovery/governance-lifecycle-actions-disposable.json)).
+([contract](governance-tactical-action-contract.md); [migration](../../schemas/postgres/441_governance_tactical_actions.sql);
+[tests](../../tests/test_gateway_governance_tactical_actions.py); [database evidence](builds/2026-10-18-recovery/governance-lifecycle-actions-disposable.json)).
 
 ### CAP-024 independent role-assignment review — 18 October 2026
 
@@ -6500,8 +6500,8 @@ as administrative `kokonut`, so migration 440 is not ready for candidate
 rollout. No live OIDC, browser, or real nomination decision was exercised.
 CAP-024 remains prepared, not accepted; mutation parity, populated data, RLS,
 and MAN-CAP review remain open ([contract](governance-assignment-review-contract.md);
-[migration](../schemas/postgres/440_governance_role_assignment_review.sql);
-[tests](../tests/test_gateway_governance_assignment_review.py);
+[migration](../../schemas/postgres/440_governance_role_assignment_review.sql);
+[tests](../../tests/test_gateway_governance_assignment_review.py);
 [console evidence](builds/2026-10-18-recovery/governance-assignment-review-console.json);
 [database evidence](builds/2026-10-18-recovery/governance-assignment-proposals-disposable.json)).
 
@@ -6521,7 +6521,7 @@ including JavaScript syntax and static console/route contract checks. Ruff,
 compilation, capability validation, runtime SQL inventory, and diff checks pass.
 No browser session or candidate/legacy database was used. CAP-024 remains
 prepared, not accepted; operator/person binding and the least-privilege
-candidate runtime login remain rollout requirements ([console](../../../apps/operator-console/index.html);
+candidate runtime login remain rollout requirements ([console](../../apps/operator-console/index.html);
 [tests](../../tests/test_operator_console_governance_assignment_proposals.py); [evidence](builds/2026-10-18-recovery/governance-assignment-console-contract.json)).
 
 ### CAP-024 operator nomination readback — 18 October 2026
@@ -6542,8 +6542,8 @@ verifies exact operator ownership, cursor paging, read-only status, and omission
 of nominee identity and mandate. Candidate and legacy databases were not
 accessed; the candidate remains at migration 437 and the app uses administrative
 `kokonut`, so the runtime ACL is not an isolation boundary there. No approval
-or decision route is exposed; CAP-024 remains prepared, not accepted ([migration](../schemas/postgres/439_governance_role_assignment_proposal_readback.sql);
-[runner](../scripts/check-governance-assignment-proposals-disposable.py);
+or decision route is exposed; CAP-024 remains prepared, not accepted ([migration](../../schemas/postgres/439_governance_role_assignment_proposal_readback.sql);
+[runner](../../scripts/check-governance-assignment-proposals-disposable.py);
 [evidence](builds/2026-10-18-recovery/governance-assignment-proposals-disposable.json)).
 
 ### CAP-024 proposal-only role assignment creation — 18 October 2026
@@ -6568,8 +6568,8 @@ legacy databases were not accessed; the candidate remains through migration
 The prior CLI's direct assignment writes will fail under the narrowed runtime
 role; replacing them requires the separately authorized Gateway review flow.
 CAP-024 stays prepared, not accepted, and its matrix classification is
-unchanged ([migration](../schemas/postgres/438_governance_role_assignment_proposals.sql);
-[runner](../scripts/check-governance-assignment-proposals-disposable.py);
+unchanged ([migration](../../schemas/postgres/438_governance_role_assignment_proposals.sql);
+[runner](../../scripts/check-governance-assignment-proposals-disposable.py);
 [evidence](builds/2026-10-18-recovery/governance-assignment-proposals-disposable.json)).
 
 ### CAP-024 role detail read — 18 October 2026
@@ -15581,7 +15581,7 @@ zero pending schemas, an empty policy table, and disabled application-table RLS
 were confirmed ([rollout evidence](builds/2026-10-16-recovery/candidate-migration-403-kgp-governance-target-rollout.json)).
 Other event handlers, live-chain behavior, production-duration recovery, and
 provider delivery remain open
-([migration](../schemas/postgres/403_kgp_governance_target_policy_projection.sql);
+([migration](../../schemas/postgres/403_kgp_governance_target_policy_projection.sql);
 [runtime evidence](builds/2026-10-16-recovery/kgp-worker-postgres-reconnect.json)).
 
 ### Isolated scheduled carbon-credit check — 16 October 2026
@@ -15651,10 +15651,10 @@ compilation, JSON parsing, and diff checks pass. No candidate or legacy
 database was contacted. Worker-handler integration, per-worker credential
 provisioning, effect-specific application RLS, control-plane isolation, and
 candidate rollout remain open
-([migration](../schemas/postgres/405_signed_worker_tenant_context.sql);
-[adapter](../services/common/tenant_context.py);
+([migration](../../schemas/postgres/405_signed_worker_tenant_context.sql);
+[adapter](../../services/common/tenant_context.py);
 [disposable acceptance](builds/2026-10-16-recovery/worker-tenant-context-disposable.json);
-[runner](../scripts/check-worker-tenant-context-disposable.py)).
+[runner](../../scripts/check-worker-tenant-context-disposable.py)).
 
 ### Anomaly worker source and transaction boundaries — 16 October 2026
 
@@ -15684,7 +15684,7 @@ integration. Twelve focused worker operation-map tests pass; Ruff, JSON parsing,
 #70 passed and CI #346 was still running on the prior pushed head `a0ec3f45` at
 the time this batch began. The checklist is now 394 checked and 19 open; no
 separate capability is newly accepted ([effect contract](worker-sensor-anomaly-effects.json);
-[operation map](worker-operation-map.json); [test](../tests/test_worker_operation_map.py)).
+[operation map](worker-operation-map.json); [test](../../tests/test_worker_operation_map.py)).
 
 ### Sensor anomaly location lineage — 16 October 2026
 
@@ -15702,9 +15702,9 @@ outbox, worker-map, and migration tests plus seven disposable PostgreSQL 16
 replay, backfill, unresolved-lineage, foreign-key, and application-write checks
 pass; Ruff, compilation, and diff checks pass. CI #347 was still running and
 Security #71 passed on the preceding pushed head
-([migration](../schemas/postgres/406_sensor_anomaly_location_lineage.sql);
+([migration](../../schemas/postgres/406_sensor_anomaly_location_lineage.sql);
 [evidence](builds/2026-10-16-recovery/sensor-anomaly-location-lineage.json);
-[runner](../scripts/check-sensor-anomaly-location-lineage-disposable.py)).
+[runner](../../scripts/check-sensor-anomaly-location-lineage-disposable.py)).
 
 ### Bounded sensor anomaly receipt functions — 16 October 2026
 
@@ -15727,9 +15727,9 @@ and migration replay. Ruff, Python compilation, and diff checks pass. The
 functions remain dormant: no handler/dispatcher integration, worker credential,
 candidate rollout, RLS policy, or MAN-CAP acceptance was added. Candidate and
 legacy databases were not contacted
-([migration](../schemas/postgres/407_sensor_anomaly_effect_functions.sql);
-[fixture](../tests/fixtures/sensor_anomaly_effect_functions_disposable.sql);
-[runner](../scripts/check-sensor-anomaly-effect-functions-disposable.py);
+([migration](../../schemas/postgres/407_sensor_anomaly_effect_functions.sql);
+[fixture](../../tests/fixtures/sensor_anomaly_effect_functions_disposable.sql);
+[runner](../../scripts/check-sensor-anomaly-effect-functions-disposable.py);
 [evidence](builds/2026-10-16-recovery/sensor-anomaly-effect-functions-disposable.json)).
 
 ### Bounded sensor-alert event publication — 16 October 2026
@@ -15754,9 +15754,9 @@ compilation, capability-matrix validation, and diff checks pass. No handler
 integration, notification/actuation function, worker credential, candidate
 rollout, RLS policy, or MAN-CAP acceptance was added. Candidate and legacy
 databases were not contacted
-([migration](../schemas/postgres/408_sensor_alert_event_function.sql);
-[fixture](../tests/fixtures/sensor_alert_event_function_disposable.sql);
-[runner](../scripts/check-sensor-alert-event-function-disposable.py);
+([migration](../../schemas/postgres/408_sensor_alert_event_function.sql);
+[fixture](../../tests/fixtures/sensor_alert_event_function_disposable.sql);
+[runner](../../scripts/check-sensor-alert-event-function-disposable.py);
 [evidence](builds/2026-10-16-recovery/sensor-alert-event-function-disposable.json)).
 
 ### Bounded sensor-alert notification intent — 16 October 2026
@@ -15780,9 +15780,9 @@ currently enqueues before publishing the alert event; integration must reorder
 these effects within its existing transaction after an isolated worker
 credential is provisioned. No candidate rollout, provider delivery, RLS, or
 MAN-CAP acceptance was added. Candidate and legacy databases were not contacted
-([migration](../schemas/postgres/409_sensor_alert_notification_intent.sql);
-[fixture](../tests/fixtures/sensor_alert_notification_intent_disposable.sql);
-[runner](../scripts/check-sensor-alert-notification-intent-disposable.py);
+([migration](../../schemas/postgres/409_sensor_alert_notification_intent.sql);
+[fixture](../../tests/fixtures/sensor_alert_notification_intent_disposable.sql);
+[runner](../../scripts/check-sensor-alert-notification-intent-disposable.py);
 [evidence](builds/2026-10-16-recovery/sensor-alert-notification-intent-disposable.json)).
 
 ### Bounded sensor-alert actuation intent — 16 October 2026
@@ -15813,9 +15813,9 @@ No handler integration, MQTT activity, worker credential, candidate rollout,
 RLS, or MAN-CAP acceptance occurred; candidate and legacy databases were not
 contacted. The checklist now has 399 complete items and 19 open. The function
 remains dormant until handler/credential integration is separately accepted
-([migration](../schemas/postgres/410_sensor_alert_actuation_intent.sql);
-[fixture](../tests/fixtures/sensor_alert_actuation_intent_disposable.sql);
-[runner](../scripts/check-sensor-alert-actuation-intent-disposable.py);
+([migration](../../schemas/postgres/410_sensor_alert_actuation_intent.sql);
+[fixture](../../tests/fixtures/sensor_alert_actuation_intent_disposable.sql);
+[runner](../../scripts/check-sensor-alert-actuation-intent-disposable.py);
 [evidence](builds/2026-10-16-recovery/sensor-alert-actuation-intent-disposable.json)).
 
 ### Bounded sensor-alert draft claim — 16 October 2026
@@ -15840,9 +15840,9 @@ migration replay. Candidate and legacy databases were not accessed. Handler
 integration, worker credential isolation, candidate rollout, RLS, and MAN-CAP
 acceptance remain open. The checklist now has 401 complete items and 19 open;
 the capability matrix remains at 66 rows with no additional MAN-CAP acceptance
-([migration](../schemas/postgres/411_sensor_alert_draft_claim_intent.sql);
-[fixture](../tests/fixtures/sensor_alert_draft_claim_intent_disposable.sql);
-[runner](../scripts/check-sensor-alert-draft-claim-disposable.py);
+([migration](../../schemas/postgres/411_sensor_alert_draft_claim_intent.sql);
+[fixture](../../tests/fixtures/sensor_alert_draft_claim_intent_disposable.sql);
+[runner](../../scripts/check-sensor-alert-draft-claim-disposable.py);
 [evidence](builds/2026-10-16-recovery/sensor-alert-draft-claim-disposable.json)).
 
 ### Dedicated worker database and credential helpers — 16 October 2026
@@ -16934,7 +16934,7 @@ network-wide; resolution cases and trust evidence must be location-scoped,
 independently reviewed, and exclude raw feedback from resolution payloads.
 Checklist: 659 complete / 19 open. Matrix: 44 baseline-retained, 7 deployed,
 15 prepared. See [CAP-026 contract](threatcasting-kernel-read-contract.md) and
-[focused checks](../tests/test_gateway_threatcasting_reads.py).
+[focused checks](../../tests/test_gateway_threatcasting_reads.py).
 
 
 ### CAP-025 location-scoped identity review — 19 October 2026
@@ -16949,13 +16949,13 @@ CAP-024 implementation is ready for owner review and remains prepared (`P`), not
 
 Migration 447 and a read-only Gateway path now project identity evidence only from independently approved migration-446 cases. The route requires an exact `stakeholder_trust:read` grant and signed location context. SQL rechecks current source-profile activity, latest personal/internal-use consent, and active/non-private canonical-party status on every read. The bounded response contains evidence code, match method, confidence, and review time; it excludes source profile IDs/names, reviewer IDs, raw feedback, free text, legacy trust rows, and universal scores. Consent withdrawal and private/inactive identity suppress the projection. No trust assertions are written into the legacy global tables.
 
-The combined CAP-025 identity, trust, privacy, route-policy, and migration regression passes 59 tests, including 10 dedicated trust/policy tests. Ruff and Python compilation pass. Capability matrix validation, runtime SQL inventory (858 source files / 4,134 execution sites), requirement-group alignment, provider-boundary check, and diff check pass. Disposable PostgreSQL 16 applied migrations 446 and 447 and passed eight assertions for approved evidence, database-enforced stable/read-only behavior, no legacy-trust access by the projection owner, direct-table denial, missing-grant and mismatched-location rejection, consent withdrawal, private-party suppression, and immutable decision history. Only the disposable database was modified; candidate and legacy remain untouched, and migration 447 is not rolled out. General trust evidence beyond reviewed identity, consumer resolution, remaining sources, active OIDC/browser and populated parity, forced RLS, completed-review consent disposition, and MAN-CAP-025 review remain open. CAP-025 stays prepared (`P`), not accepted. Checklist: 661 complete / 19 open; matrix remains 66 rows (43 baseline-retained, 7 deployed, 16 prepared). Evidence: [contract](stakeholder-identity-kernel-contract.md), [migration](../schemas/postgres/447_location_scoped_identity_trust_projection.sql), [Gateway checks](../tests/test_gateway_stakeholder_trust.py), and [disposable acceptance](builds/2026-10-19-recovery/cap-025-stakeholder-trust-disposable.json).
+The combined CAP-025 identity, trust, privacy, route-policy, and migration regression passes 59 tests, including 10 dedicated trust/policy tests. Ruff and Python compilation pass. Capability matrix validation, runtime SQL inventory (858 source files / 4,134 execution sites), requirement-group alignment, provider-boundary check, and diff check pass. Disposable PostgreSQL 16 applied migrations 446 and 447 and passed eight assertions for approved evidence, database-enforced stable/read-only behavior, no legacy-trust access by the projection owner, direct-table denial, missing-grant and mismatched-location rejection, consent withdrawal, private-party suppression, and immutable decision history. Only the disposable database was modified; candidate and legacy remain untouched, and migration 447 is not rolled out. General trust evidence beyond reviewed identity, consumer resolution, remaining sources, active OIDC/browser and populated parity, forced RLS, completed-review consent disposition, and MAN-CAP-025 review remain open. CAP-025 stays prepared (`P`), not accepted. Checklist: 661 complete / 19 open; matrix remains 66 rows (43 baseline-retained, 7 deployed, 16 prepared). Evidence: [contract](stakeholder-identity-kernel-contract.md), [migration](../../schemas/postgres/447_location_scoped_identity_trust_projection.sql), [Gateway checks](../../tests/test_gateway_stakeholder_trust.py), and [disposable acceptance](builds/2026-10-19-recovery/cap-025-stakeholder-trust-disposable.json).
 
 ### CAP-025 bounded consumer resolution — 19 October 2026
 
 Migration 448 and an exact-grant OIDC route now resolve an approved farmer-profile identity only inside its source location. `stakeholder_identity:resolve` is distinct from proposal and review grants. The function requires the signed location, current active source profile, latest unexpired personal/internal-use consent, active/non-private canonical party, and absence of a conflicting verified legacy source link. It returns only canonical party ID and review time; absent, pending, withdrawn, conflicted, and private mappings share a generic 404 response. The function is `STABLE`; the service uses a normal transaction because signed context locks active grants and ownership rows before the fixed SELECT.
 
-The focused resolver, trust, and route-policy checks pass 17 tests. Disposable PostgreSQL 16 applied migrations 446–448 and passed eight assertions for scoped resolution, distinct grant, location mismatch, pending and legacy-conflict suppression, consent withdrawal, private-party suppression, and direct-table denial. Candidate and legacy remain untouched; migration 448 is not rolled out. General trust evidence beyond identity, identity source types beyond farmer profiles, consent disposition after a completed review, live OIDC/browser and populated parity, RLS, and MAN-CAP-025 review remain open. CAP-025 remains prepared (`P`), not accepted. Checklist: 662 complete / 19 open; the matrix remains 66 rows (43 baseline-retained, 7 deployed, 16 prepared). Evidence: [contract](stakeholder-identity-kernel-contract.md), [migration](../schemas/postgres/448_location_scoped_identity_resolution.sql), [Gateway checks](../tests/test_gateway_stakeholder_identity_resolution.py), and [disposable acceptance](builds/2026-10-19-recovery/cap-025-identity-resolution-disposable.json).
+The focused resolver, trust, and route-policy checks pass 17 tests. Disposable PostgreSQL 16 applied migrations 446–448 and passed eight assertions for scoped resolution, distinct grant, location mismatch, pending and legacy-conflict suppression, consent withdrawal, private-party suppression, and direct-table denial. Candidate and legacy remain untouched; migration 448 is not rolled out. General trust evidence beyond identity, identity source types beyond farmer profiles, consent disposition after a completed review, live OIDC/browser and populated parity, RLS, and MAN-CAP-025 review remain open. CAP-025 remains prepared (`P`), not accepted. Checklist: 662 complete / 19 open; the matrix remains 66 rows (43 baseline-retained, 7 deployed, 16 prepared). Evidence: [contract](stakeholder-identity-kernel-contract.md), [migration](../../schemas/postgres/448_location_scoped_identity_resolution.sql), [Gateway checks](../../tests/test_gateway_stakeholder_identity_resolution.py), and [disposable acceptance](builds/2026-10-19-recovery/cap-025-identity-resolution-disposable.json).
 
 ### CAP-027 privacy-aware Delphi consultation read — 19 October 2026
 
@@ -16982,7 +16982,7 @@ filtering, aggregation, small-group suppression, private-field omission,
 page bounds, and function privileges. Evidence records that candidate and
 legacy databases were not modified. Migration 449 is not rolled out. CAP-027 is
 prepared (`P`), not accepted; checklist is 663 complete / 19 open, and the
-matrix is 42 baseline-retained, 7 deployed, and 17 prepared. See [contract](delphi-consultation-kernel-contract.md), [migration](../schemas/postgres/449_location_scoped_delphi_consultation_read.sql), and [disposable evidence](builds/2026-10-19-recovery/cap-027-delphi-consultation-disposable.json).
+matrix is 42 baseline-retained, 7 deployed, and 17 prepared. See [contract](delphi-consultation-kernel-contract.md), [migration](../../schemas/postgres/449_location_scoped_delphi_consultation_read.sql), and [disposable evidence](builds/2026-10-19-recovery/cap-027-delphi-consultation-disposable.json).
 
 ### CAP-027 human review for facilitator recommendations — 19 October 2026
 
@@ -17011,7 +17011,7 @@ out. CAP-027 stays prepared (`P`), not accepted. Checklist: 667 complete / 19
 open; the 66-row matrix remains 42 baseline-retained, 7 deployed, and 17
 prepared. Live OIDC/browser use, full Delphi lifecycle parity,
 populated parity, universal runtime ACL/RLS, and MAN-CAP-027 owner acceptance
-remain open. Evidence: [contract](delphi-consultation-kernel-contract.md), [focused tests](../tests/test_gateway_delphi_recommendation_review.py), and [disposable migration evidence](builds/2026-10-19-recovery/cap-027-delphi-recommendation-review-disposable.json).
+remain open. Evidence: [contract](delphi-consultation-kernel-contract.md), [focused tests](../../tests/test_gateway_delphi_recommendation_review.py), and [disposable migration evidence](builds/2026-10-19-recovery/cap-027-delphi-recommendation-review-disposable.json).
 
 ### CAP-027 facilitator draft creation — 19 October 2026
 
@@ -17037,7 +17037,7 @@ rolled out. Checklist: 668 complete / 19 open. The 66-row capability matrix
 remains 42 baseline-retained, 7 deployed, and 17 prepared. CAP-027 stays
 prepared (`P`), not accepted: live OIDC/browser, full lifecycle and populated
 parity, universal runtime ACL/RLS, and MAN-CAP-027 owner acceptance remain
-open. See [contract](delphi-consultation-kernel-contract.md), [migration](../schemas/postgres/451_location_scoped_delphi_recommendation_drafts.sql), and [database evidence](builds/2026-10-19-recovery/cap-027-delphi-recommendation-drafts-disposable.json).
+open. See [contract](delphi-consultation-kernel-contract.md), [migration](../../schemas/postgres/451_location_scoped_delphi_recommendation_drafts.sql), and [database evidence](builds/2026-10-19-recovery/cap-027-delphi-recommendation-drafts-disposable.json).
 
 ### CAP-037 first operating-pilot Kernel summary — 19 October 2026
 
@@ -17069,8 +17069,8 @@ legacy output parity, audience/privacy review, live OIDC/browser behavior,
 recovery, broader ACL/RLS, and MAN-CAP-037 owner review. Checklist: 678
 complete / 22 open; matrix: 33 baseline-retained, 7 deployed, 26 prepared.
 Evidence: [contract](operating-pilot-kernel-read-contract.md),
-[migration](../schemas/postgres/461_location_scoped_operating_pilot_summary.sql),
-[Gateway checks](../tests/test_gateway_operating_pilot_reads.py), and
+[migration](../../schemas/postgres/461_location_scoped_operating_pilot_summary.sql),
+[Gateway checks](../../tests/test_gateway_operating_pilot_reads.py), and
 [disposable acceptance](builds/2026-10-19-recovery/cap-037-operating-pilot-disposable.json).
 
 ### CAP-038 first agent safety Kernel contract — 19 October 2026
@@ -17579,7 +17579,7 @@ Detailed adoption event and write parity, populated fixtures, live OIDC/browser,
 broader ACL/RLS, recovery, and MAN-CAP-035 review remain open. CAP-035 remains
 prepared, not accepted. Checklist: 697 complete / 24 open; matrix: 31
 baseline-retained, 7 deployed, and 28 prepared. [Contract](solution-lifecycle-kernel-read-contract.md);
-[migration](../schemas/postgres/469_location_scoped_solution_adoption.sql);
+[migration](../../schemas/postgres/469_location_scoped_solution_adoption.sql);
 [disposable evidence](builds/2026-10-19-recovery/cap-035-solution-adoption-disposable.json).
 
 ### CAP-035 location-scoped scale-gate status — 19 October 2026
@@ -17601,7 +17601,7 @@ mutation/evaluation, populated parity, live OIDC/browser, broader ACL/RLS,
 recovery, and MAN-CAP-035 review remain open. CAP-035 remains prepared, not
 accepted. Checklist: 698 complete / 24 open; matrix: 31 baseline-retained,
 7 deployed, and 28 prepared. [Contract](solution-lifecycle-kernel-read-contract.md);
-[migration](../schemas/postgres/470_location_scoped_solution_scale_gates.sql);
+[migration](../../schemas/postgres/470_location_scoped_solution_scale_gates.sql);
 [disposable evidence](builds/2026-10-19-recovery/cap-035-solution-scale-gates-disposable.json).
 
 ### CAP-035 location-targeted replication status — 19 October 2026
@@ -17623,7 +17623,7 @@ populated parity, live OIDC/browser, broader ACL/RLS, recovery, and MAN-CAP-035
 review remain open. CAP-035 remains prepared, not accepted. Checklist: 699
 complete / 24 open; matrix: 31 baseline-retained, 7 deployed, and 28 prepared.
 [Contract](solution-lifecycle-kernel-read-contract.md);
-[migration](../schemas/postgres/471_location_scoped_solution_replications.sql);
+[migration](../../schemas/postgres/471_location_scoped_solution_replications.sql);
 [disposable evidence](builds/2026-10-19-recovery/cap-035-solution-replications-disposable.json).
 
 ### CAP-035 location-scoped reviewed-replication learning status — 19 October 2026
@@ -17646,7 +17646,7 @@ live OIDC/browser, broader ACL/RLS, recovery, and MAN-CAP-035 owner review
 remain open. CAP-035 remains prepared, not accepted. Checklist: 700 complete /
 24 open; matrix: 31 baseline-retained, 7 deployed, and 28 prepared.
 [Contract](solution-lifecycle-kernel-read-contract.md);
-[migration](../schemas/postgres/472_location_scoped_solution_learning.sql);
+[migration](../../schemas/postgres/472_location_scoped_solution_learning.sql);
 [disposable evidence](builds/2026-10-19-recovery/cap-035-solution-learning-disposable.json).
 
 ### CAP-035 exact-origin retirement status — 19 October 2026
@@ -17668,7 +17668,7 @@ broader ACL/RLS, recovery, and MAN-CAP-035 owner review remain open. CAP-035
 remains prepared, not accepted. Checklist: 701 complete / 24 open; matrix:
 31 baseline-retained, 7 deployed, and 28 prepared.
 [Contract](solution-lifecycle-kernel-read-contract.md);
-[migration](../schemas/postgres/473_location_scoped_solution_retirements.sql);
+[migration](../../schemas/postgres/473_location_scoped_solution_retirements.sql);
 [disposable evidence](builds/2026-10-19-recovery/cap-035-solution-retirements-disposable.json).
 
 ### CAP-035 independent retirement approval guard — 19 October 2026
@@ -17688,7 +17688,7 @@ retirement proposal/review UI and data-dependent repair of legacy un-attributed
 rows remain open. CAP-035 remains prepared, not accepted. Checklist: 702
 complete / 24 open; matrix: 31 baseline-retained, 7 deployed, and 28 prepared.
 [Contract](solution-lifecycle-kernel-read-contract.md);
-[migration](../schemas/postgres/474_solution_retirement_independent_review.sql);
+[migration](../../schemas/postgres/474_solution_retirement_independent_review.sql);
 [disposable evidence](builds/2026-10-19-recovery/solution-retirement-independent-review-disposable.json).
 
 ### CAP-035 independently reviewed retirement approval — 19 October 2026
@@ -17718,7 +17718,7 @@ baseline-retained, 7 deployed, 28 prepared ([contract](solution-lifecycle-kernel
 [route](../../services/gateway/solution_lifecycle_routes.py); [action](../../services/gateway/solution_lifecycle_actions.py);
 [migration](../../schemas/postgres/475_location_solution_retirement_review.sql);
 [tests](../../tests/test_gateway_solution_lifecycle_actions.py);
-[disposable checker](../scripts/check-solution-retirement-approval-disposable.py);
+[disposable checker](../../scripts/check-solution-retirement-approval-disposable.py);
 [evidence](builds/2026-10-19-recovery/solution-retirement-approval-disposable.json)).
 
 ### CAP-037 bounded operating-demand page — 19 October 2026
@@ -17748,8 +17748,8 @@ learning/coaching/resource workflows, audience review, live OIDC/browser,
 broader ACL/RLS, recovery, and MAN-CAP-037 owner acceptance. Checklist:
 707 complete / 24 open; matrix: 31 baseline-retained, 7 deployed, 28 prepared.
 [Contract](operating-pilot-kernel-read-contract.md);
-[migration](../schemas/postgres/479_location_operating_pilot_demand_signals.sql);
-[tests](../tests/test_gateway_operating_pilot_reads.py);
+[migration](../../schemas/postgres/479_location_operating_pilot_demand_signals.sql);
+[tests](../../tests/test_gateway_operating_pilot_reads.py);
 [disposable acceptance](builds/2026-10-19-recovery/cap-037-operating-pilot-demand-disposable.json).
 
 ### CAP-037 aggregate capacity-period page — 19 October 2026
@@ -17774,8 +17774,8 @@ learning/coaching/resource workflows, populated mapping and legacy parity,
 audience review, live OIDC/browser, broader ACL/RLS, recovery, and
 MAN-CAP-037 owner acceptance. Checklist: 708 complete / 24 open; matrix:
 31 baseline-retained, 7 deployed, 28 prepared. [Contract](operating-pilot-kernel-read-contract.md);
-[migration](../schemas/postgres/480_location_operating_pilot_capacity_periods.sql);
-[tests](../tests/test_gateway_operating_pilot_reads.py);
+[migration](../../schemas/postgres/480_location_operating_pilot_capacity_periods.sql);
+[tests](../../tests/test_gateway_operating_pilot_reads.py);
 [disposable acceptance](builds/2026-10-19-recovery/cap-037-operating-pilot-capacity-disposable.json).
 
 ### CAP-025 location-scoped identity reviewer console — 20 October 2026
@@ -17797,7 +17797,7 @@ used. Live OIDC/browser acceptance, additional source types, broader trust
 parity, RLS, post-review consent disposition, populated parity, and MAN-CAP-025
 remain open. Checklist: 720 complete / 24 open; matrix: 31 baseline-retained,
 7 deployed, 28 prepared across 66 rows. [Contract](stakeholder-identity-kernel-contract.md);
-[console tests](../tests/test_operator_console_stakeholder_identity.py).
+[console tests](../../tests/test_operator_console_stakeholder_identity.py).
 
 ### CAP-035 location-linked stage-gate console read — 20 October 2026
 
@@ -17816,7 +17816,7 @@ other item details and governed write/review parity, populated fixture
 comparison, live OIDC/browser, broader ACL/RLS, recovery, and MAN-CAP-035 owner
 review. Checklist: 721 complete / 24 open; matrix: 31 baseline-retained, 7
 deployed, 28 prepared across 66 rows. [Contract](solution-lifecycle-kernel-read-contract.md);
-[console tests](../tests/test_operator_console_solution_lifecycle.py).
+[console tests](../../tests/test_operator_console_solution_lifecycle.py).
 
 ### CAP-035 experiment status console read — 20 October 2026
 
@@ -17833,7 +17833,7 @@ validation, repository inventory, and diff checks pass. No migration, database,
 candidate, or legacy environment was touched. Remaining CAP-035 code and owner
 gates remain open. Checklist: 722 complete / 24 open; matrix: 31
 baseline-retained, 7 deployed, 28 prepared across 66 rows. [Contract](solution-lifecycle-kernel-read-contract.md);
-[tests](../tests/test_operator_console_solution_lifecycle.py).
+[tests](../../tests/test_operator_console_solution_lifecycle.py).
 
 ### CAP-035 funding and tranche status console — 20 October 2026
 
@@ -17852,14 +17852,14 @@ was used. Other CAP-035 item details/write parity, populated fixtures, live
 OIDC/browser, broader ACL/RLS, recovery, and MAN-CAP-035 review remain open.
 Checklist: 723 complete / 24 open; matrix: 31 baseline-retained, 7 deployed,
 28 prepared across 66 rows. [Contract](solution-lifecycle-kernel-read-contract.md);
-[tests](../tests/test_operator_console_solution_lifecycle.py).
+[tests](../../tests/test_operator_console_solution_lifecycle.py).
 
 
 ### CAP-035 exact-location gate evaluation submission — 20 October 2026
 
 Added `POST /operator/api/solution-lifecycle/{location_id}/gates/{gate_id}/evaluations` under exact signed `solution_lifecycle:create` scope and active OIDC-to-person attribution. Migration 483 installs a dedicated non-login function owner and an append-only idempotency receipt; it accepts bounded pass/fail observations and evidence only for draft/ready gates on solutions originated at the exact location. Same-request retries return the original evaluation; different-location or changed-payload reuse fails. The create-grant-gated console form uses CSRF and no-store requests and explicitly preserves the independent gate-approval boundary.
 
-The focused Gateway, exact route-policy, and console selection passes 38 tests; Ruff, Python compilation, and inline JavaScript syntax checks pass. Disposable PostgreSQL 16 applies/replays migration 483 and passes eight grouped evaluation, scope, attribution, retry, and role-boundary checks. Candidate and legacy databases remain untouched; migration 483 is not rolled out. Checklist: 728 complete / 24 open; matrix: 31 baseline-retained, 7 deployed, 28 prepared across 66 rows. CAP-035 remains prepared pending broader workflow parity, populated fixture comparison, live OIDC/browser acceptance, broader ACL/RLS, recovery, and MAN-CAP-035 owner review ([contract](solution-lifecycle-kernel-read-contract.md); [migration](../schemas/postgres/483_location_solution_gate_evaluation.sql); [tests](../tests/test_gateway_solution_lifecycle_gate_evaluations.py); [disposable check](../../scripts/check-solution-gate-evaluation-disposable.py); [evidence](builds/2026-10-20-recovery/cap-035-solution-gate-evaluation-disposable.json)).
+The focused Gateway, exact route-policy, and console selection passes 38 tests; Ruff, Python compilation, and inline JavaScript syntax checks pass. Disposable PostgreSQL 16 applies/replays migration 483 and passes eight grouped evaluation, scope, attribution, retry, and role-boundary checks. Candidate and legacy databases remain untouched; migration 483 is not rolled out. Checklist: 728 complete / 24 open; matrix: 31 baseline-retained, 7 deployed, 28 prepared across 66 rows. CAP-035 remains prepared pending broader workflow parity, populated fixture comparison, live OIDC/browser acceptance, broader ACL/RLS, recovery, and MAN-CAP-035 owner review ([contract](solution-lifecycle-kernel-read-contract.md); [migration](../../schemas/postgres/483_location_solution_gate_evaluation.sql); [tests](../../tests/test_gateway_solution_lifecycle_gate_evaluations.py); [disposable check](../../scripts/check-solution-gate-evaluation-disposable.py); [evidence](builds/2026-10-20-recovery/cap-035-solution-gate-evaluation-disposable.json)).
 
 
 ### CAP-035 adoption event phase summary — 20 October 2026
@@ -17886,7 +17886,7 @@ level review, other adoption workflows, populated fixture parity, live
 OIDC/browser, broader ACL/RLS, recovery, and MAN-CAP-035 review remain open.
 Checklist: 738 complete / 24 open; matrix: 31 baseline-retained, 7 deployed,
 28 prepared across 66 rows. [Contract](solution-lifecycle-kernel-read-contract.md);
-[migration](../schemas/postgres/493_location_solution_adoption_event_summary.sql);
+[migration](../../schemas/postgres/493_location_solution_adoption_event_summary.sql);
 [evidence](builds/2026-10-20-recovery/cap-035-solution-adoption-event-summary-disposable.json).
 
 ### CAP-035 location-scoped replication proposal — 20 October 2026
@@ -17915,8 +17915,8 @@ pending remaining review/activation workflows, populated fixture parity, live
 OIDC/browser acceptance, broader ACL/RLS, recovery, and MAN-CAP-035 owner review.
 Checklist: 739 complete / 24 open; matrix: 31 baseline-retained, 7 deployed,
 28 prepared across 66 rows. [Write contract](solution-lifecycle-kernel-write-contract.md);
-[migration](../schemas/postgres/494_location_solution_replication_proposal.sql);
-[tests](../tests/test_gateway_solution_replication_proposals.py);
+[migration](../../schemas/postgres/494_location_solution_replication_proposal.sql);
+[tests](../../tests/test_gateway_solution_replication_proposals.py);
 [disposable check](../../scripts/check-solution-replication-proposal-disposable.py);
 [evidence](builds/2026-10-20-recovery/cap-035-solution-replication-proposal-disposable.json).
 
@@ -17925,24 +17925,24 @@ Checklist: 739 complete / 24 open; matrix: 31 baseline-retained, 7 deployed,
 
 Added a private review queue/detail and independent approve/reject flow for location-scoped replication proposals. The queue and detail require exact signed `solution_lifecycle:review` scope, active human identity, and the exact target location plus solution origin/link. Reviewers cannot approve their own proposals. Rejection requires a reason; decisions, reviewer attribution, and append-only retry receipts are atomic. The console keeps review controls behind the location review grant, renders private fields as text, and uses CSRF, no-store requests, and stable retry IDs. Approval does not start or complete replication, add outcomes/evidence/maturity, or change solution stage.
 
-The focused Gateway, proposal, console, route-policy, and migration selection passes 97 tests. Ruff, Python compilation, inline JavaScript syntax, dependency-group alignment, capability validation, and runtime SQL inventory checks pass. Disposable PostgreSQL 16 applies and replays migration 495 and passes nine grouped checks for scope, reviewer independence, approve/reject, idempotency, role boundaries, and unchanged lifecycle state. Candidate and legacy databases remain untouched; migration 495 is not rolled out. CAP-035 remains prepared pending populated parity, live OIDC/browser, broader ACL/RLS, recovery, and MAN-CAP-035 owner review. Checklist: 740 complete / 24 open; matrix: 31 baseline-retained, 7 deployed, 28 prepared across 66 rows. [Write contract](solution-lifecycle-kernel-write-contract.md); [read contract](solution-lifecycle-kernel-read-contract.md); [migration](../schemas/postgres/495_location_solution_replication_review.sql); [tests](../tests/test_gateway_solution_replication_review.py); [disposable check](../../scripts/check-solution-replication-review-disposable.py); [evidence](builds/2026-10-20-recovery/cap-035-solution-replication-review-disposable.json).
+The focused Gateway, proposal, console, route-policy, and migration selection passes 97 tests. Ruff, Python compilation, inline JavaScript syntax, dependency-group alignment, capability validation, and runtime SQL inventory checks pass. Disposable PostgreSQL 16 applies and replays migration 495 and passes nine grouped checks for scope, reviewer independence, approve/reject, idempotency, role boundaries, and unchanged lifecycle state. Candidate and legacy databases remain untouched; migration 495 is not rolled out. CAP-035 remains prepared pending populated parity, live OIDC/browser, broader ACL/RLS, recovery, and MAN-CAP-035 owner review. Checklist: 740 complete / 24 open; matrix: 31 baseline-retained, 7 deployed, 28 prepared across 66 rows. [Write contract](solution-lifecycle-kernel-write-contract.md); [read contract](solution-lifecycle-kernel-read-contract.md); [migration](../../schemas/postgres/495_location_solution_replication_review.sql); [tests](../../tests/test_gateway_solution_replication_review.py); [disposable check](../../scripts/check-solution-replication-review-disposable.py); [evidence](builds/2026-10-20-recovery/cap-035-solution-replication-review-disposable.json).
 
 ### CAP-035 independent replication completion review — 20 October 2026
 
 Migration 498 adds exact-location completion-report queue/detail and independent decision functions. Review requires an active human with `solution_lifecycle:review`, independent from the report author, replication starter, initial approver, source experiment owner/protocol approver, and source result reviewer. The console displays bounded private report content as text, reports the actor conflicts, suppresses decisions for conflicted reviewers or stale source lineage, and uses CSRF, no-store requests, explicit acknowledgement, bounded rejection reasons, and stable retry IDs. Acceptance atomically completes the replication with the reviewed outcome/evidence/maturity and reviewer attribution; a `failed` domain result remains distinct from operational `completed` status. Rejection preserves `active` for a revised report. The solution stage is unchanged.
 
-The focused Gateway, route-policy, console, and migration-metadata selection passes 86 tests; the focused proposal/review/activation/completion, console, and route-policy regression selection passes 88 tests. Ruff, Python compilation, inline JavaScript syntax, dependency-group alignment, capability validation, runtime SQL inventory validation, and diff checks pass. Disposable PostgreSQL 16 applies and replays migration 498 with twelve grouped authorization, actor-independence, rejection/revision, acceptance, retry, lifecycle, and role-boundary checks ([evidence](builds/2026-10-20-recovery/cap-035-solution-replication-completion-review-disposable.json)). Candidate and legacy databases remain untouched; migrations 497–498 are not rolled out. CAP-035 remains prepared pending populated parity, live OIDC/browser acceptance, broader ACL/RLS, recovery, and MAN-CAP-035 owner review. Checklist: 743 complete / 24 open; matrix: 31 baseline-retained, 7 deployed, 28 prepared across 66 rows. [Write contract](solution-lifecycle-kernel-write-contract.md); [read contract](solution-lifecycle-kernel-read-contract.md); [migration](../schemas/postgres/498_location_solution_replication_completion_review.sql); [Gateway tests](../tests/test_gateway_solution_replication_completion_review.py); [console tests](../tests/test_operator_console_solution_lifecycle.py); [disposable check](../../scripts/check-solution-replication-completion-review-disposable.py).
+The focused Gateway, route-policy, console, and migration-metadata selection passes 86 tests; the focused proposal/review/activation/completion, console, and route-policy regression selection passes 88 tests. Ruff, Python compilation, inline JavaScript syntax, dependency-group alignment, capability validation, runtime SQL inventory validation, and diff checks pass. Disposable PostgreSQL 16 applies and replays migration 498 with twelve grouped authorization, actor-independence, rejection/revision, acceptance, retry, lifecycle, and role-boundary checks ([evidence](builds/2026-10-20-recovery/cap-035-solution-replication-completion-review-disposable.json)). Candidate and legacy databases remain untouched; migrations 497–498 are not rolled out. CAP-035 remains prepared pending populated parity, live OIDC/browser acceptance, broader ACL/RLS, recovery, and MAN-CAP-035 owner review. Checklist: 743 complete / 24 open; matrix: 31 baseline-retained, 7 deployed, 28 prepared across 66 rows. [Write contract](solution-lifecycle-kernel-write-contract.md); [read contract](solution-lifecycle-kernel-read-contract.md); [migration](../../schemas/postgres/498_location_solution_replication_completion_review.sql); [Gateway tests](../../tests/test_gateway_solution_replication_completion_review.py); [console tests](../../tests/test_operator_console_solution_lifecycle.py); [disposable check](../../scripts/check-solution-replication-completion-review-disposable.py).
 
 ### CAP-035 completion-report submission console — 20 October 2026
 
-The replication status view now exposes a report form for active replications only to operators with exact location `solution_lifecycle:read` and `solution_lifecycle:submit` grants. It validates the allowed report outcome, evidence-maturity level, 10–4,000 character summary, and JSON evidence array (up to 100 items / 64 KiB). The same-origin POST uses CSRF and explicit acknowledgement; a pending uncertain request is locked to its original location, content, and request UUID. Submission records only a proposed report, leaves replication active, and does not change solution stage. The console suite passes 41 tests, including inline JavaScript syntax; the combined proposal/review/activation/completion, console, and route-policy selection passes 89 tests. Ruff and compilation pass. No database or migration was needed. CAP-035 remains prepared pending populated parity, live OIDC/browser acceptance, broader ACL/RLS, recovery, and MAN-CAP-035 owner review. Checklist: 744 complete / 24 open; matrix: 31 baseline-retained, 7 deployed, 28 prepared across 66 rows. [Write contract](solution-lifecycle-kernel-write-contract.md); [console](../apps/operator-console/index.html); [tests](../tests/test_operator_console_solution_lifecycle.py).
+The replication status view now exposes a report form for active replications only to operators with exact location `solution_lifecycle:read` and `solution_lifecycle:submit` grants. It validates the allowed report outcome, evidence-maturity level, 10–4,000 character summary, and JSON evidence array (up to 100 items / 64 KiB). The same-origin POST uses CSRF and explicit acknowledgement; a pending uncertain request is locked to its original location, content, and request UUID. Submission records only a proposed report, leaves replication active, and does not change solution stage. The console suite passes 41 tests, including inline JavaScript syntax; the combined proposal/review/activation/completion, console, and route-policy selection passes 89 tests. Ruff and compilation pass. No database or migration was needed. CAP-035 remains prepared pending populated parity, live OIDC/browser acceptance, broader ACL/RLS, recovery, and MAN-CAP-035 owner review. Checklist: 744 complete / 24 open; matrix: 31 baseline-retained, 7 deployed, 28 prepared across 66 rows. [Write contract](solution-lifecycle-kernel-write-contract.md); [console](../../apps/operator-console/index.html); [tests](../../tests/test_operator_console_solution_lifecycle.py).
 
 
 ### CAP-035 independent learning proposal review — 20 October 2026
 
 Migration 499 adds exact-location learning-review queue/detail and accept/reject routes under signed `solution_lifecycle:review` and an active human identity. PostgreSQL revalidates the completed replication and independent completion review, current validated source experiment/result, active location-visible solution, and reviewer independence from every upstream actor. The console exposes private lesson text with text-only rendering, conflict indicators, exact-grant gating, CSRF/no-store, acknowledgement, stale-record protection, and stable retry IDs. Decisions and immutable receipts are atomic; rejection requires a reason. Review records do not apply learning or change solution stage. The legacy apply path now requires accepted status and recorded reviewer attribution.
 
-The focused Gateway, route-policy, console, solution-application, and migration selection passes 94 tests; the database-backed solution-scale test is skipped because no permitted local PostgreSQL connection was available. Ruff, Python compilation, inline JavaScript parsing, and diff checks pass. Disposable PostgreSQL 16 applies/replays migrations through 499 and passes eleven grouped review checks. Candidate and legacy remain untouched; migration 499 is not rolled out. CAP-035 remains prepared pending populated parity, live OIDC/browser acceptance, broader ACL/RLS, recovery, and MAN-CAP-035 owner review. Checklist: 745 complete / 24 open; matrix: 31 baseline-retained, 7 deployed, 28 prepared across 66 rows. [Write contract](solution-lifecycle-kernel-write-contract.md); [read contract](solution-lifecycle-kernel-read-contract.md); [migration](../schemas/postgres/499_location_solution_learning_review.sql); [Gateway tests](../tests/test_gateway_solution_learning_review.py); [console tests](../tests/test_operator_console_solution_lifecycle.py); [disposable check](../../scripts/check-solution-learning-review-disposable.py); [evidence](builds/2026-10-20-recovery/cap-035-solution-learning-review-disposable.json).
+The focused Gateway, route-policy, console, solution-application, and migration selection passes 94 tests; the database-backed solution-scale test is skipped because no permitted local PostgreSQL connection was available. Ruff, Python compilation, inline JavaScript parsing, and diff checks pass. Disposable PostgreSQL 16 applies/replays migrations through 499 and passes eleven grouped review checks. Candidate and legacy remain untouched; migration 499 is not rolled out. CAP-035 remains prepared pending populated parity, live OIDC/browser acceptance, broader ACL/RLS, recovery, and MAN-CAP-035 owner review. Checklist: 745 complete / 24 open; matrix: 31 baseline-retained, 7 deployed, 28 prepared across 66 rows. [Write contract](solution-lifecycle-kernel-write-contract.md); [read contract](solution-lifecycle-kernel-read-contract.md); [migration](../../schemas/postgres/499_location_solution_learning_review.sql); [Gateway tests](../../tests/test_gateway_solution_learning_review.py); [console tests](../../tests/test_operator_console_solution_lifecycle.py); [disposable check](../../scripts/check-solution-learning-review-disposable.py); [evidence](builds/2026-10-20-recovery/cap-035-solution-learning-review-disposable.json).
 
 ### CAP-035 location-scoped accepted learning application — 20 October 2026
 
@@ -17969,8 +17969,8 @@ live OIDC/browser acceptance, broader ACL/RLS, recovery, and MAN-CAP-035 owner
 review. Checklist: 746 complete / 24 open; matrix: 31 baseline-retained,
 7 deployed, 28 prepared across 66 rows. [Write contract](solution-lifecycle-kernel-write-contract.md);
 [read contract](solution-lifecycle-kernel-read-contract.md);
-[migration](../schemas/postgres/500_location_solution_learning_application.sql);
-[Gateway tests](../tests/test_gateway_solution_learning_application.py);
+[migration](../../schemas/postgres/500_location_solution_learning_application.sql);
+[Gateway tests](../../tests/test_gateway_solution_learning_application.py);
 [disposable checker](../../scripts/check-solution-learning-application-disposable.py).
 
 ### CAP-035 fail-closed legacy retirement helpers — 20 October 2026
@@ -17987,8 +17987,8 @@ used. Retirement execution, sunset, post-retirement review, populated parity,
 live OIDC/browser, broader ACL/RLS, recovery, and MAN-CAP-035 owner acceptance
 remain open. Checklist: 747 complete / 24 open; matrix: 31 baseline-retained,
 7 deployed, 28 prepared across 66 rows. [Write contract](solution-lifecycle-kernel-write-contract.md);
-[service](../services/innovation/solution_scale.py);
-[tests](../tests/test_solution_scale.py).
+[service](../../services/innovation/solution_scale.py);
+[tests](../../tests/test_solution_scale.py).
 
 ### CAP-035 location-scoped scale-gate assessment and review — 20 October 2026
 
@@ -18014,7 +18014,7 @@ checks ([evidence](builds/2026-10-20-recovery/cap-035-scale-gate-review-disposab
 not rolled out. CAP-035 remains prepared pending remaining lifecycle parity,
 populated fixtures, live OIDC/browser acceptance, broader ACL/RLS, recovery, and
 MAN-CAP-035 owner review. Checklist: 748 complete / 24 open; matrix:
-31 baseline-retained, 7 deployed, 28 prepared across 66 rows. [Write contract](solution-lifecycle-kernel-write-contract.md); [migration](../schemas/postgres/501_location_solution_scale_gate_evaluation_review.sql); [Gateway tests](../tests/test_gateway_solution_scale_gate_reviews.py); [console tests](../tests/test_operator_console_solution_lifecycle.py); [disposable checker](../../scripts/check-solution-scale-gate-review-disposable.py).
+31 baseline-retained, 7 deployed, 28 prepared across 66 rows. [Write contract](solution-lifecycle-kernel-write-contract.md); [migration](../../schemas/postgres/501_location_solution_scale_gate_evaluation_review.sql); [Gateway tests](../../tests/test_gateway_solution_scale_gate_reviews.py); [console tests](../../tests/test_operator_console_solution_lifecycle.py); [disposable checker](../../scripts/check-solution-scale-gate-review-disposable.py).
 
 ### CAP-035 location-scoped retirement execution and review — 20 October 2026
 
@@ -18043,8 +18043,8 @@ Candidate and legacy remain untouched; migration 502 is not rolled out. CAP-035
 remains prepared pending populated parity, live OIDC/browser acceptance, broader
 ACL/RLS, recovery, and MAN-CAP-035 owner review. Checklist: 749 complete / 24
 open; matrix: 31 baseline-retained, 7 deployed, 28 prepared across 66 rows.
-[Write contract](solution-lifecycle-kernel-write-contract.md); [migration](../schemas/postgres/502_location_solution_retirement_execution.sql);
-[Gateway tests](../tests/test_gateway_solution_retirement_execution.py); [console tests](../tests/test_operator_console_solution_lifecycle.py);
+[Write contract](solution-lifecycle-kernel-write-contract.md); [migration](../../schemas/postgres/502_location_solution_retirement_execution.sql);
+[Gateway tests](../../tests/test_gateway_solution_retirement_execution.py); [console tests](../../tests/test_operator_console_solution_lifecycle.py);
 [disposable checker](../../scripts/check-solution-retirement-execution-disposable.py).
 ### CAP-035 fail-closed legacy gate approval and evaluation — 20 October 2026
 
@@ -18057,7 +18057,7 @@ remains direct and is still open; its consumer/test migration is tracked in the
 source-route audit. The focused two-helper mock tests pass; Ruff, compilation,
 matrix validation, runtime SQL inventory validation, and diff checks pass. No
 database or migration was used. Checklist: 753 complete / 24 open; matrix: 31
-baseline-retained, 7 deployed, 28 prepared across 66 rows. See the [audit](solution-lifecycle-source-route-audit.md), [contract](solution-lifecycle-kernel-write-contract.md), and [tests](../tests/test_solution_lifecycle.py).
+baseline-retained, 7 deployed, 28 prepared across 66 rows. See the [audit](solution-lifecycle-source-route-audit.md), [contract](solution-lifecycle-kernel-write-contract.md), and [tests](../../tests/test_solution_lifecycle.py).
 
 ### CAP-035 fail-closed legacy adoption-event writer — 20 October 2026
 
@@ -18073,7 +18073,7 @@ event-ingestion parity. The two focused mock cases pass; Ruff, Python
 compilation, capability-matrix validation, runtime SQL inventory validation,
 and diff checks pass. No migration or database was used. Checklist: 752
 complete / 24 open; matrix: 31
-baseline-retained, 7 deployed, 28 prepared across 66 rows. See the [source-to-route audit](solution-lifecycle-source-route-audit.md), [write contract](solution-lifecycle-kernel-write-contract.md), and [tests](../tests/test_solution_adoption.py).
+baseline-retained, 7 deployed, 28 prepared across 66 rows. See the [source-to-route audit](solution-lifecycle-source-route-audit.md), [write contract](solution-lifecycle-kernel-write-contract.md), and [tests](../../tests/test_solution_adoption.py).
 
 ### CAP-035 non-promotion stage transitions — 20 October 2026
 
@@ -18097,7 +18097,7 @@ Candidate and legacy remain untouched; migration 503 is not rolled out. CAP-035
 remains prepared pending populated legacy parity, live OIDC/browser acceptance,
 broader ACL/RLS review, recovery, and owner acceptance. Checklist: 755 complete
 / 24 open; matrix: 31 baseline-retained, 7 deployed, and 28 prepared across 66
-rows. [Migration](../schemas/postgres/503_location_solution_nonpromotion_stage_transition.sql); [write contract](solution-lifecycle-kernel-write-contract.md); [source-to-route audit](solution-lifecycle-source-route-audit.md).
+rows. [Migration](../../schemas/postgres/503_location_solution_nonpromotion_stage_transition.sql); [write contract](solution-lifecycle-kernel-write-contract.md); [source-to-route audit](solution-lifecycle-source-route-audit.md).
 
 ### CAP-035 legacy learning-write retirement and source-to-route audit — 20 October 2026
 
@@ -18113,7 +18113,7 @@ compilation, and diff checks pass. No migration or database was used. Checklist:
 766 complete / 24 open; matrix: 31 baseline-retained, 7 deployed, and 28 prepared
 across 66 rows. See the [source-to-route audit](solution-lifecycle-source-route-audit.md),
 [write contract](solution-lifecycle-kernel-write-contract.md), and
-[tests](../tests/test_solution_funding.py).
+[tests](../../tests/test_solution_funding.py).
 
 ### CAP-035 location-scoped adoption-program draft — 20 October 2026
 
@@ -18139,9 +18139,9 @@ Candidate and legacy databases are untouched; migration 513 is not rolled out.
 CAP-035 remains prepared. Checklist: 767 complete / 24 open; matrix: 31
 baseline-retained, 7 deployed, and 28 prepared across 66 rows. See the
 [source-to-route audit](solution-lifecycle-source-route-audit.md), [write
-contract](solution-lifecycle-kernel-write-contract.md), [migration](../schemas/postgres/513_location_solution_adoption_program_create.sql),
-[Gateway tests](../tests/test_gateway_solution_lifecycle_adoption_program.py),
-[console tests](../tests/test_operator_console_solution_lifecycle.py), and
+contract](solution-lifecycle-kernel-write-contract.md), [migration](../../schemas/postgres/513_location_solution_adoption_program_create.sql),
+[Gateway tests](../../tests/test_gateway_solution_lifecycle_adoption_program.py),
+[console tests](../../tests/test_operator_console_solution_lifecycle.py), and
 [disposable checker](../../scripts/check-solution-adoption-program-disposable.py).
 
 ### CAP-035 retirement of unscoped readiness/configuration writers — 20 October 2026
@@ -18162,8 +18162,8 @@ passes five grouped privilege checks ([evidence](builds/2026-10-20-recovery/cap-
 Candidate and legacy databases remain untouched. CAP-035 remains prepared.
 Checklist: 768 complete / 24 open; matrix: 31 baseline-retained, 7 deployed,
 and 28 prepared across 66 rows. See the [source-to-route audit](solution-lifecycle-source-route-audit.md),
-[write contract](solution-lifecycle-kernel-write-contract.md), [migration](../schemas/postgres/514_location_solution_adoption_write_boundary.sql),
-[tests](../tests/test_solution_adoption.py), and [disposable checker](../../scripts/check-solution-adoption-write-boundary-disposable.py).
+[write contract](solution-lifecycle-kernel-write-contract.md), [migration](../../schemas/postgres/514_location_solution_adoption_write_boundary.sql),
+[tests](../../tests/test_solution_adoption.py), and [disposable checker](../../scripts/check-solution-adoption-write-boundary-disposable.py).
 
 ### CAP-035 adoption preparation before the adoption-ready gate — 20 October 2026
 
@@ -18187,9 +18187,9 @@ runtime SQL inventory, and diff checks pass. Candidate and legacy remain
 untouched; migrations 513 and 515 are not rolled out. CAP-035 remains prepared.
 Checklist: 769 complete / 24 open; matrix: 31 baseline-retained, 7 deployed,
 and 28 prepared across 66 rows. See the [audit](solution-lifecycle-source-route-audit.md),
-[write contract](solution-lifecycle-kernel-write-contract.md), [migration](../schemas/postgres/515_location_solution_adoption_preparation.sql),
+[write contract](solution-lifecycle-kernel-write-contract.md), [migration](../../schemas/postgres/515_location_solution_adoption_preparation.sql),
 [checker](../../scripts/check-solution-adoption-program-disposable.py), and
-[console tests](../tests/test_operator_console_solution_lifecycle.py).
+[console tests](../../tests/test_operator_console_solution_lifecycle.py).
 
 ### CAP-035 adoption-program submit and independent review — 20 October 2026
 
@@ -18227,9 +18227,9 @@ participant events, populated legacy parity, live ZITADEL/browser acceptance,
 broader runtime ACL/RLS, recovery, and MAN-CAP-035 owner acceptance. Checklist:
 771 complete / 24 open; capability matrix remains 31 baseline-retained,
 7 deployed, and 28 prepared across 66 rows. See the [source-to-route audit](solution-lifecycle-source-route-audit.md),
-[write contract](solution-lifecycle-kernel-write-contract.md), [migration](../schemas/postgres/519_location_solution_adoption_program_revision.sql),
-[Gateway tests](../tests/test_gateway_solution_lifecycle_adoption_program_revision.py), and
-[console tests](../tests/test_operator_console_solution_lifecycle.py).
+[write contract](solution-lifecycle-kernel-write-contract.md), [migration](../../schemas/postgres/519_location_solution_adoption_program_revision.sql),
+[Gateway tests](../../tests/test_gateway_solution_lifecycle_adoption_program_revision.py), and
+[console tests](../../tests/test_operator_console_solution_lifecycle.py).
 
 
 ### Schema-bootstrap image override and Compose isolation contract — 20 October 2026
@@ -19547,7 +19547,7 @@ Migration 593 gives Kokonut Commons synthesis a task-specific signed login and N
 
 ### Progress addendum — CAP-038 retired shared synthesis source identity, 23 October 2026
 
-Migration 594 makes the historical shared synthesis source login and reader inert after migrations 580–593 split every registered synthesis task onto its own signed source identity. Both old roles are NOLOGIN/NOINHERIT; migration 594 removes their membership and direct schema, relation, sequence, and function grants, and checks for unexpected object ownership or default ACLs before commit. The disposable checker deliberately reintroduces a login, role membership, source/raw SELECT, schema CREATE, and scope-function grants, then reapplies 594 after legacy migration replay to prove the retired roles stay disabled. Focused worker/database/profile/migration checks pass (165); Ruff and compilation pass. Network-disabled PostgreSQL 16 applies/replays through 594 with 79 grouped assertions ([native evidence](docs/refactor/builds/2026-10-23-recovery/cap-038-retired-shared-agent-source-native-disposable.json)). Candidate and legacy remain untouched; no production worker credentials or grants were provisioned. CAP-038 remains prepared pending credential/grant provisioning, populated parity, live OIDC/provider/browser acceptance, broader ACL/RLS, production recovery, physical Raspberry Pi acceptance, and human review. Checklist: 1,020 complete / 24 open (1,044 total); 30 baseline-retained, 7 deployed, 29 prepared; 0/66 MAN-CAP checks accepted.
+Migration 594 makes the historical shared synthesis source login and reader inert after migrations 580–593 split every registered synthesis task onto its own signed source identity. Both old roles are NOLOGIN/NOINHERIT; migration 594 removes their membership and direct schema, relation, sequence, and function grants, and checks for unexpected object ownership or default ACLs before commit. The disposable checker deliberately reintroduces a login, role membership, source/raw SELECT, schema CREATE, and scope-function grants, then reapplies 594 after legacy migration replay to prove the retired roles stay disabled. Focused worker/database/profile/migration checks pass (165); Ruff and compilation pass. Network-disabled PostgreSQL 16 applies/replays through 594 with 79 grouped assertions ([native evidence](builds/2026-10-23-recovery/cap-038-retired-shared-agent-source-native-disposable.json)). Candidate and legacy remain untouched; no production worker credentials or grants were provisioned. CAP-038 remains prepared pending credential/grant provisioning, populated parity, live OIDC/provider/browser acceptance, broader ACL/RLS, production recovery, physical Raspberry Pi acceptance, and human review. Checklist: 1,020 complete / 24 open (1,044 total); 30 baseline-retained, 7 deployed, 29 prepared; 0/66 MAN-CAP checks accepted.
 
 
 ### Progress addendum — CAP-038 authenticated agent-task draft attribution, 23 October 2026
@@ -19807,7 +19807,7 @@ Checklist: 1,141 complete / 25 open (1,166 total); matrix: 24 baseline-retained,
 
 ### Progress addendum — CAP-037 separately approved learning-plan activation, 25 October 2026
 
-Migration 629 closes the implementation gap left by migration 610's independent approval: the learning-plan lifecycle now has a separate activation action requiring the exact location `operating_pilot:activate` grant. The receipt-backed queue includes only the latest approved submission still in `submitted`, excludes the owner's own plan and already activated versions, and omits identities and internal receipt fields. Activation rechecks signed tenant context, grant, active human binding, active Adelphi location mapping, exact submission timestamp and approval, then atomically changes status and writes a private idempotency receipt. The operator console uses explicit confirmation, CSRF/no-store, stable retries, and bounded text-only rendering. The focused Gateway, route-policy, console, and migration-integrity selection passes 430 tests. Network-disabled disposable PostgreSQL 16 applies/replays the selected CAP-037 migration sequence ending at 629 and passes 266 grouped assertions on native AMD64 and ARM64/QEMU (software portability only, not physical Raspberry Pi acceptance) ([contract](operating-pilot-kernel-read-contract.md); [migration](../schemas/postgres/629_location_operating_pilot_learning_plan_activation.sql); [native evidence](builds/2026-10-25-recovery/cap-037-learning-plan-activation-disposable.json); [ARM64/QEMU evidence](builds/2026-10-25-recovery/cap-037-learning-plan-activation-arm64-disposable.json)). Ruff, compilation, the runtime SQL inventory, dependency-group alignment, provider boundaries, capability matrix, and diff checks pass. Candidate and legacy remain untouched; migration 629 is not rolled out. CAP-037 remains prepared: populated parity, live ZITADEL/browser acceptance, broader ACL/RLS, recovery, privacy review, and named MAN-CAP-037 owner acceptance are still open. Checklist: 1,143 complete / 25 open (1,168 total); matrix: 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows; 0/67 named acceptance checks accepted.
+Migration 629 closes the implementation gap left by migration 610's independent approval: the learning-plan lifecycle now has a separate activation action requiring the exact location `operating_pilot:activate` grant. The receipt-backed queue includes only the latest approved submission still in `submitted`, excludes the owner's own plan and already activated versions, and omits identities and internal receipt fields. Activation rechecks signed tenant context, grant, active human binding, active Adelphi location mapping, exact submission timestamp and approval, then atomically changes status and writes a private idempotency receipt. The operator console uses explicit confirmation, CSRF/no-store, stable retries, and bounded text-only rendering. The focused Gateway, route-policy, console, and migration-integrity selection passes 430 tests. Network-disabled disposable PostgreSQL 16 applies/replays the selected CAP-037 migration sequence ending at 629 and passes 266 grouped assertions on native AMD64 and ARM64/QEMU (software portability only, not physical Raspberry Pi acceptance) ([contract](operating-pilot-kernel-read-contract.md); [migration](../../schemas/postgres/629_location_operating_pilot_learning_plan_activation.sql); [native evidence](builds/2026-10-25-recovery/cap-037-learning-plan-activation-disposable.json); [ARM64/QEMU evidence](builds/2026-10-25-recovery/cap-037-learning-plan-activation-arm64-disposable.json)). Ruff, compilation, the runtime SQL inventory, dependency-group alignment, provider boundaries, capability matrix, and diff checks pass. Candidate and legacy remain untouched; migration 629 is not rolled out. CAP-037 remains prepared: populated parity, live ZITADEL/browser acceptance, broader ACL/RLS, recovery, privacy review, and named MAN-CAP-037 owner acceptance are still open. Checklist: 1,143 complete / 25 open (1,168 total); matrix: 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows; 0/67 named acceptance checks accepted.
 
 
 ### Progress addendum — full current-schema ARM64/QEMU replay through migration 629, 25 October 2026
@@ -20053,7 +20053,7 @@ authoring, contribution, stopping evaluation, live OIDC/browser acceptance,
 populated parity, universal ACL/RLS, and MAN-CAP-027 remain open. CAP-027 stays
 prepared. Checklist: 1,169 complete / 25 open (1,194 total); matrix remains
 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows
-([contract](delphi-consultation-kernel-contract.md); [migration](../schemas/postgres/631_location_scoped_delphi_study_lifecycle.sql); [evidence](builds/2026-10-25-recovery/cap-027-delphi-study-lifecycle-disposable.json)).
+([contract](delphi-consultation-kernel-contract.md); [migration](../../schemas/postgres/631_location_scoped_delphi_study_lifecycle.sql); [evidence](builds/2026-10-25-recovery/cap-027-delphi-study-lifecycle-disposable.json)).
 
 ### Progress addendum — CAP-027 Delphi lifecycle console controls, 25 October 2026
 
@@ -20094,8 +20094,8 @@ prepared. Checklist: 1,172 complete / 25 open (1,197 total); matrix remains
 24 baseline-retained, 7 deployed, and 36
 prepared across 67 rows
 ([contract](delphi-consultation-kernel-contract.md);
-[migration](../schemas/postgres/632_location_scoped_delphi_study_items.sql);
-[Gateway](../services/gateway/delphi_study_items.py);
+[migration](../../schemas/postgres/632_location_scoped_delphi_study_items.sql);
+[Gateway](../../services/gateway/delphi_study_items.py);
 [evidence](builds/2026-10-25-recovery/cap-027-delphi-study-items-disposable.json)).
 
 ### Progress addendum — CAP-027 Delphi study-opening readiness, 25 October 2026
@@ -20119,7 +20119,7 @@ and contribution, stopping evaluation, live OIDC/browser, populated parity,
 broader ACL/RLS, and MAN-CAP-027 remain open. Checklist: 1,173 complete / 25
 open (1,198 total); matrix remains 24 baseline-retained, 7 deployed, and 36
 prepared across 67 rows ([contract](delphi-consultation-kernel-contract.md);
-[migration](../schemas/postgres/633_location_delphi_study_open_readiness.sql);
+[migration](../../schemas/postgres/633_location_delphi_study_open_readiness.sql);
 [evidence](builds/2026-10-25-recovery/cap-027-delphi-study-open-readiness-disposable.json)).
 
 
@@ -20461,7 +20461,7 @@ route-policy, existing Delphi review, and console checks pass. Network-disabled
 disposable PostgreSQL 16 applies and replays migration 640 and passes five
 grouped scope, active-consent, exact-retry, withdrawal-denial, and
 Runtime/Directus privilege checks ([contract](delphi-consultation-kernel-contract.md);
-[migration](../schemas/postgres/640_location_scoped_delphi_minority_report_review.sql);
+[migration](../../schemas/postgres/640_location_scoped_delphi_minority_report_review.sql);
 [evidence](builds/2026-10-25-recovery/cap-027-delphi-minority-review-disposable.json)).
 Candidate and legacy databases remain untouched; migration 640 is not rolled
 out. Participant minority-report submission, live OIDC/browser, populated
@@ -20514,8 +20514,8 @@ acceptance and fails closed on unknown values. The focused Gateway, console,
 participant-bundle, and migration regression passes 87 tests. Network-disabled
 disposable PostgreSQL 16 applies and replays migration 641 and passes eight
 grouped scope, digest, review, invite, acceptance, and runtime/Directus
-boundary assertions ([migration](../schemas/postgres/641_location_delphi_consent_activity_scopes.sql);
-[runner](../scripts/check-delphi-consent-scopes-disposable.py);
+boundary assertions ([migration](../../schemas/postgres/641_location_delphi_consent_activity_scopes.sql);
+[runner](../../scripts/check-delphi-consent-scopes-disposable.py);
 [evidence](builds/2026-10-25-recovery/cap-027-delphi-consent-scopes-disposable.json)).
 Ruff, Python compilation, participant JavaScript syntax, capability validation,
 Kernel release-input validation, refreshed runtime SQL inventory, and diff
@@ -20546,8 +20546,8 @@ The focused Gateway, route-policy, participant image-bundle, and migration
 selection passes 103 tests. Network-disabled PostgreSQL 16 applies/replays
 migrations 637–642 and passes eight grouped consent-scope, invalid-session,
 item-scope, content-bound, retry, withdrawal, and privilege assertions
-([migration](../schemas/postgres/642_location_scoped_delphi_minority_report_submission.sql);
-[runner](../scripts/check-delphi-minority-report-submission-disposable.py);
+([migration](../../schemas/postgres/642_location_scoped_delphi_minority_report_submission.sql);
+[runner](../../scripts/check-delphi-minority-report-submission-disposable.py);
 [evidence](builds/2026-10-25-recovery/cap-027-delphi-minority-report-submission-disposable.json)).
 Ruff, Python compilation, JavaScript syntax, refreshed runtime SQL inventory,
 and capability-matrix validation pass. Candidate and legacy databases remain
@@ -20622,13 +20622,13 @@ storage-endurance acceptance remain open ([evidence](builds/2026-10-25-recovery/
 
 Driver instance creation now requires a JSON-object configuration and calls the selected registered adapter's `validate_config` before opening the insert transaction. Validator failures are logged by exception class and returned as a generic invalid-config error, preventing plugin exception messages from leaking through the CLI. The persistence transaction rechecks that the driver is enabled and takes a `FOR SHARE` lock on its registry row before inserting; concurrent disable/update must wait until the instance transaction ends.
 
-Six focused regressions cover valid configuration, invalid/non-object configuration before persistence, sanitized validator errors, disabled-driver rejection, and the enabled-row lock. `python3 -m pytest tests/test_driver_registry.py tests/test_sensor_driver_schedule.py -q` passes 66 tests; Ruff, compilation, and `git diff --check` pass. Checks use mocks only. Third-party package code still runs in-process by design and is not sandboxed; PostgreSQL lock behavior requires disposable database acceptance. No database, provider, candidate, legacy service, or persistent Compose resource was used ([implementation](../../services/drivers/registry.py); [tests](../../tests/test_driver_registry.py); [evidence](../builds/2026-10-25-recovery/driver-instance-config-preflight.json)). Checklist: 1,192 complete / 25 open (1,217 total); capability classifications remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows.
+Six focused regressions cover valid configuration, invalid/non-object configuration before persistence, sanitized validator errors, disabled-driver rejection, and the enabled-row lock. `python3 -m pytest tests/test_driver_registry.py tests/test_sensor_driver_schedule.py -q` passes 66 tests; Ruff, compilation, and `git diff --check` pass. Checks use mocks only. Third-party package code still runs in-process by design and is not sandboxed; PostgreSQL lock behavior requires disposable database acceptance. No database, provider, candidate, legacy service, or persistent Compose resource was used ([implementation](../../services/drivers/registry.py); [tests](../../tests/test_driver_registry.py); [evidence](builds/2026-10-25-recovery/driver-instance-config-preflight.json)). Checklist: 1,192 complete / 25 open (1,217 total); capability classifications remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows.
 
 ## Bounded Gnosis indexer recovery — 25 October 2026
 
 Gnosis indexing now caps each invocation at 10,000 blocks, matching the existing first-run lookback. An oversized explicit range is rejected before opening the provider or database. Automatic catch-up clamps the target range and advances the existing cursor only through successful committed batches, allowing the next invocation to continue from the checkpoint without skipping blocks.
 
-The Gnosis CLI, mocked recovery, and scheduled-command selection passes 161 tests; Ruff, compilation, capability-matrix validation, and `git diff --check` pass. No network provider, database, candidate, legacy service, or persistent Compose resource was used. This bounds runtime but does not close the legacy shared database identity, provider recovery, or live-provider gates ([implementation](../../services/ingestion/gnosis_indexer.py); [tests](../../tests/test_gnosis_indexer_recovery.py); [evidence](../builds/2026-10-25-recovery/gnosis-indexer-run-bound.json)). Checklist: 1,193 complete / 25 open (1,218 total); capability classifications remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows.
+The Gnosis CLI, mocked recovery, and scheduled-command selection passes 161 tests; Ruff, compilation, capability-matrix validation, and `git diff --check` pass. No network provider, database, candidate, legacy service, or persistent Compose resource was used. This bounds runtime but does not close the legacy shared database identity, provider recovery, or live-provider gates ([implementation](../../services/ingestion/gnosis_indexer.py); [tests](../../tests/test_gnosis_indexer_recovery.py); [evidence](builds/2026-10-25-recovery/gnosis-indexer-run-bound.json)). Checklist: 1,193 complete / 25 open (1,218 total); capability classifications remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows.
 
 ## Gnosis Moloch worker identity and projection lineage — 25 October 2026
 
@@ -21150,8 +21150,8 @@ The five focused inventory tests pass with Ruff, Python compilation, capability
 matrix validation, and `git diff --check`. No database, provider, candidate, or
 legacy service was used. Evidence:
 [analytics write candidates](builds/2026-10-27-recovery/analytics-runtime-write-candidate-inventory.json),
-[generator](../scripts/runtime-analytics-write-candidate-inventory.py), and
-[tests](../tests/test_runtime_analytics_write_candidate_inventory.py).
+[generator](../../scripts/runtime-analytics-write-candidate-inventory.py), and
+[tests](../../tests/test_runtime_analytics_write_candidate_inventory.py).
 This advances the review process only; C1 still has 1,026 unprotected DML
 relations and requires capability/caller review before scoped grant changes.
 
@@ -21172,8 +21172,8 @@ and request-state update in one transaction. No schema migration was needed.
 The data-governance and analytics-inventory suites pass 63 tests and 63
 subtests. Runtime SQL inventory freshness, Ruff, compilation, capability-matrix
 validation, and diff checks pass. No database or provider was used. Evidence:
-[focused tests](../tests/test_data_governance.py),
-[schema](../schemas/postgres/144_data_governance.sql), and the refreshed
+[focused tests](../../tests/test_data_governance.py),
+[schema](../../schemas/postgres/144_data_governance.sql), and the refreshed
 [runtime SQL inventory](runtime-sql-inventory.json).
 
 Checklist: 1,238 complete / 25 open (1,263 total). Capability classifications
@@ -21205,7 +21205,7 @@ checks, capability-matrix validation, and `git diff --check` pass. Rollback can
 revert application code while retaining migration 652 and the provisioner
 policy; reversing the append-only grant requires a separately reviewed
 forward migration. No candidate or production rollout occurred. Evidence:
-[migration](../schemas/postgres/652_runtime_append_only_data_access_log.sql),
+[migration](../../schemas/postgres/652_runtime_append_only_data_access_log.sql),
 [isolated ACL acceptance](builds/2026-10-27-recovery/runtime-append-only-data-access-log-disposable.json),
 [full-schema acceptance](builds/2026-10-27-recovery/runtime-role-full-schema-disposable.json),
 [policy report](builds/2026-10-27-recovery/sprint-runtime-privilege-callsite-report.json),
@@ -21230,7 +21230,7 @@ it does not prove a physical Raspberry Pi, full application image/profile
 builds, resource-constrained operation, or backup/restore acceptance.
 
 Evidence: [ARM64 schema replay](builds/2026-10-27-recovery/arm64-schema-652-disposable.json)
-and [replay harness](../scripts/check-arm64-schema-replay.py). The C7 gate
+and [replay harness](../../scripts/check-arm64-schema-replay.py). The C7 gate
 remains open for ARM64 application/profile builds, constrained CPU/memory
 checks, and synthetic backup/restore rehearsal. No capability classification
 or MAN-CAP acceptance changed.
@@ -21327,7 +21327,7 @@ count are recorded without recording the age identity path or any secret.
 
 Python compilation, Ruff, CLI help, the live synthetic round-trip, wrong-key
 rejection, evidence assertions, cleanup inspection, capability validation, and
-`git diff --check` pass. Evidence: [synthetic backup/restore](builds/2026-10-27-recovery/kernel-synthetic-backup-restore.json); checker: [check-kernel-backup-restore-disposable.py](../scripts/check-kernel-backup-restore-disposable.py).
+`git diff --check` pass. Evidence: [synthetic backup/restore](builds/2026-10-27-recovery/kernel-synthetic-backup-restore.json); checker: [check-kernel-backup-restore-disposable.py](../../scripts/check-kernel-backup-restore-disposable.py).
 
 This tests streaming backup/restore primitives only. It does not call
 `kernel-checkpoint.sh`, restore the full schema/role prerequisites, validate
@@ -21524,7 +21524,7 @@ selection passes 135 tests; Ruff, compilation, dependency/provider checks,
 SQL-inventory freshness, and diff checks pass. Candidate/legacy services,
 provider state, and farm rows were untouched. C1 remains open; this source and
 synthetic ACL acceptance does not prove populated-data tenant safety or
-production role state. Evidence: [migration](../schemas/postgres/663_runtime_agent_action_log_read_only.sql),
+production role state. Evidence: [migration](../../schemas/postgres/663_runtime_agent_action_log_read_only.sql),
 [native ACL](builds/2026-10-27-recovery/agent-action-log-read-only-disposable.json),
 [ARM64/QEMU ACL](builds/2026-10-27-recovery/agent-action-log-read-only-arm64-disposable.json),
 [full-schema replay and probe](builds/2026-10-27-recovery/runtime-role-full-schema-663-native-disposable.json),
@@ -21562,7 +21562,7 @@ tenant data, Directus API behavior, or a future Gateway-mediated reference
 editing flow. Rollback retains ordered migration 665; restoring runtime writes
 requires a reviewed forward migration.
 
-Evidence: [migration](../schemas/postgres/665_runtime_ghg_emission_factor_read_only.sql),
+Evidence: [migration](../../schemas/postgres/665_runtime_ghg_emission_factor_read_only.sql),
 [native ACL](builds/2026-10-27-recovery/ghg-emission-factor-runtime-read-only-disposable.json),
 [ARM64/QEMU ACL](builds/2026-10-27-recovery/ghg-emission-factor-runtime-read-only-arm64-disposable.json),
 [full-schema replay and probe](builds/2026-10-27-recovery/runtime-role-full-schema-665-native-disposable.json),
@@ -21600,7 +21600,7 @@ state were untouched. This synthetic ACL acceptance does not verify populated
 tenant data or Directus API behavior. Rollback retains ordered migration 666;
 restoring runtime writes requires a reviewed forward migration.
 
-Evidence: [migration](../schemas/postgres/666_runtime_operations_protocol_read_only.sql),
+Evidence: [migration](../../schemas/postgres/666_runtime_operations_protocol_read_only.sql),
 [native ACL](builds/2026-10-27-recovery/operations-protocol-runtime-read-only-disposable.json),
 [ARM64/QEMU ACL](builds/2026-10-27-recovery/operations-protocol-runtime-read-only-arm64-disposable.json),
 [full-schema replay and probe](builds/2026-10-27-recovery/runtime-role-full-schema-666-native-disposable.json),
@@ -21638,7 +21638,7 @@ Directus API behavior, or physical Raspberry Pi behavior. Rollback retains
 ordered migration 667; re-enabling runtime writes requires a reviewed forward
 migration.
 
-Evidence: [migration](../schemas/postgres/667_runtime_static_reference_catalogs_read_only.sql),
+Evidence: [migration](../../schemas/postgres/667_runtime_static_reference_catalogs_read_only.sql),
 [native ACL](builds/2026-10-27-recovery/static-reference-catalogs-runtime-read-only-disposable.json),
 [ARM64/QEMU ACL](builds/2026-10-27-recovery/static-reference-catalogs-runtime-read-only-arm64-disposable.json),
 [full-schema replay and probe](builds/2026-10-27-recovery/runtime-role-full-schema-667-native-disposable.json),
@@ -21679,7 +21679,7 @@ and live provider state were untouched. Directus API behavior and live adapter
 reads remain unverified. Rollback retains ordered migration 668; re-enabling
 runtime writes requires a reviewed forward migration.
 
-Evidence: [migration](../schemas/postgres/668_runtime_reporting_registry_read_only.sql),
+Evidence: [migration](../../schemas/postgres/668_runtime_reporting_registry_read_only.sql),
 [native ACL](builds/2026-10-27-recovery/reporting-registries-runtime-read-only-disposable.json),
 [ARM64/QEMU ACL](builds/2026-10-27-recovery/reporting-registries-runtime-read-only-arm64-disposable.json),
 [full-schema replay and probe](builds/2026-10-27-recovery/runtime-role-full-schema-668-native-disposable.json),
@@ -21718,7 +21718,7 @@ state were untouched. Directus API behavior, seeded report parity, and physical
 Raspberry Pi behavior remain unverified. Rollback retains ordered migration
 669; re-enabling runtime writes requires a reviewed forward migration.
 
-Evidence: [migration](../schemas/postgres/669_runtime_impact_framework_catalogs_read_only.sql),
+Evidence: [migration](../../schemas/postgres/669_runtime_impact_framework_catalogs_read_only.sql),
 [native ACL](builds/2026-10-27-recovery/impact-framework-catalogs-runtime-read-only-disposable.json),
 [ARM64/QEMU ACL](builds/2026-10-27-recovery/impact-framework-catalogs-runtime-read-only-arm64-disposable.json),
 [full-schema replay and probe](builds/2026-10-27-recovery/runtime-role-full-schema-669-native-disposable.json),
@@ -21758,7 +21758,7 @@ unverified. Rollback retains ordered migration 670; re-enabling runtime writes
 requires a reviewed forward migration and an authenticated category-management
 path.
 
-Evidence: [migration](../schemas/postgres/670_runtime_expense_category_read_only.sql),
+Evidence: [migration](../../schemas/postgres/670_runtime_expense_category_read_only.sql),
 [native ACL](builds/2026-10-27-recovery/expense-category-runtime-read-only-disposable.json),
 [ARM64/QEMU ACL](builds/2026-10-27-recovery/expense-category-runtime-read-only-arm64-disposable.json),
 [full-schema replay and probe](builds/2026-10-27-recovery/runtime-role-full-schema-670-native-disposable.json),
@@ -21798,7 +21798,7 @@ weight overrides remain writable. Directus API behavior and populated
 reference parity remain unverified. Rollback retains migration 671; runtime
 writes to the global definitions require a reviewed forward migration.
 
-Evidence: [migration](../schemas/postgres/671_runtime_crisp_risk_dimension_read_only.sql),
+Evidence: [migration](../../schemas/postgres/671_runtime_crisp_risk_dimension_read_only.sql),
 [native ACL](builds/2026-10-27-recovery/crisp-risk-dimension-runtime-read-only-disposable.json),
 [ARM64/QEMU ACL](builds/2026-10-27-recovery/crisp-risk-dimension-runtime-read-only-arm64-disposable.json),
 [full-schema replay and probe](builds/2026-10-27-recovery/runtime-role-full-schema-671-native-disposable.json),
@@ -21888,7 +21888,7 @@ not verify Directus API permissions, populated finance data, physical Pi
 hardware, or production operation; rollback retains migration 672 and any
 runtime write restoration requires a reviewed forward migration.
 
-Evidence: [migration](../schemas/postgres/672_runtime_dfs_currency_read_only.sql),
+Evidence: [migration](../../schemas/postgres/672_runtime_dfs_currency_read_only.sql),
 [native ACL](builds/2026-10-27-recovery/dfs-currency-runtime-read-only-disposable.json),
 [ARM64/QEMU ACL](builds/2026-10-27-recovery/dfs-currency-runtime-read-only-arm64-disposable.json),
 [full native schema and scope probe](builds/2026-10-27-recovery/runtime-role-full-schema-672-native-disposable.json),
@@ -21926,7 +21926,7 @@ migration 673; restoring runtime writes requires a reviewed forward migration.
 Physical Raspberry Pi and power-failure acceptance remain open, and this does
 not establish populated-data or production acceptance.
 
-Evidence: [migration](../schemas/postgres/673_runtime_crop_gdd_config_read_only.sql),
+Evidence: [migration](../../schemas/postgres/673_runtime_crop_gdd_config_read_only.sql),
 [native ACL](builds/2026-10-27-recovery/crop-gdd-config-runtime-read-only-disposable.json),
 [ARM64/QEMU ACL](builds/2026-10-27-recovery/crop-gdd-config-runtime-read-only-arm64-disposable.json),
 [full native schema and scope probe](builds/2026-10-27-recovery/runtime-role-full-schema-673-native-disposable.json),
@@ -21966,7 +21966,7 @@ software-only synthetic acceptance; it does not establish broad populated-data
 or Directus API parity, physical Raspberry Pi acceptance, or production
 operation.
 
-Evidence: [migration](../schemas/postgres/674_runtime_pest_degree_day_config_read_only.sql),
+Evidence: [migration](../../schemas/postgres/674_runtime_pest_degree_day_config_read_only.sql),
 [native ACL](builds/2026-10-27-recovery/pest-degree-day-config-runtime-read-only-disposable.json),
 [ARM64/QEMU ACL](builds/2026-10-27-recovery/pest-degree-day-config-runtime-read-only-arm64-disposable.json),
 [full native schema and scope probe](builds/2026-10-27-recovery/runtime-role-full-schema-674-native-disposable.json),
@@ -22004,7 +22004,7 @@ Rollback retains migration 675; restoring runtime writes requires a reviewed
 forward migration. This does not establish configured-value parity, Directus
 API parity, physical Raspberry Pi acceptance, or production operation.
 
-Evidence: [migration](../schemas/postgres/675_runtime_revenue_multiplier_config_read_only.sql),
+Evidence: [migration](../../schemas/postgres/675_runtime_revenue_multiplier_config_read_only.sql),
 [native ACL](builds/2026-10-27-recovery/revenue-multiplier-config-runtime-read-only-disposable.json),
 [ARM64/QEMU ACL](builds/2026-10-27-recovery/revenue-multiplier-config-runtime-read-only-arm64-disposable.json),
 [full native schema and scope probe](builds/2026-10-27-recovery/runtime-role-full-schema-675-native-disposable.json),
@@ -25387,7 +25387,7 @@ remains blocked on reconciliation of 20 unresolved-scope links among 41
 historical edges. No candidate, legacy, or production database or role changed.
 Checklist: 2,120 complete / 25 open; TODO: 722 checked / 16 open.
 
-Evidence: [migration](../schemas/postgres/697_runtime_process_benchmark_read_only.sql),
+Evidence: [migration](../../schemas/postgres/697_runtime_process_benchmark_read_only.sql),
 [native ACL](builds/2026-10-30-recovery/runtime-process-benchmark-697-disposable.json),
 [ARM64/QEMU ACL](builds/2026-10-30-recovery/runtime-process-benchmark-697-arm64-disposable.json),
 [native full-schema replay](builds/2026-10-30-recovery/native-resource-limited-schema-697-operator-probe.json),
@@ -25427,7 +25427,7 @@ historical edges. Full ARM64/QEMU replay remains through 696; migration 698 has
 focused QEMU acceptance only. Checklist: 2,127 complete / 25 open; TODO: 728
 checked / 16 open.
 
-Evidence: [migration](../schemas/postgres/698_farm_task_framework_step_location_scope.sql),
+Evidence: [migration](../../schemas/postgres/698_farm_task_framework_step_location_scope.sql),
 [native focused check](builds/2026-10-30-recovery/farm-task-framework-step-698-disposable.json),
 [ARM64/QEMU focused check](builds/2026-10-30-recovery/farm-task-framework-step-698-arm64-disposable.json),
 [source/ACL regression selection](builds/2026-10-30-recovery/farm-task-framework-step-698-source-checks.json),
@@ -25472,3 +25472,92 @@ importer, so the runtime grants remain unchanged pending owner confirmation.
 No database was touched. Evidence:
 [living-wage source audit](builds/2026-10-30-recovery/living-wage-benchmark-c1-source-audit.json).
 Checklist: 2,134 complete / 26 open; TODO: 733 checked / 17 open.
+
+
+### Progress addendum — C1 code-first governance-tension actions — 30 October 2026
+
+Added strict location-scoped Gateway action contracts for tension triage,
+start, linking, work-item linking, resolution, and deferral, along with an
+exact OIDC action policy, signed tenant-context call, idempotency binding,
+identity-minimized no-store receipt, and a 32 KiB body cap. The database
+function and grants remain for the final migration phase; no tests were run.
+
+Code review confirmed the legacy tension service supports network,
+organization, farm, cooperative, value-stream, initiative, and decision scopes,
+which the new location-only route cannot replace. Its legacy writers remain
+active until broader authenticated scope contracts exist. Parallel source
+audits likewise found no exact replacement for the inspected planning,
+finance, agronomic, cooperative, identity, consent, marketplace,
+extension-training, metrics, coordination, mobile-manifest, attestation, and
+certificate writers. No migration or candidate/legacy/production database or
+role was changed. See the [C1 closure plan](c1-runtime-acl-closure-plan.md)
+and [batch record](batches.md) for the code-first gates.
+
+
+### Progress addendum — C1 extension learning and landscape capture — 30 October 2026
+
+Added strict location-scoped Gateway write contracts for extension peer-network
+creation and progress updates, plus five record-only landscape captures
+(habitat, corridor, hedgerow, buffer check, biodiversity assessment). The
+routes use exact OIDC grants, signed tenant context, bounded bodies, idempotent
+receipts, identity-minimized no-store responses, and duplicate-key/NUL
+validation. The console exposes peer-network creation only; participant-linked
+progress remains an API operation without a roster UI.
+
+Database functions, grants, source-default parity, focused tests, and disposable
+PostgreSQL acceptance remain open for the final grouped validation phase. Legacy
+writers remain active; no capability or grant was retired. The new routes are
+not deployable until migrations land. No tests or migrations were run. The
+capability matrix remains at its last verified classification and acceptance
+snapshot; these source contracts are pending evidence.
+
+### Progress addendum — C1 metrics and planning preflight — 30 October 2026
+
+Metric computation now has a read/calculation-only draft API and location-bound
+Gateway list/write adapters; the old CLI insert path remains for compatibility.
+The console supports bounded metric listing, draft computation, and separately
+granted human verification. The routes install signed location context, validate
+calculated values and source references, and derive reviewer identity from the
+authenticated session. Their database functions and grants are pending, so the
+routes are not deployable yet. Planning create now checks canonical
+`YYYY-MM-DD` values and ordered dates before service/database acquisition. No
+tests or migrations were run; capability classifications and verified
+acceptance counts are unchanged.
+
+
+### Progress addendum — C1 integration and documentation parity — 31 October 2026
+
+The previously pending migration-700–703 validation is complete. The focused
+Gateway/console/source/ACL/migration/parser selection passes 216 tests
+([test evidence](builds/2026-10-30-recovery/c1-700-703-focused-tests.json)).
+The ordered native replay passes 694/694 schema files and 38 two-tenant
+operator checks; the network-disabled ARM64/QEMU replay passes the same 694
+files and 38 checks, with no seeds or host ports and disposable cleanup
+([native replay](builds/2026-10-30-recovery/kernel-c1-full-schema-703-native-r2.json),
+[ARM64/QEMU replay](builds/2026-10-30-recovery/kernel-c1-full-schema-703-arm64-r1.json)). QEMU is software portability evidence only; no physical Raspberry Pi acceptance is claimed.
+
+ClickHouse fixed TTLs are now absent from fresh DDL. Schema 011 is a manifest
+applied through `scripts/apply-clickhouse-retention.py`, which inspects each
+table and runs `REMOVE TTL` only when the table still declares a TTL. The
+network-disabled pinned-image check passes fresh-bootstrap skip, all eight
+simulated legacy TTL removals, repeat application, and preservation of an
+old-dated event after a merge
+([ClickHouse evidence](builds/2026-10-30-recovery/clickhouse-retention-no-prune-disposable.json)). No persistent ClickHouse target was changed; apply and verify it on each existing analytics target before enabling ingestion.
+
+The repository documentation index now identifies the current-state guide as
+the maintained architecture/status source. Stale agent-safety counts and scope
+claims, unqualified legacy seed commands, and the old full-stack architecture
+visual have been corrected or clearly marked historical. The project-owned
+Markdown link audit covers 416 files and 10,243 local links, with zero missing
+targets
+([audit](builds/2026-10-30-recovery/documentation-link-audit.json)); it checks
+link existence, not every external URL or semantic claim.
+
+The source/ACL report still records 979 tables with runtime DML while RLS is
+disabled and 41 unresolved write candidates; these are privilege-reach counts,
+not confirmed leaks. Metric source IDs remain shape-checked but are not
+independently mapped to the requested location in SQL. Candidate, legacy, and
+production PostgreSQL/ClickHouse data and roles were not touched. The batch
+checklist now records 2,152 complete / 29 open, and the TODO queue 746 checked
+/ 28 open. Physical-device, populated-data, live-provider, owner, target
+rollout, and broader tenant-isolation gates remain open.

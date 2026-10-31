@@ -103,6 +103,9 @@ def register_landscape_conservation_routes(router, provider, run_in_threadpool, 
     from starlette.requests import Request
 
     from services.common.tenant_context import TenantContextDenied
+    from services.gateway.landscape_conservation_mutation_routes import (
+        register_landscape_conservation_mutation_routes,
+    )
     from services.gateway.landscape_conservation_reads import get_location_landscape_summary
 
     @router.get(
@@ -164,3 +167,7 @@ def register_landscape_conservation_routes(router, provider, run_in_threadpool, 
             jsonable_encoder(validated.model_dump(mode="json")),
             headers={"Cache-Control": "no-store", "Vary": "Cookie"},
         )
+
+    register_landscape_conservation_mutation_routes(
+        router, provider, run_in_threadpool, psycopg2
+    )

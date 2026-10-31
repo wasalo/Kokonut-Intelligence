@@ -1,10 +1,18 @@
 # Agent & MCP Access Guide
 
-Kokonut Intelligence supports AI agent access through the Directus REST API with role-based permission policies. Agents interact with the same governed objects as humans, under the same permission model — with additional safety enforcement layers that prevent agents from verifying, publishing, or modifying human-governed records.
+This guide describes the optional Directus compatibility/admin adapter and its
+agent roles. The Kernel-native integration surface is the Kokonut Gateway and
+its supported SDKs; Directus tokens and Gateway credentials are separate
+boundaries. Agents access governed objects under the permissions of the chosen
+surface, with additional safety controls that prevent agents from verifying or
+publishing governed records.
 
 Agent identity, payment, escrow, and reputation logic are not implemented in this repository. Those marketplace concerns remain external and are attributed to `Kokonut-Agentic-Marketplace`. This repository stores metadata, capability manifests, task records, action logs, and governed data access patterns.
 
-Directus 12.1.1 includes native MCP (Model Context Protocol) support as a product feature. This repository does not implement a custom MCP server — agents connect via the Directus REST API or the platform's built-in MCP interface.
+The repository does not configure or implement an MCP server for Directus.
+Directus MCP features described by upstream documentation are not a Kokonut
+integration until separately deployed and verified. Directus REST and the
+Gateway API/SDK paths are distinct integrations.
 
 ## Agent Metadata Collections
 
@@ -98,7 +106,10 @@ await client.createItem("ai_summary", {
 
 ### Directus MCP Interface
 
-Directus 12.1.1 exposes an MCP-compatible interface that allows AI agents to read and write data. Agents authenticate with scoped tokens and are subject to the same role-based permissions. See the [Directus MCP documentation](https://docs.directus.io/guides/mcp.html) for configuration details.
+No Directus MCP server, endpoint, configuration, or test is present in this
+repository. Do not use this as an available connection path until a specific
+deployment is configured and its authentication and permission behavior is
+verified.
 
 ## Authentication Paths
 

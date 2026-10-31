@@ -119,7 +119,7 @@ Key services: `services/ingestion/weather.py`,
 `services/ingestion/remote_sensing_fetcher.py`,
 `services/ingestion/sensor_ingester.py`,
 `services/ingestion/anomaly_detector.py`,
-`services/analytics/climate_data.py`
+`services/ingestion/climate_data.py`, `services/flows/climate_data.py`
 
 Key migrations: `005_environmental.sql`, `011_sensor_registry.sql`,
 `077_telemetry_infrastructure.sql`
@@ -783,15 +783,13 @@ Key tables:
   `federation_protocol`, `algorithmic_redistribution_mechanism`,
   `participatory_signal_experiment`
 
-Key services: `services/agents/*_agent.py`,
-`services/analytics/holistic_wellbeing.py`,
-`services/analytics/financial_resilience.py`,
-`services/analytics/capital_efficiency.py`,
-`services/analytics/commons_liberation.py`,
-`services/analytics/gnh_alignment.py`,
-`services/analytics/regenerative_outcomes.py`,
-`services/analytics/open_source_capitalist_scaling.py`,
-`services/analytics/kokonut_commons_governance.py`
+Key services: capability agents under `services/agents/` (including
+`wellbeing_agent.py`, `resilience_agent.py`, `capital_efficiency_agent.py`,
+`commons_agent.py`, `gnh_agent.py`, `regenerator_agent.py`,
+`open_source_capitalist_agent.py`, and `kokonut_commons_agent.py`), plus
+report projections under `services/export/reports/` (including
+`wellbeing.py` and the `commons/` package). These are agents/report services,
+not standalone per-capability analytics modules.
 
 Key migrations: `034_holistic_wellbeing.sql`,
 `035_financial_resilience_and_scaling.sql`,

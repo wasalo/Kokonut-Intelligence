@@ -1,13 +1,41 @@
 # Operator Guide
 
-This guide describes the minimum operating flow for Kokonut Adelphi and future pilot farms. PostgreSQL/Directus is the canonical operational record; ClickHouse is the analytical event store.
+This guide covers governed operating practices for Kokonut Network farms.
+PostgreSQL/PostGIS is the canonical operational record. The native Gateway,
+operator console, and service workflows are the Kernel application layer;
+Directus and ClickHouse are optional adapters, not prerequisites.
+
+> [!IMPORTANT]
+> Kernel capability and production acceptance are still in progress. Do not
+> infer that every legacy farm workflow is available in the current candidate.
+> Use the [current refactor status and implementation guide](refactor/current-state-and-implementation.md)
+> to confirm which operator workflows, data boundaries, and deployment gates
+> have passed. This guide describes safe operating rules, not a release
+> certification.
+
+## Choose The Deployment Path
+
+- **Kernel candidate:** use the isolated profile planner and project name. It
+  does not import legacy data, run migrations, or seed pilot rows
+  automatically. See [Kernel deployment](deployment.md#kernel-candidate-current-development-path)
+  and [candidate migration targeting](migrations.md#kernel-candidate-targeting).
+- **Legacy Compose:** the bootstrap commands below are retained for compatibility
+  and use the legacy project/manifests. Do not run them against a candidate
+  database. Do not use `docker compose down -v` as routine cleanup.
+- **Standard profile:** API and worker processes are separated. The worker has
+  no HTTP health endpoint; inspect durable scheduler/run/delivery state.
+  Standard profile use still depends on the gates in the refactor guide.
 
 ## Bootstrap And Recovery
 
-Use encrypted secrets when available. Do not copy decrypted secrets into files, logs, tickets, or commits.
+The following is the **legacy-stack** bootstrap, not a Kernel bootstrap. Use
+encrypted secrets when available. Do not copy decrypted secrets into files,
+logs, tickets, or commits.
 
 ```bash
 source scripts/load-secrets.sh
+export COMPOSE_PROJECT_NAME=kokonut-legacy-dev
+export COMPOSE_FILE="$PWD/docker-compose.yml"
 docker compose up -d
 ./scripts/seed.sh
 ./scripts/seed-pilot.sh
@@ -19,15 +47,25 @@ docker compose up -d
 - Set `KOKONUT_METRICS_EXECUTION=host` when metric computation must run on the host; otherwise the script selects a one-shot Compose worker.
 - Check service state with `docker compose ps` and logs with `docker compose logs SERVICE`.
 - Run `./scripts/backup.sh` before migrations or destructive maintenance and test the backup before relying on it.
-- Run `python3 -m services.migration status`, then `dry-run`, then `migrate`. Run one migration process at a time. Never edit an applied migration; add a new migration instead.
+- For a deliberate legacy operation, pin `COMPOSE_PROJECT_NAME` and
+  `COMPOSE_FILE` as shown above. For a candidate or any non-default target, use
+  the migration runner's explicit `--compose-project` and `--compose-file`
+  options; see [migration targeting](migrations.md#kernel-candidate-targeting).
+  Review `status`, then `plan`, before `migrate`. Run one migration process at
+  a time. Never edit an applied migration; add a new migration instead.
 - The migration status and dry-run commands reconcile the tracking table, so they are not strictly read-only database operations.
-- If a migration fails, inspect database state and `schema_migration` before retrying. Repository SQL can contain transaction control and may be partially committed.
+- A failed migration statement rolls that migration and its tracking row back in the runner's transaction. If the client disconnects near completion, inspect the same explicitly selected target and `schema_migration` before retrying; see the [migration recovery procedure](migrations.md#transaction-boundaries-and-failure).
 - Use `./scripts/schema-snapshot.sh` for a Directus schema snapshot. Access databases through Compose service names, not undocumented host ports.
 - Run `./scripts/health-check.sh --json` for machine-readable service and resource health; add `--alert` only when alert delivery is configured.
 
 ## Daily And Weekly Data Entry
 
-- Create operational records in Directus as `draft`.
+- Use the authenticated native Gateway/operator workflow that is documented for
+  the record type and selected deployment. Directus is optional; use it only
+  when its role, row, field, and extension-hook permissions are accepted for
+  that deployment and collection. Do not bypass a missing Gateway workflow by
+  granting broad database or Directus writes.
+- Create governed operational records as `draft`.
 - Submit records only when source fields, dates, units, lineage fields, and evidence references are complete.
 - Use `verified` and `published` only through the applicable human review workflow. `rejected` means rework or exception, not payment failure.
 - Keep private evidence offchain; store only hashes, CIDs, UIDs, transaction hashes, and timestamps in public metadata.
@@ -61,18 +99,19 @@ python3 -m services.metrics --verify-value UUID \
 
 ## Agent Assistance
 
-Agents may prepare read-only outputs or draft governed records:
-
-```bash
-python3 -m services.agents.feedback_agent --location-id UUID --store
-python3 -m services.agents.ai_summary --location-id UUID --summary-type combined --store
-python3 -m services.agents.cids_agent --location-id UUID --summary
-python3 -m services.agents.open_source_capitalist_agent --location-id UUID --store
-```
-
-- `--store` writes a draft for human review; without it, summary agents do not persist the output.
-- Read-only generation for the ten registered shared synthesis agents and the deterministic AI summary uses separate signed source-reader credentials, migrations 543/544, and an exact `ai_summary/read` grant for the selected location. EBF, CIDS, and Delphi each use task-specific credentials and SET-only login roles; migration 580 gives each reader role access only to its own projection, in addition to its exact signed location grant. None falls back to the shared `PG_*` connection. Worker credentials and grants still require deployment provisioning; the optional one-shot profiles and variable names are listed in `.env.example` and `docker-compose.worker.yml`.
-- Run the isolated EBF reader with `docker compose -f docker-compose.yml -f docker-compose.worker.yml --profile ebf-evidence-gap-worker run --rm ebf-evidence-gap-worker --scorecard-id UUID --location-id UUID`. It receives only the dedicated source DSN and credential; the exact location authorization is enforced by the signed database grant.
+- Agent execution is task-specific. Check `services/agents/tasks.py` and the
+  current worker-boundary inventories before selecting a command, identity,
+  allowed write, or source view. Some historical CLI helpers intentionally
+  fail closed before database access because they have no authenticated tenant
+  identity; a command being present in the repository is not authorization to
+  execute it.
+- Where enabled, read-only synthesis uses task-specific source-reader
+  credentials and signed location grants. Worker credentials and grants require
+  deployment provisioning; the optional profile variables are documented in
+  `.env.example` and the applicable Compose overlay.
+- Use a `--store` or other mutating option only when its task contract explicitly
+  authorizes the destination and it creates a governed draft for human review.
+  Do not infer this behavior across all agents.
 - Agents cannot verify or publish governed records, approve recommendations, attest, submit onchain actions, or autonomously execute financial or destructive actions.
 - Check the task catalogue in `services/agents/tasks.py` for each agent’s inputs, outputs, writes, and risk classification.
 - Treat agent-generated summaries, EBF drafts, recommendations, tactical opportunities, and credit proposals as advisory or draft material until a human completes the applicable workflow.
@@ -108,7 +147,7 @@ python3 -m services.events --dispose-dead-letter --event-id UUID \
   --disposition resolved --actor OPERATOR --reason "Fixed upstream"
 ```
 
-- Use `--process` for a bounded processing pass, `--cleanup` for retention cleanup, and `--batch-size`/`--lease-seconds` only with an operational reason.
+- Use `--process` for a bounded processing pass and `--batch-size`/`--lease-seconds` only with an operational reason. Retention cleanup remains disabled until an approved, configured retention and legal-hold policy is available; do not enable it by setting the feature flag alone.
 
 ## Threatcasting, Backcasting, And Delphi
 

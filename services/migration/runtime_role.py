@@ -129,6 +129,23 @@ _REPORT_SNAPSHOT_EXPORT_WORKER_FUNCTIONS = (
     "kokonut_security.read_report_snapshot_export_source(uuid,text,uuid)",
     "kokonut_security.finish_report_snapshot_export_attempt(uuid,text,uuid,boolean,text,integer,uuid,text,bigint)",
 )
+_METRIC_VALUE_KERNEL_FUNCTIONS = (
+    "kokonut_security.create_location_metric_value_draft(uuid,uuid,uuid,text,date,date,numeric,text,text,uuid[],jsonb)",
+    "kokonut_security.verify_location_metric_value(uuid,uuid,uuid,text)",
+    "kokonut_security.list_location_metric_values(uuid,text,integer)",
+)
+_GOVERNANCE_TENSION_ACTION_FUNCTIONS = (
+    "kokonut_security.mutate_governance_tension_action(uuid,uuid,text,uuid,jsonb,text)",
+)
+_EXTENSION_LEARNING_WRITE_FUNCTIONS = (
+    "kokonut_security.create_extension_peer_network(uuid,uuid,text,text,text,integer,text,text,jsonb)",
+    "kokonut_security.update_extension_learning_progress(uuid,uuid,uuid,text,numeric,numeric,integer,jsonb)",
+    "kokonut_security.extension_learning_grant_allows(uuid,text,uuid)",
+    "kokonut_security.extension_compact_json_text(jsonb)",
+)
+_LANDSCAPE_CAPTURE_FUNCTIONS = (
+    "kokonut_security.create_location_landscape_record(uuid,text,uuid,jsonb,text)",
+)
 _REPORT_SNAPSHOT_EXPORT_FUNCTIONS = (
     *_REPORT_SNAPSHOT_EXPORT_RUNTIME_FUNCTIONS,
     *_REPORT_SNAPSHOT_EXPORT_WORKER_FUNCTIONS,
@@ -205,6 +222,13 @@ _SECURITY_DEFINER_OWNERS = (
         (function, "kokonut_report_snapshot_export_owner")
         for function in _REPORT_SNAPSHOT_EXPORT_FUNCTIONS
     ),
+    *((function, "kokonut_metric_value_manager") for function in _METRIC_VALUE_KERNEL_FUNCTIONS),
+    *((function, "kokonut_governance_action_owner") for function in _GOVERNANCE_TENSION_ACTION_FUNCTIONS),
+    *(
+        (function, "kokonut_extension_learning_writer")
+        for function in _EXTENSION_LEARNING_WRITE_FUNCTIONS
+    ),
+    *((function, "kokonut_landscape_capture_writer") for function in _LANDSCAPE_CAPTURE_FUNCTIONS),
     *((function, "kokonut_notification_delivery_owner") for function in _NOTIFICATION_DELIVERY_FUNCTIONS),
     *((function, "kokonut_event_dispatch_owner") for function in _EVENT_DISPATCH_FUNCTIONS),
     *(
@@ -236,6 +260,10 @@ _PRIVATE_RUNTIME_FUNCTIONS = (
     *_FRESHNESS_WORKER_FUNCTIONS,
     *_CLICKHOUSE_OUTBOX_WORKER_FUNCTIONS,
     *_REPORT_SNAPSHOT_EXPORT_FUNCTIONS,
+    *_METRIC_VALUE_KERNEL_FUNCTIONS,
+    *_GOVERNANCE_TENSION_ACTION_FUNCTIONS,
+    *_EXTENSION_LEARNING_WRITE_FUNCTIONS,
+    *_LANDSCAPE_CAPTURE_FUNCTIONS,
     *_NOTIFICATION_DELIVERY_FUNCTIONS,
     *_EVENT_DISPATCH_FUNCTIONS,
     *_SENSOR_INGESTION_FUNCTIONS,
@@ -1012,6 +1040,8 @@ _RUNTIME_PRIVATE_TABLES = (
     "delphi_recommendation_draft_request",
     "delphi_recommendation_review_decision",
     "delphi_stopping_evaluation",
+    "extension_learning_progress_update_receipt",
+    "extension_peer_network_create_receipt",
     "governance_definition_action_event",
     "governance_definition_mutation_event",
     "governance_role_assignment_decision",
@@ -1019,6 +1049,11 @@ _RUNTIME_PRIVATE_TABLES = (
     "governance_tactical_action_event",
     "governance_tactical_content_event",
     "governance_tactical_session_creation_event",
+    "governance_tension_action_request",
+    "landscape_capture_receipt",
+    "metric_value_compute_receipt",
+    "metric_value_operator_audit",
+    "metric_value_verification_receipt",
     "operating_capacity_review_decision",
     "operating_demand_review_decision",
     "operating_learning_plan",
@@ -1646,6 +1681,15 @@ def provision_runtime_role(
         raise ValueError("application logins must differ from the ClickHouse outbox function owner")
     if "kokonut_report_snapshot_export_owner" in role_names:
         raise ValueError("application logins must differ from the report snapshot export function owner")
+    if "kokonut_metric_value_manager" in role_names:
+        raise ValueError("application logins must differ from the metric-value function owner")
+    for owner_role, owner_label in (
+        ("kokonut_governance_action_owner", "governance-action"),
+        ("kokonut_extension_learning_writer", "extension-learning"),
+        ("kokonut_landscape_capture_writer", "landscape-capture"),
+    ):
+        if owner_role in role_names:
+            raise ValueError(f"application logins must differ from the {owner_label} function owner")
     if "kokonut_notification_delivery_owner" in role_names:
         raise ValueError("application logins must differ from the notification-delivery function owner")
     if "kokonut_event_dispatch_owner" in role_names:

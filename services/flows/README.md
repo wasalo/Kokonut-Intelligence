@@ -1,6 +1,8 @@
 # flows
 
-`services.flows` — Kokonut Intelligence Prefect workflow definitions.
+`services.flows` — Kokonut Intelligence Prefect workflow definitions. Prefect
+is an optional orchestration adapter; Kernel scheduling defaults to the native
+durable scheduler and worker runtime.
 
 ## Modules
 

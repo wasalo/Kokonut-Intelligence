@@ -383,6 +383,42 @@ def create_provider() -> OIDCOperatorProvider | None:
 
 def auth_route_policy(method: str, path: str, *, enabled: bool) -> dict | None:
     """Return middleware policy only for the small, explicit OIDC endpoint set."""
+    metric_value_compute_match = re.fullmatch(
+        r"/operator/api/metrics/([0-9a-fA-F-]{36})/values", path
+    )
+    if metric_value_compute_match and method.upper() == "GET" and enabled:
+        return {
+            "resource": "metric_value",
+            "action": "read",
+            "public": False,
+            "location_id": metric_value_compute_match.group(1),
+            "scope_required": True,
+            "operator_auth": True,
+        }
+    if metric_value_compute_match and method.upper() == "POST" and enabled:
+        return {
+            "resource": "metric_value",
+            "action": "compute",
+            "public": False,
+            "location_id": metric_value_compute_match.group(1),
+            "scope_required": True,
+            "operator_auth": True,
+        }
+
+    metric_value_verify_match = re.fullmatch(
+        r"/operator/api/metrics/([0-9a-fA-F-]{36})/values/([0-9a-fA-F-]{36})/verify",
+        path,
+    )
+    if metric_value_verify_match and method.upper() == "POST" and enabled:
+        return {
+            "resource": "metric_value",
+            "action": "verify",
+            "public": False,
+            "location_id": metric_value_verify_match.group(1),
+            "scope_required": True,
+            "operator_auth": True,
+        }
+
     delphi_study_item_match = re.fullmatch(
         r"/operator/api/delphi/([0-9a-fA-F-]{36})/studies/([0-9a-fA-F-]{36})/items",
         path,
@@ -696,6 +732,34 @@ def auth_route_policy(method: str, path: str, *, enabled: bool) -> dict | None:
             "operator_auth": True,
         }
 
+    extension_peer_network_match = re.fullmatch(
+        r"/operator/api/extension-learning/([0-9a-fA-F-]{36})/peer-networks",
+        path,
+    )
+    if extension_peer_network_match and method.upper() == "POST" and enabled:
+        return {
+            "resource": "extension_learning",
+            "action": "create_peer_network",
+            "public": False,
+            "location_id": extension_peer_network_match.group(1),
+            "scope_required": True,
+            "operator_auth": True,
+        }
+
+    extension_progress_update_match = re.fullmatch(
+        r"/operator/api/extension-learning/([0-9a-fA-F-]{36})/progress/([0-9a-fA-F-]{36})",
+        path,
+    )
+    if extension_progress_update_match and method.upper() == "PATCH" and enabled:
+        return {
+            "resource": "extension_learning",
+            "action": "update_progress",
+            "public": False,
+            "location_id": extension_progress_update_match.group(1),
+            "scope_required": True,
+            "operator_auth": True,
+        }
+
     cooperative_management_match = re.fullmatch(
         r"/operator/api/cooperatives/([0-9a-fA-F-]{36})/summary", path
     )
@@ -999,6 +1063,21 @@ def auth_route_policy(method: str, path: str, *, enabled: bool) -> dict | None:
             "action": "read",
             "public": False,
             "location_id": landscape_summary_match.group(1),
+            "scope_required": True,
+            "operator_auth": True,
+        }
+
+    landscape_capture_match = re.fullmatch(
+        r"/operator/api/landscape/([0-9a-fA-F-]{36})/"
+        r"(habitats|corridors|hedgerows|buffer-checks|biodiversity-assessments)",
+        path,
+    )
+    if landscape_capture_match and method.upper() == "POST" and enabled:
+        return {
+            "resource": "landscape_conservation",
+            "action": "create",
+            "public": False,
+            "location_id": landscape_capture_match.group(1),
             "scope_required": True,
             "operator_auth": True,
         }
@@ -3519,6 +3598,20 @@ def auth_route_policy(method: str, path: str, *, enabled: bool) -> dict | None:
             "operator_auth": True,
         }
 
+    governance_tension_action_match = re.fullmatch(
+        r"/operator/api/governance/([0-9a-fA-F-]{36})/tensions/([0-9a-fA-F-]{36})/actions/(triage|start|link|link_work_item|resolve|defer)",
+        path,
+    )
+    if governance_tension_action_match and method.upper() == "POST" and enabled:
+        return {
+            "resource": "governance_tension",
+            "action": governance_tension_action_match.group(3),
+            "public": False,
+            "location_id": governance_tension_action_match.group(1),
+            "scope_required": True,
+            "operator_auth": True,
+        }
+
     attestation_match = re.fullmatch(
         r"/operator/api/attestations/([0-9a-fA-F-]{36})", path
     )
@@ -5894,6 +5987,7 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
         register_landscape_conservation_routes,
     )
     from services.gateway.management_work_routes import register_management_work_routes
+    from services.gateway.metric_value_routes import register_metric_value_routes
     from services.gateway.nutrient_balance_routes import register_nutrient_balance_routes
     from services.gateway.operating_pilot_routes import (
         register_operating_pilot_routes,
@@ -5925,6 +6019,7 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
     register_credit_custody_routes(router, provider, run_in_threadpool, psycopg2)
     register_traceability_routes(router, provider, run_in_threadpool, psycopg2)
     register_extension_learning_routes(router, provider, run_in_threadpool, psycopg2)
+    register_metric_value_routes(router, provider, run_in_threadpool, psycopg2)
     register_cooperative_management_routes(router, provider, run_in_threadpool, psycopg2)
     register_trend_analysis_routes(router, provider, run_in_threadpool, psycopg2)
     register_geostatistics_routes(router, provider, run_in_threadpool, psycopg2)

@@ -1,6 +1,14 @@
 # PostgreSQL runtime-role policy
 
-Status: opt-in application and operator-auth roles are implemented. Operator
+> **Current status reference:** This role design and its early candidate
+> observations are historical acceptance snapshots, not a current deployment
+> report. Migration 700–703 source is present in this branch; deployment of
+> those migrations and a fresh role-provisioner run are not claimed here. Use
+> the [current refactor status guide](current-state-and-implementation.md)
+> for verified gates and recheck the selected target's role catalog before
+> making operational changes.
+
+Historical status: opt-in application and operator-auth roles are implemented. Operator
 session, mobile credential, and bounded device-revocation boundaries passed
 disposable PostgreSQL 16 role checks, including forced RLS; the synthetic and
 populated-restore role fixtures use the second credential. Separate Directus, Metabase metadata, and
@@ -8,8 +16,8 @@ analytics-source role boundaries also passed on isolated populated copies. No
 candidate or legacy ACL was changed by these role fixtures. Separately,
 migrations 392–400 were applied schema-only to the local candidate after an
 encrypted checkpoint; its application-table RLS remains
-disabled. The candidate still connects as the `kokonut` superuser because
-dedicated runtime credentials are not provisioned.
+disabled. In that recorded candidate snapshot, the app connected as the
+`kokonut` superuser because dedicated runtime credentials were not provisioned.
 Metabase dashboard/source parity and full domain-workflow acceptance remain open; see
 [optional consumer roles](optional-database-roles.md).
 
