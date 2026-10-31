@@ -1887,6 +1887,57 @@ def test_schema_version_writes_remain_on_the_ordered_migration_path():
     assert "does not establish tenant isolation" in migration
 
 
+def test_cache_invalidation_rules_are_read_only_to_runtime_and_schema_owned():
+    root = Path(__file__).resolve().parents[1]
+    migration = (
+        root
+        / "schemas/postgres/710_runtime_cache_invalidation_rule_read_only.sql"
+    ).read_text()
+    schema = (root / "schemas/postgres/118_computation_cache.sql").read_text()
+    inventory = build_inventory()
+    sites = [
+        site
+        for site in inventory["execution_sites"]
+        if "cache_invalidation_rule" in site.get("candidate_relations", [])
+    ]
+    write_sites = [
+        site
+        for site in inventory["execution_sites"]
+        if "cache_invalidation_rule" in site.get("write_target_relations", [])
+    ]
+    application_writes = []
+    runtime_sql = re.compile(
+        r"\b(?:INSERT\s+INTO|UPDATE|DELETE\s+FROM|MERGE\s+INTO)\s+"
+        r"(?:public\.)?cache_invalidation_rule\b",
+        re.IGNORECASE,
+    )
+    for directory in (root / "services", root / "extensions"):
+        for path in directory.rglob("*"):
+            if path.is_file() and path.suffix in {".py", ".ts", ".js", ".sql"}:
+                if runtime_sql.search(path.read_text(errors="ignore")):
+                    application_writes.append(path.relative_to(root).as_posix())
+    directus_permissions = (root / "config/directus/permissions.sql").read_text()
+    policy_overrides = REPORTER["_SOURCE_REVOKE_POLICY_OVERRIDES"]
+
+    assert sites == []
+    assert write_sites == []
+    assert application_writes == []
+    assert "CREATE TABLE IF NOT EXISTS cache_invalidation_rule" in schema
+    assert "INSERT INTO cache_invalidation_rule" in schema
+    assert "cache_invalidation_rule" not in directus_permissions
+    assert "cache_invalidation_rule" in runtime_role._RUNTIME_MUTATION_TABLES
+    assert policy_overrides["cache_invalidation_rule"] == "runtime_mutations_denied"
+    assert migration.count("BEGIN;") == 1 and migration.count("COMMIT;") == 1
+    assert "REVOKE INSERT, UPDATE, DELETE, TRUNCATE, REFERENCES, TRIGGER " in migration
+    assert "ON TABLE public.cache_invalidation_rule FROM kokonut_runtime" in migration
+    assert (
+        "GRANT SELECT ON TABLE public.cache_invalidation_rule TO kokonut_runtime"
+        in migration
+    )
+    assert "external" in migration.lower() and "unconfirmed" in migration.lower()
+    assert "does not establish tenant isolation" in migration
+
+
 def test_mobile_credential_columns_are_excluded_from_runtime_reads():
     assert "device_token_hash" not in runtime_role._MOBILE_DEVICE_READ_COLUMNS
     assert "push_token" not in runtime_role._MOBILE_DEVICE_READ_COLUMNS

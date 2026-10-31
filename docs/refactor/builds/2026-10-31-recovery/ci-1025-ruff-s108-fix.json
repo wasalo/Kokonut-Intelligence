@@ -3,8 +3,17 @@
   "linked_run": {
     "run_id": 41172853331,
     "run_number": 1014,
-    "result": "cancelled",
-    "interpretation": "The linked job was cancelled during the complete CI gate and did not report a source assertion failure."
+    "first_attempt": {
+      "result": "failure",
+      "head_sha": "aa6a01ab053ff48f886766e19212096528b41d6d",
+      "job_log": "expired; GitHub returned 404 when queried"
+    },
+    "second_attempt": {
+      "result": "cancelled",
+      "job_id": 124544129455,
+      "cancelled_during": "ARM64 Buildx dependency installation (jsonschema wheel download); no source assertion was logged"
+    },
+    "interpretation": "The original failure cannot be identified from the expired attempt-1 log. The available retry was cancelled during ARM64 image dependency installation, before a source assertion. Later runs exposed and fixed the actionable Ruff S108 and stale runtime-SQL inventory failures."
   },
   "actual_failed_run": {
     "run_id": 41222846441,
@@ -53,7 +62,28 @@
       "status": "passed"
     }
   },
-  "next_hosted_run": "pending push of the refreshed source inventory and migration 709 batch",
+  "follow_up_hosted_runs": {
+    "ci_1027": {
+      "run_id": 41224945743,
+      "head_sha": "450ae3d2ecd142222d8e653d4b7bfeed98b3c4a7",
+      "attempt_1": {
+        "result": "cancelled",
+        "reason_observed": "Hosted runner shutdown signal while the complete CI step was still executing; no source assertion was reported."
+      },
+      "attempt_2": {
+        "result": "cancelled",
+        "reason_observed": "Hosted runner shutdown signal while the complete CI step was still executing; Gateway and gRPC returned healthy responses immediately beforehand and no source assertion was reported."
+      },
+      "kernel_image": "passed",
+      "security_run": {
+        "run_id": 41224945812,
+        "run_number": 751,
+        "result": "passed"
+      },
+      "complete_hosted_ci_gate": "open; the environmental cause of repeated runner shutdown is unconfirmed"
+    }
+  },
+  "next_hosted_run": "obtain a complete hosted full-CI run after investigating the repeated hosted-runner shutdown; do not treat the cancelled attempts as source failures or green CI",
   "follow_up_pre_push": {
     "code_default_path": "~/.local/state/kokonut/worker-progress/supervisor.json",
     "standard_compose_path": "/var/lib/kokonut/worker-progress/supervisor.json",

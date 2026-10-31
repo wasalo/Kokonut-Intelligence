@@ -114,6 +114,26 @@ apply the restriction to a persistent candidate or production target until
 that identity contract is checked. This focused test is not a full-schema
 replay or tenant-isolation acceptance.
 
+Migration 710 makes the schema-owned `cache_invalidation_rule` table read-only
+to `kokonut_runtime`, while retaining SELECT and Directus/maintenance writes.
+Its isolated network-disabled PostgreSQL 16 check passed apply/replay and
+table/column privilege assertions
+([evidence](builds/2026-10-31-recovery/cache-invalidation-rule-710.json)).
+Repository source review found no application, seed, or Directus writer, but
+custom/external use through the runtime login remains unconfirmed and blocks
+persistent rollout.
+
+The Standard recovery acceptance replayed the ordered schema through migration
+709 on a network-disabled, portless disposable PostgreSQL 16 project. The
+schema-only ledger was verified, followed by Standard API/worker/Caddy startup,
+fail-closed behavior without required schema, database-outage detection and
+recovery without worker restart, and graceful worker shutdown
+([evidence](builds/2026-10-31-recovery/standard-profile-recovery-709-disposable.json)).
+This confirms ordered migration integration and a Standard runtime recovery
+path; it does not rerun the two-tenant operator-scope probe or refresh the
+runtime privilege/source aggregate. The latest aggregate therefore remains
+the historical migration-707 snapshot, with 41 unresolved write candidates.
+
 The location-scoped tension, extension-learning, landscape-capture, and metric
 value source contracts now have additive SQL functions, isolated function
 owners, exact runtime grants, and private receipts/audit rows. Focused disposable

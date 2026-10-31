@@ -6,7 +6,7 @@
     "git_diff_check": "passed",
     "make_hooks_build": "passed; Directus extension bundle and TypeScript check completed",
     "make_hooks_test": "143 passed across 9 files",
-    "pytest_tests_test_github_ci_workflow": "3 passed",
+    "pytest_tests_test_github_ci_workflow": "3 passed before the follow-up umask contract was added",
     "ruff": "passed",
     "kernel_profile_tests": "70 passed",
     "kernel_release_input_lock": "passed after refreshing the SHA-256 entries for scripts/kernel-profile.py and docs/refactor/profile-selection.md"
@@ -29,5 +29,24 @@
     "full_ci_result_at_inspection": "in_progress",
     "fix": "Refresh both SHA-256 entries in config/kernel/release-input-lock.json; validate with scripts/check-kernel-release-inputs.py and focused profile tests before pushing."
   },
-  "status": "passed"
+  "follow_up_diagnosis_and_fix": {
+    "observed_on": {
+      "run_id": 41224945743,
+      "run_number": 1027,
+      "head_sha": "450ae3d2ecd142222d8e653d4b7bfeed98b3c4a7",
+      "attempt": 2,
+      "log": "Directus reported ERR_MODULE_NOT_FOUND for the bind-mounted dist/index.js after make hooks-build completed. The CI process had set umask 077 for secret files; because Directus runs under a different UID, the restrictive generated-directory/file modes explain the missing module. This diagnosis is an inference from the runner script, build ordering, and container log. Gateway and gRPC became healthy before the runner shutdown cancelled full-ci."
+    },
+    "source_fix": "Make hooks-build runs only npm build under umask 022, then sets generated dist directories to 0755 and files to 0644. The CI process retains umask 077 for secret files.",
+    "local_validation": {
+      "private_parent_umask": "0077 before and after make hooks-build",
+      "compiled_bundle_directory_mode": "0755",
+      "compiled_bundle_file_mode": "0644",
+      "hook_build_and_typescript": "passed",
+      "workflow_contract_tests": "4 passed",
+      "ruff": "passed"
+    },
+    "hosted_validation": "pending push; the latest hosted run predates the permission fix"
+  },
+  "initial_build_order_fix": "passed locally; the new bundle-permission fix is locally verified and awaits hosted validation"
 }

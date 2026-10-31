@@ -1186,6 +1186,7 @@ _RUNTIME_MUTATION_TABLES = (
     "buffer_zone_monitoring",
     "landscape_biodiversity_score",
     "schema_version",
+    "cache_invalidation_rule",
 )
 
 # Immutable audit evidence keeps SELECT/INSERT under the runtime login.

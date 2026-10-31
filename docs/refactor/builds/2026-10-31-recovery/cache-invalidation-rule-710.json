@@ -1,0 +1,12 @@
+{
+  "ok": true,
+  "migration": "710_runtime_cache_invalidation_rule_read_only.sql",
+  "migration_replay": "passed",
+  "runtime_select": "preserved",
+  "runtime_table_and_column_writes": "denied",
+  "directus_and_maintenance_writes": "preserved",
+  "network": "none",
+  "host_ports_published": false,
+  "container_cleaned_up": true,
+  "postgres_output": "migration 710 ACL assertions passed"
+}

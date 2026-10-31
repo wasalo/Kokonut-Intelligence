@@ -1,0 +1,58 @@
+{
+  "date": "2026-10-31",
+  "result": "passed",
+  "profile": "standard",
+  "command": "python3 scripts/check-kernel-standard-recovery-disposable.py",
+  "project": "kokonut-standard-recovery-9bffc45018",
+  "database_image": "postgis/postgis:16-3.4@sha256:44126d872ac91993766c341e369c539e8196614321765d36a6f1bab0419a5fa5",
+  "isolation": {
+    "host_ports_published": false,
+    "runtime_network_internal": true,
+    "candidate_legacy_production_touched": false,
+    "seed_rows": 0,
+    "cleanup_verified": {"containers": 0, "volumes": 0, "networks": 0}
+  },
+  "migrations": {
+    "schema_files_applied": 700,
+    "schema_files_failed": 0,
+    "latest_schema_migration": "schema:709_runtime_schema_version_read_only.sql",
+    "schema_only_ledger_verified": true
+  },
+  "checks": {
+    "api_worker_split": true,
+    "required_schema_missing_fails_closed": true,
+    "startup": {
+      "api_healthy": true,
+      "worker_healthy": true,
+      "worker_children_alive": true,
+      "proxy_running": true,
+      "private_supervisor_heartbeat": {
+        "directory_private": true,
+        "file_private": true,
+        "shape_valid": true
+      }
+    },
+    "database_outage": {
+      "worker_unhealthy_observed": true,
+      "recovery": {
+        "database_healthy": true,
+        "api_healthy": true,
+        "worker_healthy": true,
+        "worker_restart_count": 0,
+        "private_supervisor_heartbeat_intact": true
+      }
+    },
+    "graceful_worker_shutdown": {
+      "worker_container_stopped": true,
+      "supervisor_heartbeat_removed": true,
+      "active_work_leases_after_shutdown": 0
+    }
+  },
+  "limitations": [
+    "Short disposable restart/recovery acceptance; it does not establish 24-hour endurance or scale behavior.",
+    "No real providers, seeds, candidate, legacy, or production data were used; the internal network had no Internet egress.",
+    "Process liveness and a fresh supervisor heartbeat do not prove every live child is responsive or every handler has output parity.",
+    "The seed-free run verifies no active leases remain after shutdown; it does not simulate recovery from an interrupted long-running handler.",
+    "This is software acceptance on the current host, not physical Raspberry Pi acceptance."
+  ]
+}

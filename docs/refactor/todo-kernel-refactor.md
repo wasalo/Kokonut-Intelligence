@@ -30,9 +30,14 @@ CI #1024 (`41219570724`) received a hosted-runner shutdown just after the full
 Python suite started. Its log contains no assertion failure. The linked
 historical #1014 (`41172853331`) attempt was superseded/cancelled; attempt 1's
 logs expired. Local follow-up found and fixed a stale private-relation count in
-the source/ACL regression fixture. A separate Directus startup warning about a
-missing hook bundle remains unexplained in CI; the exact pinned image and
-bind-mount probe passes locally ([evidence](builds/2026-10-31-recovery/ci-1024-repair-local-checks.json)).
+the source/ACL regression fixture. A later CI #1027 Directus log reported its
+bind-mounted hook bundle missing even though the build completed first. Source
+review identified the CI secret umask (`077`) as making the ignored bundle
+inaccessible to Directus's different container UID. `make hooks-build` now
+limits umask `022` to compilation and normalizes generated bundle permissions;
+the CI parent shell retains `077`. Local mode and workflow tests pass; hosted
+verification of that fix remains pending
+([evidence](builds/2026-10-31-recovery/github-ci-directus-hook-order.json)).
 The user-linked CI #1014 (`41172853331`) is an older head (`aa6a01ab`):
 attempt 1 is marked failed but GitHub no longer serves its job log; attempt 2
 was cancelled during ARM64 Buildx dependency installation when newer same-PR
@@ -101,6 +106,24 @@ The earlier runtime-SQL inventory drift was fixed in `fb4cc883`.
   available. External importer use remains a persistent-rollout gate
   ([checker](../../scripts/check-schema-version-runtime-boundary-disposable.py);
   [evidence](builds/2026-10-31-recovery/schema-version-runtime-read-only-709.json)).
+- [x] Add migration 710 to keep schema-owned cache invalidation rules readable
+  while denying runtime table and column writes. Disposable PostgreSQL 16
+  apply/replay passed; Directus and maintenance writes remain available.
+  Custom external runtime-login writes are unconfirmed, so persistent rollout
+  stays gated ([evidence](builds/2026-10-31-recovery/cache-invalidation-rule-710.json)).
+- [x] Pass final-version disposable Standard recovery through the full
+  schema-only chain at migration 709: 700 schema files, zero seeds or host
+  ports, healthy API/worker/Caddy startup, missing-schema fail-closed behavior,
+  worker degradation and recovery after PostgreSQL restart without restarting
+  the worker, private heartbeat checks, clean shutdown, and project cleanup
+  ([evidence](builds/2026-10-31-recovery/standard-profile-recovery-709-disposable.json)).
+  This is not 24-hour, live-provider, populated-lease, replica, public-ingress,
+  or physical Raspberry Pi acceptance.
+- [ ] Complete hosted full CI for the latest pushed head. The S108 repair and
+  refreshed runtime-SQL inventory are committed; Security #751 and the
+  multi-architecture Kernel image job pass, but both attempts of CI #1027
+  received hosted-runner shutdown signals before the full CI gate completed
+  ([diagnosis](builds/2026-10-31-recovery/ci-1025-ruff-s108-fix.json)).
 - [x] Fix the source/ACL regression fixture to derive its expected private
   relation count from the runtime-role declarations instead of a stale fixed
   value. The rerun passes with the full focused selection
@@ -151,7 +174,9 @@ The earlier runtime-SQL inventory drift was fixed in `fb4cc883`.
   ended at hosted-runner shutdown after starting the full suite, with no
   assertion failure logged ([diagnosis](builds/2026-10-31-recovery/ci-1019-hosted-runner-shutdown.json)).
 - [ ] Obtain passing CI and Security checks on the next pushed PR head. The
-  linked run `41172853331` was cancelled, not failed; later CI #1025
+  linked run `41172853331` attempt 1 is marked failed but its log expired;
+  attempt 2 was cancelled during ARM64 image dependency installation. Its
+  original failure cause is unknown. Later CI #1025
   (`41222846441`) exposed a real Ruff S108 finding for the Standard worker
   heartbeat's `/tmp` path. The default now uses the private app-owned
   `/var/lib` directory and the exact Ruff security scan passes locally. CI

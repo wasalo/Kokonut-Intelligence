@@ -50,3 +50,12 @@ def test_ci_builds_directus_hooks_before_starting_directus() -> None:
 
     assert runner.index("=== Building Directus extension hooks ===") < hooks_build
     assert hooks_build < directus_start < hook_tests
+
+
+def test_hooks_build_publishes_compiled_bundle_for_container_uid() -> None:
+    makefile = (ROOT / "Makefile").read_text(encoding="utf-8")
+    hooks_build = makefile.split("hooks-build:\n", 1)[1].split("\nhooks-test:", 1)[0]
+
+    assert "(umask 022 && npm run build)" in hooks_build
+    assert "find dist -type d -exec chmod 0755 {} +" in hooks_build
+    assert "find dist -type f -exec chmod 0644 {} +" in hooks_build

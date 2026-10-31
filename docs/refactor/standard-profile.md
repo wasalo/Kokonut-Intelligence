@@ -115,6 +115,19 @@ and aggregate `children_alive`; it never returns process IDs or the generation
 token. In Standard Compose, the file is ephemeral container state; the profile
 adds no volume or migration for liveness.
 
+The latest disposable Standard acceptance applies the schema-only migration
+chain through migration 709, starts the API, worker, and
+Caddy, verifies the missing-schema guard, stops PostgreSQL, observes worker
+health degrade, and restarts PostgreSQL. Database, API, and worker health
+recover without restarting the worker container; heartbeat privacy and
+graceful heartbeat removal are checked, and the empty synthetic database has
+no active leases after shutdown. It uses a unique internal Compose project,
+publishes no host ports, loads no seeds, and cleans up its containers, volumes,
+and network ([acceptance evidence](builds/2026-10-31-recovery/standard-profile-recovery-709-disposable.json);
+[runner](../../scripts/check-kernel-standard-recovery-disposable.py)). This
+does not prove long-running handler lease reclaim, provider recovery, 24-hour
+endurance, scale, or physical Raspberry Pi behavior.
+
 The default stale-work grace period is 300 seconds and can be changed with
 `KOKONUT_WORKER_PROGRESS_STALE_SECONDS`; the default maximum due-backlog age is
 900 seconds and can be changed with
@@ -151,14 +164,19 @@ Multiple worker replicas and API replicas remain scale acceptance work.
 The Standard-profile planner change passes its focused planner and ZITADEL
 contract suites, plus Compose configuration parsing with synthetic placeholder
 values. These source checks do not start services or validate public ingress.
-No migrations, queued work, or running-container changes were performed.
+Those planner checks do not change the candidate, legacy, or production
+deployment; the separate disposable recovery acceptance below applies only to
+its synthetic database and removes that project afterward.
 
-Pending acceptance: API has no embedded workers; worker has no API; both roles
-use identical code and provider settings; worker leases, retries, dead letters,
-restart and shutdown preserve durable state; disabled-worker mode fails startup;
-replicas have distinct identities; job/event parity and operational alert
-routing pass. The health probe does not by itself demonstrate provider outage
-recovery, multi-replica behavior, or notification delivery to an operator.
+Source and disposable acceptance now prove the API/worker role split, missing-
+schema fail-closed behavior, healthy startup, PostgreSQL outage detection and
+recovery, and graceful shutdown without active leases in the empty synthetic
+database. Remaining acceptance includes populated-data lease/retry recovery,
+provider outages and real delivery, disabled-worker behavior against an
+explicit deployment, replica identity/scale, public ingress and trusted proxy
+policy, operator alert routing, 24-hour endurance, and physical Raspberry Pi
+testing when hardware is available. The health probe is one signal; it does
+not establish provider recovery or multi-replica safety.
 
 Rollback: stop and remove only the separate candidate worker, allow in-flight
 leases to settle, then recreate the candidate app using the base manifest's

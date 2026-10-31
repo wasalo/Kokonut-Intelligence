@@ -9719,10 +9719,11 @@ provenance ([review](current-state-and-implementation.md#c1-runtime-acl-work-cur
   maintenance writes ([source audit](builds/2026-10-31-recovery/farmer-role-707-source-audit.json);
   [acceptance](builds/2026-10-31-recovery/farmer-role-runtime-read-only-707-disposable.json)).
 - [x] Diagnose the user-linked CI #1014 attempt 2 as superseded by the next
-  same-PR run before `ci-check.sh`; separately record CI #1022's runner
-  shutdown after migration, seed, pilot, and metric gates passed. Neither log
-  reports a source assertion failure; the exact current PR head still needs a
-  successful complete CI run ([#1014](builds/2026-10-31-recovery/ci-1014-superseded-run.json);
+  same-PR run before `ci-check.sh`; attempt 1 is marked failed but its log has
+  expired, so that failure's cause cannot be established. CI #1022 separately
+  received a runner shutdown after migration, seed, pilot, and metric gates
+  passed. The exact current PR head still needs a successful complete CI run
+  ([#1014](builds/2026-10-31-recovery/ci-1014-superseded-run.json);
   [#1022](builds/2026-10-31-recovery/ci-1022-hosted-runner-shutdown.json)).
 - [x] Complete native ordered replay and the two-tenant operator-scope probe
   through migration 707. All 698 ordered schema files applied with zero
@@ -9759,6 +9760,14 @@ provenance ([review](current-state-and-implementation.md#c1-runtime-acl-work-cur
   ([source regression](../../tests/test_runtime_role_boundary.py);
   [checker](../../scripts/check-schema-version-runtime-boundary-disposable.py);
   [evidence](builds/2026-10-31-recovery/schema-version-runtime-read-only-709.json)).
+- [x] Add migration 710 to preserve runtime SELECT on schema-owned
+  `cache_invalidation_rule` while denying table and residual column writes.
+  Disposable PostgreSQL 16 apply/replay passes and confirms separate
+  Directus/maintenance writes remain available. No repository writer exists;
+  external/custom runtime-login use remains unconfirmed and blocks persistent
+  rollout ([source regression](../../tests/test_runtime_role_boundary.py);
+  [checker](../../scripts/check-cache-invalidation-rule-runtime-boundary-disposable.py);
+  [evidence](builds/2026-10-31-recovery/cache-invalidation-rule-710.json)).
 - [x] Run a fresh, no-seed PostgreSQL 16 ordered replay through migration 708;
   the migration runner logged 699 applied and zero failed. A separate
   post-run ad hoc ledger query used a nonexistent column, so this records
@@ -9771,8 +9780,10 @@ provenance ([review](current-state-and-implementation.md#c1-runtime-acl-work-cur
   238 tests plus 10 subtests; Ruff, compilation, the 821-file migration source
   validator, SQL inventory, capability matrix, hook build and all 143 hook
   tests pass ([local evidence](builds/2026-10-31-recovery/ci-1024-repair-local-checks.json)).
-- [x] Diagnose the user-linked CI #1014 (`41172853331`) as superseded/cancelled,
-  not a current source assertion failure. On pushed head `4722fdd9`, full CI
+- [x] Diagnose the user-linked CI #1014 (`41172853331`): attempt 1 is marked
+  failed but its job log expired; attempt 2 was cancelled during ARM64 Buildx
+  dependency installation when CI #1015 superseded it. The original failure
+  cause is unknown. On pushed head `4722fdd9`, full CI
   #1024 (`41219570724`) received a hosted-runner shutdown while the Python
   suite had just started; no assertion failure was logged. The ARM64 image job
   and Security passed. A separate Directus startup log warned that the built
@@ -9787,13 +9798,40 @@ provenance ([review](current-state-and-implementation.md#c1-runtime-acl-work-cur
   Compose path now use private app-owned `/var/lib/kokonut/worker-progress`;
   exact local Ruff and 118 focused tests pass. CI #1026 then caught stale
   runtime-SQL inventory; it has been regenerated and its local freshness check
-  passes. Await a complete hosted run with both repairs
+  passes. Security #750 and the CI #1027 ARM64 image job pass. CI #1027 full-ci
+  attempt 1 and its rerun attempt 2 were both stopped by hosted-runner shutdown
+  signals while `Run the complete CI gate` was still executing; attempt 2 had
+  reached healthy Gateway and gRPC responses and logged no source assertion.
+  The exact environmental cause of runner shutdown is unconfirmed, so the
+  required complete hosted CI gate remains open
   ([evidence](builds/2026-10-31-recovery/ci-1025-ruff-s108-fix.json)).
+- [x] Diagnose and correct the Directus hook bundle permission issue seen in
+  the CI #1027 startup logs. `run-github-ci.sh` retains `umask 077` for secret
+  files; the shared `make hooks-build` target now builds with a scoped `022`
+  umask and normalizes the generated bundle to directory mode 0755 and file
+  mode 0644, so Directus can read the bind mount under its different UID. A
+  CI-style local build preserved the parent `0077` umask and produced the
+  expected modes; all four workflow contract tests, hook build/type check,
+  Ruff, and diff checks pass. The latest hosted run predates this fix, so
+  hosted bundle-load verification remains open
+  ([evidence](builds/2026-10-31-recovery/github-ci-directus-hook-order.json)).
 - [ ] Obtain a complete hosted CI run on the repair SHA and close the remaining
   release gate only after both required CI and Security checks pass.
+- [x] Run the final disposable Standard recovery acceptance through migration
+  709: all 700 ordered schema files applied with zero failures; the missing-
+  schema guard, API/worker/Caddy startup, PostgreSQL outage detection and
+  recovery without worker restart, private heartbeat checks, graceful
+  heartbeat removal, zero-active-lease check, and cleanup passed. It used no
+  host ports, seed rows, external egress, candidate, legacy, or production
+  target. The isolated harness contract suite passes 13 tests
+  ([tests](../../tests/test_kernel_standard_recovery_disposable.py);
+  [evidence](builds/2026-10-31-recovery/standard-profile-recovery-709-disposable.json);
+  [runner](../../scripts/check-kernel-standard-recovery-disposable.py)). The
+  short seed-free test does not verify recovery of a live leased handler,
+  provider outages, scale, 24-hour endurance, or physical Raspberry Pi behavior.
 
 Rollback: no persistent database or service was changed. Keep ordered
-migrations 704–708 in history; do not edit applied SQL. Reversing a persistent
+migrations 704–709 in history; do not edit applied SQL. Reversing a persistent
 ACL change requires a reviewed forward migration. Before persistent rollout,
 confirm external writers do not rely on `kokonut_runtime` for the reference
 tables changed by migrations 704, 706, 707, or 708. The current full-schema
