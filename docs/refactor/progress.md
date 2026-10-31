@@ -25561,3 +25561,31 @@ production PostgreSQL/ClickHouse data and roles were not touched. The batch
 checklist now records 2,152 complete / 29 open, and the TODO queue 746 checked
 / 28 open. Physical-device, populated-data, live-provider, owner, target
 rollout, and broader tenant-isolation gates remain open.
+
+### Progress addendum — Standard profile, C1 ACL guardrails, and CI ordering — 31 October 2026
+
+The Standard deployment profile now includes default loopback-only Caddy
+ingress, with an explicit `--no-proxy` path for externally managed ingress.
+Migrations 704 and 705 add a runtime read-only reference boundary and a
+migration-owned Directus relation privilege policy reapplied by the optional
+Directus role provisioner. The combined migration/profile/role-boundary
+selection passes 213 tests; the migration-705 disposable Directus acceptance
+also passes. Native ordered schema replay through migration 705 applies all
+696 schema files and passes 38 synthetic two-tenant operator checks. The
+full ARM64/QEMU replay through 705 was stopped after 583.6 seconds at migration
+116 (111/696) without an observed migration error; disposable teardown passed.
+The earlier full 703 QEMU replay and focused ARM64 checks remain the available
+portability evidence for the uncompleted suffix.
+
+The hosted CI attempt passed its multi-architecture image job but `full-ci`
+was interrupted by a runner shutdown. Log output also exposed an ordering
+defect: the ignored Directus hook bundle was built after Directus startup. The
+runner now builds hooks before starting Directus, and a source regression
+checks the ordering. The workflow tests, hook build/typecheck, and 143 hook
+tests pass locally. Hosted success remains pending a new run. Candidate,
+legacy, and production services/data were not changed. The active checklist
+records 2,158 complete / 30 open and the TODO queue 752 checked / 29 open;
+the capability classifications remain 24 baseline-retained, 7 deployed, and
+36 prepared across 67 rows. Public ingress acceptance, external importer
+ownership, refreshed post-704 ACL reporting, ARM64 full replay, populated-data
+parity, and broader tenant isolation remain open.

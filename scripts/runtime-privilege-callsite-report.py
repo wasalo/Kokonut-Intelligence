@@ -75,6 +75,10 @@ _SOURCE_REVOKE_POLICY_OVERRIDES = {
     # Benchmark references are globally readable, but writes belong to a
     # separate maintenance/import identity, not the application runtime role.
     "process_benchmark": "runtime_mutations_denied",
+    # Application reads are location-filtered; benchmark reference writes use
+    # a separate maintenance/import identity. External importer use through the
+    # runtime login is not confirmed by repository source review.
+    "living_wage_benchmark": "runtime_mutations_denied",
     # This grouped public projection is read-only in application code and is
     # guarded against becoming updatable before mutation grants are removed.
     "v_public_farm_summary": "runtime_mutations_denied",

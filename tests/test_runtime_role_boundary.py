@@ -84,7 +84,6 @@ def test_historical_full_schema_acl_snapshot_matches_its_recorded_source_policy(
         if path.name.split("_", maxsplit=1)[0].isdigit()
     )
     assert acceptance["repository_latest_migration_number"] == latest_repository_migration
-    assert acceptance["repository_latest_migration_number"] == 703
     assert acceptance["current_migration_chain_observed"] is False
     assert acceptance["production_or_candidate_state_established"] is False
 
@@ -1653,6 +1652,85 @@ def test_process_benchmark_is_read_only_to_the_runtime_role():
     ) in migration
     assert "REVOKE INSERT (%1$I), UPDATE (%1$I), REFERENCES (%1$I)" in migration
     assert "kokonut_directus_runtime" not in migration
+    assert "does not establish tenant isolation" in migration
+
+
+def test_living_wage_benchmark_is_read_only_to_runtime_with_separate_seed_boundary():
+    root = Path(__file__).resolve().parents[1]
+    migration = (
+        root / "schemas/postgres/704_runtime_living_wage_benchmark_read_only.sql"
+    ).read_text()
+    schema = (root / "schemas/postgres/062_true_cost_accounting.sql").read_text()
+    seed = (root / "schemas/seeds/062_true_cost_accounting.sql").read_text()
+    inventory = build_inventory()
+    sites = [
+        site for site in inventory["execution_sites"]
+        if "living_wage_benchmark" in site.get("candidate_relations", [])
+    ]
+    write_sites = [
+        site for site in inventory["execution_sites"]
+        if "living_wage_benchmark" in site.get("write_target_relations", [])
+    ]
+    application_sources = [
+        path
+        for directory in (root / "services", root / "extensions")
+        for path in directory.rglob("*")
+        if path.is_file() and path.suffix in {".py", ".ts", ".js"}
+    ]
+    application_writes = [
+        path
+        for path in application_sources
+        if re.search(
+            r"\b(?:INSERT\s+INTO|UPDATE|DELETE\s+FROM|MERGE\s+INTO)\s+"
+            r"(?:public\.)?living_wage_benchmark\b",
+            path.read_text(errors="replace"),
+            re.I,
+        )
+    ]
+    seed_writes = [
+        path for path in (root / "schemas/seeds").glob("*.sql")
+        if re.search(
+            r"\b(?:INSERT\s+INTO|UPDATE|DELETE\s+FROM|MERGE\s+INTO)\s+"
+            r"(?:public\.)?living_wage_benchmark\b",
+            path.read_text(errors="replace"),
+            re.I,
+        )
+    ]
+    directus_permissions = (root / "config/directus/permissions.sql").read_text()
+    analytics_source = (
+        root / "services/analytics/true_cost_accounting.py"
+    ).read_text()
+    policy_overrides = REPORTER["_SOURCE_REVOKE_POLICY_OVERRIDES"]
+
+    assert "living_wage_benchmark" in runtime_role._RUNTIME_MUTATION_TABLES
+    assert "CREATE TABLE IF NOT EXISTS living_wage_benchmark" in schema
+    assert len(sites) == 1
+    assert sites[0]["source"] == "services/analytics/true_cost_accounting.py"
+    assert sites[0]["statement_kind"] == "SELECT"
+    assert re.search(
+        r"FROM\s+living_wage_benchmark\s+WHERE\s+location_id\s*=\s*%s\s+"
+        r"AND\s+status\s*=\s*'active'\s+LIMIT\s+1",
+        analytics_source,
+        re.I,
+    )
+    assert write_sites == []
+    assert application_writes == []
+    assert seed_writes == [root / "schemas/seeds/062_true_cost_accounting.sql"]
+    assert re.search(r"living_wage_benchmark", seed, re.I)
+    assert "living_wage_benchmark" not in directus_permissions
+    assert policy_overrides["living_wage_benchmark"] == "runtime_mutations_denied"
+    assert migration.count("BEGIN;") == 1 and migration.count("COMMIT;") == 1
+    assert (
+        "REVOKE ALL PRIVILEGES ON TABLE public.living_wage_benchmark "
+        "FROM kokonut_runtime"
+    ) in migration
+    assert (
+        "GRANT SELECT ON TABLE public.living_wage_benchmark TO kokonut_runtime"
+    ) in migration
+    assert "REVOKE INSERT (%1$I), UPDATE (%1$I), REFERENCES (%1$I)" in migration
+    assert "kokonut_directus_runtime" not in migration
+    assert "separate maintenance authority" in migration
+    assert "External importer use through kokonut_runtime is unconfirmed" in migration
     assert "does not establish tenant isolation" in migration
 
 

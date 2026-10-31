@@ -24,15 +24,35 @@ incomplete in the inventory.
 
 ## Current evidence and decisions
 
-### Current cohort — migrations 700–703, 31 October 2026
+### Current cohort — migrations 700–705, 31 October 2026
+
+The detailed source/function cohort below covers migrations 700–703. Migrations
+704 and 705 add, respectively, the runtime read-only boundary for
+`living_wage_benchmark` and a migration-owned 147-relation Directus privilege
+policy reapplied by the optional role provisioner. Focused native and
+ARM64/QEMU PostgreSQL checks pass for migration 704; migration 705 replay and
+the disposable Directus role reprovisioning check pass
+([704 evidence](builds/2026-10-31-recovery/living-wage-benchmark-704-disposable.json),
+[705 evidence](builds/2026-10-31-recovery/directus-relation-policy-705-disposable.json)).
+The grouped local integration selection passes 213 tests
+([evidence](builds/2026-10-31-recovery/c1-704-705-standard-focused-tests.json)).
+The latest complete source/ACL report remains through 703; its counts are not
+current after migration 704. The full native ordered replay now passes through
+705 (696/696 migrations and 38 two-tenant checks). The attempted ARM64/QEMU
+replay through 705 was stopped after 583.6 seconds at migration 116 (111/696)
+without a migration error; cleanup passed. The earlier complete QEMU replay
+through 703 and focused ARM64 checks for 704/705 remain evidence.
+Migration 704 rollout remains gated until the owner confirms external importers
+do not use the runtime login. Migration 705 establishes reprovisioning
+resilience, not Directus API parity or tenant isolation.
 
 The location-scoped tension, extension-learning, landscape-capture, and metric
 value source contracts now have additive SQL functions, isolated function
 owners, exact runtime grants, and private receipts/audit rows. Focused disposable
 PostgreSQL/PostGIS acceptance passes for each migration; the native full-schema
 replay through 703 applies 694/694 files and passes all 38 two-tenant operator
-checks. The full ARM64/QEMU replay also passes 694/694 schemas and all 38
-two-tenant operator checks ([evidence](builds/2026-10-30-recovery/kernel-c1-full-schema-703-arm64-r1.json)); it used no seeds or host ports and cleaned up its disposable project. This is software emulation, not physical Raspberry Pi acceptance. The refreshed 703 report records
+checks. The full ARM64/QEMU replay through 703 passes 694/694 schemas and all 38
+two-tenant operator checks ([evidence](builds/2026-10-30-recovery/kernel-c1-full-schema-703-arm64-r1.json)); it used no seeds or host ports and cleaned up its disposable project. The new native replay through 705 passes 696/696 schemas and all 38 checks, with zero seeds/host ports and disposable cleanup ([evidence](builds/2026-10-31-recovery/kernel-c1-full-schema-705-native.json)). The attempted ARM64/QEMU replay through 705 was stopped after 583.6 seconds at migration 116; it reported no migration error and cleaned up. This is software emulation, not physical Raspberry Pi acceptance. The refreshed 703 report records
 148 declared policy boundaries, zero mismatches, zero direct table/column
 privilege violations, 1,367 public relations with some DML, and 979 tables with
 runtime DML while RLS is disabled. The 41 unresolved write candidates remain

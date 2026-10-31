@@ -54,14 +54,28 @@ def main() -> None:
     )
     for name in OPTIONAL:
         parser.add_argument(f"--{name.replace('_', '-')}", dest=name, action="store_true")
+    parser.add_argument(
+        "--no-proxy",
+        action="store_true",
+        help="omit the Standard profile's default Caddy ingress when using another ingress",
+    )
     parser.add_argument("--action", choices=["config", "build", "up", "ps"], default="config")
     args = parser.parse_args()
     if args.project is not None and not re.fullmatch(r"[a-z0-9][a-z0-9_-]{0,62}", args.project):
         parser.error("--project must be 1–63 lowercase letters, digits, hyphens, or underscores and start with a letter or digit")
     is_arm64 = args.target_platform == "linux/arm64"
+    selected_optional = {name for name in OPTIONAL if getattr(args, name)}
+    if args.no_proxy and args.profile != "standard":
+        parser.error("--no-proxy applies only to standard; other profiles include ingress only when requested")
+    if args.no_proxy and args.proxy:
+        parser.error("--proxy and --no-proxy cannot be selected together")
+    if args.no_proxy and args.zitadel:
+        parser.error("--zitadel includes its Caddy routes and cannot be combined with --no-proxy")
+    if args.profile == "standard" and not args.no_proxy:
+        selected_optional.add("proxy")
+
     if is_arm64 and args.profile not in {"minimal", "core", "edge", "standard", "analytics"}:
         parser.error("ARM64 currently supports only core, minimal, edge, standard, and analytics profiles")
-    selected_optional = {name for name in OPTIONAL if getattr(args, name)}
     core_capability_overlays = {"web3", "exports", "local_media"}
     selected_core_overlays = selected_optional & core_capability_overlays
     if selected_core_overlays and args.profile != "core":
@@ -82,7 +96,7 @@ def main() -> None:
         parser.error("Scale is not implemented: shared rate limits and replica recovery acceptance are pending")
     if args.separate_workers and args.profile != "analytics":
         parser.error("--separate-workers applies only to analytics; standard already separates roles")
-    if args.oidc and not args.proxy and not args.zitadel:
+    if args.oidc and "proxy" not in selected_optional and not args.zitadel and args.profile != "standard":
         parser.error("--oidc requires --proxy so operator session cookies use the HTTPS origin")
 
     files = [BASE]
@@ -93,8 +107,8 @@ def main() -> None:
         files.append("docker-compose.kernel-standard-analytics.yml")
     if args.zitadel:
         # The self-hosted provider needs the HTTPS ingress and the Gateway's
-        # OIDC client settings. Keep all three opt-in while making one flag
-        # produce a complete, ordered stack.
+        # OIDC client settings. One flag produces a complete, ordered stack;
+        # Standard already includes the shared proxy overlay by default.
         selected_optional.update({"proxy", "oidc"})
     files.extend(path for name, path in OPTIONAL.items() if name in selected_optional)
     if is_arm64:

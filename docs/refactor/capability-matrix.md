@@ -1,20 +1,26 @@
 # Capability preservation matrix
 
 **Current C1 source cohort — 31 October 2026:** Gateway contracts and additive
-migrations 700–703 now provide location-scoped governance-tension actions,
+migrations 700–703 provide location-scoped governance-tension actions,
 extension peer-network/progress writes, five record-only landscape captures,
-and metric draft/list/human-verification operations. Focused Gateway, console,
-and disposable PostgreSQL checks pass; the grouped focused source selection
-passes 216 tests ([evidence](builds/2026-10-30-recovery/c1-700-703-focused-tests.json)); native full-schema replay through 703
-applies all 694 migrations and passes the 38-check two-tenant operator probe.
-The current source/ACL report verifies 148 declared runtime boundaries with
-zero policy mismatches or direct privilege violations. ARM64/QEMU full-schema
-replay also passes 694/694 migrations and the 38-check two-tenant operator
-probe ([evidence](builds/2026-10-30-recovery/kernel-c1-full-schema-703-arm64-r1.json)); this is software emulation, not physical Raspberry Pi acceptance. No candidate, legacy, or production migration was
-applied, and the prior writers remain available. C1 is not closed: the report
-still counts 979 tables with runtime DML while RLS is disabled (privilege reach,
-not confirmed data leaks), while broad tenant/read boundaries, populated-data
-parity, remaining writers, and reviewed rollout remain open. Capability
+and metric draft/list/human-verification operations. Migrations 704–705 add a
+runtime read-only benchmark boundary and a migration-owned 147-relation
+Directus reprovisioning policy. Focused checks pass, including the grouped
+213-test migration/profile selection and disposable PostgreSQL acceptance
+([focused evidence](builds/2026-10-31-recovery/c1-704-705-standard-focused-tests.json),
+[Directus policy](builds/2026-10-31-recovery/directus-relation-policy-705-disposable.json),
+[living-wage ACL](builds/2026-10-31-recovery/living-wage-benchmark-704-disposable.json)).
+The latest runtime source/ACL report remains through migration 703: 148 declared
+runtime boundaries, now a historical snapshot after migration 704. Full native
+schema replay through 705 passes 696 migrations and 38 two-tenant operator
+checks. The attempted full ARM64/QEMU replay through 705 was stopped after
+583.6 seconds at migration 116 (111/696); it did not report a migration error
+and its disposable resources were cleaned up. The prior full QEMU replay
+through 703 and focused ARM64 checks for 704/705 remain available. QEMU is
+portability evidence, not physical Raspberry Pi acceptance. No candidate, legacy, or
+production migration was applied; legacy writers remain available. C1 is not closed:
+broader tenant/read boundaries, populated-data parity, remaining writers,
+external importer ownership, and reviewed rollout remain open. Capability
 classifications remain 24 baseline-retained, 7 deployed, and 36 prepared across
 67 rows until candidate and owner acceptance.
 

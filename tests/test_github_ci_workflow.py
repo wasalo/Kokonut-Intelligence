@@ -40,3 +40,13 @@ def test_full_ci_no_longer_waits_for_multiarch_build_before_running_tests() -> N
 
     assert "build-kernel-multiarch.sh" not in runner
     assert "=== Full Python suite (strict database mode) ===" in runner
+
+
+def test_ci_builds_directus_hooks_before_starting_directus() -> None:
+    runner = FULL_CI_RUNNER.read_text(encoding="utf-8")
+    hooks_build = runner.index("make hooks-build")
+    directus_start = runner.index("docker compose -f docker-compose.yml -f docker-compose.ci.yml up -d --wait directus")
+    hook_tests = runner.index("make hooks-test")
+
+    assert runner.index("=== Building Directus extension hooks ===") < hooks_build
+    assert hooks_build < directus_start < hook_tests

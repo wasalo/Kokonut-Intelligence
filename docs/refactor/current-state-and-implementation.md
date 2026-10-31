@@ -84,23 +84,26 @@ command and applicable rollout procedure.
 | **minimal** | Private PostgreSQL/PostGIS plus the combined Kernel app/API and enabled worker processes. | Smallest candidate deployment shape. Capability parity, recovery, live identity, and operational acceptance remain open. |
 | **core** | Minimal app built from the reduced, hash-locked dependency set. Optional Web3, exports, and local-media packages are selected explicitly. | Packaging profile, not a different data model. The current OIDC app overlay is incompatible with this reduced image. |
 | **edge** | Minimal plus encrypted local media and edge-oriented resource settings; MQTT/HTTP sensors remain separately selectable overlays. | No physical Raspberry Pi test has been performed. QEMU and source-level ARM64 checks do not establish device performance or power-loss behavior. |
-| **standard** | PostgreSQL plus distinct API and durable-worker roles. | This is the intended general-purpose starting point for an operational deployment; role provisioning, migrations, monitoring, live identity, backup/restore, and recovery acceptance still gate use. |
+| **standard** | PostgreSQL plus distinct API and durable-worker roles, with loopback-bound Caddy ingress by default. `--no-proxy` selects a separately managed ingress. | This is the intended general-purpose starting point for an operational deployment; role provisioning, migrations, monitoring, live identity, backup/restore, and recovery acceptance still gate use. The default Caddy listener is local TLS, not public production ingress. |
 | **analytics** | Minimal plus private ClickHouse analytical projection. `--separate-workers` adds standard API/worker separation. | Requires projection parity, rebuild/outage behavior, and worker recovery acceptance. Metabase is not required. |
 | **scale** | Rejected by the planner. | Multi-host/replica behavior, shared budgets, failover, measured sizing, and concurrency/recovery gates are not accepted. |
 
-Optional overlays include Caddy proxy, external OIDC client, self-hosted
-ZITADEL, gRPC, MQTT, HTTP sensor receiver, Directus compatibility, sensor
-anomaly ML, and core Web3/export/local-media packages. Each overlay has its own
-credentials, permissions, runtime, and acceptance requirements. `docker-compose.yml`
-is still the legacy integration stack; the candidate planner uses
+Optional overlays include external OIDC client, self-hosted ZITADEL, gRPC,
+MQTT, HTTP sensor receiver, Directus compatibility, sensor anomaly ML, and core
+Web3/export/local-media packages. Caddy is selected by default for Standard
+and remains optional for other profiles. Each overlay has its own credentials,
+permissions, runtime, and acceptance requirements. `docker-compose.yml` is
+still the legacy integration stack; the candidate planner uses
 `docker-compose.kernel-*` manifests and a separate Compose project. No legacy
 service or data volume is implicitly adopted by the candidate.
 
-**Standard-profile deviation from the source plan:** the owner-provided plan
-includes Caddy in Standard, but the current profile planner adds Caddy only
-when `--proxy` is selected. Therefore the current Standard command does not
-provide TLS/public ingress by itself. This remains a deployment-profile gap to
-resolve before using Standard as a public production topology.
+The planner now matches the owner-provided Standard composition by adding
+Caddy's loopback-bound TLS ingress by default. `standard --no-proxy` supports
+an external ingress; `standard --oidc` uses the default Caddy layer, while
+`standard --no-proxy --oidc` requires an externally managed HTTPS origin.
+Public DNS/TLS, firewall, trusted-proxy, secure-cookie, and browser trust
+acceptance remain open. See the [Standard profile guide](standard-profile.md)
+for exact selection and operational constraints.
 
 ARM64 image and emulated schema/runtime checks are portability evidence. The
 owner has no Raspberry Pi available, so physical-device, thermal, storage,
@@ -142,14 +145,16 @@ older counts and deployment statements are snapshots from their dates.
 
 ## C1 runtime ACL work: current batch
 
-C1 is **not closed**. The current through-703 source/ACL report finds 148
-declared runtime boundaries, zero policy mismatches or direct table/column
-privilege violations, 1,367 public relations with some DML, and 979 tables
-with runtime DML while RLS is disabled. The inventory still has 41 unresolved
-write candidates. These are privilege-reach and audit counts, not counts of
-confirmed data exposure ([current report](builds/2026-10-30-recovery/runtime-privilege-callsite-report-703.json)).
+C1 is **not closed**. The latest complete source/ACL report is through
+migration 703: it found 148 declared runtime boundaries, zero policy
+mismatches or direct table/column privilege violations, 1,367 public relations
+with some DML, and 979 tables with runtime DML while RLS is disabled. Migration
+704 adds a runtime read-only boundary, so those numbers are a dated 703
+snapshot, not current post-704 totals. Migration 705 adds a separate Directus
+reprovisioning policy and does not change runtime counts. These are privilege-
+reach and audit counts, not counts of confirmed data exposure ([703 report](builds/2026-10-30-recovery/runtime-privilege-callsite-report-703.json)).
 
-This local batch adds four additive migrations and scoped operations:
+This local batch records migrations 700–705 and scoped operations:
 
 | Migration | Added operation | Local acceptance recorded |
 | --- | --- | --- |
@@ -157,6 +162,8 @@ This local batch adds four additive migrations and scoped operations:
 | 701 | Location-scoped extension peer-network creation and progress updates, with private receipts and isolated writer owner. | Disposable PostgreSQL 16 checks for grant/context, retry, identity-minimized result and ACL behavior ([evidence](builds/2026-10-30-recovery/extension-learning-writes-701-disposable.json)). |
 | 702 | Record-only location landscape capture (habitat, corridor, hedgerow, buffer check, biodiversity assessment). | Disposable PostGIS/PostgreSQL 16 checks for location binding, geometry, defaults, lifecycle and role grants ([evidence](builds/2026-10-30-recovery/landscape-capture-702-disposable.json)). |
 | 703 | Metric draft calculation/write, bounded list and separate human verification functions. | Disposable PostgreSQL 16 checks for replay, grant, location scope, draft lifecycle, idempotency, self-review denial and ACL behavior ([evidence](builds/2026-10-30-recovery/metric-value-kernel-disposable.json)). |
+| 704 | Keep `living_wage_benchmark` readable to runtime while denying runtime table/column writes; preserve separate maintenance authority. | Focused native and ARM64/QEMU PostgreSQL checks for apply/replay, SELECT, DML denial, provisioner reapplication, and maintenance-role writes ([evidence](builds/2026-10-31-recovery/living-wage-benchmark-704-disposable.json)). External importer use through the runtime login is unconfirmed, so persistent rollout remains gated. |
+| 705 | Record migration-owned Directus relation read-only/no-access exceptions and reapply them after the optional Directus role's compatibility grants. | Migration replay and disposable PostgreSQL role acceptance cover 147 relation policies, stale table/column/sequence grant removal, and preserved compatibility grants ([evidence](builds/2026-10-31-recovery/directus-relation-policy-705-disposable.json)). This protects reprovisioning; it does not establish API/extension parity or tenant isolation. |
 
 The 700–703 functions use isolated owners. The runtime-role provisioner now
 tracks those owners/functions, revokes public function execution, and refuses
@@ -168,8 +175,13 @@ The focused checkers use synthetic records and disposable databases. They do
 not apply these migrations to the candidate, legacy, or production database.
 The grouped focused Gateway, console, source/ACL, migration, and replay-parser
 selection passes 216 tests ([evidence](builds/2026-10-30-recovery/c1-700-703-focused-tests.json)).
-The full ordered native replay through 703 passes 694/694 migrations and 38
-two-tenant operator checks ([evidence](builds/2026-10-30-recovery/kernel-c1-full-schema-703-native-r2.json)). The full ARM64/QEMU replay also passes 694/694 migrations and all 38 two-tenant operator checks, with zero seeds or host ports and disposable cleanup ([evidence](builds/2026-10-30-recovery/kernel-c1-full-schema-703-arm64-r1.json)). This is emulated portability evidence, not physical Raspberry Pi acceptance. The refreshed report verifies all 148 declared boundaries and zero direct ACL violations.
+The prior full ordered replays through 703 passed 694/694 migrations and 38
+two-tenant operator checks on native and ARM64/QEMU
+([native](builds/2026-10-30-recovery/kernel-c1-full-schema-703-native-r2.json),
+[ARM64/QEMU](builds/2026-10-30-recovery/kernel-c1-full-schema-703-arm64-r1.json)).
+The new native replay through 705 passes 696/696 migrations and all 38 checks;
+its synthetic ACL probe reports 978 public tables with runtime DML while RLS
+is disabled ([evidence](builds/2026-10-31-recovery/kernel-c1-full-schema-705-native.json)). This is a privilege-reach measure, not a confirmed exposure count. The source/ACL policy report remains the 703 snapshot; its 148-boundary aggregate is not regenerated after 704. A full ARM64/QEMU replay through 705 was stopped after 583.6 seconds at migration 116 (111/696 migrations); no migration error was observed and disposable cleanup passed ([interrupted attempt](builds/2026-10-31-recovery/kernel-c1-full-schema-705-arm64-qemu.json)). The prior complete QEMU replay through 703 and focused ARM64 checks for 704/705 remain evidence; no physical Raspberry Pi acceptance is claimed.
 This additive source batch leaves legacy writers available, does not revoke
 their direct DML, and does not establish universal tenant isolation. Broader
 C1 reconciliation and separately gated candidate rollout remain required.

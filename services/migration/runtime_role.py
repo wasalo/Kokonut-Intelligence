@@ -1134,6 +1134,7 @@ _RUNTIME_MUTATION_TABLES = (
     "quantity_unit",
     "yield_benchmark",
     "process_benchmark",
+    "living_wage_benchmark",
     "metric_definition",
     "capex_breakdown",
     "capital_source",

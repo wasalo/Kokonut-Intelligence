@@ -168,6 +168,9 @@ docker compose -f docker-compose.yml -f docker-compose.ci.yml \
     -c 'GRANT ALL ON SCHEMA public TO kokonut' \
     -c 'ALTER DATABASE kokonut_intelligence SET search_path TO public, kokonut'
 
+echo '=== Building Directus extension hooks ==='
+make hooks-build
+
 echo '=== Starting Directus and seeding ==='
 docker compose -f docker-compose.yml -f docker-compose.ci.yml up -d --wait directus
 ./scripts/seed.sh
@@ -212,6 +215,6 @@ echo '=== Solidity checks ==='
 (cd contracts && forge fmt --check && forge build --sizes && forge test)
 
 echo '=== Directus hook checks ==='
-(cd extensions/kokonut-hooks && npm ci --no-audit --no-fund && npm run build && npm test)
+make hooks-test
 
 echo 'All CI checks completed successfully.'

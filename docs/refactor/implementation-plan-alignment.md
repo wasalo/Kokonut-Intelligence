@@ -47,15 +47,17 @@ and end-to-end tenant authorization remain open. Current C1 counts and replay
 status are maintained in the [consolidated guide](current-state-and-implementation.md)
 and [C1 closure plan](c1-runtime-acl-closure-plan.md).
 
-## Deployment-profile deviation
+## Deployment-profile alignment
 
 The source plan's Standard profile includes Caddy as the TLS ingress layer.
-The current `scripts/kernel-profile.py standard` composition selects the
-candidate and the standard API/worker overlay; Caddy is included only when the
-operator explicitly adds `--proxy`. Standard therefore does not currently
-provide public TLS ingress by default. Resolve this plan/code divergence before
-declaring Standard ready for public production use; see the
-[current profile summary](current-state-and-implementation.md#deployment-profiles-in-the-current-planner).
+The current `scripts/kernel-profile.py standard` composition now includes
+`docker-compose.kernel-proxy.yml` by default, with host listeners bound to
+loopback. `standard --no-proxy` selects an externally managed ingress, and
+`standard --oidc` keeps Caddy without a redundant flag. This closes the
+source-plan/profile-selection mismatch; it does not establish public ingress,
+trusted-proxy, DNS, firewall, certificate-trust, or production acceptance.
+See the [current profile summary](current-state-and-implementation.md#deployment-profiles-in-the-current-planner)
+and [Standard profile guide](standard-profile.md).
 
 ## Source-plan caveats for current execution
 

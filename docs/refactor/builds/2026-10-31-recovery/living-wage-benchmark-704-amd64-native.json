@@ -1,0 +1,418 @@
+{
+  "append_only_access_audit_log": {
+    "migration_applied_and_replayed": true,
+    "provisioner_reapplied_after_compatibility_grants": true,
+    "select_and_insert_allowed": true,
+    "stale_column_grants_removed": true,
+    "update_delete_truncate_denied": true
+  },
+  "append_only_data_access_log": {
+    "migration_applied_and_replayed": true,
+    "provisioner_reapplied_after_compatibility_grants": true,
+    "select_and_insert_allowed": true,
+    "stale_column_grants_removed": true,
+    "update_delete_truncate_denied": true
+  },
+  "bounded_gateway_function_behavior": "not exercised; source migrations are not installed",
+  "column_level_privilege_regression_detected": true,
+  "database_image": {
+    "image_id": "postgis/postgis:16-3.4@sha256:44126d872ac91993766c341e369c539e8196614321765d36a6f1bab0419a5fa5",
+    "name": "postgis/postgis:16-3.4@sha256:44126d872ac91993766c341e369c539e8196614321765d36a6f1bab0419a5fa5",
+    "platform": "linux/amd64"
+  },
+  "database_scope": "temporary PostgreSQL container on Docker network none, with the test client sharing its isolated namespace; no external network or host port; empty database and synthetic relation definitions",
+  "engine": "PostgreSQL 16",
+  "execution_label": "native-amd64",
+  "host_docker_engine": "linux/x86_64",
+  "living_wage_benchmark_source_review": {
+    "application_read": "services/analytics/true_cost_accounting.py; location-filtered SELECT",
+    "application_write_call_sites_in_services_and_extensions": 0,
+    "directus_permission_reference_found": false,
+    "external_importer_status": "not_confirmed_by_repository_source_review",
+    "maintenance_policy": "separate maintenance/import authority is preserved",
+    "repository_seed_write": "schemas/seeds/062_true_cost_accounting.sql; Adelphi reference/demo row",
+    "tenant_isolation_established": false
+  },
+  "mutation_only_tables_select_only": 61,
+  "private_tables_without_runtime_access": 86,
+  "read_only_advisory_rule": {
+    "insert_update_delete_denied": true,
+    "migration_applied_and_replayed": true,
+    "provisioner_reapplied_after_compatibility_grants": true,
+    "references_and_column_grants_denied": true,
+    "select_allowed": true
+  },
+  "read_only_agent_action_log": {
+    "directus_role_unchanged": true,
+    "insert_update_delete_truncate_denied": true,
+    "migration_applied_and_replayed": true,
+    "provisioner_reapplied_after_compatibility_grants": true,
+    "references_and_column_write_grants_denied": true,
+    "select_allowed": true
+  },
+  "read_only_attestation_plan": {
+    "directus_role_unchanged": true,
+    "insert_update_delete_truncate_denied": true,
+    "migration_applied_and_replayed": true,
+    "provisioner_reapplied_after_compatibility_grants": true,
+    "references_and_column_grants_denied": true,
+    "select_allowed": true,
+    "tenant_isolation_established": false
+  },
+  "read_only_capex_breakdown": {
+    "insert_update_delete_truncate_denied": true,
+    "migration_applied_and_replayed": true,
+    "provisioner_reapplied_after_compatibility_grants": true,
+    "references_and_column_grants_denied": true,
+    "select_allowed": true,
+    "tenant_isolation_established": false
+  },
+  "read_only_capital_source": {
+    "column_reference_grants_denied": true,
+    "directus_sql_role_unchanged": true,
+    "insert_update_delete_truncate_denied": true,
+    "migration_applied_and_replayed": true,
+    "provisioner_reapplied_after_compatibility_grants": true,
+    "runtime_select_only": true,
+    "tenant_isolation_established": false
+  },
+  "read_only_carbon_benchmark": {
+    "directus_role_unchanged": true,
+    "insert_update_delete_truncate_denied": true,
+    "migration_applied_and_replayed": true,
+    "provisioner_reapplied_after_compatibility_grants": true,
+    "references_and_column_grants_denied": true,
+    "select_allowed": true
+  },
+  "read_only_certification_type": {
+    "insert_update_delete_truncate_denied": true,
+    "migration_applied_and_replayed": true,
+    "provisioner_reapplied_after_compatibility_grants": true,
+    "references_and_column_grants_denied": true,
+    "select_allowed": true
+  },
+  "read_only_consent_data_type": {
+    "column_reference_grants_denied": true,
+    "directus_sql_role_unchanged": true,
+    "dynamic_retention_policy_untouched": true,
+    "insert_update_delete_truncate_denied": true,
+    "migration_applied_and_replayed": true,
+    "provisioner_reapplied_after_compatibility_grants": true,
+    "runtime_select_only": true,
+    "tenant_isolation_established": false
+  },
+  "read_only_cooperative_type": {
+    "insert_update_delete_truncate_denied": true,
+    "migration_applied_and_replayed": true,
+    "provisioner_reapplied_after_compatibility_grants": true,
+    "references_and_column_grants_denied": true,
+    "select_allowed": true
+  },
+  "read_only_crisp_risk_dimension": {
+    "directus_role_unchanged": true,
+    "insert_update_delete_truncate_denied": true,
+    "migration_applied_and_replayed": true,
+    "provisioner_reapplied_after_compatibility_grants": true,
+    "references_and_column_grants_denied": true,
+    "select_allowed": true
+  },
+  "read_only_crop_family": {
+    "insert_update_delete_truncate_denied": true,
+    "migration_applied_and_replayed": true,
+    "provisioner_reapplied_after_compatibility_grants": true,
+    "references_and_column_grants_denied": true,
+    "select_allowed": true
+  },
+  "read_only_crop_gdd_config": {
+    "directus_role_unchanged": true,
+    "insert_update_delete_truncate_denied": true,
+    "migration_applied_and_replayed": true,
+    "provisioner_reapplied_after_compatibility_grants": true,
+    "references_and_column_grants_denied": true,
+    "select_allowed": true
+  },
+  "read_only_crop_nutrient_removal_factor": {
+    "insert_update_delete_truncate_denied": true,
+    "migration_applied_and_replayed": true,
+    "provisioner_reapplied_after_compatibility_grants": true,
+    "references_and_column_grants_denied": true,
+    "select_allowed": true
+  },
+  "read_only_dfs_currency": {
+    "directus_role_unchanged": true,
+    "insert_update_delete_truncate_denied": true,
+    "migration_applied_and_replayed": true,
+    "provisioner_reapplied_after_compatibility_grants": true,
+    "references_and_column_grants_denied": true,
+    "select_allowed": true
+  },
+  "read_only_dfs_insurance_product_type": {
+    "insert_update_delete_truncate_denied": true,
+    "migration_applied_and_replayed": true,
+    "provisioner_reapplied_after_compatibility_grants": true,
+    "references_and_column_grants_denied": true,
+    "select_allowed": true
+  },
+  "read_only_disposal_method": {
+    "insert_update_delete_truncate_denied": true,
+    "migration_applied_and_replayed": true,
+    "provisioner_reapplied_after_compatibility_grants": true,
+    "references_and_column_grants_denied": true,
+    "select_allowed": true
+  },
+  "read_only_event_handler": {
+    "directus_dml_unchanged": true,
+    "event_dispatch_owner_select_columns_preserved": true,
+    "migration_applied_and_replayed": true,
+    "provisioner_reapplied_after_compatibility_grants": true,
+    "public_write_grants_absent": true,
+    "runtime_select_only": true,
+    "tenant_isolation_established": false
+  },
+  "read_only_evidence_maturity_level": {
+    "insert_update_delete_truncate_denied": true,
+    "migration_applied_and_replayed": true,
+    "provisioner_reapplied_after_compatibility_grants": true,
+    "references_and_column_grants_denied": true,
+    "select_allowed": true
+  },
+  "read_only_expense_category": {
+    "directus_role_unchanged": true,
+    "insert_update_delete_truncate_denied": true,
+    "migration_applied_and_replayed": true,
+    "provisioner_reapplied_after_compatibility_grants": true,
+    "references_and_column_grants_denied": true,
+    "select_allowed": true
+  },
+  "read_only_farmer_credential_type": {
+    "directus_role_unchanged": true,
+    "insert_update_delete_truncate_denied": true,
+    "migration_applied_and_replayed": true,
+    "provisioner_reapplied_after_compatibility_grants": true,
+    "references_and_column_grants_denied": true,
+    "select_allowed": true
+  },
+  "read_only_ghg_emission_factor": {
+    "directus_role_unchanged": true,
+    "insert_update_delete_truncate_denied": true,
+    "migration_applied_and_replayed": true,
+    "provisioner_reapplied_after_compatibility_grants": true,
+    "references_and_column_grants_denied": true,
+    "select_allowed": true
+  },
+  "read_only_governance_framework": {
+    "directus_role_unchanged": true,
+    "insert_update_delete_truncate_denied": true,
+    "migration_applied_and_replayed": true,
+    "provisioner_reapplied_after_compatibility_grants": true,
+    "references_and_column_grants_denied": true,
+    "select_allowed": true
+  },
+  "read_only_graph_edge_type": {
+    "insert_update_delete_truncate_denied": true,
+    "migration_applied_and_replayed": true,
+    "provisioner_reapplied_after_compatibility_grants": true,
+    "references_and_column_grants_denied": true,
+    "select_allowed": true
+  },
+  "read_only_graph_node_type": {
+    "insert_update_delete_truncate_denied": true,
+    "migration_applied_and_replayed": true,
+    "provisioner_reapplied_after_compatibility_grants": true,
+    "references_and_column_grants_denied": true,
+    "select_allowed": true
+  },
+  "read_only_gri_indicator": {
+    "directus_role_unchanged": true,
+    "insert_update_delete_truncate_denied": true,
+    "migration_applied_and_replayed": true,
+    "provisioner_reapplied_after_compatibility_grants": true,
+    "references_and_column_grants_denied": true,
+    "select_allowed": true
+  },
+  "read_only_impact_dimension": {
+    "directus_role_unchanged": true,
+    "insert_update_delete_truncate_denied": true,
+    "migration_applied_and_replayed": true,
+    "provisioner_reapplied_after_compatibility_grants": true,
+    "references_and_column_grants_denied": true,
+    "select_allowed": true
+  },
+  "read_only_impact_framework": {
+    "directus_role_unchanged": true,
+    "insert_update_delete_truncate_denied": true,
+    "migration_applied_and_replayed": true,
+    "provisioner_reapplied_after_compatibility_grants": true,
+    "references_and_column_grants_denied": true,
+    "select_allowed": true
+  },
+  "read_only_living_wage_benchmark": {
+    "directus_sql_role_unchanged_in_synthetic_probe": true,
+    "migration": "704_runtime_living_wage_benchmark_read_only.sql",
+    "migration_applied_and_replayed": true,
+    "migration_sha256": "ab6076151f187bd9b0596bd59060c01c05e979c41f54e5a8702f95e1e0f5c150",
+    "provisioner_reapplied_after_compatibility_grants": true,
+    "runtime_column_insert_update_references_denied": true,
+    "runtime_insert_update_delete_truncate_denied": true,
+    "runtime_select_only": true,
+    "synthetic_separate_maintenance_probe_can_write": true,
+    "tenant_isolation_established": false
+  },
+  "read_only_market_reference_data": {
+    "directus_role_unchanged": true,
+    "insert_update_delete_truncate_denied": true,
+    "migration_applied_and_replayed": true,
+    "provisioner_reapplied_after_compatibility_grants": true,
+    "references_and_column_grants_denied": true,
+    "select_allowed": true
+  },
+  "read_only_metric_definition": {
+    "directus_role_unchanged": true,
+    "insert_update_delete_truncate_denied": true,
+    "migration_applied_and_replayed": true,
+    "provisioner_reapplied_after_compatibility_grants": true,
+    "references_triggers_and_column_grants_denied": true,
+    "select_allowed": true,
+    "tenant_isolation_established": false
+  },
+  "read_only_operations_protocol": {
+    "directus_role_unchanged": true,
+    "insert_update_delete_truncate_denied": true,
+    "migration_applied_and_replayed": true,
+    "provisioner_reapplied_after_compatibility_grants": true,
+    "references_and_column_grants_denied": true,
+    "select_allowed": true
+  },
+  "read_only_pest_degree_day_config": {
+    "directus_role_unchanged": true,
+    "insert_update_delete_truncate_denied": true,
+    "migration_applied_and_replayed": true,
+    "provisioner_reapplied_after_compatibility_grants": true,
+    "references_and_column_grants_denied": true,
+    "select_allowed": true
+  },
+  "read_only_pollinator_capture_tables": {
+    "dedicated_capture_owner_grants_preserved": true,
+    "directus_select_preserved_and_dml_denied": true,
+    "migration_applied_and_replayed": true,
+    "provisioner_reapplied_after_compatibility_grants": true,
+    "public_inherited_select_preserved_and_dml_denied": true,
+    "runtime_directus_public_writes_denied": true,
+    "runtime_select_only": true,
+    "stale_table_and_column_grants_removed": true
+  },
+  "read_only_pollinator_hive_records": {
+    "bounded_function_owner_column_grants_preserved": true,
+    "migration_applied_and_replayed": true,
+    "provisioner_reapplied_after_compatibility_grants": true,
+    "references_truncate_and_column_grants_denied": true,
+    "runtime_directus_and_public_dml_denied": true,
+    "select_allowed": true,
+    "tenant_isolation_established": false
+  },
+  "read_only_pollinator_species_reference": {
+    "directus_role_unchanged": true,
+    "insert_update_delete_truncate_denied": true,
+    "migration_applied_and_replayed": true,
+    "provisioner_reapplied_after_compatibility_grants": true,
+    "references_and_column_grants_denied": true,
+    "select_allowed": true
+  },
+  "read_only_process_benchmark": {
+    "column_reference_grants_denied": true,
+    "directus_sql_role_unchanged": true,
+    "insert_update_delete_truncate_denied": true,
+    "migration_applied_and_replayed": true,
+    "provisioner_reapplied_after_compatibility_grants": true,
+    "runtime_select_only": true,
+    "tenant_isolation_established": false
+  },
+  "read_only_process_maturity_level": {
+    "directus_role_unchanged": true,
+    "insert_update_delete_truncate_denied": true,
+    "migration_applied_and_replayed": true,
+    "provisioner_reapplied_after_compatibility_grants": true,
+    "references_and_column_grants_denied": true,
+    "select_allowed": true
+  },
+  "read_only_public_farm_summary": {
+    "directus_view_grants_unchanged": true,
+    "migration_applied_and_replayed": true,
+    "provisioner_reapplied_after_compatibility_grants": true,
+    "runtime_dml_and_column_grants_denied": true,
+    "runtime_select_only": true,
+    "tenant_isolation_established": false,
+    "view_remains_non_updatable": true
+  },
+  "read_only_quantity_unit": {
+    "directus_role_unchanged": true,
+    "insert_update_delete_truncate_denied": true,
+    "migration_applied_and_replayed": true,
+    "provisioner_reapplied_after_compatibility_grants": true,
+    "references_and_column_grants_denied": true,
+    "select_allowed": true
+  },
+  "read_only_reference_class": {
+    "directus_role_unchanged": true,
+    "insert_update_delete_truncate_denied": true,
+    "migration_applied_and_replayed": true,
+    "provisioner_reapplied_after_compatibility_grants": true,
+    "references_and_column_grants_denied": true,
+    "select_allowed": true
+  },
+  "read_only_revenue_multiplier_config": {
+    "directus_role_unchanged": true,
+    "insert_update_delete_truncate_denied": true,
+    "migration_applied_and_replayed": true,
+    "provisioner_reapplied_after_compatibility_grants": true,
+    "references_and_column_grants_denied": true,
+    "select_allowed": true
+  },
+  "read_only_sensor_type": {
+    "insert_update_delete_truncate_denied": true,
+    "migration_applied_and_replayed": true,
+    "provisioner_reapplied_after_compatibility_grants": true,
+    "references_and_column_grants_denied": true,
+    "select_allowed": true
+  },
+  "read_only_service_registry": {
+    "capability_service_mapping_remains_writable": true,
+    "directus_role_unchanged": true,
+    "insert_update_delete_truncate_denied": true,
+    "migration_applied_and_replayed": true,
+    "provisioner_reapplied_after_compatibility_grants": true,
+    "references_triggers_and_column_grants_denied": true,
+    "select_allowed": true,
+    "tenant_isolation_established": false
+  },
+  "read_only_waste_type": {
+    "insert_update_delete_truncate_denied": true,
+    "migration_applied_and_replayed": true,
+    "provisioner_reapplied_after_compatibility_grants": true,
+    "references_and_column_grants_denied": true,
+    "select_allowed": true
+  },
+  "read_only_water_access": {
+    "directus_role_unchanged": true,
+    "insert_update_delete_truncate_denied": true,
+    "migration_applied_and_replayed": true,
+    "provisioner_reapplied_after_compatibility_grants": true,
+    "references_and_column_grants_denied": true,
+    "select_allowed": true,
+    "tenant_isolation_established": false
+  },
+  "read_only_yield_benchmark": {
+    "directus_role_unchanged": true,
+    "insert_update_delete_truncate_denied": true,
+    "migration_applied_and_replayed": true,
+    "provisioner_reapplied_after_compatibility_grants": true,
+    "references_triggers_and_column_grants_denied": true,
+    "select_allowed": true,
+    "synthetic_row_read": true,
+    "tenant_isolation_established": false
+  },
+  "requested_platform": "linux/amd64",
+  "result": "passed",
+  "tables_exercised": 149,
+  "timestamp": "2026-10-31T14:00:03Z"
+}

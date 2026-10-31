@@ -9,13 +9,17 @@
 > target's ledger; the older migration numbers below are feature-introduction
 > references only.
 
-Combine `docker-compose.kernel-candidate.yml` with
-`docker-compose.kernel-standard.yml`. The app overrides its command to run only
-the API; the new worker service runs the same Dockerfile/package with
+The profile planner combines `docker-compose.kernel-candidate.yml`,
+`docker-compose.kernel-standard.yml`, and `docker-compose.kernel-proxy.yml` by
+default. The app overrides its command to run only the API; the new worker
+service runs the same Dockerfile/package with
 `python3 -m services.core.runtime --workers-only --require-schema`. Both roles
 require schema readiness before spawning child processes, use the private
 candidate database, and explicitly disable vendor providers. No database port
-or worker port is published. The API retains its localhost binding.
+or worker port is published. The API retains its localhost binding. Caddy's
+HTTP and HTTPS host ports default to loopback (`127.0.0.1:8088` and
+`127.0.0.1:8448`) with the local `localhost` domain; this is a development
+ingress, not public TLS or Internet exposure.
 
 The supervisor starts enabled scheduler, event-dispatch, and notification
 delivery workers, generates distinct UUID-based identities for each supervisor
@@ -52,24 +56,39 @@ After acceptance, use encrypted secrets and the explicit candidate project:
 : "${SOPS_AGE_KEY_FILE:?Set this to your private age identity path}"
 export KOKONUT_ALLOW_PLAINTEXT_ENV=false
 source scripts/load-secrets.sh
-docker compose -p kokonut-kernel-candidate \
-  -f docker-compose.kernel-candidate.yml \
-  -f docker-compose.kernel-standard.yml up -d --build
+python3 scripts/kernel-profile.py standard --action config
+python3 scripts/kernel-profile.py standard --action up
 ```
 
-The command is documented, not executed. Stop the combined app's workers and
+The planner prints a Compose command; `--action config` and `--action up` are
+documented here, not executed by this record. Standard selects Caddy without a
+redundant `--proxy` flag. Use `standard --oidc` to add the Gateway OIDC client
+while keeping the default loopback Caddy ingress. Caddy's local CA is not
+automatically trusted by browsers or clients, so local browser acceptance still
+requires trusting the development certificate.
+
+A separately managed ingress can replace Caddy with
+`python3 scripts/kernel-profile.py standard --no-proxy`. For browser OIDC with
+that selection, add `--oidc` and configure the external ingress to terminate
+HTTPS and forward the exact configured callback and application paths to the
+Gateway. The Gateway ignores forwarded headers by default; do not enable broad
+proxy trust. Public-origin, secure-cookie, multi-hop trusted-proxy, public TLS,
+DNS, and firewall behavior remain acceptance gates. `--no-proxy` cannot be
+combined with `--zitadel`, because that self-hosted identity overlay includes
+its own Caddy routes.
+
+Stop the combined app's workers and
 allow their leases to settle before starting the separate worker on populated
 data. Compose does not promise an atomic role cutover. Do not use a separate
 project name to attach unrelated deployments to candidate data.
 
 The worker disables the inherited HTTP healthcheck because it serves no HTTP.
 Supervisor failure exits the container; a stalled but live worker needs durable
-run/delivery progress monitoring. A progress watchdog remains pending. Caddy or
-another TLS ingress remains an additional explicit choice; no public proxy is
-included here. This is the role-separation portion of the standard profile.
-
-The separate [Kernel proxy overlay](kernel-proxy.md) now provides the optional
-Caddy portion, with loopback defaults and TLS/routing acceptance still pending.
+run/delivery progress monitoring. A progress watchdog remains pending. The
+default Caddy overlay gives Standard a loopback TLS entry point; the separate
+[Kernel proxy overlay](kernel-proxy.md) documents its routing, trust, and
+public-ingress limits. An external ingress can replace Caddy with `--no-proxy`
+while retaining the role-separated profile.
 
 The [analytics companion](analytics-overlay.md#separate-standard-worker) now
 explicitly supplies worker ClickHouse drivers and connection settings. Edge
@@ -80,9 +99,10 @@ Multiple worker replicas and API replicas remain scale acceptance work.
 
 ## Acceptance and rollback
 
-Static lint, Compose parsing with placeholder credentials, and whitespace checks
-passed. The focused profile contract checks also pass (2 passed). No service
-starts, migrations, queued work, or running-container changes were performed.
+The Standard-profile planner change passes its focused planner and ZITADEL
+contract suites, plus Compose configuration parsing with synthetic placeholder
+values. These source checks do not start services or validate public ingress.
+No migrations, queued work, or running-container changes were performed.
 
 Pending acceptance: API has no embedded workers; worker has no API; both roles
 use identical code and provider settings; worker leases, retries, dead letters,

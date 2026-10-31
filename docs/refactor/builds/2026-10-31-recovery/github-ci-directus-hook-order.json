@@ -1,0 +1,23 @@
+{
+  "candidate_legacy_production_touched": false,
+  "checked_at": "2026-10-31T14:31:20.592397+00:00",
+  "checks": {
+    "bash_n": "passed",
+    "git_diff_check": "passed",
+    "make_hooks_build": "passed; Directus extension bundle and TypeScript check completed",
+    "make_hooks_test": "143 passed across 9 files",
+    "pytest_tests_test_github_ci_workflow": "3 passed",
+    "ruff": "passed"
+  },
+  "fix": "Build Directus hooks before starting the Directus Compose service; run the hook tests after the rest of CI.",
+  "hosted_run": {
+    "log_evidence": [
+      "The runner has received a shutdown signal.",
+      "The operation was canceled.",
+      "Directus logged ERR_MODULE_NOT_FOUND for the ignored hook dist/index.js because the hook build was scheduled after Directus startup."
+    ],
+    "result": "full-ci cancelled by runner shutdown; kernel-image succeeded",
+    "url": "https://github.com/wasalo/Kokonut-Intelligence/actions/runs/41207442004"
+  },
+  "status": "passed"
+}

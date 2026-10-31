@@ -8,9 +8,42 @@ can proceed now and gates that need an owner, provider, populated source data,
 or production environment. Check an item only when its evidence is recorded in
 the batch log and the affected capability/progress records are updated.
 
-**Current queue snapshot (31 October 2026):** 746 checked / 28 open across the
+**Current queue snapshot (31 October 2026):** 752 checked / 29 open across the
 TODO's dated and active checklist sections. Historical snapshots below this
 active queue remain dated records and do not replace the current count.
+
+## Current continuation — Standard profile and C1 ACL guardrails
+
+- [x] Make Caddy the Standard profile's default loopback TLS ingress while
+  preserving `--no-proxy` for externally managed ingress and keeping Minimal
+  and Edge proxy-free by default. Planner, Compose resolution and ARM64 profile
+  checks pass ([guide](standard-profile.md)). Public DNS/TLS, trusted-proxy,
+  browser certificate and external-origin acceptance remain open.
+- [x] Add migration 704 to preserve runtime reads of `living_wage_benchmark`
+  while denying runtime table/column writes; focused native and ARM64/QEMU
+  PostgreSQL acceptance passes. External importer use through the runtime
+  login is unconfirmed and remains a rollout gate
+  ([evidence](builds/2026-10-31-recovery/living-wage-benchmark-704-disposable.json)).
+- [x] Add migration 705 and a migration-owned Directus relation policy so
+  optional-role reprovisioning cannot restore reviewed access denials. The
+  disposable check passes migration replay, stale-grant cleanup, and allowed
+  compatibility writes ([evidence](builds/2026-10-31-recovery/directus-relation-policy-705-disposable.json)).
+- [x] Pass the integrated 213-test migration, role-boundary, profile and
+  Compose selection, plus Ruff and `git diff --check`
+  ([evidence](builds/2026-10-31-recovery/c1-704-705-standard-focused-tests.json)).
+- [x] Fix CI startup ordering so `make hooks-build` creates the ignored
+  Directus extension bundle before Directus starts; the workflow contract tests,
+  build/type check, and all 143 hook tests pass
+  ([evidence](builds/2026-10-31-recovery/github-ci-directus-hook-order.json)).
+- [x] Complete native full ordered schema replay through migration 705 and the
+  synthetic two-tenant operator-scope probe: 696/696 migrations and 38 checks
+  pass, with no seeds/host ports and disposable cleanup
+  ([evidence](builds/2026-10-31-recovery/kernel-c1-full-schema-705-native.json)).
+- [ ] Complete ARM64/QEMU full ordered schema replay through 705 and the
+  synthetic two-tenant operator-scope probe. The attempt was stopped after
+  583.6 seconds at migration 116 (111/696), with no migration error and clean
+  disposable teardown; the prior full replay through 703 and focused 704/705
+  ARM64 checks remain. Candidate, legacy and production remain untouched.
 
 ## Current continuation — documentation and C1 integration checks
 
@@ -4380,10 +4413,10 @@ and 36 prepared across 67 rows; strict private Gateway response contracts total
   a location-filtered active-row SELECT in true-cost accounting; the only
   repository INSERT is the Adelphi demo/reference seed and no Directus
   extension permission was found.
-- [ ] Confirm whether any external importer writes it through
-  `kokonut_runtime`; hold grant changes until confirmed. If no such importer
-  exists, retain runtime SELECT and revoke only runtime mutation privileges in
-  a forward migration, leaving maintenance/import and Directus policy intact.
+- [ ] Before applying migration 704 to a persistent target, confirm whether any
+  external importer writes through `kokonut_runtime`. If it does, move that
+  writer to a separate maintenance identity; if not, keep migration 704's
+  runtime read-only boundary. Preserve runtime SELECT and Directus policy.
 
 No database was changed. Evidence:
 [living-wage benchmark source audit](builds/2026-10-30-recovery/living-wage-benchmark-c1-source-audit.json).
@@ -4401,8 +4434,9 @@ Checklist: 2,134 complete / 26 open; TODO: 733 checked / 17 open.
 - [ ] Design authenticated organization/network scope contracts before
   retiring the legacy tension service/CLI or other writers whose current
   capabilities exceed location-only Gateway routes.
-- [ ] Keep `living_wage_benchmark` grants unchanged until the owner confirms
-  whether an external importer uses `kokonut_runtime`.
+- [ ] Keep migration 704 out of persistent targets until the owner confirms
+  whether an external importer uses `kokonut_runtime`; if it does, migrate
+  that writer to separate maintenance credentials first.
 
 The code-only source sweep found no exact Gateway replacement for the audited
 planning, finance, consent, cooperative, marketplace, agronomic,

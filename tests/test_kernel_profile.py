@@ -33,6 +33,81 @@ def test_default_profile_planner_does_not_select_optional_overlays() -> None:
     assert "--env-file /dev/null" in result.stdout
 
 
+def test_standard_profile_includes_loopback_caddy_by_default() -> None:
+    result = _run_planner("standard")
+    command = shlex.split(result.stdout)
+    manifests = [
+        command[index + 1]
+        for index, value in enumerate(command[:-1])
+        if value == "-f"
+    ]
+
+    assert result.returncode == 0, result.stderr
+    assert manifests.count(str(ROOT / "docker-compose.kernel-standard.yml")) == 1
+    assert manifests.count(str(ROOT / "docker-compose.kernel-proxy.yml")) == 1
+    assert manifests.index(str(ROOT / "docker-compose.kernel-standard.yml")) < manifests.index(
+        str(ROOT / "docker-compose.kernel-proxy.yml")
+    )
+
+    proxy = yaml.safe_load((ROOT / "docker-compose.kernel-proxy.yml").read_text())
+    assert proxy["services"]["proxy"]["ports"] == [
+        "${KOKONUT_KERNEL_PROXY_BIND:-127.0.0.1}:${KOKONUT_KERNEL_HTTP_PORT:-8088}:80",
+        "${KOKONUT_KERNEL_PROXY_BIND:-127.0.0.1}:${KOKONUT_KERNEL_HTTPS_PORT:-8448}:443",
+    ]
+
+
+def test_standard_profile_can_be_replaced_by_external_ingress() -> None:
+    result = _run_planner("standard", "--no-proxy")
+
+    assert result.returncode == 0, result.stderr
+    assert "docker-compose.kernel-standard.yml" in result.stdout
+    assert "docker-compose.kernel-proxy.yml" not in result.stdout
+
+
+def test_standard_oidc_can_use_an_external_https_ingress() -> None:
+    result = _run_planner("standard", "--no-proxy", "--oidc")
+
+    assert result.returncode == 0, result.stderr
+    assert "docker-compose.kernel-proxy.yml" not in result.stdout
+    assert result.stdout.count("docker-compose.kernel-oidc.yml") == 1
+
+
+def test_standard_oidc_uses_default_proxy_without_redundant_flag() -> None:
+    result = _run_planner("standard", "--oidc")
+
+    assert result.returncode == 0, result.stderr
+    assert result.stdout.count("docker-compose.kernel-proxy.yml") == 1
+    assert result.stdout.count("docker-compose.kernel-oidc.yml") == 1
+
+
+@pytest.mark.parametrize(
+    "options", [("--proxy", "--no-proxy"), ("--no-proxy", "--zitadel")]
+)
+def test_standard_no_proxy_rejects_conflicting_or_caddy_bundled_options(
+    options: tuple[str, ...],
+) -> None:
+    result = _run_planner("standard", *options)
+
+    assert result.returncode != 0
+    assert "--no-proxy" in result.stderr or "cannot be selected together" in result.stderr
+
+
+@pytest.mark.parametrize("action", ["config", "build", "up"])
+def test_standard_actions_include_caddy_exactly_once(action: str) -> None:
+    result = _run_planner("standard", "--action", action)
+
+    assert result.returncode == 0, result.stderr
+    assert result.stdout.count("docker-compose.kernel-proxy.yml") == 1
+
+
+def test_minimal_and_edge_keep_proxy_opt_in() -> None:
+    for profile in ("minimal", "edge"):
+        result = _run_planner(profile)
+
+        assert result.returncode == 0, result.stderr
+        assert "docker-compose.kernel-proxy.yml" not in result.stdout
+
+
 def test_explicit_project_is_used_for_an_isolated_zitadel_plan() -> None:
     result = _run_planner("minimal", "--zitadel", "--project", "kokonut-sprint-123")
 

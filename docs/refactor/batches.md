@@ -22,9 +22,9 @@ pending.
 
 Remaining work is ordered in [the code-first execution plan](code-first-execution-plan.md): finish repository-owned implementation and reproducible software checks before collecting owner decisions and production inputs. Raspberry Pi hardware is unavailable, so Batch 6 uses ARM64 emulation and constrained software checks; it does not claim physical-device acceptance.
 
-**Current snapshot (31 October 2026):** 2,152 checklist items complete and 29
-open (2,181 total), counting nested items. The cross-phase TODO queue has 746
-checked and 28 open items. The
+**Current snapshot (31 October 2026):** 2,158 checklist items complete and 30
+open (2,188 total), counting nested items. The cross-phase TODO queue has 752
+checked and 29 open items. The
 [capability matrix](capability-matrix.md) has 67 validated rows: 24
 baseline-retained, 7 deployed, and 36 prepared. Named MAN-CAP
 acceptance remains separate; none is marked accepted.
@@ -9616,3 +9616,49 @@ does not resolve polymorphic source IDs back to the requested location. The
 current Gateway supplies IDs from its scoped calculator; a source-type contract
 is still needed before the database boundary can independently validate
 provenance ([review](current-state-and-implementation.md#c1-runtime-acl-work-current-batch)).
+
+### Standard ingress and C1 reprovisioning guardrails — 31 October 2026
+
+- [x] Include Caddy by default in the Standard profile with loopback-only host
+  bindings; keep Minimal and Edge proxy-free and expose `--no-proxy` for
+  externally managed ingress, including OIDC. Planner/Compose profile checks
+  and ARM64 config resolution pass. Public TLS, DNS, trusted-proxy, browser
+  trust and external-origin acceptance remain open
+  ([guide](standard-profile.md)).
+- [x] Add migration 704 to retain runtime reads of `living_wage_benchmark`
+  while denying runtime table/column writes and preserving separate
+  maintenance authority. Native and ARM64/QEMU disposable checks pass;
+  external importer use through the runtime login is still unconfirmed and
+  remains a persistent-rollout gate
+  ([evidence](builds/2026-10-31-recovery/living-wage-benchmark-704-disposable.json)).
+- [x] Add migration 705 and a migration-owned 147-relation Directus policy.
+  The optional Directus provisioner reapplies table, column and sequence
+  restrictions after compatibility grants; disposable PostgreSQL checks pass
+  replay, stale-grant removal, allowed compatibility writes and role isolation
+  ([evidence](builds/2026-10-31-recovery/directus-relation-policy-705-disposable.json)).
+- [x] Pass the combined migration, Directus/runtime role, profile and Compose
+  regression selection: 213 tests; Ruff, capability-matrix validation and
+  `git diff --check` pass
+  ([evidence](builds/2026-10-31-recovery/c1-704-705-standard-focused-tests.json)).
+- [x] Correct GitHub CI ordering so the ignored Directus hook bundle is built
+  before Directus startup; the CI ordering contract, hook bundle/type build,
+  and 143 hook tests pass. Run 412074's image gate passed; `full-ci` was
+  interrupted by runner shutdown and logged the previously missing bundle
+  ([evidence](builds/2026-10-31-recovery/github-ci-directus-hook-order.json)).
+- [x] Complete the native ordered replay through migration 705 with the
+  two-tenant operator-scope probe: 696/696 migrations and 38 synthetic checks
+  pass; no seeds or host ports were used, and disposable cleanup passed
+  ([evidence](builds/2026-10-31-recovery/kernel-c1-full-schema-705-native.json)).
+- [ ] Complete the ARM64/QEMU ordered replay through migration 705 with the
+  two-tenant operator-scope probe. The attempt was stopped after 583.6 seconds
+  at migration 116 (111/696), without a migration error; disposable cleanup
+  passed. The prior full QEMU replay through 703 and focused 704/705 checks
+  remain available. Candidate, legacy and production roles/data remain
+  untouched.
+
+Rollback: no persistent database or service was changed. Keep ordered
+migrations 704–705 in history; do not edit applied SQL. Reversing a persistent
+ACL change requires a reviewed forward migration. Before any persistent
+migration-704 rollout, confirm no external importer uses `kokonut_runtime` for
+living-wage reference writes. The current source/ACL aggregate remains the 703
+snapshot until refreshed; its counts are not current after migration 704.

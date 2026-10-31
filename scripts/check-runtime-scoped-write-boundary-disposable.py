@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 import secrets
@@ -26,8 +27,8 @@ POSTGRES_IMAGE = (
 ARM64_POSTGRES_IMAGE = "kokonut-kernel-postgis-arm64:local"
 DEFAULT_OUTPUT = (
     ROOT
-    / "docs/refactor/builds/2026-10-30-recovery/"
-    "runtime-consent-data-type-696-disposable.json"
+    / "docs/refactor/builds/2026-10-31-recovery/"
+    "runtime-living-wage-benchmark-704-disposable.json"
 )
 APPEND_ONLY_MIGRATION = (
     ROOT / "schemas/postgres/652_runtime_append_only_data_access_log.sql"
@@ -145,6 +146,9 @@ PROCESS_BENCHMARK_MIGRATION = (
 )
 PUBLIC_FARM_SUMMARY_MIGRATION = (
     ROOT / "schemas/postgres/699_runtime_public_farm_summary_read_only.sql"
+)
+LIVING_WAGE_BENCHMARK_MIGRATION = (
+    ROOT / "schemas/postgres/704_runtime_living_wage_benchmark_read_only.sql"
 )
 REFERENCE_CATALOGS = (
     "carbon_benchmark", "crop_gdd_config", "dfs_currency", "ghg_emission_factor", "cooperative_type",
@@ -289,6 +293,10 @@ def check_boundary(
                     "NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS"
                 )
                 cursor.execute(
+                    "CREATE ROLE kokonut_maintenance_probe NOLOGIN NOSUPERUSER "
+                    "NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS"
+                )
+                cursor.execute(
                     "CREATE ROLE kokonut_event_dispatch_owner NOLOGIN NOINHERIT "
                     "NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS"
                 )
@@ -416,6 +424,11 @@ def check_boundary(
                     (str(uuid.uuid4()), "synthetic-process-benchmark"),
                 )
                 cursor.execute(
+                    "INSERT INTO public.living_wage_benchmark (id, marker) "
+                    "VALUES (%s, %s)",
+                    (str(uuid.uuid4()), "synthetic-living-wage-benchmark"),
+                )
+                cursor.execute(
                     "GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES "
                     "IN SCHEMA public TO kokonut_runtime"
                 )
@@ -456,6 +469,14 @@ def check_boundary(
                     "TO kokonut_directus_runtime"
                 )
                 cursor.execute(
+                    "GRANT ALL PRIVILEGES ON public.living_wage_benchmark "
+                    "TO kokonut_directus_runtime"
+                )
+                cursor.execute(
+                    "GRANT SELECT, INSERT, UPDATE, DELETE "
+                    "ON public.living_wage_benchmark TO kokonut_maintenance_probe"
+                )
+                cursor.execute(
                     "REVOKE ALL PRIVILEGES ON public.farm_summary_probe_source "
                     "FROM PUBLIC, kokonut_runtime, kokonut_directus_runtime"
                 )
@@ -474,6 +495,10 @@ def check_boundary(
                 cursor.execute(
                     "GRANT INSERT (marker), UPDATE (marker), REFERENCES (id) "
                     "ON public.process_benchmark TO kokonut_runtime"
+                )
+                cursor.execute(
+                    "GRANT INSERT (marker), UPDATE (marker), REFERENCES (id) "
+                    "ON public.living_wage_benchmark TO kokonut_runtime"
                 )
                 cursor.execute(
                     "GRANT INSERT (location_id), UPDATE (farm_count), "
@@ -822,6 +847,11 @@ def check_boundary(
                 )
                 cursor.execute(public_farm_summary_migration)
                 cursor.execute(public_farm_summary_migration)
+                living_wage_benchmark_migration = (
+                    LIVING_WAGE_BENCHMARK_MIGRATION.read_text(encoding="utf-8")
+                )
+                cursor.execute(living_wage_benchmark_migration)
+                cursor.execute(living_wage_benchmark_migration)
 
             with connection.cursor() as cursor:
                 runtime_role._verify_runtime_append_only_boundary(
@@ -859,6 +889,13 @@ def check_boundary(
                 True, False, False, False
             ):
                 raise AssertionError("migration 697 did not establish read-only process-benchmark rights")
+            if _relation_privileges(connection, "living_wage_benchmark") != (
+                True, False, False, False
+            ):
+                raise AssertionError(
+                    "migration 704 or compatibility provisioning did not establish "
+                    "read-only living-wage benchmark rights"
+                )
             if _relation_privileges(connection, "v_public_farm_summary") != (
                 True, False, False, False
             ):
@@ -976,6 +1013,83 @@ def check_boundary(
                 cursor.execute("SELECT marker FROM public.process_benchmark")
                 if cursor.fetchone() != ("synthetic-process-benchmark",):
                     raise AssertionError("runtime role could not read process benchmarks")
+                cursor.execute("RESET ROLE")
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    "SELECT has_table_privilege('kokonut_directus_runtime', 'public.living_wage_benchmark', 'SELECT'), "
+                    "has_table_privilege('kokonut_directus_runtime', 'public.living_wage_benchmark', 'INSERT'), "
+                    "has_table_privilege('kokonut_directus_runtime', 'public.living_wage_benchmark', 'UPDATE'), "
+                    "has_table_privilege('kokonut_directus_runtime', 'public.living_wage_benchmark', 'DELETE'), "
+                    "has_table_privilege('kokonut_directus_runtime', 'public.living_wage_benchmark', 'TRUNCATE'), "
+                    "has_table_privilege('kokonut_directus_runtime', 'public.living_wage_benchmark', 'REFERENCES'), "
+                    "has_table_privilege('kokonut_directus_runtime', 'public.living_wage_benchmark', 'TRIGGER'), "
+                    "has_table_privilege('kokonut_runtime', 'public.living_wage_benchmark', 'INSERT'), "
+                    "has_table_privilege('kokonut_runtime', 'public.living_wage_benchmark', 'UPDATE'), "
+                    "has_table_privilege('kokonut_runtime', 'public.living_wage_benchmark', 'DELETE'), "
+                    "has_table_privilege('kokonut_runtime', 'public.living_wage_benchmark', 'TRUNCATE'), "
+                    "has_table_privilege('kokonut_runtime', 'public.living_wage_benchmark', 'REFERENCES'), "
+                    "has_table_privilege('kokonut_runtime', 'public.living_wage_benchmark', 'TRIGGER'), "
+                    "has_column_privilege('kokonut_runtime', 'public.living_wage_benchmark', 'marker', 'INSERT'), "
+                    "has_column_privilege('kokonut_runtime', 'public.living_wage_benchmark', 'marker', 'UPDATE'), "
+                    "has_column_privilege('kokonut_runtime', 'public.living_wage_benchmark', 'id', 'REFERENCES'), "
+                    "has_table_privilege('kokonut_maintenance_probe', 'public.living_wage_benchmark', 'SELECT'), "
+                    "has_table_privilege('kokonut_maintenance_probe', 'public.living_wage_benchmark', 'INSERT'), "
+                    "has_table_privilege('kokonut_maintenance_probe', 'public.living_wage_benchmark', 'UPDATE'), "
+                    "has_table_privilege('kokonut_maintenance_probe', 'public.living_wage_benchmark', 'DELETE')"
+                )
+                if cursor.fetchone() != (
+                    True, True, True, True, True, True, True,
+                    False, False, False, False, False, False,
+                    False, False, False,
+                    True, True, True, True,
+                ):
+                    raise AssertionError(
+                        "migration 704 changed Directus/maintenance grants or left "
+                        "runtime column grants"
+                    )
+                cursor.execute("SET ROLE kokonut_runtime")
+                cursor.execute("SELECT marker FROM public.living_wage_benchmark")
+                if cursor.fetchone() != ("synthetic-living-wage-benchmark",):
+                    raise AssertionError(
+                        "runtime role could not read the living-wage benchmark"
+                    )
+                for statement in (
+                    "INSERT INTO public.living_wage_benchmark (id, marker) "
+                    "VALUES ('00000000-0000-0000-0000-000000000704', 'forbidden')",
+                    "UPDATE public.living_wage_benchmark SET marker = 'forbidden'",
+                    "DELETE FROM public.living_wage_benchmark",
+                    "TRUNCATE public.living_wage_benchmark",
+                ):
+                    try:
+                        cursor.execute(statement)
+                    except psycopg2.Error as exc:
+                        if exc.pgcode != "42501":
+                            raise AssertionError(
+                                f"expected privilege denial for {statement}; got {exc.pgcode}"
+                            ) from exc
+                        connection.rollback()
+                        with connection.cursor() as retry_cursor:
+                            retry_cursor.execute("SET ROLE kokonut_runtime")
+                    else:
+                        connection.rollback()
+                        raise AssertionError(
+                            "runtime living-wage benchmark write unexpectedly succeeded"
+                        )
+                cursor.execute("RESET ROLE")
+                cursor.execute("SET ROLE kokonut_maintenance_probe")
+                cursor.execute(
+                    "INSERT INTO public.living_wage_benchmark (id, marker) "
+                    "VALUES ('00000000-0000-0000-0000-000000000705', 'maintenance-write')"
+                )
+                cursor.execute(
+                    "UPDATE public.living_wage_benchmark "
+                    "SET marker = 'maintenance-update' "
+                    "WHERE id = '00000000-0000-0000-0000-000000000705'"
+                )
+                cursor.execute(
+                    "DELETE FROM public.living_wage_benchmark "
+                    "WHERE id = '00000000-0000-0000-0000-000000000705'"
+                )
                 cursor.execute("RESET ROLE")
             with connection.cursor() as cursor:
                 cursor.execute(
@@ -2321,6 +2435,21 @@ def check_boundary(
                     if dsn is not None
                     else "temporary container, empty database, synthetic relation definitions"
                 ),
+                "living_wage_benchmark_source_review": {
+                    "application_read": (
+                        "services/analytics/true_cost_accounting.py; location-filtered SELECT"
+                    ),
+                    "application_write_call_sites_in_services_and_extensions": 0,
+                    "repository_seed_write": (
+                        "schemas/seeds/062_true_cost_accounting.sql; Adelphi reference/demo row"
+                    ),
+                    "directus_permission_reference_found": False,
+                    "external_importer_status": "not_confirmed_by_repository_source_review",
+                    "maintenance_policy": (
+                        "separate maintenance/import authority is preserved"
+                    ),
+                    "tenant_isolation_established": False,
+                },
                 "tables_exercised": len(relations) + 2,
                 "private_tables_without_runtime_access": private_denied,
                 "mutation_only_tables_select_only": mutation_denied,
@@ -2691,6 +2820,20 @@ def check_boundary(
                     "directus_sql_role_unchanged": True,
                     "insert_update_delete_truncate_denied": True,
                     "column_reference_grants_denied": True,
+                    "tenant_isolation_established": False,
+                },
+                "read_only_living_wage_benchmark": {
+                    "migration": LIVING_WAGE_BENCHMARK_MIGRATION.name,
+                    "migration_sha256": hashlib.sha256(
+                        living_wage_benchmark_migration.encode("utf-8")
+                    ).hexdigest(),
+                    "migration_applied_and_replayed": True,
+                    "provisioner_reapplied_after_compatibility_grants": True,
+                    "runtime_select_only": True,
+                    "runtime_insert_update_delete_truncate_denied": True,
+                    "runtime_column_insert_update_references_denied": True,
+                    "directus_sql_role_unchanged_in_synthetic_probe": True,
+                    "synthetic_separate_maintenance_probe_can_write": True,
                     "tenant_isolation_established": False,
                 },
                 "read_only_public_farm_summary": {
