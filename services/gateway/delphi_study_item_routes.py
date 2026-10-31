@@ -3,12 +3,17 @@
 
 def register_delphi_study_item_routes(router, provider, run_in_threadpool, psycopg2):
     import json
+    from uuid import UUID
 
     from fastapi.encoders import jsonable_encoder
     from fastapi.responses import JSONResponse
+    from pydantic import ValidationError
     from starlette.requests import Request
 
     from services.common.tenant_context import TenantContextDenied
+    from services.gateway.delphi_study_item_responses import (
+        DelphiStudyItemCreateResponse,
+    )
     from services.gateway.delphi_study_items import (
         DelphiStudyItemInvalid,
         create_location_delphi_study_item,
@@ -16,7 +21,12 @@ def register_delphi_study_item_routes(router, provider, run_in_threadpool, psyco
 
     headers = {"Cache-Control": "no-store", "Vary": "Cookie"}
 
-    @router.post("/operator/api/delphi/{location_id}/studies/{study_id}/items")
+    @router.post(
+        "/operator/api/delphi/{location_id}/studies/{study_id}/items",
+        status_code=201,
+        response_model=DelphiStudyItemCreateResponse,
+        responses={200: {"model": DelphiStudyItemCreateResponse}},
+    )
     async def create_study_item(request: Request, location_id: str, study_id: str):
         if provider is None:
             return JSONResponse(
@@ -99,8 +109,27 @@ def register_delphi_study_item_routes(router, provider, run_in_threadpool, psyco
                 content={"error": "Delphi study item unavailable"},
                 headers={**headers, "Retry-After": "30"},
             )
+        try:
+            response = DelphiStudyItemCreateResponse.model_validate(result)
+            if (
+                response.location_id != UUID(location_id)
+                or response.study_id != UUID(study_id)
+            ):
+                raise ValueError("Delphi study item response does not match requested scope")
+        except (ValidationError, ValueError, TypeError) as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.delphi_study_item").warning(
+                "Delphi study item response rejected (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=500,
+                content={"error": "Delphi study item unavailable"},
+                headers=headers,
+            )
+
         return JSONResponse(
-            jsonable_encoder(result),
-            status_code=200 if result.get("replayed") else 201,
+            jsonable_encoder(response.model_dump(mode="python")),
+            status_code=200 if response.replayed else 201,
             headers=headers,
         )

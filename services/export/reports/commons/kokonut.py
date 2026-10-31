@@ -5,11 +5,161 @@ from datetime import datetime, timezone
 import psycopg2
 import psycopg2.extras
 
-from ..common import _serialize_rows
+from ..common import _looks_like_uuid, _serialize_rows
 from ..scope import require_network_scope
 
+# Keep these projections aligned with the public views in
+# schemas/postgres/041_kokonut_commons_governance.sql. The views currently
+# expose their source-table columns followed by the evidence label.
+_PUBLIC_VIEW_COLUMNS = {
+    "v_public_anti_capture_governance_policy": (
+        "id",
+        "location_id",
+        "policy_name",
+        "governance_body",
+        "policy_scope",
+        "voting_method",
+        "voting_cap_pct",
+        "quadratic_or_conviction_enabled",
+        "one_person_one_vote_enabled",
+        "sybil_resistance_method",
+        "worker_or_operator_veto_enabled",
+        "community_veto_enabled",
+        "delegation_limits",
+        "enforcement_mode",
+        "policy_summary",
+        "public_summary",
+        "evidence_maturity",
+        "status",
+        "metadata",
+        "source_system",
+        "source_id",
+        "source_raw",
+        "created_at",
+        "updated_at",
+        "created_by",
+        "updated_by",
+        "evidence_maturity_label",
+    ),
+    "v_public_commons_redistribution_policy": (
+        "id",
+        "location_id",
+        "policy_name",
+        "scenario_name",
+        "policy_scope",
+        "policy_status",
+        "revenue_basis",
+        "commons_allocation_pct",
+        "local_cooperative_allocation_pct",
+        "operator_allocation_pct",
+        "digital_commons_allocation_pct",
+        "reserve_allocation_pct",
+        "trigger_conditions",
+        "enforcement_mode",
+        "audit_cadence",
+        "policy_summary",
+        "public_summary",
+        "evidence_maturity",
+        "status",
+        "metadata",
+        "source_system",
+        "source_id",
+        "source_raw",
+        "created_at",
+        "updated_at",
+        "created_by",
+        "updated_by",
+        "evidence_maturity_label",
+    ),
+    "v_public_federation_protocol": (
+        "id",
+        "protocol_name",
+        "target_region",
+        "federation_scope",
+        "permissionless_forking_enabled",
+        "local_adaptation_rights",
+        "mutual_aid_commitments",
+        "shared_infrastructure",
+        "onboarding_requirements",
+        "anti_extractive_safeguards",
+        "conflict_resolution_path",
+        "protocol_status",
+        "public_summary",
+        "evidence_maturity",
+        "status",
+        "metadata",
+        "created_at",
+        "updated_at",
+        "created_by",
+        "updated_by",
+        "evidence_maturity_label",
+    ),
+    "v_public_algorithmic_redistribution_mechanism": (
+        "id",
+        "location_id",
+        "mechanism_name",
+        "mechanism_type",
+        "beneficiary_scope",
+        "allocation_formula",
+        "funding_source",
+        "eligibility_criteria",
+        "privacy_safeguards",
+        "implementation_status",
+        "enforcement_mode",
+        "mechanism_summary",
+        "public_summary",
+        "evidence_maturity",
+        "status",
+        "metadata",
+        "source_system",
+        "source_id",
+        "source_raw",
+        "created_at",
+        "updated_at",
+        "created_by",
+        "updated_by",
+        "evidence_maturity_label",
+    ),
+    "v_public_participatory_signal_experiment": (
+        "id",
+        "experiment_name",
+        "signal_type",
+        "governance_scope",
+        "decision_binding",
+        "experiment_status",
+        "participation_rules",
+        "moderation_policy",
+        "safety_boundaries",
+        "public_summary",
+        "evidence_maturity",
+        "status",
+        "metadata",
+        "created_at",
+        "updated_at",
+        "created_by",
+        "updated_by",
+        "evidence_maturity_label",
+    ),
+}
 
-def _fetch_public_view(conn, view_name: str, location_id: str = None, order_by: str = "id") -> list[dict]:
+
+def _fetch_public_view(
+    conn,
+    view_name: str,
+    location_id: str | None,
+    order_by: str = "id",
+    *,
+    network_scope: bool = False,
+) -> list[dict]:
+    if not network_scope and not location_id:
+        raise ValueError(f"{view_name} requires an explicit location_id")
+
+    if network_scope and location_id:
+        raise ValueError(f"{view_name} cannot combine network and location scope")
+
+    if not network_scope and not _looks_like_uuid(location_id):
+        raise ValueError(f"{view_name} requires a valid location_id")
+
     # Validate identifiers to prevent SQL injection
     import re
 
@@ -19,16 +169,20 @@ def _fetch_public_view(conn, view_name: str, location_id: str = None, order_by: 
         raise ValueError(f"Invalid view name: {view_name}")
     if not _ORDER_RE.match(order_by):
         raise ValueError(f"Invalid order_by: {order_by}")
+    columns = _PUBLIC_VIEW_COLUMNS.get(view_name)
+    if columns is None:
+        raise ValueError(f"Unsupported public view: {view_name}")
+    projection = ", ".join(columns)
 
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     try:
-        if location_id:
+        if network_scope:
+            cur.execute(f"SELECT {projection} FROM {view_name} ORDER BY {order_by}")
+        else:
             cur.execute(
-                f"SELECT * FROM {view_name} WHERE location_id = %s OR location_id IS NULL ORDER BY {order_by}",
+                f"SELECT {projection} FROM {view_name} WHERE location_id = %s OR location_id IS NULL ORDER BY {order_by}",
                 (location_id,),
             )
-        else:
-            cur.execute(f"SELECT * FROM {view_name} ORDER BY {order_by}")
         rows = [dict(r) for r in cur.fetchall()]
     finally:
         cur.close()
@@ -86,7 +240,11 @@ def generate_federation_mutual_aid(
 ) -> dict:
     require_network_scope("federation_mutual_aid", location_id)
     protocols = _fetch_public_view(
-        conn, "v_public_federation_protocol", None, "protocol_status, federation_scope, protocol_name"
+        conn,
+        "v_public_federation_protocol",
+        None,
+        "protocol_status, federation_scope, protocol_name",
+        network_scope=True,
     )
     return {
         "report_type": "federation_mutual_aid",
@@ -136,7 +294,11 @@ def generate_participatory_signal(
 ) -> dict:
     require_network_scope("participatory_signal", location_id)
     experiments = _fetch_public_view(
-        conn, "v_public_participatory_signal_experiment", None, "experiment_status, signal_type, experiment_name"
+        conn,
+        "v_public_participatory_signal_experiment",
+        None,
+        "experiment_status, signal_type, experiment_name",
+        network_scope=True,
     )
     return {
         "report_type": "participatory_signal",

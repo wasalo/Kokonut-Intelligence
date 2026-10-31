@@ -30,14 +30,19 @@ API_BASE = "https://api.openweathermap.org/data/2.5/forecast"
 
 
 @retry(max_retries=3, backoff=2.0)
-def fetch_forecast_raw(lat: float, lon: float) -> dict:
+def fetch_forecast_raw(
+    lat: float,
+    lon: float,
+    *,
+    api_key: str | None = None,
+) -> dict:
     """Fetch 5-day / 3-hour forecast from OpenWeatherMap API."""
     resp = http.get(
         API_BASE,
         params={
             "lat": lat,
             "lon": lon,
-            "appid": OPENWEATHERMAP_API_KEY,
+            "appid": OPENWEATHERMAP_API_KEY if api_key is None else api_key,
             "units": "metric",
         },
         timeout=15,

@@ -7,13 +7,23 @@ are human-approved and out of scope here.
 from __future__ import annotations
 
 import argparse
+from uuid import UUID
 
 from services.capital import accounting_report, capacity, capture, credit, diversion
 from services.common.cli import print_json, run
 from services.common.database import get_db
 
 
+def _location_uuid(location_id: str) -> str:
+    """Canonicalize CLI location scope before opening PostgreSQL."""
+    try:
+        return str(UUID(location_id))
+    except (AttributeError, TypeError, ValueError) as exc:
+        raise ValueError("location_id must be a valid UUID") from exc
+
+
 def cmd_capacity(location_id: str) -> None:
+    location_id = _location_uuid(location_id)
     conn = get_db()
     try:
         out = capacity.assess_capacity(conn, location_id)
@@ -23,6 +33,7 @@ def cmd_capacity(location_id: str) -> None:
 
 
 def cmd_diversion(location_id: str, period_start: str = None, period_end: str = None) -> None:
+    location_id = _location_uuid(location_id)
     conn = get_db()
     try:
         out = diversion.compute_diversion_index(conn, location_id, period_start, period_end)
@@ -32,6 +43,7 @@ def cmd_diversion(location_id: str, period_start: str = None, period_end: str = 
 
 
 def cmd_capture(location_id: str) -> None:
+    location_id = _location_uuid(location_id)
     conn = get_db()
     try:
         out = capture.capture_risk(conn, location_id)
@@ -49,6 +61,7 @@ def cmd_credit_propose(
     redeemable: str = "regenerative_investment",
     idempotency_key: str = None,
 ) -> None:
+    location_id = _location_uuid(location_id)
     conn = get_db()
     try:
         out = credit.propose_credit(
@@ -63,6 +76,7 @@ def cmd_credit_propose(
 
 
 def cmd_credit_list(location_id: str) -> None:
+    location_id = _location_uuid(location_id)
     conn = get_db()
     try:
         out = credit.list_draft_credits(conn, location_id)
@@ -72,6 +86,7 @@ def cmd_credit_list(location_id: str) -> None:
 
 
 def cmd_credit_capacity(location_id: str) -> None:
+    location_id = _location_uuid(location_id)
     conn = get_db()
     try:
         out = credit.credit_capacity(conn, location_id)
@@ -81,6 +96,7 @@ def cmd_credit_capacity(location_id: str) -> None:
 
 
 def cmd_report(location_id: str, period_start: str = None, period_end: str = None) -> None:
+    location_id = _location_uuid(location_id)
     conn = get_db()
     try:
         out = accounting_report.build_capital_accounting(conn, location_id, period_start, period_end)

@@ -13,6 +13,7 @@ Usage:
 
 import argparse
 import sys
+from uuid import UUID
 
 from services.common.cli import print_json
 
@@ -110,6 +111,22 @@ def main():
     parser.add_argument("--rc-alpha", type=float, default=0.5, help="Weight on self-projection (0-1)")
     args = parser.parse_args()
 
+    # These two modes pass location scope into database-backed work. Validate
+    # and canonicalize it here so malformed scope never reaches a connector.
+    # `--all` without a location intentionally retains its network-wide mode.
+    if args.all and args.location_id is not None:
+        try:
+            args.location_id = str(UUID(args.location_id))
+        except (AttributeError, TypeError, ValueError):
+            parser.error("--location-id must be a valid UUID")
+    if args.reference_class:
+        if args.location_id is None:
+            parser.error("--reference-class requires --location-id")
+        try:
+            args.location_id = str(UUID(args.location_id))
+        except (AttributeError, TypeError, ValueError):
+            parser.error("--location-id must be a valid UUID")
+
     if args.list:
         list_scenarios()
         return
@@ -160,8 +177,6 @@ def main():
         return
 
     if args.reference_class:
-        if not args.location_id:
-            parser.error("--reference-class requires --location-id")
         from ..ingestion.base import get_db
         from .reference_class import apply_reference_class
         conn = get_db()

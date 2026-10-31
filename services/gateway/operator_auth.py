@@ -20,6 +20,7 @@ from uuid import UUID
 
 from starlette.requests import Request
 
+from services.gateway.report_export_responses import ReportExportCreateRequest
 from services.mobile.api import (
     EnrollmentCreateRequest,
     ParticipantLinkCreateRequest,
@@ -382,6 +383,42 @@ def create_provider() -> OIDCOperatorProvider | None:
 
 def auth_route_policy(method: str, path: str, *, enabled: bool) -> dict | None:
     """Return middleware policy only for the small, explicit OIDC endpoint set."""
+    metric_value_compute_match = re.fullmatch(
+        r"/operator/api/metrics/([0-9a-fA-F-]{36})/values", path
+    )
+    if metric_value_compute_match and method.upper() == "GET" and enabled:
+        return {
+            "resource": "metric_value",
+            "action": "read",
+            "public": False,
+            "location_id": metric_value_compute_match.group(1),
+            "scope_required": True,
+            "operator_auth": True,
+        }
+    if metric_value_compute_match and method.upper() == "POST" and enabled:
+        return {
+            "resource": "metric_value",
+            "action": "compute",
+            "public": False,
+            "location_id": metric_value_compute_match.group(1),
+            "scope_required": True,
+            "operator_auth": True,
+        }
+
+    metric_value_verify_match = re.fullmatch(
+        r"/operator/api/metrics/([0-9a-fA-F-]{36})/values/([0-9a-fA-F-]{36})/verify",
+        path,
+    )
+    if metric_value_verify_match and method.upper() == "POST" and enabled:
+        return {
+            "resource": "metric_value",
+            "action": "verify",
+            "public": False,
+            "location_id": metric_value_verify_match.group(1),
+            "scope_required": True,
+            "operator_auth": True,
+        }
+
     delphi_study_item_match = re.fullmatch(
         r"/operator/api/delphi/([0-9a-fA-F-]{36})/studies/([0-9a-fA-F-]{36})/items",
         path,
@@ -695,6 +732,34 @@ def auth_route_policy(method: str, path: str, *, enabled: bool) -> dict | None:
             "operator_auth": True,
         }
 
+    extension_peer_network_match = re.fullmatch(
+        r"/operator/api/extension-learning/([0-9a-fA-F-]{36})/peer-networks",
+        path,
+    )
+    if extension_peer_network_match and method.upper() == "POST" and enabled:
+        return {
+            "resource": "extension_learning",
+            "action": "create_peer_network",
+            "public": False,
+            "location_id": extension_peer_network_match.group(1),
+            "scope_required": True,
+            "operator_auth": True,
+        }
+
+    extension_progress_update_match = re.fullmatch(
+        r"/operator/api/extension-learning/([0-9a-fA-F-]{36})/progress/([0-9a-fA-F-]{36})",
+        path,
+    )
+    if extension_progress_update_match and method.upper() == "PATCH" and enabled:
+        return {
+            "resource": "extension_learning",
+            "action": "update_progress",
+            "public": False,
+            "location_id": extension_progress_update_match.group(1),
+            "scope_required": True,
+            "operator_auth": True,
+        }
+
     cooperative_management_match = re.fullmatch(
         r"/operator/api/cooperatives/([0-9a-fA-F-]{36})/summary", path
     )
@@ -998,6 +1063,21 @@ def auth_route_policy(method: str, path: str, *, enabled: bool) -> dict | None:
             "action": "read",
             "public": False,
             "location_id": landscape_summary_match.group(1),
+            "scope_required": True,
+            "operator_auth": True,
+        }
+
+    landscape_capture_match = re.fullmatch(
+        r"/operator/api/landscape/([0-9a-fA-F-]{36})/"
+        r"(habitats|corridors|hedgerows|buffer-checks|biodiversity-assessments)",
+        path,
+    )
+    if landscape_capture_match and method.upper() == "POST" and enabled:
+        return {
+            "resource": "landscape_conservation",
+            "action": "create",
+            "public": False,
+            "location_id": landscape_capture_match.group(1),
             "scope_required": True,
             "operator_auth": True,
         }
@@ -3518,6 +3598,20 @@ def auth_route_policy(method: str, path: str, *, enabled: bool) -> dict | None:
             "operator_auth": True,
         }
 
+    governance_tension_action_match = re.fullmatch(
+        r"/operator/api/governance/([0-9a-fA-F-]{36})/tensions/([0-9a-fA-F-]{36})/actions/(triage|start|link|link_work_item|resolve|defer)",
+        path,
+    )
+    if governance_tension_action_match and method.upper() == "POST" and enabled:
+        return {
+            "resource": "governance_tension",
+            "action": governance_tension_action_match.group(3),
+            "public": False,
+            "location_id": governance_tension_action_match.group(1),
+            "scope_required": True,
+            "operator_auth": True,
+        }
+
     attestation_match = re.fullmatch(
         r"/operator/api/attestations/([0-9a-fA-F-]{36})", path
     )
@@ -3826,6 +3920,31 @@ def auth_route_policy(method: str, path: str, *, enabled: bool) -> dict | None:
             "scope_required": True,
             "operator_auth": True,
         }
+    report_export_action = None
+    if path == "/operator/api/report-export-snapshots" and method.upper() == "GET":
+        report_export_action = "read"
+    elif path == "/operator/api/report-exports":
+        report_export_action = {
+            "POST": "create",
+            "GET": "read",
+        }.get(method.upper())
+    elif method.upper() == "GET" and re.fullmatch(
+        r"/operator/api/report-exports/[0-9a-fA-F-]{36}/artifact", path
+    ):
+        report_export_action = "download"
+    elif method.upper() == "GET" and re.fullmatch(
+        r"/operator/api/report-exports/[0-9a-fA-F-]{36}", path
+    ):
+        report_export_action = "read"
+    if report_export_action is not None:
+        return {
+            "resource": "report_snapshot_export",
+            "action": report_export_action,
+            "public": not enabled,
+            "location_id": None,
+            "scope_required": True,
+            "operator_auth": True,
+        }
     routes = {
         ("GET", "/operator/"): ("console", True, False),
         ("GET", "/operator/auth/login"): ("login", True, False),
@@ -3938,10 +4057,34 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
     from collections.abc import Mapping
 
     import psycopg2
-    from fastapi import APIRouter, HTTPException
-    from fastapi.responses import JSONResponse, RedirectResponse
+    from fastapi import APIRouter, HTTPException, Query
+    from fastapi.responses import JSONResponse, RedirectResponse, Response
+    from pydantic import ValidationError
     from starlette.concurrency import run_in_threadpool
 
+    from services.gateway.farm_activity_intake_responses import (
+        FarmActivityIntakeQueueResponse,
+    )
+    from services.gateway.mobile_collection_review_responses import (
+        MobileCollectionDispositionInventoryResponse,
+        MobileCollectionReviewDetailResponse,
+        MobileCollectionReviewQueueResponse,
+    )
+    from services.gateway.mobile_enrollment_responses import MobileEnrollmentCreateResponse
+    from services.gateway.mobile_operations_inventory_responses import (
+        MobileOperationsInventoryResponse,
+    )
+    from services.gateway.operator_review_responses import (
+        ReportReviewErrorResponse,
+        ReportReviewQueueResponse,
+        SubmittedReportDetailResponse,
+    )
+    from services.gateway.report_export_responses import (
+        ReportExportCandidateListResponse,
+        ReportExportCreateResponse,
+        ReportExportDetailResponse,
+        ReportExportListResponse,
+    )
     from services.mobile.api import (
         create_operator_enrollment,
         create_participant_link,
@@ -4062,8 +4205,13 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
             headers={"Cache-Control": "no-store", "Vary": "Cookie"},
         )
 
-    @router.get("/operator/api/report-review-queue")
-    async def report_review_queue(request: Request, location_id: str, limit: int = 50):
+    @router.get(
+        "/operator/api/report-review-queue",
+        response_model=ReportReviewQueueResponse,
+    )
+    async def report_review_queue(
+        request: Request, location_id: str, limit: int = Query(default=50, ge=1, le=100)
+    ):
         if provider is None:
             return JSONResponse(status_code=404, content={"error": "Operator OIDC is disabled"})
         from services.common.tenant_context import TenantContextDenied
@@ -4095,17 +4243,63 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
                 content={"error": "Report review service unavailable"},
                 headers={"Retry-After": "30", "Cache-Control": "no-store"},
             )
+        try:
+            response = ReportReviewQueueResponse.model_validate(
+                {"data": rows, "location_id": str(UUID(location_id))}
+            )
+            if response.location_id != UUID(location_id):
+                raise ValueError("Report review response does not match request location")
+        except (ValidationError, ValueError, TypeError) as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.operator_review").warning(
+                "Report review queue response rejected (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=500,
+                content={"error": "Report review queue unavailable"},
+                headers={"Cache-Control": "no-store", "Vary": "Cookie"},
+            )
+
         from fastapi.encoders import jsonable_encoder
 
         return JSONResponse(
-            {"data": jsonable_encoder(rows), "location_id": str(UUID(location_id))},
+            jsonable_encoder({"data": rows, "location_id": str(response.location_id)}),
             headers={"Cache-Control": "no-store", "Vary": "Cookie"},
         )
 
-    @router.get("/operator/api/report-review-queue/{report_id}")
+    report_detail_errors = {
+        status: {
+            "model": ReportReviewErrorResponse,
+            "description": description,
+            "headers": {
+                "Cache-Control": {"schema": {"type": "string", "example": "no-store"}},
+                "Vary": {"schema": {"type": "string", "example": "Cookie"}},
+            },
+        }
+        for status, description in {
+            400: "The report detail request is invalid.",
+            403: "The operator lacks a current location-scoped report review grant.",
+            404: "The submitted report is unavailable.",
+            413: "The report exceeds the private review response limit.",
+            500: "The submitted report failed its response contract.",
+            503: "The report review service is unavailable.",
+        }.items()
+    }
+
+    @router.get(
+        "/operator/api/report-review-queue/{report_id}",
+        response_model=SubmittedReportDetailResponse,
+        responses=report_detail_errors,
+    )
     async def submitted_report_detail(request: Request, report_id: str, location_id: str):
+        detail_headers = {"Cache-Control": "no-store", "Vary": "Cookie"}
         if provider is None:
-            return JSONResponse(status_code=404, content={"error": "Operator OIDC is disabled"})
+            return JSONResponse(
+                status_code=404,
+                content={"error": "Operator OIDC is disabled"},
+                headers=detail_headers,
+            )
         from services.common.tenant_context import TenantContextDenied
         from services.gateway.operator_review import (
             ReportPayloadTooLarge,
@@ -4113,26 +4307,39 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
         )
 
         try:
+            requested_report_id = UUID(report_id)
+            requested_location_id = UUID(location_id)
+        except (TypeError, ValueError):
+            return JSONResponse(
+                status_code=400,
+                content={"error": "Report review request is invalid"},
+                headers=detail_headers,
+            )
+        try:
             row = await run_in_threadpool(
                 get_submitted_report,
                 request.state.operator_session.operator.operator_id,
-                report_id,
-                location_id,
+                str(requested_report_id),
+                str(requested_location_id),
             )
         except TenantContextDenied:
             return JSONResponse(
                 status_code=403,
                 content={"error": "Tenant-qualified operator access is required"},
-                headers={"Cache-Control": "no-store", "Vary": "Cookie"},
+                headers=detail_headers,
             )
         except ReportPayloadTooLarge:
             return JSONResponse(
                 status_code=413,
                 content={"error": "Report exceeds the console read limit"},
-                headers={"Cache-Control": "no-store"},
+                headers=detail_headers,
             )
-        except ValueError as exc:
-            return JSONResponse(status_code=400, content={"error": str(exc)})
+        except ValueError:
+            return JSONResponse(
+                status_code=400,
+                content={"error": "Report review request is invalid"},
+                headers=detail_headers,
+            )
         except psycopg2.Error as exc:
             from services.common.logging import get_logger
 
@@ -4142,19 +4349,469 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
             return JSONResponse(
                 status_code=503,
                 content={"error": "Report review service unavailable"},
-                headers={"Retry-After": "30", "Cache-Control": "no-store"},
+                headers={**detail_headers, "Retry-After": "30"},
             )
         if row is None:
-            return JSONResponse(status_code=404, content={"error": "Submitted report not found"})
+            return JSONResponse(
+                status_code=404,
+                content={"error": "Submitted report not found"},
+                headers=detail_headers,
+            )
+        try:
+            detail = SubmittedReportDetailResponse.model_validate({"data": row})
+            if detail.data.id != requested_report_id:
+                raise ValueError("Submitted report does not match the requested identifier")
+        except (ValidationError, TypeError, ValueError, RecursionError) as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.operator_review").warning(
+                "Submitted report projection rejected (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=500,
+                content={"error": "Report review service unavailable"},
+                headers=detail_headers,
+            )
         from fastapi.encoders import jsonable_encoder
 
         return JSONResponse(
-            {"data": jsonable_encoder(row)},
+            jsonable_encoder(detail.model_dump(mode="python")),
+            headers=detail_headers,
+        )
+
+    @router.post(
+        "/operator/api/report-exports",
+        response_model=ReportExportCreateResponse,
+        status_code=202,
+    )
+    async def request_report_export(
+        request: Request,
+        location_id: str,
+        payload: ReportExportCreateRequest,
+    ):
+        if provider is None:
+            return JSONResponse(
+                status_code=404,
+                content={"error": "Operator OIDC is disabled"},
+                headers={"Cache-Control": "no-store", "Vary": "Cookie"},
+            )
+        from services.common.tenant_context import TenantContextDenied
+        from services.gateway.report_exports import (
+            ReportExportConflict,
+            ReportExportNotFound,
+        )
+        from services.gateway.report_exports import (
+            request_report_export as create_export,
+        )
+
+        try:
+            result = await run_in_threadpool(
+                create_export,
+                request.state.operator_session.operator.operator_id,
+                location_id,
+                str(payload.report_snapshot_id),
+                str(payload.idempotency_key),
+            )
+            response = ReportExportCreateResponse.model_validate(result)
+        except TenantContextDenied:
+            return JSONResponse(
+                status_code=403,
+                content={"error": "Tenant-qualified operator access is required"},
+                headers={"Cache-Control": "no-store", "Vary": "Cookie"},
+            )
+        except ReportExportConflict:
+            return JSONResponse(
+                status_code=409,
+                content={"error": "This idempotency key is already bound to another request"},
+                headers={"Cache-Control": "no-store", "Vary": "Cookie"},
+            )
+        except ReportExportNotFound:
+            return JSONResponse(
+                status_code=404,
+                content={"error": "Report snapshot is unavailable for export"},
+                headers={"Cache-Control": "no-store", "Vary": "Cookie"},
+            )
+        except ValidationError as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.report_exports").warning(
+                "Report export response rejected (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=500,
+                content={"error": "Report export service unavailable"},
+                headers={"Cache-Control": "no-store", "Vary": "Cookie"},
+            )
+        except ValueError:
+            return JSONResponse(
+                status_code=400,
+                content={"error": "Report export request is invalid"},
+                headers={"Cache-Control": "no-store", "Vary": "Cookie"},
+            )
+        except psycopg2.Error as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.report_exports").warning(
+                "Report export request unavailable (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=503,
+                content={"error": "Report export service unavailable"},
+                headers={"Retry-After": "30", "Cache-Control": "no-store", "Vary": "Cookie"},
+            )
+
+        from fastapi.encoders import jsonable_encoder
+
+        return JSONResponse(
+            jsonable_encoder(response.model_dump()),
+            status_code=202,
             headers={"Cache-Control": "no-store", "Vary": "Cookie"},
         )
 
-    @router.get("/operator/api/mobile-collection-review-queue")
-    async def mobile_collection_review_queue(request: Request, location_id: str, limit: int = 50):
+    @router.get(
+        "/operator/api/report-exports",
+        response_model=ReportExportListResponse,
+    )
+    async def list_report_exports(
+        request: Request,
+        location_id: str,
+        limit: int = Query(default=50, ge=1, le=50),
+    ):
+        if provider is None:
+            return JSONResponse(
+                status_code=404,
+                content={"error": "Operator OIDC is disabled"},
+                headers={"Cache-Control": "no-store", "Vary": "Cookie"},
+            )
+        from services.common.tenant_context import TenantContextDenied
+        from services.gateway.report_exports import list_report_exports as list_exports
+
+        try:
+            rows = await run_in_threadpool(
+                list_exports,
+                request.state.operator_session.operator.operator_id,
+                location_id,
+                limit,
+            )
+            response = ReportExportListResponse.model_validate(
+                {"location_id": location_id, "data": rows}
+            )
+            if any(item.location_id != response.location_id for item in response.data):
+                from services.common.logging import get_logger
+
+                get_logger("gateway.report_exports").warning(
+                    "Report export list response rejected (scope mismatch)"
+                )
+                return JSONResponse(
+                    status_code=500,
+                    content={"error": "Report export list unavailable"},
+                    headers={"Cache-Control": "no-store", "Vary": "Cookie"},
+                )
+        except TenantContextDenied:
+            return JSONResponse(
+                status_code=403,
+                content={"error": "Tenant-qualified operator access is required"},
+                headers={"Cache-Control": "no-store", "Vary": "Cookie"},
+            )
+        except ValidationError as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.report_exports").warning(
+                "Report export list response rejected (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=500,
+                content={"error": "Report export list unavailable"},
+                headers={"Cache-Control": "no-store", "Vary": "Cookie"},
+            )
+        except ValueError:
+            return JSONResponse(
+                status_code=400,
+                content={"error": "Report export request is invalid"},
+                headers={"Cache-Control": "no-store", "Vary": "Cookie"},
+            )
+        except psycopg2.Error as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.report_exports").warning(
+                "Report export list unavailable (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=503,
+                content={"error": "Report export service unavailable"},
+                headers={"Retry-After": "30", "Cache-Control": "no-store", "Vary": "Cookie"},
+            )
+
+        from fastapi.encoders import jsonable_encoder
+
+        return JSONResponse(
+            jsonable_encoder(response.model_dump()),
+            headers={"Cache-Control": "no-store", "Vary": "Cookie"},
+        )
+
+    @router.get(
+        "/operator/api/report-export-snapshots",
+        response_model=ReportExportCandidateListResponse,
+    )
+    async def list_exportable_report_snapshots(
+        request: Request,
+        location_id: str,
+        limit: int = Query(default=25, ge=1, le=50),
+        offset: int = Query(default=0, ge=0, le=5000),
+    ):
+        if provider is None:
+            return JSONResponse(
+                status_code=404,
+                content={"error": "Operator OIDC is disabled"},
+                headers={"Cache-Control": "no-store", "Vary": "Cookie"},
+            )
+        from services.common.tenant_context import TenantContextDenied
+        from services.gateway.report_exports import (
+            list_exportable_report_snapshots as list_candidates,
+        )
+
+        try:
+            result = await run_in_threadpool(
+                list_candidates,
+                request.state.operator_session.operator.operator_id,
+                location_id,
+                limit,
+                offset,
+            )
+            response = ReportExportCandidateListResponse.model_validate(result)
+            if (
+                response.location_id != UUID(location_id)
+                or response.limit != limit
+                or response.offset != offset
+                or any(item.location_id != response.location_id for item in response.data)
+            ):
+                from services.common.logging import get_logger
+
+                get_logger("gateway.report_exports").warning(
+                    "Report export candidate response rejected (scope or page mismatch)"
+                )
+                return JSONResponse(
+                    status_code=500,
+                    content={"error": "Report export candidates unavailable"},
+                    headers={"Cache-Control": "no-store", "Vary": "Cookie"},
+                )
+        except TenantContextDenied:
+            return JSONResponse(
+                status_code=403,
+                content={"error": "Tenant-qualified operator access is required"},
+                headers={"Cache-Control": "no-store", "Vary": "Cookie"},
+            )
+        except ValidationError as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.report_exports").warning(
+                "Report export candidate response rejected (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=500,
+                content={"error": "Report export candidates unavailable"},
+                headers={"Cache-Control": "no-store", "Vary": "Cookie"},
+            )
+        except ValueError:
+            return JSONResponse(
+                status_code=400,
+                content={"error": "Report export candidate request is invalid"},
+                headers={"Cache-Control": "no-store", "Vary": "Cookie"},
+            )
+        except psycopg2.Error as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.report_exports").warning(
+                "Report export candidates unavailable (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=503,
+                content={"error": "Report export service unavailable"},
+                headers={"Retry-After": "30", "Cache-Control": "no-store", "Vary": "Cookie"},
+            )
+
+        from fastapi.encoders import jsonable_encoder
+
+        return JSONResponse(
+            jsonable_encoder(response.model_dump()),
+            headers={"Cache-Control": "no-store", "Vary": "Cookie"},
+        )
+
+    @router.get(
+        "/operator/api/report-exports/{request_id}",
+        response_model=ReportExportDetailResponse,
+    )
+    async def get_report_export(request: Request, request_id: str, location_id: str):
+        if provider is None:
+            return JSONResponse(
+                status_code=404,
+                content={"error": "Operator OIDC is disabled"},
+                headers={"Cache-Control": "no-store", "Vary": "Cookie"},
+            )
+        from services.common.tenant_context import TenantContextDenied
+        from services.gateway.report_exports import (
+            ReportExportNotFound,
+        )
+        from services.gateway.report_exports import (
+            get_report_export as read_export,
+        )
+
+        try:
+            row = await run_in_threadpool(
+                read_export,
+                request.state.operator_session.operator.operator_id,
+                location_id,
+                request_id,
+            )
+            if row is None:
+                raise ReportExportNotFound("Report export is unavailable")
+            response = ReportExportDetailResponse.model_validate(
+                {"location_id": location_id, "data": row}
+            )
+            summary = response.data
+            if summary.request_id != UUID(request_id) or summary.location_id != response.location_id:
+                from services.common.logging import get_logger
+
+                get_logger("gateway.report_exports").warning(
+                    "Report export detail response rejected (scope mismatch)"
+                )
+                return JSONResponse(
+                    status_code=500,
+                    content={"error": "Report export detail unavailable"},
+                    headers={"Cache-Control": "no-store", "Vary": "Cookie"},
+                )
+        except TenantContextDenied:
+            return JSONResponse(
+                status_code=403,
+                content={"error": "Tenant-qualified operator access is required"},
+                headers={"Cache-Control": "no-store", "Vary": "Cookie"},
+            )
+        except ReportExportNotFound:
+            return JSONResponse(
+                status_code=404,
+                content={"error": "Report export is unavailable"},
+                headers={"Cache-Control": "no-store", "Vary": "Cookie"},
+            )
+        except ValidationError as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.report_exports").warning(
+                "Report export detail response rejected (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=500,
+                content={"error": "Report export detail unavailable"},
+                headers={"Cache-Control": "no-store", "Vary": "Cookie"},
+            )
+        except ValueError:
+            return JSONResponse(
+                status_code=400,
+                content={"error": "Report export request is invalid"},
+                headers={"Cache-Control": "no-store", "Vary": "Cookie"},
+            )
+        except psycopg2.Error as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.report_exports").warning(
+                "Report export detail unavailable (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=503,
+                content={"error": "Report export service unavailable"},
+                headers={"Retry-After": "30", "Cache-Control": "no-store", "Vary": "Cookie"},
+            )
+
+        from fastapi.encoders import jsonable_encoder
+
+        return JSONResponse(
+            jsonable_encoder(response.model_dump()),
+            headers={"Cache-Control": "no-store", "Vary": "Cookie"},
+        )
+
+    @router.get("/operator/api/report-exports/{request_id}/artifact")
+    async def download_report_export(request: Request, request_id: str, location_id: str):
+        if provider is None:
+            return JSONResponse(
+                status_code=404,
+                content={"error": "Operator OIDC is disabled"},
+                headers={"Cache-Control": "no-store", "Vary": "Cookie"},
+            )
+        from services.common.tenant_context import TenantContextDenied
+        from services.gateway.report_exports import (
+            ReportExportArtifactUnavailable,
+            ReportExportNotFound,
+        )
+        from services.gateway.report_exports import (
+            download_report_export as read_artifact,
+        )
+
+        try:
+            artifact = await run_in_threadpool(
+                read_artifact,
+                request.state.operator_session.operator.operator_id,
+                location_id,
+                request_id,
+            )
+        except TenantContextDenied:
+            return JSONResponse(
+                status_code=403,
+                content={"error": "Tenant-qualified operator access is required"},
+                headers={"Cache-Control": "no-store", "Vary": "Cookie"},
+            )
+        except ReportExportNotFound:
+            return JSONResponse(
+                status_code=404,
+                content={"error": "Report export is unavailable"},
+                headers={"Cache-Control": "no-store", "Vary": "Cookie"},
+            )
+        except ValueError:
+            return JSONResponse(
+                status_code=400,
+                content={"error": "Report export request is invalid"},
+                headers={"Cache-Control": "no-store", "Vary": "Cookie"},
+            )
+        except ReportExportArtifactUnavailable as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.report_exports").warning(
+                "Report export artifact unavailable (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=503,
+                content={"error": "Report export artifact is temporarily unavailable"},
+                headers={"Retry-After": "30", "Cache-Control": "no-store", "Vary": "Cookie"},
+            )
+        except psycopg2.Error as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.report_exports").warning(
+                "Report export authorization unavailable (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=503,
+                content={"error": "Report export service unavailable"},
+                headers={"Retry-After": "30", "Cache-Control": "no-store", "Vary": "Cookie"},
+            )
+        safe_request_id = str(artifact.request_id)
+        return Response(
+            content=artifact.content,
+            media_type="application/json",
+            headers={
+                "Cache-Control": "no-store",
+                "Pragma": "no-cache",
+                "Vary": "Cookie",
+                "Content-Disposition": f'attachment; filename="kokonut-report-{safe_request_id}.json"',
+                "X-Content-Type-Options": "nosniff",
+            },
+        )
+
+    @router.get(
+        "/operator/api/mobile-collection-review-queue",
+        response_model=MobileCollectionReviewQueueResponse,
+    )
+    async def mobile_collection_review_queue(
+        request: Request, location_id: str, limit: int = Query(default=50, ge=1, le=100)
+    ):
         if provider is None:
             return JSONResponse(status_code=404, content={"error": "Operator OIDC is disabled"})
         from services.common.tenant_context import TenantContextDenied
@@ -4186,19 +4843,44 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
                 content={"error": "Mobile collection review service unavailable"},
                 headers={"Retry-After": "30", "Cache-Control": "no-store"},
             )
+        try:
+            response = MobileCollectionReviewQueueResponse.model_validate(
+                {"data": rows, "location_id": str(UUID(location_id))}
+            )
+            if response.location_id != UUID(location_id):
+                raise ValueError("Mobile collection review response does not match request location")
+        except (ValidationError, ValueError, TypeError) as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.operator_mobile_review").warning(
+                "Mobile collection review response rejected (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=500,
+                content={"error": "Mobile collection review queue unavailable"},
+                headers={"Cache-Control": "no-store", "Vary": "Cookie"},
+            )
+
         from fastapi.encoders import jsonable_encoder
 
         return JSONResponse(
-            {"data": jsonable_encoder(rows), "location_id": str(UUID(location_id))},
+            jsonable_encoder({"data": rows, "location_id": str(response.location_id)}),
             headers={"Cache-Control": "no-store", "Vary": "Cookie"},
         )
 
-    @router.get("/operator/api/mobile-collection-review-queue/{collection_id}")
+    @router.get(
+        "/operator/api/mobile-collection-review-queue/{collection_id}",
+        response_model=MobileCollectionReviewDetailResponse,
+    )
     async def mobile_collection_review_detail(
         request: Request, collection_id: str, location_id: str
     ):
         if provider is None:
-            return JSONResponse(status_code=404, content={"error": "Operator OIDC is disabled"})
+            return JSONResponse(
+                status_code=404,
+                content={"error": "Operator OIDC is disabled"},
+                headers={"Cache-Control": "no-store", "Vary": "Cookie"},
+            )
         from services.common.tenant_context import TenantContextDenied
         from services.gateway.operator_mobile_review import (
             MobileCollectionPayloadTooLarge,
@@ -4222,10 +4904,14 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
             return JSONResponse(
                 status_code=413,
                 content={"error": "Collection exceeds the console read limit"},
-                headers={"Cache-Control": "no-store"},
+                headers={"Cache-Control": "no-store", "Vary": "Cookie"},
             )
         except ValueError as exc:
-            return JSONResponse(status_code=400, content={"error": str(exc)})
+            return JSONResponse(
+                status_code=400,
+                content={"error": str(exc)},
+                headers={"Cache-Control": "no-store", "Vary": "Cookie"},
+            )
         except psycopg2.Error as exc:
             from services.common.logging import get_logger
 
@@ -4235,19 +4921,43 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
             return JSONResponse(
                 status_code=503,
                 content={"error": "Mobile collection review service unavailable"},
-                headers={"Retry-After": "30", "Cache-Control": "no-store"},
+                headers={
+                    "Retry-After": "30",
+                    "Cache-Control": "no-store",
+                    "Vary": "Cookie",
+                },
             )
         if row is None:
-            return JSONResponse(status_code=404, content={"error": "Mobile collection not found"})
+            return JSONResponse(
+                status_code=404,
+                content={"error": "Mobile collection not found"},
+                headers={"Cache-Control": "no-store", "Vary": "Cookie"},
+            )
+        try:
+            response = MobileCollectionReviewDetailResponse.model_validate({"data": row})
+            if response.data.id != UUID(collection_id) or response.data.location_id != UUID(location_id):
+                raise ValueError("Mobile collection detail does not match requested scope")
+        except (ValidationError, ValueError, TypeError) as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.operator_mobile_review").warning(
+                "Mobile collection detail response rejected (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=500,
+                content={"error": "Mobile collection review detail unavailable"},
+                headers={"Cache-Control": "no-store", "Vary": "Cookie"},
+            )
         from fastapi.encoders import jsonable_encoder
 
         return JSONResponse(
-            {"data": jsonable_encoder(row)},
+            jsonable_encoder(response.model_dump(mode="json")),
             headers={"Cache-Control": "no-store", "Vary": "Cookie"},
         )
 
     @router.get(
-        "/operator/api/mobile-collection-review-queue/{collection_id}/disposition-inventory"
+        "/operator/api/mobile-collection-review-queue/{collection_id}/disposition-inventory",
+        response_model=MobileCollectionDispositionInventoryResponse,
     )
     async def mobile_collection_disposition_inventory(
         request: Request, collection_id: str, location_id: str
@@ -4299,10 +5009,30 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
                 content={"error": "Disposition inventory not found or not authorized"},
                 headers={"Cache-Control": "no-store"},
             )
+        try:
+            response = MobileCollectionDispositionInventoryResponse.model_validate(
+                {"data": row}
+            )
+            if (
+                response.data.collection_id != UUID(collection_id)
+                or response.data.location_id != UUID(location_id)
+            ):
+                raise ValueError("Disposition inventory does not match requested scope")
+        except (ValidationError, ValueError, TypeError) as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.operator_mobile_review").warning(
+                "Mobile disposition inventory response rejected (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=500,
+                content={"error": "Mobile disposition inventory unavailable"},
+                headers={"Cache-Control": "no-store", "Vary": "Cookie"},
+            )
         from fastapi.encoders import jsonable_encoder
 
         return JSONResponse(
-            {"data": jsonable_encoder(row)},
+            jsonable_encoder(response.model_dump(mode="json")),
             headers={"Cache-Control": "no-store", "Vary": "Cookie"},
         )
 
@@ -4361,8 +5091,13 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
             headers={"Cache-Control": "no-store", "Pragma": "no-cache", "Vary": "Cookie"},
         )
 
-    @router.get("/operator/api/farm-activity-intake-queue")
-    async def farm_activity_intake_queue(request: Request, location_id: str, limit: int = 50):
+    @router.get(
+        "/operator/api/farm-activity-intake-queue",
+        response_model=FarmActivityIntakeQueueResponse,
+    )
+    async def farm_activity_intake_queue(
+        request: Request, location_id: str, limit: int = Query(default=50, ge=1, le=100)
+    ):
         if provider is None:
             return JSONResponse(status_code=404, content={"error": "Operator OIDC is disabled"})
         from services.common.tenant_context import TenantContextDenied
@@ -4398,10 +5133,28 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
                 content={"error": "Farm activity intake service unavailable"},
                 headers={"Retry-After": "30", "Cache-Control": "no-store", "Vary": "Cookie"},
             )
+        try:
+            response = FarmActivityIntakeQueueResponse.model_validate(
+                {"data": rows, "location_id": str(UUID(location_id))}
+            )
+            if response.location_id != UUID(location_id):
+                raise ValueError("Farm activity intake response does not match request location")
+        except (ValidationError, ValueError, TypeError) as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.farm_activity").warning(
+                "Farm activity intake queue response rejected (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=500,
+                content={"error": "Farm activity intake service unavailable"},
+                headers={"Cache-Control": "no-store", "Vary": "Cookie"},
+            )
+
         from fastapi.encoders import jsonable_encoder
 
         return JSONResponse(
-            {"data": jsonable_encoder(rows), "location_id": str(UUID(location_id))},
+            jsonable_encoder({"data": rows, "location_id": str(response.location_id)}),
             headers={"Cache-Control": "no-store", "Vary": "Cookie"},
         )
 
@@ -4643,7 +5396,9 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
         )
 
     @router.get("/operator/api/farm-activities")
-    async def farm_activity_queue(request: Request, location_id: str, limit: int = 50):
+    async def farm_activity_queue(
+        request: Request, location_id: str, limit: int = Query(default=50, ge=1, le=100)
+    ):
         if provider is None:
             return JSONResponse(
                 status_code=404,
@@ -4692,7 +5447,7 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
 
     @router.get("/operator/api/farm-activities/published")
     async def published_farm_activity_queue(
-        request: Request, location_id: str, limit: int = 50
+        request: Request, location_id: str, limit: int = Query(default=50, ge=1, le=100)
     ):
         if provider is None:
             return JSONResponse(
@@ -4983,7 +5738,11 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
         result.headers["Vary"] = "Cookie"
         return result
 
-    @router.post("/operator/api/mobile/locations/{location_id}/enrollments", status_code=201)
+    @router.post(
+        "/operator/api/mobile/locations/{location_id}/enrollments",
+        response_model=MobileEnrollmentCreateResponse,
+        status_code=201,
+    )
     async def operator_create_mobile_enrollment(
         location_id: UUID,
         request: Request,
@@ -5013,10 +5772,30 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
                 content={"error": exc.detail},
                 headers={"Cache-Control": "no-store", "Vary": "Cookie"},
             )
+        try:
+            response = MobileEnrollmentCreateResponse.model_validate(result)
+        except (ValidationError, ValueError, TypeError, RecursionError) as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.operator_mobile_enrollment").warning(
+                "Mobile enrollment response rejected (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=500,
+                content={"error": "Mobile enrollment service unavailable"},
+                headers={
+                    "Cache-Control": "no-store",
+                    "Pragma": "no-cache",
+                    "Vary": "Cookie",
+                },
+            )
+
+        from fastapi.encoders import jsonable_encoder
+
         return JSONResponse(
             status_code=201,
-            content=result,
-            headers={"Cache-Control": "no-store", "Pragma": "no-cache"},
+            content=jsonable_encoder(response.model_dump(mode="python")),
+            headers={"Cache-Control": "no-store", "Pragma": "no-cache", "Vary": "Cookie"},
         )
 
     @router.delete(
@@ -5075,9 +5854,12 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
             headers={"Cache-Control": "no-store", "Pragma": "no-cache"},
         )
 
-    @router.get("/operator/api/mobile/locations/{location_id}/inventory")
+    @router.get(
+        "/operator/api/mobile/locations/{location_id}/inventory",
+        response_model=MobileOperationsInventoryResponse,
+    )
     async def operator_mobile_inventory(
-        location_id: UUID, request: Request, device_limit: int = 50
+        location_id: UUID, request: Request, device_limit: int = Query(default=50, ge=1, le=100)
     ):
         """Read a location-scoped device inventory and collection queue summary."""
         if provider is None:
@@ -5111,6 +5893,22 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
                 content={"error": "Mobile operations inventory unavailable"},
                 headers={"Retry-After": "30", "Cache-Control": "no-store"},
             )
+        try:
+            response = MobileOperationsInventoryResponse.model_validate(result)
+            if response.location_id != location_id or len(response.devices) > device_limit:
+                raise ValueError("Mobile inventory does not match request scope or device bound")
+        except (ValidationError, ValueError, TypeError) as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.operator_mobile_review").warning(
+                "Mobile operations inventory response rejected (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=500,
+                content={"error": "Mobile operations inventory unavailable"},
+                headers={"Cache-Control": "no-store", "Vary": "Cookie"},
+            )
+
         from fastapi.encoders import jsonable_encoder
 
         return JSONResponse(
@@ -5189,6 +5987,7 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
         register_landscape_conservation_routes,
     )
     from services.gateway.management_work_routes import register_management_work_routes
+    from services.gateway.metric_value_routes import register_metric_value_routes
     from services.gateway.nutrient_balance_routes import register_nutrient_balance_routes
     from services.gateway.operating_pilot_routes import (
         register_operating_pilot_routes,
@@ -5220,6 +6019,7 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
     register_credit_custody_routes(router, provider, run_in_threadpool, psycopg2)
     register_traceability_routes(router, provider, run_in_threadpool, psycopg2)
     register_extension_learning_routes(router, provider, run_in_threadpool, psycopg2)
+    register_metric_value_routes(router, provider, run_in_threadpool, psycopg2)
     register_cooperative_management_routes(router, provider, run_in_threadpool, psycopg2)
     register_trend_analysis_routes(router, provider, run_in_threadpool, psycopg2)
     register_geostatistics_routes(router, provider, run_in_threadpool, psycopg2)

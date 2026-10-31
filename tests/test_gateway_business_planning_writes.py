@@ -430,3 +430,144 @@ def test_post_route_maps_exact_create_denial_to_forbidden(monkeypatch):
 
     assert response.status_code == 403
     assert response.headers["cache-control"] == "no-store"
+
+
+@pytest.mark.parametrize(
+    ("route_suffix", "writer_name", "extra_fields"),
+    [
+        ("", "create_location_business_model_canvas", {}),
+        (
+            "/from-data",
+            "create_location_business_model_canvas_from_data",
+            {"generated_from": ["verified_farm_activity"], "populated_blocks": ["key_activities"]},
+        ),
+    ],
+)
+def test_create_routes_declare_exact_created_and_replay_models(
+    monkeypatch, route_suffix, writer_name, extra_fields
+):
+    from services.gateway.business_planning_routes import register_business_planning_routes
+
+    monkeypatch.setattr(
+        f"services.gateway.business_planning_writes.{writer_name}",
+        lambda *_args, **_kwargs: {
+            "location_id": LOCATION_ID,
+            "canvas_id": REQUEST_ID,
+            "status": "draft",
+            "version": 1,
+            "created_at": "2026-10-19T00:00:00Z",
+            "replayed": False,
+            **extra_fields,
+        },
+    )
+    app = FastAPI()
+    router = APIRouter()
+
+    async def run_in_threadpool(function, *args, **kwargs):
+        return function(*args, **kwargs)
+
+    register_business_planning_routes(router, object(), run_in_threadpool, SimpleNamespace(Error=Exception))
+    app.include_router(router)
+
+    @app.middleware("http")
+    async def add_operator(request, call_next):
+        request.state.operator_session = SimpleNamespace(
+            operator=SimpleNamespace(operator_id=OPERATOR_ID)
+        )
+        return await call_next(request)
+
+    with TestClient(app) as client:
+        response = client.post(
+            f"/operator/api/business-planning/{LOCATION_ID}/canvases{route_suffix}",
+            json=_payload(),
+        )
+
+    assert response.status_code == 201
+    assert set(response.json()) == {
+        "location_id",
+        "canvas_id",
+        "status",
+        "version",
+        "created_at",
+        "replayed",
+        *extra_fields.keys(),
+    }
+    schema = app.openapi()
+    operation = schema["paths"][f"/operator/api/business-planning/{{location_id}}/canvases{route_suffix}"]["post"]
+    created_schema = operation["responses"]["201"]["content"]["application/json"]["schema"]
+    replay_schema = operation["responses"]["200"]["content"]["application/json"]["schema"]
+    assert created_schema == replay_schema
+    model_name = created_schema["$ref"].rsplit("/", 1)[-1]
+    model_schema = schema["components"]["schemas"][model_name]
+    expected_fields = {
+        "location_id",
+        "canvas_id",
+        "status",
+        "version",
+        "created_at",
+        "replayed",
+        *extra_fields.keys(),
+    }
+    assert set(model_schema["properties"]) == expected_fields
+    assert set(model_schema["required"]) == expected_fields
+
+
+@pytest.mark.parametrize(
+    ("changes", "route_suffix", "writer_name"),
+    [
+        ({"location_id": "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee"}, "", "create_location_business_model_canvas"),
+        ({"unexpected": True}, "", "create_location_business_model_canvas"),
+        ({"generated_from": ["unregistered_source"]}, "/from-data", "create_location_business_model_canvas_from_data"),
+    ],
+)
+def test_create_routes_reject_malformed_writer_results_without_leaking_fields(
+    monkeypatch, changes, route_suffix, writer_name
+):
+    from services.gateway.business_planning_routes import register_business_planning_routes
+
+    monkeypatch.setattr(
+        f"services.gateway.business_planning_writes.{writer_name}",
+        lambda *_args, **_kwargs: {
+            "location_id": LOCATION_ID,
+            "canvas_id": REQUEST_ID,
+            "status": "draft",
+            "version": 1,
+            "created_at": "2026-10-19T00:00:00Z",
+            "replayed": False,
+            **(
+                {"generated_from": ["verified_farm_activity"], "populated_blocks": ["key_activities"]}
+                if route_suffix
+                else {}
+            ),
+            **changes,
+        },
+    )
+    app = FastAPI()
+    router = APIRouter()
+
+    async def run_in_threadpool(function, *args, **kwargs):
+        return function(*args, **kwargs)
+
+    register_business_planning_routes(router, object(), run_in_threadpool, SimpleNamespace(Error=Exception))
+    app.include_router(router)
+
+    @app.middleware("http")
+    async def add_operator(request, call_next):
+        request.state.operator_session = SimpleNamespace(
+            operator=SimpleNamespace(operator_id=OPERATOR_ID)
+        )
+        return await call_next(request)
+
+    with TestClient(app) as client:
+        response = client.post(
+            f"/operator/api/business-planning/{LOCATION_ID}/canvases{route_suffix}",
+            json=_payload(),
+        )
+
+    assert response.status_code == 500
+    assert response.json() == {"error": "Business canvas creation unavailable"}
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["vary"] == "Cookie"
+    assert "unexpected" not in response.text
+    assert "eeeeeeee" not in response.text
+    assert "unregistered_source" not in response.text

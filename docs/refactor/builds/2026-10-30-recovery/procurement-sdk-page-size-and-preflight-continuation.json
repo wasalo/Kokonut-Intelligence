@@ -1,0 +1,79 @@
+{
+  "date": "2026-10-30",
+  "branch": "chore/kernel-next-sprint-plan",
+  "slices": {
+    "supplier_comparison_category_scope": {
+      "result": "passed",
+      "checks": {
+        "mock_cursor_cases": 4,
+        "disposable_postgresql_major": 16,
+        "network_isolated": true,
+        "host_port_published": false,
+        "cleanup": "passed"
+      },
+      "synthetic_results": {
+        "location_and_soil": {
+          "order_count": 2,
+          "total_spend": "30.00",
+          "avg_order_value": "15.00"
+        },
+        "location_only": {
+          "order_count": 3,
+          "total_spend": "130.00",
+          "avg_order_value": "43.33"
+        },
+        "category_only": {
+          "order_count": 3,
+          "total_spend": "1030.00",
+          "avg_order_value": "343.33"
+        },
+        "unfiltered": {
+          "order_count": 4,
+          "total_spend": "1130.00",
+          "avg_order_value": "282.50"
+        }
+      },
+      "candidate_or_legacy_modified": false,
+      "provider_contacted": false
+    },
+    "driver_catalog_sdk_page_size": {
+      "result": "passed",
+      "python_driver_catalog_tests": 25,
+      "javascript_public_api_tests": 142,
+      "malformed_terminal_page_case": "8 entries with limit 7 and has_more=false rejected",
+      "typescript_typecheck": "passed",
+      "network_or_provider_used": false
+    },
+    "scheduled_anomaly_timestamp_preflight": {
+      "source_change": "implemented",
+      "tests": "passed",
+      "focused_scheduler_contract_tests": 158,
+      "cases": [
+        "naive --since rejected before subprocess dispatch",
+        "UTC Z and explicit offsets accepted",
+        "legacy anomaly_detector behavior preserved"
+      ]
+    },
+    "stakeholder_objective_priority_preflight": {
+      "source_change": "implemented",
+      "tests": "passed",
+      "focused_cli_preflight_tests": 21,
+      "cases": [
+        "0, 6, and non-integer priorities rejected before database acquisition",
+        "1 and 5 forwarded to service",
+        "default priority 3 preserved"
+      ]
+    }
+  },
+  "static_checks": {
+    "ruff": "passed",
+    "python_compile": "passed",
+    "git_diff_check": "passed",
+    "runtime_sql_inventory": "passed",
+    "capability_matrix": "passed",
+    "provider_boundaries": "passed",
+    "dependency_groups": "passed",
+    "typescript_typecheck": "passed"
+  },
+  "human_decision_open": "Define metric-to-process attribution before presenting global verified metrics as process-specific outcomes."
+}

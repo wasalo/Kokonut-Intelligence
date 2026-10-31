@@ -995,6 +995,14 @@ def main(argv: list[str] | None = None) -> None:
         parser.error("--value requires --sensor")
     if args.sensor is None and (args.date is not None or args.time is not None):
         parser.error("--date and --time require --sensor and --value")
+    if args.sensor is not None and (args.date is not None or args.time is not None):
+        if args.time is not None and not args.time.strip():
+            parser.error("--time must not be empty")
+        reading_date = args.date or datetime.now(timezone.utc).strftime("%Y-%m-%d")
+        try:
+            parse_reading_timestamp(reading_date, args.time)
+        except (TypeError, ValueError):
+            parser.error("--date must be YYYY-MM-DD and --time must be HH:MM:SS")
 
     if args.location_id is None:
         parser.error("sensor operations require --location-id")

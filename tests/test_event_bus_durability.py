@@ -5,6 +5,8 @@ import subprocess
 import sys
 from unittest.mock import MagicMock, patch
 
+import pytest
+
 from services.events.bus import EventBus, _handler_child_environment, resolve_handler
 
 REGISTERED_HANDLERS = (
@@ -31,6 +33,60 @@ def test_lazy_event_bus_connection_uses_configured_timeout():
     get_db.assert_called_once_with(connect_timeout=5)
     bus.close()
     connection.close.assert_called_once()
+
+
+@pytest.mark.parametrize("lease_seconds", [29, 3601, 0, -1, True, False, 30.0, "30", None])
+def test_event_bus_rejects_invalid_lease_before_database_access(lease_seconds):
+    with patch("services.common.database.get_db") as get_db:
+        with pytest.raises(ValueError, match="lease must be between 30 and 3600"):
+            EventBus(lease_seconds=lease_seconds)
+
+    get_db.assert_not_called()
+
+
+@pytest.mark.parametrize("lease_seconds", [30, 3600])
+def test_event_bus_accepts_lease_bounds(lease_seconds):
+    connection = MagicMock()
+
+    bus = EventBus(conn=connection, lease_seconds=lease_seconds)
+
+    assert bus.lease_seconds == lease_seconds
+    assert bus._get_conn() is connection
+
+
+def test_legacy_worker_uses_bounded_lease_for_maximum_handler_timeout():
+    conn, cursor = _connection(
+        fetchall=[("handler", "module", "function", 3570, None)],
+        fetchone=("event",),
+    )
+    bus = EventBus(conn=conn, lease_seconds=30)
+
+    with patch.object(bus, "_invoke_handler", return_value=("success", None)) as invoke:
+        assert bus._process_event("event", "kind", {}, "worker") == "success"
+
+    lease_update = cursor.execute.call_args_list[1]
+    assert lease_update.args[1][0] == 3600
+    invoke.assert_called_once_with("module", "function", "kind", {}, 3570, event_id="event")
+
+
+@pytest.mark.parametrize("timeout_seconds", [3571, 3600, 0, -1, None, 30.5, "30", True])
+def test_legacy_worker_retries_invalid_handler_timeout_without_renewal_or_invocation(
+    timeout_seconds,
+):
+    conn, cursor = _connection(
+        fetchall=[("handler", "module", "function", timeout_seconds, None)]
+    )
+    bus = EventBus(conn=conn, lease_seconds=30)
+
+    with patch.object(bus, "_claim", return_value=[("event", "kind", {}, 0, 3)]), \
+            patch.object(bus, "_invoke_handler") as invoke, \
+            patch.object(bus, "_retry_or_dead_letter") as retry:
+        stats = bus.process_pending(worker_id="worker")
+
+    assert stats == {"processed": 0, "failed": 1, "skipped": 0, "lease_lost": 0}
+    assert cursor.execute.call_count == 1  # Handler lookup only; no lease renewal/delivery.
+    invoke.assert_not_called()
+    retry.assert_called_once_with("event", 1, 3, "worker")
 
 
 def test_unregistered_event_handler_is_rejected_before_import():

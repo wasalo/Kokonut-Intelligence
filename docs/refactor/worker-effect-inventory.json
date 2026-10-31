@@ -4,7 +4,7 @@
   "reviewed": "2026-10-26",
   "scope": "High-confidence direct call patterns found inside the current static worker function-reachability graph. The operation graph conservatively includes some CLI branches that runtime command contracts reject. A listed call is a review candidate, not proof it executes; absence is not proof of no effect. The EventBus handler trace is source-only; runtime callback execution and persisted handler dispatch, arbitrary dynamic dispatch, provider internals, database-side effects, and unmodeled imports are not established. This is not an authorization, idempotency, or least-privilege policy.",
   "summary": {
-    "operation_roots": 49,
+    "operation_roots": 50,
     "candidate_effect_sites": 70,
     "operation_site_memberships": 98,
     "unique_sites_by_category": {
@@ -106,14 +106,14 @@
         },
         {
           "source": "services/events/notification_outbox.py",
-          "line": 442,
+          "line": 443,
           "function": "services.events.notification_outbox:_deliver",
           "category": "http",
           "call": "services.common.http.http.post"
         },
         {
           "source": "services/events/notification_outbox.py",
-          "line": 453,
+          "line": 454,
           "function": "services.events.notification_outbox:_deliver",
           "category": "http",
           "call": "services.common.http.http.post"
@@ -777,7 +777,7 @@
       "candidate_effect_sites": [
         {
           "source": "services/drivers/registry.py",
-          "line": 425,
+          "line": 481,
           "function": "services.drivers.registry:DriverRegistry.load_schedulable_sensor_driver",
           "category": "dynamic_import",
           "call": "importlib.import_module"
@@ -809,7 +809,7 @@
       "candidate_effect_sites": [
         {
           "source": "services/drivers/registry.py",
-          "line": 425,
+          "line": 481,
           "function": "services.drivers.registry:DriverRegistry.load_schedulable_sensor_driver",
           "category": "dynamic_import",
           "call": "importlib.import_module"
@@ -919,7 +919,7 @@
       "candidate_effect_sites": [
         {
           "source": "services/ingestion/weather_forecast.py",
-          "line": 35,
+          "line": 40,
           "function": "services.ingestion.weather_forecast:fetch_forecast_raw",
           "category": "http",
           "call": "services.common.http.http.get"
@@ -935,7 +935,7 @@
       "candidate_effect_sites": [
         {
           "source": "services/ingestion/weather_forecast.py",
-          "line": 35,
+          "line": 40,
           "function": "services.ingestion.weather_forecast:fetch_forecast_raw",
           "category": "http",
           "call": "services.common.http.http.get"
@@ -1022,14 +1022,14 @@
         },
         {
           "source": "services/events/notification_outbox.py",
-          "line": 442,
+          "line": 443,
           "function": "services.events.notification_outbox:_deliver",
           "category": "http",
           "call": "services.common.http.http.post"
         },
         {
           "source": "services/events/notification_outbox.py",
-          "line": 453,
+          "line": 454,
           "function": "services.events.notification_outbox:_deliver",
           "category": "http",
           "call": "services.common.http.http.post"
@@ -1039,6 +1039,12 @@
         "email_delivery": 3,
         "http": 2
       }
+    },
+    {
+      "kind": "isolated_worker",
+      "name": "services.export.report_snapshot_export_worker",
+      "candidate_effect_sites": [],
+      "category_counts": {}
     },
     {
       "kind": "signed_source_function",

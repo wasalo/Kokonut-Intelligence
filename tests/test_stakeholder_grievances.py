@@ -1,6 +1,8 @@
 """Integration tests for protected grievance handling."""
 
 from datetime import datetime, timedelta, timezone
+from unittest.mock import MagicMock
+from uuid import UUID
 
 import pytest
 
@@ -97,9 +99,6 @@ def test_conflicted_investigator_is_rejected():
         conn.close()
 
 
-from unittest.mock import MagicMock
-
-
 def test_close_case_rejects_empty_reason():
     mock_conn = MagicMock()
     with pytest.raises(ValueError, match="closure reason is required"):
@@ -138,3 +137,94 @@ def test_assign_investigation_rejects_conflict_flag():
         grievances.assign_investigation(
             mock_conn, "case-id", "p4", "scope", conflict_check_status="conflict"
         )
+
+
+@pytest.mark.parametrize(
+    ("status", "overdue_only", "where", "params"),
+    [
+        (None, False, "", []),
+        ("investigating", False, " WHERE status = %s", ["investigating"]),
+        (None, True, " WHERE is_overdue = TRUE", []),
+        (
+            "investigating",
+            True,
+            " WHERE status = %s AND is_overdue = TRUE",
+            ["investigating"],
+        ),
+    ],
+)
+def test_list_case_health_uses_migration_projection_and_preserves_payload(
+    status, overdue_only, where, params
+):
+    mock_conn = MagicMock()
+    mock_cursor = MagicMock()
+    mock_conn.cursor.return_value.__enter__.return_value = mock_cursor
+    received_at = datetime(2026, 10, 29, 12, 30, tzinfo=timezone.utc)
+    row = {
+        "case_id": UUID("b0000000-0000-0000-0000-000000000001"),
+        "case_number": "GRV-20261029-ABC12345",
+        "category": "representation",
+        "severity": "high",
+        "confidentiality": "restricted",
+        "status": "investigating",
+        "summary": "Community input was not acknowledged",
+        "location_id": UUID("b0000000-0000-0000-0000-000000000002"),
+        "complainant_name": "Community member",
+        "affected_party_name": "Farm workers",
+        "owner_name": "Kokonut Network",
+        "received_at": received_at,
+        "due_at": None,
+        "work_item_id": None,
+        "investigation_count": 1,
+        "evidence_count": 2,
+        "remedy_count": 1,
+        "open_remedy_count": 1,
+        "appeal_count": 0,
+        "satisfaction_score": None,
+        "is_overdue": True,
+    }
+    mock_cursor.fetchall.return_value = [row]
+
+    result = grievances.list_case_health(
+        mock_conn, status=status, overdue_only=overdue_only
+    )
+
+    projection = ", ".join(
+        (
+            "case_id",
+            "case_number",
+            "category",
+            "severity",
+            "confidentiality",
+            "status",
+            "summary",
+            "location_id",
+            "complainant_name",
+            "affected_party_name",
+            "owner_name",
+            "received_at",
+            "due_at",
+            "work_item_id",
+            "investigation_count",
+            "evidence_count",
+            "remedy_count",
+            "open_remedy_count",
+            "appeal_count",
+            "satisfaction_score",
+            "is_overdue",
+        )
+    )
+    mock_cursor.execute.assert_called_once_with(
+        f"SELECT {projection} FROM v_stakeholder_grievance_health{where} "
+        "ORDER BY severity DESC, received_at",
+        params,
+    )
+    assert "SELECT *" not in mock_cursor.execute.call_args.args[0]
+    assert result == [
+        {
+            **row,
+            "case_id": str(row["case_id"]),
+            "location_id": str(row["location_id"]),
+            "received_at": received_at.isoformat(),
+        }
+    ]

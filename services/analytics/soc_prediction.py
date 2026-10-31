@@ -55,8 +55,11 @@ def extract_training_data(conn, location_id: Optional[str] = None) -> list[dict[
             wo.temperature_c,
             wo.precipitation_mm
         FROM soil_carbon_measurement scm
-        LEFT JOIN plot plot_geom
+        JOIN plot plot_geom
             ON plot_geom.id = scm.plot_id
+        JOIN farm farm_geom
+            ON farm_geom.id = plot_geom.farm_id
+            AND farm_geom.location_id = scm.location_id
         LEFT JOIN remote_sensing_observation rso
             ON rso.location_id = scm.location_id
             AND rso.plot_id = scm.plot_id

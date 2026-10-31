@@ -9,7 +9,13 @@ export const TENANT_SCOPED_COLLECTIONS = [
   'labor_event',
   'field_note',
   'forecast_scenario',
+  'forecast_output',
+  'water_access',
+  'capex_breakdown',
+  'attestation_plan',
+  'digital_lego_usage',
   'report_snapshot',
+  'noi_snapshot',
   'dashboard_dataset',
   'farm_registry_record',
   'inventory_event',
@@ -29,6 +35,12 @@ export const TENANT_SCOPED_COLLECTIONS = [
 export const READ_ONLY_TENANT_SCOPED_COLLECTIONS = [
   'retirement_certificate',
   'metric_value',
+  'forecast_output',
+  'noi_snapshot',
+  'water_access',
+  'capex_breakdown',
+  'attestation_plan',
+  'digital_lego_usage',
 ] as const;
 
 export type TenantScopedCollection = (typeof TENANT_SCOPED_COLLECTIONS)[number];
@@ -97,6 +109,52 @@ function requestsRelationExpansion(query: Record<string, any>): boolean {
     return normalized.length === 0 ||
       (normalized !== '*' && (normalized.includes('.') || normalized.includes('*')));
   });
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === 'object' && !Array.isArray(value);
+}
+
+/**
+ * Relation predicates can turn an authorized root-row query into a boolean
+ * oracle for data on an unrelated tenant. Until every traversed relation has
+ * an explicit organization/location contract, allow only scalar field
+ * operators (and logical composition) on tenant-scoped Directus reads.
+ */
+function filterUsesRelation(filter: unknown): boolean {
+  if (Array.isArray(filter)) return filter.some(filterUsesRelation);
+  if (!isRecord(filter)) return false;
+
+  for (const [field, condition] of Object.entries(filter)) {
+    if (field === '_and' || field === '_or' || field === '_not') {
+      if (filterUsesRelation(condition)) return true;
+      continue;
+    }
+    if (field.startsWith('_')) continue;
+    if (field.includes('.')) return true;
+    if (!isRecord(condition)) continue;
+
+    const operators = Object.keys(condition);
+    // A relation filter is nested by field name (relation.field), while a
+    // scalar predicate is nested by operator (_eq, _contains, etc.). The
+    // _some/_none operators explicitly traverse one-to-many relations.
+    if (operators.some((operator) => !operator.startsWith('_')) ||
+        operators.some((operator) => operator === '_some' || operator === '_none')) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function queryPathsUseRelation(value: unknown): boolean {
+  if (value === undefined || value === null) return false;
+  const paths = Array.isArray(value)
+    ? value
+    : typeof value === 'string'
+      ? value.split(',')
+      : null;
+  if (!paths || !paths.every((path) => typeof path === 'string')) return true;
+  return paths.some((path) => path.trim().replace(/^-/, '').includes('.'));
 }
 
 /** Build the authorization store on the request's Knex transaction. */
@@ -190,6 +248,12 @@ export async function authorizeDirectusRead(
   // authorization has not yet been mapped to an organization/location grant.
   // Keep the root row scoped and fail closed until each relation has a contract.
   if (requestsRelationExpansion(query)) throw deny();
+  // Directus also supports relationship traversal through filters, ordering,
+  // and grouping. These can reveal whether foreign rows match even when the
+  // response contains only authorized root records.
+  if (filterUsesRelation(query.filter) ||
+      queryPathsUseRelation(query.sort) ||
+      queryPathsUseRelation(query.groupBy)) throw deny();
 
   const tenantFilter = { location_id: { _in: [...new Set(locations)] } };
   return {

@@ -9,8 +9,11 @@ queries/business logic. Reachable via:
 import argparse
 import json
 from datetime import date
+from uuid import UUID
 
 from .marketplace import (
+    MAX_ACTIVE_LISTINGS_LIMIT,
+    MAX_ACTIVE_LISTINGS_OFFSET,
     create_buyer_profile,
     create_listing,
     create_order,
@@ -30,7 +33,29 @@ from .marketplace import (
 # CLI
 # ============================================================
 
-def main():
+
+def _parse_iso_date(value: str) -> date:
+    """Parse a harvest date before the marketplace database is opened."""
+    try:
+        return date.fromisoformat(value)
+    except (TypeError, ValueError) as exc:
+        raise argparse.ArgumentTypeError(
+            "--harvest-date must be a valid ISO date (YYYY-MM-DD)"
+        ) from exc
+
+
+def _parse_json(value: str):
+    """Decode object-valued JSON CLI inputs before opening the database."""
+    try:
+        decoded = json.loads(value)
+    except (TypeError, ValueError) as exc:
+        raise argparse.ArgumentTypeError("must be a valid JSON object") from exc
+    if not isinstance(decoded, dict):
+        raise argparse.ArgumentTypeError("must be a valid JSON object")
+    return decoded
+
+
+def main(argv=None):
     parser = argparse.ArgumentParser(description="Digital marketplace for agricultural produce")
     sub = parser.add_subparsers(dest="command")
 
@@ -42,7 +67,9 @@ def main():
     cl.add_argument("--unit", default="kg")
     cl.add_argument("--price", type=float, dest="price_per_unit")
     cl.add_argument("--grade", dest="quality_grade")
-    cl.add_argument("--harvest-date", help="Harvest date YYYY-MM-DD")
+    cl.add_argument(
+        "--harvest-date", type=_parse_iso_date, help="Harvest date YYYY-MM-DD"
+    )
     cl.add_argument("--description")
     cl.add_argument("--json", action="store_true")
 
@@ -64,8 +91,18 @@ def main():
     la = sub.add_parser("list-active", help="List active listings")
     la.add_argument("--location-id")
     la.add_argument("--crop")
-    la.add_argument("--limit", type=int, default=50)
-    la.add_argument("--offset", type=int, default=0)
+    la.add_argument(
+        "--limit",
+        type=int,
+        default=50,
+        help=f"Page size (1-{MAX_ACTIVE_LISTINGS_LIMIT}; default: 50)",
+    )
+    la.add_argument(
+        "--offset",
+        type=int,
+        default=0,
+        help=f"Page offset (0-{MAX_ACTIVE_LISTINGS_OFFSET}; default: 0)",
+    )
     la.add_argument("--json", action="store_true")
 
     # create-buyer
@@ -73,8 +110,8 @@ def main():
     cb.add_argument("--name", required=True)
     cb.add_argument("--type", dest="buyer_type", default="individual")
     cb.add_argument("--location")
-    cb.add_argument("--preferences", default="{}")
-    cb.add_argument("--contact-info", default="{}")
+    cb.add_argument("--preferences", type=_parse_json, default=_parse_json("{}"))
+    cb.add_argument("--contact-info", type=_parse_json, default=_parse_json("{}"))
     cb.add_argument("--party-id")
     cb.add_argument("--json", action="store_true")
 
@@ -138,23 +175,36 @@ def main():
     ev.add_argument("--listing-id", required=True)
     ev.add_argument("--json", action="store_true")
 
-    args = parser.parse_args()
-
-    from ..ingestion.base import get_db
+    args = parser.parse_args(argv)
 
     if not args.command:
         parser.print_help()
         return
 
+    if args.command == "list-active":
+        if not 1 <= args.limit <= MAX_ACTIVE_LISTINGS_LIMIT:
+            parser.error(f"--limit must be between 1 and {MAX_ACTIVE_LISTINGS_LIMIT}")
+        if not 0 <= args.offset <= MAX_ACTIVE_LISTINGS_OFFSET:
+            parser.error(f"--offset must be between 0 and {MAX_ACTIVE_LISTINGS_OFFSET}")
+
+    if args.command in {"create-listing", "market-overview", "create-alert"} or (
+        args.command == "list-active" and args.location_id is not None
+    ):
+        try:
+            args.location_id = str(UUID(args.location_id))
+        except (AttributeError, TypeError, ValueError):
+            parser.error(f"--location-id must be a valid UUID for {args.command}")
+
+    from ..ingestion.base import get_db
+
     db = get_db()
 
     try:
         if args.command == "create-listing":
-            hd = date.fromisoformat(args.harvest_date) if args.harvest_date else None
             result = create_listing(
                 db, args.location_id, args.crop, args.quantity,
                 unit=args.unit, price_per_unit=args.price_per_unit,
-                quality_grade=args.quality_grade, harvest_date=hd,
+                quality_grade=args.quality_grade, harvest_date=args.harvest_date,
                 description=args.description,
             )
             output = json.dumps(result, indent=2, default=str) if args.json else _format_listing(result)
@@ -187,8 +237,8 @@ def main():
         elif args.command == "create-buyer":
             result = create_buyer_profile(
                 db, args.name, args.buyer_type, args.location,
-                preferences=json.loads(args.preferences),
-                contact_info=json.loads(args.contact_info),
+                preferences=args.preferences,
+                contact_info=args.contact_info,
                 party_id=args.party_id,
             )
             output = json.dumps(result, indent=2, default=str) if args.json else _format_buyer(result)
@@ -280,10 +330,10 @@ def _format_detail(r: dict) -> str:
 
 def _format_listings(r: dict) -> str:
     lines = [f"Active Listings ({r['total']} total):"]
-    for l in r["listings"]:
+    for listing in r["listings"]:
         lines.append(
-            f"  {l['crop_name']:15s} {l['quantity']:>8.0f} {l['unit']:>4s} "
-            f"@ {l.get('price_per_unit') or 'N/A':>8}  [{l.get('quality_grade') or '-'}]"
+            f"  {listing['crop_name']:15s} {listing['quantity']:>8.0f} {listing['unit']:>4s} "
+            f"@ {listing.get('price_per_unit') or 'N/A':>8}  [{listing.get('quality_grade') or '-'}]"
         )
     return "\n".join(lines)
 

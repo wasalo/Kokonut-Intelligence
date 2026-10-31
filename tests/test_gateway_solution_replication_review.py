@@ -1,5 +1,6 @@
 """Tests for private, independent review of location replication proposals."""
 
+from datetime import datetime, timezone
 from types import SimpleNamespace
 from unittest.mock import patch
 from uuid import uuid4
@@ -8,6 +9,7 @@ import pytest
 
 pytest.importorskip("fastapi")
 from fastapi import APIRouter, FastAPI  # noqa: E402
+from fastapi.encoders import jsonable_encoder  # noqa: E402
 from starlette.testclient import TestClient  # noqa: E402
 
 from services.common.tenant_context import TenantContextDenied
@@ -46,7 +48,7 @@ QUEUE_ITEM = {
 DETAIL = {
     "replication_id": REPLICATION_ID,
     "solution_name": "Synthetic solution",
-    "solution_type": "agroforestry",
+    "solution_type": "practice",
     "solution_stage": "validated",
     "replication_status": "proposed",
     "target_context": "A different block on this farm",
@@ -55,8 +57,8 @@ DETAIL = {
     "source_experiment_id": str(uuid4()),
     "source_experiment_status": "validated",
     "source_result_outcome": "validated",
-    "source_result_reviewed_at": "2026-10-19T00:00:00+00:00",
-    "created_at": "2026-10-20T11:00:00+00:00",
+    "source_result_reviewed_at": datetime(2026, 10, 19, tzinfo=timezone.utc),
+    "created_at": datetime(2026, 10, 20, 11, tzinfo=timezone.utc),
     "proposer_attributed": True,
     "is_self_authored": False,
 }
@@ -247,7 +249,7 @@ def test_review_queue_detail_and_decision_are_no_store_and_strict(monkeypatch):
         assert response.headers["cache-control"] == "no-store"
         assert response.headers["vary"] == "Cookie"
     assert queue.status_code == 200 and queue.json()["items"] == [QUEUE_ITEM]
-    assert detail.status_code == 200 and detail.json() == DETAIL
+    assert detail.status_code == 200 and detail.json() == jsonable_encoder(DETAIL)
     assert decision.status_code == 200 and decision.json() == REVIEW_RESULT
     assert invalid.status_code == 400
     assert calls == [((OPERATOR_ID, LOCATION_ID, REPLICATION_ID, REQUEST_ID, "approved", None, True), {})]
@@ -303,3 +305,85 @@ def test_replication_review_read_helpers_use_exact_review_context_and_cleanup():
     assert "SET TRANSACTION READ ONLY" in queue_connection.operations[0][0]
     assert queue_connection.rolled_back and queue_connection.closed
     assert detail_connection.rolled_back and detail_connection.closed
+
+
+def test_replication_review_detail_has_exact_openapi_projection_and_binds_request(monkeypatch):
+    calls = []
+
+    def detail(*args):
+        calls.append(args)
+        return DETAIL
+
+    app = _app(monkeypatch, detail=detail)
+    path = f"/operator/api/solution-lifecycle/{LOCATION_ID}/replications/{REPLICATION_ID}/review"
+    with TestClient(app) as client:
+        response = client.get(path)
+
+    assert response.status_code == 200
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["vary"] == "Cookie"
+    assert response.json() == jsonable_encoder(DETAIL)
+    assert set(response.json()) == {
+        "replication_id",
+        "solution_name",
+        "solution_type",
+        "solution_stage",
+        "replication_status",
+        "target_context",
+        "adaptation_required",
+        "replication_protocol",
+        "source_experiment_id",
+        "source_experiment_status",
+        "source_result_outcome",
+        "source_result_reviewed_at",
+        "created_at",
+        "proposer_attributed",
+        "is_self_authored",
+    }
+    assert calls == [(OPERATOR_ID, LOCATION_ID, REPLICATION_ID)]
+
+    openapi_path = "/operator/api/solution-lifecycle/{location_id}/replications/{replication_id}/review"
+    operation = app.openapi()["paths"][openapi_path]["get"]
+    response_schema = operation["responses"]["200"]["content"]["application/json"]["schema"]
+    schema_name = response_schema["$ref"].rsplit("/", 1)[-1]
+    response_model_schema = app.openapi()["components"]["schemas"][schema_name]
+    assert set(response_model_schema["properties"]) == set(response.json())
+    assert response_model_schema["additionalProperties"] is False
+
+
+@pytest.mark.parametrize(
+    "changes",
+    [
+        {"solution_type": "agroforestry"},
+        {"target_context": "x" * 2001},
+        {"adaptation_required": "x" * 4001},
+        {"replication_protocol": []},
+        {"replication_protocol": {"value": float("nan")}},
+        {"unexpected_private_field": "private proposer identity"},
+        {"source_result_reviewed_at": datetime(2026, 10, 19)},
+        {"source_result_outcome": None},
+    ],
+)
+def test_replication_review_detail_rejects_malformed_service_output(monkeypatch, changes):
+    malformed = {**DETAIL, **changes}
+    app = _app(monkeypatch, detail=lambda *_args: malformed)
+    path = f"/operator/api/solution-lifecycle/{LOCATION_ID}/replications/{REPLICATION_ID}/review"
+    with TestClient(app) as client:
+        response = client.get(path)
+
+    assert response.status_code == 500
+    assert response.json() == {"error": "Solution replication review detail unavailable"}
+    assert "private proposer identity" not in response.text
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["vary"] == "Cookie"
+
+
+def test_replication_review_detail_rejects_mismatched_replication_id(monkeypatch):
+    app = _app(monkeypatch, detail=lambda *_args: {**DETAIL, "replication_id": str(uuid4())})
+    path = f"/operator/api/solution-lifecycle/{LOCATION_ID}/replications/{REPLICATION_ID}/review"
+    with TestClient(app) as client:
+        response = client.get(path)
+
+    assert response.status_code == 500
+    assert response.json() == {"error": "Solution replication review detail unavailable"}
+    assert response.headers["cache-control"] == "no-store"

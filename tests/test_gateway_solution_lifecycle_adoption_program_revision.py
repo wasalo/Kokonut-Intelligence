@@ -1,5 +1,6 @@
 """Linked revision workflow for independently redesigned adoption programs."""
 
+from datetime import datetime, timezone
 from types import SimpleNamespace
 from unittest.mock import patch
 from uuid import uuid4
@@ -26,8 +27,9 @@ PROGRAM = {
     "adoption_pathway": "Original pathway",
     "local_adaptation_policy": "Keep safeguards",
     "next_revision_number": 2,
-    "reviewed_at": "2026-10-20T12:00:00+00:00",
+    "reviewed_at": datetime(2026, 10, 20, 12, tzinfo=timezone.utc),
 }
+PROGRAM_RESPONSE = {**PROGRAM, "reviewed_at": "2026-10-20T12:00:00+00:00"}
 REVISED = {
     "program_id": REVISION_ID,
     "prior_program_id": PROGRAM_ID,
@@ -238,9 +240,12 @@ def test_revision_http_routes_enforce_allowlist_and_tenant_denial(monkeypatch):
     from services.gateway.solution_lifecycle_routes import register_solution_lifecycle_routes
 
     calls = []
+    list_calls = []
     monkeypatch.setattr(
         actions, "list_location_solution_adoption_program_redesigns",
-        lambda *args, **kwargs: {"programs": [PROGRAM], "next_offset": 1, "has_more": False},
+        lambda *args, **kwargs: list_calls.append((args, kwargs)) or {
+            "programs": [PROGRAM], "next_offset": 26, "has_more": False,
+        },
     )
     monkeypatch.setattr(
         actions, "revise_location_solution_adoption_program",
@@ -263,7 +268,7 @@ def test_revision_http_routes_enforce_allowlist_and_tenant_denial(monkeypatch):
     list_path = f"/operator/api/solution-lifecycle/{LOCATION_ID}/adoption/programs/redesigns"
     revise_path = f"/operator/api/solution-lifecycle/{LOCATION_ID}/adoption/programs/{PROGRAM_ID}/revise"
     with TestClient(app) as client:
-        listed = client.get(list_path)
+        listed = client.get(list_path, params={"limit": 1, "offset": 25})
         revised = client.post(revise_path, json={
             "request_id": REQUEST_ID,
             "adoption_pathway": "Revised pathway",
@@ -277,7 +282,16 @@ def test_revision_http_routes_enforce_allowlist_and_tenant_denial(monkeypatch):
             "acknowledged": True, "program_status": "launch",
         })
     assert listed.status_code == 200 and listed.headers["cache-control"] == "no-store"
-    assert listed.json()["programs"] == [PROGRAM]
+    assert listed.json() == {
+        "location_id": LOCATION_ID,
+        "limit": 1,
+        "offset": 25,
+        "programs": [PROGRAM_RESPONSE],
+        "has_more": False,
+        "next_offset": None,
+        "offset_limited": False,
+    }
+    assert list_calls == [((OPERATOR_ID, LOCATION_ID), {"limit": 1, "offset": 25})]
     assert revised.status_code == 201 and revised.json() == REVISED
     assert revised.headers["cache-control"] == "no-store" and len(calls) == 1
     assert invalid.status_code == 400 and len(calls) == 1
@@ -305,3 +319,109 @@ def test_revision_http_routes_enforce_allowlist_and_tenant_denial(monkeypatch):
             "acknowledged": True,
         })
     assert denied.status_code == 403
+
+
+def _redesign_queue_app(monkeypatch, result):
+    from services.gateway.solution_lifecycle_routes import register_solution_lifecycle_routes
+
+    monkeypatch.setattr(
+        actions, "list_location_solution_adoption_program_redesigns",
+        lambda *_args, **_kwargs: result,
+    )
+    router = APIRouter()
+
+    async def run_in_threadpool(function, *args, **kwargs):
+        return function(*args, **kwargs)
+
+    register_solution_lifecycle_routes(router, object(), run_in_threadpool, SimpleNamespace(Error=Exception))
+    app = FastAPI()
+    app.include_router(router)
+
+    @app.middleware("http")
+    async def add_operator(request, call_next):
+        request.state.operator_session = SimpleNamespace(operator=SimpleNamespace(operator_id=OPERATOR_ID))
+        return await call_next(request)
+
+    return app
+
+
+def test_redesign_queue_openapi_declares_exact_strict_page_and_item_fields():
+    from services.gateway.solution_lifecycle_routes import register_solution_lifecycle_routes
+
+    router = APIRouter()
+
+    async def run_in_threadpool(*_args, **_kwargs):
+        pytest.fail("OpenAPI inspection must not invoke the service")
+
+    register_solution_lifecycle_routes(router, object(), run_in_threadpool, SimpleNamespace(Error=Exception))
+    app = FastAPI()
+    app.include_router(router)
+    operation = app.openapi()["paths"][
+        "/operator/api/solution-lifecycle/{location_id}/adoption/programs/redesigns"
+    ]["get"]
+    page_ref = operation["responses"]["200"]["content"]["application/json"]["schema"]["$ref"]
+    page_name = page_ref.rsplit("/", 1)[-1]
+    page_schema = app.openapi()["components"]["schemas"][page_name]
+    assert list(page_schema["properties"]) == [
+        "location_id", "limit", "offset", "programs", "has_more", "next_offset", "offset_limited",
+    ]
+    assert page_schema["additionalProperties"] is False
+    item_ref = page_schema["properties"]["programs"]["items"]["$ref"]
+    item_name = item_ref.rsplit("/", 1)[-1]
+    item_schema = app.openapi()["components"]["schemas"][item_name]
+    assert list(item_schema["properties"]) == list(PROGRAM)
+    assert item_schema["additionalProperties"] is False
+
+
+@pytest.mark.parametrize("result", [
+    {
+        "programs": [{**PROGRAM, "unexpected": "private"}],
+        "next_offset": 1,
+        "has_more": False,
+    },
+    {
+        "programs": [dict(PROGRAM, solution_name="")],
+        "next_offset": 1,
+        "has_more": False,
+    },
+    {
+        "programs": [PROGRAM_RESPONSE],
+        "next_offset": 2,
+        "has_more": False,
+    },
+])
+def test_redesign_queue_rejects_malformed_service_output_with_sanitized_no_store_error(
+    monkeypatch, result
+):
+    app = _redesign_queue_app(monkeypatch, result)
+    path = f"/operator/api/solution-lifecycle/{LOCATION_ID}/adoption/programs/redesigns"
+
+    with TestClient(app) as client:
+        response = client.get(path, params={"limit": 1, "offset": 0})
+
+    assert response.status_code == 500
+    assert response.headers["cache-control"] == "no-store"
+    assert response.json() == {"error": "Adoption program redesigns unavailable"}
+    assert "unexpected" not in response.text and PROGRAM_ID not in response.text
+
+
+def test_redesign_queue_stops_at_offset_cap_without_invalid_continuation(monkeypatch):
+    app = _redesign_queue_app(monkeypatch, {
+        "programs": [PROGRAM], "next_offset": 10001, "has_more": True,
+    })
+    path = f"/operator/api/solution-lifecycle/{LOCATION_ID}/adoption/programs/redesigns"
+
+    with TestClient(app) as client:
+        response = client.get(path, params={"limit": 1, "offset": 10000})
+
+    assert response.status_code == 200
+    assert response.headers["cache-control"] == "no-store"
+    assert response.json() == {
+        "location_id": LOCATION_ID,
+        "limit": 1,
+        "offset": 10000,
+        "programs": [PROGRAM_RESPONSE],
+        "has_more": False,
+        "next_offset": None,
+        "offset_limited": True,
+    }

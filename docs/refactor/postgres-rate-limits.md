@@ -137,7 +137,7 @@ this document remains source-only and unselected in the candidate. Migration
 373 was not applied to the candidate database; it remains applied only to the
 separate portability deployment. No candidate `gateway_rate_bucket` rows were
 created. The shared-provider concurrency, outage, retention, and multi-replica
-gates remain open. [Runtime evidence and rollback](gateway-rate-limit-runtime.json).
+gates remain open. [Runtime evidence and rollback](builds/2026-10-10-recovery/gateway-rate-limit-runtime.json).
 
 ## Portability shared-consumption check — 11 October 2026
 

@@ -1,0 +1,47 @@
+{
+  "date": "2026-10-28",
+  "source_revision": "73e0c748562ddb4903360328d29b35e776be6e4d",
+  "working_tree_dirty": true,
+  "scope": "Foundational C2 export primitives: private local artifact storage with explicit deletion and a pure exact-location report-snapshot JSON validator/serializer.",
+  "checks": [
+    {
+      "command": "python3 -m pytest tests/test_report_snapshot_export.py -q",
+      "result": "passed",
+      "passed": 18
+    },
+    {
+      "command": "python3 -m pytest tests/test_export_artifact_storage.py -q",
+      "result": "passed",
+      "passed": 15
+    },
+    {
+      "command": "Ruff check on the new export modules and focused tests",
+      "result": "passed"
+    },
+    {
+      "command": "Python compilation and git diff hygiene",
+      "result": "passed"
+    }
+  ],
+  "progress": {
+    "checklist_complete": 1515,
+    "checklist_open": 25,
+    "todo_complete": 220,
+    "todo_open": 16,
+    "capability_rows": 67,
+    "strict_private_gateway_response_endpoints": 87,
+    "cli_groups_with_location_uuid_preflight": 27
+  },
+  "environment": {
+    "live_database_used": false,
+    "candidate_or_legacy_touched": false,
+    "provider_called": false,
+    "live_network_used": false
+  },
+  "limitations": [
+    "The serializer requires an independently authorized, bounded reader and is not yet connected to a Gateway route or worker.",
+    "The local storage port is not wired to an export queue and has no R2 adapter or automatic retention cleanup.",
+    "These two primitives do not close the C2 export-request capability gate or authorize broad stakeholder downloads.",
+    "Capability classifications and MAN-CAP acceptance remain unchanged."
+  ]
+}

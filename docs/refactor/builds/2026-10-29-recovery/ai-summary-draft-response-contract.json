@@ -1,0 +1,29 @@
+{
+  "date": "2026-10-29",
+  "scope": "Strict authenticated AI-summary draft request and response contracts",
+  "focused_test_command": "python3 -m pytest tests/test_gateway_ai_summary_draft.py tests/test_gateway_ai_summary_task_request.py tests/test_gateway_ai_summary_review.py -q",
+  "focused_test_result": {
+    "passed": 86,
+    "failed": 0
+  },
+  "additional_checks": {
+    "ruff": "passed",
+    "python_compilation": "passed",
+    "capability_matrix": "passed",
+    "git_diff_check": "passed"
+  },
+  "checks_cover": [
+    "OpenAPI publishes strict request and response schemas for authenticated private AI-summary draft creation",
+    "Invalid summary type, UUID, extra identity fields, and malformed location are rejected before service dispatch",
+    "Successful responses are bound to the requested location and summary type and reject undeclared/private fields",
+    "Lifecycle status, content bounds, unique declared source tables, UUID source samples, count/truncation invariants, and optional scope labels are validated",
+    "201 creation, 200 idempotent replay, reviewed-state replay, and sanitized no-store failures are preserved",
+    "Draft and human-review routes share the same bounded source-reference model"
+  ],
+  "database_or_provider_used": false,
+  "candidate_database_touched": false,
+  "legacy_database_touched": false,
+  "production_or_external_state_used": false,
+  "migration_required": false,
+  "rollback": "Revert the shared source-reference model, Gateway request/response validation, focused tests, and evidence; no database rollback is required."
+}

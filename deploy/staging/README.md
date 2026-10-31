@@ -1,9 +1,15 @@
-# KI Staging — GitHub Actions runner
+# Legacy Compose staging runbook (deployment workflow paused)
 
-Staging runs on the dedicated self-hosted GitHub Actions runner attached to
-the staging host. Its Compose project (`ki-staging`) has separate data, ports,
-and secrets. The runner uses the repository label `ki-staging`; CI and
-pull-request jobs run on GitHub-hosted workers.
+This is an operational runbook for the legacy Compose integration stack, not a
+Kernel candidate or Standard profile deployment. The GitHub Actions workflow
+is currently paused in source (`DEPLOY_STAGING_ENABLED=no`) and intentionally
+fails before deployment. A configured runner label and Compose files do not
+mean staging is deployed or accepted. See the [current architecture and
+implementation guide](../../docs/refactor/current-state-and-implementation.md).
+
+When deliberately re-enabled through a reviewed change, the workflow targets
+the dedicated self-hosted runner and the legacy `ki-staging` Compose project.
+CI and pull-request jobs run on GitHub-hosted workers.
 
 **Never point staging tooling at CI or production, or vice versa.**
 

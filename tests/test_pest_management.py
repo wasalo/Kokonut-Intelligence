@@ -3,51 +3,232 @@
 Tests for Integrated Pest Management
 """
 
-import sys
 import os
+import sys
+import unittest
+from datetime import date
+from unittest.mock import MagicMock, PropertyMock
+
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-import unittest
-from unittest.mock import MagicMock, PropertyMock
-from datetime import date, timedelta
-
 from services.analytics.pest_management import (
-    record_scouting,
-    set_action_threshold,
+    add_mode_of_action,
+    add_pest_crop_interaction,
+    add_pest_reference,
+    add_trap,
+    check_rotation,
     check_threshold,
+    check_trap_threshold,
+    compute_ipm_compliance_score,
+    compute_organic_pest_score,
+    create_scouting_schedule,
+    evaluate_intervention,
+    generate_ipm_audit,
+    get_degree_day_tracking,
+    get_due_scouting,
+    get_optimal_spray_windows,
+    get_pest_crop_interactions,
+    get_pest_dashboard,
+    get_pest_management_report,
+    get_pest_reference,
+    get_pest_summary,
+    get_pesticide_usage,
+    get_rotation_history,
+    get_scouting_compliance,
+    get_trap_trends,
+    list_pest_references,
+    recommend_intervention,
+    recommend_management_for_crop,
+    record_degree_day,
     record_intervention,
     record_pesticide_application,
     record_resistance,
-    record_degree_day,
-    get_pest_summary,
-    get_pesticide_usage,
-    get_degree_day_tracking,
-    recommend_intervention,
-    get_pest_dashboard,
-    add_pest_reference,
-    get_pest_reference,
-    list_pest_references,
-    create_scouting_schedule,
-    get_due_scouting,
+    record_scouting,
     record_scouting_completion,
-    get_scouting_compliance,
-    schedule_re_scout,
-    evaluate_intervention,
-    compute_ipm_compliance_score,
-    add_pest_crop_interaction,
-    get_pest_crop_interactions,
-    recommend_management_for_crop,
-    add_trap,
     record_trap_catch,
-    get_trap_trends,
-    check_trap_threshold,
-    add_mode_of_action,
-    check_rotation,
-    get_rotation_history,
-    get_optimal_spray_windows,
-    compute_organic_pest_score,
-    generate_ipm_audit,
+    schedule_re_scout,
+    set_action_threshold,
 )
+
+PEST_TREND_COLUMNS = (
+    "id",
+    "location_id",
+    "location_name",
+    "plot_id",
+    "plot_name",
+    "observation_date",
+    "observation_month",
+    "pest_species",
+    "pest_common_name",
+    "pest_category",
+    "severity",
+    "incidence_count",
+    "affected_area_pct",
+    "predator_count",
+    "natural_enemy_present",
+    "outbreak_probability_pct",
+    "temperature_c",
+    "humidity_pct",
+    "notes",
+    "status",
+)
+
+BIOCONTROL_COLUMNS = (
+    "id",
+    "location_id",
+    "location_name",
+    "plot_id",
+    "plot_name",
+    "release_date",
+    "predator_species",
+    "predator_common_name",
+    "release_count",
+    "target_pest",
+    "follow_up_date",
+    "follow_up_count",
+    "effectiveness_pct",
+    "pest_reduction_pct",
+    "notes",
+    "status",
+)
+
+
+def _report_projection(sql):
+    normalized = " ".join(sql.split())
+    projection = normalized.split(" FROM ", 1)[0].removeprefix("SELECT ")
+    return tuple(column.strip() for column in projection.split(","))
+
+
+class TestPestManagementReportProjection(unittest.TestCase):
+    def setUp(self):
+        self.conn = MagicMock()
+        self.cursor = MagicMock()
+        self.conn.cursor.return_value = self.cursor
+        self.location_id = "11111111-1111-4111-8111-111111111111"
+        self.pest_rows = [
+            {
+                "id": "pest-high",
+                "location_id": self.location_id,
+                "location_name": "Kokonut Adelphi",
+                "plot_id": "plot-a",
+                "plot_name": "North plot",
+                "observation_date": "2026-06-02",
+                "observation_month": "2026-06-01",
+                "pest_species": "spodoptera_frugiperda",
+                "pest_common_name": "fall armyworm",
+                "pest_category": "caterpillar",
+                "severity": "high",
+                "incidence_count": 12,
+                "affected_area_pct": 8.5,
+                "predator_count": 2,
+                "natural_enemy_present": True,
+                "outbreak_probability_pct": 60.0,
+                "temperature_c": 28.0,
+                "humidity_pct": 75.0,
+                "notes": "Synthetic observation",
+                "status": "verified",
+            },
+            {
+                "id": "pest-moderate",
+                "location_id": self.location_id,
+                "location_name": "Kokonut Adelphi",
+                "plot_id": "plot-b",
+                "plot_name": "South plot",
+                "observation_date": "2026-06-01",
+                "observation_month": "2026-06-01",
+                "pest_species": "aphids",
+                "pest_common_name": "aphid",
+                "pest_category": "sucking_insect",
+                "severity": "moderate",
+                "incidence_count": 4,
+                "affected_area_pct": 2.0,
+                "predator_count": 5,
+                "natural_enemy_present": True,
+                "outbreak_probability_pct": 20.0,
+                "temperature_c": 27.0,
+                "humidity_pct": 70.0,
+                "notes": None,
+                "status": "published",
+            },
+        ]
+        self.biocontrol_rows = [
+            {
+                "id": "release-1",
+                "location_id": self.location_id,
+                "location_name": "Kokonut Adelphi",
+                "plot_id": "plot-a",
+                "plot_name": "North plot",
+                "release_date": "2026-05-20",
+                "predator_species": "coccinellidae",
+                "predator_common_name": "lady beetle",
+                "release_count": 100,
+                "target_pest": "aphids",
+                "follow_up_date": "2026-06-01",
+                "follow_up_count": 20,
+                "effectiveness_pct": 80.0,
+                "pest_reduction_pct": 50.0,
+                "notes": "Synthetic release",
+                "status": "verified",
+            }
+        ]
+        self.cursor.fetchone.return_value = {"name": "Kokonut Adelphi"}
+        self.cursor.fetchall.side_effect = [self.pest_rows, self.biocontrol_rows]
+
+    def test_exact_projections_preserve_filters_binds_and_report_payload(self):
+        period_start = "2026-06-01"
+        period_end = "2026-06-30"
+
+        result = get_pest_management_report(
+            self.conn,
+            self.location_id,
+            period_start=period_start,
+            period_end=period_end,
+        )
+
+        self.assertEqual(self.conn.cursor.call_count, 1)
+        self.assertEqual(len(self.cursor.execute.call_args_list), 3)
+        pest_sql, pest_params = self.cursor.execute.call_args_list[1].args
+        biocontrol_sql, biocontrol_params = self.cursor.execute.call_args_list[2].args
+        self.assertEqual(_report_projection(pest_sql), PEST_TREND_COLUMNS)
+        self.assertEqual(_report_projection(biocontrol_sql), BIOCONTROL_COLUMNS)
+        self.assertEqual(
+            pest_params,
+            (self.location_id, period_start, period_start, period_end, period_end),
+        )
+        self.assertEqual(
+            biocontrol_params,
+            (self.location_id, period_start, period_start, period_end, period_end),
+        )
+        self.assertIn("observation_date >= %s::date", pest_sql)
+        self.assertIn("observation_date <= %s::date", pest_sql)
+        self.assertIn("release_date >= %s::date", biocontrol_sql)
+        self.assertIn("release_date <= %s::date", biocontrol_sql)
+        self.assertIn("ORDER BY observation_date DESC", pest_sql)
+        self.assertIn("ORDER BY release_date DESC", biocontrol_sql)
+
+        self.assertEqual(result["report_type"], "pest_management")
+        self.assertEqual(result["location_id"], self.location_id)
+        self.assertEqual(result["location_name"], "Kokonut Adelphi")
+        self.assertEqual(result["pest_trends"], self.pest_rows)
+        self.assertEqual(result["biocontrol_releases"], self.biocontrol_rows)
+        self.assertEqual(result["total_observations"], 2)
+        self.assertEqual(result["severe_observations"], 1)
+        self.assertEqual(result["avg_outbreak_probability_pct"], 40.0)
+        self.assertEqual(result["biocontrol_release_count"], 1)
+        self.assertIsInstance(result["generated_at"], str)
+        self.cursor.close.assert_called_once()
+
+    def test_optional_date_bounds_keep_the_five_value_bind_contract(self):
+        get_pest_management_report(self.conn, self.location_id)
+
+        pest_sql, pest_params = self.cursor.execute.call_args_list[1].args
+        biocontrol_sql, biocontrol_params = self.cursor.execute.call_args_list[2].args
+        self.assertEqual(pest_params, (self.location_id, None, None, None, None))
+        self.assertEqual(biocontrol_params, (self.location_id, None, None, None, None))
+        self.assertIn("(%s::date IS NULL OR observation_date >= %s::date)", pest_sql)
+        self.assertIn("(%s::date IS NULL OR observation_date <= %s::date)", pest_sql)
+        self.assertIn("(%s::date IS NULL OR release_date >= %s::date)", biocontrol_sql)
+        self.assertIn("(%s::date IS NULL OR release_date <= %s::date)", biocontrol_sql)
 
 
 class TestRecordScouting(unittest.TestCase):

@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import json
 import os
 import signal
+import stat
 import subprocess
 import sys
 import time
@@ -12,7 +14,7 @@ from pathlib import Path
 import pytest
 
 from services.common.worker_environment import EVENT_HANDLER_WORKER_KEYS, SCHEDULED_WORKER_KEYS
-from services.core import runtime
+from services.core import runtime, worker_progress
 
 
 class _Process:
@@ -31,6 +33,14 @@ class _Process:
             self.timeout = False
             raise subprocess.TimeoutExpired("kernel-child", timeout)
         return self.exit_code
+
+
+def test_default_supervisor_heartbeat_uses_user_writable_state_path():
+    expected = Path.home() / ".local" / "state" / "kokonut" / "worker-progress" / "supervisor.json"
+
+    assert Path(runtime.DEFAULT_SUPERVISOR_HEARTBEAT_FILE) == expected
+    assert Path(worker_progress.DEFAULT_HEARTBEAT_FILE) == expected
+    assert not str(expected).startswith("/tmp/")
 
 
 def _install_signal_fakes(monkeypatch, *, stop_on_sleep: bool = False):
@@ -83,7 +93,80 @@ def test_shutdown_terminates_process_group_then_forces_cleanup(monkeypatch):
     assert (signal.SIGINT, "previous-2") in registrations
 
 
-def test_supervisor_scopes_each_worker_key_to_its_process(monkeypatch):
+def test_supervisor_heartbeat_is_atomic_private_and_refreshes(tmp_path):
+    path = tmp_path / "heartbeat" / "supervisor.json"
+    timestamps = iter((1_000_000_000, 6_000_000_000))
+    heartbeat = runtime._SupervisorHeartbeat(
+        path,
+        pid=os.getpid(),
+        generation="a" * 32,
+        monotonic_ns=lambda: next(timestamps),
+    )
+
+    heartbeat.pulse()
+    first = json.loads(path.read_text())
+    assert first == {
+        "children": {},
+        "generation": "a" * 32,
+        "monotonic_ns": 1_000_000_000,
+        "pid": os.getpid(),
+    }
+    assert stat.S_IMODE(path.stat().st_mode) == 0o600
+    assert stat.S_IMODE(path.parent.stat().st_mode) == 0o700
+    assert list(path.parent.glob(".supervisor.json.*")) == []
+
+    heartbeat.pulse()
+    assert json.loads(path.read_text())["monotonic_ns"] == 6_000_000_000
+    heartbeat.close()
+    assert not path.exists()
+
+
+def test_worker_runtime_pulses_and_removes_heartbeat_on_shutdown(monkeypatch, tmp_path):
+    heartbeat_path = tmp_path / "worker" / "supervisor.json"
+    monkeypatch.setenv(runtime.SUPERVISOR_HEARTBEAT_FILE_ENV, str(heartbeat_path))
+    process = _Process(401)
+    spawned = []
+    handlers = {}
+    sleeps = 0
+    monotonic_values = iter((0.0, 4.0, 5.0, 5.0, 5.0))
+
+    def fake_signal(signum, handler):
+        if callable(handler):
+            handlers[signum] = handler
+            return f"previous-{signum}"
+        return None
+
+    def fake_sleep(_seconds):
+        nonlocal sleeps
+        sleeps += 1
+        if sleeps == 1:
+            assert heartbeat_path.exists()
+            return
+        handlers[signal.SIGTERM](signal.SIGTERM, None)
+
+    monkeypatch.setattr(runtime.signal, "signal", fake_signal)
+    monkeypatch.setattr(runtime.time, "sleep", fake_sleep)
+    monkeypatch.setattr(runtime.time, "monotonic", lambda: next(monotonic_values))
+    monkeypatch.setattr(runtime, "commands", lambda *_args, **_kwargs: [("scheduler", ["scheduler"])])
+    monkeypatch.setattr(runtime, "worker_subprocess_environment", lambda **_kwargs: {"PATH": "/synthetic/bin"})
+    monkeypatch.setattr(
+        runtime.subprocess,
+        "Popen",
+        lambda argv, **kwargs: spawned.append((argv, kwargs)) or process,
+    )
+    monkeypatch.setattr(runtime.os, "killpg", lambda *_args: None)
+
+    assert runtime.run(workers_only=True, shutdown_seconds=1) == 0
+    assert spawned[0][0] == ["scheduler"]
+    assert sleeps == 2
+    assert not heartbeat_path.exists()
+
+
+def test_supervisor_scopes_each_worker_key_to_its_process(monkeypatch, tmp_path):
+    monkeypatch.setenv(
+        runtime.SUPERVISOR_HEARTBEAT_FILE_ENV,
+        str(tmp_path / "worker" / "supervisor.json"),
+    )
     processes = iter((_Process(111), _Process(112), _Process(113), _Process(114)))
     spawned = []
     allowlists = []
@@ -159,7 +242,13 @@ def test_commands_omit_both_workers_when_features_are_disabled(monkeypatch):
     ]
 
 
-def test_supervisor_marks_isolated_event_worker_and_keeps_exact_handler_secrets(monkeypatch):
+def test_supervisor_marks_isolated_event_worker_and_keeps_exact_handler_secrets(
+    monkeypatch, tmp_path
+):
+    monkeypatch.setenv(
+        runtime.SUPERVISOR_HEARTBEAT_FILE_ENV,
+        str(tmp_path / "worker" / "supervisor.json"),
+    )
     processes = iter((_Process(121), _Process(122)))
     spawned = []
     environment_options = []

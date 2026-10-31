@@ -1,0 +1,27 @@
+{
+  "result": "passed",
+  "date": "2026-10-28",
+  "source_revision": "753b4645",
+  "working_tree_dirty": true,
+  "scope": "Gateway pagination contract for ecocredit batches and location attestations",
+  "finding": "Both operator GET routes called services that enforce limits from 1 through 100, but FastAPI exposed an unbounded integer in OpenAPI and performed no route-level range validation.",
+  "change": "Both route parameters now use FastAPI Query bounds ge=1 and le=100 with the existing default of 50. OpenAPI publishes the same range and FastAPI rejects invalid values before invoking the service.",
+  "checks": {
+    "focused_tests": {
+      "command": "python3 -m pytest tests/test_gateway_pagination_openapi_contract.py -q",
+      "result": "6 passed"
+    },
+    "targeted_ruff": "passed",
+    "python_compilation": "passed",
+    "diff_check": "passed"
+  },
+  "external_services": {
+    "database": false,
+    "network": false,
+    "provider": false
+  },
+  "rollback": "Revert the Query bounds and focused regression; no migration or persisted data changed.",
+  "limitations": [
+    "The checks cover OpenAPI generation and in-process request validation only; they do not establish live proxy behavior or database/service availability."
+  ]
+}

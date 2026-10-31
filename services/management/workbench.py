@@ -10,13 +10,12 @@ from __future__ import annotations
 
 import uuid
 from datetime import datetime, timezone
-from typing import Iterable, Mapping, Optional, Sequence
+from typing import Mapping, Optional, Sequence
 
 from psycopg2.extras import RealDictCursor
 
-from services.common.logging import get_logger
 from services.common.database import get_db
-from services.management.model import TERMINAL_STATES
+from services.common.logging import get_logger
 from services.workflow_specs.work_item import WORK_ITEM
 
 logger = get_logger("management.workbench")
@@ -100,10 +99,14 @@ def create_work_item(
     location_id: Optional[str] = None,
     parent_work_item_id: Optional[str] = None,
     objective_id: Optional[str] = None,
-    due_at: Optional[str] = None,
-    sla_at: Optional[str] = None,
+    due_at: datetime | str | None = None,
+    sla_at: datetime | str | None = None,
 ):
     """Create a work item in ``draft`` (or ``assigned`` when an owner is given)."""
+    # Validate TIMESTAMPTZ inputs before `_conn_or` can open PostgreSQL for
+    # direct service callers that pass conn=None.
+    due_at = _parse_ts(due_at)
+    sla_at = _parse_ts(sla_at)
     initial_status = "assigned" if assignee_id else "draft"
     conn2, own = _conn_or(conn)
     try:
@@ -124,7 +127,7 @@ def create_work_item(
                     uuid.UUID(location_id) if location_id else None,
                     uuid.UUID(parent_work_item_id) if parent_work_item_id else None,
                     uuid.UUID(objective_id) if objective_id else None,
-                    _parse_ts(due_at), _parse_ts(sla_at),
+                    due_at, sla_at,
                 ),
             )
             row = cur.fetchone()
@@ -280,9 +283,16 @@ def _record_event(conn, work_item_id, from_status, to_status, action, actor_type
         )
 
 
-def _parse_ts(value: Optional[str]):
-    if not value:
+def _parse_ts(value: str | datetime | None):
+    if value is None:
         return None
     if isinstance(value, datetime):
-        return value
-    return datetime.fromisoformat(value.replace("Z", "+00:00"))
+        parsed = value
+    else:
+        try:
+            parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+        except (AttributeError, TypeError, ValueError) as exc:
+            raise ValueError("work-item timestamps must be valid ISO timestamps") from exc
+    if parsed.tzinfo is None or parsed.utcoffset() is None:
+        raise ValueError("work-item timestamps must include an explicit timezone")
+    return parsed

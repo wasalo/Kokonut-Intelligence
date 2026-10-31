@@ -1,0 +1,24 @@
+{
+  "date": "2026-10-28",
+  "slice": "business_architecture_gateway_pagination_bounds",
+  "result": "passed",
+  "route": "/operator/api/business-architecture/{location_id}/summary",
+  "contract": {
+    "limit_default": 25,
+    "limit_minimum": 1,
+    "limit_maximum": 50,
+    "offset_default": 0,
+    "offset_minimum": 0,
+    "offset_maximum": 10000,
+    "downstream_alignment": "Matches the reader's _MAX_PAGE_SIZE=50 and offset range 0..10000."
+  },
+  "verification": {
+    "pytest_command": "python3 -m pytest tests/test_gateway_business_architecture_pagination_openapi.py tests/test_gateway_business_architecture_reads.py -q",
+    "pytest_result": "18 passed",
+    "ruff": "passed",
+    "py_compile": "passed",
+    "git_diff_check": "passed"
+  },
+  "scope": "Synthetic FastAPI/OpenAPI and mocked service-boundary checks only; no database, provider, network, candidate, or legacy service was used.",
+  "rollback": "Revert the route Query bounds and dedicated regression; no migration or persisted data changed."
+}

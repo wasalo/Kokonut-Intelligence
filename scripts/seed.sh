@@ -80,7 +80,13 @@ if [ "$REFERENCE_ONLY" = "false" ]; then
         for ch_file in "$CH_SCHEMA_DIR"/*.sql; do
             filename=$(basename "$ch_file")
             echo "  Applying: $filename"
-            docker compose -f "$COMPOSE_FILE" exec -T "$CH_SERVICE" clickhouse-client --user kokonut --password "$CLICKHOUSE_PASSWORD" --database "$CH_DB" --multiquery < "$ch_file"
+            if [[ "$filename" == "011_retention_policy_no_prune.sql" ]]; then
+                python3 "$PROJECT_DIR/scripts/apply-clickhouse-retention.py" \
+                    --compose-file "$COMPOSE_FILE" --service "$CH_SERVICE" \
+                    --user kokonut --database "$CH_DB"
+            else
+                docker compose -f "$COMPOSE_FILE" exec -T "$CH_SERVICE" clickhouse-client --user kokonut --password "$CLICKHOUSE_PASSWORD" --database "$CH_DB" --multiquery < "$ch_file"
+            fi
         done
         echo "ClickHouse schemas applied."
     else

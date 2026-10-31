@@ -1,0 +1,46 @@
+{
+  "result": "passed",
+  "candidate_or_legacy_modified": false,
+  "database_or_provider_used": false,
+  "checks": {
+    "mobile_enrollment_gateway": {
+      "command": "python3 -m pytest tests/test_operator_auth.py -k enrollment -q",
+      "passed": 15,
+      "deselected": 65,
+      "coverage": [
+        "exact success response",
+        "one-time URL-safe code bounds",
+        "OpenAPI response schema",
+        "malformed service response rejection",
+        "no-store sanitized failures"
+      ]
+    },
+    "prefect_workflows": {
+      "command": "python3 -m pytest tests/test_prefect_workflow.py -q",
+      "passed": 30,
+      "coverage": [
+        "default-off weather skip in composites",
+        "remaining ingestion tasks are awaited",
+        "six-hour workflow continues to later stages",
+        "enabled weather dispatch retains location fanout"
+      ]
+    },
+    "weather_direct_fail_closed": {
+      "command": "python3 -m pytest tests/test_weather_worker.py::test_disabled_cli_fails_before_ingestion tests/test_core_jobs_contract.py::test_weather_dispatch_uses_signed_worker_and_exact_environment_allowlist -q",
+      "passed": 2
+    },
+    "static": {
+      "ruff": "passed",
+      "python_compileall": "passed",
+      "migration_source_validation": "passed (677 schema migration files)",
+      "git_diff_check": "passed"
+    }
+  },
+  "revenue_stream_migration": {
+    "migration": "686_location_scoped_revenue_stream_cycle_join.sql",
+    "source_validation": "passed",
+    "disposable_postgresql_acceptance": "passed; apply and replay preserved the same-location label, hid the foreign label, and kept all rows and totals",
+    "acceptance_evidence": "revenue-stream-location-join-disposable.json",
+    "candidate_or_legacy_applied": false
+  }
+}

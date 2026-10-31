@@ -352,7 +352,7 @@ def get_input_summary(conn, budget_id: str) -> dict:
                    cost_currency_code, unclassified_cost_count
             FROM v_nutrient_input_summary
             WHERE budget_id = %s
-            ORDER BY input_type
+            ORDER BY input_type, rate_unit, cost_currency_code
             """,
             (budget_id,),
         )

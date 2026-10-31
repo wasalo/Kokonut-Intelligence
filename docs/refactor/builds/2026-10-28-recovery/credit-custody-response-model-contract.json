@@ -1,0 +1,26 @@
+{
+  "route": "GET /operator/api/credit-custody/{location_id}/summary",
+  "result": "passed",
+  "contract_change": "Document and validate the existing aggregate service response with an explicit FastAPI response model.",
+  "response_fields": [
+    "location_id",
+    "total_credits",
+    "credit_totals",
+    "retirements_by_status"
+  ],
+  "checks": {
+    "openapi_success_schema_present": true,
+    "openapi_matches_service_field_shape": true,
+    "success_response_validated_by_fastapi": true,
+    "existing_no_store_and_vary_headers_preserved": true,
+    "focused_tests_passed": 7,
+    "ruff": "passed",
+    "python_compile": "passed",
+    "diff_check": "passed"
+  },
+  "data_access": {
+    "database_contacted": false,
+    "provider_contacted": false,
+    "candidate_or_legacy_touched": false
+  }
+}

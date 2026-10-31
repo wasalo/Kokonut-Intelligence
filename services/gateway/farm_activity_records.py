@@ -14,6 +14,7 @@ from services.common.tenant_context import set_operator_tenant_context
 _EDITABLE_FIELDS = (
     "plot_id",
     "crop_cycle_id",
+    "farm_task_id",
     "activity_type",
     "activity_date",
     "description",
@@ -68,7 +69,7 @@ def _normalize_content(content: dict, *, creating: bool) -> dict:
 
     normalized = {}
     for field, value in content.items():
-        if field in {"plot_id", "crop_cycle_id"}:
+        if field in {"plot_id", "crop_cycle_id", "farm_task_id"}:
             if value is None:
                 normalized[field] = None
                 continue
@@ -156,14 +157,30 @@ def _set_actor_action(conn, operator_id: str, action: str, reason: str = ""):
         )
 
 
+def _validate_farm_task_scope(cursor, task_id: str | None, location_id: str) -> None:
+    if task_id is None:
+        return
+    cursor.execute(
+        """SELECT id FROM farm_task
+             WHERE id = %s::uuid AND location_id = %s::uuid
+             FOR SHARE""",
+        (task_id, location_id),
+    )
+    if cursor.fetchone() is None:
+        raise FarmActivityRecordInvalid(
+            "farm_task_id is not available in the requested location"
+        )
+
+
 def _activity_result(row) -> dict:
     names = (
-        "id", "location_id", "plot_id", "crop_cycle_id", "activity_type", "activity_date",
+        "id", "location_id", "plot_id", "crop_cycle_id", "farm_task_id",
+        "activity_type", "activity_date",
         "description", "labor_hours", "labor_cost", "materials_used", "evidence_urls",
         "notes", "status", "source_system", "created_at", "updated_at",
     )
     result = dict(zip(names, row))
-    for field in ("id", "location_id", "plot_id", "crop_cycle_id"):
+    for field in ("id", "location_id", "plot_id", "crop_cycle_id", "farm_task_id"):
         if result[field] is not None:
             result[field] = str(result[field])
     if result["activity_date"] is not None:
@@ -176,11 +193,11 @@ def _activity_result(row) -> dict:
 
 def _activity_summary_result(row) -> dict:
     names = (
-        "id", "location_id", "plot_id", "crop_cycle_id", "activity_type",
+        "id", "location_id", "plot_id", "crop_cycle_id", "farm_task_id", "activity_type",
         "activity_date", "status", "source_system", "created_at", "updated_at",
     )
     result = dict(zip(names, row))
-    for field in ("id", "location_id", "plot_id", "crop_cycle_id"):
+    for field in ("id", "location_id", "plot_id", "crop_cycle_id", "farm_task_id"):
         if result[field] is not None:
             result[field] = str(result[field])
     if result["activity_date"] is not None:
@@ -212,7 +229,7 @@ def list_farm_activity_records(
         _set_context(conn, operator_id, location_id, grant_action)
         with conn.cursor() as cur:
             cur.execute(
-                """SELECT id, location_id, plot_id, crop_cycle_id, activity_type,
+                """SELECT id, location_id, plot_id, crop_cycle_id, farm_task_id, activity_type,
                           activity_date, status, source_system, created_at, updated_at
                      FROM farm_activity
                     WHERE location_id = %s::uuid
@@ -246,7 +263,7 @@ def get_farm_activity_record(
         with conn.cursor() as cur:
             cur.execute(
                 """SELECT activity.id, activity.location_id, activity.plot_id,
-                          activity.crop_cycle_id, activity.activity_type,
+                          activity.crop_cycle_id, activity.farm_task_id, activity.activity_type,
                           activity.activity_date, activity.description,
                           activity.labor_hours, activity.labor_cost,
                           activity.materials_used, activity.evidence_urls, activity.notes,
@@ -284,7 +301,7 @@ def get_farm_activity_record(
             row = cur.fetchone()
         if row is None:
             return None
-        result = _activity_result(row[:16])
+        result = _activity_result(row[:17])
         result["operator_events"] = [
             {
                 **event,
@@ -292,7 +309,7 @@ def get_farm_activity_record(
                 if hasattr(event["created_at"], "isoformat")
                 else event["created_at"],
             }
-            for event in (row[16] or [])
+            for event in (row[17] or [])
         ]
         return result
     finally:
@@ -327,16 +344,17 @@ def create_farm_activity_record(
         )
         _set_actor_action(conn, operator_id, "draft_created")
         with conn.cursor() as cur:
+            _validate_farm_task_scope(cur, values.get("farm_task_id"), location_id)
             cur.execute(
                 f"""INSERT INTO farm_activity (
                         {", ".join(columns)}, status, schema_version, source_system,
                         created_by, updated_by
                     ) VALUES (
-                        %s::uuid, %s::uuid, %s::uuid, %s, %s::date, %s,
+                        %s::uuid, %s::uuid, %s::uuid, %s::uuid, %s, %s::date, %s,
                         %s::numeric, %s::numeric, %s::jsonb, %s::text[], %s,
                         'draft', 'gateway_v1', 'kokonut_gateway', %s::uuid, %s::uuid
                     )
-                    RETURNING id, location_id, plot_id, crop_cycle_id, activity_type,
+                    RETURNING id, location_id, plot_id, crop_cycle_id, farm_task_id, activity_type,
                               activity_date, description, labor_hours, labor_cost,
                               materials_used, evidence_urls, notes, status, source_system,
                               created_at, updated_at""",
@@ -397,6 +415,7 @@ def edit_farm_activity_record_draft(
             if cur.fetchone() is None:
                 conn.rollback()
                 return None
+            _validate_farm_task_scope(cur, values.get("farm_task_id"), location_id)
             assignments = []
             params = []
             for field in _EDITABLE_FIELDS:
@@ -414,7 +433,7 @@ def edit_farm_activity_record_draft(
             cur.execute(
                 f"""UPDATE farm_activity SET {", ".join(assignments)}, updated_at = NOW()
                     WHERE id = %s::uuid AND location_id = %s::uuid
-                    RETURNING id, location_id, plot_id, crop_cycle_id, activity_type,
+                    RETURNING id, location_id, plot_id, crop_cycle_id, farm_task_id, activity_type,
                               activity_date, description, labor_hours, labor_cost,
                               materials_used, evidence_urls, notes, status, source_system,
                               created_at, updated_at""",

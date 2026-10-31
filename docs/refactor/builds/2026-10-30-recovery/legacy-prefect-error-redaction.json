@@ -1,0 +1,28 @@
+{
+  "date": "2026-10-30",
+  "source_revision": "15059049",
+  "working_tree_dirty": true,
+  "result": "passed",
+  "scope": "C4 legacy health-check and Yahoo price-feed Prefect error redaction",
+  "flows_checked": [
+    {
+      "flow": "health-check",
+      "safe_error": "Health check failed (exit code 9)",
+      "synthetic_child_stderr_excluded": true
+    },
+    {
+      "flow": "price-feed-ingestion",
+      "safe_error": "Yahoo Finance fetch failed (exit code 9)",
+      "synthetic_child_stderr_excluded": true
+    }
+  ],
+  "test_command": "python3 -m pytest tests/test_flow_error_redaction.py -q",
+  "tests_passed": 2,
+  "static_checks": {
+    "ruff": "passed",
+    "python_compile": "passed",
+    "git_diff_check": "passed"
+  },
+  "database_or_provider_accessed": false,
+  "live_prefect_workflow_executed": false
+}

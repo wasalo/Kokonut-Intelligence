@@ -17,6 +17,36 @@ OPERATOR_ID = "a0000000-0000-4000-8000-000000000001"
 LOCATION_ID = "b0000000-0000-4000-8000-000000000001"
 CLAIM_ID = "e5100000-0000-4000-8000-000000000001"
 REQUEST_ID = "c0000000-0000-4000-8000-000000000001"
+WORK_ITEM_ID = "f5100000-0000-4000-8000-000000000001"
+
+
+def _review_item(**overrides):
+    result = {
+        "claim_id": CLAIM_ID,
+        "work_item_id": WORK_ITEM_ID,
+        "title": "Prepare a soil observation",
+        "work_type": "monitoring",
+        "priority": "high",
+        "estimated_effort_hours": 4.0,
+        "proposed_effort_hours": 3.5,
+        "due_at": "2026-11-01T12:00:00+00:00",
+        "created_at": "2026-10-28T12:00:00+00:00",
+        "decision_status": "proposed",
+    }
+    return {**result, **overrides}
+
+
+def _review_queue(**overrides):
+    result = {
+        "location_id": LOCATION_ID,
+        "scope_configured": True,
+        "limit": 25,
+        "offset": 0,
+        "items": [],
+        "has_more": False,
+        "next_offset": None,
+    }
+    return {**result, **overrides}
 
 
 def _connection_with_result(result):
@@ -173,9 +203,16 @@ def _route_app(monkeypatch, read_action, write_action):
 
 
 def test_review_routes_are_protected_no_store_and_use_expected_arguments(monkeypatch):
-    read_action = MagicMock(return_value={"items": [], "limit": 25, "offset": 0})
+    read_action = MagicMock(
+        return_value=_review_queue(items=[_review_item()], limit=10, offset=5)
+    )
     write_action = MagicMock(
-        return_value={"claim_id": CLAIM_ID, "status": "accepted", "replayed": False}
+        return_value={
+            "location_id": LOCATION_ID,
+            "claim_id": CLAIM_ID,
+            "status": "accepted",
+            "replayed": False,
+        }
     )
     client = _route_app(monkeypatch, read_action, write_action)
 
@@ -184,6 +221,8 @@ def test_review_routes_are_protected_no_store_and_use_expected_arguments(monkeyp
     )
     assert response.status_code == 200
     assert response.headers["cache-control"] == "no-store"
+    assert response.json()["items"][0]["claim_id"] == CLAIM_ID
+    assert "claimant_name" not in response.json()["items"][0]
     read_action.assert_called_once_with(OPERATOR_ID, LOCATION_ID, limit=10, offset=5)
 
     response = client.post(
@@ -203,7 +242,7 @@ def test_review_routes_are_protected_no_store_and_use_expected_arguments(monkeyp
 
 def test_review_route_rejects_unknown_fields_and_returns_scope_denial(monkeypatch):
     denied = MagicMock(side_effect=TenantContextDenied("denied"))
-    client = _route_app(monkeypatch, MagicMock(return_value={"items": []}), denied)
+    client = _route_app(monkeypatch, MagicMock(return_value=_review_queue()), denied)
     path = f"/operator/api/operating-pilot/{LOCATION_ID}/work-claims/{CLAIM_ID}/review"
 
     response = client.post(path, json={"request_id": REQUEST_ID, "decision": "accepted", "claimant": "x"})
@@ -214,3 +253,86 @@ def test_review_route_rejects_unknown_fields_and_returns_scope_denial(monkeypatc
     assert response.status_code == 403
     assert response.headers["cache-control"] == "no-store"
     denied.assert_called_once()
+
+
+def test_review_queue_scope_denial_is_forbidden_and_uncached(monkeypatch):
+    denied = MagicMock(side_effect=TenantContextDenied("denied"))
+    client = _route_app(monkeypatch, denied, MagicMock())
+
+    response = client.get(
+        f"/operator/api/operating-pilot/{LOCATION_ID}/work-claim-review-queue"
+    )
+
+    assert response.status_code == 403
+    assert response.json() == {
+        "error": "Tenant-qualified operating-pilot review access is required"
+    }
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["vary"] == "Cookie"
+    denied.assert_called_once()
+
+
+def test_review_queue_publishes_exact_identity_blind_openapi_contract(monkeypatch):
+    client = _route_app(monkeypatch, MagicMock(return_value=_review_queue()), MagicMock())
+    schema = client.app.openapi()
+    operation = schema["paths"][
+        "/operator/api/operating-pilot/{location_id}/work-claim-review-queue"
+    ]["get"]
+
+    assert operation["responses"]["200"]["content"]["application/json"]["schema"] == {
+        "$ref": "#/components/schemas/OperatingPilotWorkClaimReviewQueueResponse"
+    }
+    schemas = schema["components"]["schemas"]
+    item = schemas["OperatingPilotWorkClaimReviewQueueItem"]
+    assert item["additionalProperties"] is False
+    assert set(item["properties"]) == {
+        "claim_id",
+        "work_item_id",
+        "title",
+        "work_type",
+        "priority",
+        "estimated_effort_hours",
+        "proposed_effort_hours",
+        "due_at",
+        "created_at",
+        "decision_status",
+    }
+    assert "claimant_name" not in item["properties"]
+    assert schemas["OperatingPilotWorkClaimReviewQueueResponse"][
+        "additionalProperties"
+    ] is False
+
+
+@pytest.mark.parametrize(
+    "result",
+    [
+        _review_queue(location_id="99999999-9999-4999-8999-999999999999"),
+        _review_queue(limit=24),
+        _review_queue(has_more=True, next_offset=25),
+        _review_queue(items=[_review_item(claimant_name="private claimant")]),
+        _review_queue(items=[_review_item(decision_status="accepted")]),
+        _review_queue(items=[_review_item(), _review_item()]),
+        _review_queue(
+            items=[
+                _review_item(),
+                _review_item(
+                    claim_id="e5110000-0000-4000-8000-000000000001",
+                    priority="critical",
+                ),
+            ]
+        ),
+    ],
+)
+def test_review_route_rejects_malformed_page_and_never_exposes_it(monkeypatch, result):
+    client = _route_app(monkeypatch, MagicMock(return_value=result), MagicMock())
+    with client as client:
+        response = client.get(
+            f"/operator/api/operating-pilot/{LOCATION_ID}/work-claim-review-queue?limit=25&offset=0"
+        )
+
+    assert response.status_code == 503
+    assert response.json() == {"error": "Operating work-claim review queue unavailable"}
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["vary"] == "Cookie"
+    assert response.headers["retry-after"] == "30"
+    assert "private claimant" not in response.text

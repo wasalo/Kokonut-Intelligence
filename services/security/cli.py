@@ -14,7 +14,10 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+from uuid import UUID
+
 from services.common.cli import print_json
+
 
 def cmd_issue(args):
     from services.security.capabilities import CapabilityManager
@@ -152,6 +155,11 @@ def main():
     elif args.verify:
         if not args.token or not args.resource or not args.action:
             parser.error("--verify requires --token, --resource, and --action")
+        if args.location_id is not None:
+            try:
+                args.location_id = str(UUID(args.location_id))
+            except (AttributeError, TypeError, ValueError):
+                parser.error("--location-id must be a valid UUID")
         rc = cmd_verify(args)
     elif args.revoke:
         if not args.token_id and not args.holder:

@@ -15,23 +15,46 @@ manifest; the Kernel image uses the selected hash-locked closure below.
 | ml-anomaly.txt | Small optional dependency subset for sensor-anomaly modeling |
 | geospatial.txt | Earth Engine and GIS file access |
 | oidc.txt | Optional operator OIDC integration |
+| http-client.txt | Shared HTTPX2 transport for OIDC and Starlette's ASGI test client |
 | orchestration.txt | Prefect |
 | mqtt.txt | Paho sensor/actuator transport |
 | grpc.txt | gRPC, generated bindings tooling, protobuf |
-| dev.txt | Python test runner and Starlette ASGI test client |
+| dev.txt | Python test runner |
 | kernel-runtime.in / kernel-runtime.lock | Standard Kernel runtime input and hash-locked transitive closure |
 | kernel-clickhouse.in / kernel-clickhouse.lock | Standard runtime plus hash-locked optional ClickHouse closure |
+| kernel-core.in / kernel-core.lock | Opt-in lean Kernel runtime without Web3, export/S3, or local-media packages |
+| kernel-core-web3.in / kernel-core-web3.lock | Optional Web3 capability overlay constrained to the core lock |
+| kernel-core-exports.in / kernel-core-exports.lock | Optional spreadsheet and S3 capability overlay constrained to the core lock |
+| kernel-core-storage.in / kernel-core-storage.lock | Optional local encrypted-media capability overlay constrained to the core lock |
 | ml-anomaly-runtime.in / ml-anomaly-runtime.lock | Narrow optional ML worker input and hash-locked Python 3.11 Linux AMD64/ARM64 wheel closure |
 
 Install selected groups with repeated `-r` arguments. For example:
 
     python3 -m pip install -r requirements/kernel.txt -r requirements/web3.txt
 
+Install `http-client.txt` with `dev.txt` for Starlette's ASGI test client, or
+with `oidc.txt` for Authlib's Starlette OIDC client. The optional OIDC image
+installs both groups and the default Kernel image does not include either.
+
 These are dependency candidates, not certified deployment profiles.
 `kernel.txt` covers inspected gateway startup paths and PostgreSQL infrastructure;
 it does not certify all lazily loaded endpoints, jobs, exports, or domain CLIs.
 Media object storage currently requires the exports group. Web3 capability users
 require the Web3 group even when no local blockchain node is deployed.
+The additive `core` profile is separate from the existing `minimal` profile:
+`minimal`, `edge`, `standard`, and `analytics` retain the existing full runtime
+closure. Core installs only `kernel-core.lock`; select `--web3` for Web3
+services, `--exports` for spreadsheet and S3 support, and `--local-media` for
+authenticated local media. These overlays are unavailable in core unless
+selected. The local-media encryption key remains a runtime value supplied from
+the existing secret source; build arguments contain only boolean package
+selection flags.
+Core Gateway startup does not import these optional libraries. Feature entry
+points remain explicit: S3 and local-media adapters fail closed with
+`MediaStorageNotConfigured` when their driver is absent, and Pink Sheet parsing
+reports that `openpyxl` is required. Direct Web3 service modules import
+`web3` at module load, so invoking those CLIs without `--web3` fails with
+`ModuleNotFoundError`; use the package overlay for that capability.
 The sensor-anomaly worker installs `ml-anomaly-runtime.lock`: the five model
 packages from `ml-anomaly.txt` (pandas, NumPy, Prophet, scikit-learn, and
 SciPy) plus the PostgreSQL driver, rather than the full Kernel dependency
@@ -43,15 +66,17 @@ can still be substantial on an edge device; ARM64 software builds do not
 establish runtime resource suitability.
 
 The standard, optional ClickHouse, and optional ML image lockfiles pin resolved
-versions and artifact hashes. The optional ML worker's AMD64 and ARM64 images
-measure about 955 MB and 987 MB respectively. Package resolution, locked-wheel
-installation, runtime imports, compatibility suites, and ARM64 software builds
-pass for this slice, but image weight remains material for edge devices.
+versions and artifact hashes. The optional ML worker includes substantial
+numerical dependencies; image size depends on the selected architecture and
+image build. Rebuild to measure the current artifact. Package installation or
+ARM64 emulation does not establish resource suitability on Raspberry Pi
+hardware.
 Do not remove packages from legacy images until capability checks pass. Keep
 constraints synchronized with `requirements.txt` during transition.
 
-Regenerate the standard and ClickHouse locks with `pip-tools==7.6.2` using the
-commands in [`docs/refactor/kernel-release-inputs.md`](../docs/refactor/kernel-release-inputs.md).
+Regenerate the standard, ClickHouse, core, and core capability locks with
+`pip-tools==7.6.2` using the commands in
+[`docs/refactor/kernel-release-inputs.md`](../docs/refactor/kernel-release-inputs.md).
 Regenerate the optional ML lock with `scripts/compile-ml-anomaly-runtime-lock.sh`
 from a Python 3.11 environment with network access; it resolves versions with
 pip-tools, downloads only supported AMD64/ARM64 wheels, and hashes those wheel

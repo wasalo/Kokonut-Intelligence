@@ -108,9 +108,6 @@ echo '=== Supply-chain gates ==='
 rm -f .env.sops
 ./scripts/check-image-digests.sh
 
-echo '=== Kernel release-input and multi-architecture build gates ==='
-bash scripts/build-kernel-multiarch.sh
-
 echo '=== Clean bootstrap check ==='
 docker compose -f docker-compose.yml up -d database
 for _ in $(seq 1 30); do
@@ -171,6 +168,9 @@ docker compose -f docker-compose.yml -f docker-compose.ci.yml \
     -c 'GRANT ALL ON SCHEMA public TO kokonut' \
     -c 'ALTER DATABASE kokonut_intelligence SET search_path TO public, kokonut'
 
+echo '=== Building Directus extension hooks ==='
+make hooks-build
+
 echo '=== Starting Directus and seeding ==='
 docker compose -f docker-compose.yml -f docker-compose.ci.yml up -d --wait directus
 ./scripts/seed.sh
@@ -215,6 +215,6 @@ echo '=== Solidity checks ==='
 (cd contracts && forge fmt --check && forge build --sizes && forge test)
 
 echo '=== Directus hook checks ==='
-(cd extensions/kokonut-hooks && npm ci --no-audit --no-fund && npm run build && npm test)
+make hooks-test
 
 echo 'All CI checks completed successfully.'

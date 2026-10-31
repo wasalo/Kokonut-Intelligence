@@ -1,15 +1,22 @@
 """Regenerative outcomes, governance, replication, and stewardship tests."""
 
+import re
+from datetime import date
 from pathlib import Path
+
+import pytest
 
 from services.agents.regenerator_agent import RegeneratorSynthesisAgent, synthesize_regenerator
 from services.agents.tasks import get_task, list_tasks, validate_output
 from services.export.report_generator import (
+    NETWORK_LEVEL_REPORTS,
     REPORT_GENERATORS,
+    build_parser,
     generate_adaptive_stewardship,
     generate_community_governance,
     generate_regenerative_outcomes,
     generate_replication_readiness,
+    validate_args,
 )
 
 SCHEMA = Path("schemas/postgres/039_regenerative_outcomes_and_stewardship.sql")
@@ -279,6 +286,383 @@ def test_regenerative_report_generators_public_safe() -> None:
     assert replication["report_type"] == "replication_readiness"
     assert "not an unlimited-scaling claim" in replication["limitations"][0]
     assert generate_adaptive_stewardship(conn, "a0000000-0000-0000-0000-000000000001")["report_type"] == "adaptive_stewardship"
+
+
+def test_regenerative_outcomes_projection_preserves_complete_view_payload() -> None:
+    location_id = "a0000000-0000-0000-0000-000000000001"
+    period_start = "2026-01-01"
+    period_end = "2026-03-31"
+    source_row = {
+        "id": "b0000000-0000-0000-0000-000000000001",
+        "location_id": location_id,
+        "farm_id": "c0000000-0000-0000-0000-000000000001",
+        "period_start": date(2026, 1, 1),
+        "period_end": date(2026, 3, 31),
+        "summary_name": "Reviewed quarterly outcome",
+        "hectares_restored": 1.23456,
+        "baseline_species_count": 8,
+        "latest_species_count": 12,
+        "species_diversity_delta": 0.5,
+        "baseline_soil_carbon_t_ha": 42.1,
+        "latest_soil_carbon_t_ha": 43.3,
+        "soil_carbon_delta_t_ha": 1.2,
+        "trees_planted_count": 20,
+        "trees_surviving_count": 18,
+        "tree_survival_rate_pct": 90.0,
+        "regenerative_score": 77,
+        "jobs_or_roles_supported_count": 4,
+        "training_hours": 16.5,
+        "beneficiary_count": 23,
+        "evidence_confidence": 0.91,
+        "public_summary": "Reviewed public outcome summary.",
+        "evidence_maturity": 3,
+        "evidence_maturity_label": "Reviewed record",
+        "metadata": {"source": "reviewed", "labels": ["quarterly"]},
+    }
+    expected_columns = (
+        "id, location_id, farm_id, period_start, period_end, summary_name, hectares_restored, "
+        "baseline_species_count, latest_species_count, species_diversity_delta, "
+        "baseline_soil_carbon_t_ha, latest_soil_carbon_t_ha, soil_carbon_delta_t_ha, "
+        "trees_planted_count, trees_surviving_count, tree_survival_rate_pct, regenerative_score, "
+        "jobs_or_roles_supported_count, training_hours, beneficiary_count, evidence_confidence, "
+        "public_summary, evidence_maturity, evidence_maturity_label, metadata"
+    )
+
+    class Cursor:
+        query = None
+        params = None
+
+        def execute(self, query, params):
+            self.query = query
+            self.params = params
+
+        def fetchone(self):
+            return {"name": "Kokonut Adelphi"}
+
+        def fetchall(self):
+            return [source_row]
+
+        def close(self):
+            pass
+
+    class Conn:
+        def __init__(self):
+            self.cursor_value = Cursor()
+
+        def cursor(self, cursor_factory=None):
+            return self.cursor_value
+
+    conn = Conn()
+    report = generate_regenerative_outcomes(conn, location_id, period_start, period_end)
+
+    normalized_query = re.sub(r"\s+", " ", conn.cursor_value.query).strip()
+    assert normalized_query == (
+        f"SELECT {expected_columns} FROM v_public_regenerative_outcome_summary "
+        "WHERE location_id = %s AND (%s::date IS NULL OR period_start >= %s::date) "
+        "AND (%s::date IS NULL OR period_end <= %s::date) ORDER BY period_end DESC, summary_name"
+    )
+    assert conn.cursor_value.params == (location_id, period_start, period_start, period_end, period_end)
+    assert report["report_type"] == "regenerative_outcomes"
+    assert report["location_name"] == "Kokonut Adelphi"
+    assert report["outcomes"] == [
+        {**source_row, "period_start": "2026-01-01", "period_end": "2026-03-31"}
+    ]
+    assert report["total_hectares_restored"] == 1.2346
+
+
+def test_community_governance_projection_preserves_location_and_global_payloads() -> None:
+    location_id = "a0000000-0000-0000-0000-000000000001"
+    local_row = {
+        "id": "b0000000-0000-0000-0000-000000000001",
+        "location_id": location_id,
+        "farm_id": "c0000000-0000-0000-0000-000000000001",
+        "mechanism_name": "Farm assembly",
+        "governance_level": "farm",
+        "decision_body": "Member assembly",
+        "decision_method": "consensus with vote fallback",
+        "quorum_rule": "two thirds of active members",
+        "voting_or_consensus_rights": "One member, one voice",
+        "community_veto_rights": "Community harm veto",
+        "escalation_path": "Facilitator review then assembly",
+        "power_distribution_summary": "Distributed authority",
+        "participation_cadence": "quarterly",
+        "public_summary": "Reviewed location governance mechanism.",
+        "evidence_maturity": 3,
+        "evidence_maturity_label": "Reviewed record",
+        "metadata": {"source": "reviewed", "scope": "location"},
+    }
+    global_row = {
+        **local_row,
+        "id": "b0000000-0000-0000-0000-000000000002",
+        "location_id": None,
+        "farm_id": None,
+        "mechanism_name": "Network assembly principles",
+        "governance_level": "network",
+        "public_summary": "Reviewed network governance mechanism.",
+        "metadata": {"source": "reviewed", "scope": "network"},
+    }
+    source_rows = [local_row, global_row]
+    columns = (
+        "id, location_id, farm_id, mechanism_name, governance_level, decision_body, decision_method, "
+        "quorum_rule, voting_or_consensus_rights, community_veto_rights, escalation_path, "
+        "power_distribution_summary, participation_cadence, public_summary, evidence_maturity, "
+        "evidence_maturity_label, metadata"
+    )
+
+    class Cursor:
+        def __init__(self):
+            self.executed = []
+
+        def execute(self, query, params):
+            self.executed.append((query, params))
+
+        def fetchall(self):
+            return source_rows
+
+        def close(self):
+            pass
+
+    class Conn:
+        def __init__(self):
+            self.cursor_value = Cursor()
+
+        def cursor(self, cursor_factory=None):
+            return self.cursor_value
+
+    conn = Conn()
+    report = generate_community_governance(conn, location_id)
+    query, params = conn.cursor_value.executed[0]
+
+    assert re.sub(r"\s+", " ", query).strip() == (
+        f"SELECT {columns} FROM v_public_community_governance_mechanism "
+        "WHERE location_id = %s OR location_id IS NULL ORDER BY governance_level, mechanism_name"
+    )
+    assert params == (location_id,)
+    assert report["report_type"] == "community_governance"
+    assert report["location_id"] == location_id
+    assert report["mechanisms"] == source_rows
+
+
+def test_community_governance_rejects_missing_location_before_database_access() -> None:
+    class Conn:
+        def cursor(self, *args, **kwargs):
+            raise AssertionError("connection should not be opened")
+
+    with pytest.raises(ValueError, match="community_governance requires an explicit location_id"):
+        generate_community_governance(Conn())
+
+
+def test_replication_readiness_is_location_scoped_in_registry_and_cli() -> None:
+    assert "replication_readiness" not in NETWORK_LEVEL_REPORTS
+
+    parser = build_parser()
+    with pytest.raises(SystemExit) as exc_info:
+        validate_args(parser, parser.parse_args(["--type", "replication_readiness"]))
+    assert exc_info.value.code == 2
+
+
+def test_replication_readiness_rejects_missing_location_before_database_access() -> None:
+    class Conn:
+        def cursor(self, *args, **kwargs):
+            raise AssertionError("connection should not be opened")
+
+    with pytest.raises(ValueError, match="replication_readiness requires an explicit location_id"):
+        generate_replication_readiness(Conn())
+
+
+def test_replication_readiness_keeps_reviewed_global_rows_in_location_report() -> None:
+    location_id = "a0000000-0000-0000-0000-000000000001"
+    period_start = "2026-01-01"
+    period_end = "2026-03-31"
+
+    class Cursor:
+        query = None
+        params = None
+
+        def execute(self, query, params):
+            self.query = query
+            self.params = params
+
+        def fetchall(self):
+            return []
+
+        def close(self):
+            pass
+
+    class Conn:
+        cursor_value = Cursor()
+
+        def cursor(self, cursor_factory=None):
+            return self.cursor_value
+
+    conn = Conn()
+    result = generate_replication_readiness(conn, location_id, period_start, period_end)
+
+    assert "location_id = %s OR location_id IS NULL" in conn.cursor_value.query
+    assert conn.cursor_value.params == (location_id, period_start, period_start, period_end, period_end)
+    assert result["location_id"] == location_id
+
+
+def test_replication_readiness_projection_preserves_global_rows_and_payload() -> None:
+    location_id = "a0000000-0000-0000-0000-000000000001"
+    period_start = "2026-01-01"
+    period_end = "2026-03-31"
+    local_row = {
+        "id": "b0000000-0000-0000-0000-000000000001",
+        "location_id": location_id,
+        "assessment_date": date(2026, 3, 31),
+        "target_region": "Adelphi",
+        "farm_model": "regenerative agroforestry",
+        "readiness_score": 72.5,
+        "ecological_prerequisites": ["soil baseline"],
+        "cultural_governance_prerequisites": ["community review"],
+        "infrastructure_prerequisites": ["water access"],
+        "barriers": ["seasonal logistics"],
+        "enablers": ["local nursery"],
+        "support_structures": ["technical guild"],
+        "minimum_evidence_maturity": 3,
+        "minimum_evidence_maturity_label": "Reviewed record",
+        "replication_status": "conditional",
+        "public_summary": "Location-specific readiness evidence.",
+        "evidence_maturity": 3,
+        "evidence_maturity_label": "Reviewed record",
+        "metadata": {"source": "reviewed", "scope": "location"},
+    }
+    global_row = {
+        **local_row,
+        "id": "b0000000-0000-0000-0000-000000000002",
+        "location_id": None,
+        "assessment_date": date(2026, 2, 28),
+        "target_region": "Network baseline",
+        "public_summary": "Reviewed network-level readiness evidence.",
+        "metadata": {"source": "reviewed", "scope": "network"},
+    }
+    source_rows = [local_row, global_row]
+    columns = (
+        "id, location_id, assessment_date, target_region, farm_model, readiness_score, "
+        "ecological_prerequisites, cultural_governance_prerequisites, infrastructure_prerequisites, "
+        "barriers, enablers, support_structures, minimum_evidence_maturity, "
+        "minimum_evidence_maturity_label, replication_status, public_summary, evidence_maturity, "
+        "evidence_maturity_label, metadata"
+    )
+
+    class Cursor:
+        def __init__(self):
+            self.executed = []
+
+        def execute(self, query, params):
+            self.executed.append((query, params))
+
+        def fetchall(self):
+            return source_rows
+
+        def close(self):
+            pass
+
+    class Conn:
+        def __init__(self):
+            self.cursor_value = Cursor()
+
+        def cursor(self, cursor_factory=None):
+            return self.cursor_value
+
+    conn = Conn()
+    report = generate_replication_readiness(conn, location_id, period_start, period_end)
+    query, params = conn.cursor_value.executed[0]
+
+    assert re.sub(r"\s+", " ", query).strip() == (
+        f"SELECT {columns} FROM v_public_replication_readiness_summary "
+        "WHERE (location_id = %s OR location_id IS NULL) "
+        "AND (%s::date IS NULL OR assessment_date >= %s::date) "
+        "AND (%s::date IS NULL OR assessment_date <= %s::date) "
+        "ORDER BY assessment_date DESC, target_region"
+    )
+    assert params == (location_id, period_start, period_start, period_end, period_end)
+    assert report["report_type"] == "replication_readiness"
+    assert report["location_id"] == location_id
+    assert report["assessments"] == [
+        {**local_row, "assessment_date": "2026-03-31"},
+        {**global_row, "assessment_date": "2026-02-28"},
+    ]
+
+
+def test_adaptive_stewardship_projection_preserves_full_payload() -> None:
+    location_id = "a0000000-0000-0000-0000-000000000001"
+    period_start = "2026-01-01"
+    period_end = "2026-03-31"
+    source_row = {
+        "id": "b0000000-0000-0000-0000-000000000001",
+        "location_id": location_id,
+        "farm_id": "c0000000-0000-0000-0000-000000000001",
+        "review_date": date(2026, 3, 31),
+        "review_period_start": date(2026, 1, 1),
+        "review_period_end": date(2026, 3, 31),
+        "stewardship_scope": "ecological",
+        "review_cadence": "quarterly",
+        "trigger_thresholds": {"soil_cover_pct": 40},
+        "observed_triggers": ["soil cover below threshold"],
+        "corrective_actions": ["add cover crop"],
+        "action_completion_pct": 75.0,
+        "responsible_role": "Stewardship lead",
+        "funding_continuity_plan": "Use approved restoration reserve.",
+        "next_review_date": date(2026, 6, 30),
+        "public_summary": "Reviewed adaptive stewardship assessment.",
+        "evidence_maturity": 3,
+        "evidence_maturity_label": "Reviewed record",
+        "metadata": {"source": "reviewed", "cycle": "Q1"},
+    }
+    columns = (
+        "id, location_id, farm_id, review_date, review_period_start, review_period_end, "
+        "stewardship_scope, review_cadence, trigger_thresholds, observed_triggers, corrective_actions, "
+        "action_completion_pct, responsible_role, funding_continuity_plan, next_review_date, "
+        "public_summary, evidence_maturity, evidence_maturity_label, metadata"
+    )
+
+    class Cursor:
+        def __init__(self):
+            self.executed = []
+
+        def execute(self, query, params):
+            self.executed.append((query, params))
+
+        def fetchone(self):
+            return {"name": "Kokonut Adelphi"}
+
+        def fetchall(self):
+            return [source_row]
+
+        def close(self):
+            pass
+
+    class Conn:
+        def __init__(self):
+            self.cursor_value = Cursor()
+
+        def cursor(self, cursor_factory=None):
+            return self.cursor_value
+
+    conn = Conn()
+    report = generate_adaptive_stewardship(conn, location_id, period_start, period_end)
+    query, params = conn.cursor_value.executed[1]
+
+    assert re.sub(r"\s+", " ", query).strip() == (
+        f"SELECT {columns} FROM v_public_adaptive_stewardship_summary "
+        "WHERE location_id = %s AND (%s::date IS NULL OR review_date >= %s::date) "
+        "AND (%s::date IS NULL OR review_date <= %s::date) "
+        "ORDER BY review_date DESC, stewardship_scope"
+    )
+    assert params == (location_id, period_start, period_start, period_end, period_end)
+    assert report["report_type"] == "adaptive_stewardship"
+    assert report["location_name"] == "Kokonut Adelphi"
+    assert report["reviews"] == [
+        {
+            **source_row,
+            "review_date": "2026-03-31",
+            "review_period_start": "2026-01-01",
+            "review_period_end": "2026-03-31",
+            "next_review_date": "2026-06-30",
+        }
+    ]
 
 
 if __name__ == "__main__":

@@ -16,6 +16,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
+from uuid import UUID
 
 from services.common.cli import print_json
 from services.common.errors import safe_exception_class
@@ -156,6 +157,14 @@ def _strategy(conn, org_id: Optional[str], location_id: Optional[str]) -> Dict[s
 def generate_business_plan(
     conn, location_id: Optional[str] = None, org_id: Optional[str] = None, **kwargs
 ) -> Dict[str, Any]:
+    if location_id is not None:
+        if not isinstance(location_id, str) or not location_id.strip():
+            raise ValueError("location_id must be a valid UUID when supplied")
+        try:
+            location_id = str(UUID(location_id.strip()))
+        except (TypeError, ValueError, AttributeError) as exc:
+            raise ValueError("location_id must be a valid UUID when supplied") from exc
+
     if not org_id and not location_id:
         raise ValueError("provide org_id or location_id")
     # Read-only analysis: autocommit keeps a failed query from poisoning

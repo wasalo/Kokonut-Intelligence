@@ -1,6 +1,9 @@
 """Remaining gaps tests: leaf litter, livestock, decomposition, predation, token rewards, reward calibration."""
 
+import re
+from datetime import date
 from pathlib import Path
+from unittest.mock import patch
 
 from services.analytics.livestock_feed import (
     compute_feed_conversion_ratio,
@@ -9,13 +12,12 @@ from services.analytics.livestock_feed import (
 from services.analytics.reward_calibration import (
     compute_reward_calibration,
     compute_reward_calibration_model,
-    compute_reward_metric_correlation,
 )
 from services.export.report_generator import (
     REPORT_GENERATORS,
     generate_livestock_feed,
-    generate_token_rewards,
     generate_reward_calibration,
+    generate_token_rewards,
 )
 
 SCHEMA = Path("schemas/postgres/050_remaining_gaps.sql")
@@ -244,26 +246,260 @@ def test_livestock_feed_report_public_safe() -> None:
     assert "limitations" in report
 
 
-def test_token_rewards_report_public_safe() -> None:
+def test_livestock_feed_projection_preserves_full_payload_and_totals() -> None:
+    location_id = "a0000000-0000-0000-0000-000000000001"
+    source_rows = [
+        {
+            "id": "b0000000-0000-0000-0000-000000000001",
+            "location_id": location_id,
+            "location_name": "Kokonut Adelphi",
+            "livestock_group_id": "c0000000-0000-0000-0000-000000000001",
+            "group_name": "Dairy goats",
+            "livestock_species": "goat",
+            "livestock_breed": "local crossbreed",
+            "animal_count": 12,
+            "record_date": date(2026, 3, 31),
+            "feed_type": "forage",
+            "feed_name": "cut grass",
+            "quantity_kg": 24.0,
+            "per_animal_kg": 2.0,
+            "method": "weighed",
+            "temperature_c": 25.5,
+            "notes": "Morning feed record.",
+            "status": "verified",
+        },
+        {
+            "id": "b0000000-0000-0000-0000-000000000002",
+            "location_id": location_id,
+            "location_name": "Kokonut Adelphi",
+            "livestock_group_id": "c0000000-0000-0000-0000-000000000001",
+            "group_name": "Dairy goats",
+            "livestock_species": "goat",
+            "livestock_breed": "local crossbreed",
+            "animal_count": 12,
+            "record_date": date(2026, 3, 30),
+            "feed_type": "supplement",
+            "feed_name": "mineral mix",
+            "quantity_kg": 2.5,
+            "per_animal_kg": 0.2083,
+            "method": "measured",
+            "temperature_c": 24.0,
+            "notes": "Mineral supplement record.",
+            "status": "published",
+        },
+    ]
+    group_rows = [{
+        "group_name": "Dairy goats",
+        "species": "goat",
+        "breed": "local crossbreed",
+        "animal_count": 12,
+        "feed_type": "mixed forage",
+        "status": "active",
+    }]
+    columns = (
+        "id, location_id, location_name, livestock_group_id, group_name, livestock_species, "
+        "livestock_breed, animal_count, record_date, feed_type, feed_name, quantity_kg, "
+        "per_animal_kg, method, temperature_c, notes, status"
+    )
+
     class Cursor:
-        calls = 0
-        def execute(self, query, params=None):
-            self.calls += 1
+        def __init__(self):
+            self.executed = []
+            self.fetchall_calls = 0
+
+        def execute(self, query, params):
+            self.executed.append((query, params))
+
         def fetchone(self):
-            if self.calls == 1:
-                return {"name": "Kokonut Adelphi"}
-            return None
+            return {"name": "Kokonut Adelphi"}
+
         def fetchall(self):
-            return []
+            self.fetchall_calls += 1
+            return source_rows if self.fetchall_calls == 1 else group_rows
+
+        def close(self):
+            pass
+
+    class Conn:
+        def __init__(self):
+            self.cursor_value = Cursor()
+
+        def cursor(self, cursor_factory=None):
+            return self.cursor_value
+
+    conn = Conn()
+    report = generate_livestock_feed(conn, location_id)
+    query, params = conn.cursor_value.executed[1]
+
+    assert re.sub(r"\s+", " ", query).strip() == (
+        f"SELECT {columns} FROM v_public_livestock_feed_intake "
+        "WHERE location_id = %s ORDER BY record_date DESC"
+    )
+    assert params == (location_id,)
+    assert report["report_type"] == "livestock_feed"
+    assert report["location_name"] == "Kokonut Adelphi"
+    assert report["feed_records"] == [
+        {**row, "record_date": row["record_date"].isoformat()}
+        for row in source_rows
+    ]
+    assert report["livestock_groups"] == group_rows
+    assert report["total_groups"] == 1
+    assert report["total_animals"] == 12
+    assert report["total_feed_kg"] == 26.5
+
+
+def test_token_rewards_report_public_safe() -> None:
+    distribution_columns = [
+        "id",
+        "location_id",
+        "location_name",
+        "recipient_name",
+        "reward_type",
+        "token_type",
+        "token_amount",
+        "usd_value",
+        "distribution_date",
+        "epoch",
+        "linked_metric_key",
+        "linked_metric_value",
+        "is_onchain",
+        "distribution_method",
+        "notes",
+        "status",
+    ]
+    calibration_columns = [
+        "id",
+        "location_id",
+        "location_name",
+        "model_name",
+        "model_type",
+        "run_date",
+        "input_metrics",
+        "output_weights",
+        "calibration_score",
+        "total_tokens_distributed",
+        "token_per_unit_output",
+        "epoch",
+        "confidence_level",
+        "notes",
+        "status",
+    ]
+    location_id = "a0000000-0000-0000-0000-000000000001"
+    distributions = [
+        {
+            "id": "00000000-0000-4000-8000-000000000001",
+            "location_id": location_id,
+            "location_name": "Kokonut Adelphi",
+            "recipient_name": "Community fund",
+            "reward_type": "impact",
+            "token_type": "KOKO",
+            "token_amount": 12.5,
+            "usd_value": 25.0,
+            "distribution_date": date(2026, 10, 1),
+            "epoch": 4,
+            "linked_metric_key": "soil_health",
+            "linked_metric_value": 0.8,
+            "is_onchain": True,
+            "distribution_method": "attestation",
+            "notes": "Reviewed reward.",
+            "status": "verified",
+        },
+        {
+            "id": "00000000-0000-4000-8000-000000000002",
+            "location_id": location_id,
+            "location_name": "Kokonut Adelphi",
+            "recipient_name": "Training guild",
+            "reward_type": "participation",
+            "token_type": "KOKO",
+            "token_amount": 7.5,
+            "usd_value": 15.0,
+            "distribution_date": date(2026, 9, 1),
+            "epoch": 3,
+            "linked_metric_key": "training_hours",
+            "linked_metric_value": 6.0,
+            "is_onchain": False,
+            "distribution_method": "offchain_credit",
+            "notes": "Reviewed participation reward.",
+            "status": "published",
+        },
+    ]
+    calibration = {
+        "id": "00000000-0000-4000-8000-000000000003",
+        "location_id": location_id,
+        "location_name": "Kokonut Adelphi",
+        "model_name": "Impact model",
+        "model_type": "linear",
+        "run_date": date(2026, 10, 2),
+        "input_metrics": {"soil_health": 0.8},
+        "output_weights": {"soil_health": 1.25},
+        "calibration_score": 0.92,
+        "total_tokens_distributed": 20.0,
+        "token_per_unit_output": 1.0,
+        "epoch": 4,
+        "confidence_level": 0.9,
+        "notes": "Current reviewed calibration.",
+        "status": "verified",
+    }
+
+    class Cursor:
+        def __init__(self):
+            self.calls = []
+            self.current_query = ""
+
+        def execute(self, query, params=None):
+            self.current_query = " ".join(query.split())
+            self.calls.append((self.current_query, params))
+
+        def fetchone(self):
+            if len(self.calls) == 1:
+                return {"name": "Kokonut Adelphi"}
+            return calibration
+
+        def fetchall(self):
+            return distributions
+
         def close(self):
             pass
 
     class Conn:
         def cursor(self, cursor_factory=None):
-            return Cursor()
+            self.cursor_value = Cursor()
+            return self.cursor_value
 
-    report = generate_token_rewards(Conn(), "a0000000-0000-0000-0000-000000000001")
+    conn = Conn()
+    report = generate_token_rewards(conn, location_id)
+
+    distribution_sql, distribution_params = conn.cursor_value.calls[1]
+    distribution_projection = re.search(
+        r"SELECT (.*?) FROM v_public_token_reward_distribution", distribution_sql
+    )
+    assert distribution_projection is not None
+    assert [column.strip() for column in distribution_projection.group(1).split(",")] == distribution_columns
+    assert "WHERE location_id = %s ORDER BY distribution_date DESC" in distribution_sql
+    assert distribution_params == (location_id,)
+
+    calibration_sql, calibration_params = conn.cursor_value.calls[2]
+    calibration_projection = re.search(
+        r"SELECT (.*?) FROM v_public_reward_calibration", calibration_sql
+    )
+    assert calibration_projection is not None
+    assert [column.strip() for column in calibration_projection.group(1).split(",")] == calibration_columns
+    assert "WHERE location_id = %s ORDER BY run_date DESC LIMIT 1" in calibration_sql
+    assert calibration_params == (location_id,)
+
     assert report["report_type"] == "token_rewards"
+    assert report["location_id"] == location_id
+    assert report["location_name"] == "Kokonut Adelphi"
+    assert report["distributions"] == [
+        {**distributions[0], "distribution_date": "2026-10-01"},
+        {**distributions[1], "distribution_date": "2026-09-01"},
+    ]
+    assert report["latest_calibration"] == calibration
+    assert report["total_distributions"] == 2
+    assert report["total_tokens"] == 20.0
+    assert report["total_usd"] == 40.0
+    assert report["onchain_count"] == 1
+    assert report["offchain_count"] == 1
     assert "limitations" in report
 
 
@@ -290,12 +526,108 @@ def test_reward_calibration_report_public_safe() -> None:
     assert "limitations" in report
 
 
+def test_reward_calibration_uses_exact_public_projection_and_preserves_scope_payload() -> None:
+    columns = [
+        "id",
+        "location_id",
+        "location_name",
+        "model_name",
+        "model_type",
+        "run_date",
+        "input_metrics",
+        "output_weights",
+        "calibration_score",
+        "total_tokens_distributed",
+        "token_per_unit_output",
+        "epoch",
+        "confidence_level",
+        "notes",
+        "status",
+    ]
+    location_id = "a0000000-0000-0000-0000-000000000001"
+    model = {
+        "id": "00000000-0000-4000-8000-000000000001",
+        "location_id": location_id,
+        "location_name": "Kokonut Adelphi",
+        "model_name": "Impact model",
+        "model_type": "linear",
+        "run_date": date(2026, 10, 2),
+        "input_metrics": {"soil_health": 0.8},
+        "output_weights": {"soil_health": 1.25},
+        "calibration_score": 0.92,
+        "total_tokens_distributed": 20.0,
+        "token_per_unit_output": 1.0,
+        "epoch": 4,
+        "confidence_level": 0.9,
+        "notes": "Current reviewed calibration.",
+        "status": "verified",
+    }
+    metric_link = {
+        "reward_type": "impact",
+        "linked_metric_key": "soil_health",
+        "avg_metric": 0.8,
+        "avg_tokens": 20.0,
+        "count": 3,
+    }
+
+    class Cursor:
+        def __init__(self):
+            self.calls = []
+            self.current_query = ""
+
+        def execute(self, query, params=None):
+            self.current_query = " ".join(query.split())
+            self.calls.append((self.current_query, params))
+
+        def fetchone(self):
+            return {"name": "Kokonut Adelphi"} if "FROM location" in self.current_query else None
+
+        def fetchall(self):
+            if "v_public_reward_calibration" in self.current_query:
+                return [model]
+            return [metric_link]
+
+        def close(self):
+            pass
+
+    class Conn:
+        def __init__(self):
+            self.cursor_value = Cursor()
+
+        def cursor(self, cursor_factory=None):
+            return self.cursor_value
+
+    conn = Conn()
+    with patch(
+        "services.analytics.reward_calibration.detect_overjustification_risk",
+        return_value={"risk_level": "low", "sample_count": 3},
+    ):
+        report = generate_reward_calibration(conn, location_id)
+
+    query, params = conn.cursor_value.calls[1]
+    projection = re.search(r"SELECT (.*?) FROM v_public_reward_calibration", query)
+    assert projection is not None
+    assert [column.strip() for column in projection.group(1).split(",")] == columns
+    assert "WHERE location_id = %s ORDER BY run_date DESC" in query
+    assert params == (location_id,)
+    assert conn.cursor_value.calls[2][1] == (location_id,)
+    assert report["report_type"] == "reward_calibration"
+    assert report["location_id"] == location_id
+    assert report["location_name"] == "Kokonut Adelphi"
+    assert report["calibration_models"] == [{**model, "run_date": "2026-10-02"}]
+    assert report["metric_links"] == [metric_link]
+    assert report["latest_calibration_score"] == 0.92
+    assert report["latest_model_name"] == "Impact model"
+    assert report["overjustification_risk"] == {"risk_level": "low", "sample_count": 3}
+
+
 # ---------------------------------------------------------------------------
 # Agent tests
 # ---------------------------------------------------------------------------
 
 def test_agent_imports_new_analytics() -> None:
     import inspect
+
     from services.agents.ecological_modeling_agent import synthesize_ecological_modeling
     source = inspect.getsource(synthesize_ecological_modeling)
     assert "compute_feed_intake_summary" in source
@@ -329,5 +661,6 @@ if __name__ == "__main__":
     test_livestock_feed_report_public_safe()
     test_token_rewards_report_public_safe()
     test_reward_calibration_report_public_safe()
+    test_reward_calibration_uses_exact_public_projection_and_preserves_scope_payload()
     test_agent_imports_new_analytics()
     print("All tests passed.")

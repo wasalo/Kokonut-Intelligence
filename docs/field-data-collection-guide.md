@@ -15,20 +15,26 @@ to local conditions and approved methodology.
 | **Recommendation** | Field practice suggested by this guide; not software-enforced |
 | **Not implemented** | Do not represent this as an available workflow |
 
-The canonical storage layer is PostgreSQL. Directus is the API/admin layer;
-ClickHouse mirrors selected high-volume events. Computed metrics and model
-outputs are drafts until separately verified. An attachment, GPS coordinate,
-model result, or attestation does not automatically verify a field record.
+The canonical storage layer is PostgreSQL. The Gateway and native services
+provide application routes; Directus is an optional API/admin adapter. The
+Kernel analytics profile can mirror selected high-volume events to ClickHouse.
+Computed metrics and model outputs are drafts until separately verified. An
+attachment, GPS coordinate, model result, or attestation does not automatically
+verify a field record.
 
 ## Canonical Data-Entry Routes
 
-### Directus
+For Kernel deployments, use the native Gateway and purpose-built service or
+Field Collector routes listed below. Directus is optional and is not the
+primary Kernel application API.
 
-Directus is the primary user-facing route for collections that have configured
-permissions and workflow hooks. Lifecycle hooks cover selected collections such
-as `farm_activity`, `harvest_event`, `mrv_claim`, `data_stream_post`, and
-stakeholder collections. The following field tables do not all have the same
-Directus lifecycle hooks:
+### Optional Directus compatibility path
+
+When Directus is enabled, its configured permissions and workflow hooks support
+selected collections such as `farm_activity`, `harvest_event`, `mrv_claim`,
+`data_stream_post`, and stakeholder collections. This legacy/optional adapter
+does not yet provide parity for every field collection. The following field
+tables do not all have the same Directus lifecycle hooks:
 
 - `soil_sample`
 - `soil_carbon_measurement`
@@ -53,7 +59,7 @@ source lineage, or evidence. Accountability comes from server-side
 | CSV/manual sensor CLI | Range validation; out-of-range values become `suspect`; duplicate identity uses sensor/date/time |
 | HTTP receiver | HMAC-authenticated JSON sensor ingestion; does not use all CSV validation or consistently populate source lineage |
 | MQTT subscriber | Registered devices, topic identity, HMAC/TLS/broker controls; device registration is separate |
-| Weather API | OpenWeatherMap current observations; deployment crontab runs weather every six hours |
+| Weather API | OpenWeatherMap current observations; the legacy scheduled-task seed defines a six-hour cadence when the database scheduler and worker are enabled. The matching crontab entry is deprecated/commented out. |
 | Sensor device manager | Device registration, health, and configuration; not a field-observation form |
 
 Sensor duplicate identity is `(sensor_id, reading_date, reading_time)` where

@@ -1,0 +1,63 @@
+{
+  "date": "2026-10-28",
+  "batch": "Directus tenant references, strategy report scope, and operating-pilot response contract",
+  "changes": {
+    "directus_reference_validation": {
+      "collection": "retirement_certificate",
+      "location_checked_references": [
+        "retirement_id",
+        "credit_id",
+        "credit_batch_id"
+      ],
+      "operations": ["create", "update"],
+      "global_reference_preserved": "credit_class_id"
+    },
+    "strategy_report_scope": {
+      "requires_uuid_before_database_access": true,
+      "network_scope_behavior_preserved": true,
+      "inventory": {
+        "report_types": 94,
+        "query_sites": 167,
+        "unresolved_sites": 0,
+        "bind_mismatches": 0
+      }
+    },
+    "operating_pilot_response_contract": {
+      "resource_category_page": true,
+      "validates": [
+        "location_and_requested_pagination",
+        "category_order",
+        "continuation_metadata",
+        "small_count_suppression"
+      ]
+    },
+    "public_rest_sdk": {
+      "driver_catalog_page_echo_validation": ["limit", "offset"]
+    }
+  },
+  "verification": {
+    "directus_tenant_reference_tests": {"result": "passed", "count": 21},
+    "directus_typescript_check": "passed",
+    "strategy_report_tests": {"result": "passed", "passed": 107, "skipped": 4},
+    "operating_pilot_resource_category_tests": {"result": "passed", "count": 15},
+    "ruff": "passed",
+    "python_compilation": "passed",
+    "report_query_inventory_check": "passed",
+    "git_diff_check": "passed",
+    "capability_matrix": {
+      "result": "valid",
+      "rows": 67,
+      "baseline_retained": 24,
+      "deployed": 7,
+      "prepared": 36,
+      "strict_private_gateway_response_endpoints": 62
+    },
+    "checklist": {"complete": 1438, "open": 25},
+    "todo_ledger": {"complete": 145, "open": 16}
+  },
+  "scope_limits": [
+    "No migration or database was used.",
+    "No provider, candidate, or legacy service was used.",
+    "No capability classification or MAN-CAP acceptance changed."
+  ]
+}

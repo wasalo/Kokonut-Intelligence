@@ -1,0 +1,45 @@
+{
+  "result": "passed",
+  "migration": "687_governance_proposal_lineage_created_at.sql",
+  "database_target": "new disposable PostgreSQL 16 container",
+  "candidate_or_legacy_modified": false,
+  "assertions": [
+    "migration 687 preserves migration 246 columns and appends created_at",
+    "the previous missing-column ordering failure is demonstrated before migration 687",
+    "migration 687 applies and replays transactionally",
+    "the real list_proposals service query returns proposals in created_at order",
+    "circle and status filters remain compatible with the explicit projection"
+  ],
+  "view_columns": [
+    "proposal_id",
+    "proposal_key",
+    "circle_id",
+    "circle_key",
+    "proposal_type",
+    "title",
+    "status",
+    "tension_id",
+    "proposed_by_party_id",
+    "proposer_name",
+    "proposed_by_role_id",
+    "proposer_role_key",
+    "harm_review_status",
+    "minority_review_status",
+    "approved_by_party_id",
+    "approver_name",
+    "approved_at",
+    "implementation_work_item_id",
+    "review_due_at",
+    "objection_count",
+    "open_objection_count",
+    "open_material_objection_count",
+    "review_count",
+    "created_at"
+  ],
+  "service_order": [
+    "synthetic-older",
+    "synthetic-newer"
+  ],
+  "service_result_count": 2,
+  "assertions_passed": 5
+}

@@ -12,7 +12,10 @@ from __future__ import annotations
 
 import argparse
 import sys
+
 from services.common.cli import print_json
+from services.stream.processor import MAX_PROCESS_BATCH_SIZE
+
 
 def cmd_run(args):
     from services.stream.processor import StreamProcessor
@@ -92,7 +95,12 @@ def main():
     group.add_argument("--alerts", action="store_true", help="List unacknowledged alerts")
     group.add_argument("--acknowledge", action="store_true", help="Acknowledge an alert")
 
-    parser.add_argument("--batch-size", type=int, default=500, help="Buffer batch size")
+    parser.add_argument(
+        "--batch-size",
+        type=int,
+        default=MAX_PROCESS_BATCH_SIZE,
+        help=f"Buffer batch size (1-{MAX_PROCESS_BATCH_SIZE}; default: {MAX_PROCESS_BATCH_SIZE})",
+    )
     parser.add_argument("--sensor", help="Sensor device UUID")
     parser.add_argument("--metric", help="Metric name")
     parser.add_argument("--window-size", default="5min", help="Window size (1min/5min/15min/1hour)")
@@ -103,6 +111,10 @@ def main():
     args = parser.parse_args()
 
     if args.run:
+        if not 1 <= args.batch_size <= MAX_PROCESS_BATCH_SIZE:
+            parser.error(
+                f"--batch-size must be between 1 and {MAX_PROCESS_BATCH_SIZE}"
+            )
         rc = cmd_run(args)
     elif args.stats:
         rc = cmd_stats(args)

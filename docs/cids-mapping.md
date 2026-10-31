@@ -2,7 +2,9 @@
 
 Kokonut targets Common Impact Data Standard (CIDS) v3.2.0 Essential Tier for the Green Paper.
 
-CIDS export is a compatibility layer; PostgreSQL/Directus remains canonical.
+CIDS export is a compatibility layer; PostgreSQL remains canonical. The native
+Gateway and Python services provide application access; Directus may be enabled
+as a compatibility/admin adapter.
 
 ## Constants and configuration
 
@@ -354,7 +356,7 @@ This is a pure read-only task with no database mutations.
 
 ## Governance Boundary
 
-CIDS export does not create or publish canonical records. Directus/PostgreSQL lifecycle state, evidence maturity, consent fields, and public-safe views determine what may appear in partner-facing outputs.
+CIDS export does not create or publish canonical records. PostgreSQL lifecycle state, evidence maturity, consent fields, and public-safe views determine what may appear in partner-facing outputs.
 
 ## Compatibility Notes
 
@@ -362,7 +364,7 @@ CIDS export does not create or publish canonical records. Directus/PostgreSQL li
 - Public EBF carbon pillar score outputs require Level 6 before public EBF reporting.
 - EBF scorecards map to `cids:IndicatorReport` through verified `metric_value` rows rather than a new CIDS class.
 - Private stakeholder feedback is not exported as public feedback.
-- CIDS export is a compatibility layer; PostgreSQL/Directus remains canonical.
+- CIDS export is a compatibility layer; PostgreSQL remains canonical.
 
 ## Testing
 

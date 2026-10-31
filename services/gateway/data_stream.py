@@ -180,6 +180,8 @@ def list_gateway_data_stream_files(
     location_id: str,
     authorization: Mapping[str, Any],
     *,
+    limit: int = 50,
+    offset: int = 0,
     connection_factory: Callable[[], Any] | None = None,
 ) -> list[dict[str, Any]]:
     """List safe attachment metadata for a post in the verified location.
@@ -200,6 +202,10 @@ def list_gateway_data_stream_files(
         normalized_post_id = str(UUID(str(post_id)))
     except (TypeError, ValueError, AttributeError) as exc:
         raise ValueError("post_id must be a UUID") from exc
+    if isinstance(limit, bool) or not isinstance(limit, int) or not 1 <= limit <= 100:
+        raise ValueError("limit must be an integer between 1 and 100")
+    if isinstance(offset, bool) or not isinstance(offset, int) or not 0 <= offset <= 5000:
+        raise ValueError("offset must be an integer between 0 and 5000")
 
     sql = (
         f"SELECT {_FILE_READ_COLUMNS} "
@@ -208,9 +214,15 @@ def list_gateway_data_stream_files(
         "WHERE file.post_id = :post_id "
         "AND post.location_id = :location_id "
         "AND file.deleted_at IS NULL "
-        "ORDER BY file.sort_order, file.created_at, file.id"
+        "ORDER BY file.sort_order, file.created_at, file.id "
+        "LIMIT :limit OFFSET :offset"
     )
-    params = {"post_id": normalized_post_id, "location_id": normalized_location_id}
+    params = {
+        "post_id": normalized_post_id,
+        "location_id": normalized_location_id,
+        "limit": limit,
+        "offset": offset,
+    }
     factory = connection_factory or get_connection
     with factory() as connection:
         _set_data_stream_context(

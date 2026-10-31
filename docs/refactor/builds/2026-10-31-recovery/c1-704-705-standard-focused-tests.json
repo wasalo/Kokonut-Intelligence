@@ -1,0 +1,18 @@
+{
+  "candidate_legacy_production_touched": false,
+  "checked_at": "2026-10-31T14:24:32.158627+00:00",
+  "command": "python3 -m pytest tests/test_migration.py tests/test_directus_runtime_role.py tests/test_runtime_role_boundary.py tests/test_kernel_profile.py tests/test_compose_zitadel_profile.py -q",
+  "duration_seconds": 263.6,
+  "failed": 0,
+  "git_diff_check": "passed",
+  "passed": 213,
+  "ruff": "passed",
+  "status": "passed",
+  "test_modules": [
+    "tests/test_migration.py",
+    "tests/test_directus_runtime_role.py",
+    "tests/test_runtime_role_boundary.py",
+    "tests/test_kernel_profile.py",
+    "tests/test_compose_zitadel_profile.py"
+  ]
+}

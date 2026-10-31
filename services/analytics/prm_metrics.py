@@ -6,9 +6,8 @@ computation for the tables and views introduced in migration 196.
 
 from __future__ import annotations
 
-import json
 import uuid as uuid_mod
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import Any, Dict, List, Optional
 
 import psycopg2
@@ -200,7 +199,16 @@ def total_cost_of_ownership(
 
     where = " AND ".join(clauses) if clauses else "TRUE"
     sql = f"""
-        SELECT * FROM v_total_cost_of_ownership
+        SELECT process_key,
+               process_name,
+               process_type,
+               location_id,
+               period,
+               instance_count,
+               total_cost,
+               cost_per_instance,
+               currency
+        FROM v_total_cost_of_ownership
         WHERE {where}
         ORDER BY total_cost DESC
     """
@@ -311,8 +319,18 @@ def cost_efficiency_ranking(
 # --- Outcome Correlation ----------------------------------------------------
 
 def outcome_correlation() -> List[Dict[str, Any]]:
-    """Query the v_process_outcome_correlation view."""
-    sql = "SELECT * FROM v_process_outcome_correlation ORDER BY process_key, maturity_level"
+    """Return maturity rows and portfolio metric coverage without mixing units."""
+    sql = """
+        SELECT process_key, process_name, maturity_level, maturity_name,
+               metric_count, avg_metric_value, location_count, scope
+        FROM v_process_outcome_correlation
+        ORDER BY CASE scope
+                     WHEN 'process_maturity' THEN 0
+                     WHEN 'portfolio_metrics' THEN 1
+                     ELSE 2
+                 END,
+                 process_key NULLS LAST, maturity_level NULLS LAST
+    """
 
     try:
         with _conn() as conn:

@@ -45,6 +45,7 @@ _EXPECTED_ROUTE_POLICIES = {
     ("GET", "/api/v1/metrics/{location_id}"): ("metric", "read", True),
     ("GET", "/api/v1/crisp/{location_id}"): ("crisp_risk_assessment", "read", True),
     ("GET", "/api/v1/analytics/{location_id}/summary"): ("analytics", "read", True),
+    ("GET", "/api/v1/drivers"): ("driver", "read", True),
     ("GET", "/api/v1/governance/baal/config"): ("governance", "read", False),
     ("GET", "/api/v1/governance/baal/proposals"): ("governance", "read", False),
     ("GET", "/api/v1/governance/baal/proposals/{proposal_id}"): ("governance", "read", False),
@@ -60,7 +61,7 @@ _EXPECTED_ROUTE_POLICIES = {
     ("GET", "/api/iri/resolve"): ("iri", "read", True),
     ("GET", "/api/federation/nodes"): ("federation_node", "read", True),
     ("GET", "/api/drivers"): ("driver", "read", True),
-    ("GET", "/api/health/services"): ("service_health", "read", True),
+    ("GET", "/api/health/services"): ("service_health", "read", False),
     ("GET", "/api/mobile/app"): ("mobile_app", "read", True),
     ("GET", "/api/mobile/field-collector-vault.js"): ("mobile_app", "read", True),
     ("GET", "/api/mobile/field-collector-service-worker.js"): ("mobile_app", "read", True),
@@ -113,6 +114,55 @@ def test_registered_api_routes_have_exact_reviewed_policy_coverage():
                     assert policy["location_id"] == _LOCATION_ID
 
     assert actual == _EXPECTED_ROUTE_POLICIES
+
+
+def test_federation_node_list_publishes_and_enforces_page_bounds(monkeypatch):
+    schema = create_app().openapi()
+    operation = schema["paths"]["/api/federation/nodes"]["get"]
+    parameters = {parameter["name"]: parameter for parameter in operation["parameters"]}
+    assert parameters["limit"]["schema"]["minimum"] == 1
+    assert parameters["limit"]["schema"]["maximum"] == 100
+    assert parameters["limit"]["schema"]["default"] == 50
+    assert parameters["offset"]["schema"]["minimum"] == 0
+    assert parameters["offset"]["schema"]["maximum"] == 10000
+    response_schema = operation["responses"]["200"]["content"]["application/json"]["schema"]
+    assert response_schema["$ref"].endswith("/FederationNodesPage")
+    page_schema = schema["components"]["schemas"]["FederationNodesPage"]
+    assert set(page_schema["properties"]) == {
+        "nodes",
+        "limit",
+        "offset",
+        "has_more",
+        "next_offset",
+        "continuation_capped",
+    }
+
+    with patch(
+        "services.federation.node.FederationNode.list_nodes_page",
+        return_value={
+            "nodes": [],
+            "limit": 20,
+            "offset": 40,
+            "has_more": False,
+            "next_offset": None,
+            "continuation_capped": False,
+        },
+    ) as list_nodes_page:
+        with TestClient(create_app()) as client:
+            valid = client.get("/api/federation/nodes", params={"limit": 20, "offset": 40})
+            invalid = client.get("/api/federation/nodes", params={"limit": 101})
+
+    assert valid.status_code == 200
+    assert valid.json() == {
+        "nodes": [],
+        "limit": 20,
+        "offset": 40,
+        "has_more": False,
+        "next_offset": None,
+        "continuation_capped": False,
+    }
+    assert invalid.status_code == 422
+    list_nodes_page.assert_called_once_with(limit=20, offset=40)
 
 
 def test_catch_all_policy_log_does_not_include_unregistered_path():

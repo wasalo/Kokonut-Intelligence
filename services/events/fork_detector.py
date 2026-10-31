@@ -26,29 +26,34 @@ def detect_fork_opportunities(
 ) -> Dict[str, Any]:
     """Find single events resolving >=2 pending transfers/decisions (read-only).
 
-    A fork is identified when one ``source_event_id`` has >=2 distinct
-    ``target_domain`` values among pending ``insight_transfer`` rows, OR when a
-    ``correlation_id``/``trigger_event_id`` is shared by >=2 pending
-    ``decision_log`` rows. Both are "one move, many targets".
+    A network-wide fork may be identified when one ``source_event_id`` has >=2
+    distinct ``target_domain`` values among pending ``insight_transfer`` rows.
+    Because that table has no location lineage, location-scoped detection omits
+    it and uses only ``decision_log`` rows scoped by location. Both represent
+    "one move, many targets".
     """
     with conn.cursor(cursor_factory=RealDictCursor) as cur:
-        # Cross-domain transfer forks: group pending transfers by source event.
-        cur.execute(
-            """
-            SELECT source_event_id,
-                   COUNT(DISTINCT target_domain) AS target_count,
-                   COUNT(*) AS transfer_count,
-                   ARRAY_AGG(DISTINCT target_domain) AS target_domains,
-                   ARRAY_AGG(id) AS transfer_ids
-            FROM insight_transfer
-            WHERE transfer_status IN ('detected', 'pending_review')
-              AND source_event_id IS NOT NULL
-            GROUP BY source_event_id
-            HAVING COUNT(DISTINCT target_domain) >= 2
-            ORDER BY target_count DESC
-            """
-        )
-        transfer_forks = [dict(r) for r in cur.fetchall()]
+        # Insight transfers have no location lineage, so include them only in
+        # network-wide detection. A location filter must not imply farm scope
+        # for this source.
+        transfer_forks = []
+        if location_id is None:
+            cur.execute(
+                """
+                SELECT source_event_id,
+                       COUNT(DISTINCT target_domain) AS target_count,
+                       COUNT(*) AS transfer_count,
+                       ARRAY_AGG(DISTINCT target_domain) AS target_domains,
+                       ARRAY_AGG(id) AS transfer_ids
+                FROM insight_transfer
+                WHERE transfer_status IN ('detected', 'pending_review')
+                  AND source_event_id IS NOT NULL
+                GROUP BY source_event_id
+                HAVING COUNT(DISTINCT target_domain) >= 2
+                ORDER BY target_count DESC
+                """
+            )
+            transfer_forks = [dict(r) for r in cur.fetchall()]
 
         # Decision forks: group pending decisions by correlation/trigger event.
         decision_filter = ""

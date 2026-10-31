@@ -13,11 +13,12 @@ that must reconcile against that ledger.
 
 ## Trust Boundaries
 
-### PostgreSQL And Directus
+### PostgreSQL And Application Adapters
 
 PostgreSQL stores Guild tasks, evidence reviews, canonical reputation events,
-claim state, deployment state, chain events, and canonical balances. Directus
-and service workflows determine lifecycle and review state. The contract never
+claim state, deployment state, chain events, and canonical balances. Database
+constraints, Gateway/service policies, and optional Directus workflows govern
+lifecycle and review state on their respective write paths. The contract never
 reads private evidence, makes eligibility decisions, or calls PostgreSQL.
 
 ### Contributor And Reviewer

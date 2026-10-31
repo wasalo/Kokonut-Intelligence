@@ -1,6 +1,6 @@
 # Kernel worker operation map
 
-**Reviewed:** 26 October 2026
+**Reviewed:** 28 October 2026 (source-contract counts refreshed)
 
 **Status:** entrypoint inventory, scheduler argument contracts, static
 local-import closure, signed worker identity primitive, and transaction-bound
@@ -296,15 +296,20 @@ continues to use only `SCHEDULED_SENSOR_DRIVER_TARGETS`.
   Cadence, signed worker identity, output handling, and owner acceptance remain
   open.
 - The legacy schedule seed contains known mismatches: the sensor task has no
-  declared input source, and its empty argument list does not create a sensor
-  reading; the climate CLI requires one `--location-id`, while the old seed
-  supplies only `--all`; the event-cleanup seed invokes a retention-sensitive
-  delete operation. These commands now fail the Kernel argument contract. The
-  legacy seed remains excluded from normal Kernel bootstrap.
+  location or driver-instance input, and its empty argument list does not create
+  a sensor reading; the climate CLI requires one `--location-id`, while the old
+  seed supplies only `--all`; the event-cleanup seed invokes a
+  retention-sensitive delete operation. These legacy invocations remain
+  excluded from normal Kernel bootstrap. The native sensor and climate
+  JobSpecs have source/input contracts; existing persisted rows still require
+  owner-reviewed reconciliation before activation.
 - The generated [JobSpec/contract inventory](worker-job-contract-inventory.json)
-  compares all 22 shared job templates with the 30-module Kernel allowlist and
-  command validation. Nine no-input defaults pass and thirteen jobs require
-  validated runtime inputs; EAS and RPC each require one supported chain.
+  compares all 23 shared job templates with the 32-module Kernel allowlist and
+  command validation. Nine no-input defaults pass and fourteen jobs require
+  validated runtime inputs; EAS and RPC each require one supported chain. The
+  nine allowlisted modules without a shared JobSpec remain covered by the
+  operation map and their module-specific command
+  schemas; this catalog inventory does not inspect persisted task values.
   Scheduled sensor ingestion requires one
   `--location-id` and one `--driver-instance-id`; the registry accepts only an
   enabled sensor instance assigned to that exact location, and the loaded
@@ -352,11 +357,16 @@ continues to use only `SCHEDULED_SENSOR_DRIVER_TARGETS`.
   The projection
   contract rejects manual list/replay/disposal/reconcile actions. No task or
   provider is activated. This is the source catalog only; it does not
-  reconcile persisted tasks or external schedules. Check it with
+  reconcile persisted tasks or external schedules. The former “missing sensor
+  source contract” finding referred to the legacy seed's empty arguments. The
+  native scheduled sensor contract now requires one location and one registered
+  driver-instance ID, but an actual configured instance and active schedule
+  remain owner/runtime gates. Check the catalog with
   `python3 scripts/worker_job_contract_inventory.py --check
-  docs/refactor/worker-job-contract-inventory.json`. Keep the two rejected
-  defaults inactive until their source/input contracts are defined. Remote
-  sensing and climate workers remain disabled until their dedicated credentials,
+  docs/refactor/worker-job-contract-inventory.json`. Keep the known rejected
+  legacy seed invocations inactive; do not infer that the native source/input
+  contracts are missing. Remote sensing and climate workers remain disabled
+  until their dedicated credentials,
   signed location grants, provider configuration, and owner-reviewed schedules
   are provisioned. Neither disposable acceptance nor these source contracts
   prove live-provider parity or candidate deployment.

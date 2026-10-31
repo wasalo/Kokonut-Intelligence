@@ -1,0 +1,96 @@
+{
+  "date": "2026-10-29",
+  "base_head": "c89d74ad",
+  "scope": "Strict adoption-program review queue, explicit competitive report projections, and stakeholder-trust CLI UUID preflight",
+  "files": [
+    "services/gateway/solution_lifecycle_routes.py",
+    "apps/operator-console/index.html",
+    "tests/test_gateway_solution_lifecycle_adoption_program_review.py",
+    "tests/test_operator_console_solution_lifecycle.py",
+    "services/analytics/competitive_report.py",
+    "tests/test_competitive_report.py",
+    "services/analytics/cli_stakeholder_trust.py",
+    "tests/test_cli_stakeholder_trust_uuid_preflight.py",
+    "tests/test_unified_cli_success_contract.py"
+  ],
+  "source_migrations": [
+    "schemas/postgres/520_location_solution_adoption_consent_events.sql",
+    "schemas/postgres/268_competitive_landscape.sql",
+    "schemas/postgres/269_strategic_positioning.sql",
+    "schemas/postgres/222_cooperative_trust.sql"
+  ],
+  "adoption_program_review_queue": {
+    "item_fields": [
+      "program_id", "solution_id", "solution_name", "program_status",
+      "adoption_pathway", "local_adaptation_policy", "submitted_at",
+      "consent_data_category", "consent_purpose", "consent_version"
+    ],
+    "invariants": [
+      "community_review is the only eligible lifecycle state",
+      "consent fields are either all null or a complete migration-520 policy tuple",
+      "solution and program identities are valid UUIDs and private undeclared fields are rejected",
+      "results are unique and ordered by submitted_at, program_id ascending",
+      "page envelope binds location, requested limit, requested offset, and continuation",
+      "an SQL lookahead beyond the 10000 offset cap becomes offset_limited, not an unusable next page",
+      "malformed service output returns a generic no-store error",
+      "console validates page binding and reports remaining records at the cap"
+    ]
+  },
+  "competitive_report_projections": {
+    "competitive_landscape_columns": [
+      "id", "strategy_plan_id", "scope_type", "scope_id", "industry",
+      "geography", "period_start", "period_end", "status", "confidence",
+      "summary", "created_by_party_id", "verified_by_party_id", "verified_at",
+      "created_at", "updated_at"
+    ],
+    "strategy_position_columns": [
+      "id", "strategy_plan_id", "landscape_id", "target_type", "target_id",
+      "target_name", "customer_needs", "value_drivers", "value_proposition",
+      "differentiation", "alternatives", "excluded_scope", "geographic_scope",
+      "product_service_scope", "position_score", "confidence", "status",
+      "visibility", "created_by_party_id", "approved_by_party_id", "approved_at",
+      "created_at", "updated_at"
+    ],
+    "preserved_behavior": [
+      "strategy_plan_id filters and UUID bind remain unchanged",
+      "landscape ordering remains period_end DESC",
+      "position ordering remains target_name",
+      "UUID-to-string cleanup and report payload keys remain unchanged"
+    ]
+  },
+  "stakeholder_trust_cli_uuid_preflight": {
+    "commands": [
+      "record-evidence", "verify-buyer", "profile", "timeline", "risks", "governance-health"
+    ],
+    "invariants": [
+      "all supplied UUID-backed arguments are validated and canonicalized after argparse but before get_db",
+      "invalid values fail through parser.error without opening PostgreSQL",
+      "omitted optional UUID values remain None"
+    ]
+  },
+  "verification": {
+    "adoption_gateway_command": "python3 -m pytest tests/test_gateway_solution_lifecycle_adoption_program_review.py -q",
+    "adoption_gateway_tests_passed": 23,
+    "adoption_console_command": "python3 -m pytest tests/test_operator_console_solution_lifecycle.py -k 'adoption_program_review_queue or readiness_review_queue_is_review_only' -q",
+    "adoption_console_tests_passed": 2,
+    "competitive_projection_command": "python3 -m pytest tests/test_competitive_report.py -k 'migration_268_competitive_landscape_projection or migration_269_strategy_position_projection' -q",
+    "competitive_projection_tests_passed": 2,
+    "trust_uuid_command": "python3 -m pytest tests/test_cli_stakeholder_trust_uuid_preflight.py -q",
+    "trust_uuid_tests_passed": 20,
+    "unified_cli_command": "python3 -m pytest tests/test_unified_cli_success_contract.py::test_database_backed_read_cli_output_matches_with_stubbed_query -q",
+    "unified_cli_cases_passed": 5,
+    "console_js_syntax_command": "python3 -m pytest tests/test_operator_console_solution_lifecycle.py -k inline_javascript_parses_when_node_is_available -q",
+    "console_js_syntax_checks_passed": 1,
+    "total_focused_checks_passed": 53,
+    "ruff": "passed",
+    "python_compileall": "passed",
+    "capability_matrix": "passed: 67 rows; 24 baseline-retained, 7 deployed, 36 prepared",
+    "git_diff_check": "passed"
+  },
+  "environment": {
+    "database_used": false,
+    "external_provider_used": false,
+    "candidate_or_legacy_state_changed": false,
+    "errors": 0
+  }
+}

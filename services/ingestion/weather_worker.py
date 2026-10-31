@@ -149,6 +149,7 @@ def ingest(location_id: str) -> tuple[str | None, bool]:
     latitude, longitude = _load_location(canonical_location_id, credential)
 
     started = time.monotonic()
+    sanitized_error: RuntimeError | None = None
     try:
         raw = _fetch_weather(latitude, longitude, api_key)
         record = parse_weather(raw, canonical_location_id)
@@ -157,17 +158,28 @@ def ingest(location_id: str) -> tuple[str | None, bool]:
         elapsed_ms = min(600000, max(0, int((time.monotonic() - started) * 1000)))
         # Provider exception text may include the API key in a request URL.
         safe_error = f"weather fetch or parsing failed ({type(exc).__name__})"
-        _store_observation(
-            canonical_location_id,
-            credential,
-            record=None,
-            projection=None,
-            provider_source_id="",
-            provider_payload_hash=None,
-            processing_time_ms=elapsed_ms,
-            error_text=safe_error,
-        )
-        raise RuntimeError(safe_error) from None
+        try:
+            _store_observation(
+                canonical_location_id,
+                credential,
+                record=None,
+                projection=None,
+                provider_source_id="",
+                provider_payload_hash=None,
+                processing_time_ms=elapsed_ms,
+                error_text=safe_error,
+            )
+        except Exception as audit_exc:
+            from services.common.logging import get_logger
+
+            get_logger("ingestion.weather_worker").warning(
+                "Weather failure audit could not be persisted (%s)",
+                type(audit_exc).__name__,
+            )
+        sanitized_error = RuntimeError(safe_error)
+
+    if sanitized_error is not None:
+        raise sanitized_error from None
 
     elapsed_ms = min(600000, max(0, int((time.monotonic() - started) * 1000)))
     return _store_observation(

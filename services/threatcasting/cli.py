@@ -7,6 +7,7 @@ import argparse
 import json
 from datetime import datetime
 from typing import Any
+from uuid import UUID
 
 from services.common.logging import get_logger
 
@@ -20,6 +21,22 @@ def _get_conn():
 
 def _json(obj: Any) -> str:
     return json.dumps(obj, indent=2, default=str)
+
+
+def _preflight_location_id(parser: argparse.ArgumentParser, args: argparse.Namespace) -> None:
+    """Validate a supplied location filter before a command can open PostgreSQL.
+
+    Optional location filters intentionally retain their global behavior when
+    omitted. Required filters are already enforced by argparse, and supplied
+    values are canonicalized so the CLI has one UUID representation end to end.
+    """
+    location_id = getattr(args, "location_id", None)
+    if location_id is None:
+        return
+    try:
+        args.location_id = str(UUID(location_id))
+    except (AttributeError, TypeError, ValueError):
+        parser.error("--location-id must be a valid UUID")
 
 
 def cmd_create_threat(args):
@@ -896,6 +913,7 @@ def main():
 
     args = parser.parse_args()
     if hasattr(args, "func"):
+        _preflight_location_id(parser, args)
         args.func(args)
     else:
         parser.print_help()

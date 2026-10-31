@@ -1,0 +1,31 @@
+{
+  "result": "passed",
+  "date": "2026-10-28",
+  "source_revision": "753b4645",
+  "working_tree_dirty": true,
+  "scope": "Direct-call location scope for governance_throughput report",
+  "classification": "The report registry requires an explicit location; governance_throughput is not a network-level report.",
+  "change": "generate_governance_throughput now rejects missing or empty location_id before opening a cursor and uses one selected-location query that retains public global rows.",
+  "checks": {
+    "focused_tests": {
+      "command": "python3 -m pytest tests/test_capital_efficiency.py -q",
+      "result": "11 passed"
+    },
+    "ruff": "passed",
+    "python_compilation": "passed",
+    "diff_check": "passed",
+    "query_scope_inventory": "passed after integrated regeneration: 171 direct sites, 170 statically counted positional-bind sites, zero unresolved sites"
+  },
+  "external_services": {
+    "database": false,
+    "provider": false,
+    "network": false,
+    "candidate_or_legacy": false
+  },
+  "rollback": "Restore the unscoped query branch, remove the direct-call regression, and regenerate the report inventory; no migration or persisted data changed.",
+  "limitations": [
+    "This validates the source-level report input/query contract, not tenant authorization or RLS.",
+    "Populated governance-throughput parity and accountable owner review remain open.",
+    "Invalid unscoped cursor-failure cases were removed from the generic cursor-cleanup matrix; the integrated seven-module report selection passes 507 tests with four database-dependent skips."
+  ]
+}

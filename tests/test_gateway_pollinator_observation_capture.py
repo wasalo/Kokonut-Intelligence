@@ -638,6 +638,301 @@ def test_http_capture_is_bounded_csrf_ready_and_no_store(monkeypatch):
         assert len(posted) == 1
 
 
+def _observation_route_app(monkeypatch, writer):
+    routes = importlib.import_module("services.gateway.pollinator_health_routes")
+    monkeypatch.setattr(writes, "create_location_pollinator_observation", writer)
+    router = APIRouter()
+
+    async def run_inline(function, *args):
+        return function(*args)
+
+    import psycopg2
+
+    routes.register_pollinator_health_routes(router, object(), run_inline, psycopg2)
+    app = FastAPI()
+    app.include_router(router)
+
+    @app.middleware("http")
+    async def operator_session(request, call_next):
+        request.state.operator_session = SimpleNamespace(
+            operator=SimpleNamespace(operator_id=_OPERATOR)
+        )
+        return await call_next(request)
+
+    return app
+
+
+def _pesticide_route_app(monkeypatch, writer):
+    routes = importlib.import_module("services.gateway.pollinator_health_routes")
+    monkeypatch.setattr(writes, "create_location_pesticide_impact", writer)
+    router = APIRouter()
+
+    async def run_inline(function, *args):
+        return function(*args)
+
+    import psycopg2
+
+    routes.register_pollinator_health_routes(router, object(), run_inline, psycopg2)
+    app = FastAPI()
+    app.include_router(router)
+
+    @app.middleware("http")
+    async def operator_session(request, call_next):
+        request.state.operator_session = SimpleNamespace(
+            operator=SimpleNamespace(operator_id=_OPERATOR)
+        )
+        return await call_next(request)
+
+    return app
+
+
+def _habitat_route_app(monkeypatch, writer):
+    routes = importlib.import_module("services.gateway.pollinator_health_routes")
+    monkeypatch.setattr(writes, "create_location_pollinator_habitat", writer)
+    router = APIRouter()
+
+    async def run_inline(function, *args):
+        return function(*args)
+
+    import psycopg2
+
+    routes.register_pollinator_health_routes(router, object(), run_inline, psycopg2)
+    app = FastAPI()
+    app.include_router(router)
+
+    @app.middleware("http")
+    async def operator_session(request, call_next):
+        request.state.operator_session = SimpleNamespace(
+            operator=SimpleNamespace(operator_id=_OPERATOR)
+        )
+        return await call_next(request)
+
+    return app
+
+
+def _capture_result(location_id, payload, *, replayed=False):
+    return {
+        "observation_id": "33333333-3333-4333-8333-333333333333",
+        "location_id": location_id,
+        "pollinator_type": payload["pollinator_type"],
+        "count": payload["count"],
+        "observation_method": payload["observation_method"],
+        "observation_date": payload["observation_date"],
+        "duration_minutes": payload["duration_minutes"],
+        "status": "recorded",
+        "replayed": replayed,
+    }
+
+
+def _pesticide_capture_result(location_id, payload, *, replayed=False):
+    return {
+        "record_id": "33333333-3333-4333-8333-333333333333",
+        "location_id": location_id,
+        "toxicity_class": payload["toxicity_class"],
+        "application_date": payload["application_date"],
+        "status": "recorded",
+        "replayed": replayed,
+    }
+
+
+def _habitat_capture_result(location_id, payload, *, replayed=False):
+    return {
+        "habitat_id": "33333333-3333-4333-8333-333333333333",
+        "location_id": location_id,
+        "habitat_type": payload["habitat_type"],
+        "area_m2": float(payload["area_m2"]),
+        "status": "active",
+        "replayed": replayed,
+    }
+
+
+def test_observation_capture_openapi_has_exact_success_and_replay_fields(monkeypatch):
+    app = _observation_route_app(
+        monkeypatch,
+        lambda _operator_id, location_id, payload: _capture_result(location_id, payload),
+    )
+    spec = app.openapi()
+    operation = spec["paths"]["/operator/api/pollinators/{location_id}/observations"]["post"]
+    created_schema = operation["responses"]["201"]["content"]["application/json"]["schema"]
+    replay_schema = operation["responses"]["200"]["content"]["application/json"]["schema"]
+    assert created_schema == replay_schema
+    model_name = created_schema["$ref"].rsplit("/", 1)[-1]
+    fields = {
+        "observation_id",
+        "location_id",
+        "pollinator_type",
+        "count",
+        "observation_method",
+        "observation_date",
+        "duration_minutes",
+        "status",
+        "replayed",
+    }
+    model_schema = spec["components"]["schemas"][model_name]
+    assert set(model_schema["properties"]) == fields
+    assert set(model_schema["required"]) == fields
+
+
+@pytest.mark.parametrize(("replayed", "expected_status"), [(False, 201), (True, 200)])
+def test_observation_capture_validates_exact_result_and_replay_status(
+    monkeypatch, replayed, expected_status
+):
+    payload = _payload(observation_date="2026-10-15")
+    calls = []
+
+    def create(operator_id, location_id, received_payload):
+        calls.append((operator_id, location_id, received_payload))
+        return _capture_result(location_id, received_payload, replayed=replayed)
+
+    app = _observation_route_app(monkeypatch, create)
+    with TestClient(app) as client:
+        response = client.post(
+            f"/operator/api/pollinators/{_LOCATION}/observations",
+            json=payload,
+        )
+
+    assert response.status_code == expected_status
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["vary"] == "Cookie"
+    assert set(response.json()) == {
+        "observation_id",
+        "location_id",
+        "pollinator_type",
+        "count",
+        "observation_method",
+        "observation_date",
+        "duration_minutes",
+        "status",
+        "replayed",
+    }
+    assert response.json()["replayed"] is replayed
+    assert response.json()["observation_date"] == "2026-10-15"
+    assert calls[0][0:2] == (_OPERATOR, _LOCATION)
+
+
+@pytest.mark.parametrize(
+    "mutation",
+    [
+        lambda result: result.update({"private_detail": "do-not-leak"}),
+        lambda result: result.pop("duration_minutes"),
+        lambda result: result.update({"observation_id": "not-a-uuid"}),
+        lambda result: result.update({"location_id": "44444444-4444-4444-8444-444444444444"}),
+        lambda result: result.update({"pollinator_type": "unregistered"}),
+        lambda result: result.update({"count": True}),
+        lambda result: result.update({"status": "verified"}),
+        lambda result: result.update({"replayed": 1}),
+        lambda result: result.update({"observation_date": "2026-10-16"}),
+    ],
+)
+def test_observation_capture_rejects_malformed_writer_result_safely(monkeypatch, mutation):
+    payload = _payload(observation_date="2026-10-15")
+
+    def create(_operator_id, location_id, received_payload):
+        result = _capture_result(location_id, received_payload)
+        mutation(result)
+        return result
+
+    app = _observation_route_app(monkeypatch, create)
+    with TestClient(app) as client:
+        response = client.post(
+            f"/operator/api/pollinators/{_LOCATION}/observations",
+            json=payload,
+        )
+
+    assert response.status_code == 500
+    assert response.json() == {"error": "Pollinator capture unavailable"}
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["vary"] == "Cookie"
+    assert "do-not-leak" not in response.text
+
+
+def test_pesticide_capture_openapi_has_exact_success_and_replay_fields(monkeypatch):
+    app = _pesticide_route_app(
+        monkeypatch,
+        lambda _operator_id, location_id, payload: _pesticide_capture_result(location_id, payload),
+    )
+    spec = app.openapi()
+    operation = spec["paths"]["/operator/api/pollinators/{location_id}/pesticide-impacts"]["post"]
+    created_schema = operation["responses"]["201"]["content"]["application/json"]["schema"]
+    replay_schema = operation["responses"]["200"]["content"]["application/json"]["schema"]
+    assert created_schema == replay_schema
+    model_name = created_schema["$ref"].rsplit("/", 1)[-1]
+    fields = {"record_id", "location_id", "toxicity_class", "application_date", "status", "replayed"}
+    model_schema = spec["components"]["schemas"][model_name]
+    assert set(model_schema["properties"]) == fields
+    assert set(model_schema["required"]) == fields
+
+
+@pytest.mark.parametrize(("replayed", "expected_status"), [(False, 201), (True, 200)])
+def test_pesticide_capture_validates_exact_result_and_replay_status(
+    monkeypatch, replayed, expected_status
+):
+    payload = _pesticide_payload(application_date="2026-10-15")
+    calls = []
+
+    def create(operator_id, location_id, received_payload):
+        calls.append((operator_id, location_id, received_payload))
+        return _pesticide_capture_result(location_id, received_payload, replayed=replayed)
+
+    app = _pesticide_route_app(monkeypatch, create)
+    with TestClient(app) as client:
+        response = client.post(
+            f"/operator/api/pollinators/{_LOCATION}/pesticide-impacts",
+            json=payload,
+        )
+
+    assert response.status_code == expected_status
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["vary"] == "Cookie"
+    assert set(response.json()) == {
+        "record_id",
+        "location_id",
+        "toxicity_class",
+        "application_date",
+        "status",
+        "replayed",
+    }
+    assert response.json()["application_date"] == "2026-10-15"
+    assert response.json()["replayed"] is replayed
+    assert calls[0][0:2] == (_OPERATOR, _LOCATION)
+
+
+@pytest.mark.parametrize(
+    "mutation",
+    [
+        pytest.param(lambda result: result.update({"private_detail": "do-not-leak"}), id="extra-field"),
+        pytest.param(lambda result: result.pop("application_date"), id="missing-date"),
+        pytest.param(lambda result: result.pop("replayed"), id="missing-replay"),
+        pytest.param(lambda result: result.update({"record_id": "not-a-uuid"}), id="invalid-uuid"),
+        pytest.param(lambda result: result.update({"location_id": "44444444-4444-4444-8444-444444444444"}), id="wrong-location"),
+        pytest.param(lambda result: result.update({"toxicity_class": "unregistered"}), id="invalid-toxicity"),
+        pytest.param(lambda result: result.update({"application_date": "2026-10-16"}), id="wrong-date"),
+        pytest.param(lambda result: result.update({"status": "verified"}), id="wrong-lifecycle"),
+        pytest.param(lambda result: result.update({"replayed": 1}), id="nonboolean-replay"),
+    ],
+)
+def test_pesticide_capture_rejects_malformed_writer_result_safely(monkeypatch, mutation):
+    payload = _pesticide_payload(application_date="2026-10-15")
+
+    def create(_operator_id, location_id, received_payload):
+        result = _pesticide_capture_result(location_id, received_payload)
+        mutation(result)
+        return result
+
+    app = _pesticide_route_app(monkeypatch, create)
+    with TestClient(app) as client:
+        response = client.post(
+            f"/operator/api/pollinators/{_LOCATION}/pesticide-impacts",
+            json=payload,
+        )
+
+    assert response.status_code == 500
+    assert response.json() == {"error": "Pesticide report capture unavailable"}
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["vary"] == "Cookie"
+    assert "do-not-leak" not in response.text
+
+
 def test_pesticide_report_http_capture_is_create_gated_recorded_and_no_store(monkeypatch):
     routes = importlib.import_module("services.gateway.pollinator_health_routes")
     posted = []
@@ -693,7 +988,7 @@ def test_habitat_http_capture_is_create_gated_self_reported_and_no_store(monkeyp
             "habitat_id": "33333333-3333-4333-8333-333333333333",
             "location_id": location_id,
             "habitat_type": payload["habitat_type"],
-            "area_m2": payload["area_m2"],
+            "area_m2": float(payload["area_m2"]),
             "status": "active",
             "replayed": False,
         }
@@ -726,6 +1021,99 @@ def test_habitat_http_capture_is_create_gated_self_reported_and_no_store(monkeyp
     assert response.headers["cache-control"] == "no-store"
     assert response.headers["vary"] == "Cookie"
     assert posted[0][0:2] == (_OPERATOR, _LOCATION)
+
+
+def test_habitat_capture_openapi_has_exact_create_and_replay_fields(monkeypatch):
+    app = _habitat_route_app(
+        monkeypatch,
+        lambda _operator_id, location_id, payload: _habitat_capture_result(location_id, payload),
+    )
+    spec = app.openapi()
+    operation = spec["paths"]["/operator/api/pollinators/{location_id}/habitats"]["post"]
+    created_schema = operation["responses"]["201"]["content"]["application/json"]["schema"]
+    replay_schema = operation["responses"]["200"]["content"]["application/json"]["schema"]
+    assert created_schema == replay_schema
+    model_name = created_schema["$ref"].rsplit("/", 1)[-1]
+    model_schema = spec["components"]["schemas"][model_name]
+    fields = {"habitat_id", "location_id", "habitat_type", "area_m2", "status", "replayed"}
+    assert set(model_schema["properties"]) == fields
+    assert set(model_schema["required"]) == fields
+    assert model_schema["properties"]["habitat_type"]["enum"] == [
+        "wildflower_strip", "hedgerow", "nesting_site", "water_source",
+        "cover_crop", "native_planting", "other",
+    ]
+
+
+@pytest.mark.parametrize(("replayed", "expected_status"), [(False, 201), (True, 200)])
+def test_habitat_capture_validates_exact_result_and_replay_status(
+    monkeypatch, replayed, expected_status
+):
+    payload = _habitat_payload()
+    calls = []
+
+    def create(operator_id, location_id, received_payload):
+        calls.append((operator_id, location_id, received_payload))
+        return _habitat_capture_result(location_id, received_payload, replayed=replayed)
+
+    app = _habitat_route_app(monkeypatch, create)
+    with TestClient(app) as client:
+        response = client.post(
+            f"/operator/api/pollinators/{_LOCATION}/habitats",
+            json=payload,
+        )
+
+    assert response.status_code == expected_status
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["vary"] == "Cookie"
+    assert set(response.json()) == {
+        "habitat_id", "location_id", "habitat_type", "area_m2", "status", "replayed",
+    }
+    assert response.json()["location_id"] == _LOCATION
+    assert response.json()["habitat_type"] == payload["habitat_type"]
+    assert response.json()["area_m2"] == float(payload["area_m2"])
+    assert response.json()["status"] == "active"
+    assert response.json()["replayed"] is replayed
+    assert calls[0][0:2] == (_OPERATOR, _LOCATION)
+
+
+@pytest.mark.parametrize(
+    "mutation",
+    [
+        pytest.param(lambda result: result.update({"private_detail": "do-not-leak"}), id="extra-field"),
+        pytest.param(lambda result: result.pop("area_m2"), id="missing-area"),
+        pytest.param(lambda result: result.update({"habitat_id": "not-a-uuid"}), id="invalid-uuid"),
+        pytest.param(lambda result: result.update({"location_id": "44444444-4444-4444-8444-444444444444"}), id="wrong-location"),
+        pytest.param(lambda result: result.update({"habitat_type": "unregistered"}), id="invalid-type"),
+        pytest.param(lambda result: result.update({"habitat_type": "hedgerow"}), id="wrong-request-type"),
+        pytest.param(lambda result: result.update({"area_m2": -1}), id="negative-area"),
+        pytest.param(lambda result: result.update({"area_m2": 100_000_000}), id="area-too-large"),
+        pytest.param(lambda result: result.update({"area_m2": True}), id="boolean-area"),
+        pytest.param(lambda result: result.update({"area_m2": float("inf")}), id="nonfinite-area"),
+        pytest.param(lambda result: result.update({"area_m2": 125.51}), id="wrong-request-area"),
+        pytest.param(lambda result: result.update({"status": "verified"}), id="wrong-status"),
+        pytest.param(lambda result: result.update({"replayed": 1}), id="nonboolean-replay"),
+    ],
+)
+def test_habitat_capture_rejects_malformed_writer_result_safely(monkeypatch, mutation):
+    payload = _habitat_payload()
+
+    def create(_operator_id, location_id, received_payload):
+        result = _habitat_capture_result(location_id, received_payload)
+        mutation(result)
+        return result
+
+    app = _habitat_route_app(monkeypatch, create)
+    with TestClient(app) as client:
+        response = client.post(
+            f"/operator/api/pollinators/{_LOCATION}/habitats",
+            json=payload,
+        )
+
+    assert response.status_code == 500
+    assert response.json() == {"error": "Habitat capture unavailable"}
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["vary"] == "Cookie"
+    assert "do-not-leak" not in response.text
 
 
 def test_hive_http_capture_is_create_gated_and_no_store(monkeypatch):

@@ -18,6 +18,14 @@ Operational scripts for the Kokonut Intelligence platform. All shell scripts use
 | `seed-pilot.sh` | Load pilot farm data (`*_pilot_*.sql` seeds + CRISP + alignment + dashboards) | Manual, CI |
 | `check-agent-safety-superuser-disposable.py` | Exercise migration 598 worker/admin lifecycle guards on network-disabled temporary PostgreSQL | CI, manual |
 | `check-credit-adjustment-worker-disposable.py` | Exercise migration 599 signed, location-scoped, read-only credit-adjustment checks on temporary PostgreSQL; a 180-second startup bound is the default; optional `--platform linux/arm64 --startup-timeout 360` runs the focused contract under QEMU | CI, manual |
+| `check-runtime-scoped-write-boundary-disposable.py` | Exercise migration-declared runtime table/column ACLs and the provisioner's post-compatibility reapplication on empty disposable PostgreSQL; ARM64 defaults to the repository's local `kokonut-kernel-postgis-arm64:local` image; optional `--image` overrides it | Manual |
+| `check-revenue-stream-location-join-disposable.py` | Apply/replay migration 686 against synthetic cross-location revenue/crop-cycle rows on network-disabled PostgreSQL 16; verify location-safe cycle labels and unchanged contribution totals; no host port or retained container | Isolated acceptance |
+| `check-governance-tension-location-actions-disposable.py` | Apply and replay migration 700 on disposable PostgreSQL 16; verify signed, location-scoped tension actions and runtime/Directus write boundaries with synthetic data | Isolated acceptance |
+| `check-extension-learning-writes-disposable.py` | Apply and replay migration 701 on network-disabled PostgreSQL 16; verify signed location-scoped extension-learning writes and privilege boundaries with synthetic data | Isolated acceptance |
+| `check-landscape-capture-disposable.py` | Apply and replay migration 702 on disposable PostgreSQL/PostGIS 16; verify location-scoped landscape capture and database constraints | Isolated acceptance |
+| `check-landscape-runtime-boundary-disposable.py` | Apply migration 702 and apply/replay migration 708 on network-disabled disposable PostgreSQL/PostGIS 16; verify runtime read-only ACLs, preserved bounded-writer/Directus/maintenance privileges, and Gateway capture | Isolated acceptance |
+| `check-metric-value-kernel-disposable.py` | Apply and replay migration 703 on network-disabled PostgreSQL 16; verify the metric-value Kernel write contract and privilege boundaries with synthetic data | Isolated acceptance |
+| `check-clickhouse-retention-disposable.py` | Apply ClickHouse schemas on a network-disabled pinned server; verify fresh schemas have no TTL, existing TTL removal/replay, and historical synthetic row retention | Isolated acceptance |
 | `seed-metabase.sh` | Configure Metabase with database connection (prints manual setup instructions) | Manual |
 
 ## Metric Computation

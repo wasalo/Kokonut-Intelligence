@@ -68,6 +68,7 @@ def test_analytics_pipeline_waits_for_metrics_before_dependent_tasks(monkeypatch
             assert metrics_finished.is_set()
         return {"job_id": job_id}
 
+    monkeypatch.setattr(pipelines, "is_enabled", lambda feature: feature == "legacy_dataset_sql")
     monkeypatch.setattr(pipelines, "_dispatch_catalog_job", execute)
 
     def release_metrics_after_started() -> None:
@@ -80,10 +81,34 @@ def test_analytics_pipeline_waits_for_metrics_before_dependent_tasks(monkeypatch
     assert pipelines.analytics_pipeline() == {
         "status": "success",
         "analytics": "complete",
+        "dashboard_refresh": {"job_id": "dashboards"},
     }
     release.join(timeout=1)
     assert started[0] == "metrics"
     assert set(started[1:]) == {"dashboards", "credit_adjustment"}
+
+
+def test_analytics_pipeline_skips_default_off_dashboard_and_continues_credit(monkeypatch) -> None:
+    from services.flows import pipelines
+
+    started: list[str] = []
+
+    def execute(job_id: str) -> dict[str, str]:
+        started.append(job_id)
+        return {"job_id": job_id}
+
+    monkeypatch.setattr(pipelines, "is_enabled", lambda _feature: False)
+    monkeypatch.setattr(pipelines, "_dispatch_catalog_job", execute)
+
+    assert pipelines.analytics_pipeline() == {
+        "status": "success",
+        "analytics": "complete",
+        "dashboard_refresh": {
+            "status": "skipped",
+            "reason": "legacy_dataset_sql_disabled",
+        },
+    }
+    assert started == ["metrics", "credit_adjustment"]
 
 
 def test_prefect_task_retry_and_failure_propagation_match_job_spec(monkeypatch) -> None:

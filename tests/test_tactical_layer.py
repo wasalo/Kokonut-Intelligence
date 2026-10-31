@@ -57,18 +57,36 @@ def test_fork_detection_counts_related():
          "transfer_ids": ["t1", "t2", "t3"]},
     ]
     conn, _ = _mock_conn({"FROM insight_transfer": rows})
-    result = fork_detector.detect_fork_opportunities(conn, location_id="L")
+    # Locationless insight transfers remain available in network-wide mode.
+    result = fork_detector.detect_fork_opportunities(conn)
     assert result["fork_count"] == 1
     assert result["forks"][0]["target_count"] == 3
 
 
-def test_propose_fork_writes_draft():
+def test_location_fork_detection_omits_unlineaged_insight_transfers():
     rows = [
         {"source_event_id": "e1", "target_count": 3, "transfer_count": 3,
          "target_domains": ["irrigation", "planting", "energy"],
          "transfer_ids": ["t1", "t2", "t3"]},
     ]
     conn, cur = _mock_conn({"FROM insight_transfer": rows})
+
+    result = fork_detector.detect_fork_opportunities(conn, location_id="L")
+
+    assert result["fork_count"] == 0
+    executed = [call.args[0] for call in cur.execute.call_args_list]
+    assert not any("FROM insight_transfer" in query for query in executed)
+    decision_query = next(query for query in executed if "FROM decision_log" in query)
+    assert "AND location_id = %s" in decision_query
+
+
+def test_propose_fork_writes_draft():
+    rows = [{
+        "group_key": "e1", "decision_count": 3,
+        "decision_ids": ["d1", "d2", "d3"],
+        "action_types": ["irrigate", "plant", "harvest"],
+    }]
+    conn, cur = _mock_conn({"FROM decision_log": rows})
     result = fork_detector.propose_fork_opportunities(conn, location_id="L", actor="tester")
     # INSERT executed with status 'draft'
     assert cur.execute.called
@@ -106,6 +124,46 @@ def test_double_check_attaches_companions():
     dc = result["double_checks"][0]
     assert dc["companion_threat_name"] == "Crop failure"
     assert dc["impact_type"] == "amplifies"
+    companion_query, companion_params = next(
+        (call.args[0], call.args[1])
+        for call in cur.execute.call_args_list
+        if "FROM threat_cross_impact ci" in call.args[0]
+    )
+    assert "t.location_id = %s" in companion_query
+    assert companion_params == ["T1", "L"]
+
+
+def test_network_double_check_keeps_cross_location_targets():
+    flags = [
+        {"id": "f1", "threat_id": "T1", "flag_name": "Drought",
+         "indicator_type": "quantitative", "threshold_warning": 7.0,
+         "threshold_critical": 10.0, "threshold_normal": 5.0,
+         "comparison_operator": "gte", "unit": "mm", "data_source": "weather",
+         "check_frequency_hours": 24, "last_checked_at": None,
+         "last_value": 9.0, "threat_name": "Drought", "threat_type": "climate",
+         "threat_severity": "high", "threat_probability": 0.7,
+         "status": "warning"},
+    ]
+    companions = [
+        {"flag_id": "f1", "source_threat_id": "T1", "target_threat_id": "T2",
+         "target_threat_name": "Crop failure", "impact_type": "amplifies",
+         "impact_magnitude": 0.7},
+    ]
+    conn, cur = _mock_conn({
+        "FROM threat_flag tf": flags,
+        "FROM threat_cross_impact ci": companions,
+    })
+
+    result = preempt.plan_preemptive_actions(conn)
+
+    assert result["double_check_count"] == 1
+    companion_query, companion_params = next(
+        (call.args[0], call.args[1])
+        for call in cur.execute.call_args_list
+        if "FROM threat_cross_impact ci" in call.args[0]
+    )
+    assert "t.location_id = %s" not in companion_query
+    assert companion_params == ["T1"]
 
 
 # --- Pin --------------------------------------------------------------------

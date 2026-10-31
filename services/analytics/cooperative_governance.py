@@ -74,7 +74,11 @@ def declare_conflict(conn, cooperative_id: str, description: str, *, party_id: O
 
 
 def governance_health(conn, cooperative_id: Optional[str] = None):
-    query = "SELECT * FROM v_cooperative_governance_health"
+    query = (
+        "SELECT cooperative_id, name, active_member_count, meeting_count, "
+        "open_proposal_count, open_conflict_count, pending_distribution_count "
+        "FROM v_cooperative_governance_health"
+    )
     params = []
     if cooperative_id:
         query += " WHERE cooperative_id = %s::uuid"; params.append(cooperative_id)

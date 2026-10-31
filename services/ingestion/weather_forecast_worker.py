@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import time
 from uuid import UUID
 
@@ -12,12 +13,19 @@ from services.common.tenant_context import set_worker_tenant_context
 from services.common.worker_database import get_worker_credential, get_worker_db
 from services.core.features import is_enabled
 from services.ingestion.base import hash_payload
-from services.ingestion.config import OPENWEATHERMAP_API_KEY
 from services.ingestion.weather_forecast import (
     build_forecast_clickhouse_projection,
     fetch_forecast_raw,
     parse_forecast_list,
 )
+
+
+def _provider_api_key() -> str:
+    """Read only the forecast worker's explicitly routed provider credential."""
+    key = os.getenv("KOKONUT_WEATHER_FORECAST_OPENWEATHERMAP_API_KEY", "").strip()
+    if not key:
+        raise RuntimeError("OpenWeatherMap API key is not configured")
+    return key
 
 
 def _open_scoped_connection(location_id: str, credential: str):
@@ -115,16 +123,16 @@ def _store_batch(
 def ingest(location_id: str) -> int:
     """Fetch, validate, and atomically persist one signed location's forecast."""
     canonical_location_id = str(UUID(str(location_id)))
-    if not OPENWEATHERMAP_API_KEY:
-        raise RuntimeError("OpenWeatherMap API key is not configured")
+    api_key = _provider_api_key()
     credential = get_worker_credential("weather_forecast")
 
     _, latitude, longitude = _load_location(
         canonical_location_id, credential
     )
     started = time.monotonic()
+    sanitized_error: RuntimeError | None = None
     try:
-        raw = fetch_forecast_raw(latitude, longitude)
+        raw = fetch_forecast_raw(latitude, longitude, api_key=api_key)
         records = parse_forecast_list(raw, canonical_location_id)
         projection = build_forecast_clickhouse_projection(records)
     except Exception as exc:
@@ -132,17 +140,28 @@ def ingest(location_id: str) -> int:
         # Do not persist exception text: HTTP errors may contain query strings
         # with the provider credential.
         safe_error = f"forecast fetch or parsing failed ({type(exc).__name__})"
-        _store_batch(
-            canonical_location_id,
-            credential,
-            records=[],
-            projection={"rows": [], "payload_hash": ""},
-            provider_source_id="",
-            provider_payload_hash=None,
-            processing_time_ms=elapsed_ms,
-            error_text=safe_error,
-        )
-        raise
+        try:
+            _store_batch(
+                canonical_location_id,
+                credential,
+                records=[],
+                projection={"rows": [], "payload_hash": ""},
+                provider_source_id="",
+                provider_payload_hash=None,
+                processing_time_ms=elapsed_ms,
+                error_text=safe_error,
+            )
+        except Exception as audit_exc:
+            from services.common.logging import get_logger
+
+            get_logger("ingestion.weather_forecast_worker").warning(
+                "Forecast failure audit could not be persisted (%s)",
+                type(audit_exc).__name__,
+            )
+        sanitized_error = RuntimeError(safe_error)
+
+    if sanitized_error is not None:
+        raise sanitized_error from None
 
     elapsed_ms = min(600000, max(0, int((time.monotonic() - started) * 1000)))
     written = _store_batch(

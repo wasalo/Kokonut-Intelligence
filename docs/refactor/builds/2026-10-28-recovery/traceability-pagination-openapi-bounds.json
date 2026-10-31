@@ -1,0 +1,29 @@
+{
+  "date": "2026-10-28",
+  "slice": "gateway_traceability_pagination_openapi_bounds",
+  "result": "passed",
+  "route": "/operator/api/traceability/{location_id}/batches",
+  "contract": {
+    "limit_default": 25,
+    "limit_minimum": 1,
+    "limit_maximum": 50,
+    "offset_default": 0,
+    "offset_minimum": 0,
+    "offset_maximum": 10000,
+    "invalid_values_rejected_before_service_access": [
+      {"parameter": "limit", "value": 0},
+      {"parameter": "limit", "value": 51},
+      {"parameter": "offset", "value": -1},
+      {"parameter": "offset", "value": 10001}
+    ]
+  },
+  "verification": {
+    "pytest_command": "python3 -m pytest tests/test_gateway_traceability_pagination_openapi.py tests/test_gateway_traceability.py -q",
+    "pytest_result": "15 passed",
+    "ruff": "passed",
+    "py_compile": "passed",
+    "git_diff_check": "passed"
+  },
+  "scope": "Synthetic FastAPI/OpenAPI and mocked service-boundary checks only; no database, provider, network, candidate, or legacy service was used.",
+  "rollback": "Revert the FastAPI Query bounds and focused contract regression; no schema or persisted data changed."
+}

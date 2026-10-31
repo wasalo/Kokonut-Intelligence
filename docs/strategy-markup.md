@@ -1,7 +1,8 @@
 # Strategy Markup Export
 
-PostgreSQL/Directus remains the canonical strategy store. The
-`services.strategy_markup` package provides a read-only StratML Part 1 XML
+PostgreSQL remains the canonical strategy store. Native strategy services read
+governed records from that store; Directus is an optional compatibility/admin
+adapter. The `services.strategy_markup` package provides a read-only StratML Part 1 XML
 projection for machine-readable exchange. Exporting does not publish, persist,
 or mutate governed strategy records.
 

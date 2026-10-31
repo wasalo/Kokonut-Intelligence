@@ -1,9 +1,115 @@
 """OIDC routes for draft-only business canvas edits and version history."""
 
+from typing import Literal
+from uuid import UUID
+
+from pydantic import (
+    AwareDatetime,
+    BaseModel,
+    ConfigDict,
+    Field,
+    JsonValue,
+    ValidationError,
+    model_validator,
+)
+
+
+class _BusinessCanvasHistoryResponseModel(BaseModel):
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False)
+
+
+class BusinessCanvasVersionBlocks(_BusinessCanvasHistoryResponseModel):
+    key_partners: JsonValue
+    key_activities: JsonValue
+    key_resources: JsonValue
+    value_propositions: JsonValue
+    customer_relationships: JsonValue
+    channels: JsonValue
+    customer_segments: JsonValue
+    revenue_streams: JsonValue
+    cost_structure: JsonValue
+
+
+class BusinessCanvasVersionSnapshot(_BusinessCanvasHistoryResponseModel):
+    canvas_name: str | None = Field(max_length=255)
+    description: str | None
+    fiscal_year: int | None = Field(strict=True)
+    tags: list[str] | None
+    blocks: BusinessCanvasVersionBlocks
+
+
+class BusinessCanvasVersion(_BusinessCanvasHistoryResponseModel):
+    canvas_id: UUID
+    version: int = Field(ge=1, strict=True)
+    snapshot: BusinessCanvasVersionSnapshot
+    change_reason: str | None
+    changed_at: AwareDatetime
+    is_current: bool = Field(strict=True)
+
+
+class BusinessCanvasVersionHistoryPage(_BusinessCanvasHistoryResponseModel):
+    location_id: UUID
+    canvas_id: UUID
+    offset: int = Field(ge=0, le=10_000, strict=True)
+    versions: list[BusinessCanvasVersion] = Field(max_length=5)
+    has_more: bool = Field(strict=True)
+    next_offset: int | None = Field(default=None, ge=0, le=10_000, strict=True)
+
+    @model_validator(mode="after")
+    def validate_continuation(self):
+        if self.has_more != (self.next_offset is not None):
+            raise ValueError("has_more and next_offset are inconsistent")
+        return self
+
+
+_BusinessCanvasBlockName = Literal[
+    "key_partners",
+    "key_activities",
+    "key_resources",
+    "value_propositions",
+    "customer_relationships",
+    "channels",
+    "customer_segments",
+    "revenue_streams",
+    "cost_structure",
+]
+_BusinessCanvasMetadataField = Literal[
+    "canvas_name",
+    "description",
+    "fiscal_year",
+    "tags",
+]
+
+
+class _BusinessCanvasWriteResponseModel(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    location_id: UUID
+    canvas_id: UUID
+    status: Literal["draft"]
+    version: int = Field(ge=1, strict=True)
+    updated_at: AwareDatetime
+    replayed: bool = Field(strict=True)
+
+
+class BusinessCanvasBlockEditResponse(_BusinessCanvasWriteResponseModel):
+    block_name: _BusinessCanvasBlockName
+
+
+class BusinessCanvasMetadataEditResponse(_BusinessCanvasWriteResponseModel):
+    changed_fields: list[_BusinessCanvasMetadataField] = Field(min_length=1, max_length=4)
+
+    @model_validator(mode="after")
+    def validate_changed_fields(self):
+        if self.changed_fields != sorted(set(self.changed_fields)):
+            raise ValueError("metadata changed_fields must be unique and sorted")
+        return self
+
 
 def register_business_planning_edit_routes(router, provider, run_in_threadpool, psycopg2):
     import json
 
+    from fastapi import Query
     from fastapi.encoders import jsonable_encoder
     from fastapi.responses import JSONResponse
     from starlette.requests import Request
@@ -22,6 +128,51 @@ def register_business_planning_edit_routes(router, provider, run_in_threadpool, 
 
     headers = {"Cache-Control": "no-store", "Vary": "Cookie"}
     max_history_bytes = 524_288
+    metadata_envelope_fields = {
+        "request_id",
+        "expected_version",
+        "expected_updated_at",
+        "change_reason",
+    }
+
+    def _write_response(
+        result,
+        response_model,
+        location_id,
+        canvas_id,
+        expected_version,
+        *,
+        block_name=None,
+        changed_fields=None,
+    ):
+        try:
+            response = response_model.model_validate_json(
+                json.dumps(jsonable_encoder(result)), strict=True
+            )
+            if (
+                response.location_id != UUID(location_id)
+                or response.canvas_id != UUID(canvas_id)
+                or response.version != expected_version + 1
+            ):
+                raise ValueError("Business canvas edit response does not match the request")
+            if block_name is not None and response.block_name != block_name:
+                raise ValueError("Business canvas block response does not match the request")
+            if changed_fields is not None and response.changed_fields != changed_fields:
+                raise ValueError("Business canvas metadata response does not match the request")
+        except (ValidationError, TypeError, ValueError, RecursionError) as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.business_planning").warning(
+                "Business canvas edit response rejected (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=503,
+                content={"error": "Business canvas edit unavailable"},
+                headers={**headers, "Retry-After": "30"},
+            )
+        return JSONResponse(
+            jsonable_encoder(response.model_dump(mode="json")), headers=headers
+        )
 
     def _database_error(exc):
         code = getattr(exc, "pgcode", None)
@@ -61,14 +212,15 @@ def register_business_planning_edit_routes(router, provider, run_in_threadpool, 
         )
 
     @router.get(
-        "/operator/api/business-planning/{location_id}/canvases/{canvas_id}/versions"
+        "/operator/api/business-planning/{location_id}/canvases/{canvas_id}/versions",
+        response_model=BusinessCanvasVersionHistoryPage,
     )
     async def location_business_model_canvas_versions(
         request: Request,
         location_id: str,
         canvas_id: str,
-        limit: str = "5",
-        offset: str = "0",
+        limit: int = Query(default=5, ge=1, le=5),
+        offset: int = Query(default=0, ge=0, le=10000),
     ):
         if provider is None:
             return JSONResponse(
@@ -98,7 +250,37 @@ def register_business_planning_edit_routes(router, provider, run_in_threadpool, 
         except psycopg2.Error as exc:
             return _database_error(exc)
 
-        response = JSONResponse(jsonable_encoder(result), headers=headers)
+        try:
+            validated = BusinessCanvasVersionHistoryPage.model_validate(result)
+            if (
+                validated.location_id != UUID(location_id)
+                or validated.canvas_id != UUID(canvas_id)
+                or validated.offset != offset
+                or any(version.canvas_id != UUID(canvas_id) for version in validated.versions)
+                or len(validated.versions) > limit
+                or validated.has_more
+                and (
+                    len(validated.versions) != limit
+                    or validated.next_offset != offset + limit
+                    or offset + limit > 10_000
+                )
+            ):
+                raise ValueError("Business canvas history does not match the request")
+        except (ValidationError, ValueError) as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.business_planning").warning(
+                "Business canvas history response rejected (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=500,
+                content={"error": "Business canvas history unavailable"},
+                headers=headers,
+            )
+
+        response = JSONResponse(
+            jsonable_encoder(validated.model_dump(mode="json")), headers=headers
+        )
         if len(response.body) > max_history_bytes:
             return JSONResponse(
                 status_code=413,
@@ -108,7 +290,8 @@ def register_business_planning_edit_routes(router, provider, run_in_threadpool, 
         return response
 
     @router.patch(
-        "/operator/api/business-planning/{location_id}/canvases/{canvas_id}/blocks/{block_name}"
+        "/operator/api/business-planning/{location_id}/canvases/{canvas_id}/blocks/{block_name}",
+        response_model=BusinessCanvasBlockEditResponse,
     )
     async def update_location_business_model_canvas_block_route(
         request: Request,
@@ -155,13 +338,25 @@ def register_business_planning_edit_routes(router, provider, run_in_threadpool, 
             return JSONResponse(status_code=400, content={"error": str(exc)}, headers=headers)
         except psycopg2.Error as exc:
             return _database_error(exc)
-        return JSONResponse(
-            jsonable_encoder(result),
-            headers=headers,
+        expected_version = payload.get("expected_version")
+        if isinstance(expected_version, bool) or not isinstance(expected_version, int):
+            return JSONResponse(
+                status_code=503,
+                content={"error": "Business canvas edit unavailable"},
+                headers={**headers, "Retry-After": "30"},
+            )
+        return _write_response(
+            result,
+            BusinessCanvasBlockEditResponse,
+            location_id,
+            canvas_id,
+            expected_version,
+            block_name=block_name,
         )
 
     @router.patch(
-        "/operator/api/business-planning/{location_id}/canvases/{canvas_id}/metadata"
+        "/operator/api/business-planning/{location_id}/canvases/{canvas_id}/metadata",
+        response_model=BusinessCanvasMetadataEditResponse,
     )
     async def update_location_business_model_canvas_metadata_route(
         request: Request,
@@ -206,4 +401,19 @@ def register_business_planning_edit_routes(router, provider, run_in_threadpool, 
             return JSONResponse(status_code=400, content={"error": str(exc)}, headers=headers)
         except psycopg2.Error as exc:
             return _database_error(exc)
-        return JSONResponse(jsonable_encoder(result), headers=headers)
+        expected_version = payload.get("expected_version")
+        if isinstance(expected_version, bool) or not isinstance(expected_version, int):
+            return JSONResponse(
+                status_code=503,
+                content={"error": "Business canvas edit unavailable"},
+                headers={**headers, "Retry-After": "30"},
+            )
+        changed_fields = sorted(set(payload) - metadata_envelope_fields)
+        return _write_response(
+            result,
+            BusinessCanvasMetadataEditResponse,
+            location_id,
+            canvas_id,
+            expected_version,
+            changed_fields=changed_fields,
+        )

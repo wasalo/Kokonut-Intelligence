@@ -466,10 +466,11 @@ export interface FarmTaskDependency {
   created_at?: string | null;
 }
 
-/** Task-to-framework-step association record. */
+/** Location-bound task-to-framework-step association record. */
 export interface FarmTaskFrameworkStep {
   task_id: string;
   framework_step_id: string;
+  location_id?: string | null;
   source_system?: string | null;
   source_database_id?: number | null;
   source_table_id?: number | null;
@@ -2502,9 +2503,6 @@ export interface ReportSnapshot {
   status?: LifecycleStatus | null;
   created_at?: string | null;
   created_by?: string | null;
-  entity_type?: string | null;
-  entity_id?: string | null;
-  generated_by?: string | null;
   frozen?: boolean | null;
   frozen_at?: string | null;
   frozen_by?: string | null;
@@ -2534,12 +2532,10 @@ export interface AiSummary {
   created_by_worker_id?: string | null;
 }
 
-export type ExportFormat = 'csv' | 'json' | 'xlsx' | 'pdf' | 'parquet';
-
 export interface ExportLog {
   id: string;
-  export_type: string;
   user_id?: string | null;
+  export_type: string;
   target_table?: string | null;
   filters?: JSONObject | null;
   row_count?: number | null;
@@ -2547,18 +2543,12 @@ export interface ExportLog {
   file_url?: string | null;
   status?: ExportStatus | null;
   created_at?: string | null;
-  format?: ExportFormat | null;
-  entity_type?: string | null;
-  entity_ids?: string[] | null;
-  file_path?: string | null;
-  file_size?: number | null;
-  requested_by?: string | null;
-  error_message?: string | null;
-  completed_at?: string | null;
 }
 
 export interface ListOptions {
   [queryParameter: string]: unknown;
+  /** Additional backend query parameters; standard list options take precedence. */
+  extraParams?: Record<string, unknown>;
   filter?: Record<string, any>;
   sort?: string[];
   fields?: string[];

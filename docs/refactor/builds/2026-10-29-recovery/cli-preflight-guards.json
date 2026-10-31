@@ -1,0 +1,62 @@
+{
+  "date": "2026-10-29",
+  "batch": "cooperative, traceability, sensor, and stakeholder CLI temporal preflight",
+  "slices": [
+    {
+      "name": "cooperative asset booking timestamps",
+      "source": [
+        "services/analytics/cli_cooperative.py",
+        "tests/test_cli_cooperative_scope.py"
+      ],
+      "contract": "Reject malformed or date-only ISO values, mixed timezone-awareness, and end times not later than start before the CLI runner acquires PostgreSQL. Preserve valid ISO timestamp strings through existing dispatch.",
+      "focused_tests": 6
+    },
+    {
+      "name": "traceability harvest date",
+      "source": [
+        "services/analytics/cli_traceability.py",
+        "tests/test_cli_traceability_scope.py"
+      ],
+      "contract": "Validate canonical, real YYYY-MM-DD dates during argparse before shared runner/database acquisition; preserve valid date strings unchanged.",
+      "focused_tests": 4
+    },
+    {
+      "name": "sensor reading date/time",
+      "source": [
+        "services/ingestion/sensor_ingester.py",
+        "services/ingestion/field_validation.py",
+        "tests/test_sensor_ingester.py"
+      ],
+      "contract": "Reuse the canonical UTC field-reading parser to reject malformed/impossible dates, invalid times, and blank time before run_single can open PostgreSQL. Valid values remain unchanged, omitted values remain None for the existing current-date/time defaults, and parsed timestamps retain UTC interpretation.",
+      "focused_tests": 6
+    },
+    {
+      "name": "stakeholder engagement date and timestamps",
+      "source": [
+        "schemas/postgres/216_stakeholder_engagement.sql",
+        "services/analytics/cli_stakeholder_engagement.py",
+        "tests/test_stakeholder_engagement_cli_temporal_preflight.py"
+      ],
+      "contract": "Validate target_date as a canonical calendar DATE and scheduled_at/due_at as ISO timestamps with explicit timezone offsets for TIMESTAMPTZ before get_db. Preserve valid strings and omitted None values.",
+      "focused_tests": 15
+    }
+  ],
+  "verification": {
+    "combined_focused_tests": 31,
+    "combined_result": "passed",
+    "default_ruff": "passed on changed sources and tests",
+    "python_compile": "passed on changed sources and tests",
+    "git_diff_check": "passed",
+    "runtime_sql_inventory": "current; 42 unresolved write candidates remain tracked",
+    "capability_matrix": "valid: 67 rows; 24 baseline-retained, 7 deployed, 36 prepared",
+    "provider_boundaries": "passed: 17 vendor import sites",
+    "dependency_groups": "passed: 14 groups, 33 requirements"
+  },
+  "environment": {
+    "database": "not used; CLI runner and database accessors are mocked",
+    "provider": "not used",
+    "candidate_or_legacy_state": "untouched",
+    "migration_applied": false
+  },
+  "rollback": "Revert the four CLI preflight guards, focused mock tests, and progress/evidence records. No database rollback is needed."
+}

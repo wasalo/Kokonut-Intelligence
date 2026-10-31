@@ -7,21 +7,82 @@ import psycopg2.extras
 
 from services.common.database import query
 
-from ..common import _serialize_rows
+from ..common import _looks_like_uuid, _serialize_rows
 from ..scope import require_network_scope
 
 
 def generate_scaling_economics(conn, location_id: str = None, period_start: str = None, period_end: str = None) -> dict:
     """Generate public-safe scaling economics and unit-cost report."""
     network_scope = location_id in (None, "all")
+    if not network_scope and not _looks_like_uuid(location_id):
+        raise ValueError("scaling_economics requires a valid location_id or network scope")
+
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     try:
         if network_scope:
-            cur.execute("SELECT * FROM v_public_farm_launch_unit_economics ORDER BY target_region, economics_name")
+            cur.execute(
+                """
+                SELECT id,
+                       location_id,
+                       source_scaling_milestone_id,
+                       economics_name,
+                       farm_model,
+                       target_region,
+                       planned_farm_count,
+                       planned_hectares,
+                       expected_beneficiary_count,
+                       setup_cost_usd,
+                       first_year_operating_cost_usd,
+                       verification_overhead_usd,
+                       total_launch_cost_usd,
+                       cost_per_farm_usd,
+                       cost_per_hectare_usd,
+                       cost_per_beneficiary_usd,
+                       projected_annual_revenue_usd,
+                       projected_annual_noi_usd,
+                       projected_roi_pct,
+                       payback_months,
+                       launch_timeline_months,
+                       assumptions,
+                       evidence_confidence,
+                       public_summary,
+                       evidence_maturity,
+                       evidence_maturity_label,
+                       metadata
+                FROM v_public_farm_launch_unit_economics
+                ORDER BY target_region, economics_name
+                """
+            )
         else:
             cur.execute(
                 """
-                SELECT *
+                SELECT id,
+                       location_id,
+                       source_scaling_milestone_id,
+                       economics_name,
+                       farm_model,
+                       target_region,
+                       planned_farm_count,
+                       planned_hectares,
+                       expected_beneficiary_count,
+                       setup_cost_usd,
+                       first_year_operating_cost_usd,
+                       verification_overhead_usd,
+                       total_launch_cost_usd,
+                       cost_per_farm_usd,
+                       cost_per_hectare_usd,
+                       cost_per_beneficiary_usd,
+                       projected_annual_revenue_usd,
+                       projected_annual_noi_usd,
+                       projected_roi_pct,
+                       payback_months,
+                       launch_timeline_months,
+                       assumptions,
+                       evidence_confidence,
+                       public_summary,
+                       evidence_maturity,
+                       evidence_maturity_label,
+                       metadata
                 FROM v_public_farm_launch_unit_economics
                 WHERE location_id = %s::uuid
                 ORDER BY target_region, economics_name
@@ -34,7 +95,26 @@ def generate_scaling_economics(conn, location_id: str = None, period_start: str 
         if network_scope:
             cur.execute(
                 """
-                SELECT *
+                SELECT id,
+                       target_name,
+                       target_region,
+                       farm_model,
+                       target_date,
+                       target_farm_count,
+                       target_hectares,
+                       target_beneficiary_count,
+                       capital_required_usd,
+                       capital_required_per_farm_usd,
+                       expected_public_goods_value_usd,
+                       expected_verification_outputs,
+                       readiness_score,
+                       dependency_summary,
+                       risk_gate_summary,
+                       target_status,
+                       public_summary,
+                       evidence_maturity,
+                       evidence_maturity_label,
+                       metadata
                 FROM v_public_network_scaling_target
                 WHERE (%s::date IS NULL OR target_date >= %s::date)
                   AND (%s::date IS NULL OR target_date <= %s::date)
@@ -75,32 +155,39 @@ def generate_scaling_economics(conn, location_id: str = None, period_start: str 
 
 
 def generate_adoption_barriers(conn, location_id: str = None, period_start: str = None, period_end: str = None) -> dict:
-    """Generate public-safe adoption and market barrier report."""
+    """Generate a public-safe barrier report with an explicit location scope."""
+    if not _looks_like_uuid(location_id):
+        raise ValueError("adoption_barriers requires an explicit location_id")
+
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     try:
-        if location_id:
-            cur.execute(
-                """
-                SELECT *
-                FROM v_public_adoption_barrier_assessment
-                WHERE (location_id = %s OR location_id IS NULL)
-                  AND (%s::date IS NULL OR assessment_date >= %s::date)
-                  AND (%s::date IS NULL OR assessment_date <= %s::date)
-                ORDER BY assessment_date DESC, barrier_category, barrier_name
-                """,
-                (location_id, period_start, period_start, period_end, period_end),
-            )
-        else:
-            cur.execute(
-                """
-                SELECT *
-                FROM v_public_adoption_barrier_assessment
-                WHERE (%s::date IS NULL OR assessment_date >= %s::date)
-                  AND (%s::date IS NULL OR assessment_date <= %s::date)
-                ORDER BY assessment_date DESC, barrier_category, barrier_name
-                """,
-                (period_start, period_start, period_end, period_end),
-            )
+        cur.execute(
+            """
+            SELECT id,
+                   location_id,
+                   assessment_date,
+                   barrier_category,
+                   barrier_name,
+                   affected_scope,
+                   severity,
+                   likelihood,
+                   resolution_status,
+                   owner_role,
+                   mitigation_plan,
+                   estimated_mitigation_cost_usd,
+                   target_resolution_date,
+                   public_summary,
+                   evidence_maturity,
+                   evidence_maturity_label,
+                   metadata
+            FROM v_public_adoption_barrier_assessment
+            WHERE (location_id = %s OR location_id IS NULL)
+              AND (%s::date IS NULL OR assessment_date >= %s::date)
+              AND (%s::date IS NULL OR assessment_date <= %s::date)
+            ORDER BY assessment_date DESC, barrier_category, barrier_name
+            """,
+            (location_id, period_start, period_start, period_end, period_end),
+        )
         barriers = [dict(r) for r in cur.fetchall()]
     finally:
         cur.close()
@@ -125,31 +212,41 @@ def generate_perpetual_value_stress(
     conn, location_id: str = None, period_start: str = None, period_end: str = None
 ) -> dict:
     """Generate public-safe downside stress-test report."""
+    if not _looks_like_uuid(location_id):
+        raise ValueError("perpetual_value_stress requires an explicit location_id")
+
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     try:
-        if location_id:
-            cur.execute(
-                """
-                SELECT *
-                FROM v_public_perpetual_value_stress_test
-                WHERE (location_id = %s OR location_id IS NULL)
-                  AND (%s::date IS NULL OR scenario_date >= %s::date)
-                  AND (%s::date IS NULL OR scenario_date <= %s::date)
-                ORDER BY scenario_date DESC, stress_type, scenario_name
-                """,
-                (location_id, period_start, period_start, period_end, period_end),
-            )
-        else:
-            cur.execute(
-                """
-                SELECT *
-                FROM v_public_perpetual_value_stress_test
-                WHERE (%s::date IS NULL OR scenario_date >= %s::date)
-                  AND (%s::date IS NULL OR scenario_date <= %s::date)
-                ORDER BY scenario_date DESC, stress_type, scenario_name
-                """,
-                (period_start, period_start, period_end, period_end),
-            )
+        cur.execute(
+            """
+            SELECT id,
+                   location_id,
+                   financial_sustainability_plan_id,
+                   scenario_name,
+                   scenario_date,
+                   stress_type,
+                   revenue_change_pct,
+                   cost_change_pct,
+                   grant_delay_months,
+                   yield_change_pct,
+                   baseline_runway_months,
+                   downside_runway_months,
+                   baseline_noi_usd,
+                   downside_noi_usd,
+                   solvency_status,
+                   mitigation_actions,
+                   public_summary,
+                   evidence_maturity,
+                   evidence_maturity_label,
+                   metadata
+            FROM v_public_perpetual_value_stress_test
+            WHERE (location_id = %s OR location_id IS NULL)
+              AND (%s::date IS NULL OR scenario_date >= %s::date)
+              AND (%s::date IS NULL OR scenario_date <= %s::date)
+            ORDER BY scenario_date DESC, stress_type, scenario_name
+            """,
+            (location_id, period_start, period_start, period_end, period_end),
+        )
         scenarios = [dict(r) for r in cur.fetchall()]
     finally:
         cur.close()
@@ -180,7 +277,24 @@ def generate_open_source_impact(
     """Generate public-safe open-source artifact reuse report."""
     require_network_scope("open_source_impact", location_id)
     artifacts = query(conn,
-        "SELECT * FROM v_public_open_source_impact_artifact ORDER BY reuse_count DESC, artifact_type, artifact_name"
+        """SELECT id,
+                  artifact_name,
+                  artifact_type,
+                  repository_path,
+                  external_url,
+                  license,
+                  version,
+                  reuse_status,
+                  reuse_count,
+                  supported_use_cases,
+                  verification_outputs,
+                  maintenance_owner,
+                  public_summary,
+                  evidence_maturity,
+                  evidence_maturity_label,
+                  metadata
+           FROM v_public_open_source_impact_artifact
+           ORDER BY reuse_count DESC, artifact_type, artifact_name"""
     )
     return {
         "report_type": "open_source_impact",

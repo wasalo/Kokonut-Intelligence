@@ -1,0 +1,31 @@
+{
+  "date": "2026-10-29",
+  "scope": "mocked-cli-and-service-preflight",
+  "command": "python3 -m services.analytics.cli_marketplace list-active",
+  "pagination": {
+    "limit_minimum": 1,
+    "limit_maximum": 100,
+    "offset_minimum": 0,
+    "offset_maximum": 10000,
+    "rejected_cli_values": [
+      "limit:0",
+      "limit:-1",
+      "limit:101",
+      "limit:1000000",
+      "limit:not-an-int",
+      "offset:-1",
+      "offset:10001",
+      "offset:not-an-int"
+    ],
+    "accepted_values_forwarded_unchanged": [
+      {"limit": 1, "offset": 0},
+      {"limit": 100, "offset": 10000}
+    ]
+  },
+  "focused_tests_passed": 27,
+  "ruff": "passed",
+  "python_compile": "passed",
+  "diff_check": "passed",
+  "database_contacted": false,
+  "provider_contacted": false
+}

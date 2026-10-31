@@ -1,0 +1,22 @@
+{
+  "date": "2026-10-28",
+  "operation": "services/flows/price_feed.py::price_feed_flow",
+  "catalog_status": {
+    "allowed_scheduled_module": false,
+    "registered_job_spec": false,
+    "prefect_pipeline_entry": false,
+    "seeded_schedule": false
+  },
+  "source_findings": {
+    "invokes": "services.ingestion.yahoo_finance",
+    "writes": "ingestion_log audit rows only",
+    "price_observation_persisted": false,
+    "empty_fetch_reported_as_success": true,
+    "attestation_command_invoked": false
+  },
+  "decision": "Do not register or schedule this flow until the durable observation, retry/failure, and separate human-approved attestation contracts are defined.",
+  "limitations": [
+    "This is repository-source analysis only; no provider or database was contacted.",
+    "No scheduler entry, flow, credentials, candidate, or legacy database was changed."
+  ]
+}

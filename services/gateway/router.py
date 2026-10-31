@@ -3,18 +3,46 @@
 from __future__ import annotations
 
 import re
+from decimal import Decimal
+from typing import Literal
+from uuid import UUID
 
 from services.common.errors import safe_exception_class
 from services.common.logging import get_logger
 
 try:
-    from fastapi import APIRouter, Request
+    from fastapi import APIRouter, Query, Request
+    from fastapi.encoders import jsonable_encoder
     from fastapi.responses import JSONResponse
+    from pydantic import (
+        AwareDatetime,
+        BaseModel,
+        ConfigDict,
+        Field,
+        ValidationError,
+        field_validator,
+        model_validator,
+    )
 
+    from services.gateway.data_stream_models import (
+        DataStreamPostCreateRequest,
+        DataStreamPostCreateResponse,
+    )
+    from services.gateway.federation_models import FederationNodesPage
+    from services.gateway.governance_responses import (
+        BaalAuthorizationError,
+        BaalConfigEnvelope,
+        BaalMemberDetailEnvelope,
+        BaalProposalDetailEnvelope,
+        BaalProposalListEnvelope,
+    )
     from services.gateway.public_models import (
         PublicCrispAssessment,
         PublicCrispAssessmentEnvelope,
+        PublicDriverCatalogEnvelope,
+        PublicDriverCatalogResponse,
         PublicError,
+        PublicLocationIriDocument,
         PublicLocationListResponse,
         PublicLocationResponse,
         PublicLocationSummary,
@@ -22,6 +50,120 @@ try:
         PublicMetricSummary,
         PublicMetricSummaryEnvelope,
     )
+    from services.gateway.service_health_responses import ServiceHealthResponse
+
+    class _DataStreamAttestationRecord(BaseModel):
+        model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+        post_id: UUID
+        location_id: UUID
+        post_content_hash: str | None = Field(max_length=128)
+        is_anchored: bool | None = Field(strict=True)
+        attestation_uid: str | None = Field(max_length=66)
+        chain: str | None = Field(max_length=50)
+        anchored_at: AwareDatetime | None
+        request_status: Literal[
+            "pending", "submitted", "confirmed", "failed", "cancelled"
+        ] | None
+        tx_hash: str | None = Field(max_length=66)
+        block_number: int | None = Field(strict=True)
+        confirmed_at: AwareDatetime | None
+        request_created_at: AwareDatetime | None
+
+    class _JsonLdResponse(JSONResponse):
+        media_type = "application/ld+json"
+
+    class _DataStreamAttestationEnvelope(BaseModel):
+        model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+        data: _DataStreamAttestationRecord
+
+    class _DataStreamFileRecord(BaseModel):
+        """Exact safe attachment metadata projection returned to operators."""
+
+        model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+        id: UUID
+        post_id: UUID
+        file_name: str | None = Field(max_length=255)
+        file_description: str | None
+        file_credit: str | None
+        media_type: str | None = Field(max_length=50)
+        file_size_bytes: int | None = Field(strict=True, ge=0)
+        mime_type: str | None = Field(max_length=100)
+        latitude: float | None = Field(ge=-90, le=90)
+        longitude: float | None = Field(ge=-180, le=180)
+        sort_order: int | None = Field(strict=True)
+        status: Literal["draft", "submitted", "verified", "published", "rejected"]
+        visibility: Literal["public", "internal", "private"]
+        created_at: AwareDatetime | None
+        created_by: UUID | None
+        updated_at: AwareDatetime | None
+        updated_by: UUID | None
+
+        @field_validator("latitude", "longitude", mode="before")
+        @classmethod
+        def normalize_numeric_coordinate(cls, value):
+            if value is None:
+                return None
+            if isinstance(value, bool) or not isinstance(value, (int, float, Decimal)):
+                raise ValueError("coordinate must be numeric")
+            return float(value)
+
+        @model_validator(mode="after")
+        def validate_coordinate_pair(self):
+            if (self.latitude is None) != (self.longitude is None):
+                raise ValueError("latitude and longitude must be set together")
+            return self
+
+    class _DataStreamFileListEnvelope(BaseModel):
+        model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+        data: list[_DataStreamFileRecord] = Field(max_length=100)
+
+    class _DataStreamPostRecord(BaseModel):
+        """Exact fixed projection returned by the tenant-scoped post list."""
+
+        model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+        id: UUID
+        location_id: UUID
+        post_type: Literal[
+            "field_update",
+            "monitoring_report",
+            "photo",
+            "satellite_image",
+            "sensor_reading",
+            "soil_analysis",
+            "water_analysis",
+            "biodiversity_survey",
+            "harvest_report",
+            "weather_report",
+            "financial_report",
+            "community_update",
+            "training_record",
+            "intervention_record",
+            "compliance_record",
+        ]
+        title: str = Field(max_length=255)
+        content: str | None
+        visibility: Literal["public", "internal", "private"] | None
+        status: Literal["draft", "submitted", "verified", "published", "rejected"] | None
+        is_anchored: bool | None = Field(strict=True)
+        attestation_uid: str | None = Field(max_length=66)
+        chain: str | None = Field(max_length=50)
+        anchored_at: AwareDatetime | None
+        content_hash: str | None = Field(max_length=128)
+        created_at: AwareDatetime | None
+        created_by: UUID | None
+        expires_at: AwareDatetime | None
+        search_rank: float | None
+
+    class _DataStreamPostListEnvelope(BaseModel):
+        model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+        data: list[_DataStreamPostRecord] = Field(max_length=100)
+
 except ImportError:
     # Stub for environments without FastAPI
     class APIRouter:
@@ -32,11 +174,25 @@ except ImportError:
             return lambda func: func
 
     Request = None
+
+    def Query(default=None, **_kwargs):
+        return default
+
     JSONResponse = None
-    PublicCrispAssessment = PublicError = PublicLocationListResponse = None
+    PublicCrispAssessment = PublicDriverCatalogEnvelope = PublicDriverCatalogResponse = PublicError = PublicLocationListResponse = None
     PublicLocationResponse = PublicLocationSummary = PublicMetricSummary = None
     PublicLocationSummaryEnvelope = PublicCrispAssessmentEnvelope = None
     PublicMetricSummaryEnvelope = None
+    FederationNodesPage = None
+    BaalAuthorizationError = BaalConfigEnvelope = BaalMemberDetailEnvelope = None
+    BaalProposalDetailEnvelope = BaalProposalListEnvelope = None
+    _DataStreamAttestationEnvelope = None
+    _DataStreamPostListEnvelope = None
+    _DataStreamFileListEnvelope = None
+    PublicLocationIriDocument = None
+    _JsonLdResponse = None
+    DataStreamPostCreateRequest = DataStreamPostCreateResponse = None
+    ValidationError = None
 
 router = APIRouter()
 logger = get_logger("gateway.router")
@@ -79,6 +235,7 @@ _ROUTE_POLICIES = (
     ("GET", re.compile(r"^/api/v1/metrics/([^/]+)$"), "metric", "read", True),
     ("GET", re.compile(r"^/api/v1/crisp/([^/]+)$"), "crisp_risk_assessment", "read", True),
     ("GET", re.compile(r"^/api/v1/analytics/([^/]+)/summary$"), "analytics", "read", True),
+    ("GET", re.compile(r"^/api/v1/drivers$"), "driver", "read", True),
     ("GET", re.compile(r"^/api/v1/governance/baal/config$"), "governance", "read", False),
     ("GET", re.compile(r"^/api/v1/governance/baal/proposals$"), "governance", "read", False),
     ("GET", re.compile(r"^/api/v1/governance/baal/proposals/[^/]+$"), "governance", "read", False),
@@ -90,7 +247,10 @@ _ROUTE_POLICIES = (
     ("GET", re.compile(r"^/api/iri/resolve$"), "iri", "read", True),
     ("GET", re.compile(r"^/api/federation/nodes$"), "federation_node", "read", True),
     ("GET", re.compile(r"^/api/drivers$"), "driver", "read", True),
-    ("GET", re.compile(r"^/api/health/services$"), "service_health", "read", True),
+    # Detailed dependency health reveals optional-service topology and probes
+    # PostgreSQL/ClickHouse/Directus. Keep it behind an explicit capability;
+    # the lightweight `/health` liveness endpoint remains public.
+    ("GET", re.compile(r"^/api/health/services$"), "service_health", "read", False),
     ("GET", re.compile(r"^/api/data-stream/posts$"), "data_stream_post", "read", False),
     ("GET", re.compile(r"^/api/data-stream/posts/[^/]+/files$"), "data_stream_file", "read", False),
     ("GET", re.compile(r"^/api/data-stream/posts/[^/]+/attestation$"), "data_stream_proof", "read", False),
@@ -128,6 +288,17 @@ def _private_response(content: dict, status_code: int = 200):
         status_code=status_code,
         content=content,
         headers={"Cache-Control": "no-store"},
+    )
+
+
+def _private_validated_response(model, payload: dict, status_code: int = 200):
+    """Validate a private projection while retaining its no-store headers."""
+    from fastapi.encoders import jsonable_encoder
+
+    validated = model.model_validate(payload)
+    return _private_response(
+        jsonable_encoder(validated.model_dump(mode="python")),
+        status_code=status_code,
     )
 
 
@@ -352,20 +523,18 @@ async def get_public_analytics_summary_v1(location_id: str):
     return _versioned_envelope(await get_analytics_summary(location_id))
 
 
-@router.get("/data-stream/posts")
-async def list_data_stream_posts(request: Request):
+@router.get("/data-stream/posts", response_model=_DataStreamPostListEnvelope)
+async def list_data_stream_posts(
+    request: Request,
+    limit: int = Query(default=20, ge=1, le=100),
+    offset: int = Query(default=0, ge=0, le=5000),
+):
     """List or search tenant-scoped Data Stream posts without caching content."""
     from starlette.concurrency import run_in_threadpool
 
     try:
         location_id = request.query_params.get("location_id")
         query_text = request.query_params.get("q")
-        try:
-            limit = int(request.query_params.get("limit", "20"))
-            offset = int(request.query_params.get("offset", "0"))
-        except ValueError as exc:
-            raise ValueError("limit and offset must be integers") from exc
-
         from services.gateway.data_stream import list_gateway_data_stream_posts
 
         rows = await run_in_threadpool(
@@ -376,7 +545,18 @@ async def list_data_stream_posts(request: Request):
             limit=limit,
             offset=offset,
         )
-        return _private_response({"data": rows})
+        from fastapi.encoders import jsonable_encoder
+
+        validated = _DataStreamPostListEnvelope.model_validate({"data": rows})
+        expected_location = UUID(location_id)
+        if any(row.location_id != expected_location for row in validated.data):
+            return _internal_error(
+                RuntimeError("Data Stream post location does not match request"),
+                "Data Stream posts unavailable",
+            )
+        return _private_response(jsonable_encoder(validated.model_dump(mode="python")))
+    except ValidationError as exc:
+        return _internal_error(exc, "Data Stream posts unavailable")
     except ValueError as exc:
         return _private_response({"error": str(exc)}, status_code=400)
     except Exception as exc:
@@ -387,12 +567,22 @@ async def list_data_stream_posts(request: Request):
         return _internal_error(exc)
 
 
-@router.get("/data-stream/posts/{post_id}/files")
-async def list_data_stream_post_files(post_id: str, request: Request):
+@router.get(
+    "/data-stream/posts/{post_id}/files",
+    response_model=_DataStreamFileListEnvelope,
+)
+async def list_data_stream_post_files(
+    post_id: str,
+    request: Request,
+    limit: int = Query(default=50, ge=1, le=100),
+    offset: int = Query(default=0, ge=0, le=5000),
+):
     """List safe, tenant-scoped attachment metadata without caching it."""
+    from fastapi.encoders import jsonable_encoder
     from starlette.concurrency import run_in_threadpool
 
     try:
+        expected_post_id = UUID(post_id)
         from services.gateway.data_stream import list_gateway_data_stream_files
 
         rows = await run_in_threadpool(
@@ -400,8 +590,18 @@ async def list_data_stream_post_files(post_id: str, request: Request):
             post_id,
             request.query_params.get("location_id"),
             request.state.gateway_authorization,
+            limit=limit,
+            offset=offset,
         )
-        return _private_response({"data": rows})
+        validated = _DataStreamFileListEnvelope.model_validate({"data": rows})
+        if any(row.post_id != expected_post_id for row in validated.data):
+            return _internal_error(
+                RuntimeError("Data Stream attachment post does not match request"),
+                "Data Stream attachments unavailable",
+            )
+        return _private_response(jsonable_encoder(validated.model_dump(mode="python")))
+    except ValidationError as exc:
+        return _internal_error(exc, "Data Stream attachments unavailable")
     except ValueError as exc:
         return _private_response({"error": str(exc)}, status_code=400)
     except Exception as exc:
@@ -412,9 +612,13 @@ async def list_data_stream_post_files(post_id: str, request: Request):
         return _internal_error(exc)
 
 
-@router.get("/data-stream/posts/{post_id}/attestation")
+@router.get(
+    "/data-stream/posts/{post_id}/attestation",
+    response_model=_DataStreamAttestationEnvelope,
+)
 async def get_data_stream_post_attestation(post_id: str, request: Request):
     """Read stored attestation metadata without caching or querying the chain."""
+    from fastapi.encoders import jsonable_encoder
     from starlette.concurrency import run_in_threadpool
 
     try:
@@ -428,7 +632,16 @@ async def get_data_stream_post_attestation(post_id: str, request: Request):
         )
         if row is None:
             return _private_response({"error": "Data Stream post not found"}, status_code=404)
-        return _private_response({"data": row})
+        try:
+            response = _DataStreamAttestationEnvelope.model_validate({"data": row})
+            if (
+                response.data.post_id != UUID(post_id)
+                or response.data.location_id != UUID(request.query_params.get("location_id"))
+            ):
+                raise ValueError("Data Stream attestation scope does not match request")
+        except (ValidationError, TypeError, ValueError) as exc:
+            return _internal_error(exc, "Data Stream attestation unavailable")
+        return _private_response({"data": jsonable_encoder(row)})
     except ValueError as exc:
         return _private_response({"error": str(exc)}, status_code=400)
     except Exception as exc:
@@ -439,21 +652,31 @@ async def get_data_stream_post_attestation(post_id: str, request: Request):
         return _internal_error(exc)
 
 
-@router.post("/data-stream/post")
-async def create_data_stream_post(request: Request):
+@router.post(
+    "/data-stream/post",
+    response_model=DataStreamPostCreateResponse,
+    status_code=201,
+    responses={400: {"model": PublicError}, 401: {"model": PublicError},
+               403: {"model": PublicError}, 422: {"model": PublicError},
+               500: {"model": PublicError}},
+    operation_id="createDataStreamPost",
+)
+async def create_data_stream_post(body: DataStreamPostCreateRequest, request: Request):
     """Create a tenant-scoped draft Data Stream post."""
     from starlette.concurrency import run_in_threadpool
 
     try:
-        body = await request.json()
         from services.gateway.data_stream import create_gateway_data_stream_post
 
         result = await run_in_threadpool(
             create_gateway_data_stream_post,
-            body,
+            body.model_dump(mode="json"),
             request.state.gateway_authorization,
         )
-        return _private_response({"post_id": result["id"]}, status_code=201)
+        response = DataStreamPostCreateResponse.model_validate({"post_id": result.get("id")})
+        return _private_response(response.model_dump(mode="json"), status_code=201)
+    except ValidationError as exc:
+        return _internal_error(exc, "Data Stream post creation unavailable")
     except ValueError as exc:
         return _private_response({"error": str(exc)}, status_code=400)
     except Exception as exc:
@@ -464,9 +687,16 @@ async def create_data_stream_post(request: Request):
         return _internal_error(exc)
 
 
-@router.get("/iri/resolve")
+@router.get(
+    "/iri/resolve",
+    response_model=PublicLocationIriDocument,
+    response_class=_JsonLdResponse,
+    responses={404: {"model": PublicError}, 500: {"model": PublicError}},
+    operation_id="resolvePublicLocationIri",
+)
 async def resolve_iri(iri: str):
     """Resolve a public location IRI to its non-sensitive JSON-LD projection."""
+    from pydantic import ValidationError
     from starlette.concurrency import run_in_threadpool
 
     try:
@@ -474,9 +704,12 @@ async def resolve_iri(iri: str):
 
         result = await run_in_threadpool(resolve_public_location_iri, iri)
         if result:
-            return JSONResponse(
-                content=result,
-                media_type="application/ld+json",
+            validated = PublicLocationIriDocument.model_validate(result)
+            document = validated.model_dump(mode="json", by_alias=True)
+            if validated.previous_version is None:
+                document.pop("kokonut:previousVersion", None)
+            return _JsonLdResponse(
+                content=document,
                 headers={"Cache-Control": "no-store"},
             )
         return JSONResponse(
@@ -484,46 +717,104 @@ async def resolve_iri(iri: str):
             content={"error": "IRI not found"},
             headers={"Cache-Control": "no-store"},
         )
+    except ValidationError as exc:
+        return _internal_error(exc, "IRI resolution unavailable")
     except Exception as exc:
         return _internal_error(exc)
 
 
-@router.get("/federation/nodes")
-async def list_federation_nodes():
-    """List federation nodes."""
+@router.get("/federation/nodes", response_model=FederationNodesPage)
+async def list_federation_nodes(
+    limit: int = Query(default=50, ge=1, le=100),
+    offset: int = Query(default=0, ge=0, le=10000),
+):
+    """List a bounded federation-node page with explicit continuation metadata."""
     try:
         from services.federation.node import FederationNode
         node = FederationNode()
-        nodes = node.list_nodes()
-        return JSONResponse(content={"nodes": nodes})
+        page = node.list_nodes_page(limit=limit, offset=offset)
+        return page
     except Exception as exc:
         return _internal_error(exc)
 
 
-@router.get("/drivers")
-async def list_drivers():
-    """List registered drivers."""
+@router.get("/drivers", response_model=PublicDriverCatalogResponse)
+async def list_drivers(
+    limit: int = Query(default=50, ge=1, le=50),
+    offset: int = Query(default=0, ge=0, le=5000),
+):
+    """List public driver metadata without exposing loader/registry internals."""
     try:
         from services.drivers.registry import DriverRegistry
         registry = DriverRegistry()
-        drivers = registry.list_drivers()
-        return JSONResponse(content={"drivers": drivers})
+        page = registry.list_public_drivers_page(limit=limit, offset=offset)
+        return _public_response(
+            PublicDriverCatalogResponse,
+            page,
+        )
     except Exception as exc:
         return _internal_error(exc)
 
 
-@router.get("/health/services")
+@router.get(
+    "/v1/drivers",
+    response_model=PublicDriverCatalogEnvelope,
+    operation_id="listPublicDriversV1",
+)
+async def list_public_drivers_v1(
+    limit: int = Query(default=50, ge=1, le=50),
+    offset: int = Query(default=0, ge=0, le=5000),
+):
+    """List an enabled, bounded driver catalog through the stable v1 envelope."""
+    try:
+        from services.drivers.registry import DriverRegistry
+
+        page = DriverRegistry().list_public_drivers_page(limit=limit, offset=offset)
+        return _public_response(PublicDriverCatalogEnvelope, {"data": page})
+    except Exception as exc:
+        return _internal_error(exc)
+
+
+@router.get(
+    "/health/services",
+    response_model=ServiceHealthResponse,
+)
 async def service_health():
     """Get health status of all services."""
     try:
         from services.core.health import overall_health
+        from services.gateway.service_health_responses import ServiceHealthResponse
+
         result = overall_health()
-        return JSONResponse(content=result)
+        validated = ServiceHealthResponse.model_validate(result)
+        return JSONResponse(
+            content=jsonable_encoder(validated.model_dump(mode="python")),
+            headers={"Cache-Control": "no-store"},
+        )
     except Exception as exc:
-        return _internal_error(exc)
+        from services.common.logging import get_logger
+
+        get_logger("gateway.service_health").warning(
+            "Detailed service health response rejected (%s)", type(exc).__name__
+        )
+        return JSONResponse(
+            status_code=500,
+            content={"error": "Service health unavailable"},
+            headers={"Cache-Control": "no-store"},
+        )
 
 
-@router.get("/v1/governance/baal/config")
+@router.get(
+    "/v1/governance/baal/config",
+    response_model=BaalConfigEnvelope,
+    responses={
+        401: {"model": BaalAuthorizationError},
+        403: {"model": BaalAuthorizationError},
+        400: {"model": PublicError},
+        500: {"model": PublicError},
+        503: {"model": PublicError},
+    },
+)
 async def get_baal_governance_config():
     """Read global Baal configuration under the governance:read credential scope."""
     from starlette.concurrency import run_in_threadpool
@@ -532,30 +823,51 @@ async def get_baal_governance_config():
 
     try:
         result = await run_in_threadpool(read_baal_config)
-        return _private_response({"data": result})
+        return _private_validated_response(BaalConfigEnvelope, {"data": result})
+    except ValidationError as exc:
+        return _internal_error(exc)
     except Exception as exc:
         return _governance_read_error(exc)
 
 
-@router.get("/v1/governance/baal/proposals")
-async def get_baal_governance_proposals(limit: str = "50"):
+@router.get(
+    "/v1/governance/baal/proposals",
+    response_model=BaalProposalListEnvelope,
+    responses={
+        401: {"model": BaalAuthorizationError},
+        403: {"model": BaalAuthorizationError},
+        400: {"model": PublicError},
+        500: {"model": PublicError},
+        503: {"model": PublicError},
+    },
+)
+async def get_baal_governance_proposals(limit: int = Query(default=50, ge=1, le=100)):
     """Read a bounded newest-first list of global Baal proposals."""
     from starlette.concurrency import run_in_threadpool
 
     from services.gateway.governance import read_baal_proposals
 
     try:
-        parsed_limit = int(limit)
-    except (TypeError, ValueError):
-        return _private_response({"error": "limit must be an integer"}, status_code=400)
-    try:
-        result = await run_in_threadpool(read_baal_proposals, parsed_limit)
-        return _private_response({"data": result})
+        result = await run_in_threadpool(read_baal_proposals, limit)
+        return _private_validated_response(BaalProposalListEnvelope, {"data": result})
+    except ValidationError as exc:
+        return _internal_error(exc)
     except Exception as exc:
         return _governance_read_error(exc)
 
 
-@router.get("/v1/governance/baal/proposals/{proposal_id}")
+@router.get(
+    "/v1/governance/baal/proposals/{proposal_id}",
+    response_model=BaalProposalDetailEnvelope,
+    responses={
+        401: {"model": BaalAuthorizationError},
+        403: {"model": BaalAuthorizationError},
+        400: {"model": PublicError},
+        404: {"model": PublicError},
+        500: {"model": PublicError},
+        503: {"model": PublicError},
+    },
+)
 async def get_baal_governance_proposal(proposal_id: str):
     """Read one global Baal proposal by decimal proposal identifier."""
     from starlette.concurrency import run_in_threadpool
@@ -564,12 +876,24 @@ async def get_baal_governance_proposal(proposal_id: str):
 
     try:
         result = await run_in_threadpool(read_baal_proposal, proposal_id)
-        return _private_response({"data": result})
+        return _private_validated_response(BaalProposalDetailEnvelope, {"data": result})
+    except ValidationError as exc:
+        return _internal_error(exc)
     except Exception as exc:
         return _governance_read_error(exc)
 
 
-@router.get("/v1/governance/baal/members/{wallet}")
+@router.get(
+    "/v1/governance/baal/members/{wallet}",
+    response_model=BaalMemberDetailEnvelope,
+    responses={
+        401: {"model": BaalAuthorizationError},
+        403: {"model": BaalAuthorizationError},
+        400: {"model": PublicError},
+        500: {"model": PublicError},
+        503: {"model": PublicError},
+    },
+)
 async def get_baal_governance_member(wallet: str):
     """Read one requested public Baal member position by wallet address."""
     from starlette.concurrency import run_in_threadpool
@@ -578,7 +902,9 @@ async def get_baal_governance_member(wallet: str):
 
     try:
         result = await run_in_threadpool(read_baal_member, wallet)
-        return _private_response({"data": result})
+        return _private_validated_response(BaalMemberDetailEnvelope, {"data": result})
+    except ValidationError as exc:
+        return _internal_error(exc)
     except Exception as exc:
         return _governance_read_error(exc)
 

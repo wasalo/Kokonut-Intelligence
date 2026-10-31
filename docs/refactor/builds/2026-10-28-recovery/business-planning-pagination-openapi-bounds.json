@@ -1,0 +1,22 @@
+{
+  "date": "2026-10-28",
+  "source_revision": "753b4645",
+  "result": "passed",
+  "scope": "business-planning canvas list pagination contract",
+  "route": "/operator/api/business-planning/{location_id}/canvases",
+  "bounds": {
+    "limit": {"default": 25, "minimum": 1, "maximum": 50},
+    "offset": {"default": 0, "minimum": 0, "maximum": 10000}
+  },
+  "finding": "The reader already enforces page size 1..50 and offset 0..10000, but the Gateway accepted string query values without advertising or enforcing those bounds at the HTTP boundary.",
+  "change": "The Gateway now types limit and offset as integers with FastAPI Query constraints matching the existing reader contract. Invalid values return 422 before invoking the reader.",
+  "checks": {
+    "command": "python3 -m pytest tests/test_gateway_business_planning_pagination_openapi.py tests/test_gateway_business_planning_reads.py -q",
+    "result": "18 passed",
+    "ruff": "passed",
+    "py_compile": "passed",
+    "diff_check": "passed"
+  },
+  "external_services": {"database": false, "network": false, "provider": false},
+  "rollback": "Revert the Query constraints and focused contract test; no schema or persisted data changed."
+}

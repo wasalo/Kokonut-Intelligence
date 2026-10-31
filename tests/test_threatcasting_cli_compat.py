@@ -17,7 +17,8 @@ def test_create_backcast_exposes_plan_id_and_preserves_milestones(capsys):
     with patch("services.threatcasting.backcasting.Backcaster", return_value=backcaster), patch.object(
         cli, "_get_conn", return_value=MagicMock()
     ), patch.object(
-        sys, "argv", ["threatcasting", "create-backcast", "--narrative-id", "n1", "--location-id", "l1",
+        sys, "argv", ["threatcasting", "create-backcast", "--narrative-id", "n1", "--location-id",
+        "b0000000-0000-4000-8000-000000000001",
         "--name", "Plan", "--future-state", "Future", "--gaps", "Gap", "--milestones",
         '[{"order":1,"description":"First"}]']
     ):

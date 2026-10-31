@@ -136,7 +136,9 @@ hooks-build:
 	cd extensions/kokonut-hooks && \
 	if [ ! -x node_modules/.bin/directus-extension ] || [ package-lock.json -nt node_modules/.package-lock.json ]; then \
 		npm ci --no-audit --no-fund; \
-	fi && npm run build
+	fi && (umask 022 && npm run build) && \
+	find dist -type d -exec chmod 0755 {} + && \
+	find dist -type f -exec chmod 0644 {} +
 
 hooks-test:
 	cd extensions/kokonut-hooks && npm test

@@ -4,10 +4,6 @@
  */
 import { errorClass } from './error-safety.js';
 
-const ROLE_CACHE = new Map<string, { slug: string; expiresAt: number }>();
-
-const ROLE_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
-
 /** Normalize a Directus role display name to a slug. */
 export function roleNameToSlug(name: string): string {
   return name.trim().toLowerCase().replace(/\s+/g, '_');
@@ -30,26 +26,17 @@ export async function resolveUserRoles(
   const roleId = accountability.role as string | undefined;
   if (!roleId) return [];
 
-  const cached = ROLE_CACHE.get(roleId);
-  if (cached && Date.now() < cached.expiresAt) {
-    return [cached.slug];
-  }
-
   try {
     const role = await db('directus_roles').where('id', roleId).first('name');
     if (role?.name) {
-      const slug = roleNameToSlug(role.name);
-      ROLE_CACHE.set(roleId, { slug, expiresAt: Date.now() + ROLE_CACHE_TTL_MS });
-      return [slug];
+      // The role name is part of the workflow authorization policy. Resolve it
+      // from the request database on each check so a rename/revocation is not
+      // masked by a process-local stale authorization cache.
+      return [roleNameToSlug(role.name)];
     }
   } catch (error) {
     console.error(`[Kokonut] Failed to resolve role name: ${errorClass(error)}`);
   }
 
   return [];
-}
-
-/** Clear the role cache (useful in tests). */
-export function clearRoleCache(): void {
-  ROLE_CACHE.clear();
 }

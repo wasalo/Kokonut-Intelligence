@@ -30,10 +30,12 @@ COPY pyproject.toml ./pyproject.toml
 COPY Dockerfile.kernel ./Dockerfile.kernel
 RUN python3 -m services.core.image_manifest --target kernel
 
-RUN mkdir -p /app/private-media /var/lib/kokonut/gateway-audit \
+RUN mkdir -p /app/private-media /var/lib/kokonut/gateway-audit /var/lib/kokonut/worker-progress \
     && chmod 0700 /app/private-media \
     && chmod 0700 /var/lib/kokonut/gateway-audit \
-    && chown -R appuser:appuser /app /var/lib/kokonut
+    && chmod 0700 /var/lib/kokonut/worker-progress \
+    && chown -R appuser:appuser /app /var/lib/kokonut \
+    && chown appuser:appuser /var/lib/kokonut/worker-progress
 USER appuser
 
 EXPOSE 8099
@@ -42,6 +44,58 @@ HEALTHCHECK --interval=30s --timeout=10s --retries=3 --start-period=20s \
     CMD python3 -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8099/health', timeout=5).close()" || exit 1
 
 CMD ["python3", "-m", "services.core.runtime", "--port", "8099", "--with-workers", "--require-schema"]
+
+# Additive smallest-footprint Kernel profile. Unlike `kernel-base`, this stage
+# starts from the same pinned Python base but installs only the core runtime.
+# Capability groups remain opt-in build overlays; no runtime secret is a build
+# argument or baked into this image.
+FROM python:3.11-slim@sha256:db3ff2e1800a8581e2c48a27c3995339d47bdf046da21c7627accd3d51053a93 AS kernel-core-base
+ARG KOKONUT_CORE_WEB3=false
+ARG KOKONUT_CORE_EXPORTS=false
+ARG KOKONUT_CORE_LOCAL_MEDIA=false
+WORKDIR /app
+RUN useradd -m -u 10001 -s /bin/bash appuser
+COPY requirements/kernel-core*.in requirements/kernel-core*.lock requirements/kernel.txt \
+     requirements/web3.txt requirements/exports.txt requirements/storage.txt ./requirements/
+RUN pip install --no-cache-dir --require-hashes -r requirements/kernel-core.lock \
+    && case "$KOKONUT_CORE_WEB3" in \
+         true) pip install --no-cache-dir --require-hashes -r requirements/kernel-core-web3.lock ;; \
+         false) ;; \
+         *) echo "KOKONUT_CORE_WEB3 must be true or false" >&2; exit 1 ;; \
+       esac \
+    && case "$KOKONUT_CORE_EXPORTS" in \
+         true) pip install --no-cache-dir --require-hashes -r requirements/kernel-core-exports.lock ;; \
+         false) ;; \
+         *) echo "KOKONUT_CORE_EXPORTS must be true or false" >&2; exit 1 ;; \
+       esac \
+    && case "$KOKONUT_CORE_LOCAL_MEDIA" in \
+         true) pip install --no-cache-dir --require-hashes -r requirements/kernel-core-storage.lock ;; \
+         false) ;; \
+         *) echo "KOKONUT_CORE_LOCAL_MEDIA must be true or false" >&2; exit 1 ;; \
+       esac \
+    && pip list --disable-pip-version-check --format=json > /app/python-packages.json \
+    && python3 -VV > /app/python-runtime.txt
+COPY services/ ./services/
+COPY apps/delphi-participant/ ./apps/delphi-participant/
+COPY schemas/ ./schemas/
+COPY config/ ./config/
+COPY VERSION ./VERSION
+COPY pyproject.toml ./pyproject.toml
+COPY Dockerfile.kernel ./Dockerfile.kernel
+RUN python3 -m services.core.image_manifest --target kernel-core \
+    && mkdir -p /app/private-media /var/lib/kokonut/gateway-audit /var/lib/kokonut/worker-progress \
+    && chmod 0700 /app/private-media \
+    && chmod 0700 /var/lib/kokonut/gateway-audit \
+    && chmod 0700 /var/lib/kokonut/worker-progress \
+    && chown -R appuser:appuser /app /var/lib/kokonut \
+    && chown appuser:appuser /var/lib/kokonut/worker-progress
+USER appuser
+EXPOSE 8099
+HEALTHCHECK --interval=30s --timeout=10s --retries=3 --start-period=20s \
+    CMD python3 -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8099/health', timeout=5).close()" || exit 1
+CMD ["python3", "-m", "services.core.runtime", "--port", "8099", "--with-workers", "--require-schema"]
+
+FROM kernel-core-base AS kernel-core
 
 # Optional transport target. Generate protobufs inside the image, preserving
 # the existing service imports without committing generated Python artifacts.
@@ -89,8 +143,9 @@ CMD ["python3", "-m", "services.ingestion.mqtt_subscriber"]
 # Authlib and itsdangerous; select this target only with the OIDC Compose overlay.
 FROM kernel-base AS oidc
 USER root
-COPY requirements/oidc.txt ./requirements/oidc.txt
-RUN pip install --no-cache-dir -r requirements/oidc.txt \
+COPY requirements/oidc.txt requirements/http-client.txt ./requirements/
+RUN pip install --no-cache-dir \
+      -r requirements/oidc.txt -r requirements/http-client.txt \
     && pip list --disable-pip-version-check --format=json > /app/python-packages.json \
     && chown appuser:appuser /app/python-packages.json
 COPY apps/operator-console/ ./apps/operator-console/

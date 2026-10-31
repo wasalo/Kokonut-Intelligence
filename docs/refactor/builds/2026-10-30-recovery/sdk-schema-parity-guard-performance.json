@@ -1,0 +1,40 @@
+{
+  "result": "passed",
+  "batch": "SDK schema parity guard performance",
+  "checked_at": "2026-10-30",
+  "implementation": {
+    "change": "Cache ordered migration ALTER TABLE fragments by source root and table, then reuse them across column, nullability, type, enum, and CHECK-literal readers.",
+    "behavior": "The complete parity report is unchanged."
+  },
+  "focused_tests": {
+    "suite": "tests/test_sdk_schema_parity.py",
+    "passed": 13,
+    "failed": 0,
+    "database_used": false,
+    "provider_used": false
+  },
+  "parity_guard": {
+    "result": "passed",
+    "elapsed_seconds": 7.6,
+    "models": 109,
+    "canonical_columns": 2150,
+    "scalar_types": 1987,
+    "postgis_types": 12,
+    "jsonb_shapes": 147,
+    "enum_fields": 23,
+    "check_literal_fields": 95,
+    "coverage_per_sdk": true
+  },
+  "baseline": {
+    "result": "did_not_complete_within_observation_window",
+    "observation_seconds": 60,
+    "note": "The pre-cache invocation was interrupted after remaining active beyond 60 seconds; no completed baseline timing was recorded."
+  },
+  "static_checks": {
+    "ruff": "passed",
+    "python_compilation": "passed",
+    "git_diff_check": "passed"
+  },
+  "database_touched": false,
+  "external_provider_contacted": false
+}

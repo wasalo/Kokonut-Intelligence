@@ -27,6 +27,7 @@ Usage:
 """
 
 import argparse
+from uuid import UUID
 
 from services.common.cli import get_connection, print_json
 
@@ -76,17 +77,29 @@ def main():
     parser.add_argument("--steps", type=int, default=5, help="Number of steps for sensitivity (default: 5)")
     parser.add_argument("--pin-dependency", action="store_true", help="Detect governed records pinned by an unverified upstream")
     parser.add_argument("--propose-pin", action="store_true", help="Write DRAFT tactical_opportunity rows for pin blocks")
-    parser.add_argument("--promotion-ladder", action="store_true", help="Show per-location regenerative value-chain promotion funnel")
-    parser.add_argument("--zwischenzug", action="store_true", help="Detect high-priority feedback counter-threats (zwischenzug)")
-    parser.add_argument("--propose-zwischenzug", action="store_true", help="Write DRAFT tactical_opportunity rows for zwischenzug signals")
+    parser.add_argument("--promotion-ladder", action="store_true", help="Show the promotion funnel for --location-id or explicit --all-locations")
+    parser.add_argument("--zwischenzug", action="store_true", help="Detect feedback counter-threats for --location-id or explicit --all-locations")
+    parser.add_argument("--propose-zwischenzug", action="store_true", help="Write DRAFT tactical opportunities for --location-id or explicit --all-locations")
     parser.add_argument("--tactical-layer", action="store_true", help="Composite tactical-layer report (fork, double-check, pin, zwischenzug, promotion)")
+    parser.add_argument(
+        "--all-locations",
+        action="store_true",
+        help="Explicitly select every location for promotion-ladder/zwischenzug commands",
+    )
     args = parser.parse_args()
+    _validate_tactical_scope(parser, args)
 
     # --- Standard (conn, location_id) commands via dispatch table ----------
     for attr, module_name, func_name in _DB_LOCATION_COMMANDS:
         if getattr(args, attr):
             if not args.location_id:
                 parser.error(f"--{attr.replace('_', '-')} requires --location-id")
+            try:
+                args.location_id = str(UUID(args.location_id))
+            except (AttributeError, TypeError, ValueError):
+                parser.error(
+                    f"--location-id must be a valid UUID for --{attr.replace('_', '-')}"
+                )
             from importlib import import_module
 
             mod = import_module(f"services.analytics.{module_name}")
@@ -167,14 +180,14 @@ def main():
         return
 
     if args.zwischenzug:
-        from . import automation
+        from services.feedback import automation
 
         with get_connection() as conn:
             print_json(automation.detect_zwischenzug(conn, location_id=args.location_id))
         return
 
     if args.propose_zwischenzug:
-        from . import automation
+        from services.feedback import automation
 
         with get_connection() as conn:
             print_json(automation.propose_zwischenzug(conn, location_id=args.location_id, actor="cli"))
@@ -188,6 +201,40 @@ def main():
         return
 
     parser.print_help()
+
+
+_TACTICAL_SCOPE_FLAGS = (
+    "promotion_ladder",
+    "zwischenzug",
+    "propose_zwischenzug",
+    "tactical_layer",
+)
+
+
+def _validate_tactical_scope(
+    parser: argparse.ArgumentParser, args: argparse.Namespace
+) -> None:
+    """Reject missing or malformed tactical scope before PostgreSQL access."""
+    selected = any(getattr(args, flag) for flag in _TACTICAL_SCOPE_FLAGS)
+    if args.all_locations and not selected:
+        parser.error("--all-locations requires a tactical analytics command")
+    if not selected:
+        return
+    if args.location_id and args.all_locations:
+        parser.error("--all-locations cannot be combined with --location-id")
+    if not args.location_id and not args.all_locations:
+        parser.error(
+            "tactical analytics require --location-id or explicit --all-locations"
+        )
+    if args.tactical_layer and args.all_locations:
+        parser.error(
+            "--tactical-layer requires one --location-id and does not support --all-locations"
+        )
+    if args.location_id:
+        try:
+            args.location_id = str(UUID(args.location_id))
+        except (AttributeError, TypeError, ValueError):
+            parser.error("--location-id must be a valid UUID for tactical analytics")
 
 
 if __name__ == "__main__":

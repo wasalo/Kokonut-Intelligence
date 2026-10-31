@@ -1,6 +1,9 @@
 """Bio-organic fertilizer operations hub tests."""
 
+import re
 from pathlib import Path
+
+import pytest
 
 from services.agents.bio_factory_agent import (
     BioFactorySynthesisAgent,
@@ -354,6 +357,48 @@ def test_bio_factory_report_generators_registered() -> None:
         assert report_type in REPORT_GENERATORS, f"Missing report type: {report_type}"
 
 
+@pytest.mark.parametrize("location_id", [None, ""])
+def test_bio_recipe_library_requires_location_before_database_access(location_id) -> None:
+    class NoDatabase:
+        def cursor(self, **_kwargs):
+            raise AssertionError("unscoped report must fail before opening a cursor")
+
+    with pytest.raises(ValueError, match="bio_recipe_library requires an explicit location_id"):
+        generate_bio_recipe_library(NoDatabase(), location_id)
+
+
+def test_bio_recipe_library_keeps_selected_location_and_public_catalog_filter() -> None:
+    class Cursor:
+        query = None
+        params = None
+
+        def execute(self, query, params):
+            self.query = query
+            self.params = params
+
+        def fetchall(self):
+            return []
+
+        def close(self):
+            pass
+
+    class Conn:
+        def __init__(self):
+            self.cursor_value = Cursor()
+
+        def cursor(self, cursor_factory=None):
+            return self.cursor_value
+
+    conn = Conn()
+    location_id = "a0000000-0000-0000-0000-000000000001"
+
+    result = generate_bio_recipe_library(conn, location_id)
+
+    assert result["location_id"] == location_id
+    assert "WHERE (location_id = %s OR location_id IS NULL)" in conn.cursor_value.query
+    assert conn.cursor_value.params == (location_id,)
+
+
 def test_bio_factory_report_generators_public_safe() -> None:
     class Cursor:
         calls = 0
@@ -446,6 +491,272 @@ def test_bio_factory_report_generators_public_safe() -> None:
     assert "smallholder pilot evidence" in batch["limitations"][0].lower()
     assert "advisory" in quality["limitations"][0].lower() or "certification" in quality["limitations"][0].lower()
     assert "salts and arsenic" in regional["limitations"][0].lower() or "sourcing notes" in regional["limitations"][0].lower()
+
+
+def test_bio_factory_reports_use_exact_public_projections_and_preserve_payload() -> None:
+    projections = {
+        "v_public_bio_factory_batch_summary": [
+            "id", "location_id", "farm_id", "batch_name", "batch_type", "production_method",
+            "production_start_date", "production_end_date", "input_kg_total", "output_kg_total",
+            "output_liters_total", "batch_yield_pct", "moisture_pct", "temperature_c", "ph_level",
+            "microbial_strain", "public_summary", "limitations", "evidence_maturity",
+            "evidence_maturity_label", "metadata",
+        ],
+        "v_public_bio_input_provenance_summary": [
+            "id", "location_id", "farm_id", "batch_id", "input_name", "input_category",
+            "supplier_name", "supplier_verified", "organic_certified", "origin_country",
+            "origin_region", "input_kg", "nutrient_n_pct", "nutrient_p_pct", "nutrient_k_pct",
+            "quality_warnings", "public_summary", "evidence_maturity", "evidence_maturity_label",
+            "metadata",
+        ],
+        "v_public_bio_recipe_library_summary": [
+            "id", "location_id", "recipe_name", "recipe_type", "recipe_category", "description",
+            "ingredients", "ratios", "process_steps", "fermentation_days", "target_c_n_ratio",
+            "target_moisture_pct", "target_temperature_c", "target_ph", "dilution_ratio",
+            "application_method", "quality_warnings", "source_reference", "public_summary",
+            "limitations", "evidence_maturity", "evidence_maturity_label", "metadata",
+        ],
+        "v_public_bio_factory_quality_test_summary": [
+            "id", "location_id", "farm_id", "batch_id", "test_date", "test_type", "parameter_name",
+            "measured_value", "unit", "target_min", "target_max", "pass_fail", "lab_name",
+            "lab_accredited", "public_summary", "evidence_maturity", "evidence_maturity_label",
+            "metadata",
+        ],
+    }
+    location_id = "a0000000-0000-0000-0000-000000000001"
+    batch_row = {
+        "id": "00000000-0000-4000-8000-000000000001",
+        "location_id": location_id,
+        "farm_id": "00000000-0000-4000-8000-000000000002",
+        "batch_name": "Adelphi vermicompost A",
+        "batch_type": "vermicompost",
+        "production_method": "vermicomposting",
+        "production_start_date": "2026-04-01",
+        "production_end_date": "2026-05-15",
+        "input_kg_total": 100,
+        "output_kg_total": 85,
+        "output_liters_total": 12.5,
+        "batch_yield_pct": 85.0,
+        "moisture_pct": 65.0,
+        "temperature_c": 22.5,
+        "ph_level": 7.2,
+        "microbial_strain": "Bacillus subtilis",
+        "public_summary": "Published batch summary.",
+        "limitations": ["Pilot yield only."],
+        "evidence_maturity": 3,
+        "evidence_maturity_label": "Reviewed record",
+        "metadata": {"reviewed": True},
+    }
+    input_row = {
+        "id": "00000000-0000-4000-8000-000000000003",
+        "location_id": location_id,
+        "farm_id": "00000000-0000-4000-8000-000000000002",
+        "batch_id": batch_row["id"],
+        "input_name": "Sargassum (washed)",
+        "input_category": "marine_material",
+        "supplier_name": "Regional cooperative",
+        "supplier_verified": True,
+        "organic_certified": False,
+        "origin_country": "Dominican Republic",
+        "origin_region": "Monte Plata",
+        "input_kg": 25.0,
+        "nutrient_n_pct": 1.0,
+        "nutrient_p_pct": 0.3,
+        "nutrient_k_pct": 5.0,
+        "quality_warnings": ["Test for arsenic."],
+        "public_summary": "Published input provenance.",
+        "evidence_maturity": 3,
+        "evidence_maturity_label": "Reviewed record",
+        "metadata": {},
+    }
+    recipe_row = {
+        "id": "00000000-0000-4000-8000-000000000004",
+        "location_id": location_id,
+        "recipe_name": "Adelphi vermicompost v1",
+        "recipe_type": "solid_fertilizer",
+        "recipe_category": "vermicompost",
+        "description": "A published smallholder recipe.",
+        "ingredients": ["compost", "Sargassum"],
+        "ratios": {"compost": 4, "Sargassum": 1},
+        "process_steps": ["Mix", "Cure"],
+        "fermentation_days": 45,
+        "target_c_n_ratio": 25.0,
+        "target_moisture_pct": 60.0,
+        "target_temperature_c": 25.0,
+        "target_ph": 7.0,
+        "dilution_ratio": None,
+        "application_method": "soil incorporation",
+        "quality_warnings": ["Check feedstock quality."],
+        "source_reference": "adelphi-recipe-v1",
+        "public_summary": "Published recipe summary.",
+        "limitations": ["Adapt to local conditions."],
+        "evidence_maturity": 3,
+        "evidence_maturity_label": "Reviewed record",
+        "metadata": {},
+    }
+    quality_row = {
+        "id": "00000000-0000-4000-8000-000000000005",
+        "location_id": location_id,
+        "farm_id": "00000000-0000-4000-8000-000000000002",
+        "batch_id": batch_row["id"],
+        "test_date": "2026-05-25",
+        "test_type": "nutrient_analysis",
+        "parameter_name": "NPK total",
+        "measured_value": 4.2,
+        "unit": "pct",
+        "target_min": 3.0,
+        "target_max": 6.0,
+        "pass_fail": "pass",
+        "lab_name": "Adelphi field lab",
+        "lab_accredited": False,
+        "public_summary": "Published quality result.",
+        "evidence_maturity": 3,
+        "evidence_maturity_label": "Reviewed record",
+        "metadata": {},
+    }
+    rows_by_view = {
+        "v_public_bio_factory_batch_summary": [batch_row],
+        "v_public_bio_input_provenance_summary": [input_row],
+        "v_public_bio_recipe_library_summary": [recipe_row],
+        "v_public_bio_factory_quality_test_summary": [quality_row],
+    }
+
+    class Cursor:
+        def __init__(self):
+            self.calls = []
+            self.current_query = ""
+
+        def execute(self, query, params=None):
+            self.current_query = " ".join(query.split())
+            self.calls.append((self.current_query, params))
+
+        def fetchone(self):
+            return {"name": "Kokonut Adelphi"}
+
+        def fetchall(self):
+            return next((rows for view, rows in rows_by_view.items() if view in self.current_query), [])
+
+        def close(self):
+            pass
+
+    class Conn:
+        def __init__(self):
+            self.cursors = []
+
+        def cursor(self, cursor_factory=None):
+            cursor = Cursor()
+            self.cursors.append(cursor)
+            return cursor
+
+    conn = Conn()
+    period_start, period_end = "2026-04-01", "2026-06-30"
+    batch = generate_bio_factory_batch(conn, location_id, period_start, period_end)
+    provenance = generate_bio_input_provenance(conn, location_id)
+    recipes = generate_bio_recipe_library(conn, location_id)
+    quality = generate_bio_quality_test(conn, location_id, period_start, period_end)
+
+    report_outputs = [batch, provenance, recipes, quality]
+    query_by_view = {}
+    for cursor in conn.cursors:
+        for query, params in cursor.calls:
+            for view in projections:
+                if view in query:
+                    query_by_view[view] = (query, params)
+    for view, columns in projections.items():
+        query, params = query_by_view[view]
+        projection = re.search(rf"SELECT (.*?) FROM {view}", query)
+        assert projection is not None
+        assert [column.strip() for column in projection.group(1).split(",")] == columns
+        assert "(location_id = %s OR location_id IS NULL)" in query
+        assert "ORDER BY" in query
+
+    batch_query, batch_params = query_by_view["v_public_bio_factory_batch_summary"]
+    assert "production_start_date DESC, batch_name" in batch_query
+    assert batch_params == (location_id, period_start, period_start, period_end, period_end)
+    input_query, input_params = query_by_view["v_public_bio_input_provenance_summary"]
+    assert input_query.endswith("ORDER BY input_category, input_name")
+    assert input_params == (location_id,)
+    recipe_query, recipe_params = query_by_view["v_public_bio_recipe_library_summary"]
+    assert recipe_query.endswith("ORDER BY recipe_type, recipe_name")
+    assert recipe_params == (location_id,)
+    quality_query, quality_params = query_by_view["v_public_bio_factory_quality_test_summary"]
+    assert "test_date DESC, parameter_name" in quality_query
+    assert quality_params == (location_id, period_start, period_start, period_end, period_end)
+
+    assert batch["batches"] == [batch_row]
+    assert batch["total_kg_produced"] == 85.0
+    assert batch["total_liters_produced"] == 12.5
+    assert provenance["inputs"] == [input_row]
+    assert provenance["lac_input_count"] == 1
+    assert provenance["lac_input_share_pct"] == 100.0
+    assert recipes["recipes"] == [recipe_row]
+    assert recipes["recipe_type_breakdown"] == {"solid_fertilizer": 1}
+    assert quality["tests"] == [quality_row]
+    assert quality["test_count"] == 1
+    assert quality["pass_count"] == 1
+    assert quality["pass_rate_pct"] == 100.0
+    assert [report["location_id"] for report in report_outputs] == [location_id] * 4
+
+
+def test_bio_regional_input_uses_exact_projection_and_preserves_payload() -> None:
+    expected_columns = [
+        "id", "region_scope", "input_name", "input_category", "country", "subregion",
+        "seasonality", "cautions", "quality_considerations", "typical_suppliers",
+        "source_reference", "public_summary", "evidence_maturity",
+        "evidence_maturity_label", "metadata",
+    ]
+    row = {
+        "id": "regional-input-1",
+        "region_scope": "caribbean",
+        "input_name": "Sargassum",
+        "input_category": "marine_material",
+        "country": "Dominican Republic",
+        "subregion": "Monte Plata",
+        "seasonality": {"months": [5, 6, 7]},
+        "cautions": ["Test for arsenic before use."],
+        "quality_considerations": {"moisture_pct": "variable"},
+        "typical_suppliers": ["Regional cooperative"],
+        "source_reference": "regional-survey-2026",
+        "public_summary": "Documented regional input availability.",
+        "evidence_maturity": 3,
+        "evidence_maturity_label": "field_validated",
+        "metadata": {"reviewed": True},
+    }
+
+    class Cursor:
+        def __init__(self):
+            self.sql = ""
+            self.params = None
+
+        def execute(self, sql, params=None):
+            self.sql = " ".join(sql.split())
+            self.params = params
+
+        def fetchall(self):
+            return [row]
+
+        def close(self):
+            pass
+
+    class Conn:
+        def __init__(self):
+            self.cursor_value = Cursor()
+
+        def cursor(self, cursor_factory=None):
+            return self.cursor_value
+
+    conn = Conn()
+    report = generate_bio_regional_input(conn)
+    projection = re.search(
+        r"SELECT (.*?) FROM v_public_bio_regional_input_summary", conn.cursor_value.sql
+    )
+
+    assert projection is not None
+    assert [column.strip() for column in projection.group(1).split(",")] == expected_columns
+    assert "ORDER BY region_scope, input_name" in conn.cursor_value.sql
+    assert conn.cursor_value.params == ()
+    assert report["regional_inputs"] == [row]
+    assert report["region_breakdown"] == {"caribbean": 1}
 
 
 def test_eas_bio_batch_placeholder_is_inactive() -> None:

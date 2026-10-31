@@ -1,0 +1,42 @@
+{
+  "date": "2026-10-29",
+  "batch": "operating-pilot coaching participant and own-session read contracts",
+  "source": {
+    "participant_list": "schemas/postgres/612_location_operating_pilot_coaching_participants.sql",
+    "own_session_history": [
+      "schemas/postgres/611_location_scoped_operating_coaching_sessions.sql",
+      "schemas/postgres/253_operating_coaching_resources.sql"
+    ]
+  },
+  "contracts": {
+    "coaching_participants": {
+      "page_fields": ["location_id", "items", "has_more", "next_offset"],
+      "item_fields": ["participant_id", "display_name"],
+      "validation": "exact fields, UUID/name bounds, nonblank display names, unique IDs, request-location and limit binding, and bounded continuation; migration order remains the database collation contract"
+    },
+    "own_coaching_sessions": {
+      "page_fields": ["location_id", "items", "limit", "offset", "has_more", "next_offset"],
+      "item_fields": ["session_id", "coachee_name", "session_date", "focus", "commitments", "wellbeing_check", "notes", "status", "created_at"],
+      "validation": "exact private fields, migration-253/611 content bounds, completed/private lifecycle, nullable source fields, timezone-aware timestamps, request location/page binding, descending SQL order, unique IDs, and bounded continuation"
+    },
+    "authorization": "Existing operating_pilot:coach exact-location grant and signed tenant-context paths are unchanged."
+  },
+  "verification": {
+    "focused_command": "python3 -m pytest tests/test_gateway_operating_pilot_coaching_contracts.py tests/test_gateway_operating_pilot_learning.py tests/test_gateway_operating_pilot_pagination_openapi.py tests/test_operator_route_policy_inventory.py -q",
+    "focused_tests": 101,
+    "focused_result": "passed",
+    "ruff_default": "passed",
+    "ruff_security_select": "passed",
+    "python_compile": "passed",
+    "runtime_sql_inventory": "refreshed and check passed",
+    "capability_matrix": "passed: 67 rows; 24 baseline-retained, 7 deployed, 36 prepared",
+    "git_diff_check": "passed"
+  },
+  "environment": {
+    "database": "not used",
+    "provider": "not used",
+    "candidate_or_legacy_state": "untouched",
+    "migration_applied": false
+  },
+  "rollback": "Revert the Gateway source, tests, inventory, and refactor records; no database rollback is required."
+}

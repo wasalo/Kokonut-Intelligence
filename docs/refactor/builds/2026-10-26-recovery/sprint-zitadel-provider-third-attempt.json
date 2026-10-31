@@ -1,0 +1,22 @@
+{
+  "result": "failed",
+  "project": "kokonut-sprint-idp-9e61b077cadc",
+  "candidate_or_legacy_touched": false,
+  "failed_stage": "provider_start",
+  "error_type": "RuntimeError",
+  "diagnostic": " Volume kokonut-sprint-idp-9e61b077cadc_kernel-zitadel-postgres-data Creating \n Network kokonut-sprint-idp-9e61b077cadc_kernel Creating \n Network kokonut-sprint-idp-9e61b077cadc_kernel Creating \n Volume kokonut-sprint-idp-9e61b077cadc_kernel-zitadel-bootstrap Creating \n Network kokonut-sprint-idp-9e61b077cadc_zitadel-data Creating \n Network kokonut-sprint-idp-9e61b077cadc_zitadel-data Creating \n Volume kokonut-sprint-idp-9e61b077cadc_kernel-zitadel-postgres-data Created \n Volume kokonut-sprint-idp-9e61b077cadc_kernel-zitadel-postgres-data Created \n Volume kokonut-sprint-idp-9e61b077cadc_kernel-zitadel-bootstrap Created \n Volume kokonut-sprint-idp-9e61b077cadc_kernel-zitadel-bootstrap Created \n Network kokonut-sprint-idp-9e61b077cadc_zitadel-data Created \n Network kokonut-sprint-idp-9e61b077cadc_zitadel-data Created \n Container kokonut-sprint-idp-9e61b077cadc-zitadel-db-1 Creating \n Network kokonut-sprint-idp-9e61b077cadc_kernel Created \n Network kokonut-sprint-idp-9e61b077cadc_kernel Created \n Container kokonut-sprint-idp-9e61b077cadc-zitadel-db-1 Created \n Container kokonut-sprint-idp-9e61b077cadc-zitadel-api-1 Creating \n Container kokonut-sprint-idp-9e61b077cadc-zitadel-api-1 Created \n Container kokonut-sprint-idp-9e61b077cadc-zitadel-login-1 Creating \n Container kokonut-sprint-idp-9e61b077cadc-zitadel-login-1 Created \n Container kokonut-sprint-idp-9e61b077cadc-zitadel-db-1 Starting \n Container kokonut-sprint-idp-9e61b077cadc-zitadel-db-1 Started \n Container kokonut-sprint-idp-9e61b077cadc-zitadel-db-1 Waiting \n Container kokonut-sprint-idp-9e61b077cadc-zitadel-db-1 Healthy \n Container kokonut-sprint-idp-9e61b077cadc-zitadel-api-1 Starting \n Container kokonut-sprint-idp-9e61b077cadc-zitadel-api-1 Started \n Container kokonut-sprint-idp-9e61b077cadc-zitadel-api-1 Waiting \n Container kokonut-sprint-idp-9e61b077cadc-zitadel-api-1 Error dependency zitadel-api failed to start\ndependency failed to start: container kokonut-sprint-idp-9e61b077cadc-zitadel-api-1 exited (1)\n",
+  "service_diagnostics": {
+    "zitadel-db": [],
+    "zitadel-api": [
+      "zitadel-api-1  | time=2026-10-27T02:23:47.435Z level=ERROR msg=\"migration failed\" stream=runtime version=v4.19.4 name=03_default_instance err.kind=Unknown err.message=\"an unknown error occurred\" err.id=LOG-ii6Pi err.parent=\"open /zitadel/bootstrap/login-client.pat: permission denied\" err.reportLocation.filePath=/home/runner/work/zitadel/zitadel/internal/migration/migration.go err.reportLocation.lineNumber=71 err.reportLocation.functionName=github.com/zitadel/zitadel/internal/migration.Migrate",
+      "zitadel-api-1  | time=2026-10-27T02:23:47.440Z level=ERROR msg=\"migration failed\" stream=runtime version=v4.19.4 err.kind=Unknown err.message=\"an unknown error occurred\" err.id=LOG-Ao5ch err.parent=\"open /zitadel/bootstrap/login-client.pat: permission denied\" err.reportLocation.filePath=/home/runner/work/zitadel/zitadel/cmd/setup/setup.go err.reportLocation.lineNumber=445 err.reportLocation.functionName=github.com/zitadel/zitadel/cmd/setup.executeMigration name=03_default_instance",
+      "zitadel-api-1  | time=2026-10-27T02:23:47.440Z level=ERROR+6 msg=\"setup failed, skipping cleanup\" stream=runtime version=v4.19.4 err.kind=Unknown err.message=\"an unknown error occurred\" err.id=LOG-ii6Pi err.parent=\"open /zitadel/bootstrap/login-client.pat: permission denied\" err.reportLocation.filePath=/home/runner/work/zitadel/zitadel/cmd/setup/setup.go err.reportLocation.lineNumber=144 err.reportLocation.functionName=github.com/zitadel/zitadel/cmd/setup.Setup.func1"
+    ],
+    "zitadel-login": []
+  },
+  "cleanup": {
+    "attempted": true,
+    "completed": true
+  },
+  "checked_at": "2026-10-27T02:23:50.355638+00:00"
+}

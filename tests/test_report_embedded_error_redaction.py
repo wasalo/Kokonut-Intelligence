@@ -53,7 +53,9 @@ def test_reward_calibration_advisory_error_is_class_only(monkeypatch):
     cur.fetchone.return_value = {"name": "Synthetic location"}
     cur.fetchall.return_value = []
 
-    result = operations.generate_reward_calibration(conn, "location-1")
+    result = operations.generate_reward_calibration(
+        conn, "a0000000-0000-0000-0000-000000000001"
+    )
 
     assert result["overjustification_risk"] == {
         "error": "overjustification analysis failed (RuntimeError)"
@@ -72,7 +74,9 @@ def test_simulation_reserve_clash_error_is_class_only(monkeypatch):
 
     monkeypatch.setattr(clash_examples, "stress_reserve", fail)
 
-    result = strategy.generate_simulation_wargame(object(), "location-1")
+    result = strategy.generate_simulation_wargame(
+        object(), "a0000000-0000-0000-0000-000000000001"
+    )
 
     assert result["reserve_clash"] == {"error": "reserve clash failed (RuntimeError)"}
     assert SECRET not in repr(result)

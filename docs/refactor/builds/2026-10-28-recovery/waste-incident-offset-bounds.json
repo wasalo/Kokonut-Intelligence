@@ -1,0 +1,21 @@
+{
+  "date": "2026-10-28",
+  "source_revision": "753b4645",
+  "slice": "gateway_waste_incident_review_offset_bounds",
+  "result": "passed",
+  "route": "/operator/api/waste/{location_id}/incidents",
+  "contract": {
+    "offset_default": 0,
+    "offset_minimum": 0,
+    "offset_maximum": 1000000,
+    "invalid_values_rejected_before_service_access": [-1, 1000001, "not-an-integer"]
+  },
+  "verification": {
+    "pytest_command": "python3 -m pytest tests/test_gateway_waste_management_incidents.py -q",
+    "pytest_result": "25 passed",
+    "ruff": "passed",
+    "py_compile": "passed",
+    "git_diff_check": "passed"
+  },
+  "scope": "Synthetic FastAPI/OpenAPI and mocked service-boundary checks only; no database, provider, network, candidate, or legacy service was used."
+}

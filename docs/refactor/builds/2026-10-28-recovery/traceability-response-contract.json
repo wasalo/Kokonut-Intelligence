@@ -1,0 +1,36 @@
+{
+  "status": "passed",
+  "scope": "C2 Gateway response contract for location-scoped produce traceability reads",
+  "routes": [
+    "GET /operator/api/traceability/{location_id}/batches",
+    "GET /operator/api/traceability/{location_id}/batches/{batch_id}"
+  ],
+  "contract_source": [
+    "services/gateway/traceability.py selected columns and bounded query results",
+    "schemas/postgres/143_traceability.sql table types and enumerated values"
+  ],
+  "implementation": [
+    "Added explicit page and detail Pydantic response models with extra fields forbidden",
+    "Added shared decimal serialization that preserves FastAPI's legacy int-versus-float JSON behavior for all nested numeric fields",
+    "Preserved legacy datetime ISO strings, including +00:00 UTC offsets",
+    "Bound nested trace, custody, quality, certification, and food-safety lists to 100 rows",
+    "Preserved existing JSON fields and set no-store/Vary: Cookie on successful responses",
+    "Kept existing JSONResponse authorization, validation, not-found, and unavailable paths"
+  ],
+  "privacy_exclusions": [
+    "actor and inspector names or IDs",
+    "GPS coordinates",
+    "free-text notes and reasons",
+    "evidence URLs and arbitrary JSON payloads"
+  ],
+  "checks": {
+    "command": "python3 -m pytest tests/test_gateway_traceability.py -q",
+    "result": "11 passed; nested Decimal responses match jsonable_encoder numeric JSON values and integer/float precision behavior",
+    "ruff": "passed",
+    "py_compile": "passed",
+    "database_or_provider_used": false
+  },
+  "limitations": [
+    "Source and synthetic contract validation only; no populated traceability dataset or live OIDC browser acceptance was used."
+  ]
+}

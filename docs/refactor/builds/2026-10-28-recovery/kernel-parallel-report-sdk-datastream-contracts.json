@@ -1,0 +1,48 @@
+{
+  "date": "2026-10-28",
+  "base_commit": "7437a2d98348ce67af8b003eeaa8e48317b76635",
+  "scope": "Strict Data Stream post-list response contract, explicit public report projections, and REST SDK envelope/location binding",
+  "python_test_command": [
+    "python3",
+    "-m",
+    "pytest",
+    "tests/test_gateway_data_stream_pagination.py",
+    "tests/test_gateway_data_stream.py",
+    "tests/test_regenerative_outcomes.py",
+    "tests/test_stewardship_report_scope.py",
+    "tests/test_adaptive_stewardship_report_scope.py",
+    "tests/test_commons_liberation.py",
+    "tests/test_liberation_report_scope.py",
+    "tests/test_public_api_sdk.py",
+    "-q"
+  ],
+  "python_test_result": {"passed": 232, "failed": 0},
+  "javascript_test_command": [
+    "npm",
+    "test",
+    "--",
+    "--run",
+    "src/__tests__/public-api.test.ts"
+  ],
+  "javascript_working_directory": "sdk/javascript",
+  "javascript_test_result": {"passed": 125, "failed": 0},
+  "checks": {
+    "typescript_build": "passed with npm run build",
+    "ruff": "passed for changed Python source and tests",
+    "python_compile": "passed for changed Python source and tests",
+    "report_source_inventory": "passed",
+    "report_helper_scope_inventory": "passed",
+    "report_query_scope_inventory": "passed",
+    "capability_matrix": "passed; 67 rows (24 baseline-retained, 7 deployed, 36 prepared)",
+    "git_diff_check": "passed"
+  },
+  "contracts": {
+    "data_stream_post_list": "The private Gateway list validates its exact OpenAPI response projection, bounded records, enum/value shape, and requested location. Malformed, extra, or cross-location rows fail as a sanitized no-store 500; authorization, SQL, page bounds, and payload fields remain unchanged.",
+    "public_report_projections": "Replication readiness selects 19, adaptive stewardship 19, and capital alignment 17 current public-view columns explicitly. Existing filters, binds, ordering, aggregates, shared null-location replication rows, and serialized payloads are covered by regressions.",
+    "public_rest_sdks": "Python and TypeScript require success envelopes to contain exactly `data`; location detail results must match the requested UUID after case normalization. Existing path encoding and SDK error types are retained."
+  },
+  "content_review": "These checks establish source-level response, projection, and SDK parity contracts; they do not establish content-level privacy or populated-data parity.",
+  "candidate_or_legacy_database_touched": false,
+  "provider_or_production_service_touched": false,
+  "migration_added": false
+}

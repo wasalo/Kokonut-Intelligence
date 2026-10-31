@@ -1,0 +1,80 @@
+{
+  "date": "2026-10-29",
+  "batch": "runtime role service-catalog ACL and full-schema portability acceptance",
+  "source_revision": "ec2209f6",
+  "current_working_tree_was_dirty_during_replay": true,
+  "latest_migration": "688_governance_tension_health_created_at",
+  "expected_schema_files": 679,
+  "operator_scope_probe": {
+    "result": "passed",
+    "synthetic_tenants": 2,
+    "service_registry_read_only_verified": 1,
+    "private_relations_expected_and_verified": 79,
+    "mutation_denied_relations_expected_and_verified": 47,
+    "direct_table_privilege_violations": 0,
+    "direct_column_privilege_violations": 0,
+    "append_only_relations_expected_and_verified": 2,
+    "farm_activity_ledger_readable": 1,
+    "api_key_column_boundary_passed": true
+  },
+  "replays": {
+    "native_x86_64": {
+      "evidence": "runtime-role-full-schema-688-native-disposable.json",
+      "database_image": "postgis/postgis:16-3.4",
+      "platform": "linux/amd64",
+      "result": "passed",
+      "schema_files_applied": 679,
+      "schema_files_failed": 0,
+      "schema_files_pending": 0,
+      "runtime_role_probe": "passed",
+      "resource_limits": {
+        "memory_bytes": 1610612736,
+        "cpu_count": 2
+      },
+      "network_disabled": true,
+      "host_ports_published": false,
+      "seeds_applied": 0,
+      "farm_data_loaded": false,
+      "candidate_or_legacy_touched": false,
+      "cleanup_completed": true
+    },
+    "arm64_qemu": {
+      "evidence": "runtime-role-full-schema-688-arm64-disposable.json",
+      "database_image": "kokonut-kernel-postgis-arm64:local",
+      "platform": "linux/arm64",
+      "result": "passed",
+      "elapsed_seconds": 2096.0,
+      "schema_files_applied": 679,
+      "schema_files_failed": 0,
+      "schema_files_pending": 0,
+      "runtime_role_probe": "passed",
+      "oom_killed": false,
+      "resource_limits": {
+        "memory_bytes": 1610612736,
+        "cpu_count": 2
+      },
+      "network_disabled": true,
+      "host_ports_published": false,
+      "seeds_applied": 0,
+      "farm_data_loaded": false,
+      "candidate_or_legacy_touched": false,
+      "cleanup_completed": true,
+      "temporary_probe_image_removed": true
+    }
+  },
+  "runtime_privilege_report": "sprint-runtime-privilege-callsite-report-688.json",
+  "remaining_boundary": {
+    "public_tables_with_dml_and_rls_disabled": 991,
+    "c1_closed": false,
+    "reason": "The replay proves selected service, private-relation, API-key, append-only, and tenant-context boundaries on disposable targets. It does not prove a universal least-privilege boundary; 991 public tables still have DML grants with RLS disabled.",
+    "physical_raspberry_pi_tested": false,
+    "qemu_is_physical_device_acceptance": false
+  },
+  "environment": {
+    "network": "disabled",
+    "candidate_or_legacy_state": "untouched",
+    "production_state": "untouched",
+    "seeds_or_farm_data": "not loaded",
+    "disposable_compose_containers_and_volumes": "cleaned up"
+  }
+}

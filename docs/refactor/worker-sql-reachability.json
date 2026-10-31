@@ -3,12 +3,12 @@
   "generated_by": "scripts/worker_sql_reachability.py",
   "scope": "Direct SQL execution sites joined to the statically resolved worker function graph. A missing graph edge does not prove code is unreachable; dynamic dispatch, callbacks, import-time work, and methods on unknown instances may reach a site. This is not a complete effect map, ACL, authorization policy, or least-privilege grant list.",
   "summary": {
-    "operation_roots": 49,
-    "sql_execution_sites": 471,
-    "statically_reachable_site_memberships": 585,
-    "unique_sites_with_static_operation_path": 404,
-    "sites_without_static_function_match": 67,
-    "unmatched_functions_absent_from_all_worker_graphs": 67,
+    "operation_roots": 50,
+    "sql_execution_sites": 494,
+    "statically_reachable_site_memberships": 589,
+    "unique_sites_with_static_operation_path": 407,
+    "sites_without_static_function_match": 87,
+    "unmatched_functions_absent_from_all_worker_graphs": 87,
     "sites_reached_by_multiple_operations": 52
   },
   "operations": [
@@ -18,11 +18,11 @@
       "operation_ref": "scheduled_module:services.analytics.carbon_credit_adjustment_check",
       "statically_reachable_sql_site_count": 6,
       "statically_reachable_sql_site_ids": [
-        "services/analytics/carbon_balance.py:140:8",
-        "services/analytics/carbon_balance.py:147:8",
-        "services/analytics/carbon_balance.py:168:8",
-        "services/analytics/carbon_balance.py:177:8",
-        "services/analytics/carbon_balance.py:205:8",
+        "services/analytics/carbon_balance.py:141:8",
+        "services/analytics/carbon_balance.py:154:8",
+        "services/analytics/carbon_balance.py:181:8",
+        "services/analytics/carbon_balance.py:190:8",
+        "services/analytics/carbon_balance.py:218:8",
         "services/analytics/carbon_credits.py:491:4"
       ]
     },
@@ -36,7 +36,7 @@
         "services/common/tenant_context.py:110:8",
         "services/common/tenant_context.py:254:12",
         "services/common/tenant_context.py:255:8",
-        "services/common/worker_database.py:142:12"
+        "services/common/worker_database.py:143:12"
       ]
     },
     {
@@ -45,29 +45,29 @@
       "operation_ref": "scheduled_module:services.events",
       "statically_reachable_sql_site_count": 47,
       "statically_reachable_sql_site_ids": [
-        "services/common/worker_database.py:142:12",
-        "services/events/bus.py:107:12",
-        "services/events/bus.py:157:12",
-        "services/events/bus.py:176:16",
-        "services/events/bus.py:188:16",
-        "services/events/bus.py:204:16",
-        "services/events/bus.py:209:16",
-        "services/events/bus.py:275:12",
-        "services/events/bus.py:290:12",
-        "services/events/bus.py:299:16",
-        "services/events/bus.py:315:12",
-        "services/events/bus.py:352:12",
-        "services/events/bus.py:364:12",
-        "services/events/bus.py:377:16",
-        "services/events/bus.py:380:16",
-        "services/events/bus.py:421:16",
-        "services/events/bus.py:450:16",
-        "services/events/bus.py:458:16",
-        "services/events/cli.py:220:12",
-        "services/events/cli.py:249:12",
-        "services/events/fork_detector.py:133:12",
-        "services/events/fork_detector.py:36:8",
-        "services/events/fork_detector.py:59:8",
+        "services/common/worker_database.py:143:12",
+        "services/events/bus.py:125:12",
+        "services/events/bus.py:175:12",
+        "services/events/bus.py:200:16",
+        "services/events/bus.py:212:16",
+        "services/events/bus.py:228:16",
+        "services/events/bus.py:233:16",
+        "services/events/bus.py:299:12",
+        "services/events/bus.py:314:12",
+        "services/events/bus.py:323:16",
+        "services/events/bus.py:339:12",
+        "services/events/bus.py:376:12",
+        "services/events/bus.py:388:12",
+        "services/events/bus.py:401:16",
+        "services/events/bus.py:404:16",
+        "services/events/bus.py:445:16",
+        "services/events/bus.py:474:16",
+        "services/events/bus.py:482:16",
+        "services/events/cli.py:254:12",
+        "services/events/cli.py:283:12",
+        "services/events/fork_detector.py:138:12",
+        "services/events/fork_detector.py:41:12",
+        "services/events/fork_detector.py:64:8",
         "services/events/insight_transfer.py:103:8",
         "services/events/insight_transfer.py:143:8",
         "services/events/insight_transfer.py:170:8",
@@ -79,19 +79,19 @@
         "services/events/notification_delivery_worker.py:49:12",
         "services/events/notification_outbox.py:346:8",
         "services/events/notification_outbox.py:357:8",
-        "services/events/notification_outbox.py:394:8",
-        "services/events/notification_outbox.py:422:12",
-        "services/events/notification_outbox.py:507:8",
-        "services/events/notification_outbox.py:531:8",
-        "services/events/notification_outbox.py:601:8",
-        "services/events/notification_outbox.py:603:8",
-        "services/events/notification_outbox.py:644:8",
-        "services/events/notification_outbox.py:674:8",
-        "services/events/notification_outbox.py:685:8",
-        "services/events/notification_outbox.py:697:8",
-        "services/events/notification_outbox.py:725:8",
-        "services/events/notification_outbox.py:736:8",
-        "services/events/notification_outbox.py:745:8"
+        "services/events/notification_outbox.py:395:8",
+        "services/events/notification_outbox.py:423:12",
+        "services/events/notification_outbox.py:508:8",
+        "services/events/notification_outbox.py:532:8",
+        "services/events/notification_outbox.py:602:8",
+        "services/events/notification_outbox.py:604:8",
+        "services/events/notification_outbox.py:645:8",
+        "services/events/notification_outbox.py:675:8",
+        "services/events/notification_outbox.py:686:8",
+        "services/events/notification_outbox.py:698:8",
+        "services/events/notification_outbox.py:726:8",
+        "services/events/notification_outbox.py:737:8",
+        "services/events/notification_outbox.py:746:8"
       ]
     },
     {
@@ -125,8 +125,8 @@
         "services/common/tenant_context.py:110:8",
         "services/common/tenant_context.py:254:12",
         "services/common/tenant_context.py:255:8",
-        "services/common/worker_database.py:142:12",
-        "services/events/bus.py:88:16",
+        "services/common/worker_database.py:143:12",
+        "services/events/bus.py:106:16",
         "services/events/notification_outbox.py:210:12",
         "services/events/notification_outbox.py:225:12",
         "services/events/notification_outbox.py:245:16",
@@ -184,7 +184,7 @@
       "operation_ref": "scheduled_module:services.ingestion.baal_worker",
       "statically_reachable_sql_site_count": 8,
       "statically_reachable_sql_site_ids": [
-        "services/common/worker_database.py:142:12",
+        "services/common/worker_database.py:143:12",
         "services/ingestion/baal_indexer.py:64:8",
         "services/ingestion/baal_indexer.py:75:8",
         "services/ingestion/baal_indexer.py:88:8",
@@ -214,7 +214,7 @@
       "operation_ref": "scheduled_module:services.ingestion.clickhouse_outbox_worker",
       "statically_reachable_sql_site_count": 3,
       "statically_reachable_sql_site_ids": [
-        "services/common/worker_database.py:142:12",
+        "services/common/worker_database.py:143:12",
         "services/ingestion/clickhouse_outbox_worker.py:21:12",
         "services/ingestion/clickhouse_outbox_worker.py:36:12"
       ]
@@ -241,7 +241,7 @@
         "services/common/tenant_context.py:110:8",
         "services/common/tenant_context.py:254:12",
         "services/common/tenant_context.py:255:8",
-        "services/common/worker_database.py:142:12",
+        "services/common/worker_database.py:143:12",
         "services/ingestion/climate_worker.py:51:12",
         "services/ingestion/climate_worker.py:90:12"
       ]
@@ -300,7 +300,7 @@
       "operation_ref": "scheduled_module:services.ingestion.eas_worker",
       "statically_reachable_sql_site_count": 8,
       "statically_reachable_sql_site_ids": [
-        "services/common/worker_database.py:142:12",
+        "services/common/worker_database.py:143:12",
         "services/ingestion/eas_worker.py:137:20",
         "services/ingestion/eas_worker.py:159:12",
         "services/ingestion/eas_worker.py:187:12",
@@ -316,7 +316,7 @@
       "operation_ref": "scheduled_module:services.ingestion.freshness_worker",
       "statically_reachable_sql_site_count": 18,
       "statically_reachable_sql_site_ids": [
-        "services/common/worker_database.py:142:12",
+        "services/common/worker_database.py:143:12",
         "services/ingestion/data_freshness.py:103:8",
         "services/ingestion/data_freshness.py:155:8",
         "services/ingestion/data_freshness.py:170:8",
@@ -361,7 +361,7 @@
       "operation_ref": "scheduled_module:services.ingestion.gnosis_worker",
       "statically_reachable_sql_site_count": 15,
       "statically_reachable_sql_site_ids": [
-        "services/common/worker_database.py:142:12",
+        "services/common/worker_database.py:143:12",
         "services/ingestion/base.py:207:12",
         "services/ingestion/clickhouse_outbox.py:125:12",
         "services/ingestion/gnosis_indexer.py:121:8",
@@ -397,7 +397,7 @@
       "operation_ref": "scheduled_module:services.ingestion.market_data_worker",
       "statically_reachable_sql_site_count": 2,
       "statically_reachable_sql_site_ids": [
-        "services/common/worker_database.py:142:12",
+        "services/common/worker_database.py:143:12",
         "services/ingestion/market_data_worker.py:55:12"
       ]
     },
@@ -432,7 +432,7 @@
         "services/common/tenant_context.py:110:8",
         "services/common/tenant_context.py:254:12",
         "services/common/tenant_context.py:255:8",
-        "services/common/worker_database.py:142:12",
+        "services/common/worker_database.py:143:12",
         "services/ingestion/remote_sensing_worker.py:160:12",
         "services/ingestion/remote_sensing_worker.py:53:12"
       ]
@@ -462,7 +462,7 @@
       "operation_ref": "scheduled_module:services.ingestion.rpc_worker",
       "statically_reachable_sql_site_count": 6,
       "statically_reachable_sql_site_ids": [
-        "services/common/worker_database.py:142:12",
+        "services/common/worker_database.py:143:12",
         "services/ingestion/rpc_worker.py:108:12",
         "services/ingestion/rpc_worker.py:142:12",
         "services/ingestion/rpc_worker.py:171:12",
@@ -479,7 +479,7 @@
         "services/common/tenant_context.py:110:8",
         "services/common/tenant_context.py:254:12",
         "services/common/tenant_context.py:255:8",
-        "services/common/worker_database.py:142:12",
+        "services/common/worker_database.py:143:12",
         "services/ingestion/sensor_anomaly_worker.py:118:8",
         "services/ingestion/sensor_anomaly_worker.py:125:8"
       ]
@@ -490,10 +490,10 @@
       "operation_ref": "scheduled_module:services.ingestion.sensor_ingester",
       "statically_reachable_sql_site_count": 17,
       "statically_reachable_sql_site_ids": [
-        "services/drivers/registry.py:368:12",
-        "services/drivers/registry.py:523:16",
-        "services/drivers/registry.py:535:20",
-        "services/drivers/registry.py:546:20",
+        "services/drivers/registry.py:424:12",
+        "services/drivers/registry.py:579:16",
+        "services/drivers/registry.py:591:20",
+        "services/drivers/registry.py:602:20",
         "services/ingestion/base.py:157:12",
         "services/ingestion/clickhouse_outbox.py:125:12",
         "services/ingestion/sensor_ingester.py:129:12",
@@ -518,7 +518,7 @@
         "services/common/tenant_context.py:110:8",
         "services/common/tenant_context.py:254:12",
         "services/common/tenant_context.py:255:8",
-        "services/common/worker_database.py:142:12",
+        "services/common/worker_database.py:143:12",
         "services/ingestion/sensor_worker.py:240:12",
         "services/ingestion/sensor_worker.py:271:12",
         "services/ingestion/sensor_worker.py:48:12",
@@ -550,17 +550,17 @@
       "statically_reachable_sql_site_ids": [
         "services/ingestion/base.py:157:12",
         "services/ingestion/clickhouse_outbox.py:125:12",
-        "services/ingestion/weather_forecast.py:104:12",
-        "services/ingestion/weather_forecast.py:154:8",
-        "services/ingestion/weather_forecast.py:159:12",
-        "services/ingestion/weather_forecast.py:160:12",
-        "services/ingestion/weather_forecast.py:163:8",
-        "services/ingestion/weather_forecast.py:305:16",
-        "services/ingestion/weather_forecast.py:325:16",
-        "services/ingestion/weather_forecast.py:331:20",
-        "services/ingestion/weather_forecast.py:332:20",
-        "services/ingestion/weather_forecast.py:382:16",
-        "services/ingestion/weather_forecast.py:388:16"
+        "services/ingestion/weather_forecast.py:109:12",
+        "services/ingestion/weather_forecast.py:159:8",
+        "services/ingestion/weather_forecast.py:164:12",
+        "services/ingestion/weather_forecast.py:165:12",
+        "services/ingestion/weather_forecast.py:168:8",
+        "services/ingestion/weather_forecast.py:310:16",
+        "services/ingestion/weather_forecast.py:330:16",
+        "services/ingestion/weather_forecast.py:336:20",
+        "services/ingestion/weather_forecast.py:337:20",
+        "services/ingestion/weather_forecast.py:387:16",
+        "services/ingestion/weather_forecast.py:393:16"
       ]
     },
     {
@@ -572,9 +572,9 @@
         "services/common/tenant_context.py:110:8",
         "services/common/tenant_context.py:254:12",
         "services/common/tenant_context.py:255:8",
-        "services/common/worker_database.py:142:12",
-        "services/ingestion/weather_forecast_worker.py:44:12",
-        "services/ingestion/weather_forecast_worker.py:85:12"
+        "services/common/worker_database.py:143:12",
+        "services/ingestion/weather_forecast_worker.py:52:12",
+        "services/ingestion/weather_forecast_worker.py:93:12"
       ]
     },
     {
@@ -586,7 +586,7 @@
         "services/common/tenant_context.py:110:8",
         "services/common/tenant_context.py:254:12",
         "services/common/tenant_context.py:255:8",
-        "services/common/worker_database.py:142:12",
+        "services/common/worker_database.py:143:12",
         "services/ingestion/weather_worker.py:113:12",
         "services/ingestion/weather_worker.py:68:12"
       ]
@@ -622,10 +622,10 @@
         "services/metrics/cli.py:152:16",
         "services/metrics/cli.py:177:20",
         "services/metrics/cli.py:79:21",
-        "services/metrics/engine.py:117:4",
-        "services/metrics/engine.py:180:8",
-        "services/metrics/engine.py:47:8",
-        "services/metrics/engine.py:75:8"
+        "services/metrics/engine.py:107:8",
+        "services/metrics/engine.py:163:4",
+        "services/metrics/engine.py:226:8",
+        "services/metrics/engine.py:54:8"
       ]
     },
     {
@@ -637,7 +637,7 @@
         "services/common/tenant_context.py:110:8",
         "services/common/tenant_context.py:254:12",
         "services/common/tenant_context.py:255:8",
-        "services/common/worker_database.py:142:12",
+        "services/common/worker_database.py:143:12",
         "services/metrics/noi_snapshot_worker.py:29:12"
       ]
     },
@@ -711,12 +711,12 @@
         "services/analytics/ecological_modeling.py:16:4",
         "services/analytics/ecological_modeling.py:52:4",
         "services/analytics/ecological_modeling.py:92:4",
-        "services/analytics/ecological_modeling_v2.py:114:4",
+        "services/analytics/ecological_modeling_v2.py:129:4",
         "services/analytics/ecological_modeling_v2.py:15:4",
-        "services/analytics/ecological_modeling_v2.py:166:4",
         "services/analytics/ecological_modeling_v2.py:181:4",
-        "services/analytics/ecological_modeling_v2.py:223:4",
-        "services/analytics/ecological_modeling_v2.py:58:4",
+        "services/analytics/ecological_modeling_v2.py:196:4",
+        "services/analytics/ecological_modeling_v2.py:238:4",
+        "services/analytics/ecological_modeling_v2.py:73:4",
         "services/analytics/livestock_feed.py:15:4",
         "services/analytics/livestock_feed.py:66:4",
         "services/analytics/organic_certification.py:125:4",
@@ -733,7 +733,7 @@
         "services/common/tenant_context.py:192:8",
         "services/common/tenant_context.py:254:12",
         "services/common/tenant_context.py:255:8",
-        "services/common/worker_database.py:142:12"
+        "services/common/worker_database.py:143:12"
       ]
     },
     {
@@ -742,7 +742,7 @@
       "operation_ref": "isolated_worker:services.events.dispatch_worker",
       "statically_reachable_sql_site_count": 2,
       "statically_reachable_sql_site_ids": [
-        "services/common/worker_database.py:142:12",
+        "services/common/worker_database.py:143:12",
         "services/events/dispatch_worker.py:34:16"
       ]
     },
@@ -752,9 +752,21 @@
       "operation_ref": "isolated_worker:services.events.notification_delivery_worker",
       "statically_reachable_sql_site_count": 3,
       "statically_reachable_sql_site_ids": [
-        "services/common/worker_database.py:142:12",
+        "services/common/worker_database.py:143:12",
         "services/events/notification_delivery_worker.py:31:12",
         "services/events/notification_delivery_worker.py:49:12"
+      ]
+    },
+    {
+      "kind": "isolated_worker",
+      "name": "services.export.report_snapshot_export_worker",
+      "operation_ref": "isolated_worker:services.export.report_snapshot_export_worker",
+      "statically_reachable_sql_site_count": 4,
+      "statically_reachable_sql_site_ids": [
+        "services/common/worker_database.py:143:12",
+        "services/export/report_snapshot_export_worker.py:101:12",
+        "services/export/report_snapshot_export_worker.py:154:12",
+        "services/export/report_snapshot_export_worker.py:78:12"
       ]
     },
     {
@@ -771,7 +783,7 @@
         "services/common/tenant_context.py:110:8",
         "services/common/tenant_context.py:254:12",
         "services/common/tenant_context.py:255:8",
-        "services/common/worker_database.py:142:12",
+        "services/common/worker_database.py:143:12",
         "services/registry/cids_export.py:122:12",
         "services/registry/cids_export.py:146:8",
         "services/registry/cids_export.py:167:8",
@@ -796,7 +808,7 @@
         "services/common/tenant_context.py:110:8",
         "services/common/tenant_context.py:254:12",
         "services/common/tenant_context.py:255:8",
-        "services/common/worker_database.py:142:12"
+        "services/common/worker_database.py:143:12"
       ]
     },
     {
@@ -814,7 +826,7 @@
         "services/common/tenant_context.py:110:8",
         "services/common/tenant_context.py:254:12",
         "services/common/tenant_context.py:255:8",
-        "services/common/worker_database.py:142:12"
+        "services/common/worker_database.py:143:12"
       ]
     },
     {
@@ -833,7 +845,7 @@
         "services/common/tenant_context.py:110:8",
         "services/common/tenant_context.py:254:12",
         "services/common/tenant_context.py:255:8",
-        "services/common/worker_database.py:142:12"
+        "services/common/worker_database.py:143:12"
       ]
     },
     {
@@ -852,7 +864,7 @@
         "services/common/tenant_context.py:110:8",
         "services/common/tenant_context.py:254:12",
         "services/common/tenant_context.py:255:8",
-        "services/common/worker_database.py:142:12"
+        "services/common/worker_database.py:143:12"
       ]
     },
     {
@@ -871,7 +883,7 @@
         "services/common/tenant_context.py:110:8",
         "services/common/tenant_context.py:254:12",
         "services/common/tenant_context.py:255:8",
-        "services/common/worker_database.py:142:12"
+        "services/common/worker_database.py:143:12"
       ]
     },
     {
@@ -890,7 +902,7 @@
         "services/common/tenant_context.py:110:8",
         "services/common/tenant_context.py:254:12",
         "services/common/tenant_context.py:255:8",
-        "services/common/worker_database.py:142:12"
+        "services/common/worker_database.py:143:12"
       ]
     },
     {
@@ -904,7 +916,7 @@
         "services/common/tenant_context.py:110:8",
         "services/common/tenant_context.py:254:12",
         "services/common/tenant_context.py:255:8",
-        "services/common/worker_database.py:142:12"
+        "services/common/worker_database.py:143:12"
       ]
     },
     {
@@ -918,7 +930,7 @@
         "services/common/tenant_context.py:110:8",
         "services/common/tenant_context.py:254:12",
         "services/common/tenant_context.py:255:8",
-        "services/common/worker_database.py:142:12"
+        "services/common/worker_database.py:143:12"
       ]
     },
     {
@@ -932,7 +944,7 @@
         "services/common/tenant_context.py:110:8",
         "services/common/tenant_context.py:254:12",
         "services/common/tenant_context.py:255:8",
-        "services/common/worker_database.py:142:12"
+        "services/common/worker_database.py:143:12"
       ]
     },
     {
@@ -946,7 +958,7 @@
         "services/common/tenant_context.py:110:8",
         "services/common/tenant_context.py:254:12",
         "services/common/tenant_context.py:255:8",
-        "services/common/worker_database.py:142:12"
+        "services/common/worker_database.py:143:12"
       ]
     },
     {
@@ -955,7 +967,7 @@
       "operation_ref": "event_handler:services.events.handlers.handle_alert_notification",
       "statically_reachable_sql_site_count": 5,
       "statically_reachable_sql_site_ids": [
-        "services/common/worker_database.py:142:12",
+        "services/common/worker_database.py:143:12",
         "services/events/notification_outbox.py:210:12",
         "services/events/notification_outbox.py:225:12",
         "services/events/notification_outbox.py:245:16",
@@ -968,7 +980,7 @@
       "operation_ref": "event_handler:services.events.handlers.handle_stale_data",
       "statically_reachable_sql_site_count": 5,
       "statically_reachable_sql_site_ids": [
-        "services/common/worker_database.py:142:12",
+        "services/common/worker_database.py:143:12",
         "services/events/notification_outbox.py:210:12",
         "services/events/notification_outbox.py:225:12",
         "services/events/notification_outbox.py:245:16",
@@ -984,7 +996,7 @@
         "services/common/tenant_context.py:110:8",
         "services/common/tenant_context.py:254:12",
         "services/common/tenant_context.py:255:8",
-        "services/common/worker_database.py:142:12",
+        "services/common/worker_database.py:143:12",
         "services/ingestion/sensor_anomaly_worker.py:118:8",
         "services/ingestion/sensor_anomaly_worker.py:125:8"
       ]
@@ -3014,9 +3026,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/analytics/carbon_balance.py:42:4",
+      "id": "services/analytics/carbon_balance.py:43:4",
       "source": "services/analytics/carbon_balance.py",
-      "line": 42,
+      "line": 43,
       "scope": "compute_ghg_emissions",
       "method": "execute",
       "expression_kind": "composed_or_variable",
@@ -3031,9 +3043,9 @@
       "review_status": "function_not_reached_by_any_static_worker_root"
     },
     {
-      "id": "services/analytics/carbon_balance.py:140:8",
+      "id": "services/analytics/carbon_balance.py:141:8",
       "source": "services/analytics/carbon_balance.py",
-      "line": 140,
+      "line": 141,
       "scope": "compute_carbon_balance",
       "method": "execute",
       "expression_kind": "literal",
@@ -3052,9 +3064,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/analytics/carbon_balance.py:147:8",
+      "id": "services/analytics/carbon_balance.py:154:8",
       "source": "services/analytics/carbon_balance.py",
-      "line": 147,
+      "line": 154,
       "scope": "compute_carbon_balance",
       "method": "execute",
       "expression_kind": "literal",
@@ -3073,9 +3085,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/analytics/carbon_balance.py:168:8",
+      "id": "services/analytics/carbon_balance.py:181:8",
       "source": "services/analytics/carbon_balance.py",
-      "line": 168,
+      "line": 181,
       "scope": "compute_carbon_balance",
       "method": "execute",
       "expression_kind": "literal",
@@ -3094,9 +3106,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/analytics/carbon_balance.py:177:8",
+      "id": "services/analytics/carbon_balance.py:190:8",
       "source": "services/analytics/carbon_balance.py",
-      "line": 177,
+      "line": 190,
       "scope": "compute_carbon_balance",
       "method": "execute",
       "expression_kind": "literal",
@@ -3115,9 +3127,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/analytics/carbon_balance.py:205:8",
+      "id": "services/analytics/carbon_balance.py:218:8",
       "source": "services/analytics/carbon_balance.py",
-      "line": 205,
+      "line": 218,
       "scope": "compute_carbon_balance",
       "method": "execute",
       "expression_kind": "literal",
@@ -3136,9 +3148,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/analytics/carbon_balance.py:297:4",
+      "id": "services/analytics/carbon_balance.py:310:4",
       "source": "services/analytics/carbon_balance.py",
-      "line": 297,
+      "line": 310,
       "scope": "list_emission_factors",
       "method": "execute",
       "expression_kind": "composed_or_variable",
@@ -3153,9 +3165,9 @@
       "review_status": "function_not_reached_by_any_static_worker_root"
     },
     {
-      "id": "services/analytics/carbon_balance.py:326:4",
+      "id": "services/analytics/carbon_balance.py:339:4",
       "source": "services/analytics/carbon_balance.py",
-      "line": 326,
+      "line": 339,
       "scope": "list_carbon_benchmarks",
       "method": "execute",
       "expression_kind": "composed_or_variable",
@@ -3237,9 +3249,7 @@
       "expression_kind": "literal",
       "statement_kind": "SELECT",
       "candidate_relations": [
-        "climate_impact_summary",
-        "period_end",
-        "period_start"
+        "climate_impact_summary"
       ],
       "import_closure_operations": [
         "scheduled_module:services.analytics.carbon_credit_adjustment_check"
@@ -3657,9 +3667,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/analytics/ecological_modeling_v2.py:58:4",
+      "id": "services/analytics/ecological_modeling_v2.py:73:4",
       "source": "services/analytics/ecological_modeling_v2.py",
-      "line": 58,
+      "line": 73,
       "scope": "compute_pest_trends",
       "method": "execute",
       "expression_kind": "literal",
@@ -3678,36 +3688,15 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/analytics/ecological_modeling_v2.py:114:4",
+      "id": "services/analytics/ecological_modeling_v2.py:129:4",
       "source": "services/analytics/ecological_modeling_v2.py",
-      "line": 114,
+      "line": 129,
       "scope": "compute_biocontrol_effectiveness",
       "method": "execute",
       "expression_kind": "literal",
       "statement_kind": "SELECT",
       "candidate_relations": [
         "biocontrol_release"
-      ],
-      "import_closure_operations": [
-        "isolated_worker:services.agents.worker_cli"
-      ],
-      "statically_reachable_operations": [
-        "isolated_worker:services.agents.worker_cli"
-      ],
-      "static_link_status": "linked",
-      "function_in_any_worker_graph": true,
-      "review_status": "linked_to_operation"
-    },
-    {
-      "id": "services/analytics/ecological_modeling_v2.py:166:4",
-      "source": "services/analytics/ecological_modeling_v2.py",
-      "line": 166,
-      "scope": "compute_resource_efficiency",
-      "method": "execute",
-      "expression_kind": "literal",
-      "statement_kind": "SELECT",
-      "candidate_relations": [
-        "resource_consumption"
       ],
       "import_closure_operations": [
         "isolated_worker:services.agents.worker_cli"
@@ -3728,6 +3717,27 @@
       "expression_kind": "literal",
       "statement_kind": "SELECT",
       "candidate_relations": [
+        "resource_consumption"
+      ],
+      "import_closure_operations": [
+        "isolated_worker:services.agents.worker_cli"
+      ],
+      "statically_reachable_operations": [
+        "isolated_worker:services.agents.worker_cli"
+      ],
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
+    },
+    {
+      "id": "services/analytics/ecological_modeling_v2.py:196:4",
+      "source": "services/analytics/ecological_modeling_v2.py",
+      "line": 196,
+      "scope": "compute_resource_efficiency",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
         "ecological_harvest_event",
         "location"
       ],
@@ -3742,9 +3752,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/analytics/ecological_modeling_v2.py:223:4",
+      "id": "services/analytics/ecological_modeling_v2.py:238:4",
       "source": "services/analytics/ecological_modeling_v2.py",
-      "line": 223,
+      "line": 238,
       "scope": "compute_conservation_status_summary",
       "method": "execute",
       "expression_kind": "literal",
@@ -4465,6 +4475,7 @@
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "isolated_worker:services.agents.worker_cli",
         "isolated_worker:services.events.dispatch_worker",
+        "isolated_worker:services.export.report_snapshot_export_worker",
         "scheduled_module:services.analytics.carbon_credit_adjustment_check",
         "scheduled_module:services.analytics.carbon_credit_adjustment_worker",
         "scheduled_module:services.events",
@@ -4529,6 +4540,7 @@
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "isolated_worker:services.agents.worker_cli",
         "isolated_worker:services.events.dispatch_worker",
+        "isolated_worker:services.export.report_snapshot_export_worker",
         "scheduled_module:services.analytics.carbon_credit_adjustment_check",
         "scheduled_module:services.analytics.carbon_credit_adjustment_worker",
         "scheduled_module:services.events",
@@ -4593,6 +4605,7 @@
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "isolated_worker:services.agents.worker_cli",
         "isolated_worker:services.events.dispatch_worker",
+        "isolated_worker:services.export.report_snapshot_export_worker",
         "scheduled_module:services.analytics.carbon_credit_adjustment_check",
         "scheduled_module:services.analytics.carbon_credit_adjustment_worker",
         "scheduled_module:services.events",
@@ -5024,9 +5037,9 @@
       "review_status": "function_not_reached_by_any_static_worker_root"
     },
     {
-      "id": "services/common/worker_database.py:142:12",
+      "id": "services/common/worker_database.py:143:12",
       "source": "services/common/worker_database.py",
-      "line": 142,
+      "line": 143,
       "scope": "get_worker_db",
       "method": "execute",
       "expression_kind": "literal",
@@ -5043,6 +5056,7 @@
         "isolated_worker:services.agents.worker_cli",
         "isolated_worker:services.events.dispatch_worker",
         "isolated_worker:services.events.notification_delivery_worker",
+        "isolated_worker:services.export.report_snapshot_export_worker",
         "scheduled_module:services.analytics.carbon_credit_adjustment_worker",
         "scheduled_module:services.events",
         "scheduled_module:services.ingestion.anomaly_detector",
@@ -5079,6 +5093,7 @@
         "isolated_worker:services.agents.worker_cli",
         "isolated_worker:services.events.dispatch_worker",
         "isolated_worker:services.events.notification_delivery_worker",
+        "isolated_worker:services.export.report_snapshot_export_worker",
         "scheduled_module:services.analytics.carbon_credit_adjustment_worker",
         "scheduled_module:services.events",
         "scheduled_module:services.ingestion.anomaly_detector",
@@ -5433,9 +5448,9 @@
       "review_status": "function_not_reached_by_any_static_worker_root"
     },
     {
-      "id": "services/drivers/registry.py:183:16",
+      "id": "services/drivers/registry.py:185:16",
       "source": "services/drivers/registry.py",
-      "line": 183,
+      "line": 185,
       "scope": "DriverRegistry.register",
       "method": "execute",
       "expression_kind": "literal",
@@ -5454,9 +5469,9 @@
       "review_status": "function_not_reached_by_any_static_worker_root"
     },
     {
-      "id": "services/drivers/registry.py:233:16",
+      "id": "services/drivers/registry.py:235:16",
       "source": "services/drivers/registry.py",
-      "line": 233,
+      "line": 235,
       "scope": "DriverRegistry.load",
       "method": "execute",
       "expression_kind": "literal",
@@ -5474,9 +5489,9 @@
       "review_status": "function_not_reached_by_any_static_worker_root"
     },
     {
-      "id": "services/drivers/registry.py:274:20",
+      "id": "services/drivers/registry.py:276:20",
       "source": "services/drivers/registry.py",
-      "line": 274,
+      "line": 276,
       "scope": "DriverRegistry.list_drivers",
       "method": "execute",
       "expression_kind": "literal",
@@ -5494,9 +5509,9 @@
       "review_status": "function_not_reached_by_any_static_worker_root"
     },
     {
-      "id": "services/drivers/registry.py:285:20",
+      "id": "services/drivers/registry.py:287:20",
       "source": "services/drivers/registry.py",
-      "line": 285,
+      "line": 287,
       "scope": "DriverRegistry.list_drivers",
       "method": "execute",
       "expression_kind": "literal",
@@ -5514,9 +5529,29 @@
       "review_status": "function_not_reached_by_any_static_worker_root"
     },
     {
-      "id": "services/drivers/registry.py:327:16",
+      "id": "services/drivers/registry.py:336:16",
       "source": "services/drivers/registry.py",
-      "line": 327,
+      "line": 336,
+      "scope": "DriverRegistry.list_public_drivers_page",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "driver_registry"
+      ],
+      "import_closure_operations": [
+        "scheduled_module:services.ingestion.sensor_ingester",
+        "scheduled_module:services.ingestion.sensor_worker"
+      ],
+      "statically_reachable_operations": [],
+      "static_link_status": "no_static_function_match",
+      "function_in_any_worker_graph": false,
+      "review_status": "function_not_reached_by_any_static_worker_root"
+    },
+    {
+      "id": "services/drivers/registry.py:383:16",
+      "source": "services/drivers/registry.py",
+      "line": 383,
       "scope": "DriverRegistry.list_instances",
       "method": "execute",
       "expression_kind": "fstring",
@@ -5535,9 +5570,9 @@
       "review_status": "function_not_reached_by_any_static_worker_root"
     },
     {
-      "id": "services/drivers/registry.py:368:12",
+      "id": "services/drivers/registry.py:424:12",
       "source": "services/drivers/registry.py",
-      "line": 368,
+      "line": 424,
       "scope": "DriverRegistry.get_schedulable_instance",
       "method": "execute",
       "expression_kind": "literal",
@@ -5558,9 +5593,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/drivers/registry.py:474:16",
+      "id": "services/drivers/registry.py:530:16",
       "source": "services/drivers/registry.py",
-      "line": 474,
+      "line": 530,
       "scope": "DriverRegistry.create_instance",
       "method": "execute",
       "expression_kind": "literal",
@@ -5578,9 +5613,9 @@
       "review_status": "function_not_reached_by_any_static_worker_root"
     },
     {
-      "id": "services/drivers/registry.py:487:16",
+      "id": "services/drivers/registry.py:543:16",
       "source": "services/drivers/registry.py",
-      "line": 487,
+      "line": 543,
       "scope": "DriverRegistry.create_instance",
       "method": "execute",
       "expression_kind": "literal",
@@ -5598,9 +5633,9 @@
       "review_status": "function_not_reached_by_any_static_worker_root"
     },
     {
-      "id": "services/drivers/registry.py:523:16",
+      "id": "services/drivers/registry.py:579:16",
       "source": "services/drivers/registry.py",
-      "line": 523,
+      "line": 579,
       "scope": "DriverRegistry.update_instance_status",
       "method": "execute",
       "expression_kind": "literal",
@@ -5620,9 +5655,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/drivers/registry.py:535:20",
+      "id": "services/drivers/registry.py:591:20",
       "source": "services/drivers/registry.py",
-      "line": 535,
+      "line": 591,
       "scope": "DriverRegistry.update_instance_status",
       "method": "execute",
       "expression_kind": "literal",
@@ -5642,9 +5677,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/drivers/registry.py:546:20",
+      "id": "services/drivers/registry.py:602:20",
       "source": "services/drivers/registry.py",
-      "line": 546,
+      "line": 602,
       "scope": "DriverRegistry.update_instance_status",
       "method": "execute",
       "expression_kind": "literal",
@@ -5664,9 +5699,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/events/bus.py:88:16",
+      "id": "services/events/bus.py:106:16",
       "source": "services/events/bus.py",
-      "line": 88,
+      "line": 106,
       "scope": "EventBus.publish",
       "method": "execute",
       "expression_kind": "literal",
@@ -5692,9 +5727,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/events/bus.py:107:12",
+      "id": "services/events/bus.py:125:12",
       "source": "services/events/bus.py",
-      "line": 107,
+      "line": 125,
       "scope": "EventBus._claim",
       "method": "execute",
       "expression_kind": "literal",
@@ -5722,9 +5757,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/events/bus.py:157:12",
+      "id": "services/events/bus.py:175:12",
       "source": "services/events/bus.py",
-      "line": 157,
+      "line": 175,
       "scope": "EventBus._process_event",
       "method": "execute",
       "expression_kind": "literal",
@@ -5751,9 +5786,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/events/bus.py:176:16",
+      "id": "services/events/bus.py:200:16",
       "source": "services/events/bus.py",
-      "line": 176,
+      "line": 200,
       "scope": "EventBus._process_event",
       "method": "execute",
       "expression_kind": "literal",
@@ -5779,9 +5814,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/events/bus.py:188:16",
+      "id": "services/events/bus.py:212:16",
       "source": "services/events/bus.py",
-      "line": 188,
+      "line": 212,
       "scope": "EventBus._process_event",
       "method": "execute",
       "expression_kind": "literal",
@@ -5808,9 +5843,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/events/bus.py:204:16",
+      "id": "services/events/bus.py:228:16",
       "source": "services/events/bus.py",
-      "line": 204,
+      "line": 228,
       "scope": "EventBus._process_event",
       "method": "execute",
       "expression_kind": "literal",
@@ -5836,9 +5871,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/events/bus.py:209:16",
+      "id": "services/events/bus.py:233:16",
       "source": "services/events/bus.py",
-      "line": 209,
+      "line": 233,
       "scope": "EventBus._process_event",
       "method": "execute",
       "expression_kind": "literal",
@@ -5864,9 +5899,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/events/bus.py:275:12",
+      "id": "services/events/bus.py:299:12",
       "source": "services/events/bus.py",
-      "line": 275,
+      "line": 299,
       "scope": "EventBus._complete",
       "method": "execute",
       "expression_kind": "literal",
@@ -5892,9 +5927,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/events/bus.py:290:12",
+      "id": "services/events/bus.py:314:12",
       "source": "services/events/bus.py",
-      "line": 290,
+      "line": 314,
       "scope": "EventBus._retry_or_dead_letter",
       "method": "execute",
       "expression_kind": "literal",
@@ -5920,9 +5955,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/events/bus.py:299:16",
+      "id": "services/events/bus.py:323:16",
       "source": "services/events/bus.py",
-      "line": 299,
+      "line": 323,
       "scope": "EventBus._retry_or_dead_letter",
       "method": "execute",
       "expression_kind": "literal",
@@ -5950,9 +5985,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/events/bus.py:315:12",
+      "id": "services/events/bus.py:339:12",
       "source": "services/events/bus.py",
-      "line": 315,
+      "line": 339,
       "scope": "EventBus.replay_dead_letter",
       "method": "execute",
       "expression_kind": "literal",
@@ -5982,9 +6017,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/events/bus.py:352:12",
+      "id": "services/events/bus.py:376:12",
       "source": "services/events/bus.py",
-      "line": 352,
+      "line": 376,
       "scope": "EventBus.dispose_dead_letter",
       "method": "execute",
       "expression_kind": "literal",
@@ -6010,9 +6045,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/events/bus.py:364:12",
+      "id": "services/events/bus.py:388:12",
       "source": "services/events/bus.py",
-      "line": 364,
+      "line": 388,
       "scope": "EventBus.get_stats",
       "method": "execute",
       "expression_kind": "literal",
@@ -6038,9 +6073,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/events/bus.py:377:16",
+      "id": "services/events/bus.py:401:16",
       "source": "services/events/bus.py",
-      "line": 377,
+      "line": 401,
       "scope": "EventBus.cleanup_old_events",
       "method": "execute",
       "expression_kind": "literal",
@@ -6064,9 +6099,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/events/bus.py:380:16",
+      "id": "services/events/bus.py:404:16",
       "source": "services/events/bus.py",
-      "line": 380,
+      "line": 404,
       "scope": "EventBus.cleanup_old_events",
       "method": "execute",
       "expression_kind": "literal",
@@ -6092,9 +6127,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/events/bus.py:421:16",
+      "id": "services/events/bus.py:445:16",
       "source": "services/events/bus.py",
-      "line": 421,
+      "line": 445,
       "scope": "EventBus.cleanup_old_events",
       "method": "execute",
       "expression_kind": "literal",
@@ -6124,9 +6159,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/events/bus.py:450:16",
+      "id": "services/events/bus.py:474:16",
       "source": "services/events/bus.py",
-      "line": 450,
+      "line": 474,
       "scope": "EventBus.cleanup_old_events",
       "method": "execute",
       "expression_kind": "literal",
@@ -6152,9 +6187,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/events/bus.py:458:16",
+      "id": "services/events/bus.py:482:16",
       "source": "services/events/bus.py",
-      "line": 458,
+      "line": 482,
       "scope": "EventBus.cleanup_old_events",
       "method": "execute",
       "expression_kind": "literal",
@@ -6180,9 +6215,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/events/cli.py:220:12",
+      "id": "services/events/cli.py:254:12",
       "source": "services/events/cli.py",
-      "line": 220,
+      "line": 254,
       "scope": "cmd_list_handlers",
       "method": "execute",
       "expression_kind": "literal",
@@ -6201,9 +6236,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/events/cli.py:249:12",
+      "id": "services/events/cli.py:283:12",
       "source": "services/events/cli.py",
-      "line": 249,
+      "line": 283,
       "scope": "cmd_list_dead_letter",
       "method": "execute",
       "expression_kind": "literal",
@@ -6242,9 +6277,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/events/fork_detector.py:36:8",
+      "id": "services/events/fork_detector.py:41:12",
       "source": "services/events/fork_detector.py",
-      "line": 36,
+      "line": 41,
       "scope": "detect_fork_opportunities",
       "method": "execute",
       "expression_kind": "literal",
@@ -6263,9 +6298,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/events/fork_detector.py:59:8",
+      "id": "services/events/fork_detector.py:64:8",
       "source": "services/events/fork_detector.py",
-      "line": 59,
+      "line": 64,
       "scope": "detect_fork_opportunities",
       "method": "execute",
       "expression_kind": "fstring",
@@ -6284,9 +6319,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/events/fork_detector.py:133:12",
+      "id": "services/events/fork_detector.py:138:12",
       "source": "services/events/fork_detector.py",
-      "line": 133,
+      "line": 138,
       "scope": "propose_fork_opportunities",
       "method": "execute",
       "expression_kind": "literal",
@@ -6703,9 +6738,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/events/notification_outbox.py:394:8",
+      "id": "services/events/notification_outbox.py:395:8",
       "source": "services/events/notification_outbox.py",
-      "line": 394,
+      "line": 395,
       "scope": "claim_batch",
       "method": "execute",
       "expression_kind": "literal",
@@ -6732,9 +6767,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/events/notification_outbox.py:422:12",
+      "id": "services/events/notification_outbox.py:423:12",
       "source": "services/events/notification_outbox.py",
-      "line": 422,
+      "line": 423,
       "scope": "claim_batch",
       "method": "execute",
       "expression_kind": "literal",
@@ -6759,9 +6794,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/events/notification_outbox.py:507:8",
+      "id": "services/events/notification_outbox.py:508:8",
       "source": "services/events/notification_outbox.py",
-      "line": 507,
+      "line": 508,
       "scope": "_finish_attempt",
       "method": "execute",
       "expression_kind": "literal",
@@ -6786,9 +6821,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/events/notification_outbox.py:531:8",
+      "id": "services/events/notification_outbox.py:532:8",
       "source": "services/events/notification_outbox.py",
-      "line": 531,
+      "line": 532,
       "scope": "_finish_attempt",
       "method": "execute",
       "expression_kind": "literal",
@@ -6813,9 +6848,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/events/notification_outbox.py:601:8",
+      "id": "services/events/notification_outbox.py:602:8",
       "source": "services/events/notification_outbox.py",
-      "line": 601,
+      "line": 602,
       "scope": "get_stats",
       "method": "execute",
       "expression_kind": "literal",
@@ -6840,9 +6875,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/events/notification_outbox.py:603:8",
+      "id": "services/events/notification_outbox.py:604:8",
       "source": "services/events/notification_outbox.py",
-      "line": 603,
+      "line": 604,
       "scope": "get_stats",
       "method": "execute",
       "expression_kind": "literal",
@@ -6868,9 +6903,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/events/notification_outbox.py:644:8",
+      "id": "services/events/notification_outbox.py:645:8",
       "source": "services/events/notification_outbox.py",
-      "line": 644,
+      "line": 645,
       "scope": "list_dead_letters",
       "method": "execute",
       "expression_kind": "literal",
@@ -6895,9 +6930,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/events/notification_outbox.py:674:8",
+      "id": "services/events/notification_outbox.py:675:8",
       "source": "services/events/notification_outbox.py",
-      "line": 674,
+      "line": 675,
       "scope": "replay_dead_letter",
       "method": "execute",
       "expression_kind": "literal",
@@ -6922,9 +6957,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/events/notification_outbox.py:685:8",
+      "id": "services/events/notification_outbox.py:686:8",
       "source": "services/events/notification_outbox.py",
-      "line": 685,
+      "line": 686,
       "scope": "replay_dead_letter",
       "method": "execute",
       "expression_kind": "literal",
@@ -6949,9 +6984,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/events/notification_outbox.py:697:8",
+      "id": "services/events/notification_outbox.py:698:8",
       "source": "services/events/notification_outbox.py",
-      "line": 697,
+      "line": 698,
       "scope": "replay_dead_letter",
       "method": "execute",
       "expression_kind": "literal",
@@ -6976,9 +7011,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/events/notification_outbox.py:725:8",
+      "id": "services/events/notification_outbox.py:726:8",
       "source": "services/events/notification_outbox.py",
-      "line": 725,
+      "line": 726,
       "scope": "dispose_dead_letter",
       "method": "execute",
       "expression_kind": "literal",
@@ -7003,9 +7038,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/events/notification_outbox.py:736:8",
+      "id": "services/events/notification_outbox.py:737:8",
       "source": "services/events/notification_outbox.py",
-      "line": 736,
+      "line": 737,
       "scope": "dispose_dead_letter",
       "method": "execute",
       "expression_kind": "literal",
@@ -7030,9 +7065,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/events/notification_outbox.py:745:8",
+      "id": "services/events/notification_outbox.py:746:8",
       "source": "services/events/notification_outbox.py",
-      "line": 745,
+      "line": 746,
       "scope": "dispose_dead_letter",
       "method": "execute",
       "expression_kind": "literal",
@@ -7139,6 +7174,430 @@
       "static_link_status": "linked",
       "function_in_any_worker_graph": true,
       "review_status": "linked_to_operation"
+    },
+    {
+      "id": "services/export/report_snapshot_export_worker.py:78:12",
+      "source": "services/export/report_snapshot_export_worker.py",
+      "line": 78,
+      "scope": "_claim",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "kokonut_security.claim_report_snapshot_export_batch"
+      ],
+      "import_closure_operations": [
+        "isolated_worker:services.export.report_snapshot_export_worker"
+      ],
+      "statically_reachable_operations": [
+        "isolated_worker:services.export.report_snapshot_export_worker"
+      ],
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
+    },
+    {
+      "id": "services/export/report_snapshot_export_worker.py:101:12",
+      "source": "services/export/report_snapshot_export_worker.py",
+      "line": 101,
+      "scope": "_read_source",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "kokonut_security.read_report_snapshot_export_source"
+      ],
+      "import_closure_operations": [
+        "isolated_worker:services.export.report_snapshot_export_worker"
+      ],
+      "statically_reachable_operations": [
+        "isolated_worker:services.export.report_snapshot_export_worker"
+      ],
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
+    },
+    {
+      "id": "services/export/report_snapshot_export_worker.py:154:12",
+      "source": "services/export/report_snapshot_export_worker.py",
+      "line": 154,
+      "scope": "_finish",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [],
+      "import_closure_operations": [
+        "isolated_worker:services.export.report_snapshot_export_worker"
+      ],
+      "statically_reachable_operations": [
+        "isolated_worker:services.export.report_snapshot_export_worker"
+      ],
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
+    },
+    {
+      "id": "services/export/reports/common.py:192:8",
+      "source": "services/export/reports/common.py",
+      "line": 192,
+      "scope": "fetch_public_interest_context",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "v_public_stakeholder_feedback_summary"
+      ],
+      "import_closure_operations": [
+        "isolated_worker:services.export.report_snapshot_export_worker"
+      ],
+      "statically_reachable_operations": [],
+      "static_link_status": "no_static_function_match",
+      "function_in_any_worker_graph": false,
+      "review_status": "function_not_reached_by_any_static_worker_root"
+    },
+    {
+      "id": "services/export/reports/common.py:205:8",
+      "source": "services/export/reports/common.py",
+      "line": 205,
+      "scope": "fetch_public_interest_context",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "v_public_impact_claim_summary"
+      ],
+      "import_closure_operations": [
+        "isolated_worker:services.export.report_snapshot_export_worker"
+      ],
+      "statically_reachable_operations": [],
+      "static_link_status": "no_static_function_match",
+      "function_in_any_worker_graph": false,
+      "review_status": "function_not_reached_by_any_static_worker_root"
+    },
+    {
+      "id": "services/export/reports/common.py:219:8",
+      "source": "services/export/reports/common.py",
+      "line": 219,
+      "scope": "fetch_public_interest_context",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "impact_claim"
+      ],
+      "import_closure_operations": [
+        "isolated_worker:services.export.report_snapshot_export_worker"
+      ],
+      "statically_reachable_operations": [],
+      "static_link_status": "no_static_function_match",
+      "function_in_any_worker_graph": false,
+      "review_status": "function_not_reached_by_any_static_worker_root"
+    },
+    {
+      "id": "services/export/reports/common.py:250:8",
+      "source": "services/export/reports/common.py",
+      "line": 250,
+      "scope": "fetch_public_interest_context",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "stakeholder_feedback"
+      ],
+      "import_closure_operations": [
+        "isolated_worker:services.export.report_snapshot_export_worker"
+      ],
+      "statically_reachable_operations": [],
+      "static_link_status": "no_static_function_match",
+      "function_in_any_worker_graph": false,
+      "review_status": "function_not_reached_by_any_static_worker_root"
+    },
+    {
+      "id": "services/export/reports/common.py:267:8",
+      "source": "services/export/reports/common.py",
+      "line": 267,
+      "scope": "fetch_public_interest_context",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "v_public_cultural_context_summary"
+      ],
+      "import_closure_operations": [
+        "isolated_worker:services.export.report_snapshot_export_worker"
+      ],
+      "statically_reachable_operations": [],
+      "static_link_status": "no_static_function_match",
+      "function_in_any_worker_graph": false,
+      "review_status": "function_not_reached_by_any_static_worker_root"
+    },
+    {
+      "id": "services/export/reports/common.py:280:8",
+      "source": "services/export/reports/common.py",
+      "line": 280,
+      "scope": "fetch_public_interest_context",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "v_public_wellbeing_metric_summary"
+      ],
+      "import_closure_operations": [
+        "isolated_worker:services.export.report_snapshot_export_worker"
+      ],
+      "statically_reachable_operations": [],
+      "static_link_status": "no_static_function_match",
+      "function_in_any_worker_graph": false,
+      "review_status": "function_not_reached_by_any_static_worker_root"
+    },
+    {
+      "id": "services/export/reports/common.py:294:8",
+      "source": "services/export/reports/common.py",
+      "line": 294,
+      "scope": "fetch_public_interest_context",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "v_public_participatory_governance_summary"
+      ],
+      "import_closure_operations": [
+        "isolated_worker:services.export.report_snapshot_export_worker"
+      ],
+      "statically_reachable_operations": [],
+      "static_link_status": "no_static_function_match",
+      "function_in_any_worker_graph": false,
+      "review_status": "function_not_reached_by_any_static_worker_root"
+    },
+    {
+      "id": "services/export/reports/common.py:308:8",
+      "source": "services/export/reports/common.py",
+      "line": 308,
+      "scope": "fetch_public_interest_context",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "v_public_financial_sustainability_summary"
+      ],
+      "import_closure_operations": [
+        "isolated_worker:services.export.report_snapshot_export_worker"
+      ],
+      "statically_reachable_operations": [],
+      "static_link_status": "no_static_function_match",
+      "function_in_any_worker_graph": false,
+      "review_status": "function_not_reached_by_any_static_worker_root"
+    },
+    {
+      "id": "services/export/reports/common.py:323:8",
+      "source": "services/export/reports/common.py",
+      "line": 323,
+      "scope": "fetch_public_interest_context",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "v_public_risk_mitigation_summary"
+      ],
+      "import_closure_operations": [
+        "isolated_worker:services.export.report_snapshot_export_worker"
+      ],
+      "statically_reachable_operations": [],
+      "static_link_status": "no_static_function_match",
+      "function_in_any_worker_graph": false,
+      "review_status": "function_not_reached_by_any_static_worker_root"
+    },
+    {
+      "id": "services/export/reports/common.py:337:8",
+      "source": "services/export/reports/common.py",
+      "line": 337,
+      "scope": "fetch_public_interest_context",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "v_public_prediction_accuracy"
+      ],
+      "import_closure_operations": [
+        "isolated_worker:services.export.report_snapshot_export_worker"
+      ],
+      "statically_reachable_operations": [],
+      "static_link_status": "no_static_function_match",
+      "function_in_any_worker_graph": false,
+      "review_status": "function_not_reached_by_any_static_worker_root"
+    },
+    {
+      "id": "services/export/reports/common.py:350:8",
+      "source": "services/export/reports/common.py",
+      "line": 350,
+      "scope": "fetch_public_interest_context",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "threat_backcast_plan"
+      ],
+      "import_closure_operations": [
+        "isolated_worker:services.export.report_snapshot_export_worker"
+      ],
+      "statically_reachable_operations": [],
+      "static_link_status": "no_static_function_match",
+      "function_in_any_worker_graph": false,
+      "review_status": "function_not_reached_by_any_static_worker_root"
+    },
+    {
+      "id": "services/export/reports/common.py:367:8",
+      "source": "services/export/reports/common.py",
+      "line": 367,
+      "scope": "fetch_public_interest_context",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "backcast_assumption_challenge",
+        "backcast_plan"
+      ],
+      "import_closure_operations": [
+        "isolated_worker:services.export.report_snapshot_export_worker"
+      ],
+      "statically_reachable_operations": [],
+      "static_link_status": "no_static_function_match",
+      "function_in_any_worker_graph": false,
+      "review_status": "function_not_reached_by_any_static_worker_root"
+    },
+    {
+      "id": "services/export/reports/common.py:378:8",
+      "source": "services/export/reports/common.py",
+      "line": 378,
+      "scope": "fetch_public_interest_context",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "delphi_study",
+        "v_delphi_consensus_public"
+      ],
+      "import_closure_operations": [
+        "isolated_worker:services.export.report_snapshot_export_worker"
+      ],
+      "statically_reachable_operations": [],
+      "static_link_status": "no_static_function_match",
+      "function_in_any_worker_graph": false,
+      "review_status": "function_not_reached_by_any_static_worker_root"
+    },
+    {
+      "id": "services/export/reports/common.py:390:8",
+      "source": "services/export/reports/common.py",
+      "line": 390,
+      "scope": "fetch_public_interest_context",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "v_crisp_composite_rating"
+      ],
+      "import_closure_operations": [
+        "isolated_worker:services.export.report_snapshot_export_worker"
+      ],
+      "statically_reachable_operations": [],
+      "static_link_status": "no_static_function_match",
+      "function_in_any_worker_graph": false,
+      "review_status": "function_not_reached_by_any_static_worker_root"
+    },
+    {
+      "id": "services/export/reports/common.py:403:8",
+      "source": "services/export/reports/common.py",
+      "line": 403,
+      "scope": "fetch_public_interest_context",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "v_prediction_calibration_summary"
+      ],
+      "import_closure_operations": [
+        "isolated_worker:services.export.report_snapshot_export_worker"
+      ],
+      "statically_reachable_operations": [],
+      "static_link_status": "no_static_function_match",
+      "function_in_any_worker_graph": false,
+      "review_status": "function_not_reached_by_any_static_worker_root"
+    },
+    {
+      "id": "services/export/reports/context.py:48:8",
+      "source": "services/export/reports/context.py",
+      "line": 48,
+      "scope": "store_snapshot",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "INSERT",
+      "candidate_relations": [
+        "report_snapshot"
+      ],
+      "import_closure_operations": [
+        "isolated_worker:services.export.report_snapshot_export_worker"
+      ],
+      "statically_reachable_operations": [],
+      "static_link_status": "no_static_function_match",
+      "function_in_any_worker_graph": false,
+      "review_status": "function_not_reached_by_any_static_worker_root"
+    },
+    {
+      "id": "services/export/reports/context.py:87:12",
+      "source": "services/export/reports/context.py",
+      "line": 87,
+      "scope": "list_snapshots",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "report_snapshot"
+      ],
+      "import_closure_operations": [
+        "isolated_worker:services.export.report_snapshot_export_worker"
+      ],
+      "statically_reachable_operations": [],
+      "static_link_status": "no_static_function_match",
+      "function_in_any_worker_graph": false,
+      "review_status": "function_not_reached_by_any_static_worker_root"
+    },
+    {
+      "id": "services/export/reports/context.py:92:12",
+      "source": "services/export/reports/context.py",
+      "line": 92,
+      "scope": "list_snapshots",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "report_snapshot"
+      ],
+      "import_closure_operations": [
+        "isolated_worker:services.export.report_snapshot_export_worker"
+      ],
+      "statically_reachable_operations": [],
+      "static_link_status": "no_static_function_match",
+      "function_in_any_worker_graph": false,
+      "review_status": "function_not_reached_by_any_static_worker_root"
+    },
+    {
+      "id": "services/export/reports/context.py:116:8",
+      "source": "services/export/reports/context.py",
+      "line": 116,
+      "scope": "_verify_snapshot",
+      "method": "execute",
+      "expression_kind": "fstring",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "report_snapshot"
+      ],
+      "import_closure_operations": [
+        "isolated_worker:services.export.report_snapshot_export_worker"
+      ],
+      "statically_reachable_operations": [],
+      "static_link_status": "no_static_function_match",
+      "function_in_any_worker_graph": false,
+      "review_status": "function_not_reached_by_any_static_worker_root"
     },
     {
       "id": "services/governance/baal.py:207:16",
@@ -10826,9 +11285,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/weather_forecast.py:104:12",
+      "id": "services/ingestion/weather_forecast.py:109:12",
       "source": "services/ingestion/weather_forecast.py",
-      "line": 104,
+      "line": 109,
       "scope": "insert_forecasts",
       "method": "execute",
       "expression_kind": "literal",
@@ -10849,9 +11308,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/weather_forecast.py:154:8",
+      "id": "services/ingestion/weather_forecast.py:159:8",
       "source": "services/ingestion/weather_forecast.py",
-      "line": 154,
+      "line": 159,
       "scope": "insert_location_forecasts",
       "method": "execute",
       "expression_kind": "literal",
@@ -10869,9 +11328,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/weather_forecast.py:159:12",
+      "id": "services/ingestion/weather_forecast.py:164:12",
       "source": "services/ingestion/weather_forecast.py",
-      "line": 159,
+      "line": 164,
       "scope": "insert_location_forecasts",
       "method": "execute",
       "expression_kind": "literal",
@@ -10889,9 +11348,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/weather_forecast.py:160:12",
+      "id": "services/ingestion/weather_forecast.py:165:12",
       "source": "services/ingestion/weather_forecast.py",
-      "line": 160,
+      "line": 165,
       "scope": "insert_location_forecasts",
       "method": "execute",
       "expression_kind": "literal",
@@ -10909,9 +11368,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/weather_forecast.py:163:8",
+      "id": "services/ingestion/weather_forecast.py:168:8",
       "source": "services/ingestion/weather_forecast.py",
-      "line": 163,
+      "line": 168,
       "scope": "insert_location_forecasts",
       "method": "execute",
       "expression_kind": "literal",
@@ -10929,9 +11388,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/weather_forecast.py:251:8",
+      "id": "services/ingestion/weather_forecast.py:256:8",
       "source": "services/ingestion/weather_forecast.py",
-      "line": 251,
+      "line": 256,
       "scope": "get_daily_summary",
       "method": "execute",
       "expression_kind": "literal",
@@ -10949,9 +11408,9 @@
       "review_status": "function_not_reached_by_any_static_worker_root"
     },
     {
-      "id": "services/ingestion/weather_forecast.py:271:8",
+      "id": "services/ingestion/weather_forecast.py:276:8",
       "source": "services/ingestion/weather_forecast.py",
-      "line": 271,
+      "line": 276,
       "scope": "get_spray_windows",
       "method": "execute",
       "expression_kind": "literal",
@@ -10969,9 +11428,9 @@
       "review_status": "function_not_reached_by_any_static_worker_root"
     },
     {
-      "id": "services/ingestion/weather_forecast.py:305:16",
+      "id": "services/ingestion/weather_forecast.py:310:16",
       "source": "services/ingestion/weather_forecast.py",
-      "line": 305,
+      "line": 310,
       "scope": "_ingest_locations",
       "method": "execute",
       "expression_kind": "literal",
@@ -10989,9 +11448,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/weather_forecast.py:325:16",
+      "id": "services/ingestion/weather_forecast.py:330:16",
       "source": "services/ingestion/weather_forecast.py",
-      "line": 325,
+      "line": 330,
       "scope": "_ingest_locations",
       "method": "execute",
       "expression_kind": "literal",
@@ -11009,9 +11468,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/weather_forecast.py:331:20",
+      "id": "services/ingestion/weather_forecast.py:336:20",
       "source": "services/ingestion/weather_forecast.py",
-      "line": 331,
+      "line": 336,
       "scope": "_ingest_locations",
       "method": "execute",
       "expression_kind": "literal",
@@ -11029,9 +11488,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/weather_forecast.py:332:20",
+      "id": "services/ingestion/weather_forecast.py:337:20",
       "source": "services/ingestion/weather_forecast.py",
-      "line": 332,
+      "line": 337,
       "scope": "_ingest_locations",
       "method": "execute",
       "expression_kind": "literal",
@@ -11049,9 +11508,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/weather_forecast.py:382:16",
+      "id": "services/ingestion/weather_forecast.py:387:16",
       "source": "services/ingestion/weather_forecast.py",
-      "line": 382,
+      "line": 387,
       "scope": "run",
       "method": "execute",
       "expression_kind": "literal",
@@ -11071,9 +11530,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/weather_forecast.py:388:16",
+      "id": "services/ingestion/weather_forecast.py:393:16",
       "source": "services/ingestion/weather_forecast.py",
-      "line": 388,
+      "line": 393,
       "scope": "run",
       "method": "execute",
       "expression_kind": "literal",
@@ -11093,9 +11552,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/weather_forecast_worker.py:44:12",
+      "id": "services/ingestion/weather_forecast_worker.py:52:12",
       "source": "services/ingestion/weather_forecast_worker.py",
-      "line": 44,
+      "line": 52,
       "scope": "_load_location",
       "method": "execute",
       "expression_kind": "literal",
@@ -11114,9 +11573,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/weather_forecast_worker.py:85:12",
+      "id": "services/ingestion/weather_forecast_worker.py:93:12",
       "source": "services/ingestion/weather_forecast_worker.py",
-      "line": 85,
+      "line": 93,
       "scope": "_store_batch",
       "method": "execute",
       "expression_kind": "literal",
@@ -11551,6 +12010,7 @@
       "expression_kind": "literal",
       "statement_kind": "SELECT",
       "candidate_relations": [
+        "farm",
         "plot",
         "soil_carbon_measurement"
       ],
@@ -11717,30 +12177,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/metrics/engine.py:47:8",
+      "id": "services/metrics/engine.py:54:8",
       "source": "services/metrics/engine.py",
-      "line": 47,
-      "scope": "compute_metric",
-      "method": "execute",
-      "expression_kind": "literal",
-      "statement_kind": "SELECT",
-      "candidate_relations": [
-        "metric_definition"
-      ],
-      "import_closure_operations": [
-        "scheduled_module:services.metrics"
-      ],
-      "statically_reachable_operations": [
-        "scheduled_module:services.metrics"
-      ],
-      "static_link_status": "linked",
-      "function_in_any_worker_graph": true,
-      "review_status": "linked_to_operation"
-    },
-    {
-      "id": "services/metrics/engine.py:75:8",
-      "source": "services/metrics/engine.py",
-      "line": 75,
+      "line": 54,
       "scope": "compute_metric",
       "method": "execute",
       "expression_kind": "literal",
@@ -11759,9 +12198,30 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/metrics/engine.py:117:4",
+      "id": "services/metrics/engine.py:107:8",
       "source": "services/metrics/engine.py",
-      "line": 117,
+      "line": 107,
+      "scope": "compute_metric_draft",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "metric_definition"
+      ],
+      "import_closure_operations": [
+        "scheduled_module:services.metrics"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.metrics"
+      ],
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
+    },
+    {
+      "id": "services/metrics/engine.py:163:4",
+      "source": "services/metrics/engine.py",
+      "line": 163,
       "scope": "compute_all",
       "method": "execute",
       "expression_kind": "literal",
@@ -11780,9 +12240,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/metrics/engine.py:180:8",
+      "id": "services/metrics/engine.py:226:8",
       "source": "services/metrics/engine.py",
-      "line": 180,
+      "line": 226,
       "scope": "verify_metric_value",
       "method": "execute",
       "expression_kind": "literal",

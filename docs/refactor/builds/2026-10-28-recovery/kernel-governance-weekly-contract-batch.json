@@ -1,0 +1,55 @@
+{
+  "date": "2026-10-28",
+  "batch": "governance tension response contract and weekly Prefect schedule description",
+  "changes": {
+    "private_gateway_response_contracts_added": 1,
+    "strict_private_gateway_response_endpoints_total": 55,
+    "weekly_prefect_flow": {
+      "actual_operation": "climate data refresh",
+      "ml_retraining_scheduled": false,
+      "description_corrected": true
+    }
+  },
+  "verification": {
+    "governance_and_prefect_focused_tests": {
+      "result": "passed",
+      "count": 39
+    },
+    "ruff": "passed",
+    "python_compilation": "passed",
+    "git_diff_check": "passed",
+    "runtime_sql_inventory": {
+      "python_3_11": "current",
+      "python_3_12": "current",
+      "unresolved_write_candidates": 37
+    },
+    "capability_matrix": {
+      "result": "valid",
+      "rows": 67,
+      "baseline_retained": 24,
+      "deployed": 7,
+      "prepared": 36,
+      "strict_private_gateway_response_endpoints": 55
+    },
+    "checklist": {
+      "complete": 1428,
+      "open": 25
+    },
+    "todo_ledger": {
+      "complete": 135,
+      "open": 16
+    }
+  },
+  "source_audit": {
+    "directus": "No additional safe location-reference mapping; source_record_ids lacks a table discriminator.",
+    "provider_jobs": "No safe missing JobSpec. The legacy ML retraining flow uses a shared database identity and lacks a signed bounded contract.",
+    "reports": "No additional safe query-scope change without populated fixtures or audience/owner scope decisions."
+  },
+  "scope_limits": [
+    "No migration or database was used.",
+    "No provider, candidate, or legacy service was used.",
+    "No Directus roles, grants, or runtime configuration changed.",
+    "Capability classifications and MAN-CAP acceptance did not change.",
+    "Live OIDC/browser behavior, populated-data parity, universal tenant isolation, and provider runtime acceptance remain open."
+  ]
+}

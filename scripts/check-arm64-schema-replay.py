@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import os
 import re
 import secrets
@@ -18,7 +19,53 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 COMPOSE_FILE = ROOT / "docker-compose.schema-bootstrap.yml"
 SOURCE_READER_MIGRATION = "schema:541_agent_synthesis_source_reader.sql"
+OPERATOR_PROBE = ROOT / "scripts/fixtures/sprint_operator_scope_probe.py"
+OPERATOR_PROBE_CHECKS = frozenset({
+    "runtime and operator-auth logins cannot bypass RLS or create roles or databases",
+    "two synthetic tenant/location/identity/grant sets were created",
+    "both restricted logins are denied direct operator-session reads",
+    "operator-auth login created two sessions through the bounded function",
+    "each real runtime login context sees only its synthetic tenant under forced RLS",
+    "wrong-location denial clears context and tenant-probe visibility",
+    "tenant context is cleared at transaction end",
+    "revoked grant and revoked session both fail closed",
+    "runtime provisioner denied direct table and column access to private relations",
+    "runtime provisioner denied direct mutations on scoped relations and preserved farm-activity ledger reads",
+    "runtime provisioner keeps shared advisory rules readable but immutable",
+    "runtime can read service registry but cannot mutate it",
+    "runtime can read event-handler definitions but cannot mutate the registry",
+    "runtime can read capital-source records but cannot mutate the reporting input",
+    "runtime can read consent categories while dynamic retention policy stays unset by default",
+    "runtime can read seeded crop-nutrient removal factors",
+    "runtime can query shared greenhouse-gas emission-factor references",
+    "runtime can query shared versioned operations protocols",
+    "runtime can read static process maturity levels",
+    "runtime can read static pollinator species references",
+    "runtime can query shared GRI indicator mappings",
+    "runtime can query the governance framework registry",
+    "runtime can query shared impact frameworks",
+    "runtime can query shared impact framework dimensions",
+    "runtime can read governed expense categories",
+    "runtime can query shared CRISP risk dimension definitions",
+    "runtime can query shared currency references",
+    "runtime can read crop GDD configuration",
+    "runtime can read seeded pest degree-day configuration",
+    "runtime can query revenue multiplier configuration",
+    "runtime can read seeded certification types",
+    "runtime can read seeded cooperative types",
+    "runtime can read seeded insurance product types",
+    "runtime can read seeded farmer credential type guidance",
+    "runtime can read shared market reference labels",
+    "runtime can read shared quantity units",
+    "runtime provisioner limited API-key reads to reviewed columns and denied all writes",
+    "runtime can append and read data-access evidence but cannot update, delete, or truncate it",
+})
 sys.path.insert(0, str(ROOT))
+
+from services.migration.runtime_role import (  # noqa: E402
+    _RUNTIME_MUTATION_TABLES,
+    _RUNTIME_PRIVATE_TABLES,
+)
 
 
 class ReplayCommandFailure(RuntimeError):
@@ -99,6 +146,27 @@ def run(
     return result
 
 
+def ensure_disposable_project_unused(project: str, *, command_runner=run) -> None:
+    """Refuse a project with existing resources before any compose teardown is possible."""
+    label = f"label=com.docker.compose.project={project}"
+    checks = (
+        ["docker", "ps", "-a", "--filter", label, "--format", "{{.ID}}"],
+        ["docker", "volume", "ls", "--filter", label, "--format", "{{.Name}}"],
+        ["docker", "network", "ls", "--filter", label, "--format", "{{.ID}}"],
+    )
+    for command in checks:
+        if command_runner(command, capture=True).stdout.strip():
+            raise RuntimeError("disposable Compose project already has resources")
+    volume_names = command_runner(
+        ["docker", "volume", "ls", "--format", "{{.Name}}"], capture=True
+    ).stdout.splitlines()
+    container_names = command_runner(
+        ["docker", "ps", "-a", "--format", "{{.Names}}"], capture=True
+    ).stdout.splitlines()
+    if f"{project}_schema-bootstrap-data" in volume_names or f"{project}-database-1" in container_names:
+        raise RuntimeError("disposable Compose project resource name already exists")
+
+
 def compose_base(project: str) -> list[str]:
     return [
         "docker",
@@ -133,6 +201,277 @@ def migration_command(
     return command
 
 
+def operator_scope_probe_command(container_id: str, client_image: str) -> list[str]:
+    """Run the probe in the replay database's network namespace, without a host port."""
+    if not re.fullmatch(r"[a-f0-9]{12,64}", container_id):
+        raise ValueError("invalid disposable database container ID")
+    return [
+        "docker", "run", "--rm", "--pull=never",
+        "--network", f"container:{container_id}",
+        "--read-only", "--tmpfs", "/tmp:rw,noexec,nosuid,size=64m",
+        "--env", "SPRINT_DISPOSABLE", "--env", "SPRINT_DATABASE",
+        "--env", "SPRINT_ADMIN_PASSWORD", "--env", "SPRINT_RUNTIME_PASSWORD",
+        "--env", "SPRINT_AUTH_PASSWORD", "--env", "PYTHONDONTWRITEBYTECODE=1",
+        "--volume", f"{ROOT / 'services'}:/workspace/services:ro",
+        "--volume", f"{ROOT / 'VERSION'}:/workspace/VERSION:ro",
+        "--volume", f"{OPERATOR_PROBE}:/workspace/probe.py:ro",
+        "--workdir", "/workspace", "--entrypoint", "python3",
+        client_image, "/workspace/probe.py",
+    ]
+
+
+def parse_probe_image_inspection(output: str) -> dict[str, str]:
+    """Validate local probe-image metadata without coupling it to the DB platform."""
+    parts = output.strip().split()
+    if (
+        len(parts) != 2
+        or parts[0] not in {"linux/amd64", "linux/arm64"}
+        or not re.fullmatch(r"sha256:[a-f0-9]{64}", parts[1])
+    ):
+        raise ValueError("probe image inspection returned invalid platform or image ID")
+    return {"platform": parts[0], "image_id": parts[1]}
+
+
+def probe_image_runtime_command(image_id: str) -> list[str]:
+    """Check that Docker can run the local Python probe image before replay."""
+    if not re.fullmatch(r"sha256:[a-f0-9]{64}", image_id):
+        raise ValueError("invalid probe image ID")
+    return [
+        "docker", "run", "--rm", "--pull=never", "--network", "none",
+        "--read-only", "--tmpfs", "/tmp:rw,noexec,nosuid,size=16m",
+        "--entrypoint", "python3", image_id,
+        "-c", "import platform; print(platform.machine())",
+    ]
+
+
+def prepare_operator_scope_probe_image(image_name: str) -> dict[str, str]:
+    """Inspect and launch-check the probe client before an expensive replay."""
+    inspection = run(
+        [
+            "docker", "image", "inspect", image_name,
+            "--format", "{{.Os}}/{{.Architecture}} {{.Id}}",
+        ],
+        capture=True,
+    ).stdout.strip()
+    image = parse_probe_image_inspection(inspection)
+    runtime = run(
+        probe_image_runtime_command(image["image_id"]), capture=True
+    ).stdout.strip()
+    if (
+        not runtime
+        or len(runtime) > 64
+        or not re.fullmatch(r"[A-Za-z0-9_.-]+", runtime)
+    ):
+        raise RuntimeError("probe image returned an invalid Python runtime architecture")
+    return {"name": image_name, **image, "runtime_machine": runtime}
+
+
+def resource_limit_values(memory_limit: str | None, cpu_limit: float | None) -> tuple[int | None, int | None]:
+    """Parse resource budgets into Docker's HostConfig byte and nanocpu units."""
+    memory_bytes = None
+    if memory_limit is not None:
+        match = re.fullmatch(r"([1-9][0-9]*)([KMG]i?B?)?", memory_limit, re.IGNORECASE)
+        if match is None:
+            raise ValueError("memory limit must be a positive byte count or K/KB/KiB, M/MB/MiB, G/GB/GiB value")
+        amount = int(match.group(1))
+        unit = (match.group(2) or "").upper()
+        multiplier = {
+            "": 1,
+            "K": 1000,
+            "KB": 1000,
+            "KIB": 1024,
+            "M": 1000**2,
+            "MB": 1000**2,
+            "MIB": 1024**2,
+            "G": 1000**3,
+            "GB": 1000**3,
+            "GIB": 1024**3,
+        }[unit]
+        memory_bytes = amount * multiplier
+        if memory_bytes < 64 * 1024 * 1024:
+            raise ValueError("memory limit must be at least 64 MiB")
+
+    nano_cpus = None
+    if cpu_limit is not None:
+        if not math.isfinite(cpu_limit) or cpu_limit <= 0 or cpu_limit > 64:
+            raise ValueError("CPU limit must be greater than 0 and at most 64")
+        nano_cpus = round(cpu_limit * 1_000_000_000)
+        if nano_cpus < 1:
+            raise ValueError("CPU limit must round to at least one nanocpu")
+    return memory_bytes, nano_cpus
+
+
+def apply_resource_limits(
+    project: str,
+    *,
+    memory_bytes: int | None,
+    nano_cpus: int | None,
+    env: dict[str, str],
+    command_runner=run,
+) -> dict[str, int] | None:
+    """Set and verify Docker limits on a created but not yet started database."""
+    if memory_bytes is None and nano_cpus is None:
+        return None
+    container_id = command_runner(
+        compose_base(project) + ["ps", "-a", "-q", "database"], env=env, capture=True
+    ).stdout.strip()
+    if not re.fullmatch(r"[a-f0-9]{12,64}", container_id):
+        raise RuntimeError("could not identify the fresh disposable database")
+    update = ["docker", "update"]
+    if memory_bytes is not None:
+        # Docker Desktop requires a finite swap ceiling alongside memory.
+        # Equal values disable swap so the measured memory cap is exact.
+        update.extend(("--memory", str(memory_bytes), "--memory-swap", str(memory_bytes)))
+    if nano_cpus is not None:
+        update.extend(("--cpus", f"{nano_cpus / 1_000_000_000:g}"))
+    update.append(container_id)
+    command_runner(update)
+    inspection = command_runner(
+        [
+            "docker", "inspect", container_id,
+            "--format", "{{.HostConfig.Memory}} {{.HostConfig.MemorySwap}} {{.HostConfig.NanoCpus}}",
+        ],
+        capture=True,
+    ).stdout.strip().split()
+    if len(inspection) != 3:
+        raise RuntimeError("could not verify disposable database resource limits")
+    observed_memory, observed_memory_swap, observed_nano_cpus = map(int, inspection)
+    if (
+        memory_bytes is not None and observed_memory != memory_bytes
+    ) or (
+        memory_bytes is not None and observed_memory_swap != memory_bytes
+    ) or (
+        nano_cpus is not None and observed_nano_cpus != nano_cpus
+    ):
+        raise RuntimeError("Docker did not apply the requested database resource limits")
+    return {
+        "memory_bytes": observed_memory,
+        "memory_swap_bytes": observed_memory_swap,
+        "nano_cpus": observed_nano_cpus,
+    }
+
+
+def parse_operator_scope_probe(output: str) -> dict[str, object]:
+    """Accept only a completed two-tenant probe; never infer success from exit alone."""
+    result = json.loads(output)
+    if not isinstance(result, dict) or result.get("result") != "passed":
+        raise ValueError("operator scope probe did not report success")
+    if any(result.get(key) != 2 for key in (
+        "synthetic_tenant_count", "synthetic_location_count", "synthetic_operator_count"
+    )):
+        raise ValueError("operator scope probe did not cover both synthetic tenants")
+    checks = result.get("checks")
+    if not isinstance(checks, list) or any(not isinstance(item, str) for item in checks):
+        raise ValueError("operator scope probe did not report its checks")
+    if len(checks) != len(OPERATOR_PROBE_CHECKS) or set(checks) != OPERATOR_PROBE_CHECKS:
+        raise ValueError("operator scope probe did not complete every required check")
+    count = result.get("runtime_public_tables_with_dml_and_rls_disabled")
+    if type(count) is not int or count < 0:
+        raise ValueError("operator scope probe did not report its runtime DML exposure")
+    scoped_write = result.get("runtime_scoped_write_policy")
+    expected_scoped_fields = {
+        "private_relations_expected",
+        "mutation_denied_relations_expected",
+        "private_relations_verified",
+        "mutation_denied_relations_verified",
+        "direct_table_privilege_violations",
+        "direct_column_privilege_violations",
+        "farm_activity_ledger_readable",
+        "service_registry_read_only_verified",
+        "append_only_relations_expected",
+        "append_only_relations_verified",
+        "append_only_select_insert_verified",
+        "append_only_mutations_denied",
+        "append_only_column_grants_denied",
+    }
+    if not isinstance(scoped_write, dict) or set(scoped_write) != expected_scoped_fields:
+        raise ValueError("operator scope probe did not report the runtime scoped-write boundary")
+    expected_scoped_values = {
+        "private_relations_expected": len(_RUNTIME_PRIVATE_TABLES),
+        "mutation_denied_relations_expected": len(_RUNTIME_MUTATION_TABLES),
+        "private_relations_verified": len(_RUNTIME_PRIVATE_TABLES),
+        "mutation_denied_relations_verified": len(_RUNTIME_MUTATION_TABLES),
+        "direct_table_privilege_violations": 0,
+        "direct_column_privilege_violations": 0,
+        "farm_activity_ledger_readable": 1,
+        "service_registry_read_only_verified": 1,
+        "append_only_relations_expected": 2,
+        "append_only_relations_verified": 2,
+        "append_only_select_insert_verified": 2,
+        "append_only_mutations_denied": 2,
+        "append_only_column_grants_denied": 2,
+    }
+    mismatched_scoped_values = {
+        key: {"expected": expected, "observed": scoped_write[key]}
+        for key, expected in expected_scoped_values.items()
+        if scoped_write[key] != expected
+    }
+    if type(scoped_write["service_registry_read_only_verified"]) is not int:
+        mismatched_scoped_values["service_registry_read_only_verified"] = {
+            "expected": 1,
+            "observed_type": type(scoped_write["service_registry_read_only_verified"]).__name__,
+        }
+    if mismatched_scoped_values:
+        raise ValueError(
+            "operator scope probe scoped-write ACL mismatch: "
+            + json.dumps(mismatched_scoped_values, sort_keys=True)
+        )
+    if result.get("runtime_api_key_policy") != {
+        "select_columns": [
+            "id", "key_hash", "key_prefix", "role_id", "scopes", "expires_at", "is_active"
+        ],
+        "insert_columns": [],
+        "update_columns": [],
+        "delete": False,
+        "verified_by_provisioner": True,
+    }:
+        raise ValueError("operator scope probe did not verify the API-key column boundary")
+    if result.get("runtime_append_only_policy") != {
+        "relations_expected": 2,
+        "relations_verified": 2,
+        "select_insert_verified": 2,
+        "mutations_denied": 2,
+        "column_grants_denied": 2,
+        "verified_by_provisioner": True,
+    }:
+        raise ValueError("operator scope probe did not verify the append-only audit boundary")
+    relation_acl = result.get("runtime_public_relation_acl")
+    if relation_acl is not None:
+        if not isinstance(relation_acl, list):
+            raise ValueError("operator scope probe returned an invalid relation ACL inventory")
+        required_fields = {
+            "schema", "relation", "kind", "select", "insert", "update",
+            "delete", "truncate", "rls_enabled", "rls_forced",
+        }
+        for relation in relation_acl:
+            if not isinstance(relation, dict) or set(relation) != required_fields:
+                raise ValueError("operator scope probe returned an invalid relation ACL row")
+            if relation["schema"] != "public" or not isinstance(relation["relation"], str):
+                raise ValueError("operator scope probe returned an unexpected relation scope")
+            if relation["kind"] not in {"r", "p", "v", "m", "f"} or any(
+                type(relation[field]) is not bool
+                for field in ("select", "insert", "update", "delete", "truncate", "rls_enabled", "rls_forced")
+            ):
+                raise ValueError("operator scope probe returned invalid relation ACL values")
+        observed = sum(
+            row["kind"] in {"r", "p"}
+            and (row["insert"] or row["update"] or row["delete"])
+            and not row["rls_enabled"]
+            for row in relation_acl
+        )
+        if observed != count:
+            raise ValueError("operator scope probe relation ACL inventory does not match its exposure count")
+        default_acl = result.get("runtime_default_acl")
+        if not isinstance(default_acl, list) or any(
+            not isinstance(row, dict)
+            or set(row) != {"grantor", "object_type", "schema", "runtime_or_public_grantee"}
+            or type(row["runtime_or_public_grantee"]) is not bool
+            for row in default_acl
+        ):
+            raise ValueError("operator scope probe returned an invalid default ACL inventory")
+    return result
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
@@ -143,11 +482,38 @@ def main() -> int:
     parser.add_argument("--platform", default="linux/arm64")
     parser.add_argument("--project", help="unique disposable Compose project name")
     parser.add_argument("--output", type=Path, help="evidence JSON output path")
+    parser.add_argument(
+        "--memory-limit",
+        help="optional disposable database memory cap (for example 1536MiB)",
+    )
+    parser.add_argument(
+        "--cpu-limit",
+        type=float,
+        help="optional disposable database CPU cap (for example 2)",
+    )
+    parser.add_argument(
+        "--operator-scope-probe", action="store_true",
+        help="also exercise synthetic operator logins and tenant context after the full replay",
+    )
+    parser.add_argument(
+        "--probe-image", default="kokonut-kernel-candidate-app:latest",
+        help="locally available, Docker-runnable Python image for the optional operator probe (architecture may differ from the database)",
+    )
     args = parser.parse_args()
+
+    try:
+        memory_bytes, nano_cpus = resource_limit_values(args.memory_limit, args.cpu_limit)
+    except ValueError as exc:
+        parser.error(str(exc))
 
     if args.platform not in {"linux/arm64", "linux/amd64"}:
         parser.error("platform must be linux/arm64 or linux/amd64")
-    project = args.project or f"kokonut-arm64-schema-{date.today():%Y%m%d}-{uuid.uuid4().hex[:8]}"
+    project_prefix = (
+        "kokonut-arm64-schema"
+        if args.platform == "linux/arm64"
+        else "kokonut-native-schema"
+    )
+    project = args.project or f"{project_prefix}-{date.today():%Y%m%d}-{uuid.uuid4().hex[:8]}"
     if not re.fullmatch(r"[a-z0-9][a-z0-9_-]{0,62}", project):
         parser.error("project must be a lowercase Docker Compose project name")
 
@@ -162,7 +528,8 @@ def main() -> int:
     if len(ids) != len(set(ids)):
         raise SystemExit("schema migration IDs must be unique")
 
-    output = args.output or ROOT / "docs/refactor/builds" / f"{date.today():%Y-%m-%d}-recovery" / f"arm64-qemu-current-schema-{ids[-1].split(':', 1)[1].split('_', 1)[0]}.json"
+    platform_label = "arm64-qemu" if args.platform == "linux/arm64" else "native"
+    output = args.output or ROOT / "docs/refactor/builds" / f"{date.today():%Y-%m-%d}-recovery" / f"{platform_label}-current-schema-{ids[-1].split(':', 1)[1].split('_', 1)[0]}.json"
     compose = compose_base(project)
     database = f"kokonut_bootstrap_{os.getpid()}"
     env = os.environ.copy()
@@ -195,12 +562,21 @@ def main() -> int:
         "seeds_applied": 0,
         "farm_data_loaded": False,
         "candidate_or_legacy_touched": False,
+        "resource_limits": {
+            "requested_memory_bytes": memory_bytes,
+            "requested_cpu_count": (nano_cpus / 1_000_000_000) if nano_cpus is not None else None,
+            "verified_database_limits": None,
+        },
         "cleanup": {"attempted": False, "completed": False},
     }
     stage = "image_inspection"
     started_at = time.monotonic()
     project_started = False
+    probe_image: dict[str, str] | None = None
     try:
+        stage = "project_conflict_preflight"
+        ensure_disposable_project_unused(project)
+        stage = "image_inspection"
         image = run(
             ["docker", "image", "inspect", args.image, "--format", "{{.Os}}/{{.Architecture}} {{.Id}}"],
             capture=True,
@@ -213,9 +589,27 @@ def main() -> int:
             "image_id": image[1],
         }
 
+        if args.operator_scope_probe:
+            stage = "operator_scope_probe_image_preflight"
+            probe_image = prepare_operator_scope_probe_image(args.probe_image)
+            evidence["operator_scope_probe_image"] = probe_image
+
         stage = "database_start"
         project_started = True
+        if memory_bytes is not None or nano_cpus is not None:
+            run(compose + ["create", "database"], env=env)
+            evidence["resource_limits"]["verified_database_limits"] = apply_resource_limits(
+                project,
+                memory_bytes=memory_bytes,
+                nano_cpus=nano_cpus,
+                env=env,
+            )
         run(compose + ["up", "-d", "--wait", "database"], env=env)
+        database_container_id = run(
+            compose + ["ps", "-q", "database"], env=env, capture=True
+        ).stdout.strip()
+        if not re.fullmatch(r"[a-f0-9]{12,64}", database_container_id):
+            raise RuntimeError("could not identify the disposable database container")
         run(
             compose
             + ["exec", "-T", "database", "psql", "-X", "-U", "kokonut", "-d", "postgres", "-v", "ON_ERROR_STOP=1"],
@@ -321,15 +715,56 @@ def main() -> int:
         evidence["container_architecture"] = run(
             compose + ["exec", "-T", "database", "uname", "-m"], env=env, capture=True
         ).stdout.strip()
+        evidence["database_oom_killed"] = json.loads(
+            run(
+                ["docker", "inspect", database_container_id, "--format", "{{json .State.OOMKilled}}"],
+                capture=True,
+            ).stdout.strip()
+        )
         if (
             applied != len(ids)
             or pending != 0
             or failed != 0
             or seeds != 0
+            or evidence["database_oom_killed"]
             or status["pg_stat_public_select"]
             or evidence["container_architecture"] != {"linux/arm64": "aarch64", "linux/amd64": "x86_64"}[args.platform]
         ):
             raise RuntimeError("schema count, seed count, or ARM64 architecture check failed")
+        if args.operator_scope_probe:
+            if probe_image is None:
+                raise RuntimeError("operator probe image was not prepared")
+            stage = "operator_scope_probe"
+            probe_env = env.copy()
+            probe_env.update({
+                "SPRINT_DISPOSABLE": "yes",
+                "SPRINT_DATABASE": database,
+                "SPRINT_ADMIN_PASSWORD": env["POSTGRES_PASSWORD"],
+                "SPRINT_RUNTIME_PASSWORD": secrets.token_urlsafe(32),
+                "SPRINT_AUTH_PASSWORD": secrets.token_urlsafe(32),
+            })
+            try:
+                probe_output = run(
+                    operator_scope_probe_command(
+                        database_container_id, probe_image["image_id"]
+                    ),
+                    env=probe_env, capture=True,
+                ).stdout
+            except ReplayCommandFailure as exc:
+                try:
+                    failure = json.loads(exc.stdout)
+                except json.JSONDecodeError:
+                    failure = {}
+                if isinstance(failure, dict):
+                    evidence["operator_scope_probe_failure"] = {
+                        key: failure.get(key) for key in ("result", "stage", "error_type", "sqlstate")
+                    }
+                raise
+            try:
+                evidence["operator_scope_probe"] = parse_operator_scope_probe(probe_output)
+            except ValueError as exc:
+                evidence["operator_scope_probe_parse_failure"] = str(exc)
+                raise
         evidence["result"] = "passed"
     except Exception as exc:  # evidence stores only safe failure metadata
         evidence["failed_stage"] = stage

@@ -1,0 +1,94 @@
+{
+  "date": "2026-10-28",
+  "base_revision": "9cf98338",
+  "scope": "Add strict source-derived OpenAPI and runtime response contracts to six private Gateway route families, covering eleven successful GET endpoints.",
+  "routes": {
+    "crop_simulation": [
+      "/operator/api/crop-simulations/{location_id}/runs",
+      "/operator/api/crop-simulations/{location_id}/runs/{run_id}"
+    ],
+    "geostatistics": [
+      "/operator/api/geostatistics/{location_id}/autocorrelation"
+    ],
+    "trend_analysis": [
+      "/operator/api/trends/{location_id}/estimates",
+      "/operator/api/trends/{location_id}/change-points",
+      "/operator/api/trends/{location_id}/decomposition",
+      "/operator/api/trends/{location_id}/forecast",
+      "/operator/api/trends/{location_id}/smoothing"
+    ],
+    "management_work": [
+      "/operator/api/management/{location_id}/summary"
+    ],
+    "business_planning": [
+      "/operator/api/business-planning/{location_id}/canvases"
+    ],
+    "planning_budget": [
+      "/operator/api/planning/{location_id}/budgets"
+    ]
+  },
+  "contract_properties": [
+    "Reject undeclared or malformed service projection fields with a sanitized no-store error while preserving authorization and database error behavior.",
+    "Bind response location, run, metric, and pagination identity to the request.",
+    "Exclude private crop-run configuration/errors/costs, unneeded geostatistics metadata, participant identities/evidence, and planning/work item text and assumptions.",
+    "Stop advertising pagination when the next offset would exceed 10,000. Crop, business-planning, and planning-budget service readers now enforce this ceiling."
+  ],
+  "crop_pagination_review": {
+    "issue": "Crop run and state readers previously reported has_more from lookahead rows even when the next page would begin beyond offset 10,000; route models also rejected valid empty pages whose requested offset exceeded a small total.",
+    "fix": "Both readers cap has_more using offset + limit; response models reconcile totals and page identity while permitting empty out-of-range pages.",
+    "boundary_coverage": [
+      "offset 9,975 / limit 25 permits continuation to 10,000",
+      "offset 9,976 / limit 25 does not advertise an unsupported continuation",
+      "offset 10,000 does not advertise another page"
+    ]
+  },
+  "checks": [
+    {
+      "command": "pytest focused Gateway tests for crop simulation, geostatistics reads, trend analysis reads, management work reads, business-planning reads/pagination, and planning-budget reads/pagination",
+      "result": "passed",
+      "passed": 188
+    },
+    {
+      "command": "python3 -m pytest -q tests/test_gateway_crop_simulations.py",
+      "result": "passed",
+      "passed": 36
+    },
+    {
+      "command": "ruff check on all changed Gateway modules and tests in this batch",
+      "result": "passed"
+    },
+    {
+      "command": "python3 -m py_compile on all changed Gateway modules and tests in this batch",
+      "result": "passed"
+    },
+    {
+      "command": "python3 scripts/check-capability-matrix.py",
+      "result": "passed",
+      "rows": 67,
+      "classifications": {
+        "baseline_retained": 24,
+        "deployed": 7,
+        "prepared": 36
+      }
+    },
+    {
+      "command": "scripts/runtime_sql_inventory.py --check docs/refactor/runtime-sql-inventory.json",
+      "python_3_11": "passed",
+      "python_3_12": "passed",
+      "tracked_unresolved_write_candidates": 37,
+      "review_ledger_changed": false
+    },
+    {
+      "command": "JSON evidence parsing and git diff --check",
+      "result": "passed"
+    }
+  ],
+  "environment": {
+    "database_used": false,
+    "provider_called": false,
+    "candidate_or_legacy_touched": false
+  },
+  "limitations": [
+    "This establishes source/API contracts only. Populated-data parity, live OIDC/browser acceptance, broader tenant isolation, and physical Raspberry Pi behavior remain separate gates."
+  ]
+}

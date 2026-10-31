@@ -166,10 +166,11 @@ END $$;
 DO $$ BEGIN
 IF NOT EXISTS (SELECT 1 FROM directus_permissions WHERE policy = 'b1000000-0000-0000-0000-000000000005' AND collection = 'stakeholder_feedback' AND action = 'read') THEN
     INSERT INTO directus_permissions (collection, action, permissions, validation, fields, policy) VALUES
-        ('stakeholder_feedback', 'read', '{"_and":[{"status":{"_in":["verified","published"]}},{"is_public":{"_eq":true}},{"consent_given":{"_eq":true}},{"party_id":{"_nnull":true}}]}', '{}', '*', 'b1000000-0000-0000-0000-000000000005');
+        ('stakeholder_feedback', 'read', '{"_and":[{"status":{"_in":["verified","published"]}},{"is_public":{"_eq":true}},{"consent_given":{"_eq":true}},{"party_id":{"_nnull":true}}]}', '{}', 'id,location_id,farm_id,feedback_type,stakeholder_group,feedback_date,sentiment,themes,public_summary,evidence_maturity', 'b1000000-0000-0000-0000-000000000005');
 END IF;
 UPDATE directus_permissions
-SET permissions = '{"_and":[{"status":{"_in":["verified","published"]}},{"is_public":{"_eq":true}},{"consent_given":{"_eq":true}},{"party_id":{"_nnull":true}}]}'
+SET permissions = '{"_and":[{"status":{"_in":["verified","published"]}},{"is_public":{"_eq":true}},{"consent_given":{"_eq":true}},{"party_id":{"_nnull":true}}]}',
+    fields = 'id,location_id,farm_id,feedback_type,stakeholder_group,feedback_date,sentiment,themes,public_summary,evidence_maturity'
 WHERE policy = 'b1000000-0000-0000-0000-000000000005'
   AND collection = 'stakeholder_feedback'
   AND action = 'read';
@@ -456,6 +457,34 @@ IF NOT EXISTS (SELECT 1 FROM directus_permissions WHERE policy = 'b1000000-0000-
         ('agent_action_log', 'read', '{}', '{}', '*', 'b1000000-0000-0000-0000-000000000009'),
         ('digital_lego_usage', 'read', '{}', '{}', '*', 'b1000000-0000-0000-0000-000000000009'),
         ('capital_source', 'read', '{}', '{}', '*', 'b1000000-0000-0000-0000-000000000009');
+END IF;
+END $$;
+
+-- Retirement certificates were added to the fail-closed tenant adapter as a
+-- read-only collection. Give the Auditor role the verifier metadata needed for
+-- forensic review, while keeping beneficiary data, rendered HTML, arbitrary
+-- retirement reason text, the content hash of that private HTML, and free-form
+-- metadata outside the Directus API projection. The row hook still requires an
+-- exact location read grant, and the collection hook denies all writes. Repair
+-- any pre-existing field selection to the same allowlist before ensuring the
+-- rule exists.
+UPDATE directus_permissions
+   SET fields = 'id,retirement_id,credit_id,credit_class_id,credit_batch_id,location_id,certificate_number,retired_tonnes,vintage_year,methodology,attestation_uid,chain,issued_at,status,created_at'
+ WHERE policy = 'b1000000-0000-0000-0000-000000000009'
+   AND collection = 'retirement_certificate'
+   AND action = 'read'
+   AND fields IS DISTINCT FROM 'id,retirement_id,credit_id,credit_class_id,credit_batch_id,location_id,certificate_number,retired_tonnes,vintage_year,methodology,attestation_uid,chain,issued_at,status,created_at';
+
+DO $$ BEGIN
+IF NOT EXISTS (
+    SELECT 1
+      FROM directus_permissions
+     WHERE policy = 'b1000000-0000-0000-0000-000000000009'
+       AND collection = 'retirement_certificate'
+       AND action = 'read'
+) THEN
+    INSERT INTO directus_permissions (collection, action, permissions, validation, fields, policy) VALUES
+        ('retirement_certificate', 'read', '{}', '{}', 'id,retirement_id,credit_id,credit_class_id,credit_batch_id,location_id,certificate_number,retired_tonnes,vintage_year,methodology,attestation_uid,chain,issued_at,status,created_at', 'b1000000-0000-0000-0000-000000000009');
 END IF;
 END $$;
 

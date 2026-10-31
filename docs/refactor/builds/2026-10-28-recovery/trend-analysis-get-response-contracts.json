@@ -1,0 +1,64 @@
+{
+  "date": "2026-10-28",
+  "scope": "Strict OpenAPI and runtime response contracts for five private, location-scoped saved-trend GET endpoints.",
+  "routes": [
+    {
+      "path": "/operator/api/trends/{location_id}/estimates",
+      "response_model": "TrendEstimatesResponse",
+      "constraints": "Strict schema-aligned fields, timezone-aware timestamps, finite numbers, bounded item count, and request-bound location/limit/offset."
+    },
+    {
+      "path": "/operator/api/trends/{location_id}/smoothing",
+      "response_model": "TrendSmoothingResponse",
+      "constraints": "Schema-backed smoothing method, bounded list, finite values, timezone-aware timestamps, and request-bound location/metric/limit."
+    },
+    {
+      "path": "/operator/api/trends/{location_id}/change-points",
+      "response_model": "TrendChangePointsResponse",
+      "constraints": "Schema-backed detection method, direction and status, finite values, bounded list, and request-bound location/metric/limit."
+    },
+    {
+      "path": "/operator/api/trends/{location_id}/decomposition",
+      "response_model": "TrendDecompositionResultResponse",
+      "constraints": "Schema-backed decomposition method, component arrays capped at 200, finite values, truncation counts, and request-bound location/metric."
+    },
+    {
+      "path": "/operator/api/trends/{location_id}/forecast",
+      "response_model": "TrendForecastResultResponse",
+      "constraints": "Schema-backed model/status, forecast and interval arrays capped at 100, finite values, and request-bound location/metric."
+    }
+  ],
+  "privacy_and_errors": {
+    "unselected_database_metadata": "Not selected by current read queries and rejected by nested extra-forbid models.",
+    "malformed_projection": "Sanitized 500 with Cache-Control: no-store and Vary: Cookie.",
+    "existing_authorization_database_and_input_errors": "Preserved by keeping response validation after their existing handlers."
+  },
+  "checks": [
+    {
+      "command": "python3 -m pytest -q tests/test_gateway_trend_analysis_reads.py",
+      "result": "passed",
+      "passed": 45,
+      "coverage": "Existing signed-tenant/read-scope regressions plus valid and malformed projections for all five GET endpoints and OpenAPI success schemas."
+    },
+    {
+      "command": "ruff check services/gateway/trend_analysis_routes.py tests/test_gateway_trend_analysis_reads.py",
+      "result": "passed"
+    },
+    {
+      "command": "python3 -m py_compile services/gateway/trend_analysis_routes.py tests/test_gateway_trend_analysis_reads.py",
+      "result": "passed"
+    },
+    {
+      "command": "git diff --check",
+      "result": "passed"
+    }
+  ],
+  "environment": {
+    "database_used": false,
+    "provider_called": false,
+    "candidate_or_legacy_touched": false
+  },
+  "limitations": [
+    "This closes source/API response contracts only; live OIDC, populated-data parity, and broader tenant isolation remain separate acceptance gates."
+  ]
+}

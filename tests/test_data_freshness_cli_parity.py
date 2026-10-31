@@ -48,9 +48,15 @@ def test_freshness_summary_matches_across_standalone_and_unified_clis(
     rows = [
         {
             "source_system": "weather",
-            "location_name": "Synthetic farm",
-            "status": "fresh",
-            "gap_minutes": 5,
+            "description": "Synthetic weather feed",
+            "expected_interval_minutes": 60,
+            "stale_threshold_minutes": 120,
+            "critical_threshold_minutes": 240,
+            "is_active": True,
+            "latest_data_at": None,
+            "current_status": "fresh",
+            "current_gap_minutes": 5,
+            "critical_alerts_24h": 0,
         }
     ]
     connections = []
@@ -73,8 +79,14 @@ def test_freshness_summary_matches_across_standalone_and_unified_clis(
     assert unified.output == standalone_output
     assert json.loads(unified.output) == rows
     assert len(connections) == 2
+    expected_query = (
+        "SELECT source_system, description, expected_interval_minutes, "
+        "stale_threshold_minutes, critical_threshold_minutes, is_active, "
+        "latest_data_at, current_status, current_gap_minutes, critical_alerts_24h "
+        "FROM v_data_freshness_summary ORDER BY source_system"
+    )
     for connection in connections:
-        assert connection.cursor_instance.query == "SELECT * FROM v_data_freshness_summary"
+        assert " ".join(connection.cursor_instance.query.split()) == expected_query
         assert connection.cursor_instance.closed
         assert connection.closed
     assert unified.stderr == ""

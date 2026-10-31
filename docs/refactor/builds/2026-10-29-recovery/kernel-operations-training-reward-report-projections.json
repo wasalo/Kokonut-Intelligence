@@ -1,0 +1,64 @@
+{
+  "batch": "operations-training-reward-report-projections",
+  "date": "2026-10-29",
+  "base_commit": "b0595db4",
+  "scope": "Replace remaining training-impact and reward-calibration public-view wildcards with ordered schema-backed projections; retain existing location filters, order, payload, and aggregates.",
+  "changes": [
+    {
+      "report": "training_impact",
+      "source": "services/export/reports/operations.py",
+      "view": "v_public_training_impact",
+      "schema": "schemas/postgres/048_economic_social_enhancement.sql",
+      "column_count": 15,
+      "columns": [
+        "id", "location_id", "location_name", "participant_name", "participant_role",
+        "session_date", "session_topic", "session_type", "duration_hours", "pre_score",
+        "post_score", "improvement_pct", "trainer", "notes", "status"
+      ]
+    },
+    {
+      "report": "reward_calibration",
+      "source": "services/export/reports/operations.py",
+      "view": "v_public_reward_calibration",
+      "schema": "schemas/postgres/050_remaining_gaps.sql",
+      "column_count": 15,
+      "columns": [
+        "id", "location_id", "location_name", "model_name", "model_type", "run_date",
+        "input_metrics", "output_weights", "calibration_score", "total_tokens_distributed",
+        "token_per_unit_output", "epoch", "confidence_level", "notes", "status"
+      ]
+    }
+  ],
+  "focused_checks": {
+    "case_count": 37,
+    "runs": [
+      {"command": "python3 -m pytest -q tests/test_financial_resilience.py -k 'risk_mitigation_uses_exact_projection or financial_sustainability_uses_exact_public_projection or scaling_roadmap_filters_location'", "passed": 3},
+      {"command": "python3 -m pytest -q tests/test_capital_efficiency.py -k 'capital_provider_utility_selects_exact_public_view_projection or capital_efficiency_uses_exact_scenario_and_regenerative_projections or governance_throughput_keeps_selected_location_and_public_rows'", "passed": 3},
+      {"command": "python3 -m pytest -q tests/test_commons_liberation.py -k 'governance_inclusion_keeps_selected_location_and_global_rows'", "passed": 1},
+      {"command": "python3 -m pytest -q tests/test_ebf_report_scope.py::test_ebf_scorecard_uses_exact_public_projections_and_preserves_scope_and_payload", "passed": 1},
+      {"command": "python3 -m pytest -q tests/test_open_source_capitalist_scaling.py::test_scaling_reports_use_exact_public_projections_and_preserve_scope_payload", "passed": 1},
+      {"command": "python3 -m pytest -q tests/test_report_generator_cli.py::test_stakeholder_representation_uses_exact_public_projection_and_preserves_payload", "passed": 1},
+      {"command": "python3 -m pytest -q tests/test_remaining_gaps.py::test_token_rewards_report_public_safe", "passed": 1},
+      {"command": "python3 -m pytest -q tests/test_gateway_governance_assignment_proposal_reads.py", "passed": 19},
+      {"command": "python3 -m pytest -q tests/test_operations_report_scope.py -k training_impact", "passed": 6},
+      {"command": "python3 -m pytest -q tests/test_remaining_gaps.py::test_reward_calibration_uses_exact_public_projection_and_preserves_scope_payload", "passed": 1}
+    ],
+    "test_boundary": "Synthetic cursor/response mocks only; no database, provider, candidate, legacy service, or live endpoint was used."
+  },
+  "static_checks": {
+    "ruff": "passed",
+    "python_compile": "passed",
+    "report_generator_source_inventory": "regenerated and check passed",
+    "report_generator_query_scope_inventory": "regenerated and check passed",
+    "report_generator_helper_scope_inventory": "regenerated and check passed",
+    "capability_matrix": "passed: 67 rows; 24 baseline-retained, 7 deployed, 36 prepared",
+    "git_diff_check": "passed"
+  },
+  "rollback": "Revert the two explicit projections, focused regressions, evidence, and generated inventory line updates. No migration or data rollback is needed.",
+  "tracked_progress": {
+    "checklist": "1589 complete / 25 open (1614 total)",
+    "todo": "288 checked / 16 open",
+    "capability_matrix": "67 rows; 24 baseline-retained, 7 deployed, 36 prepared; 99 strict private Gateway response contracts",
+    "man_cap_acceptance": "unchanged; separately gated"
+  }
+}

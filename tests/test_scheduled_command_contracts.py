@@ -407,6 +407,66 @@ def test_anomaly_job_requires_one_explicit_location_before_dispatch():
     assert plan["scheduled_task"]["is_enabled"] is False
 
 
+def test_sensor_anomaly_scan_rejects_naive_since_before_process_dispatch():
+    from services.scheduler.engine import SchedulerEngine
+
+    engine = SchedulerEngine(MagicMock(), worker_id="contract-test")
+    engine._complete_task = MagicMock()
+    arguments = [
+        "--location-id",
+        str(uuid4()),
+        "--since",
+        "2026-10-30T09:30:00",
+    ]
+
+    with patch("services.scheduler.engine.subprocess.run") as run:
+        completed = engine._execute_task(
+            "run-id",
+            "task-id",
+            "sensor anomaly replay",
+            "services.ingestion.sensor_anomaly_scan_worker",
+            arguments,
+            30,
+            None,
+        )
+
+    assert completed is False
+    run.assert_not_called()
+    engine._complete_task.assert_called_once()
+    assert engine._complete_task.call_args.args[2] == "failed"
+    assert engine._complete_task.call_args.kwargs["retryable"] is False
+
+
+@pytest.mark.parametrize(
+    "timestamp",
+    ["2026-10-30T09:30:00Z", "2026-10-30T09:30:00+02:00", "2026-10-30T09:30:00-04:00"],
+)
+def test_sensor_anomaly_scan_accepts_timezone_aware_since(timestamp):
+    arguments = ["--location-id", str(uuid4()), "--since", timestamp]
+
+    assert validate_scheduled_command(
+        "services.ingestion.sensor_anomaly_scan_worker", arguments
+    ) == tuple(arguments)
+
+
+def test_legacy_anomaly_cli_keeps_accepting_naive_since():
+    from services.ingestion import anomaly_detector
+
+    location_id = str(uuid4())
+    timestamp = "2026-10-30 09:30:00"
+    arguments = ["--location-id", location_id, "--since", timestamp]
+
+    assert validate_scheduled_command(
+        "services.ingestion.anomaly_detector", arguments
+    ) == tuple(arguments)
+    with patch.object(anomaly_detector, "run_check") as run_check:
+        anomaly_detector.main(arguments)
+
+    run_check.assert_called_once_with(
+        sensor_id=None, since=timestamp, location_id=location_id
+    )
+
+
 @pytest.mark.parametrize(
     ("enabled", "expected_job"),
     [(False, "anomaly_legacy"), (True, "anomaly")],

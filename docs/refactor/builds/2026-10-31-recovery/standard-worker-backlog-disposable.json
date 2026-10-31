@@ -1,0 +1,65 @@
+{
+  "status": "passed",
+  "timestamp": "2026-10-31T16:01:28.238182+00:00",
+  "check": "standard_worker_due_backlog_age",
+  "database": "network-disabled disposable PostgreSQL 16 container; no host port",
+  "image": "postgres:16",
+  "thresholds_seconds": {
+    "stale": 300,
+    "backlog": 900
+  },
+  "expected": {
+    "events": {
+      "active": 2,
+      "stale": 1,
+      "queued": 3,
+      "oldest_due_seconds": 1200
+    },
+    "notifications": {
+      "active": 2,
+      "stale": 1,
+      "queued": 2,
+      "oldest_due_seconds": 1400
+    },
+    "scheduler": {
+      "active": 2,
+      "stale": 0,
+      "queued": 4,
+      "oldest_due_seconds": 1800
+    }
+  },
+  "actual": {
+    "events": {
+      "active": 2,
+      "stale": 1,
+      "queued": 3,
+      "oldest_due_seconds": 1200
+    },
+    "notifications": {
+      "active": 2,
+      "stale": 1,
+      "queued": 2,
+      "oldest_due_seconds": 1400
+    },
+    "scheduler": {
+      "active": 2,
+      "stale": 0,
+      "queued": 4,
+      "oldest_due_seconds": 1800
+    }
+  },
+  "assertions": [
+    "Event pending rows are counted by created_at; completed and dead-letter rows are excluded.",
+    "Notification pending/retryable rows count only when available_at is due; future retries are excluded.",
+    "Scheduler cadence and retry rows count only when due, enabled, unleased, dependency-ready, and overlap-eligible.",
+    "Current leases are active, expired/missing leases are stale, and dead-letter rows are not queue backlog.",
+    "Future-created pending events are counted but reported with age zero rather than a negative age.",
+    "Probe returns aggregate counts/ages only, with no row identifiers or payload fields.",
+    "PostgreSQL ran with Docker networking disabled and no published host port.",
+    "Disposable container removal was verified before writing evidence."
+  ],
+  "cleanup": {
+    "container_removed": true,
+    "container_absent_after_remove": true
+  }
+}

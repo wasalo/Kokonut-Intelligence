@@ -1,11 +1,16 @@
 """Prefect adapter fan-out uses only the owner-confirmed operating tenant."""
 
+import subprocess
 from unittest.mock import MagicMock, patch
 from uuid import uuid4
 
 import pytest
 
-from services.core.jobs import kokonut_network_location_ids, run_job_for_kokonut_network_locations
+from services.core.jobs import (
+    JobFailed,
+    kokonut_network_location_ids,
+    run_job_for_kokonut_network_locations,
+)
 
 
 def test_location_inventory_uses_readonly_connection_and_canonical_owner_filter():
@@ -63,6 +68,24 @@ def test_fanout_refuses_a_global_job_without_location_input_contract():
         run_job_for_kokonut_network_locations("dashboards")
 
 
+def test_fanout_rejects_additional_required_inputs_before_location_lookup():
+    with (
+        patch(
+            "services.core.jobs.kokonut_network_location_ids",
+            side_effect=AssertionError("unsupported fan-out must fail before inventory lookup"),
+        ) as location_ids,
+        patch(
+            "services.core.jobs.run_job",
+            side_effect=AssertionError("unsupported fan-out must not start jobs"),
+        ) as run_job,
+    ):
+        with pytest.raises(ValueError, match="driver_instance_id"):
+            run_job_for_kokonut_network_locations("sensors")
+
+    location_ids.assert_not_called()
+    run_job.assert_not_called()
+
+
 def test_weather_flow_without_argument_uses_owner_scoped_fanout():
     from services.flows.weather import weather_ingestion_flow
 
@@ -93,3 +116,46 @@ def test_climate_refresh_uses_owner_scoped_locations():
         "results": [{"location_id": location_id, "returncode": 0, "output": "refreshed"}],
     }
     run_job.assert_called_once_with("climate", location_id=location_id)
+
+
+def test_climate_refresh_failure_report_excludes_child_stderr():
+    from services.core.climate_jobs import (
+        ClimateRefreshFailed,
+        refresh_active_locations,
+    )
+
+    location_id = str(uuid4())
+    child_stderr = "provider failed with synthetic-api-key=do-not-log"
+    failure = JobFailed(
+        "Climate data refresh",
+        subprocess.CompletedProcess(
+            args=["climate-worker"],
+            returncode=7,
+            stdout="",
+            stderr=child_stderr,
+        ),
+    )
+
+    with (
+        patch(
+            "services.core.climate_jobs.kokonut_network_location_ids",
+            return_value=[location_id],
+        ),
+        patch("services.core.climate_jobs.run_job", side_effect=failure),
+    ):
+        with pytest.raises(ClimateRefreshFailed) as error:
+            refresh_active_locations()
+
+    assert error.value.report == {
+        "status": "failed",
+        "locations": 1,
+        "failed": 1,
+        "results": [
+            {
+                "location_id": location_id,
+                "returncode": 7,
+                "output": "Climate data refresh failed (exit code 7)",
+            }
+        ],
+    }
+    assert child_stderr not in repr(error.value.report)

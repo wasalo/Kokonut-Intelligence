@@ -123,6 +123,14 @@ FEATURES: dict[str, dict[str, Any]] = {
         "category": "security",
         "description": "Use a dedicated database login and bounded function for event notification enqueue",
     },
+    "isolated_report_snapshot_export_worker": {
+        "enabled": os.getenv(
+            "KOKONUT_FEATURE_ISOLATED_REPORT_SNAPSHOT_EXPORT_WORKER", "false"
+        ).lower() == "true",
+        "critical": False,
+        "category": "security",
+        "description": "Use a dedicated database login and bounded functions for private report snapshot exports",
+    },
     "isolated_notification_delivery": {
         "enabled": os.getenv(
             "KOKONUT_FEATURE_ISOLATED_NOTIFICATION_DELIVERY", "false"

@@ -1,0 +1,48 @@
+{
+  "result": "failed",
+  "date": "2026-10-26",
+  "source_revision": "d5bc847e",
+  "working_tree_dirty": true,
+  "runtime_architecture": "linux/arm64",
+  "execution": "QEMU on Docker host",
+  "database_image": {
+    "name": "kokonut-kernel-postgis-arm64:local",
+    "platform": "linux/arm64",
+    "image_id": "sha256:a0ff166b0949fb1a0224c9f9115e1eb211a3b2e3d3dbb2cd3f927c5901794296"
+  },
+  "isolated_compose_project": "kokonut-arm64-schema-20261026-e1f9b93d",
+  "schema_files_expected": 642,
+  "schema_files_applied": 642,
+  "schema_files_pending": 0,
+  "schema_files_failed": 0,
+  "latest_migration": "651_dashboard_dataset_query_registry",
+  "network_mode": "none",
+  "host_ports_published": false,
+  "seeds_applied": 0,
+  "farm_data_loaded": false,
+  "candidate_or_legacy_touched": false,
+  "cleanup": {
+    "attempted": true,
+    "completed": true
+  },
+  "latest_applied_migration": "schema:651_dashboard_dataset_query_registry.sql",
+  "schema_status": {
+    "seeds": 0,
+    "failed": 0,
+    "latest": "651_dashboard_dataset_query_registry",
+    "applied": 642,
+    "pending": 0,
+    "pg_stat_public_select": false
+  },
+  "pg_stat_statements_public_select": false,
+  "container_architecture": "aarch64",
+  "failed_stage": "operator_scope_probe",
+  "failure": "RuntimeError",
+  "operator_scope_probe_image": {
+    "name": "kokonut-kernel-candidate-app:latest",
+    "platform": "linux/amd64",
+    "image_id": "sha256:4f5094ed9f5f246c6b6368d08935b287541db1e9a21eb97b0678837b2171b279"
+  },
+  "failure_detail": "The optional post-replay probe correctly rejected its linux/amd64 client image because this run requested linux/arm64. All 642 schema migrations had passed with zero pending or failed entries; the temporary Compose project was removed. The probe did not run.",
+  "elapsed_seconds": 1558.6
+}

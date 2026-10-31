@@ -11,7 +11,7 @@ import {
   aggregate as aggregateItems,
 } from '@directus/sdk';
 import type { AuthenticationData } from '@directus/sdk';
-import { normalizeDirectusError } from './errors.js';
+import { normalizeDirectusError, ValidationError } from './errors.js';
 import type {
   AssessmentDimension,
   AssessmentSignal,
@@ -89,6 +89,17 @@ import type {
   VariogramModel,
   WeatherObservation,
 } from './types.js';
+
+function encodeDirectusPathSegment(value: string, name: string): string {
+  if (typeof value !== 'string') {
+    throw new TypeError(`${name} must be a string`);
+  }
+  if (value.length === 0 || value === '.' || value === '..') {
+    throw new TypeError(`${name} must be a non-empty path segment`);
+  }
+  return encodeURIComponent(value);
+}
+
 import {
   buildLocationReadMethods,
   buildReferenceReadMethods,
@@ -115,6 +126,13 @@ import {
   buildExportMethods,
   buildNoiMethods,
 } from './methods.js';
+
+const READ_ONLY_PROJECTION_COLLECTIONS = new Set([
+  'attestation_record',
+  'export_log',
+  'noi_snapshot',
+  'report_snapshot',
+]);
 import type {
   LocationReadMethods,
   ReferenceReadMethods,
@@ -371,9 +389,21 @@ export class KokonutClient {
   }
 
   async listItems(collection: string, options?: ListOptions): Promise<any[]> {
-    const query: Record<string, any> = { ...(options ?? {}) };
+    const query: Record<string, any> = {
+      ...(options?.extraParams ?? {}),
+      ...(options ?? {}),
+    };
 
-    for (const key of ['filter', 'sort', 'fields', 'limit', 'offset', 'page', 'meta']) {
+    for (const key of [
+      'extraParams',
+      'filter',
+      'sort',
+      'fields',
+      'limit',
+      'offset',
+      'page',
+      'meta',
+    ]) {
       delete query[key];
     }
 
@@ -391,39 +421,84 @@ export class KokonutClient {
     }
     if (options?.meta !== undefined) query.meta = options.meta;
 
-    return this.execute(() => this.directus.request(readItems(collection, query)));
+    return this.execute(() =>
+      this.directus.request(readItems(encodeDirectusPathSegment(collection, 'collection'), query)),
+    );
   }
 
   async getItem(collection: string, id: string, fields?: string[]): Promise<any> {
     const query: Record<string, any> = {};
     if (fields) query.fields = fields;
 
-    return this.execute(() => this.directus.request(readItem(collection, id, query)));
+    return this.execute(() =>
+      this.directus.request(
+        readItem(
+          encodeDirectusPathSegment(collection, 'collection'),
+          encodeDirectusPathSegment(id, 'id'),
+          query,
+        ),
+      ),
+    );
   }
 
   async createItem(collection: string, data: Record<string, any>): Promise<any> {
-    return this.execute(() => this.directus.request(createItem(collection, data)));
+    this.assertGenericWriteAllowed(collection);
+    return this.execute(() =>
+      this.directus.request(createItem(encodeDirectusPathSegment(collection, 'collection'), data)),
+    );
   }
 
   async createItems(collection: string, data: Record<string, any>[]): Promise<any[]> {
-    return this.execute(() => this.directus.request(createItems(collection, data)));
+    this.assertGenericWriteAllowed(collection);
+    return this.execute(() =>
+      this.directus.request(createItems(encodeDirectusPathSegment(collection, 'collection'), data)),
+    );
   }
 
   async updateItem(collection: string, id: string, data: Record<string, any>): Promise<any> {
-    return this.execute(() => this.directus.request(updateItem(collection, id, data)));
+    this.assertGenericWriteAllowed(collection);
+    return this.execute(() =>
+      this.directus.request(
+        updateItem(
+          encodeDirectusPathSegment(collection, 'collection'),
+          encodeDirectusPathSegment(id, 'id'),
+          data,
+        ),
+      ),
+    );
   }
 
   async deleteItem(collection: string, id: string): Promise<void> {
-    await this.execute(() => this.directus.request(deleteItem(collection, id)));
+    this.assertGenericWriteAllowed(collection);
+    await this.execute(() =>
+      this.directus.request(
+        deleteItem(
+          encodeDirectusPathSegment(collection, 'collection'),
+          encodeDirectusPathSegment(id, 'id'),
+        ),
+      ),
+    );
   }
 
   async aggregate(collection: string, options: KokonutAggregationOptions): Promise<any[]> {
-    return this.execute(() => this.directus.request(aggregateItems(collection, options)));
+    return this.execute(() =>
+      this.directus.request(
+        aggregateItems(encodeDirectusPathSegment(collection, 'collection'), options),
+      ),
+    );
   }
 
   private async execute<T>(operation: () => Promise<T>): Promise<T> {
     await this.ready;
     return this.run(operation);
+  }
+
+  private assertGenericWriteAllowed(collection: string): void {
+    if (READ_ONLY_PROJECTION_COLLECTIONS.has(collection)) {
+      throw new ValidationError(
+        `Generic SDK mutations are disabled for read-only collection '${collection}'`,
+      );
+    }
   }
 
   private async run<T>(operation: () => Promise<T>): Promise<T> {

@@ -6,8 +6,9 @@ Compares raw vs processed revenue, estimates upside from value addition.
 """
 
 import psycopg2.extras
-from ..models import OpportunityDimension
+
 from ..config import get_config
+from ..models import OpportunityDimension
 
 
 def analyze(conn, location_id: str) -> OpportunityDimension:
@@ -31,6 +32,7 @@ def analyze(conn, location_id: str) -> OpportunityDimension:
             SUM(COALESCE(s.net_amount, s.total_amount - COALESCE(s.return_amount, 0) - COALESCE(s.discount_amount, 0))) as total_net
         FROM sales_event s
         JOIN crop_cycle cc ON s.crop_cycle_id = cc.id
+                           AND cc.location_id = s.location_id
         JOIN crop c ON cc.crop_id = c.id
         WHERE s.location_id = %s AND s.status IN ('verified', 'published')
         GROUP BY c.name, COALESCE(s.buyer_type, 'raw')
@@ -91,7 +93,6 @@ def analyze(conn, location_id: str) -> OpportunityDimension:
     score = min(100, max(0, processed_pct))
 
     # If there's infrastructure but low processing, bonus
-    has_storage = any(c.get("asset_type") == "storage" for c in capacity)
     has_processing = any(c.get("asset_type") in ("processing", "biofactory") for c in capacity)
     if has_processing and processed_pct < 50:
         score *= value_added_infra_bonus
@@ -99,7 +100,6 @@ def analyze(conn, location_id: str) -> OpportunityDimension:
 
     # Impact: revenue uplift if processing increases
     # If we can shift more raw to processed, what's the gain?
-    potential_uplift_per_dollar = value_added_uplift_multiplier
     raw_for_processing = raw_revenue * 0.5  # 50% of raw could be processed
     processing_cost = raw_for_processing * value_added_cost_assumption
     impact = raw_for_processing * (value_added_uplift_multiplier - 1) - processing_cost

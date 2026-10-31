@@ -5,19 +5,19 @@
   "status": "review_required",
   "operation_coverage": {
     "scheduled_allowlist_count": 32,
-    "isolated_worker_root_count": 3,
+    "isolated_worker_root_count": 4,
     "signed_source_function_count": 7,
     "event_handler_allowlist_count": 7,
-    "expected_operation_count": 49,
-    "source_closure_operation_count": 49,
-    "function_graph_operation_count": 49,
+    "expected_operation_count": 50,
+    "source_closure_operation_count": 50,
+    "function_graph_operation_count": 50,
     "missing_source_closure_operations": [],
     "missing_function_graph_operations": [],
     "unresolved_function_roots": 0,
     "passed": true
   },
   "source_closure": {
-    "source_file_count": 136,
+    "source_file_count": 142,
     "unresolved_local_module_count": 0,
     "dynamic_import_site_count": 4,
     "passed": true
@@ -25,27 +25,27 @@
   "worker_identity": {
     "database_identity": "source_policy_varies_live_configuration_not_assessed",
     "signed_tenant_context_established_by_dispatch": false,
-    "unbound_operation_root_count": 42,
+    "unbound_operation_root_count": 43,
     "signed_source_function_roots_establish_context_in_function": 7,
     "status": "not_tenant_bound"
   },
   "sql_reachability": {
-    "execution_site_count": 471,
-    "sites_with_static_operation_path": 404,
-    "sites_without_static_function_match": 67,
+    "execution_site_count": 494,
+    "sites_with_static_operation_path": 407,
+    "sites_without_static_function_match": 87,
     "site_refs_for_review": [
       {
-        "site": "services/analytics/carbon_balance.py:297:4",
+        "site": "services/analytics/carbon_balance.py:310:4",
         "review_status": "function_not_reached_by_any_static_worker_root",
         "import_closure_operation_count": 1
       },
       {
-        "site": "services/analytics/carbon_balance.py:326:4",
+        "site": "services/analytics/carbon_balance.py:339:4",
         "review_status": "function_not_reached_by_any_static_worker_root",
         "import_closure_operation_count": 1
       },
       {
-        "site": "services/analytics/carbon_balance.py:42:4",
+        "site": "services/analytics/carbon_balance.py:43:4",
         "review_status": "function_not_reached_by_any_static_worker_root",
         "import_closure_operation_count": 1
       },
@@ -187,17 +187,17 @@
       {
         "site": "services/common/database.py:142:12",
         "review_status": "function_not_reached_by_any_static_worker_root",
-        "import_closure_operation_count": 48
+        "import_closure_operation_count": 49
       },
       {
         "site": "services/common/database.py:77:15",
         "review_status": "function_not_reached_by_any_static_worker_root",
-        "import_closure_operation_count": 48
+        "import_closure_operation_count": 49
       },
       {
         "site": "services/common/database.py:80:8",
         "review_status": "function_not_reached_by_any_static_worker_root",
-        "import_closure_operation_count": 48
+        "import_closure_operation_count": 49
       },
       {
         "site": "services/common/tenant_context.py:309:8",
@@ -300,37 +300,42 @@
         "import_closure_operation_count": 1
       },
       {
-        "site": "services/drivers/registry.py:183:16",
+        "site": "services/drivers/registry.py:185:16",
         "review_status": "function_not_reached_by_any_static_worker_root",
         "import_closure_operation_count": 2
       },
       {
-        "site": "services/drivers/registry.py:233:16",
+        "site": "services/drivers/registry.py:235:16",
         "review_status": "function_not_reached_by_any_static_worker_root",
         "import_closure_operation_count": 2
       },
       {
-        "site": "services/drivers/registry.py:274:20",
+        "site": "services/drivers/registry.py:276:20",
         "review_status": "function_not_reached_by_any_static_worker_root",
         "import_closure_operation_count": 2
       },
       {
-        "site": "services/drivers/registry.py:285:20",
+        "site": "services/drivers/registry.py:287:20",
         "review_status": "function_not_reached_by_any_static_worker_root",
         "import_closure_operation_count": 2
       },
       {
-        "site": "services/drivers/registry.py:327:16",
+        "site": "services/drivers/registry.py:336:16",
         "review_status": "function_not_reached_by_any_static_worker_root",
         "import_closure_operation_count": 2
       },
       {
-        "site": "services/drivers/registry.py:474:16",
+        "site": "services/drivers/registry.py:383:16",
         "review_status": "function_not_reached_by_any_static_worker_root",
         "import_closure_operation_count": 2
       },
       {
-        "site": "services/drivers/registry.py:487:16",
+        "site": "services/drivers/registry.py:530:16",
+        "review_status": "function_not_reached_by_any_static_worker_root",
+        "import_closure_operation_count": 2
+      },
+      {
+        "site": "services/drivers/registry.py:543:16",
         "review_status": "function_not_reached_by_any_static_worker_root",
         "import_closure_operation_count": 2
       },
@@ -341,6 +346,101 @@
       },
       {
         "site": "services/events/insight_transfer.py:254:8",
+        "review_status": "function_not_reached_by_any_static_worker_root",
+        "import_closure_operation_count": 1
+      },
+      {
+        "site": "services/export/reports/common.py:192:8",
+        "review_status": "function_not_reached_by_any_static_worker_root",
+        "import_closure_operation_count": 1
+      },
+      {
+        "site": "services/export/reports/common.py:205:8",
+        "review_status": "function_not_reached_by_any_static_worker_root",
+        "import_closure_operation_count": 1
+      },
+      {
+        "site": "services/export/reports/common.py:219:8",
+        "review_status": "function_not_reached_by_any_static_worker_root",
+        "import_closure_operation_count": 1
+      },
+      {
+        "site": "services/export/reports/common.py:250:8",
+        "review_status": "function_not_reached_by_any_static_worker_root",
+        "import_closure_operation_count": 1
+      },
+      {
+        "site": "services/export/reports/common.py:267:8",
+        "review_status": "function_not_reached_by_any_static_worker_root",
+        "import_closure_operation_count": 1
+      },
+      {
+        "site": "services/export/reports/common.py:280:8",
+        "review_status": "function_not_reached_by_any_static_worker_root",
+        "import_closure_operation_count": 1
+      },
+      {
+        "site": "services/export/reports/common.py:294:8",
+        "review_status": "function_not_reached_by_any_static_worker_root",
+        "import_closure_operation_count": 1
+      },
+      {
+        "site": "services/export/reports/common.py:308:8",
+        "review_status": "function_not_reached_by_any_static_worker_root",
+        "import_closure_operation_count": 1
+      },
+      {
+        "site": "services/export/reports/common.py:323:8",
+        "review_status": "function_not_reached_by_any_static_worker_root",
+        "import_closure_operation_count": 1
+      },
+      {
+        "site": "services/export/reports/common.py:337:8",
+        "review_status": "function_not_reached_by_any_static_worker_root",
+        "import_closure_operation_count": 1
+      },
+      {
+        "site": "services/export/reports/common.py:350:8",
+        "review_status": "function_not_reached_by_any_static_worker_root",
+        "import_closure_operation_count": 1
+      },
+      {
+        "site": "services/export/reports/common.py:367:8",
+        "review_status": "function_not_reached_by_any_static_worker_root",
+        "import_closure_operation_count": 1
+      },
+      {
+        "site": "services/export/reports/common.py:378:8",
+        "review_status": "function_not_reached_by_any_static_worker_root",
+        "import_closure_operation_count": 1
+      },
+      {
+        "site": "services/export/reports/common.py:390:8",
+        "review_status": "function_not_reached_by_any_static_worker_root",
+        "import_closure_operation_count": 1
+      },
+      {
+        "site": "services/export/reports/common.py:403:8",
+        "review_status": "function_not_reached_by_any_static_worker_root",
+        "import_closure_operation_count": 1
+      },
+      {
+        "site": "services/export/reports/context.py:116:8",
+        "review_status": "function_not_reached_by_any_static_worker_root",
+        "import_closure_operation_count": 1
+      },
+      {
+        "site": "services/export/reports/context.py:48:8",
+        "review_status": "function_not_reached_by_any_static_worker_root",
+        "import_closure_operation_count": 1
+      },
+      {
+        "site": "services/export/reports/context.py:87:12",
+        "review_status": "function_not_reached_by_any_static_worker_root",
+        "import_closure_operation_count": 1
+      },
+      {
+        "site": "services/export/reports/context.py:92:12",
         "review_status": "function_not_reached_by_any_static_worker_root",
         "import_closure_operation_count": 1
       },
@@ -360,12 +460,12 @@
         "import_closure_operation_count": 1
       },
       {
-        "site": "services/ingestion/weather_forecast.py:251:8",
+        "site": "services/ingestion/weather_forecast.py:256:8",
         "review_status": "function_not_reached_by_any_static_worker_root",
         "import_closure_operation_count": 2
       },
       {
-        "site": "services/ingestion/weather_forecast.py:271:8",
+        "site": "services/ingestion/weather_forecast.py:276:8",
         "review_status": "function_not_reached_by_any_static_worker_root",
         "import_closure_operation_count": 2
       }

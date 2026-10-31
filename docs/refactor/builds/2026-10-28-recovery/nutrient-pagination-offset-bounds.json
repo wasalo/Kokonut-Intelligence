@@ -1,0 +1,25 @@
+{
+  "date": "2026-10-28",
+  "source_revision": "753b4645",
+  "slice": "gateway_nutrient_pagination_offset_bounds",
+  "result": "passed",
+  "routes": [
+    "/operator/api/nutrients/{location_id}/balances",
+    "/operator/api/nutrients/{location_id}/soil-tests",
+    "/operator/api/nutrients/{location_id}/events/{event_type}"
+  ],
+  "contract": {
+    "offset_default": 0,
+    "offset_minimum": 0,
+    "offset_maximum": 10000,
+    "invalid_values_rejected_before_service_access": [-1, 10001]
+  },
+  "verification": {
+    "pytest_command": "python3 -m pytest tests/test_gateway_nutrient_pagination_openapi.py tests/test_gateway_nutrient_balances.py tests/test_gateway_nutrient_soil_tests.py tests/test_gateway_nutrient_events.py -q",
+    "pytest_result": "50 passed",
+    "ruff": "passed",
+    "py_compile": "passed",
+    "git_diff_check": "passed"
+  },
+  "scope": "Synthetic FastAPI/OpenAPI and mocked service-boundary checks only; no database, provider, network, candidate, or legacy service was used."
+}

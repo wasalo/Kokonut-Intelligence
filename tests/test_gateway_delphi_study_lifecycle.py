@@ -305,8 +305,12 @@ def test_route_uses_session_identity_exact_action_and_private_response(action, s
         "study_id": STUDY_ID,
         "location_id": LOCATION_ID,
         "status": status,
-        "opened_at": OPENED_AT.isoformat(),
-        "closed_at": CLOSED_AT.isoformat() if action == "close" else None,
+        "opened_at": OPENED_AT.isoformat().replace("+00:00", "Z"),
+        "closed_at": (
+            CLOSED_AT.isoformat().replace("+00:00", "Z")
+            if action == "close"
+            else None
+        ),
         "replayed": False,
     }
 
@@ -389,6 +393,102 @@ def test_open_readiness_route_uses_session_identity_and_no_store():
     assert calls[0][1] == (OPERATOR_ID, LOCATION_ID, STUDY_ID)
 
 
+def test_open_readiness_route_publishes_a_strict_success_contract():
+    operation = _make_app(object(), lambda *_args, **_kwargs: None).openapi()["paths"][
+        "/operator/api/delphi/{location_id}/studies/{study_id}/open-readiness"
+    ]["get"]
+
+    assert operation["responses"]["200"]["content"]["application/json"]["schema"] == {
+        "$ref": "#/components/schemas/DelphiStudyOpenReadinessResponse"
+    }
+    schema = _make_app(object(), lambda *_args, **_kwargs: None).openapi()["components"][
+        "schemas"
+    ]["DelphiStudyOpenReadinessResponse"]
+    assert schema["additionalProperties"] is False
+    assert set(schema["required"]) == {
+        "study_id",
+        "location_id",
+        "status",
+        "has_question",
+        "minimum_policy_valid",
+        "consent_minimum_met",
+        "eligible_to_open",
+        "blocker_codes",
+    }
+
+
+@pytest.mark.parametrize(
+    "invalid_result",
+    [
+        {
+            "study_id": STUDY_ID,
+            "location_id": LOCATION_ID,
+            "status": "draft",
+            "has_question": True,
+            "minimum_policy_valid": True,
+            "consent_minimum_met": True,
+            "eligible_to_open": True,
+            "blocker_codes": [],
+            "private_internal_field": "must not escape",
+        },
+        {
+            "study_id": STUDY_ID,
+            "location_id": str(uuid4()),
+            "status": "draft",
+            "has_question": True,
+            "minimum_policy_valid": True,
+            "consent_minimum_met": True,
+            "eligible_to_open": True,
+            "blocker_codes": [],
+        },
+        {
+            "study_id": STUDY_ID,
+            "location_id": LOCATION_ID,
+            "status": "submitted",
+            "has_question": True,
+            "minimum_policy_valid": True,
+            "consent_minimum_met": True,
+            "eligible_to_open": True,
+            "blocker_codes": [],
+        },
+        {
+            "study_id": STUDY_ID,
+            "location_id": LOCATION_ID,
+            "status": "draft",
+            "has_question": True,
+            "minimum_policy_valid": True,
+            "consent_minimum_met": True,
+            "eligible_to_open": True,
+            "blocker_codes": ["question_required"],
+        },
+        {
+            "study_id": STUDY_ID,
+            "location_id": LOCATION_ID,
+            "status": "draft",
+            "has_question": False,
+            "minimum_policy_valid": True,
+            "consent_minimum_met": True,
+            "eligible_to_open": True,
+            "blocker_codes": [],
+        },
+    ],
+)
+def test_open_readiness_route_sanitizes_invalid_service_projection(invalid_result):
+    async def run_in_threadpool(*_args, **_kwargs):
+        return invalid_result
+
+    response = TestClient(_make_app(object(), run_in_threadpool)).get(
+        f"/operator/api/delphi/{LOCATION_ID}/studies/{STUDY_ID}/open-readiness"
+    )
+
+    assert response.status_code == 500
+    assert response.json() == {"error": "Delphi study readiness is unavailable"}
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["vary"] == "Cookie"
+    assert "private_internal_field" not in response.text
+    assert "must not escape" not in response.text
+
+
 def test_open_readiness_route_fails_closed_when_oidc_is_disabled():
     async def run_in_threadpool(*_args, **_kwargs):
         pytest.fail("OIDC-disabled readiness must not reach the service")
@@ -409,7 +509,7 @@ def test_stopping_route_uses_session_identity_and_no_store():
         "outcome": "consensus_reached",
         "items": [{"item_id": str(uuid4()), "should_stop": True,
                    "outcome": "consensus_reached"}],
-        "evaluated_at": "2026-10-25T12:00:00+00:00",
+        "evaluated_at": "2026-10-25T12:00:00Z",
         "replayed": False,
     }
 
@@ -463,3 +563,135 @@ def test_route_maps_database_errors_without_exposing_details(pgcode, status):
     assert response.status_code == status
     assert "private database text" not in response.text
     assert response.headers["cache-control"] == "no-store"
+
+
+def test_lifecycle_routes_publish_strict_transition_and_stopping_schemas():
+    app = _make_app(object(), lambda *_args, **_kwargs: None)
+    document = app.openapi()
+    schemas = document["components"]["schemas"]
+
+    for action in ("open", "close"):
+        operation = document["paths"][
+            f"/operator/api/delphi/{{location_id}}/studies/{{study_id}}/{action}"
+        ]["post"]
+        assert operation["responses"]["200"]["content"]["application/json"][
+            "schema"
+        ] == {"$ref": "#/components/schemas/DelphiStudyTransitionResponse"}
+
+    transition_schema = schemas["DelphiStudyTransitionResponse"]
+    assert transition_schema["additionalProperties"] is False
+    assert set(transition_schema["properties"]) == {
+        "study_id",
+        "location_id",
+        "status",
+        "opened_at",
+        "closed_at",
+        "replayed",
+    }
+    assert set(transition_schema["required"]) == set(transition_schema["properties"])
+
+    operation = document["paths"][
+        "/operator/api/delphi/{location_id}/studies/{study_id}/stopping-evaluation"
+    ]["post"]
+    assert operation["responses"]["200"]["content"]["application/json"][
+        "schema"
+    ] == {"$ref": "#/components/schemas/DelphiStoppingEvaluationResponse"}
+    stopping_schema = schemas["DelphiStoppingEvaluationResponse"]
+    assert stopping_schema["additionalProperties"] is False
+    assert set(stopping_schema["properties"]) == {
+        "study_id",
+        "location_id",
+        "should_stop",
+        "outcome",
+        "items",
+        "evaluated_at",
+        "replayed",
+    }
+    item_schema = schemas["DelphiStoppingItemResponse"]
+    assert item_schema["additionalProperties"] is False
+    assert set(item_schema["properties"]) == {"item_id", "should_stop", "outcome"}
+
+
+@pytest.mark.parametrize(
+    "changes",
+    [
+        {"study_id": str(uuid4())},
+        {"location_id": str(uuid4())},
+        {"status": "closed"},
+        {"closed_at": CLOSED_AT},
+        {"opened_at": None},
+        {"opened_at": datetime(2026, 10, 25, 12, 0)},
+        {"private_internal_field": "must stay private"},
+    ],
+)
+def test_transition_route_sanitizes_invalid_service_response(changes):
+    result = {
+        "study_id": STUDY_ID,
+        "location_id": LOCATION_ID,
+        "status": "open",
+        "opened_at": OPENED_AT,
+        "closed_at": None,
+        "replayed": False,
+    }
+    result.update(changes)
+
+    async def run_in_threadpool(*_args, **_kwargs):
+        return result
+
+    response = TestClient(_make_app(object(), run_in_threadpool)).post(
+        f"/operator/api/delphi/{LOCATION_ID}/studies/{STUDY_ID}/open",
+        json={"request_id": REQUEST_ID},
+    )
+    assert response.status_code == 500
+    assert response.json() == {"error": "Delphi study lifecycle request unavailable"}
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["vary"] == "Cookie"
+    assert "private_internal_field" not in response.text
+    assert "must stay private" not in response.text
+
+
+@pytest.mark.parametrize(
+    "changes",
+    [
+        {"study_id": str(uuid4())},
+        {"location_id": str(uuid4())},
+        {"should_stop": False},
+        {"outcome": "continue"},
+        {"items": []},
+        {"items": [{"item_id": str(uuid4()), "should_stop": True}]},
+        {"items": [{"item_id": str(uuid4()), "should_stop": False, "outcome": "consensus_reached"}]},
+        {"evaluated_at": "2026-10-25T12:00:00"},
+        {"private_internal_field": "must stay private"},
+    ],
+)
+def test_stopping_route_sanitizes_invalid_service_response(changes):
+    result = {
+        "study_id": STUDY_ID,
+        "location_id": LOCATION_ID,
+        "should_stop": True,
+        "outcome": "consensus_reached",
+        "items": [
+            {
+                "item_id": str(uuid4()),
+                "should_stop": True,
+                "outcome": "consensus_reached",
+            }
+        ],
+        "evaluated_at": "2026-10-25T12:00:00+00:00",
+        "replayed": False,
+    }
+    result.update(changes)
+
+    async def run_in_threadpool(*_args, **_kwargs):
+        return result
+
+    response = TestClient(_make_app(object(), run_in_threadpool)).post(
+        f"/operator/api/delphi/{LOCATION_ID}/studies/{STUDY_ID}/stopping-evaluation",
+        json={"request_id": REQUEST_ID},
+    )
+    assert response.status_code == 500
+    assert response.json() == {"error": "Delphi stopping evaluation is unavailable"}
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["vary"] == "Cookie"
+    assert "private_internal_field" not in response.text
+    assert "must stay private" not in response.text

@@ -7,14 +7,14 @@ for formal partnership management beyond the flat partner table.
 from __future__ import annotations
 
 import argparse
-from datetime import date, datetime, timezone
+from datetime import date
 from typing import Any, Dict, List, Optional
 
 import psycopg2
 import psycopg2.extras
 
-from services.common.database import get_db
 from services.common.cli import print_json
+from services.common.database import get_db
 
 # ──────────────────────────────────────────────
 # Partner Lifecycle
@@ -266,6 +266,17 @@ def list_scorecards(
 # CLI
 # ──────────────────────────────────────────────
 
+def _parse_iso_date(value: str) -> str:
+    """Require a canonical calendar date while preserving the CLI string API."""
+    try:
+        parsed = date.fromisoformat(value)
+    except ValueError as exc:
+        raise argparse.ArgumentTypeError("date must use YYYY-MM-DD format") from exc
+    if parsed.isoformat() != value:
+        raise argparse.ArgumentTypeError("date must use YYYY-MM-DD format")
+    return value
+
+
 def _cmd(args) -> None:
     conn = get_db()
     try:
@@ -364,8 +375,8 @@ def main() -> None:
     sc = sub.add_parser("scorecard")
     sc.add_argument("--lifecycle-id", required=True)
     sc.add_argument("--partner-id", required=True)
-    sc.add_argument("--period-start", required=True)
-    sc.add_argument("--period-end", required=True)
+    sc.add_argument("--period-start", required=True, type=_parse_iso_date)
+    sc.add_argument("--period-end", required=True, type=_parse_iso_date)
     sc.add_argument("--on-time", type=float, default=0)
     sc.add_argument("--quality", type=float, default=0)
     sc.add_argument("--responsiveness", type=float, default=0)
@@ -379,6 +390,11 @@ def main() -> None:
     lsc.add_argument("--lifecycle-id", required=True)
 
     args = p.parse_args()
+    if (
+        args.command == "scorecard"
+        and date.fromisoformat(args.period_start) > date.fromisoformat(args.period_end)
+    ):
+        p.error("--period-start must be on or before --period-end")
     _cmd(args)
 
 

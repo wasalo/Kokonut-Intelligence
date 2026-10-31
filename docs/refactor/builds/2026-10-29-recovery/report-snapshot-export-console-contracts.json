@@ -1,0 +1,35 @@
+{
+  "date": "2026-10-29",
+  "scope": "Private report snapshot eligible-list Gateway and operator-console adoption",
+  "focused_test_command": "python3 -m pytest tests/test_migration.py tests/test_operator_route_policy_inventory.py tests/test_report_exports_gateway.py tests/test_report_exports_gateway_contract.py tests/test_report_snapshot_export_migration_contract.py tests/test_operator_console_report_exports.py -q",
+  "focused_test_result": {
+    "passed": 88,
+    "failed": 0
+  },
+  "disposable_database_acceptance": "builds/2026-10-29-recovery/report-snapshot-export-migration-disposable.json",
+  "additional_checks": {
+    "ruff": "passed",
+    "runtime_sql_inventory": "passed",
+    "provider_boundaries": "passed",
+    "capability_matrix": "passed",
+    "operator_console_javascript_syntax": "passed",
+    "git_diff_check": "passed"
+  },
+  "checks_cover": [
+    "migration 684 apply and replay after migration 683",
+    "exact-location verified/published snapshot eligibility",
+    "invalid SHA-256-form digest, draft, and oversized JSON exclusion",
+    "independent report_snapshot_export read grant and cross-location denial",
+    "bounded limit/offset and SQL lookahead pagination",
+    "strict Gateway/OpenAPI projection and sanitized no-store failures",
+    "operator-console independent read/create/download grants",
+    "same session idempotency key retained after uncertain POST outcomes",
+    "status polling for pending, processing, and retryable requests",
+    "completed-only private JSON download handling"
+  ],
+  "candidate_database_touched": false,
+  "legacy_database_touched": false,
+  "migration_684_rolled_out": false,
+  "live_oidc_or_browser_used": false,
+  "r2_or_external_provider_used": false
+}

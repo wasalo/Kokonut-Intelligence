@@ -8,6 +8,7 @@ import psycopg2.extras
 from services.common.errors import safe_exception_class
 
 from .common import (
+    _looks_like_uuid,
     _serialize_rows,
 )
 
@@ -18,6 +19,9 @@ def generate_pest_management(conn, location_id: str, period_start: str = None, p
     Analysis lives in the pest_management domain module
     (get_pest_management_report); this generator just routes to it.
     """
+    if not _looks_like_uuid(location_id):
+        raise ValueError("pest_management requires an explicit location_id")
+
     from ...analytics.pest_management import get_pest_management_report
 
     return get_pest_management_report(conn, location_id, period_start, period_end)
@@ -30,13 +34,32 @@ def generate_pest_management(conn, location_id: str, period_start: str = None, p
 
 def generate_resource_efficiency(conn, location_id: str, period_start: str = None, period_end: str = None) -> dict:
     """Generate a public-safe resource efficiency report with labor, energy, and water intensity."""
+    if not _looks_like_uuid(location_id):
+        raise ValueError("resource_efficiency requires an explicit location_id")
+
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     try:
         cur.execute("SELECT name FROM location WHERE id = %s", (location_id,))
         location = cur.fetchone()
         cur.execute(
             """
-            SELECT * FROM v_public_resource_efficiency
+            SELECT id,
+                   location_id,
+                   location_name,
+                   plot_id,
+                   plot_name,
+                   crop_cycle_id,
+                   cycle_name,
+                   period_start,
+                   period_end,
+                   resource_type,
+                   quantity,
+                   unit,
+                   component,
+                   is_estimated,
+                   notes,
+                   status
+            FROM v_public_resource_efficiency
             WHERE location_id = %s
               AND (%s::date IS NULL OR period_start >= %s::date)
               AND (%s::date IS NULL OR period_start <= %s::date)
@@ -98,13 +121,19 @@ def generate_resource_efficiency(conn, location_id: str, period_start: str = Non
 
 def generate_training_impact(conn, location_id: str, period_start: str = None, period_end: str = None) -> dict:
     """Generate a public-safe training impact report with participation and improvement metrics."""
+    if not _looks_like_uuid(location_id):
+        raise ValueError("training_impact requires an explicit location_id")
+
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     try:
         cur.execute("SELECT name FROM location WHERE id = %s", (location_id,))
         location = cur.fetchone()
         cur.execute(
             """
-            SELECT * FROM v_public_training_impact
+            SELECT id, location_id, location_name, participant_name, participant_role,
+                   session_date, session_topic, session_type, duration_hours, pre_score,
+                   post_score, improvement_pct, trainer, notes, status
+            FROM v_public_training_impact
             WHERE location_id = %s ORDER BY session_date DESC
             """,
             (location_id,),
@@ -140,13 +169,32 @@ def generate_training_impact(conn, location_id: str, period_start: str = None, p
 
 def generate_revenue_streams(conn, location_id: str, period_start: str = None, period_end: str = None) -> dict:
     """Generate a public-safe revenue streams report showing contribution to profitability."""
+    if not _looks_like_uuid(location_id):
+        raise ValueError("revenue_streams requires an explicit location_id")
+
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     try:
         cur.execute("SELECT name FROM location WHERE id = %s", (location_id,))
         location = cur.fetchone()
         cur.execute(
             """
-            SELECT * FROM v_public_revenue_streams
+            SELECT id,
+                   location_id,
+                   location_name,
+                   crop_cycle_id,
+                   cycle_name,
+                   period_start,
+                   period_end,
+                   stream_name,
+                   stream_category,
+                   gross_revenue,
+                   direct_costs,
+                   allocated_costs,
+                   net_contribution,
+                   contribution_pct,
+                   notes,
+                   status
+            FROM v_public_revenue_streams
             WHERE location_id = %s ORDER BY period_start DESC, net_contribution DESC
             """,
             (location_id,),
@@ -180,13 +228,35 @@ def generate_revenue_streams(conn, location_id: str, period_start: str = None, p
 
 def generate_model_validation(conn, location_id: str, period_start: str = None, period_end: str = None) -> dict:
     """Generate a public-safe model validation report with prediction accuracy and feature importance."""
+    if not _looks_like_uuid(location_id):
+        raise ValueError("model_validation requires an explicit location_id")
+
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     try:
         cur.execute("SELECT name FROM location WHERE id = %s", (location_id,))
         location = cur.fetchone()
         cur.execute(
             """
-            SELECT * FROM v_public_prediction_accuracy
+            SELECT id,
+                   location_id,
+                   location_name,
+                   model_type,
+                   model_name,
+                   prediction_date,
+                   actual_date,
+                   predicted_value,
+                   actual_value,
+                   absolute_error,
+                   mae,
+                   rmse,
+                   mape,
+                   r_squared,
+                   sample_size,
+                   metric_name,
+                   unit,
+                   notes,
+                   status
+            FROM v_public_prediction_accuracy
             WHERE location_id = %s ORDER BY prediction_date DESC
             """,
             (location_id,),
@@ -194,7 +264,20 @@ def generate_model_validation(conn, location_id: str, period_start: str = None, 
         predictions = [dict(r) for r in cur.fetchall()]
         cur.execute(
             """
-            SELECT * FROM v_public_feature_importance
+            SELECT id,
+                   location_id,
+                   location_name,
+                   model_type,
+                   analysis_date,
+                   feature_name,
+                   importance_score,
+                   direction,
+                   correlation_coefficient,
+                   p_value,
+                   sample_size,
+                   notes,
+                   status
+            FROM v_public_feature_importance
             WHERE location_id = %s ORDER BY importance_score DESC
             """,
             (location_id,),
@@ -231,13 +314,33 @@ def generate_model_validation(conn, location_id: str, period_start: str = None, 
 
 def generate_livestock_feed(conn, location_id: str, period_start: str = None, period_end: str = None) -> dict:
     """Generate a public-safe livestock feed report with intake, conversion ratio, and per-animal metrics."""
+    if not _looks_like_uuid(location_id):
+        raise ValueError("livestock_feed requires an explicit location_id")
+
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     try:
         cur.execute("SELECT name FROM location WHERE id = %s", (location_id,))
         location = cur.fetchone()
         cur.execute(
             """
-            SELECT * FROM v_public_livestock_feed_intake
+            SELECT id,
+                   location_id,
+                   location_name,
+                   livestock_group_id,
+                   group_name,
+                   livestock_species,
+                   livestock_breed,
+                   animal_count,
+                   record_date,
+                   feed_type,
+                   feed_name,
+                   quantity_kg,
+                   per_animal_kg,
+                   method,
+                   temperature_c,
+                   notes,
+                   status
+            FROM v_public_livestock_feed_intake
             WHERE location_id = %s ORDER BY record_date DESC
             """,
             (location_id,),
@@ -282,13 +385,32 @@ def generate_livestock_feed(conn, location_id: str, period_start: str = None, pe
 
 def generate_token_rewards(conn, location_id: str, period_start: str = None, period_end: str = None) -> dict:
     """Generate a public-safe token rewards report with distribution, epoch totals, and metric correlation."""
+    if not _looks_like_uuid(location_id):
+        raise ValueError("token_rewards requires an explicit location_id")
+
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     try:
         cur.execute("SELECT name FROM location WHERE id = %s", (location_id,))
         location = cur.fetchone()
         cur.execute(
             """
-            SELECT * FROM v_public_token_reward_distribution
+            SELECT id,
+                   location_id,
+                   location_name,
+                   recipient_name,
+                   reward_type,
+                   token_type,
+                   token_amount,
+                   usd_value,
+                   distribution_date,
+                   epoch,
+                   linked_metric_key,
+                   linked_metric_value,
+                   is_onchain,
+                   distribution_method,
+                   notes,
+                   status
+            FROM v_public_token_reward_distribution
             WHERE location_id = %s ORDER BY distribution_date DESC
             """,
             (location_id,),
@@ -296,7 +418,22 @@ def generate_token_rewards(conn, location_id: str, period_start: str = None, per
         distributions = [dict(r) for r in cur.fetchall()]
         cur.execute(
             """
-            SELECT * FROM v_public_reward_calibration
+            SELECT id,
+                   location_id,
+                   location_name,
+                   model_name,
+                   model_type,
+                   run_date,
+                   input_metrics,
+                   output_weights,
+                   calibration_score,
+                   total_tokens_distributed,
+                   token_per_unit_output,
+                   epoch,
+                   confidence_level,
+                   notes,
+                   status
+            FROM v_public_reward_calibration
             WHERE location_id = %s ORDER BY run_date DESC LIMIT 1
             """,
             (location_id,),
@@ -335,13 +472,20 @@ def generate_token_rewards(conn, location_id: str, period_start: str = None, per
 
 def generate_reward_calibration(conn, location_id: str, period_start: str = None, period_end: str = None) -> dict:
     """Generate a public-safe reward calibration report with calibration model outputs and sensitivity."""
+    if not _looks_like_uuid(location_id):
+        raise ValueError("reward_calibration requires an explicit location_id")
+
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     try:
         cur.execute("SELECT name FROM location WHERE id = %s", (location_id,))
         location = cur.fetchone()
         cur.execute(
             """
-            SELECT * FROM v_public_reward_calibration
+            SELECT id, location_id, location_name, model_name, model_type, run_date,
+                   input_metrics, output_weights, calibration_score,
+                   total_tokens_distributed, token_per_unit_output, epoch,
+                   confidence_level, notes, status
+            FROM v_public_reward_calibration
             WHERE location_id = %s ORDER BY run_date DESC
             """,
             (location_id,),
@@ -401,13 +545,23 @@ def generate_organic_certification_readiness(
     conn, location_id: str, period_start: str = None, period_end: str = None
 ) -> dict:
     """Generate a public-safe organic certification readiness report with composite score and sub-dimensions."""
+    if not _looks_like_uuid(location_id):
+        raise ValueError("organic_certification_readiness requires an explicit location_id")
+
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     try:
         cur.execute("SELECT name FROM location WHERE id = %s", (location_id,))
         location = cur.fetchone()
         cur.execute(
             """
-            SELECT * FROM v_public_organic_readiness
+            SELECT id, location_id, location_name, latitude, longitude,
+                   farm_registry_id, farm_status, assessment_date, standard,
+                   overall_score, transition_progress_pct, soil_health_score,
+                   input_compliance_pct, pest_management_score, biodiversity_score,
+                   buffer_zone_score, record_completeness_pct,
+                   training_completion_pct, harvest_segregation_score, barriers,
+                   recommendations, assessor, notes, created_at
+            FROM v_public_organic_readiness
             WHERE location_id = %s ORDER BY assessment_date DESC LIMIT 1
             """,
             (location_id,),
@@ -415,7 +569,14 @@ def generate_organic_certification_readiness(
         readiness = cur.fetchone()
         cur.execute(
             """
-            SELECT * FROM v_public_organic_transition
+            SELECT id, location_id, location_name, latitude, longitude,
+                   farm_registry_id, farm_status, standard, transition_start_date,
+                   expected_certification_date, current_year, total_years_required,
+                   status, progress_pct, prohibited_substance_free_date,
+                   buffer_zone_established_date, record_keeping_ready_date,
+                   training_completed_date, organic_management_plan_date,
+                   readiness_score, barriers, notes, created_at
+            FROM v_public_organic_transition
             WHERE location_id = %s AND status = 'active'
             """,
             (location_id,),
@@ -423,7 +584,12 @@ def generate_organic_certification_readiness(
         transitions = [dict(r) for r in cur.fetchall()]
         cur.execute(
             """
-            SELECT * FROM v_public_organic_certifications
+            SELECT id, location_id, location_name, latitude, longitude,
+                   farm_registry_id, farm_status, standard, certification_type,
+                   certification_body, application_date, inspection_date,
+                   certification_date, expiration_date, certificate_number, status,
+                   scope, scope_areas, annual_fee_usd, notes, created_at
+            FROM v_public_organic_certifications
             WHERE location_id = %s ORDER BY created_at DESC
             """,
             (location_id,),
@@ -431,7 +597,32 @@ def generate_organic_certification_readiness(
         certifications = [dict(r) for r in cur.fetchall()]
         cur.execute(
             """
-            SELECT * FROM v_public_organic_compliance_dashboard
+            SELECT location_id,
+                   location_name,
+                   latitude,
+                   longitude,
+                   farm_registry_id,
+                   farm_status,
+                   active_standard,
+                   certification_status,
+                   certification_expiry,
+                   transition_status,
+                   transition_year,
+                   transition_total_years,
+                   total_prohibited_substances,
+                   cleared_substances,
+                   pending_substances,
+                   buffer_zone_count,
+                   adequate_buffers,
+                   total_inputs,
+                   organic_inputs,
+                   prohibited_inputs,
+                   total_harvests,
+                   segregated_harvests,
+                   latest_readiness_score,
+                   latest_readiness_date,
+                   latest_inspection_result
+            FROM v_public_organic_compliance_dashboard
             WHERE location_id = %s
             """,
             (location_id,),
@@ -469,13 +660,23 @@ def generate_organic_transition_progress(
     conn, location_id: str, period_start: str = None, period_end: str = None
 ) -> dict:
     """Generate a public-safe organic transition progress report with timeline, milestones, and barriers."""
+    if not _looks_like_uuid(location_id):
+        raise ValueError("organic_transition_progress requires an explicit location_id")
+
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     try:
         cur.execute("SELECT name FROM location WHERE id = %s", (location_id,))
         location = cur.fetchone()
         cur.execute(
             """
-            SELECT * FROM v_public_organic_transition
+            SELECT id, location_id, location_name, latitude, longitude,
+                   farm_registry_id, farm_status, standard, transition_start_date,
+                   expected_certification_date, current_year, total_years_required,
+                   status, progress_pct, prohibited_substance_free_date,
+                   buffer_zone_established_date, record_keeping_ready_date,
+                   training_completed_date, organic_management_plan_date,
+                   readiness_score, barriers, notes, created_at
+            FROM v_public_organic_transition
             WHERE location_id = %s
             """,
             (location_id,),
@@ -483,7 +684,12 @@ def generate_organic_transition_progress(
         transitions = [dict(r) for r in cur.fetchall()]
         cur.execute(
             """
-            SELECT * FROM v_public_prohibited_substance_audit
+            SELECT id, location_id, location_name, farm_registry_id,
+                   substance_name, substance_category, cas_number, date_used,
+                   quantity, unit, remediation_action, remediation_date,
+                   withdrawal_end_date, compliance_status, clearance_status, notes,
+                   created_at
+            FROM v_public_prohibited_substance_audit
             WHERE location_id = %s
             """,
             (location_id,),
@@ -519,13 +725,22 @@ def generate_organic_transition_progress(
 
 def generate_organic_input_audit(conn, location_id: str, period_start: str = None, period_end: str = None) -> dict:
     """Generate a public-safe organic input audit report with full input trail, organic/prohibited flags, and compliance."""
+    if not _looks_like_uuid(location_id):
+        raise ValueError("organic_input_audit requires an explicit location_id")
+
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     try:
         cur.execute("SELECT name FROM location WHERE id = %s", (location_id,))
         location = cur.fetchone()
         cur.execute(
             """
-            SELECT * FROM v_public_organic_input_audit
+            SELECT id, location_id, location_name, farm_registry_id, application_date,
+                   input_category, input_name, input_source, organic_certified,
+                   supplier_name, quantity, unit, application_method,
+                   target_pest_or_nutrient, pre_harvest_interval_days,
+                   reentry_interval_hours, is_prohibited, prohibition_standard,
+                   notes, created_at
+            FROM v_public_organic_input_audit
             WHERE location_id = %s
             ORDER BY application_date DESC
             """,
@@ -534,7 +749,12 @@ def generate_organic_input_audit(conn, location_id: str, period_start: str = Non
         inputs = [dict(r) for r in cur.fetchall()]
         cur.execute(
             """
-            SELECT * FROM v_public_harvest_segregation
+            SELECT id, location_id, location_name, farm_registry_id, harvest_event_id,
+                   handling_date, handling_type, organic_segregated,
+                   equipment_cleaned, contamination_risk, temperature_controlled,
+                   organic_lot_number, buyer_requirements_met, storage_conditions,
+                   notes, created_at
+            FROM v_public_harvest_segregation
             WHERE location_id = %s
             """,
             (location_id,),
@@ -578,6 +798,9 @@ def generate_statement_of_work(conn, location_id: str, period_start: str = None,
     Pulls objectives, tasks, phases, steps, financials, staff, partners, and
     SOW-specific tables to produce a comprehensive project document.
     """
+    if not _looks_like_uuid(location_id):
+        raise ValueError("statement_of_work requires an explicit location_id")
+
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     try:
 
@@ -588,7 +811,12 @@ def generate_statement_of_work(conn, location_id: str, period_start: str = None,
         # SOW records
         cur.execute(
             """
-            SELECT * FROM statement_of_work
+            SELECT id, location_id, sow_name, sow_version, effective_date,
+                   expiration_date, client_name, contractor_name,
+                   total_contract_value, currency, payment_terms, status,
+                   metadata, source_system, source_id, source_raw, created_at,
+                   updated_at, created_by, updated_by
+            FROM statement_of_work
             WHERE location_id = %s ORDER BY created_at DESC LIMIT 1
             """,
             (location_id,),
@@ -700,13 +928,46 @@ def generate_statement_of_work(conn, location_id: str, period_start: str = None,
         payment_schedule = []
         change_requests = []
         if sow:
-            cur.execute("SELECT * FROM sow_deliverable WHERE sow_id = %s ORDER BY due_date", (sow["id"],))
+            cur.execute(
+                """
+                SELECT id, sow_id, deliverable_name, description,
+                       acceptance_criteria, due_date, delivered_at, status,
+                       notes, metadata, source_system, source_id, source_raw,
+                       created_at, updated_at
+                FROM sow_deliverable
+                WHERE sow_id = %s
+                ORDER BY due_date
+                """,
+                (sow["id"],),
+            )
             deliverables = [dict(r) for r in cur.fetchall()]
 
-            cur.execute("SELECT * FROM sow_payment_schedule WHERE sow_id = %s ORDER BY due_date", (sow["id"],))
+            cur.execute(
+                """
+                SELECT id, sow_id, milestone_name, amount, due_date,
+                       payment_status, invoice_number, paid_at, metadata,
+                       source_system, source_id, source_raw, created_at,
+                       updated_at
+                FROM sow_payment_schedule
+                WHERE sow_id = %s
+                ORDER BY due_date
+                """,
+                (sow["id"],),
+            )
             payment_schedule = [dict(r) for r in cur.fetchall()]
 
-            cur.execute("SELECT * FROM sow_change_request WHERE sow_id = %s ORDER BY created_at", (sow["id"],))
+            cur.execute(
+                """
+                SELECT id, sow_id, change_name, description,
+                       impact_on_timeline, impact_on_budget, requested_by,
+                       status, decided_at, metadata, source_system, source_id,
+                       source_raw, created_at, updated_at
+                FROM sow_change_request
+                WHERE sow_id = %s
+                ORDER BY created_at
+                """,
+                (sow["id"],),
+            )
             change_requests = [dict(r) for r in cur.fetchall()]
 
     finally:

@@ -6,8 +6,9 @@ Compares historical loss rates vs targets, estimates upside from reducing losses
 """
 
 import psycopg2.extras
-from ..models import OpportunityDimension
+
 from ..config import get_config
+from ..models import OpportunityDimension
 
 
 def analyze(conn, location_id: str) -> OpportunityDimension:
@@ -33,6 +34,7 @@ def analyze(conn, location_id: str) -> OpportunityDimension:
         SELECT le.*, c.name as crop_name
         FROM loss_event le
         JOIN crop_cycle cc ON le.crop_cycle_id = cc.id
+                           AND cc.location_id = le.location_id
         JOIN crop c ON cc.crop_id = c.id
         WHERE cc.location_id = %s
     """, (location_id,))

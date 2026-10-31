@@ -10,7 +10,16 @@ services:
       POSTGRES_USER: kokonut
       POSTGRES_DB: kokonut_intelligence
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Load encrypted secrets}
-    command: ["postgres", "-c", "shared_preload_libraries=pg_stat_statements"]
+    # A full single-transaction pg_restore holds locks on the complete schema
+    # until commit; the Kernel schema exceeds PostgreSQL's default lock budget.
+    command:
+      [
+        "postgres",
+        "-c",
+        "shared_preload_libraries=pg_stat_statements",
+        "-c",
+        "max_locks_per_transaction=4096",
+      ]
     volumes:
       - recovery-postgres-data:/var/lib/postgresql/data
     networks: [recovery]

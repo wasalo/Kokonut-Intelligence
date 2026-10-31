@@ -114,7 +114,7 @@ _OPTIONS: dict[str, dict[str, str | None]] = {
     },
     "services.ingestion.sensor_anomaly_scan_worker": {
         "--location-id": "uuid",
-        "--since": "datetime",
+        "--since": "aware_datetime",
         "--batch-size": "anomaly_batch_size",
     },
     "services.export.dataset_refresh": {
@@ -232,6 +232,13 @@ def _validate_value(kind: str, value: str) -> None:
             datetime.fromisoformat(value.replace("Z", "+00:00"))
         except ValueError:
             raise _reject("since must be an ISO-8601 datetime") from None
+    elif kind == "aware_datetime":
+        try:
+            parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+        except ValueError:
+            raise _reject("since must be an ISO-8601 datetime") from None
+        if parsed.tzinfo is None or parsed.utcoffset() is None:
+            raise _reject("since must include an explicit timezone")
     else:
         raise RuntimeError(f"Unknown scheduled argument value type: {kind}")
 

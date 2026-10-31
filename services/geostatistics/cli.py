@@ -19,6 +19,7 @@ from __future__ import annotations
 import argparse
 import math
 import sys
+from uuid import UUID
 
 from services.common.cli import print_json
 
@@ -184,6 +185,14 @@ def main():
     if not args.command:
         parser.print_help()
         return
+
+    # Every geostatistics subcommand operates on a single farm/location.
+    # Validate the scope before importing/opening the database so malformed
+    # input fails locally rather than becoming a PostgreSQL cast error.
+    try:
+        args.location_id = str(UUID(args.location_id))
+    except (AttributeError, TypeError, ValueError):
+        parser.error("--location-id must be a valid UUID")
 
     if args.command == "variogram":
         from .data_sources import supports_database_property

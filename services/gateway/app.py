@@ -36,6 +36,7 @@ async def _request_location(request, policy: dict) -> str | None:
         return policy["location_id"]
     if policy.get("resource") in {
         "report_snapshot_review",
+        "report_snapshot_export",
         "mobile_collection_review",
         "mobile_collection_retention",
         "farm_activity",
@@ -74,6 +75,7 @@ def create_app(*, rate_limiter: RateLimitBackend | None = None):
     """Create the FastAPI gateway application."""
     try:
         from fastapi import APIRouter, FastAPI, Request
+        from fastapi.exceptions import RequestValidationError
         from fastapi.middleware.cors import CORSMiddleware
         from fastapi.responses import JSONResponse
         from starlette.concurrency import run_in_threadpool
@@ -86,6 +88,7 @@ def create_app(*, rate_limiter: RateLimitBackend | None = None):
     from services.gateway.auth import verify_request
     from services.gateway.delphi_participant_routes import register_delphi_participant_routes
     from services.gateway.operator_auth import (
+        SESSION_COOKIE,
         OperatorAuthConfigurationError,
         auth_route_policy,
         authorize_auth_request,
@@ -199,7 +202,12 @@ def create_app(*, rate_limiter: RateLimitBackend | None = None):
             enabled=operator_provider is not None,
         )
         policy = operator_policy or get_route_policy(request.method, request.url.path)
-        max_body_bytes = 2_000_000 if request.url.path == "/api/mobile/media/uploads" else 8_000_000
+        if request.url.path == "/api/mobile/media/uploads":
+            max_body_bytes = 2_000_000
+        elif request.url.path == "/operator/api/report-exports":
+            max_body_bytes = 8_192
+        else:
+            max_body_bytes = 8_000_000
         if request.method in {"POST", "PUT", "PATCH"}:
             async def reject_body(status_code: int, reason: str, message: str):
                 await run_in_threadpool(
@@ -405,6 +413,57 @@ def create_app(*, rate_limiter: RateLimitBackend | None = None):
             if mutation_reservation is not None:
                 await run_in_threadpool(audit.release_mutation, mutation_reservation)
 
+    @app.middleware("http")
+    async def private_report_export_headers(request: Request, call_next):
+        """Keep export API success, denial, validation, and error responses private."""
+        response = await call_next(request)
+        if (
+            request.url.path == "/operator/api/report-export-snapshots"
+            or request.url.path == "/operator/api/report-exports"
+            or request.url.path.startswith("/operator/api/report-exports/")
+        ):
+            response.headers["Cache-Control"] = "no-store"
+            response.headers["Pragma"] = "no-cache"
+            response.headers["X-Content-Type-Options"] = "nosniff"
+            vary = {
+                item.strip()
+                for item in response.headers.get("Vary", "").split(",")
+                if item.strip()
+            }
+            vary.add("Cookie")
+            response.headers["Vary"] = ", ".join(sorted(vary, key=str.casefold))
+        return response
+
+    @app.exception_handler(RequestValidationError)
+    async def request_validation_error(request: Request, exc: RequestValidationError):
+        if request.url.path == "/api/data-stream/post":
+            return JSONResponse(
+                status_code=422,
+                content={"error": "Data Stream post request is invalid"},
+                headers={"Cache-Control": "no-store"},
+            )
+        if (
+            request.url.path == "/operator/api/report-export-snapshots"
+            or request.url.path == "/operator/api/report-exports"
+            or request.url.path.startswith("/operator/api/report-exports/")
+        ):
+            return JSONResponse(
+                status_code=422,
+                content={"error": "Report export request is invalid"},
+            )
+        from fastapi.encoders import jsonable_encoder
+
+        if request.url.path.startswith(
+            ("/operator/api/extension-learning/", "/operator/api/traceability/")
+        ):
+            return JSONResponse(
+                status_code=422,
+                content={"detail": jsonable_encoder(exc.errors())},
+                headers={"Cache-Control": "no-store", "Vary": "Cookie"},
+            )
+
+        return JSONResponse(status_code=422, content={"detail": jsonable_encoder(exc.errors())})
+
     @app.get("/health")
     async def health():
         """Health check endpoint."""
@@ -515,6 +574,62 @@ def create_app(*, rate_limiter: RateLimitBackend | None = None):
         ],
         allow_credentials=operator_provider is not None,
     )
+
+    original_openapi = app.openapi
+
+    def openapi_with_gateway_security():
+        """Document middleware-enforced credentials on private Gateway operations."""
+        schema = app.openapi_schema or original_openapi()
+        security_schemes = schema.setdefault("components", {}).setdefault(
+            "securitySchemes", {}
+        )
+        security_schemes["GatewayApiKey"] = {
+            "type": "apiKey",
+            "in": "header",
+            "name": "x-api-key",
+            "description": "Scoped Gateway service API key.",
+        }
+        security_schemes["GatewayCapabilityToken"] = {
+            "type": "apiKey",
+            "in": "header",
+            "name": "x-capability-token",
+            "description": "Resource-scoped Gateway capability token.",
+        }
+        security_schemes["OperatorSessionCookie"] = {
+            "type": "apiKey",
+            "in": "cookie",
+            "name": SESSION_COOKIE,
+            "description": "HTTP-only OIDC operator session cookie.",
+        }
+        standard_private_operations = {
+            ("/api/health/services", "get"),
+            ("/api/data-stream/posts", "get"),
+            ("/api/data-stream/posts/{post_id}/files", "get"),
+            ("/api/data-stream/posts/{post_id}/attestation", "get"),
+            ("/api/data-stream/post", "post"),
+        }
+        for path, path_item in schema.get("paths", {}).items():
+            for method, operation in path_item.items():
+                method = method.lower()
+                if method not in {"get", "post", "put", "patch", "delete"}:
+                    continue
+                private_operator_api = path.startswith("/operator/api/")
+                private_auth_session = (
+                    (path == "/operator/auth/session" and method == "get")
+                    or (path == "/operator/auth/logout" and method == "post")
+                )
+                if private_operator_api or private_auth_session:
+                    operation["security"] = [{"OperatorSessionCookie": []}]
+                elif (path, method) in standard_private_operations:
+                    operation["security"] = [
+                        {"GatewayApiKey": []},
+                        {"GatewayCapabilityToken": []},
+                    ]
+
+        app.openapi_schema = schema
+        return schema
+
+    app.openapi = openapi_with_gateway_security
 
     logger.info("Gateway application created")
     return app

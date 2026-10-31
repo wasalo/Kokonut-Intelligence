@@ -442,18 +442,21 @@ Public views generally require the applicable combination of:
 - public consent or privacy metadata;
 - carbon-specific verifier and methodology gates.
 
-Directus hooks, database constraints, and `services/agents/safety.py` enforce
-different parts of this boundary. Agents may draft or submit permitted outputs,
-but cannot directly verify or publish governed records. Human approval remains
-required for publication, attestation, retirement confirmation, and other
-high-risk actions.
+Database constraints, Gateway/service policies, optional Directus hooks, and
+`services/agents/safety.py` enforce different parts of this boundary. Directus
+hooks apply only to writes that pass through that adapter. Agents may draft or
+submit permitted outputs, but cannot directly verify or publish governed
+records. Human approval remains required for publication, attestation,
+retirement confirmation, and other high-risk actions.
 
 ## Design Principles
 
-1. **Canonical storage:** PostgreSQL and Directus remain authoritative for
-   governed records and lifecycle state.
-2. **Analytical separation:** ClickHouse mirrors selected events and may lag or
-   fail independently; it is not the governance source of truth.
+1. **Canonical storage:** PostgreSQL remains authoritative for governed
+   records and lifecycle state; Directus is an adapter, not the data source of
+   truth.
+2. **Analytical separation:** Optional ClickHouse projections mirror selected
+   events and may lag or fail independently; they are not the governance source
+   of truth.
 3. **Evidence before publication:** Computed and modelled outputs begin as
    drafts and require appropriate human verification.
 4. **Explicit chain writes:** EAS publishing and revocation require explicit

@@ -1,3 +1,1356 @@
+### Progress addendum — C1 event-handler registry write boundary — 30 October 2026
+
+Runtime event processing and CLI paths only read `event_handler`; registry
+configuration is migration/admin managed. Migration 694 removes direct
+`kokonut_runtime` table and column writes while preserving runtime SELECT,
+existing Directus SQL grants, and the event-dispatch owner's bounded SELECT
+columns. Delivery/log/outbox tables and the isolated dispatcher were not
+changed. The compatibility role provisioner re-applies the read-only boundary
+after its legacy broad grant.
+
+The network-disabled disposable PostgreSQL 16 ACL check passed migration
+apply/replay, actual runtime SELECT, table/column write denial, absence of
+PUBLIC write grants, preservation of Directus/dispatch-owner privileges, and
+provisioner reapplication. Native full-schema replay through migration 694
+passed 685/685 files and the 36-check two-tenant operator probe, with no seeds,
+OOM, or cleanup residue. The refreshed source/ACL join records 138 declared
+controls, zero policy mismatches, zero direct table/column privilege
+violations, and 982 relations retaining effective runtime DML while RLS is
+disabled. ARM64/QEMU full-schema evidence remains through 693; QEMU does not
+count as physical Raspberry Pi acceptance. The migration-694 focused ACL
+replay also passes on ARM64/QEMU, without replaying the entire schema at that
+architecture. Candidate, legacy, and production state were not touched. Broad
+C1 writer classification, tenant-safe SELECT/RLS,
+populated-data parity, and reviewed rollout remain open.
+
+Evidence: [focused ACL check](builds/2026-10-30-recovery/runtime-event-handler-694-disposable.json),
+[ARM64/QEMU focused ACL check](builds/2026-10-30-recovery/runtime-event-handler-694-arm64-disposable.json),
+[native schema replay](builds/2026-10-30-recovery/native-resource-limited-schema-694-operator-probe.json),
+[source/ACL join](builds/2026-10-30-recovery/runtime-privilege-callsite-report-694.json),
+[source checks](builds/2026-10-30-recovery/event-handler-registry-694-source-checks.json).
+Checklist: 2,104 complete / 25 open; TODO: 715 checked / 16 open.
+
+### Progress addendum — C1 pollinator capture write boundary — 30 October 2026
+
+The legacy `record_observation()`, `create_habitat()`, and
+`record_pesticide_impact()` helpers in `services/analytics/pollinator_health.py`
+now fail before database access. The supported capture routes remain the
+authenticated, location-scoped Gateway operations backed by migrations
+619–621. Migration 693 removes direct `kokonut_runtime`, Directus, and PUBLIC
+writes to `pollinator_observation`, `pollinator_habitat`, and
+`pesticide_impact_log`, while retaining SELECT and their bounded function-owner
+grants. Runtime-role provisioning now reapplies the deny boundary after its
+compatibility grants.
+
+The focused source selections pass (44 pollinator/SQL-inventory tests and 86
+runtime-role boundary tests), as do Ruff, compilation, schema validation
+(684 migrations), and the runtime SQL inventory check (41 unresolved write
+candidates). Network-disabled disposable PostgreSQL 16 verifies migration
+apply/replay, runtime/Directus/PUBLIC write denial, preserved reads and bounded
+function-owner grants, stale table/column grant removal, and provisioner
+reapplication. Native full-schema replay through 693 passes 684/684 migrations
+and the 35-check two-tenant operator-scope probe. ARM64/QEMU full-schema replay also passes 684/684 files and the 35-check
+two-tenant operator-scope probe, reporting the same 983 relations under the
+1.5 GiB/two-CPU limits with no OOM and successful cleanup. QEMU is software
+portability evidence, not physical Raspberry Pi acceptance. No candidate, legacy,
+or production database or role was touched.
+
+The migration-693 ACL/source join reports 137 declared controls, zero policy
+mismatches, and 983 relations with effective runtime DML while RLS is disabled.
+That number is ACL reach, not a confirmed tenant-leak count; the historical 991
+figure had the same limitation. This direct-write boundary does not make the
+remaining SELECT paths tenant-safe.
+
+Evidence: [focused source checks](builds/2026-10-30-recovery/pollinator-capture-693-source-checks.json),
+[disposable ACL check](builds/2026-10-30-recovery/runtime-pollinator-capture-693-disposable.json),
+[native replay](builds/2026-10-30-recovery/native-resource-limited-schema-693-operator-probe.json),
+[ARM64/QEMU replay](builds/2026-10-30-recovery/arm64-resource-limited-schema-693-operator-probe.json),
+[ACL/source join](builds/2026-10-30-recovery/runtime-privilege-callsite-report-693.json).
+
+### Progress addendum — C1 managed-hive write boundary — 30 October 2026
+
+The legacy `add_hive()` and `record_hive_inspection()` paths now fail before
+opening a database cursor. Managed-hive writes remain available through the
+existing signed location-scoped Gateway functions. Migration 692 removes
+direct runtime, Directus, and PUBLIC DML on `hive_record` and
+`pollinator_hive_inspection` while retaining SELECT and bounded function-owner
+grants; the compatibility provisioner keeps this deny policy after its broad
+legacy grant. The reporting fixture now creates synthetic rows as fixture
+setup rather than exercising retired application helpers.
+
+The approved focused checks pass: 98 pollinator/runtime-role tests and a
+network-disabled PostgreSQL 16 check for replay, SELECT, denied writes,
+stale table/column grants, function-owner grants, and provisioner
+reapplication. The six-group synthetic pollinator reporting check passes.
+Ruff, compilation, runtime SQL inventory, and diff checks pass. No candidate,
+legacy, or production database/role was touched.
+
+Native and ARM64/QEMU PostgreSQL 16 replays both pass through schema migration
+692: 683/683 files, no pending/failed files or seeds, a passing 35-check
+two-tenant operator-scope probe, 986 relations with runtime DML while RLS is
+disabled, and successful cleanup under the 1.5 GiB/two-CPU QEMU limits. The
+first QEMU attempt had a transient connection failure during migration 505;
+the fresh replay passed the complete chain without OOM. This is software
+portability evidence, not physical Raspberry Pi acceptance. The ACL count
+falls from the historical 991 migration-689 baseline to 986 and is privilege
+reach, not a count of confirmed tenant leaks. C1 remains open for remaining
+writer classification, tenant-safe reads/RLS, populated-data parity, and
+reviewed rollout.
+
+Evidence: [managed-hive source checks](builds/2026-10-30-recovery/pollinator-managed-hive-source-checks.json),
+[disposable ACL acceptance](builds/2026-10-30-recovery/runtime-pollinator-hives-692-disposable.json),
+[pollinator reporting](builds/2026-10-30-recovery/pollinator-health-reporting-disposable.json),
+[native schema-692 replay](builds/2026-10-30-recovery/native-resource-limited-schema-692-operator-probe.json),
+[ARM64/QEMU schema-692 replay](builds/2026-10-30-recovery/arm64-resource-limited-schema-692-operator-probe-retry.json),
+[source/ACL join](builds/2026-10-30-recovery/runtime-privilege-callsite-report-692.json).
+
+Checklist: 2,090 complete / 25 open; TODO: 703 checked / 16 open. Capability
+classifications remain 24 baseline-retained, 7 deployed, and 36 prepared
+across 67 rows; strict private Gateway response contracts total 226.
+
+### Progress addendum — private coaching read contracts — 29 October 2026
+
+The consent-filtered participant selector now has a strict four-field page
+contract and two-field participant projection. It binds the requested location
+and page size, rejects duplicate or malformed identities, and verifies the
+migration's deterministic SQL pagination metadata. Name ordering remains the
+PostgreSQL collation contract and is regression-pinned at the migration.
+
+The coach's private session-history route now validates the exact migration-611
+page and item fields, content bounds from migration 253/611, completed status,
+nullable source values, aware timestamps, requested location/page, descending
+date/ID order, unique session IDs, and continuation metadata. Both routes keep
+the exact location `operating_pilot:coach` grant, signed tenant context,
+no-store headers, and sanitized errors.
+
+The approved mock-only Gateway/OpenAPI selection passes 101 tests, including
+the pre-existing coaching and operator-route policy suites. Default and
+CI-security Ruff, Python compilation, capability validation, refreshed runtime
+SQL inventory, and `git diff --check` pass. No database/provider, candidate,
+or legacy state was used; no migration was applied. Evidence:
+[focused checks](builds/2026-10-29-recovery/operating-pilot-coaching-read-contracts.json).
+
+Checklist: 1,892 complete / 25 open; TODO: 527 checked / 16 open.
+Capability classifications remain 24 baseline-retained, 7 deployed, and 36
+prepared across 67 rows; strict private Gateway response contracts total 185.
+
+### Progress addendum — yield, nutrient, and pollinator contracts — 29 October 2026
+
+`yield_monitoring record --date` now validates ISO calendar dates during CLI
+parsing, before opening PostgreSQL. Valid dates reach the service as
+`datetime.date`; an omitted date retains the existing service default. The
+nutrient summary query now orders currency/rate-unit groups deterministically
+using migration 601's grouping columns, with its selected fields and payload
+unchanged.
+
+Pollinator habitat creation now declares the exact migration-621 success shape
+for both creates and replays. Runtime checks bind location, habitat type, and
+area to the request; creates return 201, replays return 200, and malformed
+writer responses produce sanitized no-store errors.
+
+The approved focused mock-only selection passes 134 tests (4 CLI, 1 analytics,
+129 Gateway). CI security Ruff, Python compilation, capability-matrix
+validation, refreshed runtime SQL inventory, provider-boundary,
+dependency-group, and `git diff --check` pass. No database/provider,
+candidate, or legacy state was used; no migration was applied. Evidence:
+[focused checks](builds/2026-10-29-recovery/yield-nutrient-pollinator-contracts.json).
+
+Checklist: 1,887 complete / 25 open; TODO: 523 checked / 16 open.
+Capability classifications remain 24 baseline-retained, 7 deployed, and 36
+prepared across 67 rows; strict private Gateway response contracts total 183.
+
+### Progress addendum — farm-summary GeoJSON and location hierarchy — 29 October 2026
+
+Farm and plot summary queries now convert PostGIS boundaries and centers into
+GeoJSON JSONB objects. The Gateway validates Polygon/Point types, finite
+coordinate arrays, closed Polygon rings, and valid/null/empty geometry. It also
+binds the farm-summary location to the request and checks farm, plot, and crop
+cycle parent/location relationships.
+
+The focused farm-summary and Comprehensive Status selection passes 145 tests,
+including SQL projection checks, GeoJSON output, malformed coordinates,
+location mismatches, and invalid farm/plot/crop relationships. Ruff, Python
+compilation, all three report-inventory freshness checks, capability-matrix
+validation, and `git diff --check` pass. The tests use synthetic rows and
+payloads only; no database/provider, candidate, legacy, or production state was
+used. No migration is required. Evidence:
+[focused checks](builds/2026-10-29-recovery/comprehensive-status-farm-geojson-contract.json).
+
+### Progress addendum — Comprehensive Status capital-accounting contract — 29 October 2026
+
+The optional operator route now validates capital accounting against strict
+models for the four independently failure-tolerant report projections:
+capacity, diversion, capture risk, and credit ledger. The contract binds each
+projection and nested credit to the requested location, matches the diversion
+period and derived capacity/risk fields, accepts only safe source-generated
+partial errors, and keeps the ledger strictly draft-only and advisory.
+
+The focused Comprehensive Status Gateway selection passes 127 tests,
+including exact OpenAPI fields, nested-scope checks, malformed projections,
+credit lifecycle enforcement, sanitized error validation, and a valid partial
+failure. Ruff, Python compilation, and `git diff --check` pass. Synthetic
+route fixtures only; no database/provider, candidate, legacy, or production
+state was used. No migration is required. This verifies response shape, not
+populated-data parity or content privacy. Evidence:
+[focused checks](builds/2026-10-29-recovery/comprehensive-status-capital-accounting-contract.json).
+
+### Progress addendum — Comprehensive Status training-impact contract — 29 October 2026
+
+The optional operator route now validates training impact against strict
+section/session models matching the report generator's 15-field public-view
+projection. Sessions and the section bind to the containing location; only
+verified/published sessions and schema-defined session types are accepted.
+Nullable scores remain supported, and session/participant/hour/improvement
+aggregates must match their rows. Decimal mean calculation retains the
+generator's half-even rounding behavior.
+
+The focused Comprehensive Status Gateway selection passes 117 tests,
+including exact OpenAPI fields, location binding, malformed values and
+aggregates, nullable scores, rounding parity, and the established section error
+shape. Ruff, Python compilation, and `git diff --check` pass. Synthetic route
+fixtures only; no database/provider, candidate, legacy, or production state was
+used. No migration is required. The existing public view includes participant
+names, trainer names, and notes; this contract preserves that output and does
+not establish content privacy for the wider report audience. Evidence:
+[focused checks](builds/2026-10-29-recovery/comprehensive-status-training-impact-contract.json).
+
+### Progress addendum — Comprehensive Status stakeholder-outcomes contract — 29 October 2026
+
+The optional operator route now validates stakeholder outcomes against a
+strict projection matching the report generator's selected columns. Each row
+and the section itself must match the enclosing location, status must be
+verified or published, importance must match the schema enum, and the aggregate
+count must equal the returned rows. The source generator currently returns an
+empty capability/value-stream link list; the contract keeps it empty until a
+source-backed implementation is added.
+
+The focused Comprehensive Status Gateway selection passes 106 tests,
+including OpenAPI, nullable fields, location binding, invalid status/importance,
+count mismatch, undeclared fields, and the section error shape. Ruff, Python
+compilation, and `git diff --check` pass. Synthetic route data only; no
+database/provider, candidate, legacy, or production state was used. No
+migration is required. Evidence:
+[focused checks](builds/2026-10-29-recovery/comprehensive-status-stakeholder-outcomes-contract.json).
+
+### Progress addendum — Comprehensive Status holistic-wellbeing contract — 29 October 2026
+
+The optional operator route now validates the holistic-wellbeing section
+against strict response models derived from the three public source views:
+cultural context, well-being observations, and participatory actions. The
+contract permits only the fields selected by the report generator, bounds
+evidence maturity to the schema's 0–6 range, and binds the section's location
+to the containing report. Existing report content, error isolation, and
+location-scoped authorization remain in place.
+
+The focused Comprehensive Status route suite passes 99 tests, including
+OpenAPI, valid projection, location mismatch, undeclared fields, numeric
+validation, maturity bounds, and the section error shape. Ruff, compilation,
+and `git diff --check` pass. Checks used synthetic payloads only; no database,
+provider, candidate, legacy, or production state was used. No migration is
+needed. Remaining untyped sections and the farm-summary financial lifecycle
+policy stay open for source/schema reconciliation. Evidence:
+[focused checks](builds/2026-10-29-recovery/comprehensive-status-holistic-wellbeing-contract.json).
+
+### Progress addendum — Data Stream draft-create Gateway contract — 29 October 2026
+
+### Progress addendum — AI-summary draft response contract — 29 October 2026
+
+### Progress addendum — AI-summary human review decision contract — 29 October 2026
+
+### Progress addendum — AI-summary review-page integrity — 29 October 2026
+
+### Progress addendum — submitted-report detail Gateway contract — 29 October 2026
+
+The optional operator console's submitted-report detail route now publishes a
+strict success schema. Its top-level projection matches the summary contract
+and retains the frozen report payload as an object bounded to 512 KiB. The
+route validates the returned report ID against the requested report and
+rejects extra fields, wrong lifecycle state, invalid payloads, and oversized
+data with a generic no-store failure. Missing records, authorization denials,
+invalid requests, over-limit reads, and service failures also keep private
+no-store headers. The existing same-transaction location grant remains the
+source of authorization.
+
+The focused report-detail contract/service selection passes 23 tests and two
+operator authorization integration checks pass. Ruff, compilation,
+capability-matrix validation, and diff checks pass. Mocks and synthetic report
+JSON only; no live database/provider, candidate, legacy, or production state
+was used. Populated report privacy/parity and live OIDC remain open. No
+migration is needed. Evidence:
+[focused checks](builds/2026-10-29-recovery/submitted-report-detail-gateway-contract.json).
+
+### Progress addendum — AI-summary review-page integrity — 29 October 2026
+
+The private human-review page validates the same stable ascending
+`created_at, id` order as the database function, including PostgreSQL's
+NULL-last behavior, and rejects duplicate summary IDs. The page item also
+requires a true truncation flag to correspond to the full 20,000-character
+review projection. Short content remains valid when untruncated. Malformed
+pages continue to fail with a generic no-store error.
+
+The focused AI-summary review route selection passes 58 tests. Ruff,
+compilation, and diff checks pass. Mocked service output only; no database,
+provider, candidate, legacy, or production state was used. No migration is
+needed. Evidence:
+[focused checks](builds/2026-10-29-recovery/ai-summary-review-page-integrity.json).
+
+### Progress addendum — AI-summary human review decision contract — 29 October 2026
+
+The private operator decision endpoint now publishes strict request and
+response OpenAPI schemas. The body is limited to approve/reject, a UUID retry
+ID, and one of the migration-defined reason codes; approval must use
+`approved_after_review`, while rejection must use a rejection reason. The
+location and summary path IDs are validated before service dispatch. Returned
+data must match the exact five migration-defined fields and bind the summary,
+decision, and lifecycle result. Approval maps only to `verified`; rejection
+maps only to `rejected`, preserving human review and leaving publication to a
+separate governed action. Invalid service output returns a generic no-store
+failure. The route continues to return HTTP 200 for the decision endpoint.
+
+The focused AI-summary review and draft selection passes 77 tests. Ruff,
+Python compilation, capability-matrix validation, and `git diff --check` pass.
+Mocks only; no database, provider, candidate, legacy, or production state was
+used. PostgreSQL idempotency and live OIDC remain separate acceptance gates.
+No migration is required. Evidence:
+[focused checks](builds/2026-10-29-recovery/ai-summary-human-review-decision-contract.json).
+
+### Progress addendum — AI-summary draft response contract — 29 October 2026
+
+The private, authenticated AI-summary draft route now publishes strict
+request/response schemas aligned with migrations 522, 523, and 540. It accepts
+only the four summary types supported by the generator and a UUID retry key,
+rejecting malformed or extra request fields before service dispatch. The
+response binds location and summary type to the request and validates its
+governed lifecycle state, bounded content, unique source tables, and bounded
+source-reference sample/count/truncation/scope fields. Draft and review routes
+now share the same provenance model. New drafts remain HTTP 201; idempotent
+replays remain HTTP 200, including summaries that have since been reviewed.
+Invalid output returns a generic no-store error.
+
+The focused AI-summary draft/task/review selection passes 86 tests. Ruff,
+Python compilation, capability-matrix validation, and `git diff --check` pass.
+These checks use mocks and synthetic connections only; no database, provider,
+candidate, legacy, or production state was used. No migration is needed, and
+rollback is source-only. Evidence:
+[focused checks](builds/2026-10-29-recovery/ai-summary-draft-response-contract.json).
+
+### Progress addendum — Data Stream draft-create Gateway contract — 29 October 2026
+
+The tenant-scoped Data Stream create route now documents and validates only
+`location_id`, a domain-supported post type, title, content, and optional
+timezone-aware expiry. The request cannot choose creator identity, lifecycle
+status, metadata, or source lineage. Successful creation validates and returns
+only the generated post UUID; the underlying service continues to create
+drafts. Invalid request bodies receive a generic no-store 422 before the
+database service is invoked.
+
+The focused Gateway create/auth selection passes 39 tests. Ruff, Python
+compilation, capability-matrix validation, and `git diff --check` pass. No
+database, provider, candidate, or legacy service was used. This verifies the
+source/mock contract only; live OIDC/browser and populated-data acceptance
+remain open. Evidence:
+[focused checks](builds/2026-10-29-recovery/data-stream-create-gateway-contract.json).
+
+### Progress addendum — public location IRI JSON-LD response contract — 29 October 2026
+
+The public location IRI route now publishes and validates the exact document
+produced by the native resolver. Its schema binds the canonical location IRI
+to the document version, permits only the immediately preceding version for the
+same location, and verifies the SHA-256 digest over the non-hash projection.
+The optional predecessor is omitted when absent, while nullable country and
+region remain explicit. OpenAPI describes `application/ld+json`; malformed
+documents receive a generic no-store 500 response and unknown/private IRIs
+retain the existing nonrevealing 404.
+
+The focused public IRI route/service tests pass 13 checks. Ruff, Python
+compilation, and `git diff --check` pass. No database, provider, candidate, or
+legacy service was used. This establishes source/mock contract behavior only;
+it does not establish external JSON-LD interoperability, live IRI/populated
+parity, or tenant/RLS isolation. Evidence:
+[focused checks](builds/2026-10-29-recovery/public-location-iri-jsonld-response-contract.json).
+
+### Progress addendum — C1 yield-benchmark runtime ACL — 28 October 2026
+
+Migration 680 keeps the location-scoped `yield_benchmark` table readable but
+immutable to `kokonut_runtime`. The prior migration-679 full-schema ACL
+snapshot showed table SELECT/INSERT/UPDATE/DELETE for the runtime role; source
+review found one application reader in
+`services/analytics/yield_monitoring.py::compare_benchmark` and no writer.
+The migration revokes table and residual column mutation/reference rights,
+restores SELECT, and leaves `kokonut_directus_runtime` untouched. Runtime-role
+provisioning reapplies the same boundary after compatibility grants.
+
+The focused PostgreSQL 16 disposable harness applies migration 680 twice,
+reads a synthetic benchmark row as `kokonut_runtime`, denies INSERT, UPDATE,
+DELETE, TRUNCATE, REFERENCES, TRIGGER and column-level writes, and confirms
+Directus CRUD grants survive migration and provisioner reapplication. The
+126-table harness passed and its disposable container was removed. This is a
+DML boundary, not RLS or tenant-isolation evidence: RLS remains disabled and
+full-schema replay remains through migration 679. Candidate/legacy databases,
+seeds, and farm data were untouched.
+
+Evidence: [migration](../../schemas/postgres/680_runtime_yield_benchmark_read_only.sql),
+[focused PostgreSQL 16 acceptance](builds/2026-10-28-recovery/yield-benchmark-runtime-read-only-disposable.json),
+[pre-migration full-schema ACL](builds/2026-10-28-recovery/runtime-role-full-schema-679-native-disposable.json),
+[refreshed runtime callsite report](builds/2026-10-28-recovery/sprint-runtime-privilege-callsite-report.json),
+and [analytics write-candidate inventory](builds/2026-10-28-recovery/analytics-runtime-write-candidate-inventory.json).
+The source inventories now reflect 4,935 SQL execution sites across 971 files,
+1,223 relation candidates, and 588 write-target relations. The refresh also
+identified `service_registry` INSERT/UPDATE sites in
+`services/analytics/service_catalog.py`; it is not included in this boundary
+because its write callers need separate review. The generated callsite report's
+effective ACL values are still from the full-schema migration-679 snapshot, so
+its `yield_benchmark` INSERT/UPDATE/DELETE=true values describe the pre-680
+state; migration 680's post-change ACL is established by the focused disposable
+acceptance above. The conservative resolver now identifies 53 SQL templates
+held in one unambiguous local assignment; it deliberately leaves dynamic
+identifiers, reassigned SQL, and helper-produced expressions for review
+([inventory resolution evidence](builds/2026-10-28-recovery/runtime-sql-local-query-resolution.json)).
+Checklist: 1,351 complete / 25 open (1,376 total); capability classifications
+remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows.
+
+### Progress addendum — parallel C3/C5/C6/C7 code-first batch — 28 October 2026
+
+The optional Directus hook no longer caches workflow role names for five
+minutes. Each non-admin authorization check resolves the current role from its
+request database, so a role rename takes effect immediately; server
+accountability is still required and payload accountability remains ignored.
+The full extension suite passes 120 tests and the bundled extension build and
+TypeScript check pass. No live Directus or database was used. This adds one
+role lookup per non-admin check and does not prove deployed API/field/row
+permission parity.
+
+The adoption-barrier, bio-recipe library, community-governance,
+governance-inclusion, and governance-throughput reports now
+require a location before opening a database cursor and have no unscoped query
+branch; their location-filtered queries retain intentionally public-safe global
+rows.
+Four stakeholder
+reports whose registry scope is location-lineaged also fail before database
+access when their location is missing, and their CLI rejects `--all`. The
+combined nine-module report selection passes 507 tests with four database-
+dependent skips; Ruff, the query-scope inventory, compilation, and diff checks
+pass. No candidate/legacy database or provider/network was contacted. These
+input/query guards are not tenant authorization or populated report parity.
+
+The signed Delphi source worker now checks that the returned `study_id` matches
+the normalized request as well as the requested location. A mismatch rolls
+back and closes the connection. Three focused worker tests pass with Ruff and
+compilation; no database/provider/network was used. CAP-038 acceptance remains
+open.
+
+The full ARM64/QEMU PostgreSQL 16 replay applied all 670 schemas through
+migration 679 on `aarch64` with verified 1.5 GiB/two-CPU limits, zero pending or
+failed migrations, zero seeds, no OOM, and successful cleanup. It did not run
+the operator-scope probe and is not physical Pi, populated-data, or production
+recovery acceptance.
+
+Python Directus detail reads now match TypeScript for all projection inputs:
+`None` omits `fields`, `[]` serializes as the explicit JSON empty list, and
+populated fields remain CSV. Three mocked wire-contract cases, targeted Ruff,
+compilation, and diff checks pass; no database or network was used. This does
+not establish live authorization or tenant isolation.
+
+The TypeScript `ReportSnapshot` model now matches its canonical PostgreSQL
+table and Python model. Three stale fields with no SQL column were removed;
+13 focused tests and the complete SDK schema check across 109 models/2,150
+columns pass, along with the TypeScript build, Ruff, and diff checks. No
+database or external service was used; report lifecycle/runtime parity remains
+open.
+
+The durable notification outbox now rejects booleans for both `limit` and
+`lease_seconds` before opening a database cursor. Previously `True` could pass
+Python's integer check and become a one-second lease. The 40-test outbox and
+delivery selection, targeted Ruff, Python compilation, and diff check pass with
+mocked connections; no live DB/provider was used. Live SMTP/webhook delivery
+and worker outage acceptance remain open.
+
+C4 inventory review found the 23-entry native job catalog consistent with its
+generated contract and five Prefect deployments. The legacy health-check flow
+is not deployed; the weather-forecast worker remains default-off. No new
+schedule was inferred. The job-contract inventory check passes, but active
+provider ownership and runtime acceptance remain open. C1 audit found no next
+safe table revoke at that time; the refreshed inventory now isolates the
+`yield_benchmark` DML boundary documented above. Remaining write paths and
+external/Directus consumers need traceable ownership and signed-context proof.
+
+The C3 and C6 audits found no further safe source-only change in those
+specific slices. Directus `workflow_history` and `approval` still have broad
+read policies without tenant-scoped hooks; row-to-location mapping and
+consumer ownership must be established before changing them. CAP-035 sharing
+and tranche custody remain decision-gated; CAP-036's fixture already verifies
+unscoped sensitive events are excluded; CAP-037 has no identified first-party
+workflow gap; CAP-038 still needs live identity and populated-source review.
+
+The minimal-profile import audit starts the Gateway while optional analytics,
+ML, GIS, Web3, ClickHouse, Prefect, Redis/MQTT, gRPC, OIDC, and S3 packages are
+blocked, without importing or attempting any of them. Provider-boundary and
+dependency-group checks pass. No dependency change was needed. The C2 SDK
+follow-up found no further static mismatch beyond the fixes recorded above.
+The C1 credit-class trace found gRPC `CreateBatch` accepts a global
+`ecocredit:batch:write` key scope and caller-supplied location without signed
+tenant context; active clients/grants and the other batch writers need
+reconciliation before changing that behavior or revoking DML.
+
+The Gateway operator ecocredit-batch and attestation list routes now expose
+their service's existing `1..100` pagination range (default `50`) through
+FastAPI `Query` metadata. OpenAPI reports those bounds and invalid `0`/`101`
+values fail before service invocation. The targeted plus existing route suite
+passes 21 tests with Ruff, compilation, and diff checks; no DB/provider/network
+was used. This does not prove reverse-proxy behavior.
+
+No capability classification or MAN-CAP status changed. Rollback is by
+reverting the source/tests/inventory changes; the full-schema replay was
+disposable and cleaned up. Checklist: 1,313 complete / 25 open (1,338 total);
+capability classifications remain 24 baseline-retained, 7 deployed, and 36
+prepared.
+
+Evidence: [Directus role resolution](builds/2026-10-28-recovery/directus-role-resolution-freshness.json),
+[adoption-barrier scope](builds/2026-10-28-recovery/adoption-barriers-location-scope.json),
+[Delphi study scope](builds/2026-10-28-recovery/delphi-source-study-scope-match.json),
+[SDK empty projection parity](builds/2026-10-28-recovery/sdk-empty-fields-projection-parity.json),
+[stakeholder report scope](builds/2026-10-28-recovery/stakeholder-report-explicit-location.json),
+[report snapshot schema parity](builds/2026-10-28-recovery/report-snapshot-types-canonical-schema-parity.json),
+[bio recipe location scope](builds/2026-10-28-recovery/bio-recipe-library-location-scope.json),
+[notification bound validation](builds/2026-10-28-recovery/notification-outbox-rejects-boolean-bounds.json),
+[community governance location scope](builds/2026-10-28-recovery/community-governance-location-scope.json),
+[governance inclusion location scope](builds/2026-10-28-recovery/governance-inclusion-location-scope.json),
+[governance throughput location scope](builds/2026-10-28-recovery/governance-throughput-location-scope.json),
+[Gateway pagination contract](builds/2026-10-28-recovery/gateway-pagination-openapi-bounds.json),
+[ARM64 replay](builds/2026-10-28-recovery/arm64-resource-limited-schema-679.json).
+
+### Progress addendum — C2 typed list extension query parity — 28 October 2026
+
+The Directus TypeScript SDK already retained arbitrary list query parameters
+through typed collection accessors, while Python's `ListOptions` only exposed
+the standard filter, sort, field, pagination, and meta controls. Add
+`ListOptions.extra_params` to Python and its `extraParams` counterpart to
+TypeScript. Both typed clients now forward backend-specific extensions using
+the existing Directus JSON/CSV serialization. Standard options override
+conflicting extension keys; location-scoped convenience methods still force
+their requested location filter. README examples cover the same feature in
+both SDKs.
+
+The focused Python SDK and method-parity suite passes 107 tests, the JavaScript
+suite passes 56, TypeScript builds, and targeted Ruff and `git diff --check`
+pass. Tests use mocked clients and do not contact a database, provider, or
+network. This does not establish authorization or tenant isolation and does
+not close broader SDK parity. No capability classification or MAN-CAP status
+changed. Rollback is a code/documentation revert; no migration or persistent
+data changed. Checklist: 1,300 complete / 25 open (1,325 total); capability
+classifications remain 24 baseline-retained, 7 deployed, and 36 prepared.
+
+
+Evidence: [contract and checks](builds/2026-10-28-recovery/sdk-typed-extension-query-parity.json),
+[Python README](../../sdk/python/README.md),
+[JavaScript README](../../sdk/javascript/README.md).
+
+### Progress addendum — C1 quantity-unit catalog ACL — 28 October 2026
+
+Migration 112 defines and seeds nine shared `quantity_unit` labels. Source and
+runtime SQL inventories found no application relation reader or write target.
+Migration 679 keeps the catalog readable but immutable to `kokonut_runtime`,
+revoking table and residual column INSERT/UPDATE/REFERENCES while restoring
+SELECT. Runtime provisioning reapplies the rule after compatibility grants;
+the separate Directus administration role remains unchanged.
+
+Focused native and ARM64/QEMU PostgreSQL 16 checks pass apply/replay, reads,
+table/column write denial, provisioner reapplication, and preservation of
+synthetic Directus grants. The fresh network-disabled native replay applies all
+670 ordered schemas through 679 and passes 34 two-tenant assertions under
+verified 1.5 GiB/two-CPU limits. It verifies 126 runtime controls (79 private,
+44 mutation-denied, two append-only, plus the API-key column boundary) with
+zero direct privilege violations. The source/ACL report has zero mismatches
+across 1,511 relations; 994 retain effective DML while RLS is disabled, so C1
+remains open. Candidate and legacy databases were untouched; no optional seeds
+or farm data were loaded, no ports were published, no OOM occurred, and
+cleanup passed. ARM64/QEMU is software portability evidence, not physical
+Raspberry Pi acceptance.
+
+Rollback retains migration 679; restoring runtime writes requires a reviewed
+forward migration. Capability classifications and MAN-CAP acceptance are
+unchanged. Checklist: 1,299 complete / 25 open (1,324 total); 24
+baseline-retained, 7 deployed, and 36 prepared across 67 rows.
+
+Evidence: [migration](../../schemas/postgres/679_runtime_quantity_unit_read_only.sql),
+[native ACL](builds/2026-10-28-recovery/quantity-unit-runtime-read-only-disposable.json),
+[ARM64/QEMU ACL](builds/2026-10-28-recovery/quantity-unit-runtime-read-only-arm64-disposable.json),
+[full native replay and tenant probe](builds/2026-10-28-recovery/runtime-role-full-schema-679-native-disposable.json),
+[source/ACL report](builds/2026-10-28-recovery/sprint-runtime-privilege-callsite-report.json).
+
+### Progress addendum — C1 market-reference catalog ACL — 28 October 2026
+
+Schema 142 defines `market_reference_data` as shared commodity-category and
+unit labels. Source and runtime SQL inventories found no service or extension
+write path. Migration 678 keeps the catalog readable to `kokonut_runtime` and
+revokes table and residual column INSERT/UPDATE/REFERENCES privileges; runtime
+provisioning reapplies the boundary after compatibility grants. The separate
+Directus administration role is not changed.
+
+Focused native and ARM64/QEMU PostgreSQL 16 acceptance passes apply/replay,
+SELECT, write and stale column-grant denial, provisioner reapplication, and
+preservation of synthetic Directus grants. A fresh network-disabled native
+replay applies all 669 ordered schema files through 678 and passes all 33
+synthetic two-tenant assertions under verified 1.5 GiB/two-CPU limits. It
+verifies 125 runtime controls (79 private relations, 43 mutation-denied
+relations, two append-only relations, plus the API-key column boundary) with
+zero direct privilege violations. The refreshed source/ACL report has zero
+policy mismatches across 1,511 relations; 995 relations still retain effective
+DML while RLS is disabled, so C1 remains open. Focused runtime-role and
+ARM64-parser suites pass 77 and 23 tests respectively; migration tests pass 37.
+Ruff, dependency groups, provider boundaries, and diff checks pass. No optional
+seeds or farm data were loaded, no ports were published, no OOM occurred, and
+temporary resources were removed. Candidate and legacy databases remain
+untouched. ARM64/QEMU is software portability evidence, not physical Raspberry
+Pi acceptance.
+
+Rollback retains migration 678; runtime writes would require a reviewed forward
+migration. Capability classifications and MAN-CAP acceptance are unchanged.
+Checklist: 1,298 complete / 25 open (1,323 total); 24 baseline-retained,
+7 deployed, and 36 prepared across 67 rows.
+
+Evidence: [migration](../../schemas/postgres/678_runtime_market_reference_data_read_only.sql),
+[native ACL](builds/2026-10-28-recovery/market-reference-data-runtime-read-only-disposable.json),
+[ARM64/QEMU ACL](builds/2026-10-28-recovery/market-reference-data-runtime-read-only-arm64-disposable.json),
+[full native replay and tenant probe](builds/2026-10-28-recovery/runtime-role-full-schema-678-native-disposable.json),
+[source/ACL report](builds/2026-10-28-recovery/sprint-runtime-privilege-callsite-report.json).
+
+### Progress addendum — Kernel release-input lock repair — 28 October 2026
+
+PR #71 CI failed because `Dockerfile.kernel` changed when the optional OIDC
+image added `requirements/http-client.txt`, but the release-input lock retained
+the old Dockerfile hash and did not hash either OIDC manifest. The lock now
+records the Dockerfile, `requirements/oidc.txt`, and
+`requirements/http-client.txt` hashes. The local release-input gate and 36
+focused Kernel profile/release-gate tests pass. Hosted Security passed on the
+failed head; a fresh hosted CI run remains necessary to verify the repair.
+No image was built or inspected as part of this lock-only correction.
+
+Capability classifications and MAN-CAP acceptance are unchanged. Checklist:
+1,297 complete / 25 open (1,322 total); 24 baseline-retained, 7 deployed, and
+36 prepared across 67 rows.
+
+Evidence: [failure and repair record](builds/2026-10-28-recovery/ci-kernel-release-lock-repair.json),
+[release lock](../../config/kernel/release-input-lock.json).
+
+### Progress addendum — C2 calculated NOI snapshot SDK boundary — 27 October 2026
+
+`noi_snapshot` contains calculated outputs, source inputs, calculation version,
+and timestamps. The repository has no `client.noi.create` or update callsites;
+generic SDK writes could provide final values without executing that
+calculation. Both SDKs now preserve list/detail/crop-cycle reads only. Existing
+CLI, signed-worker, and Directus-extension writers remain as-is and were not
+runtime-validated in this slice.
+
+The focused Python SDK, method-parity, and report-governance selection passes
+111 tests; JavaScript passes 55; TypeScript builds; Ruff and Python compilation
+pass. Calls are mocked, with no database/provider access. Capability
+classifications and MAN-CAP acceptance are unchanged. Checklist: 1,296 complete
+/ 25 open (1,321 total); 24 baseline-retained, 7 deployed, and 36 prepared
+across 67 rows.
+
+Evidence: [contract and checks](builds/2026-10-27-recovery/sdk-noi-snapshot-read-only-contract.json),
+[Python SDK](../../sdk/python/kokonut/methods.py),
+[TypeScript SDK](../../sdk/javascript/src/methods.ts).
+
+### Progress addendum — C2 attestation record SDK boundary — 27 October 2026
+
+The `attestation_record` table stores governed lifecycle rows and projections
+created by chain indexers. Direct SDK inserts could make a database row appear
+to be an attestation without on-chain publication or independent review. Both
+SDKs now expose list/detail and the existing pending/entity-filtered reads only.
+The Python and JavaScript workflow examples now read indexed records; EAS
+publication and revocation stay in the dedicated EAS service and governed
+signing workflow.
+
+The focused Python SDK, method-parity, and report-governance selection passes
+109 tests; JavaScript passes 54; TypeScript builds; Ruff and Python compilation
+pass. Calls are mocked, with no database or provider access. Capability
+classifications and MAN-CAP acceptance are unchanged. Checklist: 1,295 complete
+/ 25 open (1,320 total); 24 baseline-retained, 7 deployed, and 36 prepared
+across 67 rows.
+
+Evidence: [contract and checks](builds/2026-10-27-recovery/sdk-attestation-read-only-contract.json),
+[Python SDK](../../sdk/python/kokonut/methods.py),
+[TypeScript SDK](../../sdk/javascript/src/methods.ts).
+
+### Progress addendum — C2 report snapshot SDK boundary — 27 October 2026
+
+The report generator stores report snapshots as hashed, unfrozen drafts with
+public-interest context. Review and publication are governed lifecycle
+transitions. Both SDKs previously inherited generic create/bulk-create/update/
+delete methods, although no service calls those SDK mutations and the
+authenticated Gateway report-review routes are read-only. The Python and
+TypeScript report helpers now expose only list, detail, and report-type-filtered
+reads. Generation remains available through the exporter service; the report
+review console remains read-only until authorized transition endpoints are
+implemented.
+
+The focused Python SDK, method-parity, and report-governance selection passes
+107 tests; JavaScript passes 53 tests; and TypeScript builds. Ruff, Python
+compilation, and diff checks pass. Calls are mocked, with no database or
+provider access. The SDK schema-parity check is recorded in the batch evidence.
+Capability classifications and MAN-CAP acceptance are unchanged. No migration,
+candidate/legacy service, or report data was used. Checklist: 1,294 complete /
+25 open (1,319 total); 24 baseline-retained, 7 deployed, and 36 prepared across
+67 rows.
+
+Evidence: [contract and checks](builds/2026-10-27-recovery/sdk-report-snapshot-read-only-contract.json),
+[Python SDK](../../sdk/python/kokonut/methods.py),
+[TypeScript SDK](../../sdk/javascript/src/methods.ts).
+
+### Progress addendum — C2 canonical export-log SDK contract — 27 October 2026
+
+Review against `schemas/postgres/008_governance.sql` found that the SDK's
+pending export request payload used four columns absent from `export_log`:
+`format`, `entity_type`, `entity_ids`, and `requested_by`. The repository has
+no worker that claims pending rows; `services.export.exporter` generates a
+file and then writes its audit record. Keeping the former API would therefore
+send invalid requests and imply an asynchronous workflow that does not exist.
+
+Both SDKs now expose only `list` and `get` for export logs, and their `ExportLog`
+models contain exactly the canonical ten columns. The exporter CLI remains the
+supported file-generation path. The focused Python SDK and method-parity
+selection passes 100 tests; JavaScript passes 53 tests; the TypeScript build
+and the 109-model/2,150-column schema-parity check pass. Ruff, compilation,
+and diff checks pass. Tests use mocked client methods; no database, provider,
+candidate, or legacy service was used. The earlier export-create lifecycle
+entry below is superseded. An authenticated Gateway request path, caller
+attribution, and durable asynchronous worker remain open C2 work. Capability
+classifications are unchanged. Checklist: 1,293 complete / 25 open
+(1,318 total); 24 baseline-retained, 7 deployed, and 36 prepared across 67
+rows.
+
+Evidence: [contract and checks](builds/2026-10-27-recovery/sdk-export-audit-read-only-contract.json),
+[Python SDK](../../sdk/python/kokonut/methods.py),
+[TypeScript SDK](../../sdk/javascript/src/methods.ts).
+
+### Progress addendum — C1 farmer credential-type catalog ACL — 27 October 2026
+
+The seeded `farmer_credential_type` catalog has no application SQL readers or
+writers. `farmer_credential.credential_type` remains free text with no catalog
+foreign key, so runtime write revocation does not change the current credential
+creation contract. Migration 677 keeps the catalog readable to
+`kokonut_runtime`, denies table and residual column mutation/reference grants,
+and leaves the distinct Directus grant path intact. Runtime provisioning
+reapplies the boundary after its compatibility grant.
+
+Focused native and ARM64/QEMU PostgreSQL 16 checks pass migration replay,
+catalog reads, mutation/TRUNCATE/REFERENCES and column-grant denial,
+provisioner reapplication, and preservation of synthetic Directus grants. The
+full network-disabled native replay applies all 668 ordered schemas through
+677 and passes 32 two-tenant assertions under verified 1.5 GiB/two-CPU limits;
+the runtime can query the migration-seeded catalog. It verifies 124 runtime
+controls (79 private relations, 42 mutation-denied relations, two append-only
+relations, and the API-key read-only column boundary) with zero direct
+privilege violations. The refreshed source/ACL report has zero policy
+mismatches across all 1,511 relations; 996 relations still retain effective
+DML while RLS is disabled, so C1 remains open. A stale 41-relation expectation
+in the probe parser was updated to 42; the focused parser, report, and
+migration-runner selection passes 68 tests. Ruff, compilation, and diff checks
+pass. No optional seeds or farm data were loaded, no ports were published, no
+OOM occurred, and cleanup succeeded. Candidate and legacy databases were
+untouched. The ACL result is synthetic software acceptance, not populated
+credential-data, Directus API, physical Raspberry Pi, or production
+acceptance. Capability classifications remain 24 baseline-retained, 7
+deployed, and 36 prepared across 67 rows. Checklist: 1,292 complete / 25 open
+(1,317 total).
+
+Evidence: [migration](../../schemas/postgres/677_runtime_farmer_credential_type_read_only.sql),
+[native ACL](builds/2026-10-27-recovery/farmer-credential-type-runtime-read-only-disposable.json),
+[ARM64/QEMU ACL](builds/2026-10-27-recovery/farmer-credential-type-runtime-read-only-arm64-disposable.json),
+[full schema and tenant probe](builds/2026-10-27-recovery/runtime-role-full-schema-677-native-disposable.json),
+[source/ACL report](builds/2026-10-27-recovery/sprint-runtime-privilege-callsite-report.json).
+
+### Progress addendum — C2 SDK export-create lifecycle contract — 27 October 2026
+
+Source parity review found that TypeScript's `exports.create()` overrode the
+generic SDK writer to assign pending state and SDK attribution, while Python
+inherited the generic raw writer. The TypeScript spread also forwarded unknown
+runtime fields despite its narrower static type. Both SDKs now use the public
+`ExportCreateInput` type and explicitly project the six request fields before
+setting `status=pending` and `requested_by=sdk`. The Python convenience
+`create_export()` and TypeScript `createExport()` request contract remains
+available.
+
+The focused Python SDK and method-parity selection passes 105 tests; the full
+JavaScript SDK suite passes 57 tests. TypeScript build, Ruff, and Python
+compilation pass. Tests use mocked clients only, with no HTTP, database,
+provider, candidate, or legacy access. This closes the direct single-create
+parity gap, not all SDK payload parity or Directus runtime authorization.
+Capability classifications are unchanged. Checklist: 1,291 complete / 25
+open (1,316 total); 24 baseline-retained, 7 deployed, and 36 prepared across
+67 rows.
+
+Evidence: [SDK lifecycle contract](builds/2026-10-27-recovery/sdk-export-create-lifecycle-contract.json),
+[Python implementation](../../sdk/python/kokonut/methods.py),
+[TypeScript implementation](../../sdk/javascript/src/methods.ts).
+
+### Progress addendum — C1 governed reference-class runtime ACL — 27 October 2026
+
+Source review confirms `reference_class` is a governed, versioned evidence
+registry. Prediction comparison reads only verified or published classes; the
+CLI does not create them, and no service or extension source writes the table.
+Migration 676 now leaves SELECT available to `kokonut_runtime` while denying
+its table and column mutation/reference privileges. The role provisioner
+reapplies the boundary after compatibility grants, and the separate
+Directus/admin role is unaffected.
+
+Native and ARM64/QEMU PostgreSQL 16 disposable checks pass migration
+apply/replay, read access, mutation/TRUNCATE/REFERENCES and stale-column
+denial, provisioner reapplication, and synthetic Directus grant preservation.
+The corrected native full replay applies all 667 ordered schema migrations and
+passes the provisioner plus all 31 two-tenant checks under verified 1.5 GiB /
+two-CPU limits. It verifies 123 controls (79 private, 41 mutation-denied, two
+append-only, and the API-key read-only column boundary), zero direct table or
+column privilege violations, and 997 relations with effective DML while RLS is
+disabled. The replay used no seeds or farm data and published no ports; it was
+not OOM-killed, cleanup succeeded, and candidate/legacy state was untouched.
+The first replay exposed stale 40-relation expectations in the scope-probe
+parser; the parser and fixtures now expect 41, and the corrected full replay
+passes. The refreshed source/ACL report has zero policy mismatches.
+
+The `data_freshness_config` review did not produce a privilege change. Its
+active thresholds and location scope are operational controls; no replacement
+operator write path is present in service source. Keep that configuration
+manageable through the existing administrative path until a dedicated Kernel
+management contract is available, then revisit the broad runtime grant.
+
+The combined runtime-role, report, migration-runner, ARM64-parser, SQL-inventory,
+reference-class, and prediction-calibration selection reports 173 passed and one skipped. Ruff, compilation, dependency/provider boundaries, and diff
+checks pass. No capability classification or MAN-CAP acceptance changed. This
+is synthetic ACL/schema evidence, not populated reference-class parity, live
+Directus API parity, physical Raspberry Pi, or production acceptance. Checklist:
+1,290 complete / 25 open (1,315 total); classifications remain 24
+baseline-retained, 7 deployed, and 36 prepared across 67 rows.
+
+Evidence: [migration](../../schemas/postgres/676_runtime_reference_class_read_only.sql),
+[native ACL](builds/2026-10-27-recovery/reference-class-runtime-read-only-disposable.json),
+[ARM64 ACL](builds/2026-10-27-recovery/reference-class-runtime-read-only-arm64-disposable.json),
+[full schema and tenant probe](builds/2026-10-27-recovery/runtime-role-full-schema-676-native-disposable.json),
+[source/ACL report](builds/2026-10-27-recovery/sprint-runtime-privilege-callsite-report.json).
+
+### Progress addendum — C1 capability-access audit ledger ACL — 27 October 2026
+
+Source review found `AuditLogger` inserts and queries `access_audit_log`; no
+service, extension, script, or CLI writer updates or deletes audit entries. The
+sandbox policy also explicitly denies access to this table. Migration 662 now
+removes runtime table and residual column privileges, restores SELECT/INSERT
+only, and documents that cleanup requires separately authorized administration
+under a configured retention policy. Runtime-role provisioning reapplies the
+same ACL after compatibility grants.
+
+Native PostgreSQL 16 and ARM64/QEMU disposable checks passed migration apply
+and replay, allowed SELECT/INSERT, denied UPDATE/DELETE/TRUNCATE, removal of
+stale SELECT/INSERT/UPDATE/REFERENCES column grants, and reapplication after
+the normal broad compatibility grant. Its ARM64 mode now defaults to the repository’s local ARM64 PostGIS image because the separately pinned upstream digest is AMD64-only. The checker also revalidated the 79
+private relations, 24 mutation-denied relations, and existing append-only
+ledger. The focused migration, role, source-report, ARM64-contract, and
+migration-runner selection passes 126 tests. Candidate and legacy databases
+and actual audit records were untouched.
+
+The source report now records 106 runtime boundaries without policy-mapping
+gaps. The latest full ARM64 schema/two-tenant probe still ends at migration
+660 and reports the earlier 103 boundaries; it predates the graph-type and
+capability-audit migrations, so full-chain acceptance through 662 remains
+open. The 37-minute ARM64/QEMU run stays grouped with the next migration batch.
+No physical Raspberry Pi, retention period, or pruning authorization is
+claimed. Capability classifications remain 24 baseline-retained, 7 deployed,
+and 36 prepared across 67 rows; no MAN-CAP is marked accepted. The checklist
+now records 1,265 complete / 26 open (1,291 total).
+
+Evidence: [migration 662](../../schemas/postgres/662_runtime_access_audit_log_append_only.sql),
+[native disposable ACL](builds/2026-10-27-recovery/runtime-access-audit-log-append-only-disposable.json),
+[ARM64 disposable ACL](builds/2026-10-27-recovery/runtime-access-audit-log-append-only-arm64-disposable.json),
+[source privilege report](builds/2026-10-27-recovery/sprint-runtime-privilege-callsite-report.json),
+[full schema through 660](builds/2026-10-27-recovery/arm64-resource-limited-schema-660.json).
+
+### Progress addendum — C1 versioned graph projection type ACL — 27 October 2026
+
+Source review traced `graph_node_type` and `graph_edge_type` writes to the
+versioned schema seed in migration 173; the graph projection worker writes
+projection generations, nodes, and edges, not these type registries. Migration
+661 now removes runtime table and residual column mutation/reference grants,
+restores SELECT, documents migration-managed changes, and makes runtime-role
+provisioning reapply the boundary after compatibility grants.
+
+Native and ARM64/QEMU disposable PostgreSQL checks apply/replay migration 661,
+verify reads succeed and INSERT/UPDATE/DELETE/TRUNCATE/REFERENCES fail, remove
+stale column grants, then confirm the provisioner closes privileges reopened by
+compatibility grants. The 104 exercised relations comprise 79 private, 24
+mutation-denied, and one append-only relation. Focused migration, runtime-role,
+report, ARM64-contract, and migration-runner checks pass 122 tests; Ruff,
+dependency/provider-boundary checks, and SQL inventory freshness pass. No
+candidate or legacy database was touched.
+
+The complete resource-limited ARM64/QEMU schema replay and two-tenant probe
+still ends at migration 660 and verifies 103 declared boundaries. Migration
+661 raises the source-declared count to 105; the two new graph policies are
+covered by focused native and ARM64 checks but not yet by a full-chain probe.
+That 37-minute replay is tracked as an open gate and will be combined with the
+next migration batch. This remains software-portability evidence; no physical
+Raspberry Pi acceptance is claimed. Capability classifications remain 24
+baseline-retained, 7 deployed, and 36 prepared across 67 rows; no MAN-CAP is
+marked accepted. The checklist now records 1,264 complete / 26 open (1,290
+total).
+
+Evidence: [migration 661](../../schemas/postgres/661_runtime_graph_projection_types_read_only.sql),
+[native focused ACL](builds/2026-10-27-recovery/runtime-graph-types-652-661-disposable.json),
+[ARM64 focused ACL](builds/2026-10-27-recovery/runtime-graph-types-652-661-arm64-disposable.json),
+[source policy report](builds/2026-10-27-recovery/sprint-runtime-privilege-callsite-report.json),
+[complete schema through 660](builds/2026-10-27-recovery/arm64-resource-limited-schema-660.json).
+
+### Progress addendum — native/ARM64 catalog ACLs and full ARM64 replay through 660 — 27 October 2026
+
+After Docker restarted, the combined migration-658–660 ACL acceptance passed
+on native PostgreSQL 16 and ARM64/QEMU PostgreSQL 16. Both focused runs verify
+that the seeded catalog relations remain readable but deny table and column
+mutation, truncate, and REFERENCES; stale column grants are removed, migration
+replay is safe, and the role provisioner reapplies policy after compatibility grants.
+Across 102 relations, the checks cover 79 private relations, 22
+mutation-denied relations, and one append-only relation.
+
+The complete ARM64/QEMU replay then applied all 651 ordered schema files
+through migration 660 with zero pending or failed files. Docker verified a
+1.5 GiB memory/swap cap and two CPUs; the database reported `aarch64`, no OOM
+kill, no seeds or farm data, no published ports, and successful cleanup. The
+updated full-schema operator-scope probe passed all 17 checks against two
+synthetic tenants, verifying 1,511 public relations, the 103 declared runtime
+boundaries, and no direct table/column privilege violations within those
+boundaries. It reports 1,016 public tables with runtime table DML while RLS is
+disabled, so this does not establish universal tenant isolation.
+
+Evidence: [native ACL acceptance](builds/2026-10-27-recovery/runtime-reference-catalogs-652-660-disposable.json),
+[ARM64 ACL acceptance](builds/2026-10-27-recovery/runtime-reference-catalogs-652-660-arm64-disposable.json),
+[complete ARM64 schema and operator-scope run](builds/2026-10-27-recovery/arm64-resource-limited-schema-660.json).
+Candidate and legacy databases were untouched. No capability classification
+or MAN-CAP acceptance changed. This closes the two focused ACL/full-schema
+composite checklist gates, bringing the checklist to 1,263 complete / 25 open
+(1,288 total); capability classifications remain 24 baseline-retained, 7
+deployed, and 36 prepared across 67 rows. Physical Raspberry Pi, production,
+populated-data, external provider/media, and broad runtime database-boundary
+acceptance remain open.
+
+### Historical progress addendum — ARM64 replay preflight before Docker restart — superseded 27 October 2026
+
+The attempted 1.5 GiB/two-CPU ARM64/QEMU replay through migration 657 stopped
+during project-conflict preflight. The run applied zero migrations and did not
+create a container or volume. A read-only `docker info` request did not return;
+the user-owned Docker socket was present with normal ownership and mode, so no
+permission changes were made. The last completed full ARM64 schema replay
+remains through migration 654; focused ACL checks still pass through 657. This
+is an environment gate, not a schema or migration failure. Candidate and legacy
+databases were untouched.
+
+Evidence: [failed preflight attempt](builds/2026-10-27-recovery/arm64-resource-limited-schema-657.json),
+[last full-chain pass](builds/2026-10-27-recovery/arm64-resource-limited-schema-654.json).
+Checklist: 1,258 complete / 26 open (1,284 total); capability classifications
+remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows.
+
+### Historical progress addendum — C1 source-only reference-catalog status before Docker restart — superseded 27 October 2026
+
+Source review found `evidence_maturity_level`, `sensor_type`, `waste_type`, and
+`disposal_method` are seeded reference catalogs with no application write
+targets. Sensor-reading INSERT statements reference `sensor_type` in lookup
+subqueries; the SQL inventory confirms their DML target is `sensor_reading`.
+Waste workflows store type and method values on `waste_stream`; they do not
+write the separate lookup catalogs. Migrations 658–660 revoke runtime table
+and residual column mutation/reference privileges, restore SELECT, and
+document that catalog changes use reviewed migrations. Runtime-role
+provisioning reapplies these boundaries after compatibility grants. The static
+report now identifies 103 declared boundaries with no missing source policy.
+
+The source, role-report, ARM64-contract, and migration suites pass 121 tests.
+Ruff, Python compilation, runtime/worker SQL inventory checks, dependency and
+provider boundaries, capability matrix validation, and `git diff --check` pass.
+The persisted full-schema ACL probe still ends at migration 657 and shows the
+old grants on the four new catalogs. A read-only Docker daemon query timed out
+after eight seconds, so no disposable PostgreSQL acceptance has run through
+migration 660. Candidate and legacy databases were not contacted.
+
+Evidence: [migration 658](../../schemas/postgres/658_runtime_evidence_maturity_read_only.sql),
+[migration 659](../../schemas/postgres/659_runtime_sensor_type_read_only.sql),
+[migration 660](../../schemas/postgres/660_runtime_waste_reference_catalogs_read_only.sql),
+[disposable ACL checker](../../scripts/check-runtime-scoped-write-boundary-disposable.py),
+[static policy report](builds/2026-10-27-recovery/sprint-runtime-privilege-callsite-report.json),
+[last full-schema probe](builds/2026-10-27-recovery/runtime-role-full-schema-657-disposable.json).
+Checklist: 1,261 complete / 27 open (1,288 total); capability classifications
+remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows.
+
+### Progress addendum — C2 public OpenAPI export boundary — 27 October 2026
+
+The native public OpenAPI exporter now includes only routes whose registered
+policy is public and read-only. Private versioned routes, including the new
+Baal governance reads, no longer appear in the public contract or its generated
+SDK paths. Export fails closed if a public operation is not GET/read. A new
+regression compares the generated source contract with the checked-in OpenAPI
+snapshot and confirms the private routes stay excluded. The public API,
+Gateway route-policy, and governance-focused selections pass 39 tests. The
+broader Python SDK method/schema/gRPC selection passes 118 tests; JavaScript
+passes 56 and TypeScript passes 35, with both packages building successfully.
+Generated SDK files match the OpenAPI snapshot, and Ruff, Python compilation,
+and schema parity checks pass. No database or provider was contacted. This
+closes the public-snapshot export gap only; it does not close broader
+Gateway/SDK parity.
+
+Evidence: [exporter](../../scripts/export_public_api_openapi.py),
+[regression](../../tests/test_public_api_openapi.py),
+[public OpenAPI snapshot](native-public-api-v1.openapi.json).
+Checklist: 1,258 complete / 25 open (1,283 total); capability classifications
+remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows.
+
+### Progress addendum — ARM64/QEMU focused reference-catalog ACL check through 657 — 27 October 2026
+
+The disposable ARM64 PostgreSQL 16 fixture applies and replays migrations
+652–657. It verifies all 18 mutation-denied relations, the 79 private-table
+denials, append-only `data_access_log`, and each shared read-only reference
+policy after compatibility grants are reapplied. The temporary container was
+removed. This is focused QEMU portability evidence; the full ARM64 schema chain
+remains through 654, and no physical Raspberry Pi acceptance is claimed.
+
+Evidence: [focused ARM64 ACL check](builds/2026-10-27-recovery/reference-catalogs-runtime-read-only-arm64-disposable.json).
+Checklist: 1,257 complete / 25 open (1,282 total); capability classifications
+remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows.
+
+### Progress addendum — C1 shared reference-catalog runtime ACL — 27 October 2026
+
+The cooperative-type and DFS insurance-product lookup tables are seeded by
+schema migrations and only read by their service callsites; no service,
+extension, or script writer was found. Migration 657 removes general-runtime
+table and residual column mutation/reference privileges, restores SELECT, and
+the runtime provisioner reapplies the contract after compatibility grants.
+Native and ARM64/QEMU PostgreSQL 16 checks pass migration replay, reads,
+mutation/truncate/reference denial, stale-grant cleanup, and provisioner
+reapplication. A clean native replay of all 648 migrations through 657 passes
+full runtime provisioning and the signed two-tenant context probe. The report
+covers 99 declared boundaries with zero gaps; 1,020 public relations still
+retain effective table DML while RLS is disabled. The 132-test focused suite,
+Ruff, compilation, dependency/provider checks, and SQL/worker inventories pass.
+No candidate or legacy database was used.
+
+Evidence: [migration](../../schemas/postgres/657_runtime_reference_catalogs_read_only.sql),
+[native ACL check](builds/2026-10-27-recovery/reference-catalogs-runtime-read-only-disposable.json),
+[ARM64/QEMU ACL check](builds/2026-10-27-recovery/reference-catalogs-runtime-read-only-arm64-disposable.json),
+[full-schema acceptance](builds/2026-10-27-recovery/runtime-role-full-schema-657-disposable.json),
+[policy report](builds/2026-10-27-recovery/sprint-runtime-privilege-callsite-report.json).
+Checklist: 1,256 complete / 25 open (1,281 total); capability classifications
+remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows.
+
+### Progress addendum — C1 certification-type reference ACL — 27 October 2026
+
+Source review found the global `certification_type` table is initialized by
+migration 143 and used by analytics/Gateway code for lookup; no application or
+extension writer was found. Migration 656 removes general-runtime table and
+residual column mutation/reference privileges, restores `SELECT`, and the
+runtime provisioner reapplies the same policy after compatibility grants.
+Focused PostgreSQL 16 migration and privilege checks pass on native AMD64 and
+ARM64/QEMU. A clean native replay of all 647 migrations through 656 passes full
+runtime provisioning and the signed two-tenant context probe. The refreshed
+report covers 97 source-declared boundaries with zero gaps; 1,022 public
+relations still retain table DML while RLS is disabled. The 131-test focused
+selection, Ruff, compilation, SQL/worker inventories, dependency/provider
+checks, and matrix validation pass. No candidate or legacy database was used.
+
+Evidence: [migration](../../schemas/postgres/656_runtime_certification_type_read_only.sql),
+[native ACL check](builds/2026-10-27-recovery/certification-type-runtime-read-only-disposable.json),
+[ARM64/QEMU ACL check](builds/2026-10-27-recovery/certification-type-runtime-read-only-arm64-disposable.json),
+[full-schema acceptance](builds/2026-10-27-recovery/runtime-role-full-schema-656-disposable.json),
+[policy report](builds/2026-10-27-recovery/sprint-runtime-privilege-callsite-report.json).
+Checklist: 1,254 complete / 25 open (1,279 total); capability classifications
+remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows.
+
+### Progress addendum — ARM64/QEMU focused ACL check through 656 — 27 October 2026
+
+The disposable ARM64 PostgreSQL 16 fixture applies and replays migrations
+652–656. It verifies the 16 mutation-denied tables, all 79 private-table
+denials, append-only `data_access_log`, and read-only advisory, crop-family,
+crop-nutrient, and certification-type policies after broad grants are
+reapplied. The temporary container was removed. This is targeted QEMU
+portability evidence; the full ARM64 chain is through 654, and no physical
+Raspberry Pi acceptance is claimed.
+
+Evidence: [focused ARM64 ACL check](builds/2026-10-27-recovery/certification-type-runtime-read-only-arm64-disposable.json).
+Checklist: 1,255 complete / 25 open (1,280 total); capability classifications
+remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows.
+
+### Progress addendum — C1 crop-nutrient reference ACL and ARM64 portability — 27 October 2026
+
+The source audit found `crop_nutrient_removal_factor` is initialized by schema
+migration 151 and read by the nutrient-budget service, with no application
+writer. Migration 655 now keeps it readable and removes general-runtime table
+and residual column mutation/reference privileges; role provisioning enforces
+the same contract after compatibility grants. The focused PostgreSQL 16 check
+passes apply/replay, read, write-denial, and stale-grant checks. A clean native
+replay of all 646 migrations through 655 passes the provisioner and signed
+two-tenant context probe. The refreshed report covers 96 declared boundaries
+with zero gaps; 1,023 public relations still retain effective table DML while
+RLS is disabled. The 130-test focused selection, Ruff, Python compilation,
+dependency/provider boundaries, SQL/worker inventories, and matrix validation
+pass. Candidate and legacy databases were untouched.
+
+Evidence: [migration](../../schemas/postgres/655_runtime_crop_nutrient_removal_factor_read_only.sql),
+[native ACL check](builds/2026-10-27-recovery/crop-nutrient-factor-runtime-read-only-disposable.json),
+[native full-schema probe](builds/2026-10-27-recovery/runtime-role-full-schema-655-disposable.json),
+[source-policy report](builds/2026-10-27-recovery/sprint-runtime-privilege-callsite-report.json).
+Checklist: 1,251 complete / 25 open (1,276 total); capability classifications
+remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows.
+
+### Progress addendum — resource-limited ARM64/QEMU schema replay through 654 — 27 October 2026
+
+All 645 migration files through migration 654 applied under Docker `linux/arm64`
+QEMU with PostgreSQL limited to 1.5 GiB memory/swap and two CPUs. The replay
+had zero failures or pending migrations, loaded no seeds or farm data, was not
+OOM-killed, and cleaned its temporary resources. This is software portability
+evidence only; the chain has not yet been replayed through migration 655 and no
+physical Raspberry Pi acceptance is claimed.
+
+Evidence: [resource-limited replay](builds/2026-10-27-recovery/arm64-resource-limited-schema-654.json).
+Checklist: 1,252 complete / 25 open (1,277 total); capability classifications
+remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows.
+
+### Progress addendum — ARM64/QEMU focused runtime ACL acceptance through 655 — 27 October 2026
+
+The isolated ARM64 PostgreSQL check applies and replays migrations 652–655. It
+confirms the 15 mutation-denied relations are read-only after runtime
+provisioning, the 79 private relations remain inaccessible, and all four
+shared reference/audit policies retain their intended read or append-only
+behavior. The container was temporary and removed. No candidate or legacy
+database was touched. This is focused QEMU portability evidence, not a full
+ARM64 replay through 655 or physical-device acceptance.
+
+Evidence: [focused ARM64 ACL check](builds/2026-10-27-recovery/crop-nutrient-factor-runtime-read-only-arm64-disposable.json).
+Checklist: 1,253 complete / 25 open (1,278 total); capability classifications
+remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows.
+
+### Progress addendum — C1 crop-family runtime ACL and ARM64 check — 27 October 2026
+
+Source review found eight analytics SELECT sites for the global
+`crop_family` taxonomy and no application writer after seed initialization.
+Migration 654 and runtime-role provisioning now keep the taxonomy readable but
+deny mutation and REFERENCES grants, including stale column grants after the
+compatibility grant. The focused PostgreSQL check passes natively and on the
+local `linux/arm64` image; a clean native replay of all 645 ordered schemas
+through 654 passes provisioning and the two-tenant signed-context probe.
+The refreshed ACL report has 95 boundaries and no gaps across 1,511 public
+relations; 1,024 relations still have effective table DML while RLS is
+disabled. The 129-test focused selection, Ruff, compilation, source inventory,
+and capability validation pass. Candidate and legacy databases were not used.
+
+Evidence: [migration](../../schemas/postgres/654_runtime_crop_family_read_only.sql),
+[native ACL check](builds/2026-10-27-recovery/crop-family-runtime-read-only-disposable.json),
+[ARM64 ACL check](builds/2026-10-27-recovery/crop-family-runtime-read-only-arm64-disposable.json),
+[full-schema acceptance](builds/2026-10-27-recovery/runtime-role-full-schema-654-disposable.json),
+[policy report](builds/2026-10-27-recovery/sprint-runtime-privilege-callsite-report.json).
+The ARM64 result is Docker/QEMU portability evidence, not Raspberry Pi hardware
+acceptance. Checklist: 1,251 complete / 25 open (1,276 total). Capability
+classifications remain 24 baseline-retained, 7 deployed, and 36 prepared
+across 67 rows; MAN-CAP acceptance is unchanged.
+
+### Progress addendum — ARM64 Kernel API under constrained runtime budget — 27 October 2026
+
+The current `Dockerfile.kernel` target builds for `linux/arm64` and starts the
+Gateway API in a disposable container with a verified 512 MiB memory and swap
+ceiling, one CPU, 64-PID limit, no network, read-only root filesystem, and
+64/16 MiB `/tmp` and audit-spool tmpfs mounts. The container runs as the image's
+non-root `appuser`, publishes no ports, and passes Docker health plus a direct
+`/health` request (`status=ok`, `service=gateway`, `audit_capture=ok`). The
+checker removes the uniquely named container and image after the run. It uses
+ARM64 software emulation on an x86_64 Docker host; no Raspberry Pi hardware is
+claimed.
+
+This checks process liveness only: it has no PostgreSQL or provider
+connectivity, and does not establish schema readiness or feature data paths.
+No candidate, legacy, or production database was used. The reusable
+[checker](../../scripts/check-kernel-app-resource-disposable.py) and
+[evidence](builds/2026-10-27-recovery/kernel-app-arm64-constrained-runtime.json)
+record the verified Docker limits and cleanup. Ruff, Python compilation, the
+live disposable smoke, and `git diff --check` pass. C7 remains open for the
+remaining optional service images, full ARM64 schema replay through migration
+653, Pi hardware checks, and populated/provider recovery.
+
+Checklist: 1,249 complete / 25 open (1,274 total). Capability classifications
+remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows; no
+MAN-CAP acceptance status changed.
+
+### Progress addendum — `carbon_benchmark` runtime read-only boundary — 27 October 2026
+
+Repository review found `carbon_benchmark` is created by migration 028 and
+initialized from literature values by seed 027. CRISP uses a literal
+location-independent `SELECT`; the analytics helper constructs a dynamic
+SELECT string that the static SQL scanner does not fully represent, so that
+source was checked directly. No application runtime writer was found. Migration
+664 and runtime-role provisioning now preserve SELECT and deny table/column
+INSERT, UPDATE, DELETE, TRUNCATE, and REFERENCES. The migration changes only
+`kokonut_runtime`; disposable checks confirm the separate Directus DB role's
+current DML privileges are unchanged. Native and ARM64/QEMU PostgreSQL 16
+apply/replay, stale-grant cleanup, and provisioner-reapplication checks pass.
+The full native replay applies all 655 ordered schema files through 664 and
+passes the 17-check synthetic two-tenant probe under the 1.5 GiB/two-CPU
+limits; there are no seeds and cleanup completed. The source/ACL report covers
+108 declared controls with zero mismatches. It still finds 1,012 public
+relations with effective DML while RLS is disabled, so C1 remains open. The
+six-module selection passes 136 tests; Ruff, compilation, requirement/provider
+boundaries, SQL-inventory freshness, capability validation, and diff checks
+pass. Directus API behavior and owner-approved reference editing remain
+unverified; no candidate/legacy DB or farm rows were touched. Evidence:
+[migration](../../schemas/postgres/664_runtime_carbon_benchmark_read_only.sql),
+[native ACL](builds/2026-10-27-recovery/carbon-benchmark-runtime-read-only-disposable.json),
+[ARM64/QEMU ACL](builds/2026-10-27-recovery/carbon-benchmark-runtime-read-only-arm64-disposable.json),
+[full-schema replay and probe](builds/2026-10-27-recovery/runtime-role-full-schema-664-native-disposable.json),
+and [ACL report](builds/2026-10-27-recovery/sprint-runtime-privilege-callsite-report.json).
+Checklist: 1,275 complete / 25 open (1,300 total); capability classifications
+remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows; no
+MAN-CAP acceptance status changed.
+
+### Progress addendum — ARM64 advisory-rule ACL check — 27 October 2026
+
+The focused disposable ACL checker now accepts an explicit Docker platform and
+image. It passes against `kokonut-kernel-postgis-arm64:local` with
+`linux/arm64`: migration 653 applies and replays, the restricted runtime can
+read synthetic advisory rules but cannot insert, update, delete, or reference
+them, and the provisioner removes simulated broad table and column grants.
+The temporary container was removed; no candidate or legacy database was used
+([checker](../../scripts/check-runtime-scoped-write-boundary-disposable.py);
+[evidence](builds/2026-10-27-recovery/advisory-rule-runtime-read-only-arm64-disposable.json)).
+This is a focused ARM64-platform check; full-chain ARM64 schema evidence still
+covers migrations through 652, and no physical Raspberry Pi acceptance is
+claimed. Checklist: 1,248 complete / 25 open (1,273 total). Capability
+classifications and MAN-CAP acceptance remain unchanged.
+
+### Progress addendum — read-only shared advisory rules — 27 October 2026
+
+Migration 653 now makes `advisory_rule` read-only for `kokonut_runtime`. Source
+review found the application reads this shared reference table while producing
+recommendations; no direct application SQL writer was found, and default rows
+are added by seed/admin processes. Live Directus/UI mutation behavior was not
+tested. Runtime provisioning reasserts the policy after its
+compatibility grants. The focused PostgreSQL 16 check applies and replays the
+migration, verifies `SELECT`, rejects table and column writes plus
+`REFERENCES`, and confirms the provisioner restores the same policy after
+synthetic broad grants. A clean replay of all 644 migrations through 653 passed
+runtime-role provisioning and the two-tenant signed-context probe. It covered
+1,511 public relations and 94 declared runtime boundaries with zero gaps; the
+runtime DML/RLS-disabled count decreased from 1,026 to 1,025. No seeds, farm
+data, candidate, legacy service, or production database were used, and all
+disposable resources were removed
+([migration](../../schemas/postgres/653_runtime_advisory_rule_read_only.sql);
+[focused acceptance](builds/2026-10-27-recovery/advisory-rule-runtime-read-only-disposable.json);
+[full-schema acceptance](builds/2026-10-27-recovery/runtime-role-full-schema-653-disposable.json);
+[policy report](builds/2026-10-27-recovery/sprint-runtime-privilege-callsite-report.json)).
+
+The target-aware analytics inventory now reports 274 candidate ACL relations
+and 425 write-target sites across 89 files; `advisory_rule` is no longer an
+unprotected write candidate. Source review traced the `farm` occurrence to an
+analytics `INSERT ... SELECT` source; its full writer set and optional Directus
+behavior are not established, so privileges remain unchanged. The focused
+127-test selection, Ruff, compilation, and inventory checks pass. C1 remains
+open because broad runtime DML and non-universal RLS remain. Rollback keeps
+migration 653; restoring runtime writes requires a separately reviewed forward
+migration. Checklist: 1,247 complete / 25 open (1,272 total). Capability
+classifications and MAN-CAP acceptance remain unchanged.
+
+### Progress addendum — target-aware analytics write inventory — 27 October 2026
+
+The C1 analytics write inventory previously joined every relation mentioned in
+a DML statement to its write classification. That treated tables read by
+`INSERT ... SELECT` as writes: `advisory_rule` and `farm` appeared to be runtime
+write candidates even though the current statements insert into other tables
+and only read those sources. Runtime SQL inventory version 2 now records a
+separate, conservative target list for simple leading INSERT/UPDATE/DELETE/
+MERGE statements; relation references remain available for read and audit
+review. The analytics join uses target lists, retains ACL candidates without a
+confirmed source target, and labels them for manual review rather than dropping
+them.
+
+The refreshed inventory retains 275 ACL candidate relations and records 425
+write-target sites across 89 analytics source files. `advisory_rule` and `farm`
+are the two unmatched candidates; no grant or database change was made. Thirteen
+focused tests pass, as do Ruff, Python compilation, inventory freshness,
+dependency/provider boundary checks, capability validation, and diff checks
+([inventory](builds/2026-10-27-recovery/analytics-runtime-write-candidate-inventory.json);
+[SQL scanner](../../scripts/worker_sql_inventory.py);
+[candidate join](../../scripts/runtime-analytics-write-candidate-inventory.py)).
+This improves review precision but does not reduce the remaining broad runtime
+DML or establish caller authorization. Checklist: 1,246 complete / 25 open
+(1,271 total); capability classifications are unchanged.
+
+### Progress addendum — full encrypted checkpoint and database restore — 27 October 2026
+
+The isolated recovery rehearsal applied all 643 ordered migrations through 652,
+inserted a synthetic sentinel, invoked the repository's `kernel-checkpoint.sh`,
+and restored the age-encrypted database archive into a fresh `template0`
+database after applying the documented NOLOGIN role prerequisites. The restored
+migration count, ordered migration/checksum fingerprint, latest migration, and
+sentinel all matched the source. No plaintext dump was written to disk, and the
+unique source/restore projects, their networks and volumes, and temporary
+checkpoint were removed. No seeds, farm data, candidate/legacy service, or
+provider were used.
+
+The first restore exposed PostgreSQL's default `max_locks_per_transaction`
+budget as insufficient for the full schema when `pg_restore` uses one atomic
+transaction. The standalone recovery Compose target now sets a 4096 lock budget;
+normal application Compose is unchanged. The corrected full restore passed
+([checker](../../scripts/check-kernel-checkpoint-restore-disposable.py);
+[recovery procedure](recovery-preparation.md);
+[evidence](builds/2026-10-27-recovery/kernel-checkpoint-restore-disposable.json)).
+This synthetic single-database result does not establish populated-data, external
+media/provider, R2, whole-platform, constrained-resource, production RPO/RTO, or
+24-hour recovery acceptance. Capability classifications are unchanged. The
+checklist now records 1,245 complete / 25 open (1,270 total).
+
+### Sprint tenant and identity acceptance — 26 October 2026
+
+On clean source `020a5279`, an isolated PostGIS replay applied all 642 ordered
+schemas and the two-tenant restricted-login probe passed, including revocation,
+wrong-location denial and forced RLS on its synthetic table. It counted 1,101
+public tables with runtime table-level DML and RLS disabled. This does not prove
+tenant isolation for those tables or cover every view and role
+([evidence](builds/2026-10-26-recovery/sprint-full-schema-operator-scope.json)).
+
+Fresh ZITADEL startup initially failed because its non-root API could not write
+the Login UI token to a new volume. A networkless helper now initializes narrow
+permissions and preserves existing token contents. A disposable fresh provider
+then started with an isolated identity database and returned the expected OIDC
+issuer over internal HTTP ([startup](builds/2026-10-26-recovery/sprint-zitadel-provider-smoke.json);
+[permissions](builds/2026-10-26-recovery/sprint-zitadel-bootstrap-permissions.json)).
+The browser, Caddy/TLS, client provisioning and end-to-end Gateway workflow
+remain unverified. No candidate or legacy data was touched; no capability
+classification or MAN-CAP acceptance changes.
+
+### Sprint baseline — 26 October 2026
+
+The disposable native PostGIS replay applied all 642 schema files through 651
+with no seeds, no published host ports, and verified cleanup. Its evidence
+records a dirty worktree from untracked generated evidence; the schema and
+migration inputs match planning commit `a0de63ef`. Separate minimal-schema
+checks exercised restricted runtime and operator-auth logins, signed context,
+wrong-location denial, revocation, and forced RLS on a synthetic probe table.
+The general runtime login still has broad DML on other public tables.
+
+The replay runner now refuses project resources that exist before it starts;
+labelled and unlabelled synthetic Docker volume collisions were preserved. An
+optional two-tenant operator probe can run after the complete schema replay in
+the database's isolated network namespace. It passed a smaller PostGIS smoke;
+the full-schema combined run subsequently passed, as recorded above. The profile planner also accepts
+an explicit validated project name for disposable ZITADEL work, with defaults
+unchanged. The focused selection passes 97 tests, with Ruff and diff checks.
+No candidate or legacy database was touched, and no MAN-CAP status changes.
+Evidence: [baseline](builds/2026-10-26-recovery/sprint-workflow-baseline.json),
+[full replay](builds/2026-10-26-recovery/sprint-native-schema-replay.json),
+[role check](builds/2026-10-26-recovery/sprint-operator-session-role-disposable.json),
+[context check](builds/2026-10-26-recovery/sprint-operator-tenant-context-disposable.json),
+and [project collision check](builds/2026-10-26-recovery/sprint-schema-project-collision.json).
+
+### Sprint planning checkpoint — 26 October 2026
+
+The next proposed batch is an [authenticated farm workflow and recovery sprint](sprint-kernel-workflow-acceptance.md)
+based on `develop` at `ef29f193`. It combines an isolated real ZITADEL login,
+location-scoped device enrollment and farm lifecycle, and reproducible recovery
+evidence. The checklist has 1,234 complete and 25 open items including nested
+items. The matrix validates 67 rows: 24 baseline-retained, seven deployed, and
+36 prepared; named MAN-CAP acceptance remains open. This is planning only and
+does not change capability status or claim a current candidate rollout.
+
 ### Progress addendum — Directus dashboard field allowlist, 26 October 2026
 
 The repository-managed Auditor policy now reads the dashboard metadata fields
@@ -334,7 +1687,7 @@ passes 252 tests. Ruff, compilation, dependency-group alignment, and provider
 boundaries pass. Network-isolated disposable PostgreSQL 16 applies and replays
 migration 649 under forced RLS, checks signed-location denial, source/device
 matching, duplicate-event suppression, per-reading/rule receipt completion,
-EventBus crash/retry recovery, and direct table-access denial ([migration](../schemas/postgres/649_signed_sensor_anomaly_replay_inventory.sql); [runner](../scripts/check-sensor-anomaly-worker-delivery-disposable.py); [evidence](builds/2026-10-26-recovery/sensor-anomaly-replay-inventory-disposable.json)). The candidate and legacy databases and all providers remain untouched. No database login, worker secret, active grant, feature activation, or persisted schedule was provisioned.
+EventBus crash/retry recovery, and direct table-access denial ([migration](../../schemas/postgres/649_signed_sensor_anomaly_replay_inventory.sql); [runner](../../scripts/check-sensor-anomaly-worker-delivery-disposable.py); [evidence](builds/2026-10-26-recovery/sensor-anomaly-replay-inventory-disposable.json)). The candidate and legacy databases and all providers remain untouched. No database login, worker secret, active grant, feature activation, or persisted schedule was provisioned.
 
 This closes the source-level scheduled replay boundary only; baseline and ML
 worker isolation, legacy source rows without matching events, candidate rollout,
@@ -401,9 +1754,9 @@ RLS on native `x86_64` and emulated `aarch64`, verifying lease owner/token
 fencing, success/retry/dead-letter paths, bounded expired-lease recovery,
 bounded grants, and direct table denial. ARM64 is container/QEMU software
 evidence, not physical Raspberry Pi acceptance
-([migration](../schemas/postgres/646_isolated_clickhouse_outbox_worker.sql);
-[worker](../services/ingestion/clickhouse_outbox_worker.py);
-[disposable runner](../scripts/check-clickhouse-outbox-worker-disposable.py);
+([migration](../../schemas/postgres/646_isolated_clickhouse_outbox_worker.sql);
+[worker](../../services/ingestion/clickhouse_outbox_worker.py);
+[disposable runner](../../scripts/check-clickhouse-outbox-worker-disposable.py);
 [database evidence](builds/2026-10-25-recovery/clickhouse-outbox-worker-disposable.json);
 [ARM64 evidence](builds/2026-10-25-recovery/clickhouse-outbox-worker-arm64-disposable.json);
 [source evidence](builds/2026-10-25-recovery/clickhouse-outbox-worker-source-checks.json)).
@@ -463,8 +1816,8 @@ compilation, and Compose profile parsing pass. Network-disabled disposable
 PostgreSQL 16 applies/replays migration 645 under forced RLS and checks bounded source reads,
 atomic check/state/history/event writes, rollback after enqueue denial, exact
 function access, and direct relation/sequence denial
-([worker](../services/ingestion/freshness_worker.py);
-[migration](../schemas/postgres/645_isolated_data_freshness_worker.sql);
+([worker](../../services/ingestion/freshness_worker.py);
+[migration](../../schemas/postgres/645_isolated_data_freshness_worker.sql);
 [evidence](builds/2026-10-25-recovery/freshness-worker-disposable.json)). Worker
 inventories and the operation map were regenerated. No candidate or legacy
 database, provider, or live schedule was used; credentials are unprovisioned.
@@ -1406,7 +2759,7 @@ network-disabled disposable PostgreSQL 16 apply/replay passes 206 grouped
 CAP-037 assertions. Candidate and legacy databases remain untouched and
 migration 605 is not rolled out. Checklist: 1,109 complete / 25 open (1,134
 total) ([contract](operating-pilot-kernel-read-contract.md);
-[migration](../schemas/postgres/605_location_own_operating_pilot_learning_plans.sql);
+[migration](../../schemas/postgres/605_location_own_operating_pilot_learning_plans.sql);
 [evidence](builds/2026-10-24-recovery/cap-037-learning-plan-own-read-disposable.json)).
 
 ### Progress addendum — CAP-006 migration-153 disposable waste-management acceptance, 24 October 2026
@@ -1420,7 +2773,7 @@ compost pH/yield, reporter attribution, and incident resolution. The test
 container used an ephemeral loopback port and was removed; candidate and
 legacy databases were untouched. The reusable runner passes Ruff and
 compilation. Checklist: 1,108 complete / 25 open (1,133 total)
-([runner](../scripts/check-waste-management-disposable.py);
+([runner](../../scripts/check-waste-management-disposable.py);
 [evidence](builds/2026-10-24-recovery/cap-006-waste-management-disposable.json)).
 
 ### Progress addendum — CAP-006 recycling material category fallback, 24 October 2026
@@ -2331,12 +3684,12 @@ checks pass. No candidate or legacy database, provider, or chain was used.
 Historical currency reconciliation and populated parity remain open. Checklist:
 1,044 complete / 25 open (1,069 total); matrix: 28 baseline-retained, 7
 deployed, and 32 prepared across 67 rows; 0/67 MAN-CAP checks accepted.
-[Contract](nutrient-events-kernel-read-contract.md); [migration](../schemas/postgres/601_nutrient_input_cost_currency.sql);
+[Contract](nutrient-events-kernel-read-contract.md); [migration](../../schemas/postgres/601_nutrient_input_cost_currency.sql);
 [evidence](builds/2026-10-23-recovery/nutrient-input-cost-currency-disposable.json).
 
 ### Progress addendum — CAP-002 deterministic crop-simulation baseline, 23 October 2026
 
-The legacy daily weather variation no longer uses Python’s process-salted `hash()`. It now derives stable SHA-256 buckets from integer `weather_seed` and day/channel, defaults the seed to 0, records it in each run’s parameter overrides, returns it to the simulation caller, and rejects booleans/non-integers before inserting a run. A synthetic 30-day maize regression fixture pins summaries and selected daily states for seeds 0 and 42. The fixture passes in separate processes with `PYTHONHASHSEED=1` and `98765`. The combined Gateway, digital-twin, and operator-auth selection passes 114 tests; Ruff, Python compilation, and diff checks pass. No migration, candidate/legacy database, or provider was used. This establishes repeatability of current code only, not agronomic correctness or legacy/populated output parity. CAP-002 remains prepared; owner/populated reference parity, nutrient cost currency semantics, live OIDC/browser behavior, RLS, and MAN-CAP-002 remain open. Checklist: 1,043 complete / 25 open (1,068 total); matrix: 28 baseline-retained, 7 deployed, and 32 prepared across 67 rows; 0/67 MAN-CAP checks accepted. [Contract](crop-simulation-runs-kernel-read-contract.md); [fixture](../tests/fixtures/crop_simulation_reference_v1.json); [evidence](builds/2026-10-23-recovery/cap-002-simulation-determinism.json).
+The legacy daily weather variation no longer uses Python’s process-salted `hash()`. It now derives stable SHA-256 buckets from integer `weather_seed` and day/channel, defaults the seed to 0, records it in each run’s parameter overrides, returns it to the simulation caller, and rejects booleans/non-integers before inserting a run. A synthetic 30-day maize regression fixture pins summaries and selected daily states for seeds 0 and 42. The fixture passes in separate processes with `PYTHONHASHSEED=1` and `98765`. The combined Gateway, digital-twin, and operator-auth selection passes 114 tests; Ruff, Python compilation, and diff checks pass. No migration, candidate/legacy database, or provider was used. This establishes repeatability of current code only, not agronomic correctness or legacy/populated output parity. CAP-002 remains prepared; owner/populated reference parity, nutrient cost currency semantics, live OIDC/browser behavior, RLS, and MAN-CAP-002 remain open. Checklist: 1,043 complete / 25 open (1,068 total); matrix: 28 baseline-retained, 7 deployed, and 32 prepared across 67 rows; 0/67 MAN-CAP checks accepted. [Contract](crop-simulation-runs-kernel-read-contract.md); [fixture](../../tests/fixtures/crop_simulation_reference_v1.json); [evidence](builds/2026-10-23-recovery/cap-002-simulation-determinism.json).
 
 ### Progress addendum — CAP-002 crop-simulation run detail and daily state, 23 October 2026
 
@@ -2870,8 +4223,8 @@ view remains count-only and exposes only ID/location to the calculator, while
 row IDs are intentionally omitted from reviewer provenance. The focused
 synthesis/source/worker selection passes 123 tests; Ruff and Python compilation
 pass. This source contract does not establish populated data parity or MAN-CAP-038
-acceptance. Evidence: [source map and regression](../tests/test_synthesis_source_references.py),
-[organic source contract](../schemas/postgres/549_signed_organic_readiness_synthesis_source.sql).
+acceptance. Evidence: [source map and regression](../../tests/test_synthesis_source_references.py),
+[organic source contract](../../schemas/postgres/549_signed_organic_readiness_synthesis_source.sql).
 Checklist: 969 complete / 24 open (993 total); capability matrix: 30 baseline-retained,
 7 deployed, and 29 prepared across 66 entries.
 
@@ -2891,8 +4244,8 @@ Metabase, proxy, and the legacy stack were left in place. No seeds or farm rows
 were written. The restore and candidate had no location data, so populated
 output parity remains open. MAN-CAP-038, real worker credentials/OIDC,
 production recovery, and physical Raspberry Pi acceptance remain open. Evidence:
-[migration](../schemas/postgres/551_ecological_synthesis_provenance_capacity.sql),
-[focused tests](../tests/test_synthesis_source_references.py),
+[migration](../../schemas/postgres/551_ecological_synthesis_provenance_capacity.sql),
+[focused tests](../../tests/test_synthesis_source_references.py),
 [native disposable check](builds/2026-10-22-recovery/cap-038-ecological-modeling-provenance-capacity-disposable.json),
 [ARM64/QEMU check](builds/2026-10-22-recovery/cap-038-ecological-modeling-provenance-capacity-arm64-disposable.json),
 [checkpoint and rollout](builds/2026-10-22-recovery/candidate-migration-551-rollout.json).
@@ -3014,9 +4367,9 @@ providers, and real credentials were not used; migration 548 and its worker
 grant are not deployed. Other legacy Delphi study/panel operations remain
 open, along with Directus parity, populated
 output parity, runtime recovery, and MAN-CAP-038 owner acceptance. Evidence:
-[migration](../schemas/postgres/548_signed_delphi_agent_summary_source.sql),
-[agent](../services/agents/delphi_facilitator_agent.py),
-[tests](../tests/test_agent_worker_cli.py),
+[migration](../../schemas/postgres/548_signed_delphi_agent_summary_source.sql),
+[agent](../../services/agents/delphi_facilitator_agent.py),
+[tests](../../tests/test_agent_worker_cli.py),
 [native PostgreSQL](builds/2026-10-22-recovery/cap-038-delphi-agent-source-disposable.json),
 [ARM64/QEMU PostgreSQL](builds/2026-10-22-recovery/cap-038-delphi-agent-source-arm64-disposable.json).
 Checklist: 955 complete / 24 open (979 total); matrix remains 30 baseline-retained,
@@ -3044,9 +4397,9 @@ credential was used; migration 547 and its worker credentials/grants are not
 rolled out. This closes only the standalone summary inspection source boundary.
 Human operator authentication, populated parity, other non-synthesis worker
 reads, and MAN-CAP-038 acceptance remain open. Evidence:
-[migration](../schemas/postgres/547_signed_ai_summary_inspection_source.sql),
-[worker](../services/agents/worker_cli.py),
-[CLI](../services/agents/ai_summary.py),
+[migration](../../schemas/postgres/547_signed_ai_summary_inspection_source.sql),
+[worker](../../services/agents/worker_cli.py),
+[CLI](../../services/agents/ai_summary.py),
 [native disposable acceptance](builds/2026-10-22-recovery/cap-038-ai-summary-inspection-source-disposable.json),
 [ARM64/QEMU acceptance](builds/2026-10-22-recovery/cap-038-ai-summary-inspection-source-arm64-disposable.json).
 Checklist: 954 complete / 24 open (978 total); matrix remains 30 baseline-retained,
@@ -3070,9 +4423,9 @@ AI-summary scope. No candidate or legacy database, provider, or real
 credential was used; migration 546 and worker grants are not deployed.
 Populated CIDS parity, operator grant provisioning, live runtime acceptance,
 universal RLS, and MAN-CAP-013 remain open. Evidence:
-[migration](../schemas/postgres/546_signed_cids_export_source.sql),
-[worker](../services/agents/worker_cli.py),
-[tests](../tests/test_cids_export.py),
+[migration](../../schemas/postgres/546_signed_cids_export_source.sql),
+[worker](../../services/agents/worker_cli.py),
+[tests](../../tests/test_cids_export.py),
 [native disposable acceptance](builds/2026-10-22-recovery/cap-038-cids-export-source-worker-disposable.json),
 [ARM64/QEMU acceptance](builds/2026-10-22-recovery/cap-038-cids-export-source-worker-arm64-disposable.json).
 Checklist: 953 complete / 24 open (977 total); capability classifications
@@ -3124,8 +4477,8 @@ password, worker credential and per-location grant are not provisioned;
 candidate and legacy databases remain untouched. Other agent/worker paths,
 universal RLS, populated parity, and MAN-CAP-038 acceptance remain open.
 Evidence:
-[migration](../schemas/postgres/544_tenant_scoped_deterministic_summary_source_views.sql),
-[worker](../services/agents/worker_cli.py),
+[migration](../../schemas/postgres/544_tenant_scoped_deterministic_summary_source_views.sql),
+[worker](../../services/agents/worker_cli.py),
 [native database acceptance](builds/2026-10-22-recovery/cap-038-tenant-scoped-deterministic-summary-source-views-disposable.json),
 [ARM64/QEMU acceptance](builds/2026-10-22-recovery/cap-038-tenant-scoped-deterministic-summary-source-views-arm64-disposable.json).
 
@@ -3147,8 +4500,8 @@ databases remain untouched. Migration 543, its source credential, and exact
 location grants are not deployed. Deterministic-summary source isolation,
 non-synthesis worker coverage, populated parity, and MAN-CAP-038 acceptance
 remain open. Evidence:
-[migration](../schemas/postgres/543_tenant_scoped_agent_synthesis_source_views.sql),
-[worker tests](../tests/test_agent_worker_cli.py),
+[migration](../../schemas/postgres/543_tenant_scoped_agent_synthesis_source_views.sql),
+[worker tests](../../tests/test_agent_worker_cli.py),
 [database acceptance](builds/2026-10-22-recovery/cap-038-tenant-scoped-agent-synthesis-source-views-disposable.json).
 Checklist: 948 complete / 24 open (972 total); no capability acceptance status
 changed.
@@ -4012,13 +5365,13 @@ remain approval-blocked. Populated parity, live OIDC/browser behavior, runtime
 recovery, full source snapshots, and MAN-CAP-038 remain open. Checklist: 786 complete /
 24 open; matrix: 31 baseline-retained, 7 deployed, 28 prepared across 66 rows.
 Evidence: [contract](agent-ecosystem-kernel-contract.md),
-[migration](../schemas/postgres/522_authenticated_ai_summary_drafts.sql),
-[source-reference migration](../schemas/postgres/523_ai_summary_source_references.sql),
-[shared-reference migration](../schemas/postgres/524_ai_summary_global_source_references.sql),
-[draft tests](../tests/test_gateway_ai_summary_draft.py),
-[review tests](../tests/test_gateway_ai_summary_review.py),
-[source-reference tests](../tests/test_ai_summary_source_references.py),
-[console tests](../tests/test_operator_console_ai_summary_review.py), and
+[migration](../../schemas/postgres/522_authenticated_ai_summary_drafts.sql),
+[source-reference migration](../../schemas/postgres/523_ai_summary_source_references.sql),
+[shared-reference migration](../../schemas/postgres/524_ai_summary_global_source_references.sql),
+[draft tests](../../tests/test_gateway_ai_summary_draft.py),
+[review tests](../../tests/test_gateway_ai_summary_review.py),
+[source-reference tests](../../tests/test_ai_summary_source_references.py),
+[console tests](../../tests/test_operator_console_ai_summary_review.py), and
 [disposable acceptance](builds/2026-10-20-recovery/cap-038-ai-summary-global-source-references-disposable.json).
 
 ### CAP-035 consent-aware adoption event capture — 20 October 2026
@@ -4046,9 +5399,9 @@ recovery, and MAN-CAP-035 owner acceptance. Checklist: 772 complete / 24 open;
 capability classifications remain 31 baseline-retained, 7 deployed, and 28
 prepared across 66 rows. See the [source-to-route audit](solution-lifecycle-source-route-audit.md),
 [write contract](solution-lifecycle-kernel-write-contract.md),
-[migration](../schemas/postgres/520_location_solution_adoption_consent_events.sql),
-[Gateway tests](../tests/test_gateway_solution_lifecycle_adoption_program.py),
-[console tests](../tests/test_operator_console_solution_lifecycle.py), and
+[migration](../../schemas/postgres/520_location_solution_adoption_consent_events.sql),
+[Gateway tests](../../tests/test_gateway_solution_lifecycle_adoption_program.py),
+[console tests](../../tests/test_operator_console_solution_lifecycle.py), and
 [disposable checker](../../scripts/check-solution-adoption-program-disposable.py).
 
 ### CAP-035 location solution-configuration draft and review — 20 October 2026
@@ -4057,31 +5410,31 @@ Migration 517 adds exact-location versioned solution-configuration drafts for ac
 
 The operator console exposes configuration creation, own-draft submission, and independent review under separate exact `solution_lifecycle:create`, `submit`, and `review` grants. It uses bounded JSON objects, CSRF/no-store writes, safe text rendering, pagination, and stable request IDs that remain bound to the original location after uncertain outcomes. Program enablement, participant consent/event linkage, and adoption launch remain separate.
 
-The focused Gateway, route-policy, and console selection passes 82 tests, including inline JavaScript syntax. Ruff, Python compilation, capability-matrix validation, runtime SQL inventory, and diff checks pass. Disposable PostgreSQL 16 applies and replays migrations 513–517 and passes 26 grouped adoption-program, readiness, configuration, retry, review, trigger, and privilege checks ([evidence](builds/2026-10-20-recovery/cap-035-adoption-program-disposable.json)). Candidate and legacy databases are untouched; migration 517 is not rolled out. CAP-035 remains prepared pending program enablement review, consent-aware participant events, populated legacy parity, live ZITADEL/browser acceptance, broader runtime ACL/RLS review, recovery, and MAN-CAP-035 owner acceptance. Checklist: 771 complete / 24 open; matrix: 31 baseline-retained, 7 deployed, 28 prepared across 66 rows. See the [source-to-route audit](solution-lifecycle-source-route-audit.md), [write contract](solution-lifecycle-kernel-write-contract.md), [migration](../schemas/postgres/517_location_solution_configuration_draft_review.sql), [Gateway tests](../tests/test_gateway_solution_lifecycle_configuration.py), and [console tests](../tests/test_operator_console_solution_lifecycle.py).
+The focused Gateway, route-policy, and console selection passes 82 tests, including inline JavaScript syntax. Ruff, Python compilation, capability-matrix validation, runtime SQL inventory, and diff checks pass. Disposable PostgreSQL 16 applies and replays migrations 513–517 and passes 26 grouped adoption-program, readiness, configuration, retry, review, trigger, and privilege checks ([evidence](builds/2026-10-20-recovery/cap-035-adoption-program-disposable.json)). Candidate and legacy databases are untouched; migration 517 is not rolled out. CAP-035 remains prepared pending program enablement review, consent-aware participant events, populated legacy parity, live ZITADEL/browser acceptance, broader runtime ACL/RLS review, recovery, and MAN-CAP-035 owner acceptance. Checklist: 771 complete / 24 open; matrix: 31 baseline-retained, 7 deployed, 28 prepared across 66 rows. See the [source-to-route audit](solution-lifecycle-source-route-audit.md), [write contract](solution-lifecycle-kernel-write-contract.md), [migration](../../schemas/postgres/517_location_solution_configuration_draft_review.sql), [Gateway tests](../../tests/test_gateway_solution_lifecycle_configuration.py), and [console tests](../../tests/test_operator_console_solution_lifecycle.py).
 
 ### CAP-035 independently reviewed adoption readiness — 20 October 2026
 
 Migration 516 adds a location-scoped readiness assessment and independent review. Exact `solution_lifecycle:create` submission stores an immutable assessment and leaves readiness pending. Exact `solution_lifecycle:review` exposes a bounded queue that excludes the assessor; a different active human must acknowledge and record a decision. PostgreSQL rejects below-threshold ready decisions, requires a plan for remediation, binds reviews to the current assessment, and uses a trigger to prevent unreviewed direct changes to `ready`. New assessments invalidate previous readiness; historical `ready` rows without independent review receipts are retained but marked `expired`. The console now shows assessment and review controls under separate create/review grants, supports paging, uses CSRF/no-store, and preserves request IDs for uncertain retries.
 
-The combined Gateway/action, route-policy, console, adoption-program, and migration-metadata selection passes 129 tests. Ruff, Python compilation, inline JavaScript syntax, dependency-group alignment, capability-matrix validation, runtime SQL inventory, and diff checks pass. Disposable PostgreSQL 16 applies and replays migrations 513–516 and passes 16 grouped adoption-program/readiness checks ([evidence](builds/2026-10-20-recovery/cap-035-adoption-program-disposable.json)). Candidate and legacy databases are untouched; migration 516 is not rolled out. CAP-035 remains prepared pending configuration draft/approval, program enablement review, consent-aware participant events, populated legacy parity, live ZITADEL/browser acceptance, broader runtime ACL/RLS review, recovery, and MAN-CAP-035 owner acceptance. Checklist: 770 complete / 24 open; matrix: 31 baseline-retained, 7 deployed, 28 prepared across 66 rows. See the [source-to-route audit](solution-lifecycle-source-route-audit.md), [write contract](solution-lifecycle-kernel-write-contract.md), [migration](../schemas/postgres/516_location_solution_adoption_readiness_review.sql), [Gateway tests](../tests/test_gateway_solution_lifecycle_adoption_readiness.py), and [console tests](../tests/test_operator_console_solution_lifecycle.py).
+The combined Gateway/action, route-policy, console, adoption-program, and migration-metadata selection passes 129 tests. Ruff, Python compilation, inline JavaScript syntax, dependency-group alignment, capability-matrix validation, runtime SQL inventory, and diff checks pass. Disposable PostgreSQL 16 applies and replays migrations 513–516 and passes 16 grouped adoption-program/readiness checks ([evidence](builds/2026-10-20-recovery/cap-035-adoption-program-disposable.json)). Candidate and legacy databases are untouched; migration 516 is not rolled out. CAP-035 remains prepared pending configuration draft/approval, program enablement review, consent-aware participant events, populated legacy parity, live ZITADEL/browser acceptance, broader runtime ACL/RLS review, recovery, and MAN-CAP-035 owner acceptance. Checklist: 770 complete / 24 open; matrix: 31 baseline-retained, 7 deployed, 28 prepared across 66 rows. See the [source-to-route audit](solution-lifecycle-source-route-audit.md), [write contract](solution-lifecycle-kernel-write-contract.md), [migration](../../schemas/postgres/516_location_solution_adoption_readiness_review.sql), [Gateway tests](../../tests/test_gateway_solution_lifecycle_adoption_readiness.py), and [console tests](../../tests/test_operator_console_solution_lifecycle.py).
 
 ### CAP-035 protocol-bound experiment completion — 20 October 2026
 
 Migration 512 adds `POST /operator/api/solution-lifecycle/{location_id}/experiments/{experiment_id}/complete` under exact-location `solution_lifecycle:transition`. PostgreSQL closes data collection only after it sees a fresh, current-consent analysis for every primary metric, matching the approved protocol and current observation-source digest. Every primary metric must reach a terminal sequential boundary; benefit/futility results meet the approved sample floor, while a safety stop or elapsed duration may close earlier. Completion stores an immutable receipt and derived analysis digest; it does not write a result or bypass the separate human result-review action.
 
-The action uses repeatable-read, active-human attribution, exact-origin checks, and stable retries. A dedicated completion receipt is protected by forced RLS and private role grants; runtime and Directus cannot read or mutate it directly. The console shows completion only to operators with exact transition and analyze grants, requires acknowledgement, and explains that independent result review remains required. The focused completion/Gateway/console/route-policy/migration selection passes 161 tests; Ruff and Python compilation pass. Disposable PostgreSQL 16 applies and replays migrations 510–512 and passes 20 grouped capture, directional-analysis, early-completion denial, completion retry, result-review separation, consent-withdrawal, RLS, and ACL checks ([evidence](builds/2026-10-20-recovery/cap-035-solution-experiment-observation-disposable.json)). Candidate and legacy databases remain untouched; migration 512 is not rolled out. Checklist: 765 complete / 24 open; matrix: 31 baseline-retained, 7 deployed, 28 prepared across 66 rows. CAP-035 remains prepared pending populated comparison, live ZITADEL/browser acceptance, broader ACL/RLS review, recovery, and owner acceptance ([write contract](solution-lifecycle-kernel-write-contract.md); [source-route audit](solution-lifecycle-source-route-audit.md); [migration](../schemas/postgres/512_location_solution_experiment_completion.sql); [Gateway tests](../tests/test_gateway_solution_lifecycle_experiment_completion.py); [disposable checker](../../scripts/check-solution-experiment-observation-disposable.py)).
+The action uses repeatable-read, active-human attribution, exact-origin checks, and stable retries. A dedicated completion receipt is protected by forced RLS and private role grants; runtime and Directus cannot read or mutate it directly. The console shows completion only to operators with exact transition and analyze grants, requires acknowledgement, and explains that independent result review remains required. The focused completion/Gateway/console/route-policy/migration selection passes 161 tests; Ruff and Python compilation pass. Disposable PostgreSQL 16 applies and replays migrations 510–512 and passes 20 grouped capture, directional-analysis, early-completion denial, completion retry, result-review separation, consent-withdrawal, RLS, and ACL checks ([evidence](builds/2026-10-20-recovery/cap-035-solution-experiment-observation-disposable.json)). Candidate and legacy databases remain untouched; migration 512 is not rolled out. Checklist: 765 complete / 24 open; matrix: 31 baseline-retained, 7 deployed, 28 prepared across 66 rows. CAP-035 remains prepared pending populated comparison, live ZITADEL/browser acceptance, broader ACL/RLS review, recovery, and owner acceptance ([write contract](solution-lifecycle-kernel-write-contract.md); [source-route audit](solution-lifecycle-source-route-audit.md); [migration](../../schemas/postgres/512_location_solution_experiment_completion.sql); [Gateway tests](../../tests/test_gateway_solution_lifecycle_experiment_completion.py); [disposable checker](../../scripts/check-solution-experiment-observation-disposable.py)).
 
 ### CAP-035 consent-aware sequential experiment analysis — 20 October 2026
 
 Migration 511 adds the exact-location `POST /operator/api/solution-lifecycle/{location_id}/experiments/{experiment_id}/analyze` route and grant-gated operator-console panel. Analysis accepts only an active, exact-origin experiment and a protocol-declared metric; benefit direction, minimum sample counts, posterior threshold, and adverse-event limit are fixed by the reviewed protocol. PostgreSQL computes the directional treatment effect, interval, posterior benefit probability, and safety counts from a repeatable-read snapshot, and records immutable request receipts plus private observation lineage. Analysis is advisory and does not change experiment or solution lifecycle state.
 
-The dedicated analyst role has column-scoped access and forced RLS. Both observations and derived analyses are visible only while their source consent and exact-location participant link remain current; withdrawal hides affected source rows and analysis results. Historical unassessed analyses remain hidden, and runtime/Directus cannot access analysis rows, source maps, or receipts. The focused Gateway/console/route-policy/migration selection passes 152 tests; Ruff and Python compilation pass. Disposable PostgreSQL 16 applies and replays migrations 510–511 and passes 17 grouped consent, directional-effect, adverse-event, retry, withdrawal, RLS, and ACL checks ([evidence](builds/2026-10-20-recovery/cap-035-solution-experiment-observation-disposable.json)). Candidate and legacy databases remain untouched; migration 511 is not rolled out. Checklist: 764 complete / 24 open; matrix: 31 baseline-retained, 7 deployed, 28 prepared across 66 rows. CAP-035 remains prepared pending completion/report review, populated parity, live ZITADEL/browser acceptance, broader ACL/RLS review, recovery, and owner acceptance ([write contract](solution-lifecycle-kernel-write-contract.md); [source-route audit](solution-lifecycle-source-route-audit.md); [migration](../schemas/postgres/511_location_solution_experiment_sequential_analysis.sql); [Gateway tests](../tests/test_gateway_solution_lifecycle_experiment_analysis.py); [disposable checker](../../scripts/check-solution-experiment-observation-disposable.py)).
+The dedicated analyst role has column-scoped access and forced RLS. Both observations and derived analyses are visible only while their source consent and exact-location participant link remain current; withdrawal hides affected source rows and analysis results. Historical unassessed analyses remain hidden, and runtime/Directus cannot access analysis rows, source maps, or receipts. The focused Gateway/console/route-policy/migration selection passes 152 tests; Ruff and Python compilation pass. Disposable PostgreSQL 16 applies and replays migrations 510–511 and passes 17 grouped consent, directional-effect, adverse-event, retry, withdrawal, RLS, and ACL checks ([evidence](builds/2026-10-20-recovery/cap-035-solution-experiment-observation-disposable.json)). Candidate and legacy databases remain untouched; migration 511 is not rolled out. Checklist: 764 complete / 24 open; matrix: 31 baseline-retained, 7 deployed, 28 prepared across 66 rows. CAP-035 remains prepared pending completion/report review, populated parity, live ZITADEL/browser acceptance, broader ACL/RLS review, recovery, and owner acceptance ([write contract](solution-lifecycle-kernel-write-contract.md); [source-route audit](solution-lifecycle-source-route-audit.md); [migration](../../schemas/postgres/511_location_solution_experiment_sequential_analysis.sql); [Gateway tests](../../tests/test_gateway_solution_lifecycle_experiment_analysis.py); [disposable checker](../../scripts/check-solution-experiment-observation-disposable.py)).
 
 ### CAP-035 consent-aware experiment observation capture — 20 October 2026
 
 Migration 510 adds the scoped `POST /operator/api/solution-lifecycle/{location_id}/experiments/{experiment_id}/observations` action and a grant-gated console form for active experiments. Protocol drafts now declare either an exact participant consent purpose/version or one of three bounded non-personal measurement bases. Participant captures require the current exact-location participant link and latest matching consent event; the database function validates experiment state, metric, arm, tenant context, explicit acknowledgement, and a private idempotency receipt in one transaction. Forced RLS exposes only current-consent observations to authorized location reviewers and hides withdrawn and unassessed legacy rows. Runtime and Directus retain no direct write or receipt access.
 
-The console requires exact `solution_lifecycle:collect`, active experiment state, CSRF, and no-store requests. It accepts only an opaque participant-link UUID, keeps evidence private, omits observation details from status lists, and preserves request IDs for unchanged retries. The focused experiment/Gateway/console/route-policy/migration selection passes 177 tests; Ruff, Python compilation, inline JavaScript syntax, and diff checks pass. Disposable PostgreSQL 16 applies and replays migration 510 and passes eight grouped capture, consent-withdrawal, retry, legacy-row, RLS, and ACL checks ([evidence](builds/2026-10-20-recovery/cap-035-solution-experiment-observation-disposable.json)). Candidate and legacy databases remain untouched; migration 510 has not been rolled out. Checklist: 763 complete / 24 open; matrix: 31 baseline-retained, 7 deployed, 28 prepared across 66 rows. CAP-035 remains prepared pending scoped analysis/completion, populated parity, live ZITADEL/browser acceptance, broader ACL/RLS review, recovery, and owner acceptance ([write contract](solution-lifecycle-kernel-write-contract.md); [source-route audit](solution-lifecycle-source-route-audit.md); [migration](../schemas/postgres/510_location_solution_experiment_observation_capture.sql); [Gateway and console tests](../tests/test_gateway_solution_lifecycle_experiment_observation.py); [console contract](../tests/test_operator_console_solution_lifecycle.py); [disposable checker](../../scripts/check-solution-experiment-observation-disposable.py)).
+The console requires exact `solution_lifecycle:collect`, active experiment state, CSRF, and no-store requests. It accepts only an opaque participant-link UUID, keeps evidence private, omits observation details from status lists, and preserves request IDs for unchanged retries. The focused experiment/Gateway/console/route-policy/migration selection passes 177 tests; Ruff, Python compilation, inline JavaScript syntax, and diff checks pass. Disposable PostgreSQL 16 applies and replays migration 510 and passes eight grouped capture, consent-withdrawal, retry, legacy-row, RLS, and ACL checks ([evidence](builds/2026-10-20-recovery/cap-035-solution-experiment-observation-disposable.json)). Candidate and legacy databases remain untouched; migration 510 has not been rolled out. Checklist: 763 complete / 24 open; matrix: 31 baseline-retained, 7 deployed, 28 prepared across 66 rows. CAP-035 remains prepared pending scoped analysis/completion, populated parity, live ZITADEL/browser acceptance, broader ACL/RLS review, recovery, and owner acceptance ([write contract](solution-lifecycle-kernel-write-contract.md); [source-route audit](solution-lifecycle-source-route-audit.md); [migration](../../schemas/postgres/510_location_solution_experiment_observation_capture.sql); [Gateway and console tests](../../tests/test_gateway_solution_lifecycle_experiment_observation.py); [console contract](../../tests/test_operator_console_solution_lifecycle.py); [disposable checker](../../scripts/check-solution-experiment-observation-disposable.py)).
 
 ### CAP-035 retirement of legacy experiment writers — 20 October 2026
 
@@ -4100,43 +5453,43 @@ capability-matrix validation, requirement-group alignment, runtime SQL
 inventory, and diff checks pass. Disposable PostgreSQL 16 applies/replays
 migration 509 and passes seven acceptance groups, including a direct runtime
 status-update denial and checks that starting creates neither consent nor
-observations and leaves the solution stage unchanged ([evidence](builds/2026-10-20-recovery/cap-035-solution-experiment-start-disposable.json)). Candidate and legacy databases remain untouched; migration 509 is not rolled out. Checklist: 762 complete / 24 open; matrix: 31 baseline-retained, 7 deployed, 28 prepared across 66 rows. [Audit](solution-lifecycle-source-route-audit.md); [write contract](solution-lifecycle-kernel-write-contract.md); [tests](../tests/test_solution_experiments.py).
+observations and leaves the solution stage unchanged ([evidence](builds/2026-10-20-recovery/cap-035-solution-experiment-start-disposable.json)). Candidate and legacy databases remain untouched; migration 509 is not rolled out. Checklist: 762 complete / 24 open; matrix: 31 baseline-retained, 7 deployed, 28 prepared across 66 rows. [Audit](solution-lifecycle-source-route-audit.md); [write contract](solution-lifecycle-kernel-write-contract.md); [tests](../../tests/test_solution_experiments.py).
 
 ### CAP-035 exact-location approved experiment start — 20 October 2026
 
 Migration 509 adds `POST /operator/api/solution-lifecycle/{location_id}/experiments/{experiment_id}/start` under signed exact-location `solution_lifecycle:transition` scope. PostgreSQL requires an active human binding, a current active exact-origin solution at `experiment_ready` or `testing`, `protocol_approved` state, and a private approval receipt whose reviewer matches the experiment attribution. It atomically marks the experiment active and appends an immutable idempotency receipt; it does not assert participant consent, collect observations, or change the solution stage. The console offers this only for approved experiments to operators with the exact read and transition grants. Migration 509 revokes direct experiment lifecycle updates from runtime and Directus. The legacy direct start, observation, analysis, completion, result-review, and replication helpers now fail before database access.
 
-The focused Gateway, route-policy, console, legacy, and migration selection passes 118 tests. Ruff, Python compilation, inline JavaScript syntax, capability-matrix validation, runtime SQL inventory, dependency-group alignment, and diff checks pass. Disposable PostgreSQL 16 applies/replays migration 509 after the ordered experiment review chain and passes seven grouped checks for exact scope, approval-receipt validation, retries/collisions, consent and observation separation, unchanged solution stage, and role boundaries ([evidence](builds/2026-10-20-recovery/cap-035-solution-experiment-start-disposable.json)). Candidate and legacy databases remain untouched; migration 509 is not rolled out. CAP-035 remains prepared pending consent-aware observations, analysis/completion, populated comparison, live OIDC/browser acceptance, broader ACL/RLS, recovery, and owner review. Checklist: 761 complete / 24 open; matrix: 31 baseline-retained, 7 deployed, 28 prepared across 66 rows. [Write contract](solution-lifecycle-kernel-write-contract.md); [source-to-route audit](solution-lifecycle-source-route-audit.md); [migration](../schemas/postgres/509_location_solution_experiment_start.sql); [Gateway tests](../tests/test_gateway_solution_lifecycle_experiment_start.py); [disposable checker](../../scripts/check-solution-experiment-start-disposable.py).
+The focused Gateway, route-policy, console, legacy, and migration selection passes 118 tests. Ruff, Python compilation, inline JavaScript syntax, capability-matrix validation, runtime SQL inventory, dependency-group alignment, and diff checks pass. Disposable PostgreSQL 16 applies/replays migration 509 after the ordered experiment review chain and passes seven grouped checks for exact scope, approval-receipt validation, retries/collisions, consent and observation separation, unchanged solution stage, and role boundaries ([evidence](builds/2026-10-20-recovery/cap-035-solution-experiment-start-disposable.json)). Candidate and legacy databases remain untouched; migration 509 is not rolled out. CAP-035 remains prepared pending consent-aware observations, analysis/completion, populated comparison, live OIDC/browser acceptance, broader ACL/RLS, recovery, and owner review. Checklist: 761 complete / 24 open; matrix: 31 baseline-retained, 7 deployed, 28 prepared across 66 rows. [Write contract](solution-lifecycle-kernel-write-contract.md); [source-to-route audit](solution-lifecycle-source-route-audit.md); [migration](../../schemas/postgres/509_location_solution_experiment_start.sql); [Gateway tests](../../tests/test_gateway_solution_lifecycle_experiment_start.py); [disposable checker](../../scripts/check-solution-experiment-start-disposable.py).
 
 ### CAP-035 independent experiment protocol review — 20 October 2026
 
 Migration 508 adds private submitted-protocol review at `GET /operator/api/solution-lifecycle/{location_id}/experiments/{experiment_id}/protocol-review` and independent approval at the matching `POST`. Both require exact signed location review scope. Detail returns bounded protocol content and conflict booleans without owner or submitter identities. Approval requires an active human distinct from both protocol owner and submitter, an attributable Kernel submission, and an active exact-origin solution still at `experiment_ready` or `testing`. It records an immutable retry receipt and changes only protocol status and reviewer attribution; consent, experiment start, and solution-stage changes remain separate. The console displays protocol text safely, blocks self-review, binds the form to its loaded location, and uses acknowledgement, CSRF/no-store requests, and stable retries. The legacy direct `approve_protocol` helper now fails before database access.
 
-The focused Gateway, route-policy, console, legacy, and migration selection passes 104 tests with one database-backed skip. Ruff, Python compilation, inline JavaScript syntax, capability-matrix validation, runtime SQL inventory, dependency-group alignment, and diff checks pass. Disposable PostgreSQL 16 applies/replays migration 508 after the ordered experiment submission chain and passes eight grouped checks for exact scope, human independence, private detail, retries/collisions, lifecycle isolation, and role boundaries ([evidence](builds/2026-10-20-recovery/cap-035-solution-experiment-protocol-review-disposable.json)). Candidate and legacy databases remain untouched; migration 508 is not rolled out. CAP-035 remains prepared pending consent-aware observation, start, analysis/completion, populated comparison, live OIDC/browser acceptance, broader ACL/RLS, recovery, and owner review. Checklist: 760 complete / 24 open; matrix: 31 baseline-retained, 7 deployed, 28 prepared across 66 rows. [Write contract](solution-lifecycle-kernel-write-contract.md); [source-to-route audit](solution-lifecycle-source-route-audit.md); [migration](../schemas/postgres/508_location_solution_experiment_protocol_review.sql); [Gateway tests](../tests/test_gateway_solution_lifecycle_experiment_protocol_review.py); [disposable checker](../../scripts/check-solution-experiment-protocol-review-disposable.py).
+The focused Gateway, route-policy, console, legacy, and migration selection passes 104 tests with one database-backed skip. Ruff, Python compilation, inline JavaScript syntax, capability-matrix validation, runtime SQL inventory, dependency-group alignment, and diff checks pass. Disposable PostgreSQL 16 applies/replays migration 508 after the ordered experiment submission chain and passes eight grouped checks for exact scope, human independence, private detail, retries/collisions, lifecycle isolation, and role boundaries ([evidence](builds/2026-10-20-recovery/cap-035-solution-experiment-protocol-review-disposable.json)). Candidate and legacy databases remain untouched; migration 508 is not rolled out. CAP-035 remains prepared pending consent-aware observation, start, analysis/completion, populated comparison, live OIDC/browser acceptance, broader ACL/RLS, recovery, and owner review. Checklist: 760 complete / 24 open; matrix: 31 baseline-retained, 7 deployed, 28 prepared across 66 rows. [Write contract](solution-lifecycle-kernel-write-contract.md); [source-to-route audit](solution-lifecycle-source-route-audit.md); [migration](../../schemas/postgres/508_location_solution_experiment_protocol_review.sql); [Gateway tests](../../tests/test_gateway_solution_lifecycle_experiment_protocol_review.py); [disposable checker](../../scripts/check-solution-experiment-protocol-review-disposable.py).
 
 ### CAP-035 location-origin experiment protocol submission — 20 October 2026
 
 Migration 507 adds `POST /operator/api/solution-lifecycle/{location_id}/experiments/{experiment_id}/submit`. It requires signed exact-location `solution_lifecycle:submit` context, an active human binding, and that the bound human owns an eligible draft for an active solution exactly originated at that location and currently in `experiment_ready` or `testing`. Submission atomically changes only `draft` to `submitted` and appends a private receipt; independent approval, participant consent, observations, execution, analysis, and completion remain separate. Exact retries return the original receipt; changed request reuse, other owners, other locations, and resubmission under a new request ID fail. The legacy direct `submit_protocol` helper now fails before database access. The console exposes the action only under exact read/submit grants, requires acknowledgement and CSRF, and retains a stable retry ID for uncertain responses.
 
-The focused Gateway, route-policy, console, legacy, and migration selection passes 98 tests with one database-backed skip. Ruff, Python compilation, inline JavaScript parsing, capability-matrix validation, runtime SQL inventory, dependency-group alignment, and diff checks pass. Disposable PostgreSQL 16 applies/replays migration 507 after the ordered experiment-draft chain and passes eight owner, scope, retry, lifecycle, and privilege groups ([evidence](builds/2026-10-20-recovery/cap-035-solution-experiment-submission-disposable.json)). Candidate and legacy databases remain untouched; migration 507 is not rolled out. CAP-035 remains prepared pending protocol approval/start, consent-aware observations, analysis/completion, populated comparison, live OIDC/browser acceptance, broader ACL/RLS, recovery, and owner review. Checklist: 759 complete / 24 open; matrix: 31 baseline-retained, 7 deployed, 28 prepared across 66 rows. [Write contract](solution-lifecycle-kernel-write-contract.md); [source-to-route audit](solution-lifecycle-source-route-audit.md); [migration](../schemas/postgres/507_location_solution_experiment_submission.sql); [Gateway tests](../tests/test_gateway_solution_lifecycle_experiment_submission.py); [disposable checker](../../scripts/check-solution-experiment-submission-disposable.py).
+The focused Gateway, route-policy, console, legacy, and migration selection passes 98 tests with one database-backed skip. Ruff, Python compilation, inline JavaScript parsing, capability-matrix validation, runtime SQL inventory, dependency-group alignment, and diff checks pass. Disposable PostgreSQL 16 applies/replays migration 507 after the ordered experiment-draft chain and passes eight owner, scope, retry, lifecycle, and privilege groups ([evidence](builds/2026-10-20-recovery/cap-035-solution-experiment-submission-disposable.json)). Candidate and legacy databases remain untouched; migration 507 is not rolled out. CAP-035 remains prepared pending protocol approval/start, consent-aware observations, analysis/completion, populated comparison, live OIDC/browser acceptance, broader ACL/RLS, recovery, and owner review. Checklist: 759 complete / 24 open; matrix: 31 baseline-retained, 7 deployed, 28 prepared across 66 rows. [Write contract](solution-lifecycle-kernel-write-contract.md); [source-to-route audit](solution-lifecycle-source-route-audit.md); [migration](../../schemas/postgres/507_location_solution_experiment_submission.sql); [Gateway tests](../../tests/test_gateway_solution_lifecycle_experiment_submission.py); [disposable checker](../../scripts/check-solution-experiment-submission-disposable.py).
 
 ### CAP-035 location-origin experiment protocol drafts — 20 October 2026
 
 Migration 506 adds `POST /operator/api/solution-lifecycle/{location_id}/solutions/{solution_id}/experiments` for immutable `draft` protocol creation. PostgreSQL requires signed exact-location `solution_lifecycle:create` context, an active operator-to-human binding, an active solution whose origin exactly matches that location, and the current `experiment_ready` or `testing` stage. Protocol fields and JSON structures are allowlisted and bounded; the private receipt makes exact retries safe and rejects changed-payload reuse. The action does not submit or approve a protocol, collect consent/observations, start an experiment, analyze results, or change solution stage. Direct legacy `create_experiment` now fails before database access. Runtime and Directus cannot insert or edit protocol definitions or delete experiments; runtime's narrow lifecycle-column updates remain available, and the migration bootstrap reapplies the boundary after broad compatibility grants. The console form requires exact read/create grants, CSRF/no-store, and a stable request ID.
 
-The focused Gateway, route-policy, console, runtime-role, and legacy selection passes 137 tests with one skip. Ruff, Python compilation, inline JavaScript syntax, and `git diff --check` pass. Disposable PostgreSQL 16 applies/replays migration 506 after the ordered CAP-035 lifecycle chain and passes 11 grouped scope, validation, origin/stage, retry, draft-only, protocol immutability, and privilege checks ([evidence](builds/2026-10-20-recovery/cap-035-solution-experiment-create-disposable.json)). Candidate and legacy databases remain untouched; migration 506 is not rolled out. CAP-035 remains prepared pending experiment submission/review/start/observation/result parity, populated comparison, live OIDC/browser acceptance, broader ACL/RLS, recovery, and owner review. Checklist: 758 complete / 24 open; matrix: 31 baseline-retained, 7 deployed, 28 prepared across 66 rows. [Write contract](solution-lifecycle-kernel-write-contract.md); [source-to-route audit](solution-lifecycle-source-route-audit.md); [migration](../schemas/postgres/506_location_solution_experiment_create.sql); [Gateway tests](../tests/test_gateway_solution_lifecycle_experiment_create.py); [disposable checker](../../scripts/check-solution-experiment-create-disposable.py).
+The focused Gateway, route-policy, console, runtime-role, and legacy selection passes 137 tests with one skip. Ruff, Python compilation, inline JavaScript syntax, and `git diff --check` pass. Disposable PostgreSQL 16 applies/replays migration 506 after the ordered CAP-035 lifecycle chain and passes 11 grouped scope, validation, origin/stage, retry, draft-only, protocol immutability, and privilege checks ([evidence](builds/2026-10-20-recovery/cap-035-solution-experiment-create-disposable.json)). Candidate and legacy databases remain untouched; migration 506 is not rolled out. CAP-035 remains prepared pending experiment submission/review/start/observation/result parity, populated comparison, live OIDC/browser acceptance, broader ACL/RLS, recovery, and owner review. Checklist: 758 complete / 24 open; matrix: 31 baseline-retained, 7 deployed, 28 prepared across 66 rows. [Write contract](solution-lifecycle-kernel-write-contract.md); [source-to-route audit](solution-lifecycle-source-route-audit.md); [migration](../../schemas/postgres/506_location_solution_experiment_create.sql); [Gateway tests](../../tests/test_gateway_solution_lifecycle_experiment_create.py); [disposable checker](../../scripts/check-solution-experiment-create-disposable.py).
 
 ### CAP-035 location-origin promotion-gate drafts — 20 October 2026
 
 Migration 505 adds `POST /operator/api/solution-lifecycle/{location_id}/solutions/{solution_id}/gates`. It creates an immutable draft only for an active solution whose origin exactly matches the signed location and whose operator has an exact `solution_lifecycle:create` grant plus an active human binding. The criterion and thresholds are bounded; supported promotions are fixed to the four current lifecycle mappings, require at least one evaluation, and require independent human approval. The write uses a private append-only retry receipt. It does not evaluate, approve, or transition the solution. Existing gate list and review projections expose a criterion only to the solution's origin location; linked cross-origin entries remain redacted. The console form requires exact read/create grants and uses CSRF, no-store, stale-location guards, and stable retry IDs. The legacy `create_gate` SQL helper remains fail-closed; location sharing remains a separate policy gate.
 
-The focused Gateway, gate-read/review, route-policy, console, migration, and runtime-role-boundary selection passes 239 tests. Ruff, Python compilation, inline JavaScript syntax, capability-matrix validation, runtime SQL inventory validation, and diff checks pass. Disposable PostgreSQL 16 applies/replays migration 505 after its gate-review predecessor and CAP-035 chain, passing ten authorization, validation, origin, privacy, retry, draft-only, and role-boundary groups; it first restores broad table and column grants to runtime/Directus to prove migration 505 revokes them ([evidence](builds/2026-10-20-recovery/cap-035-solution-gate-create-disposable.json)). Runtime-role unit checks verify the bootstrap restores this boundary after its broad compatibility grant. Candidate and legacy databases remain untouched; migration 505 is not rolled out. CAP-035 remains prepared pending populated legacy parity, live ZITADEL/browser acceptance, broader ACL/RLS review, recovery, remaining workflow parity, and MAN-CAP-035 owner acceptance. Checklist: 757 complete / 24 open; matrix: 31 baseline-retained, 7 deployed, 28 prepared across 66 rows. [Write contract](solution-lifecycle-kernel-write-contract.md); [source-to-route audit](solution-lifecycle-source-route-audit.md); [migration](../schemas/postgres/505_location_solution_gate_definition.sql); [Gateway tests](../tests/test_gateway_solution_lifecycle_gate_create.py); [console tests](../tests/test_operator_console_solution_lifecycle.py); [disposable checker](../scripts/check-solution-gate-create-disposable.py).
+The focused Gateway, gate-read/review, route-policy, console, migration, and runtime-role-boundary selection passes 239 tests. Ruff, Python compilation, inline JavaScript syntax, capability-matrix validation, runtime SQL inventory validation, and diff checks pass. Disposable PostgreSQL 16 applies/replays migration 505 after its gate-review predecessor and CAP-035 chain, passing ten authorization, validation, origin, privacy, retry, draft-only, and role-boundary groups; it first restores broad table and column grants to runtime/Directus to prove migration 505 revokes them ([evidence](builds/2026-10-20-recovery/cap-035-solution-gate-create-disposable.json)). Runtime-role unit checks verify the bootstrap restores this boundary after its broad compatibility grant. Candidate and legacy databases remain untouched; migration 505 is not rolled out. CAP-035 remains prepared pending populated legacy parity, live ZITADEL/browser acceptance, broader ACL/RLS review, recovery, remaining workflow parity, and MAN-CAP-035 owner acceptance. Checklist: 757 complete / 24 open; matrix: 31 baseline-retained, 7 deployed, 28 prepared across 66 rows. [Write contract](solution-lifecycle-kernel-write-contract.md); [source-to-route audit](solution-lifecycle-source-route-audit.md); [migration](../../schemas/postgres/505_location_solution_gate_definition.sql); [Gateway tests](../../tests/test_gateway_solution_lifecycle_gate_create.py); [console tests](../../tests/test_operator_console_solution_lifecycle.py); [disposable checker](../../scripts/check-solution-gate-create-disposable.py).
 
 ### CAP-035 location-origin solution creation — 20 October 2026
 
 Migration 504 adds `POST /operator/api/solution-lifecycle/{location_id}/solutions` under an exact signed `solution_lifecycle:create` grant. It creates a discovered solution with immutable location origin, an active bound-human creator, a private opening lifecycle event, and an append-only exact-retry receipt. The console form is hidden unless the operator also has exact read access; it uses acknowledgement, CSRF, no-store, and stable request IDs. The legacy `create_solution`, `add_link`, and `create_gate` helpers now fail before database access. Cross-location links and gate-definition authoring stay unavailable until their sharing and review policies have defined boundaries.
 
-The focused Gateway, console, route-policy, legacy, and migration selection passes 123 tests with four database-backed skips. Ruff and Python compilation pass; the runtime SQL inventory is refreshed and current. Disposable PostgreSQL 16 applies and replays migration 504, then passes nine groups covering exact location scope, active human attribution, input validation, creation and opening-event atomicity, exact retries, changed payload rejection, and receipt privacy. Candidate and legacy databases remain untouched; migration 504 is not rolled out. CAP-035 remains prepared pending populated comparison, live OIDC/browser, broader ACL/RLS, recovery, remaining lifecycle parity, and MAN-CAP-035 review. Checklist: 756 complete / 24 open; matrix: 31 baseline-retained, 7 deployed, 28 prepared across 66 rows. [Write contract](solution-lifecycle-kernel-write-contract.md); [source-to-route audit](solution-lifecycle-source-route-audit.md); [migration](../schemas/postgres/504_location_solution_create.sql); [tests](../tests/test_gateway_solution_lifecycle_create.py); [disposable checker](../scripts/check-solution-create-disposable.py); [evidence](builds/2026-10-20-recovery/cap-035-solution-create-disposable.json).
+The focused Gateway, console, route-policy, legacy, and migration selection passes 123 tests with four database-backed skips. Ruff and Python compilation pass; the runtime SQL inventory is refreshed and current. Disposable PostgreSQL 16 applies and replays migration 504, then passes nine groups covering exact location scope, active human attribution, input validation, creation and opening-event atomicity, exact retries, changed payload rejection, and receipt privacy. Candidate and legacy databases remain untouched; migration 504 is not rolled out. CAP-035 remains prepared pending populated comparison, live OIDC/browser, broader ACL/RLS, recovery, remaining lifecycle parity, and MAN-CAP-035 review. Checklist: 756 complete / 24 open; matrix: 31 baseline-retained, 7 deployed, 28 prepared across 66 rows. [Write contract](solution-lifecycle-kernel-write-contract.md); [source-to-route audit](solution-lifecycle-source-route-audit.md); [migration](../../schemas/postgres/504_location_solution_create.sql); [tests](../../tests/test_gateway_solution_lifecycle_create.py); [disposable checker](../../scripts/check-solution-create-disposable.py); [evidence](builds/2026-10-20-recovery/cap-035-solution-create-disposable.json).
 
 ### CAP-035 legacy stage-transition writer retirement — 20 October 2026
 
@@ -4157,7 +5510,7 @@ populated comparison, live OIDC/browser, ACL/RLS, recovery, and owner acceptance
 remain open. Checklist: 754 complete / 24 open; capability matrix: 31
 baseline-retained, 7 deployed, 28 prepared across 66 rows ([source-to-route
 audit](solution-lifecycle-source-route-audit.md); [write
-contract](solution-lifecycle-kernel-write-contract.md); [tests](../tests/test_solution_lifecycle.py)).
+contract](solution-lifecycle-kernel-write-contract.md); [tests](../../tests/test_solution_lifecycle.py)).
 
 ### CAP-035 legacy learning-write retirement and source-to-route audit — 20 October 2026
 
@@ -4178,8 +5531,8 @@ CAP-035 source audit is linked from the capability matrix and checklist.
 Checklist: 751 complete / 24 open; capability matrix: 31 baseline-retained,
 7 deployed, 28 prepared across 66 rows ([source-to-route audit](solution-lifecycle-source-route-audit.md);
 [write contract](solution-lifecycle-kernel-write-contract.md);
-[service](../services/innovation/solution_scale.py);
-[test](../tests/test_solution_scale.py)).
+[service](../../services/innovation/solution_scale.py);
+[test](../../tests/test_solution_scale.py)).
 
 ### CAP-036 repository subject-lineage audit — 20 October 2026
 
@@ -4187,25 +5540,25 @@ The repository-only CAP-036 lineage inventory is complete. A built-in Python sou
 
 ### CAP-035 replication completion-report proposal — 20 October 2026
 
-Migration 497 adds a private exact-location completion-report proposal API for an active, approved, started replication. Submission requires the signed `solution_lifecycle:submit` grant, an active human binding, current validated source/result lineage, bounded outcome/maturity/summary/evidence, acknowledgement, and a stable request ID. It creates only a pending report; replication and solution lifecycle fields remain unchanged until a future independent review decision. There is no console form or decision queue in this slice. The focused Gateway, route-policy, replication proposal/review/activation, console-regression, and migration selection passes 122 tests. Ruff and Python compilation pass. Disposable PostgreSQL 16 applies/replays migration 497 and passes ten grouped scope, validation, retry, pending-report, lineage, privacy, and privilege checks. Candidate and legacy databases remain untouched; migration 497 is not rolled out. CAP-035 remains prepared pending completion review/decision, populated parity, live OIDC/browser acceptance, broader ACL/RLS, recovery, and MAN-CAP-035 owner review. Checklist: 742 complete / 24 open; capability matrix: 31 baseline-retained, 7 deployed, 28 prepared across 66 rows. [Write contract](solution-lifecycle-kernel-write-contract.md); [migration](../schemas/postgres/497_location_solution_replication_completion_proposal.sql); [tests](../../tests/test_gateway_solution_replication_completion_proposals.py); [disposable checker](../../scripts/check-solution-replication-completion-proposal-disposable.py); [evidence](builds/2026-10-20-recovery/cap-035-solution-replication-completion-proposal-disposable.json).
+Migration 497 adds a private exact-location completion-report proposal API for an active, approved, started replication. Submission requires the signed `solution_lifecycle:submit` grant, an active human binding, current validated source/result lineage, bounded outcome/maturity/summary/evidence, acknowledgement, and a stable request ID. It creates only a pending report; replication and solution lifecycle fields remain unchanged until a future independent review decision. There is no console form or decision queue in this slice. The focused Gateway, route-policy, replication proposal/review/activation, console-regression, and migration selection passes 122 tests. Ruff and Python compilation pass. Disposable PostgreSQL 16 applies/replays migration 497 and passes ten grouped scope, validation, retry, pending-report, lineage, privacy, and privilege checks. Candidate and legacy databases remain untouched; migration 497 is not rolled out. CAP-035 remains prepared pending completion review/decision, populated parity, live OIDC/browser acceptance, broader ACL/RLS, recovery, and MAN-CAP-035 owner review. Checklist: 742 complete / 24 open; capability matrix: 31 baseline-retained, 7 deployed, 28 prepared across 66 rows. [Write contract](solution-lifecycle-kernel-write-contract.md); [migration](../../schemas/postgres/497_location_solution_replication_completion_proposal.sql); [tests](../../tests/test_gateway_solution_replication_completion_proposals.py); [disposable checker](../../scripts/check-solution-replication-completion-proposal-disposable.py); [evidence](builds/2026-10-20-recovery/cap-035-solution-replication-completion-proposal-disposable.json).
 
 ### CAP-035 controlled replication activation — 20 October 2026
 
 Added `POST /operator/api/solution-lifecycle/{location_id}/replications/{replication_id}/start` under the exact signed `solution_lifecycle:transition` grant. Migration 496 rechecks active operator/human identity, the independently approved proposal receipt, exact target location, current validated source experiment/result, and solution visibility. It atomically changes only the replication to `active`, records starter party/time, and appends an immutable idempotency receipt. A trigger blocks direct lifecycle edits and elevated proposal-role inserts while preserving proposed drafts. Activation does not set outcome/evidence/maturity/completion or change the solution stage. The console action requires the transition grant and acknowledgement and uses CSRF, no-store, same-origin requests, and a stable retry ID.
 
-The focused Gateway, route-policy, console, proposal, review, and migration selection passes 108 tests. Ruff, Python compilation, inline JavaScript syntax, and diff checks pass. Disposable PostgreSQL 16 applies and replays migration 496 and passes ten grouped checks for role/trigger boundaries, exact scope and source lineage, independent approval, retries/collisions, denial paths, atomic attribution, and unchanged outcome/stage. Candidate and legacy databases remain untouched; migration 496 is not rolled out. CAP-035 remains prepared pending populated parity, live OIDC/browser acceptance, broader ACL/RLS, recovery, and MAN-CAP-035 owner review. Checklist: 741 complete / 24 open; matrix: 31 baseline-retained, 7 deployed, 28 prepared across 66 rows. [Write contract](solution-lifecycle-kernel-write-contract.md); [migration](../schemas/postgres/496_location_solution_replication_activation.sql); [Gateway tests](../tests/test_gateway_solution_replication_activation.py); [disposable checker](../../scripts/check-solution-replication-activation-disposable.py); [evidence](builds/2026-10-20-recovery/cap-035-solution-replication-activation-disposable.json).
+The focused Gateway, route-policy, console, proposal, review, and migration selection passes 108 tests. Ruff, Python compilation, inline JavaScript syntax, and diff checks pass. Disposable PostgreSQL 16 applies and replays migration 496 and passes ten grouped checks for role/trigger boundaries, exact scope and source lineage, independent approval, retries/collisions, denial paths, atomic attribution, and unchanged outcome/stage. Candidate and legacy databases remain untouched; migration 496 is not rolled out. CAP-035 remains prepared pending populated parity, live OIDC/browser acceptance, broader ACL/RLS, recovery, and MAN-CAP-035 owner review. Checklist: 741 complete / 24 open; matrix: 31 baseline-retained, 7 deployed, 28 prepared across 66 rows. [Write contract](solution-lifecycle-kernel-write-contract.md); [migration](../../schemas/postgres/496_location_solution_replication_activation.sql); [Gateway tests](../../tests/test_gateway_solution_replication_activation.py); [disposable checker](../../scripts/check-solution-replication-activation-disposable.py); [evidence](builds/2026-10-20-recovery/cap-035-solution-replication-activation-disposable.json).
 
 ### CAP-035 independent funding tranche approval — 20 October 2026
 
 Added private exact-location tranche review at `GET /operator/api/solution-lifecycle/{location_id}/funding/{funding_case_id}/tranches/{tranche_id}/review` and independent approval at the matching `/approve` route. Migration 492 requires the funding case already be approved, the tranche still be proposed, explicit acknowledgement, an exact signed `solution_lifecycle:review` grant, and an active human distinct from both the case submitter and case approver. It updates only tranche status and reviewer attribution and appends an immutable retry receipt; it does not release money or advance the solution stage. The operator console exposes the action only for approved cases and proposed tranches, renders private milestone terms as text, uses CSRF/no-store requests, and retains the same request ID for uncertain retries.
 
-The focused Gateway, route-policy, console, and migration suite passes 117 tests. Ruff, Python compilation, inline JavaScript syntax, capability-matrix validation, and runtime SQL inventory checks pass. Disposable PostgreSQL 16 applies and replays migration 492 after migrations 488–491 and verifies exact review scope, reviewer independence, retry/collision handling, denial of duplicate approval and missing acknowledgement, narrow role grants, Directus/runtime boundaries, one tranche left proposed, and unchanged solution stage. Candidate and legacy databases remain untouched; migration 492 is not rolled out. CAP-035 remains prepared pending populated parity, live OIDC/browser acceptance, broader ACL/RLS, recovery, and MAN-CAP-035 owner review. Checklist: 737 complete / 24 open; matrix: 31 baseline-retained, 7 deployed, 28 prepared across 66 rows. [Write contract](solution-lifecycle-kernel-write-contract.md); [migration](../schemas/postgres/492_location_solution_funding_tranche_review.sql); [Gateway and route tests](../tests/test_gateway_solution_lifecycle_funding_proposals.py); [console tests](../tests/test_operator_console_solution_lifecycle.py); [disposable checker](../../scripts/check-solution-lifecycle-funding-disposable.py); [evidence](builds/2026-10-20-recovery/cap-035-solution-funding-tranche-approval-disposable.json).
+The focused Gateway, route-policy, console, and migration suite passes 117 tests. Ruff, Python compilation, inline JavaScript syntax, capability-matrix validation, and runtime SQL inventory checks pass. Disposable PostgreSQL 16 applies and replays migration 492 after migrations 488–491 and verifies exact review scope, reviewer independence, retry/collision handling, denial of duplicate approval and missing acknowledgement, narrow role grants, Directus/runtime boundaries, one tranche left proposed, and unchanged solution stage. Candidate and legacy databases remain untouched; migration 492 is not rolled out. CAP-035 remains prepared pending populated parity, live OIDC/browser acceptance, broader ACL/RLS, recovery, and MAN-CAP-035 owner review. Checklist: 737 complete / 24 open; matrix: 31 baseline-retained, 7 deployed, 28 prepared across 66 rows. [Write contract](solution-lifecycle-kernel-write-contract.md); [migration](../../schemas/postgres/492_location_solution_funding_tranche_review.sql); [Gateway and route tests](../../tests/test_gateway_solution_lifecycle_funding_proposals.py); [console tests](../../tests/test_operator_console_solution_lifecycle.py); [disposable checker](../../scripts/check-solution-lifecycle-funding-disposable.py); [evidence](builds/2026-10-20-recovery/cap-035-solution-funding-tranche-approval-disposable.json).
 
 ### CAP-035 independent funding case approval — 20 October 2026
 
 Added `POST /operator/api/solution-lifecycle/{location_id}/funding/{funding_case_id}/approve` under the exact signed `solution_lifecycle:review` grant. Migration 491 requires an active human binding, explicit acknowledgement, an attributed submitted case from the exact location, and a reviewer distinct from its submitter. It atomically records only the case decision/reviewer and an immutable retry receipt; proposed tranches, disbursement, and solution stage remain unchanged. The console exposes approval only for an attributed non-self-authored case and protects retries with a stable request ID, CSRF, and no-store same-origin requests.
 
-The focused Gateway, route-policy, console, and migration suite passes 108 tests; Ruff, Python compilation, inline JavaScript syntax, capability-matrix validation, and runtime SQL inventory checks pass. The disposable PostgreSQL 16 checker applies/replays migration 491 after migrations 488–490 and verifies exact retries, request collisions, duplicate decisions, missing/mismatched grants, self-review, unattributed legacy denial, role boundaries, unchanged proposed tranche state, and unchanged solution stage. Candidate and legacy databases remain untouched; migration 491 is not rolled out. CAP-035 remains prepared pending populated parity, live OIDC/browser acceptance, broader ACL/RLS, recovery, and MAN-CAP-035 owner review. Checklist: 736 complete / 24 open; matrix: 31 baseline-retained, 7 deployed, 28 prepared across 66 rows. [Write contract](solution-lifecycle-kernel-write-contract.md); [migration](../schemas/postgres/491_location_solution_funding_approval.sql); [Gateway and route tests](../tests/test_gateway_solution_lifecycle_funding_proposals.py); [console tests](../tests/test_operator_console_solution_lifecycle.py); [disposable checker](../../scripts/check-solution-lifecycle-funding-disposable.py); [evidence](builds/2026-10-20-recovery/cap-035-solution-funding-approval-disposable.json).
+The focused Gateway, route-policy, console, and migration suite passes 108 tests; Ruff, Python compilation, inline JavaScript syntax, capability-matrix validation, and runtime SQL inventory checks pass. The disposable PostgreSQL 16 checker applies/replays migration 491 after migrations 488–490 and verifies exact retries, request collisions, duplicate decisions, missing/mismatched grants, self-review, unattributed legacy denial, role boundaries, unchanged proposed tranche state, and unchanged solution stage. Candidate and legacy databases remain untouched; migration 491 is not rolled out. CAP-035 remains prepared pending populated parity, live OIDC/browser acceptance, broader ACL/RLS, recovery, and MAN-CAP-035 owner review. Checklist: 736 complete / 24 open; matrix: 31 baseline-retained, 7 deployed, 28 prepared across 66 rows. [Write contract](solution-lifecycle-kernel-write-contract.md); [migration](../../schemas/postgres/491_location_solution_funding_approval.sql); [Gateway and route tests](../../tests/test_gateway_solution_lifecycle_funding_proposals.py); [console tests](../../tests/test_operator_console_solution_lifecycle.py); [disposable checker](../../scripts/check-solution-lifecycle-funding-disposable.py); [evidence](builds/2026-10-20-recovery/cap-035-solution-funding-approval-disposable.json).
 
 ### CAP-035 private funding submission review reads — 20 October 2026
 
@@ -4231,45 +5584,45 @@ other workflow parity, populated fixture comparison, live OIDC/browser,
 broader ACL/RLS, recovery, and MAN-CAP-035 owner review. Checklist: 735
 complete / 24 open; matrix: 31 baseline-retained, 7 deployed, 28 prepared
 across 66 rows. [Write contract](solution-lifecycle-kernel-write-contract.md);
-[migration](../schemas/postgres/490_location_solution_funding_review.sql);
-[tests](../tests/test_gateway_solution_lifecycle_funding_proposals.py);
+[migration](../../schemas/postgres/490_location_solution_funding_review.sql);
+[tests](../../tests/test_gateway_solution_lifecycle_funding_proposals.py);
 [disposable evidence](builds/2026-10-20-recovery/cap-035-solution-funding-review-disposable.json).
 
 ### CAP-035 funding draft submission — 20 October 2026
 
 Added a separate exact-location submit action for funding drafts. Migration 489 requires signed `solution_lifecycle:submit`, an active human operator binding, explicit acknowledgement, and a draft created by the same operator and party for the exact location-origin solution. It atomically changes only the case from `draft` to `submitted` and writes a private immutable retry receipt; proposed tranches remain proposed, and approval, release, and solution-stage transition remain separate. The console gates this second step on the submit grant and a separate acknowledgement.
 
-The focused Gateway, route-policy, console, and migration selection passes 196 tests; Ruff, Python compilation, and inline JavaScript parsing pass. Disposable PostgreSQL 16 applies/replays migrations 488 and 489 and verifies exact retries, request collisions, duplicate submissions, missing-grant denial, role boundaries, preserved tranche states, and unchanged solution stage. Candidate and legacy databases remain untouched; migration 489 is not rolled out. CAP-035 remains prepared pending populated parity, live OIDC/browser acceptance, broader ACL/RLS, recovery, and MAN-CAP-035 owner review. Checklist: 734 complete / 24 open; matrix: 31 baseline-retained, 7 deployed, 28 prepared across 66 rows. [Write contract](solution-lifecycle-kernel-write-contract.md); [migration](../schemas/postgres/489_location_solution_funding_submission.sql); [Gateway tests](../tests/test_gateway_solution_lifecycle_funding_proposals.py); [console tests](../tests/test_operator_console_solution_lifecycle.py); [disposable check](../../scripts/check-solution-lifecycle-funding-disposable.py); [evidence](builds/2026-10-20-recovery/cap-035-solution-funding-submission-disposable.json).
+The focused Gateway, route-policy, console, and migration selection passes 196 tests; Ruff, Python compilation, and inline JavaScript parsing pass. Disposable PostgreSQL 16 applies/replays migrations 488 and 489 and verifies exact retries, request collisions, duplicate submissions, missing-grant denial, role boundaries, preserved tranche states, and unchanged solution stage. Candidate and legacy databases remain untouched; migration 489 is not rolled out. CAP-035 remains prepared pending populated parity, live OIDC/browser acceptance, broader ACL/RLS, recovery, and MAN-CAP-035 owner review. Checklist: 734 complete / 24 open; matrix: 31 baseline-retained, 7 deployed, 28 prepared across 66 rows. [Write contract](solution-lifecycle-kernel-write-contract.md); [migration](../../schemas/postgres/489_location_solution_funding_submission.sql); [Gateway tests](../../tests/test_gateway_solution_lifecycle_funding_proposals.py); [console tests](../../tests/test_operator_console_solution_lifecycle.py); [disposable check](../../scripts/check-solution-lifecycle-funding-disposable.py); [evidence](builds/2026-10-20-recovery/cap-035-solution-funding-submission-disposable.json).
 
 ### CAP-035 funding proposal draft — 20 October 2026
 
 Added exact-location funding targets and a draft-only funding proposal action. Migration 488 requires signed `solution_lifecycle:read` and `solution_lifecycle:create` grants plus an active human binding; it validates exact location-origin solutions, bounded amount/currency/rationale/evidence/tranches, and atomically creates a private draft case, proposed tranches, and immutable retry receipt. Changed-payload retries, cross-location/global targets, and tranche totals above the proposal ceiling fail closed. The console uses CSRF, same-origin/no-store requests, acknowledgement, and stable retry IDs. No submit, approval, release, or lifecycle transition is exposed.
 
-The focused Gateway, route-policy, console, and migration selection passes 189 tests; Ruff, Python compilation, and inline JavaScript parsing pass. Disposable PostgreSQL 16 applies/replays migration 488 and verifies target scope, grants/identity, bounds, retry behavior, private ACLs, draft-only effects, and unchanged solution stage. Candidate and legacy databases remain untouched; migration 488 is not rolled out. CAP-035 remains prepared pending populated parity, live OIDC/browser acceptance, broader ACL/RLS, recovery, and MAN-CAP-035 owner review. Checklist: 733 complete / 24 open; matrix: 31 baseline-retained, 7 deployed, 28 prepared across 66 rows. [Write contract](solution-lifecycle-kernel-write-contract.md); [migration](../schemas/postgres/488_location_solution_funding_proposals.sql); [Gateway tests](../tests/test_gateway_solution_lifecycle_funding_proposals.py); [console tests](../tests/test_operator_console_solution_lifecycle.py); [disposable check](../../scripts/check-solution-lifecycle-funding-disposable.py); [evidence](builds/2026-10-20-recovery/cap-035-solution-funding-proposal-disposable.json).
+The focused Gateway, route-policy, console, and migration selection passes 189 tests; Ruff, Python compilation, and inline JavaScript parsing pass. Disposable PostgreSQL 16 applies/replays migration 488 and verifies target scope, grants/identity, bounds, retry behavior, private ACLs, draft-only effects, and unchanged solution stage. Candidate and legacy databases remain untouched; migration 488 is not rolled out. CAP-035 remains prepared pending populated parity, live OIDC/browser acceptance, broader ACL/RLS, recovery, and MAN-CAP-035 owner review. Checklist: 733 complete / 24 open; matrix: 31 baseline-retained, 7 deployed, 28 prepared across 66 rows. [Write contract](solution-lifecycle-kernel-write-contract.md); [migration](../../schemas/postgres/488_location_solution_funding_proposals.sql); [Gateway tests](../../tests/test_gateway_solution_lifecycle_funding_proposals.py); [console tests](../../tests/test_operator_console_solution_lifecycle.py); [disposable check](../../scripts/check-solution-lifecycle-funding-disposable.py); [evidence](builds/2026-10-20-recovery/cap-035-solution-funding-proposal-disposable.json).
 
 ### CAP-035 experiment result review — 20 October 2026
 
 Added exact-location pending-review detail and result submission at `GET` and `POST /operator/api/solution-lifecycle/{location_id}/experiments/{experiment_id}/review`. Migration 487 exposes bounded protocol, latest analysis, and at most 100 recent observations only for location-origin experiments under signed `solution_lifecycle:review` scope. The console renders private evidence as text and shows the form only for completed experiments when the exact review grant is present. PostgreSQL requires an active human distinct from both the experiment owner and protocol approver, and atomically records the result, updates the experiment outcome, and inserts an immutable payload receipt. Identical retries replay; changed payloads and cross-location reuse fail closed. Result review does not advance the solution stage.
 
-The focused Gateway, route-policy, console, and migration selection passes 74 tests; Ruff and Python compilation pass, and the console selection parses inline JavaScript. Disposable PostgreSQL 16 applies/replays migrations 483–487 and passes ten experiment-review groups plus the prior eight gate-evaluation, seven gate-review, and seven transition groups. Candidate and legacy databases remain untouched; migration 487 is not rolled out. CAP-035 remains prepared pending populated parity, live OIDC/browser acceptance, broader ACL/RLS, recovery, and MAN-CAP-035 owner review. Checklist: 732 complete / 24 open; matrix: 31 baseline-retained, 7 deployed, 28 prepared across 66 rows. [Contract](solution-lifecycle-kernel-read-contract.md); [migration](../schemas/postgres/487_location_solution_experiment_review.sql); [Gateway tests](../tests/test_gateway_solution_lifecycle_experiment_review.py); [console tests](../tests/test_operator_console_solution_lifecycle.py); [disposable evidence](builds/2026-10-20-recovery/cap-035-solution-experiment-review-disposable.json).
+The focused Gateway, route-policy, console, and migration selection passes 74 tests; Ruff and Python compilation pass, and the console selection parses inline JavaScript. Disposable PostgreSQL 16 applies/replays migrations 483–487 and passes ten experiment-review groups plus the prior eight gate-evaluation, seven gate-review, and seven transition groups. Candidate and legacy databases remain untouched; migration 487 is not rolled out. CAP-035 remains prepared pending populated parity, live OIDC/browser acceptance, broader ACL/RLS, recovery, and MAN-CAP-035 owner review. Checklist: 732 complete / 24 open; matrix: 31 baseline-retained, 7 deployed, 28 prepared across 66 rows. [Contract](solution-lifecycle-kernel-read-contract.md); [migration](../../schemas/postgres/487_location_solution_experiment_review.sql); [Gateway tests](../../tests/test_gateway_solution_lifecycle_experiment_review.py); [console tests](../../tests/test_operator_console_solution_lifecycle.py); [disposable evidence](builds/2026-10-20-recovery/cap-035-solution-experiment-review-disposable.json).
 
 ### CAP-035 gated solution stage transition — 20 October 2026
 
 Added `POST /operator/api/solution-lifecycle/{location_id}/gates/{gate_id}/transition` under exact signed `solution_lifecycle:transition`. Migration 486 requires an approved gate for the solution's current stage, a latest passing evaluation and configured minimum pass count, plus a still-distinct approver when human approval is required. It preserves the legacy promotion prerequisites for evidence maturity, validated experiments, approved funding, adoption readiness/configuration, and location scale gates. The stage update, attributed lifecycle event, and immutable idempotency receipt are one transaction; matching retries return the same event and request collisions fail closed. The console exposes the form only for an approved passing promotion gate when the exact transition grant is present.
 
-The focused Gateway/console/route-policy selection passes 35 tests; Ruff, Python compilation, and inline JavaScript checks pass. Disposable PostgreSQL 16 applies and replays migrations 483–486 and passes eight evaluation, seven review/approval, and seven transition acceptance groups, including non-human compatibility, independence revalidation, atomicity, retries, and runtime/Directus boundaries. Candidate and legacy databases are untouched; migration 486 is not rolled out. CAP-035 remains prepared pending populated parity, live OIDC/browser acceptance, broader ACL/RLS, recovery, and MAN-CAP-035 owner review. Checklist: 731 complete / 24 open; matrix: 31 baseline-retained, 7 deployed, 28 prepared across 66 rows. [Contract](solution-lifecycle-kernel-read-contract.md); [migration](../schemas/postgres/486_location_solution_gate_transition.sql); [Gateway tests](../tests/test_gateway_solution_lifecycle_gate_transitions.py); [console tests](../tests/test_operator_console_solution_lifecycle.py); [disposable evidence](builds/2026-10-20-recovery/cap-035-solution-gate-transition-disposable.json).
+The focused Gateway/console/route-policy selection passes 35 tests; Ruff, Python compilation, and inline JavaScript checks pass. Disposable PostgreSQL 16 applies and replays migrations 483–486 and passes eight evaluation, seven review/approval, and seven transition acceptance groups, including non-human compatibility, independence revalidation, atomicity, retries, and runtime/Directus boundaries. Candidate and legacy databases are untouched; migration 486 is not rolled out. CAP-035 remains prepared pending populated parity, live OIDC/browser acceptance, broader ACL/RLS, recovery, and MAN-CAP-035 owner review. Checklist: 731 complete / 24 open; matrix: 31 baseline-retained, 7 deployed, 28 prepared across 66 rows. [Contract](solution-lifecycle-kernel-read-contract.md); [migration](../../schemas/postgres/486_location_solution_gate_transition.sql); [Gateway tests](../../tests/test_gateway_solution_lifecycle_gate_transitions.py); [console tests](../../tests/test_operator_console_solution_lifecycle.py); [disposable evidence](builds/2026-10-20-recovery/cap-035-solution-gate-transition-disposable.json).
 
 ### CAP-035 non-independent gate confirmation compatibility — 20 October 2026
 
 Migration 485 restores the legacy approval behavior for gates where `requires_human_approval` is false: an active operator with the exact review grant and a passing latest evaluation can confirm the gate, with request-id idempotency. When the flag is true, evaluator/reviewer independence remains mandatory. The console labels the two paths distinctly and keeps both behind the exact review grant. Approval still does not advance the solution stage.
 
-Disposable PostgreSQL 16 applies/replays migrations 483–485 and passes the evaluation, independent-review, compatibility, retry, and role-boundary groups. The combined Gateway, route-policy, console, and migration-metadata selection passes 82 tests; Ruff, Python compilation, capability validation, runtime SQL inventory, and JavaScript syntax checks pass. Candidate and legacy databases are untouched; migration 485 is not rolled out. Checklist: 730 complete / 24 open; matrix: 31 baseline-retained, 7 deployed, 28 prepared across 66 rows. [Migration](../schemas/postgres/485_solution_gate_nonhuman_approval_compatibility.sql); [evidence](builds/2026-10-20-recovery/cap-035-solution-gate-review-disposable.json).
+Disposable PostgreSQL 16 applies/replays migrations 483–485 and passes the evaluation, independent-review, compatibility, retry, and role-boundary groups. The combined Gateway, route-policy, console, and migration-metadata selection passes 82 tests; Ruff, Python compilation, capability validation, runtime SQL inventory, and JavaScript syntax checks pass. Candidate and legacy databases are untouched; migration 485 is not rolled out. Checklist: 730 complete / 24 open; matrix: 31 baseline-retained, 7 deployed, 28 prepared across 66 rows. [Migration](../../schemas/postgres/485_solution_gate_nonhuman_approval_compatibility.sql); [evidence](builds/2026-10-20-recovery/cap-035-solution-gate-review-disposable.json).
 
 ### CAP-035 independent stage-gate review and approval — 20 October 2026
 
 Added separate private evidence review and independent approval for location-origin CAP-035 gates. `GET /operator/api/solution-lifecycle/{location_id}/gates/{gate_id}/review` requires exact signed `solution_lifecycle:review` context and an active human binding, then returns the latest bounded observation/evidence without evaluator identity. `POST /operator/api/solution-lifecycle/{location_id}/gates/{gate_id}/approve` requires a draft/ready gate, a latest passing evaluation, and an active reviewer party distinct from the evaluator. Migration 484 records the approval and append-only idempotency receipt atomically. Gate approval does not advance the solution stage. The console keeps evidence review and approval behind the review grant and preserves the separate create-grant evaluation action.
 
-The combined Gateway, exact route-policy, console, and migration-metadata selection passes 82 tests; Ruff, compilation, and inline JavaScript syntax checks pass. Disposable PostgreSQL 16 applies/replays migrations 483 and 484 and passes eight evaluation plus seven review/approval acceptance groups. Candidate and legacy databases are untouched; migration 484 is not rolled out. CAP-035 remains prepared pending remaining workflow parity, populated fixture comparison, live OIDC/browser acceptance, broader ACL/RLS, recovery, and MAN-CAP-035 owner review. Checklist: 729 complete / 24 open; matrix: 31 baseline-retained, 7 deployed, 28 prepared across 66 rows. [Contract](solution-lifecycle-kernel-read-contract.md); [migration](../schemas/postgres/484_location_solution_gate_review.sql); [tests](../tests/test_gateway_solution_lifecycle_gate_review.py); [evidence](builds/2026-10-20-recovery/cap-035-solution-gate-review-disposable.json).
+The combined Gateway, exact route-policy, console, and migration-metadata selection passes 82 tests; Ruff, compilation, and inline JavaScript syntax checks pass. Disposable PostgreSQL 16 applies/replays migrations 483 and 484 and passes eight evaluation plus seven review/approval acceptance groups. Candidate and legacy databases are untouched; migration 484 is not rolled out. CAP-035 remains prepared pending remaining workflow parity, populated fixture comparison, live OIDC/browser acceptance, broader ACL/RLS, recovery, and MAN-CAP-035 owner review. Checklist: 729 complete / 24 open; matrix: 31 baseline-retained, 7 deployed, 28 prepared across 66 rows. [Contract](solution-lifecycle-kernel-read-contract.md); [migration](../../schemas/postgres/484_location_solution_gate_review.sql); [tests](../../tests/test_gateway_solution_lifecycle_gate_review.py); [evidence](builds/2026-10-20-recovery/cap-035-solution-gate-review-disposable.json).
 
 ### CAP-035 retirement review inbox and approval console — 20 October 2026
 
@@ -4295,7 +5648,7 @@ not rolled out. CAP-035 remains prepared pending broader lifecycle parity,
 populated fixture comparison, live OIDC/browser, universal ACL/RLS, recovery,
 and MAN-CAP-035 owner review. Checklist: 727 complete / 24 open; matrix:
 31 baseline-retained, 7 deployed, 28 prepared across 66 rows. [Contract](solution-lifecycle-kernel-read-contract.md);
-[migration](../schemas/postgres/482_location_solution_retirement_review_queue.sql);
+[migration](../../schemas/postgres/482_location_solution_retirement_review_queue.sql);
 [evidence](builds/2026-10-20-recovery/cap-035-solution-retirement-review-disposable.json).
 
 ### CAP-035 location-origin retirement proposal console — 20 October 2026
@@ -4318,7 +5671,7 @@ databases are untouched; migration 481 is not rolled out. CAP-035 remains
 prepared pending workflow and populated-data parity, live OIDC/browser
 acceptance, broader ACL/RLS, recovery, and MAN-CAP-035 owner acceptance.
 Checklist: 726 complete / 24 open; matrix: 31 baseline-retained, 7 deployed,
-28 prepared. [Contract](solution-lifecycle-kernel-read-contract.md); [migration](../schemas/postgres/481_location_solution_retirement_candidates.sql); [evidence](builds/2026-10-20-recovery/cap-035-solution-retirement-candidates-disposable.json).
+28 prepared. [Contract](solution-lifecycle-kernel-read-contract.md); [migration](../../schemas/postgres/481_location_solution_retirement_candidates.sql); [evidence](builds/2026-10-20-recovery/cap-035-solution-retirement-candidates-disposable.json).
 
 ### CAP-035 learning-proposal operator form — 20 October 2026
 
@@ -4337,7 +5690,7 @@ database was needed; candidate and legacy state were untouched. CAP-035 remains
 prepared pending remaining lifecycle parity, populated fixtures, live OIDC/browser,
 broader ACL/RLS, recovery, and owner acceptance. Checklist: 725 complete / 24
 open; matrix: 31 baseline-retained, 7 deployed, 28 prepared. [Contract](solution-lifecycle-kernel-read-contract.md);
-[console](../apps/operator-console/index.html); [tests](../tests/test_operator_console_solution_lifecycle.py).
+[console](../../apps/operator-console/index.html); [tests](../../tests/test_operator_console_solution_lifecycle.py).
 
 ### CAP-035 supplemental lifecycle status console — 20 October 2026
 
@@ -4353,7 +5706,7 @@ pass. No database or migration was used. CAP-035 remains prepared pending
 remaining workflow and populated parity, live OIDC/browser, broader ACL/RLS,
 recovery, and owner acceptance. Checklist: 724 complete / 24 open; matrix: 31
 baseline-retained, 7 deployed, 28 prepared. [Contract](solution-lifecycle-kernel-read-contract.md);
-[console](../apps/operator-console/index.html); [tests](../tests/test_operator_console_solution_lifecycle.py).
+[console](../../apps/operator-console/index.html); [tests](../../tests/test_operator_console_solution_lifecycle.py).
 The five-commit batch is pushed to PR #68 at `d200c72cee37819a2d01948d9bf48072b955d7b6`;
 Security #282 passed and CI #558 is pending.
 
@@ -4372,7 +5725,7 @@ provider was contacted. CAP-026 remains prepared pending live OIDC/browser,
 populated parity, broader ACL/RLS, and MAN-CAP-026 owner acceptance. Checklist:
 719 complete / 24 open; matrix: 31 baseline-retained, 7 deployed, 28 prepared.
 [Read contract](threatcasting-kernel-read-contract.md);
-[console checks](../tests/test_operator_console_threatcasting.py).
+[console checks](../../tests/test_operator_console_threatcasting.py).
 
 ### CAP-028 strategy plans operator-console read — 20 October 2026
 
@@ -4389,7 +5742,7 @@ databases remain untouched; migration 452 is not rolled out. CAP-028 remains
 prepared pending complete workflow parity, populated fixtures, live OIDC/browser,
 broader ACL/RLS, and MAN-CAP-028 owner review. Checklist: 718 complete / 24
 open; matrix: 31 baseline-retained, 7 deployed, 28 prepared. [Read contract](strategy-kernel-read-contract.md);
-[console checks](../tests/test_operator_console_strategy.py).
+[console checks](../../tests/test_operator_console_strategy.py).
 
 ### CAP-029 competitive landscape operator-console read — 20 October 2026
 
@@ -4406,7 +5759,7 @@ is not rolled out. CAP-029 remains prepared pending full workflow/report/
 dashboard parity, populated fixtures, live OIDC/browser, broader ACL/RLS, and
 MAN-CAP-029 owner review. Checklist: 717 complete / 24 open; matrix: 31
 baseline-retained, 7 deployed, 28 prepared. [Read contract](competitive-landscape-kernel-read-contract.md);
-[console checks](../tests/test_operator_console_competitive_landscape.py).
+[console checks](../../tests/test_operator_console_competitive_landscape.py).
 
 ### CAP-030 management summary operator-console read — 20 October 2026
 
@@ -4423,7 +5776,7 @@ rolled out. CAP-030 remains prepared pending assignment/transition and SLA/
 escalation parity, populated fixtures, live OIDC/browser, broader ACL/RLS, and
 MAN-CAP-030 owner review. Checklist: 716 complete / 24 open; matrix: 31
 baseline-retained, 7 deployed, 28 prepared. [Read contract](management-work-kernel-read-contract.md);
-[console checks](../tests/test_operator_console_management_work.py).
+[console checks](../../tests/test_operator_console_management_work.py).
 
 ### CAP-031 planning budget operator-console read — 20 October 2026
 
@@ -4441,7 +5794,7 @@ lifecycle, objectives/KPIs, portfolio, revenue/cash-flow, S&OP, populated parity
 live OIDC/browser, broader ACL/RLS, and MAN-CAP-031 owner review. Checklist:
 715 complete / 24 open; matrix: 31 baseline-retained, 7 deployed, 28 prepared.
 [Read contract](planning-budget-kernel-read-contract.md);
-[console checks](../tests/test_operator_console_planning_budget.py).
+[console checks](../../tests/test_operator_console_planning_budget.py).
 
 ### CAP-032 business architecture operator-console read — 20 October 2026
 
@@ -4458,7 +5811,7 @@ databases remain untouched, and migration 456 is not rolled out. CAP-032
 remains prepared pending populated parity, live OIDC/browser acceptance, broader
 ACL/RLS, and MAN-CAP-032 owner review. Checklist: 714 complete / 24 open;
 matrix: 31 baseline-retained, 7 deployed, 28 prepared. [Read contract](business-architecture-kernel-read-contract.md);
-[console checks](../tests/test_operator_console_business_architecture.py).
+[console checks](../../tests/test_operator_console_business_architecture.py).
 
 ### CAP-033 business canvas operator-console read — 20 October 2026
 
@@ -4475,7 +5828,7 @@ prepared pending generated-pitch and assembled-plan parity, populated fixtures,
 live OIDC/browser acceptance, broader ACL/RLS, and MAN-CAP-033 owner review.
 Checklist: 713 complete / 24 open; matrix: 31 baseline-retained, 7 deployed,
 28 prepared. [Read contract](business-planning-kernel-read-contract.md);
-[console checks](../tests/test_operator_console_business_planning.py).
+[console checks](../../tests/test_operator_console_business_planning.py).
 
 ### CAP-034 coordination summary console — 20 October 2026
 
@@ -4489,7 +5842,7 @@ validation pass. No database was used. CAP-034 remains prepared pending populate
 parity, live OIDC/browser, trigger/worker recovery, broader ACL/RLS, and owner
 review. Checklist: 712 complete / 24 open; matrix: 31 baseline-retained, 7
 deployed, 28 prepared. [Contract](coordination-kernel-read-contract.md);
-[console](../apps/operator-console/index.html); [tests](../tests/test_operator_console_coordination.py).
+[console](../../apps/operator-console/index.html); [tests](../../tests/test_operator_console_coordination.py).
 
 ### CAP-035 solution-lifecycle console summary — 20 October 2026
 
@@ -4504,7 +5857,7 @@ database was used. CAP-035 remains prepared pending workflow/detail parity,
 populated fixture comparison, live OIDC/browser, broader ACL/RLS, recovery,
 and owner acceptance. Checklist: 711 complete / 24 open; matrix: 31
 baseline-retained, 7 deployed, 28 prepared. [Contract](solution-lifecycle-kernel-read-contract.md);
-[console](../apps/operator-console/index.html); [tests](../tests/test_operator_console_solution_lifecycle.py).
+[console](../../apps/operator-console/index.html); [tests](../../tests/test_operator_console_solution_lifecycle.py).
 
 ### CAP-036 sequential-evidence console reads — 19 October 2026
 
@@ -4520,7 +5873,7 @@ CAP-036 remains prepared pending
 full source lineage, populated parity, live OIDC/browser behavior, broader
 ACL/RLS, recovery, and owner review. Checklist: 710 complete / 24 open; matrix:
 31 baseline-retained, 7 deployed, 28 prepared. [Contract](sequential-decision-kernel-read-contract.md);
-[console](../apps/operator-console/index.html); [tests](../tests/test_operator_console_sequential_evidence.py).
+[console](../../apps/operator-console/index.html); [tests](../../tests/test_operator_console_sequential_evidence.py).
 
 ### CAP-037 operating-pilot console reads — 19 October 2026
 
@@ -4537,19 +5890,19 @@ remains prepared pending item-level workflows, populated scope and legacy
 parity, audience review, live OIDC/browser behavior, broader ACL/RLS, recovery,
 and owner acceptance. Checklist: 709 complete / 24 open; matrix: 31
 baseline-retained, 7 deployed, 28 prepared. [Contract](operating-pilot-kernel-read-contract.md);
-[console](../apps/operator-console/index.html); [tests](../tests/test_operator_console_operating_pilot.py).
+[console](../../apps/operator-console/index.html); [tests](../../tests/test_operator_console_operating_pilot.py).
 
 ### CAP-036 location-scoped evidence timeline — 19 October 2026
 
 Added `GET /operator/api/sequential-evidence/{location_id}/events` under exact signed `sequential_evidence:read` context. Migration 478 returns a stable, bounded evidence/posterior timeline for exact location-scoped strategy plans, threats, and location-origin or explicitly linked solutions. Each page exposes only sequence ordinals, observed/ingested timestamps, evidence class/quality, and posterior update sequence/version; statements, row IDs, source references, raw values, likelihoods, posterior values, threshold outcomes, and identities remain private. Unknown subject types remain excluded.
 
-The focused Gateway/route-policy selection passes 23 tests; Ruff and compilation pass. Disposable PostgreSQL 16 applies and replays migration 478 and passes eight groups covering ordering, pagination, lineage, privacy, tenant denial, and role boundaries. Candidate and legacy databases remain untouched; migration 478 is not rolled out. CAP-036 remains prepared pending complete subject-type lineage, populated reference parity, live OIDC/browser acceptance, broader ACL/RLS, recovery, and MAN-CAP-036 owner review. Checklist: 706 complete / 24 open; matrix: 31 baseline-retained, 7 deployed, 28 prepared. [Contract](sequential-decision-kernel-read-contract.md); [migration](../schemas/postgres/478_location_sequential_evidence_timeline.sql); [evidence](builds/2026-10-19-recovery/cap-036-sequential-evidence-timeline-disposable.json).
+The focused Gateway/route-policy selection passes 23 tests; Ruff and compilation pass. Disposable PostgreSQL 16 applies and replays migration 478 and passes eight groups covering ordering, pagination, lineage, privacy, tenant denial, and role boundaries. Candidate and legacy databases remain untouched; migration 478 is not rolled out. CAP-036 remains prepared pending complete subject-type lineage, populated reference parity, live OIDC/browser acceptance, broader ACL/RLS, recovery, and MAN-CAP-036 owner review. Checklist: 706 complete / 24 open; matrix: 31 baseline-retained, 7 deployed, 28 prepared. [Contract](sequential-decision-kernel-read-contract.md); [migration](../../schemas/postgres/478_location_sequential_evidence_timeline.sql); [evidence](builds/2026-10-19-recovery/cap-036-sequential-evidence-timeline-disposable.json).
 
 ### CAP-035 location-scoped learning proposals — 19 October 2026
 
 Added `POST /operator/api/solution-lifecycle/{location_id}/replications/{replication_id}/learning` under exact signed `solution_lifecycle:create` context. Migration 477 creates a learning record only from a completed replication actively reviewed by a current person, targeted to the exact location, and linked to a solution originated in or explicitly associated with that location. An active OIDC-to-person binding attributes the proposer independently of the optional learning-record owner. The Gateway and PostgreSQL enforce allowlisted lesson types and confidence/transferability bands, bounded finding/recommendation/reference arrays, and nonempty bounded evidence. The function writes `decision_status = 'proposed'` and an append-only receipt atomically; exact retries return the original receipt and changed-input reuse fails closed. Runtime cannot read or write the learning records or receipt table directly, and Directus cannot execute the write function.
 
-The focused Gateway/route-policy selection passes 16 tests; Ruff and compilation pass. Disposable PostgreSQL 16 applies and replays migration 477 and passes nine acceptance groups covering exact source lineage, reviewer state, signed context/grant, bounds, idempotency, draft-only behavior, and role boundaries. Candidate and legacy databases remain untouched; migration 477 is not rolled out. CAP-035 remains prepared pending the other lifecycle workflows, populated legacy parity, live OIDC/browser acceptance, broader ACL/RLS, recovery, and MAN-CAP-035 owner review. Checklist: 705 complete / 24 open; matrix: 31 baseline-retained, 7 deployed, 28 prepared. [Contract](solution-lifecycle-kernel-read-contract.md); [migration](../schemas/postgres/477_location_solution_learning_proposal.sql); [disposable evidence](builds/2026-10-19-recovery/cap-035-solution-learning-proposal-disposable.json).
+The focused Gateway/route-policy selection passes 16 tests; Ruff and compilation pass. Disposable PostgreSQL 16 applies and replays migration 477 and passes nine acceptance groups covering exact source lineage, reviewer state, signed context/grant, bounds, idempotency, draft-only behavior, and role boundaries. Candidate and legacy databases remain untouched; migration 477 is not rolled out. CAP-035 remains prepared pending the other lifecycle workflows, populated legacy parity, live OIDC/browser acceptance, broader ACL/RLS, recovery, and MAN-CAP-035 owner review. Checklist: 705 complete / 24 open; matrix: 31 baseline-retained, 7 deployed, 28 prepared. [Contract](solution-lifecycle-kernel-read-contract.md); [migration](../../schemas/postgres/477_location_solution_learning_proposal.sql); [disposable evidence](builds/2026-10-19-recovery/cap-035-solution-learning-proposal-disposable.json).
 
 ### CAP-035 location-scoped retirement proposals — 19 October 2026
 
@@ -4597,7 +5950,7 @@ legacy databases remain untouched; migration 468 is not rolled out. Funding
 workflow writes, monetary detail policy, evidence review, other lifecycle item
 workflows, populated parity, live OIDC/browser, broader ACL/RLS, recovery, and
 MAN-CAP-035 review remain open. Checklist: 696 complete / 24 open; matrix:
-31 baseline-retained, 7 deployed, 28 prepared ([contract](solution-lifecycle-kernel-read-contract.md); [tests](../tests/test_gateway_solution_lifecycle_reads.py); [migration](../schemas/postgres/468_location_scoped_solution_funding.sql); [disposable check](../scripts/check-solution-lifecycle-funding-disposable.py); [evidence](builds/2026-10-19-recovery/cap-035-solution-funding-disposable.json)).
+31 baseline-retained, 7 deployed, 28 prepared ([contract](solution-lifecycle-kernel-read-contract.md); [tests](../../tests/test_gateway_solution_lifecycle_reads.py); [migration](../../schemas/postgres/468_location_scoped_solution_funding.sql); [disposable check](../../scripts/check-solution-lifecycle-funding-disposable.py); [evidence](builds/2026-10-19-recovery/cap-035-solution-funding-disposable.json)).
 
 ### CAP-035 solution experiment status read — 19 October 2026
 
@@ -4617,7 +5970,7 @@ untouched; migration 467 is not rolled out. Experiment evidence review and write
 parity, other lifecycle item workflows, populated fixture parity, live
 OIDC/browser, broader ACL/RLS, recovery, and MAN-CAP-035 review remain open.
 Checklist: 695 complete / 24 open; matrix: 31 baseline-retained, 7 deployed,
-28 prepared ([contract](solution-lifecycle-kernel-read-contract.md); [tests](../tests/test_gateway_solution_lifecycle_reads.py); [migration](../schemas/postgres/467_location_scoped_solution_experiments.sql); [disposable check](../scripts/check-solution-lifecycle-experiments-disposable.py); [evidence](builds/2026-10-19-recovery/cap-035-solution-experiments-disposable.json)).
+28 prepared ([contract](solution-lifecycle-kernel-read-contract.md); [tests](../../tests/test_gateway_solution_lifecycle_reads.py); [migration](../../schemas/postgres/467_location_scoped_solution_experiments.sql); [disposable check](../../scripts/check-solution-lifecycle-experiments-disposable.py); [evidence](builds/2026-10-19-recovery/cap-035-solution-experiments-disposable.json)).
 
 ### CAP-065 Gateway canvas block editing and version history — 19 October 2026
 
@@ -4633,7 +5986,7 @@ pass. Candidate and legacy databases remain untouched; migration 464 is not
 rolled out. Existing CLI/Directus writers can bypass Kernel history, while
 metadata/lifecycle editing, populated parity, live OIDC/browser, universal
 ACL/RLS, and MAN-CAP-065 review remain open. Checklist: 692 complete / 24 open;
-matrix: 31 baseline-retained, 7 deployed, 28 prepared ([edit contract](business-planning-kernel-edit-contract.md); [tests](../tests/test_gateway_business_planning_edits.py); [disposable evidence](builds/2026-10-19-recovery/cap-065-business-canvas-edit-disposable.json)).
+matrix: 31 baseline-retained, 7 deployed, 28 prepared ([edit contract](business-planning-kernel-edit-contract.md); [tests](../../tests/test_gateway_business_planning_edits.py); [disposable evidence](builds/2026-10-19-recovery/cap-065-business-canvas-edit-disposable.json)).
 
 ### CAP-065 Gateway comprehensive-status read — 19 October 2026
 
@@ -4649,7 +6002,7 @@ passes 59 mocked tests, Ruff, and compilation. No database or migration was
 used. Populated output parity, role provisioning, live OIDC/browser, universal
 ACL/RLS, and MAN-CAP-065 review remain open. Checklist: 691 complete / 24 open;
 matrix: 31 baseline-retained, 7 deployed, 28 prepared. See the
-[read contract](comprehensive-status-kernel-read-contract.md), [tests](../tests/test_gateway_comprehensive_status_reads.py),
+[read contract](comprehensive-status-kernel-read-contract.md), [tests](../../tests/test_gateway_comprehensive_status_reads.py),
 and [evidence](builds/2026-10-19-recovery/cap-065-comprehensive-status-read.json).
 
 ### CAP-065 Gateway-generated BMC draft — 19 October 2026
@@ -4674,7 +6027,7 @@ edit/version routes, populated output parity, live OIDC/browser, universal
 ACL/RLS, and MAN-CAP-065 review remain open. Checklist: 690 complete / 24 open;
 matrix: 31 baseline-retained, 7 deployed, 28 prepared.
 [Contract](business-planning-kernel-write-contract.md),
-[tests](../tests/test_gateway_business_planning_writes.py), and
+[tests](../../tests/test_gateway_business_planning_writes.py), and
 [evidence](builds/2026-10-19-recovery/cap-065-gateway-generated-draft.json).
 
 ### CAP-066 unit-safe harvest report rollups — 19 October 2026
@@ -4714,7 +6067,7 @@ fourteen-section status, edit/version and populated-output parity, live
 OIDC/browser, universal ACL/RLS, and MAN-CAP-065 review remain open. Checklist:
 688 complete / 24 open; matrix: 31 baseline-retained, 7 deployed, 28 prepared.
 See the [write contract](business-planning-kernel-write-contract.md),
-[Gateway tests](../tests/test_gateway_business_planning_writes.py), and
+[Gateway tests](../../tests/test_gateway_business_planning_writes.py), and
 [disposable evidence](builds/2026-10-19-recovery/cap-065-business-canvas-create-disposable.json).
 
 ### CAP-036 first sequential evidence Kernel summary — 19 October 2026
@@ -4832,7 +6185,7 @@ revenue/cash flow, objectives/KPIs, portfolio allocation, S&OP, currency
 conversion, populated parity, live OIDC/browser, universal ACL/RLS, and
 MAN-CAP-031 owner review remain open. Checklist: 672 complete / 19 open;
 classifications: 39 baseline-retained, 7 deployed, 20 prepared ([contract](planning-budget-kernel-read-contract.md);
-[migration](../schemas/postgres/455_location_scoped_budget_summary.sql);
+[migration](../../schemas/postgres/455_location_scoped_budget_summary.sql);
 [evidence](builds/2026-10-19-recovery/cap-031-budget-summary-disposable.json)).
 
 ### CAP-030 first management workflow Kernel summary — 19 October 2026
@@ -4853,7 +6206,7 @@ mutation and detailed audit parity, unscoped work-item review, populated
 fixtures, live OIDC/browser acceptance, universal ACL/RLS, and MAN-CAP-030
 owner review remain open. Checklist: 671 complete / 19 open; classifications:
 39 baseline-retained, 7 deployed, 20 prepared ([contract](management-work-kernel-read-contract.md);
-[migration](../schemas/postgres/454_location_scoped_management_work_summary.sql);
+[migration](../../schemas/postgres/454_location_scoped_management_work_summary.sql);
 [evidence](builds/2026-10-19-recovery/cap-030-management-work-summary-disposable.json)).
 
 ### CAP-029 first competitive landscape Kernel read projection — 19 October 2026
@@ -4873,7 +6226,7 @@ remains prepared: complete report/dashboard and workflow parity, populated
 reference comparison, live OIDC/browser acceptance, universal ACL/RLS, and
 MAN-CAP-029 owner review remain open. Checklist: 670 complete / 19 open;
 classifications: 40 baseline-retained, 7 deployed, 19 prepared ([contract](competitive-landscape-kernel-read-contract.md);
-[migration](../schemas/postgres/453_location_scoped_competitive_landscape_read.sql);
+[migration](../../schemas/postgres/453_location_scoped_competitive_landscape_read.sql);
 [evidence](builds/2026-10-19-recovery/cap-029-competitive-landscape-disposable.json)).
 
 ### CAP-028 first strategy Kernel read projection — 19 October 2026
@@ -4894,7 +6247,7 @@ prepared; complete allocation/cascade/consultation/execution parity, populated
 fixtures, live OIDC/browser acceptance, universal ACL/RLS, and owner review are
 open. Checklist: 669 complete / 19 open; classifications: 41 baseline-retained,
 7 deployed, 18 prepared ([contract](strategy-kernel-read-contract.md);
-[migration](../schemas/postgres/452_location_scoped_strategy_plan_read.sql);
+[migration](../../schemas/postgres/452_location_scoped_strategy_plan_read.sql);
 [evidence](builds/2026-10-19-recovery/cap-028-strategy-read-disposable.json)).
 
 ### CAP-027 reviewer console source implementation — 19 October 2026
@@ -4992,8 +6345,8 @@ out. Checklist: 656 complete / 19 open (675 total); capability counts remain
 45 baseline-retained, 7 deployed, 14 prepared. CAP-024 remains prepared, not
 accepted; item edit parity, populated fixtures, least-privilege rollout, tenant
 RLS, live OIDC/browser acceptance, and MAN-CAP-024 remain open
-([contract](governance-tactical-session-creation-contract.md); [migration](../schemas/postgres/444_governance_tactical_session_creation.sql);
-[tests](../tests/test_gateway_governance_tactical_session_mutations.py); [database evidence](builds/2026-10-19-recovery/governance-tactical-session-creation-disposable.json)).
+([contract](governance-tactical-session-creation-contract.md); [migration](../../schemas/postgres/444_governance_tactical_session_creation.sql);
+[tests](../../tests/test_gateway_governance_tactical_session_mutations.py); [database evidence](builds/2026-10-19-recovery/governance-tactical-session-creation-disposable.json)).
 
 ### CAP-024 tactical session registry — 18 October 2026
 
@@ -5047,8 +6400,8 @@ broader parity, populated fixtures, domain-table RLS, and MAN-CAP-024 remain
 open. Revert route/service/console code before rollout; if the ordered
 migration is applied later, retain its append-only history and guards rather
 than editing or reversing it ([contract](governance-definition-lifecycle-contract.md);
-[migration](../schemas/postgres/443_governance_definition_mutations.sql);
-[tests](../tests/test_gateway_governance_definition_mutations.py);
+[migration](../../schemas/postgres/443_governance_definition_mutations.sql);
+[tests](../../tests/test_gateway_governance_definition_mutations.py);
 [database evidence](builds/2026-10-18-recovery/governance-definition-mutations-disposable.json)).
 
 ### CAP-024 circle and role definition lifecycle — 18 October 2026
@@ -5085,9 +6438,9 @@ parity, console controls, populated fixtures, RLS, live acceptance, and
 MAN-CAP-024 remain open. Before rollout, revert the routes and service if
 needed; after migration application, keep the additive schema and never edit
 or reverse an ordered migration ([contract](governance-definition-lifecycle-contract.md);
-[migration](../schemas/postgres/442_governance_definition_lifecycle.sql);
-[service](../services/gateway/governance_definition_actions.py);
-[tests](../tests/test_gateway_governance_definition_actions.py);
+[migration](../../schemas/postgres/442_governance_definition_lifecycle.sql);
+[service](../../services/gateway/governance_definition_actions.py);
+[tests](../../tests/test_gateway_governance_definition_actions.py);
 [database evidence](builds/2026-10-18-recovery/governance-lifecycle-actions-disposable.json)).
 
 Checklist: 652 complete / 19 open; CAP-024 remains prepared and the matrix
@@ -5117,8 +6470,8 @@ and legacy databases were not accessed; the candidate remains at migration
 441 there until the least-privilege runtime login replaces that connection.
 No live OIDC/browser acceptance or real tactical action occurred; CAP-024 stays
 prepared pending live identity, populated parity, RLS, and MAN-CAP review
-([contract](governance-tactical-action-contract.md); [migration](../schemas/postgres/441_governance_tactical_actions.sql);
-[tests](../tests/test_gateway_governance_tactical_actions.py); [database evidence](builds/2026-10-18-recovery/governance-lifecycle-actions-disposable.json)).
+([contract](governance-tactical-action-contract.md); [migration](../../schemas/postgres/441_governance_tactical_actions.sql);
+[tests](../../tests/test_gateway_governance_tactical_actions.py); [database evidence](builds/2026-10-18-recovery/governance-lifecycle-actions-disposable.json)).
 
 ### CAP-024 independent role-assignment review — 18 October 2026
 
@@ -5147,8 +6500,8 @@ as administrative `kokonut`, so migration 440 is not ready for candidate
 rollout. No live OIDC, browser, or real nomination decision was exercised.
 CAP-024 remains prepared, not accepted; mutation parity, populated data, RLS,
 and MAN-CAP review remain open ([contract](governance-assignment-review-contract.md);
-[migration](../schemas/postgres/440_governance_role_assignment_review.sql);
-[tests](../tests/test_gateway_governance_assignment_review.py);
+[migration](../../schemas/postgres/440_governance_role_assignment_review.sql);
+[tests](../../tests/test_gateway_governance_assignment_review.py);
 [console evidence](builds/2026-10-18-recovery/governance-assignment-review-console.json);
 [database evidence](builds/2026-10-18-recovery/governance-assignment-proposals-disposable.json)).
 
@@ -5168,7 +6521,7 @@ including JavaScript syntax and static console/route contract checks. Ruff,
 compilation, capability validation, runtime SQL inventory, and diff checks pass.
 No browser session or candidate/legacy database was used. CAP-024 remains
 prepared, not accepted; operator/person binding and the least-privilege
-candidate runtime login remain rollout requirements ([console](../../../apps/operator-console/index.html);
+candidate runtime login remain rollout requirements ([console](../../apps/operator-console/index.html);
 [tests](../../tests/test_operator_console_governance_assignment_proposals.py); [evidence](builds/2026-10-18-recovery/governance-assignment-console-contract.json)).
 
 ### CAP-024 operator nomination readback — 18 October 2026
@@ -5189,8 +6542,8 @@ verifies exact operator ownership, cursor paging, read-only status, and omission
 of nominee identity and mandate. Candidate and legacy databases were not
 accessed; the candidate remains at migration 437 and the app uses administrative
 `kokonut`, so the runtime ACL is not an isolation boundary there. No approval
-or decision route is exposed; CAP-024 remains prepared, not accepted ([migration](../schemas/postgres/439_governance_role_assignment_proposal_readback.sql);
-[runner](../scripts/check-governance-assignment-proposals-disposable.py);
+or decision route is exposed; CAP-024 remains prepared, not accepted ([migration](../../schemas/postgres/439_governance_role_assignment_proposal_readback.sql);
+[runner](../../scripts/check-governance-assignment-proposals-disposable.py);
 [evidence](builds/2026-10-18-recovery/governance-assignment-proposals-disposable.json)).
 
 ### CAP-024 proposal-only role assignment creation — 18 October 2026
@@ -5215,8 +6568,8 @@ legacy databases were not accessed; the candidate remains through migration
 The prior CLI's direct assignment writes will fail under the narrowed runtime
 role; replacing them requires the separately authorized Gateway review flow.
 CAP-024 stays prepared, not accepted, and its matrix classification is
-unchanged ([migration](../schemas/postgres/438_governance_role_assignment_proposals.sql);
-[runner](../scripts/check-governance-assignment-proposals-disposable.py);
+unchanged ([migration](../../schemas/postgres/438_governance_role_assignment_proposals.sql);
+[runner](../../scripts/check-governance-assignment-proposals-disposable.py);
 [evidence](builds/2026-10-18-recovery/governance-assignment-proposals-disposable.json)).
 
 ### CAP-024 role detail read — 18 October 2026
@@ -14228,7 +15581,7 @@ zero pending schemas, an empty policy table, and disabled application-table RLS
 were confirmed ([rollout evidence](builds/2026-10-16-recovery/candidate-migration-403-kgp-governance-target-rollout.json)).
 Other event handlers, live-chain behavior, production-duration recovery, and
 provider delivery remain open
-([migration](../schemas/postgres/403_kgp_governance_target_policy_projection.sql);
+([migration](../../schemas/postgres/403_kgp_governance_target_policy_projection.sql);
 [runtime evidence](builds/2026-10-16-recovery/kgp-worker-postgres-reconnect.json)).
 
 ### Isolated scheduled carbon-credit check — 16 October 2026
@@ -14298,10 +15651,10 @@ compilation, JSON parsing, and diff checks pass. No candidate or legacy
 database was contacted. Worker-handler integration, per-worker credential
 provisioning, effect-specific application RLS, control-plane isolation, and
 candidate rollout remain open
-([migration](../schemas/postgres/405_signed_worker_tenant_context.sql);
-[adapter](../services/common/tenant_context.py);
+([migration](../../schemas/postgres/405_signed_worker_tenant_context.sql);
+[adapter](../../services/common/tenant_context.py);
 [disposable acceptance](builds/2026-10-16-recovery/worker-tenant-context-disposable.json);
-[runner](../scripts/check-worker-tenant-context-disposable.py)).
+[runner](../../scripts/check-worker-tenant-context-disposable.py)).
 
 ### Anomaly worker source and transaction boundaries — 16 October 2026
 
@@ -14331,7 +15684,7 @@ integration. Twelve focused worker operation-map tests pass; Ruff, JSON parsing,
 #70 passed and CI #346 was still running on the prior pushed head `a0ec3f45` at
 the time this batch began. The checklist is now 394 checked and 19 open; no
 separate capability is newly accepted ([effect contract](worker-sensor-anomaly-effects.json);
-[operation map](worker-operation-map.json); [test](../tests/test_worker_operation_map.py)).
+[operation map](worker-operation-map.json); [test](../../tests/test_worker_operation_map.py)).
 
 ### Sensor anomaly location lineage — 16 October 2026
 
@@ -14349,9 +15702,9 @@ outbox, worker-map, and migration tests plus seven disposable PostgreSQL 16
 replay, backfill, unresolved-lineage, foreign-key, and application-write checks
 pass; Ruff, compilation, and diff checks pass. CI #347 was still running and
 Security #71 passed on the preceding pushed head
-([migration](../schemas/postgres/406_sensor_anomaly_location_lineage.sql);
+([migration](../../schemas/postgres/406_sensor_anomaly_location_lineage.sql);
 [evidence](builds/2026-10-16-recovery/sensor-anomaly-location-lineage.json);
-[runner](../scripts/check-sensor-anomaly-location-lineage-disposable.py)).
+[runner](../../scripts/check-sensor-anomaly-location-lineage-disposable.py)).
 
 ### Bounded sensor anomaly receipt functions — 16 October 2026
 
@@ -14374,9 +15727,9 @@ and migration replay. Ruff, Python compilation, and diff checks pass. The
 functions remain dormant: no handler/dispatcher integration, worker credential,
 candidate rollout, RLS policy, or MAN-CAP acceptance was added. Candidate and
 legacy databases were not contacted
-([migration](../schemas/postgres/407_sensor_anomaly_effect_functions.sql);
-[fixture](../tests/fixtures/sensor_anomaly_effect_functions_disposable.sql);
-[runner](../scripts/check-sensor-anomaly-effect-functions-disposable.py);
+([migration](../../schemas/postgres/407_sensor_anomaly_effect_functions.sql);
+[fixture](../../tests/fixtures/sensor_anomaly_effect_functions_disposable.sql);
+[runner](../../scripts/check-sensor-anomaly-effect-functions-disposable.py);
 [evidence](builds/2026-10-16-recovery/sensor-anomaly-effect-functions-disposable.json)).
 
 ### Bounded sensor-alert event publication — 16 October 2026
@@ -14401,9 +15754,9 @@ compilation, capability-matrix validation, and diff checks pass. No handler
 integration, notification/actuation function, worker credential, candidate
 rollout, RLS policy, or MAN-CAP acceptance was added. Candidate and legacy
 databases were not contacted
-([migration](../schemas/postgres/408_sensor_alert_event_function.sql);
-[fixture](../tests/fixtures/sensor_alert_event_function_disposable.sql);
-[runner](../scripts/check-sensor-alert-event-function-disposable.py);
+([migration](../../schemas/postgres/408_sensor_alert_event_function.sql);
+[fixture](../../tests/fixtures/sensor_alert_event_function_disposable.sql);
+[runner](../../scripts/check-sensor-alert-event-function-disposable.py);
 [evidence](builds/2026-10-16-recovery/sensor-alert-event-function-disposable.json)).
 
 ### Bounded sensor-alert notification intent — 16 October 2026
@@ -14427,9 +15780,9 @@ currently enqueues before publishing the alert event; integration must reorder
 these effects within its existing transaction after an isolated worker
 credential is provisioned. No candidate rollout, provider delivery, RLS, or
 MAN-CAP acceptance was added. Candidate and legacy databases were not contacted
-([migration](../schemas/postgres/409_sensor_alert_notification_intent.sql);
-[fixture](../tests/fixtures/sensor_alert_notification_intent_disposable.sql);
-[runner](../scripts/check-sensor-alert-notification-intent-disposable.py);
+([migration](../../schemas/postgres/409_sensor_alert_notification_intent.sql);
+[fixture](../../tests/fixtures/sensor_alert_notification_intent_disposable.sql);
+[runner](../../scripts/check-sensor-alert-notification-intent-disposable.py);
 [evidence](builds/2026-10-16-recovery/sensor-alert-notification-intent-disposable.json)).
 
 ### Bounded sensor-alert actuation intent — 16 October 2026
@@ -14460,9 +15813,9 @@ No handler integration, MQTT activity, worker credential, candidate rollout,
 RLS, or MAN-CAP acceptance occurred; candidate and legacy databases were not
 contacted. The checklist now has 399 complete items and 19 open. The function
 remains dormant until handler/credential integration is separately accepted
-([migration](../schemas/postgres/410_sensor_alert_actuation_intent.sql);
-[fixture](../tests/fixtures/sensor_alert_actuation_intent_disposable.sql);
-[runner](../scripts/check-sensor-alert-actuation-intent-disposable.py);
+([migration](../../schemas/postgres/410_sensor_alert_actuation_intent.sql);
+[fixture](../../tests/fixtures/sensor_alert_actuation_intent_disposable.sql);
+[runner](../../scripts/check-sensor-alert-actuation-intent-disposable.py);
 [evidence](builds/2026-10-16-recovery/sensor-alert-actuation-intent-disposable.json)).
 
 ### Bounded sensor-alert draft claim — 16 October 2026
@@ -14487,9 +15840,9 @@ migration replay. Candidate and legacy databases were not accessed. Handler
 integration, worker credential isolation, candidate rollout, RLS, and MAN-CAP
 acceptance remain open. The checklist now has 401 complete items and 19 open;
 the capability matrix remains at 66 rows with no additional MAN-CAP acceptance
-([migration](../schemas/postgres/411_sensor_alert_draft_claim_intent.sql);
-[fixture](../tests/fixtures/sensor_alert_draft_claim_intent_disposable.sql);
-[runner](../scripts/check-sensor-alert-draft-claim-disposable.py);
+([migration](../../schemas/postgres/411_sensor_alert_draft_claim_intent.sql);
+[fixture](../../tests/fixtures/sensor_alert_draft_claim_intent_disposable.sql);
+[runner](../../scripts/check-sensor-alert-draft-claim-disposable.py);
 [evidence](builds/2026-10-16-recovery/sensor-alert-draft-claim-disposable.json)).
 
 ### Dedicated worker database and credential helpers — 16 October 2026
@@ -15581,7 +16934,7 @@ network-wide; resolution cases and trust evidence must be location-scoped,
 independently reviewed, and exclude raw feedback from resolution payloads.
 Checklist: 659 complete / 19 open. Matrix: 44 baseline-retained, 7 deployed,
 15 prepared. See [CAP-026 contract](threatcasting-kernel-read-contract.md) and
-[focused checks](../tests/test_gateway_threatcasting_reads.py).
+[focused checks](../../tests/test_gateway_threatcasting_reads.py).
 
 
 ### CAP-025 location-scoped identity review — 19 October 2026
@@ -15596,13 +16949,13 @@ CAP-024 implementation is ready for owner review and remains prepared (`P`), not
 
 Migration 447 and a read-only Gateway path now project identity evidence only from independently approved migration-446 cases. The route requires an exact `stakeholder_trust:read` grant and signed location context. SQL rechecks current source-profile activity, latest personal/internal-use consent, and active/non-private canonical-party status on every read. The bounded response contains evidence code, match method, confidence, and review time; it excludes source profile IDs/names, reviewer IDs, raw feedback, free text, legacy trust rows, and universal scores. Consent withdrawal and private/inactive identity suppress the projection. No trust assertions are written into the legacy global tables.
 
-The combined CAP-025 identity, trust, privacy, route-policy, and migration regression passes 59 tests, including 10 dedicated trust/policy tests. Ruff and Python compilation pass. Capability matrix validation, runtime SQL inventory (858 source files / 4,134 execution sites), requirement-group alignment, provider-boundary check, and diff check pass. Disposable PostgreSQL 16 applied migrations 446 and 447 and passed eight assertions for approved evidence, database-enforced stable/read-only behavior, no legacy-trust access by the projection owner, direct-table denial, missing-grant and mismatched-location rejection, consent withdrawal, private-party suppression, and immutable decision history. Only the disposable database was modified; candidate and legacy remain untouched, and migration 447 is not rolled out. General trust evidence beyond reviewed identity, consumer resolution, remaining sources, active OIDC/browser and populated parity, forced RLS, completed-review consent disposition, and MAN-CAP-025 review remain open. CAP-025 stays prepared (`P`), not accepted. Checklist: 661 complete / 19 open; matrix remains 66 rows (43 baseline-retained, 7 deployed, 16 prepared). Evidence: [contract](stakeholder-identity-kernel-contract.md), [migration](../schemas/postgres/447_location_scoped_identity_trust_projection.sql), [Gateway checks](../tests/test_gateway_stakeholder_trust.py), and [disposable acceptance](builds/2026-10-19-recovery/cap-025-stakeholder-trust-disposable.json).
+The combined CAP-025 identity, trust, privacy, route-policy, and migration regression passes 59 tests, including 10 dedicated trust/policy tests. Ruff and Python compilation pass. Capability matrix validation, runtime SQL inventory (858 source files / 4,134 execution sites), requirement-group alignment, provider-boundary check, and diff check pass. Disposable PostgreSQL 16 applied migrations 446 and 447 and passed eight assertions for approved evidence, database-enforced stable/read-only behavior, no legacy-trust access by the projection owner, direct-table denial, missing-grant and mismatched-location rejection, consent withdrawal, private-party suppression, and immutable decision history. Only the disposable database was modified; candidate and legacy remain untouched, and migration 447 is not rolled out. General trust evidence beyond reviewed identity, consumer resolution, remaining sources, active OIDC/browser and populated parity, forced RLS, completed-review consent disposition, and MAN-CAP-025 review remain open. CAP-025 stays prepared (`P`), not accepted. Checklist: 661 complete / 19 open; matrix remains 66 rows (43 baseline-retained, 7 deployed, 16 prepared). Evidence: [contract](stakeholder-identity-kernel-contract.md), [migration](../../schemas/postgres/447_location_scoped_identity_trust_projection.sql), [Gateway checks](../../tests/test_gateway_stakeholder_trust.py), and [disposable acceptance](builds/2026-10-19-recovery/cap-025-stakeholder-trust-disposable.json).
 
 ### CAP-025 bounded consumer resolution — 19 October 2026
 
 Migration 448 and an exact-grant OIDC route now resolve an approved farmer-profile identity only inside its source location. `stakeholder_identity:resolve` is distinct from proposal and review grants. The function requires the signed location, current active source profile, latest unexpired personal/internal-use consent, active/non-private canonical party, and absence of a conflicting verified legacy source link. It returns only canonical party ID and review time; absent, pending, withdrawn, conflicted, and private mappings share a generic 404 response. The function is `STABLE`; the service uses a normal transaction because signed context locks active grants and ownership rows before the fixed SELECT.
 
-The focused resolver, trust, and route-policy checks pass 17 tests. Disposable PostgreSQL 16 applied migrations 446–448 and passed eight assertions for scoped resolution, distinct grant, location mismatch, pending and legacy-conflict suppression, consent withdrawal, private-party suppression, and direct-table denial. Candidate and legacy remain untouched; migration 448 is not rolled out. General trust evidence beyond identity, identity source types beyond farmer profiles, consent disposition after a completed review, live OIDC/browser and populated parity, RLS, and MAN-CAP-025 review remain open. CAP-025 remains prepared (`P`), not accepted. Checklist: 662 complete / 19 open; the matrix remains 66 rows (43 baseline-retained, 7 deployed, 16 prepared). Evidence: [contract](stakeholder-identity-kernel-contract.md), [migration](../schemas/postgres/448_location_scoped_identity_resolution.sql), [Gateway checks](../tests/test_gateway_stakeholder_identity_resolution.py), and [disposable acceptance](builds/2026-10-19-recovery/cap-025-identity-resolution-disposable.json).
+The focused resolver, trust, and route-policy checks pass 17 tests. Disposable PostgreSQL 16 applied migrations 446–448 and passed eight assertions for scoped resolution, distinct grant, location mismatch, pending and legacy-conflict suppression, consent withdrawal, private-party suppression, and direct-table denial. Candidate and legacy remain untouched; migration 448 is not rolled out. General trust evidence beyond identity, identity source types beyond farmer profiles, consent disposition after a completed review, live OIDC/browser and populated parity, RLS, and MAN-CAP-025 review remain open. CAP-025 remains prepared (`P`), not accepted. Checklist: 662 complete / 19 open; the matrix remains 66 rows (43 baseline-retained, 7 deployed, 16 prepared). Evidence: [contract](stakeholder-identity-kernel-contract.md), [migration](../../schemas/postgres/448_location_scoped_identity_resolution.sql), [Gateway checks](../../tests/test_gateway_stakeholder_identity_resolution.py), and [disposable acceptance](builds/2026-10-19-recovery/cap-025-identity-resolution-disposable.json).
 
 ### CAP-027 privacy-aware Delphi consultation read — 19 October 2026
 
@@ -15629,7 +16982,7 @@ filtering, aggregation, small-group suppression, private-field omission,
 page bounds, and function privileges. Evidence records that candidate and
 legacy databases were not modified. Migration 449 is not rolled out. CAP-027 is
 prepared (`P`), not accepted; checklist is 663 complete / 19 open, and the
-matrix is 42 baseline-retained, 7 deployed, and 17 prepared. See [contract](delphi-consultation-kernel-contract.md), [migration](../schemas/postgres/449_location_scoped_delphi_consultation_read.sql), and [disposable evidence](builds/2026-10-19-recovery/cap-027-delphi-consultation-disposable.json).
+matrix is 42 baseline-retained, 7 deployed, and 17 prepared. See [contract](delphi-consultation-kernel-contract.md), [migration](../../schemas/postgres/449_location_scoped_delphi_consultation_read.sql), and [disposable evidence](builds/2026-10-19-recovery/cap-027-delphi-consultation-disposable.json).
 
 ### CAP-027 human review for facilitator recommendations — 19 October 2026
 
@@ -15658,7 +17011,7 @@ out. CAP-027 stays prepared (`P`), not accepted. Checklist: 667 complete / 19
 open; the 66-row matrix remains 42 baseline-retained, 7 deployed, and 17
 prepared. Live OIDC/browser use, full Delphi lifecycle parity,
 populated parity, universal runtime ACL/RLS, and MAN-CAP-027 owner acceptance
-remain open. Evidence: [contract](delphi-consultation-kernel-contract.md), [focused tests](../tests/test_gateway_delphi_recommendation_review.py), and [disposable migration evidence](builds/2026-10-19-recovery/cap-027-delphi-recommendation-review-disposable.json).
+remain open. Evidence: [contract](delphi-consultation-kernel-contract.md), [focused tests](../../tests/test_gateway_delphi_recommendation_review.py), and [disposable migration evidence](builds/2026-10-19-recovery/cap-027-delphi-recommendation-review-disposable.json).
 
 ### CAP-027 facilitator draft creation — 19 October 2026
 
@@ -15684,7 +17037,7 @@ rolled out. Checklist: 668 complete / 19 open. The 66-row capability matrix
 remains 42 baseline-retained, 7 deployed, and 17 prepared. CAP-027 stays
 prepared (`P`), not accepted: live OIDC/browser, full lifecycle and populated
 parity, universal runtime ACL/RLS, and MAN-CAP-027 owner acceptance remain
-open. See [contract](delphi-consultation-kernel-contract.md), [migration](../schemas/postgres/451_location_scoped_delphi_recommendation_drafts.sql), and [database evidence](builds/2026-10-19-recovery/cap-027-delphi-recommendation-drafts-disposable.json).
+open. See [contract](delphi-consultation-kernel-contract.md), [migration](../../schemas/postgres/451_location_scoped_delphi_recommendation_drafts.sql), and [database evidence](builds/2026-10-19-recovery/cap-027-delphi-recommendation-drafts-disposable.json).
 
 ### CAP-037 first operating-pilot Kernel summary — 19 October 2026
 
@@ -15716,8 +17069,8 @@ legacy output parity, audience/privacy review, live OIDC/browser behavior,
 recovery, broader ACL/RLS, and MAN-CAP-037 owner review. Checklist: 678
 complete / 22 open; matrix: 33 baseline-retained, 7 deployed, 26 prepared.
 Evidence: [contract](operating-pilot-kernel-read-contract.md),
-[migration](../schemas/postgres/461_location_scoped_operating_pilot_summary.sql),
-[Gateway checks](../tests/test_gateway_operating_pilot_reads.py), and
+[migration](../../schemas/postgres/461_location_scoped_operating_pilot_summary.sql),
+[Gateway checks](../../tests/test_gateway_operating_pilot_reads.py), and
 [disposable acceptance](builds/2026-10-19-recovery/cap-037-operating-pilot-disposable.json).
 
 ### CAP-038 first agent safety Kernel contract — 19 October 2026
@@ -16226,7 +17579,7 @@ Detailed adoption event and write parity, populated fixtures, live OIDC/browser,
 broader ACL/RLS, recovery, and MAN-CAP-035 review remain open. CAP-035 remains
 prepared, not accepted. Checklist: 697 complete / 24 open; matrix: 31
 baseline-retained, 7 deployed, and 28 prepared. [Contract](solution-lifecycle-kernel-read-contract.md);
-[migration](../schemas/postgres/469_location_scoped_solution_adoption.sql);
+[migration](../../schemas/postgres/469_location_scoped_solution_adoption.sql);
 [disposable evidence](builds/2026-10-19-recovery/cap-035-solution-adoption-disposable.json).
 
 ### CAP-035 location-scoped scale-gate status — 19 October 2026
@@ -16248,7 +17601,7 @@ mutation/evaluation, populated parity, live OIDC/browser, broader ACL/RLS,
 recovery, and MAN-CAP-035 review remain open. CAP-035 remains prepared, not
 accepted. Checklist: 698 complete / 24 open; matrix: 31 baseline-retained,
 7 deployed, and 28 prepared. [Contract](solution-lifecycle-kernel-read-contract.md);
-[migration](../schemas/postgres/470_location_scoped_solution_scale_gates.sql);
+[migration](../../schemas/postgres/470_location_scoped_solution_scale_gates.sql);
 [disposable evidence](builds/2026-10-19-recovery/cap-035-solution-scale-gates-disposable.json).
 
 ### CAP-035 location-targeted replication status — 19 October 2026
@@ -16270,7 +17623,7 @@ populated parity, live OIDC/browser, broader ACL/RLS, recovery, and MAN-CAP-035
 review remain open. CAP-035 remains prepared, not accepted. Checklist: 699
 complete / 24 open; matrix: 31 baseline-retained, 7 deployed, and 28 prepared.
 [Contract](solution-lifecycle-kernel-read-contract.md);
-[migration](../schemas/postgres/471_location_scoped_solution_replications.sql);
+[migration](../../schemas/postgres/471_location_scoped_solution_replications.sql);
 [disposable evidence](builds/2026-10-19-recovery/cap-035-solution-replications-disposable.json).
 
 ### CAP-035 location-scoped reviewed-replication learning status — 19 October 2026
@@ -16293,7 +17646,7 @@ live OIDC/browser, broader ACL/RLS, recovery, and MAN-CAP-035 owner review
 remain open. CAP-035 remains prepared, not accepted. Checklist: 700 complete /
 24 open; matrix: 31 baseline-retained, 7 deployed, and 28 prepared.
 [Contract](solution-lifecycle-kernel-read-contract.md);
-[migration](../schemas/postgres/472_location_scoped_solution_learning.sql);
+[migration](../../schemas/postgres/472_location_scoped_solution_learning.sql);
 [disposable evidence](builds/2026-10-19-recovery/cap-035-solution-learning-disposable.json).
 
 ### CAP-035 exact-origin retirement status — 19 October 2026
@@ -16315,7 +17668,7 @@ broader ACL/RLS, recovery, and MAN-CAP-035 owner review remain open. CAP-035
 remains prepared, not accepted. Checklist: 701 complete / 24 open; matrix:
 31 baseline-retained, 7 deployed, and 28 prepared.
 [Contract](solution-lifecycle-kernel-read-contract.md);
-[migration](../schemas/postgres/473_location_scoped_solution_retirements.sql);
+[migration](../../schemas/postgres/473_location_scoped_solution_retirements.sql);
 [disposable evidence](builds/2026-10-19-recovery/cap-035-solution-retirements-disposable.json).
 
 ### CAP-035 independent retirement approval guard — 19 October 2026
@@ -16335,7 +17688,7 @@ retirement proposal/review UI and data-dependent repair of legacy un-attributed
 rows remain open. CAP-035 remains prepared, not accepted. Checklist: 702
 complete / 24 open; matrix: 31 baseline-retained, 7 deployed, and 28 prepared.
 [Contract](solution-lifecycle-kernel-read-contract.md);
-[migration](../schemas/postgres/474_solution_retirement_independent_review.sql);
+[migration](../../schemas/postgres/474_solution_retirement_independent_review.sql);
 [disposable evidence](builds/2026-10-19-recovery/solution-retirement-independent-review-disposable.json).
 
 ### CAP-035 independently reviewed retirement approval — 19 October 2026
@@ -16365,7 +17718,7 @@ baseline-retained, 7 deployed, 28 prepared ([contract](solution-lifecycle-kernel
 [route](../../services/gateway/solution_lifecycle_routes.py); [action](../../services/gateway/solution_lifecycle_actions.py);
 [migration](../../schemas/postgres/475_location_solution_retirement_review.sql);
 [tests](../../tests/test_gateway_solution_lifecycle_actions.py);
-[disposable checker](../scripts/check-solution-retirement-approval-disposable.py);
+[disposable checker](../../scripts/check-solution-retirement-approval-disposable.py);
 [evidence](builds/2026-10-19-recovery/solution-retirement-approval-disposable.json)).
 
 ### CAP-037 bounded operating-demand page — 19 October 2026
@@ -16395,8 +17748,8 @@ learning/coaching/resource workflows, audience review, live OIDC/browser,
 broader ACL/RLS, recovery, and MAN-CAP-037 owner acceptance. Checklist:
 707 complete / 24 open; matrix: 31 baseline-retained, 7 deployed, 28 prepared.
 [Contract](operating-pilot-kernel-read-contract.md);
-[migration](../schemas/postgres/479_location_operating_pilot_demand_signals.sql);
-[tests](../tests/test_gateway_operating_pilot_reads.py);
+[migration](../../schemas/postgres/479_location_operating_pilot_demand_signals.sql);
+[tests](../../tests/test_gateway_operating_pilot_reads.py);
 [disposable acceptance](builds/2026-10-19-recovery/cap-037-operating-pilot-demand-disposable.json).
 
 ### CAP-037 aggregate capacity-period page — 19 October 2026
@@ -16421,8 +17774,8 @@ learning/coaching/resource workflows, populated mapping and legacy parity,
 audience review, live OIDC/browser, broader ACL/RLS, recovery, and
 MAN-CAP-037 owner acceptance. Checklist: 708 complete / 24 open; matrix:
 31 baseline-retained, 7 deployed, 28 prepared. [Contract](operating-pilot-kernel-read-contract.md);
-[migration](../schemas/postgres/480_location_operating_pilot_capacity_periods.sql);
-[tests](../tests/test_gateway_operating_pilot_reads.py);
+[migration](../../schemas/postgres/480_location_operating_pilot_capacity_periods.sql);
+[tests](../../tests/test_gateway_operating_pilot_reads.py);
 [disposable acceptance](builds/2026-10-19-recovery/cap-037-operating-pilot-capacity-disposable.json).
 
 ### CAP-025 location-scoped identity reviewer console — 20 October 2026
@@ -16444,7 +17797,7 @@ used. Live OIDC/browser acceptance, additional source types, broader trust
 parity, RLS, post-review consent disposition, populated parity, and MAN-CAP-025
 remain open. Checklist: 720 complete / 24 open; matrix: 31 baseline-retained,
 7 deployed, 28 prepared across 66 rows. [Contract](stakeholder-identity-kernel-contract.md);
-[console tests](../tests/test_operator_console_stakeholder_identity.py).
+[console tests](../../tests/test_operator_console_stakeholder_identity.py).
 
 ### CAP-035 location-linked stage-gate console read — 20 October 2026
 
@@ -16463,7 +17816,7 @@ other item details and governed write/review parity, populated fixture
 comparison, live OIDC/browser, broader ACL/RLS, recovery, and MAN-CAP-035 owner
 review. Checklist: 721 complete / 24 open; matrix: 31 baseline-retained, 7
 deployed, 28 prepared across 66 rows. [Contract](solution-lifecycle-kernel-read-contract.md);
-[console tests](../tests/test_operator_console_solution_lifecycle.py).
+[console tests](../../tests/test_operator_console_solution_lifecycle.py).
 
 ### CAP-035 experiment status console read — 20 October 2026
 
@@ -16480,7 +17833,7 @@ validation, repository inventory, and diff checks pass. No migration, database,
 candidate, or legacy environment was touched. Remaining CAP-035 code and owner
 gates remain open. Checklist: 722 complete / 24 open; matrix: 31
 baseline-retained, 7 deployed, 28 prepared across 66 rows. [Contract](solution-lifecycle-kernel-read-contract.md);
-[tests](../tests/test_operator_console_solution_lifecycle.py).
+[tests](../../tests/test_operator_console_solution_lifecycle.py).
 
 ### CAP-035 funding and tranche status console — 20 October 2026
 
@@ -16499,14 +17852,14 @@ was used. Other CAP-035 item details/write parity, populated fixtures, live
 OIDC/browser, broader ACL/RLS, recovery, and MAN-CAP-035 review remain open.
 Checklist: 723 complete / 24 open; matrix: 31 baseline-retained, 7 deployed,
 28 prepared across 66 rows. [Contract](solution-lifecycle-kernel-read-contract.md);
-[tests](../tests/test_operator_console_solution_lifecycle.py).
+[tests](../../tests/test_operator_console_solution_lifecycle.py).
 
 
 ### CAP-035 exact-location gate evaluation submission — 20 October 2026
 
 Added `POST /operator/api/solution-lifecycle/{location_id}/gates/{gate_id}/evaluations` under exact signed `solution_lifecycle:create` scope and active OIDC-to-person attribution. Migration 483 installs a dedicated non-login function owner and an append-only idempotency receipt; it accepts bounded pass/fail observations and evidence only for draft/ready gates on solutions originated at the exact location. Same-request retries return the original evaluation; different-location or changed-payload reuse fails. The create-grant-gated console form uses CSRF and no-store requests and explicitly preserves the independent gate-approval boundary.
 
-The focused Gateway, exact route-policy, and console selection passes 38 tests; Ruff, Python compilation, and inline JavaScript syntax checks pass. Disposable PostgreSQL 16 applies/replays migration 483 and passes eight grouped evaluation, scope, attribution, retry, and role-boundary checks. Candidate and legacy databases remain untouched; migration 483 is not rolled out. Checklist: 728 complete / 24 open; matrix: 31 baseline-retained, 7 deployed, 28 prepared across 66 rows. CAP-035 remains prepared pending broader workflow parity, populated fixture comparison, live OIDC/browser acceptance, broader ACL/RLS, recovery, and MAN-CAP-035 owner review ([contract](solution-lifecycle-kernel-read-contract.md); [migration](../schemas/postgres/483_location_solution_gate_evaluation.sql); [tests](../tests/test_gateway_solution_lifecycle_gate_evaluations.py); [disposable check](../../scripts/check-solution-gate-evaluation-disposable.py); [evidence](builds/2026-10-20-recovery/cap-035-solution-gate-evaluation-disposable.json)).
+The focused Gateway, exact route-policy, and console selection passes 38 tests; Ruff, Python compilation, and inline JavaScript syntax checks pass. Disposable PostgreSQL 16 applies/replays migration 483 and passes eight grouped evaluation, scope, attribution, retry, and role-boundary checks. Candidate and legacy databases remain untouched; migration 483 is not rolled out. Checklist: 728 complete / 24 open; matrix: 31 baseline-retained, 7 deployed, 28 prepared across 66 rows. CAP-035 remains prepared pending broader workflow parity, populated fixture comparison, live OIDC/browser acceptance, broader ACL/RLS, recovery, and MAN-CAP-035 owner review ([contract](solution-lifecycle-kernel-read-contract.md); [migration](../../schemas/postgres/483_location_solution_gate_evaluation.sql); [tests](../../tests/test_gateway_solution_lifecycle_gate_evaluations.py); [disposable check](../../scripts/check-solution-gate-evaluation-disposable.py); [evidence](builds/2026-10-20-recovery/cap-035-solution-gate-evaluation-disposable.json)).
 
 
 ### CAP-035 adoption event phase summary — 20 October 2026
@@ -16533,7 +17886,7 @@ level review, other adoption workflows, populated fixture parity, live
 OIDC/browser, broader ACL/RLS, recovery, and MAN-CAP-035 review remain open.
 Checklist: 738 complete / 24 open; matrix: 31 baseline-retained, 7 deployed,
 28 prepared across 66 rows. [Contract](solution-lifecycle-kernel-read-contract.md);
-[migration](../schemas/postgres/493_location_solution_adoption_event_summary.sql);
+[migration](../../schemas/postgres/493_location_solution_adoption_event_summary.sql);
 [evidence](builds/2026-10-20-recovery/cap-035-solution-adoption-event-summary-disposable.json).
 
 ### CAP-035 location-scoped replication proposal — 20 October 2026
@@ -16562,8 +17915,8 @@ pending remaining review/activation workflows, populated fixture parity, live
 OIDC/browser acceptance, broader ACL/RLS, recovery, and MAN-CAP-035 owner review.
 Checklist: 739 complete / 24 open; matrix: 31 baseline-retained, 7 deployed,
 28 prepared across 66 rows. [Write contract](solution-lifecycle-kernel-write-contract.md);
-[migration](../schemas/postgres/494_location_solution_replication_proposal.sql);
-[tests](../tests/test_gateway_solution_replication_proposals.py);
+[migration](../../schemas/postgres/494_location_solution_replication_proposal.sql);
+[tests](../../tests/test_gateway_solution_replication_proposals.py);
 [disposable check](../../scripts/check-solution-replication-proposal-disposable.py);
 [evidence](builds/2026-10-20-recovery/cap-035-solution-replication-proposal-disposable.json).
 
@@ -16572,24 +17925,24 @@ Checklist: 739 complete / 24 open; matrix: 31 baseline-retained, 7 deployed,
 
 Added a private review queue/detail and independent approve/reject flow for location-scoped replication proposals. The queue and detail require exact signed `solution_lifecycle:review` scope, active human identity, and the exact target location plus solution origin/link. Reviewers cannot approve their own proposals. Rejection requires a reason; decisions, reviewer attribution, and append-only retry receipts are atomic. The console keeps review controls behind the location review grant, renders private fields as text, and uses CSRF, no-store requests, and stable retry IDs. Approval does not start or complete replication, add outcomes/evidence/maturity, or change solution stage.
 
-The focused Gateway, proposal, console, route-policy, and migration selection passes 97 tests. Ruff, Python compilation, inline JavaScript syntax, dependency-group alignment, capability validation, and runtime SQL inventory checks pass. Disposable PostgreSQL 16 applies and replays migration 495 and passes nine grouped checks for scope, reviewer independence, approve/reject, idempotency, role boundaries, and unchanged lifecycle state. Candidate and legacy databases remain untouched; migration 495 is not rolled out. CAP-035 remains prepared pending populated parity, live OIDC/browser, broader ACL/RLS, recovery, and MAN-CAP-035 owner review. Checklist: 740 complete / 24 open; matrix: 31 baseline-retained, 7 deployed, 28 prepared across 66 rows. [Write contract](solution-lifecycle-kernel-write-contract.md); [read contract](solution-lifecycle-kernel-read-contract.md); [migration](../schemas/postgres/495_location_solution_replication_review.sql); [tests](../tests/test_gateway_solution_replication_review.py); [disposable check](../../scripts/check-solution-replication-review-disposable.py); [evidence](builds/2026-10-20-recovery/cap-035-solution-replication-review-disposable.json).
+The focused Gateway, proposal, console, route-policy, and migration selection passes 97 tests. Ruff, Python compilation, inline JavaScript syntax, dependency-group alignment, capability validation, and runtime SQL inventory checks pass. Disposable PostgreSQL 16 applies and replays migration 495 and passes nine grouped checks for scope, reviewer independence, approve/reject, idempotency, role boundaries, and unchanged lifecycle state. Candidate and legacy databases remain untouched; migration 495 is not rolled out. CAP-035 remains prepared pending populated parity, live OIDC/browser, broader ACL/RLS, recovery, and MAN-CAP-035 owner review. Checklist: 740 complete / 24 open; matrix: 31 baseline-retained, 7 deployed, 28 prepared across 66 rows. [Write contract](solution-lifecycle-kernel-write-contract.md); [read contract](solution-lifecycle-kernel-read-contract.md); [migration](../../schemas/postgres/495_location_solution_replication_review.sql); [tests](../../tests/test_gateway_solution_replication_review.py); [disposable check](../../scripts/check-solution-replication-review-disposable.py); [evidence](builds/2026-10-20-recovery/cap-035-solution-replication-review-disposable.json).
 
 ### CAP-035 independent replication completion review — 20 October 2026
 
 Migration 498 adds exact-location completion-report queue/detail and independent decision functions. Review requires an active human with `solution_lifecycle:review`, independent from the report author, replication starter, initial approver, source experiment owner/protocol approver, and source result reviewer. The console displays bounded private report content as text, reports the actor conflicts, suppresses decisions for conflicted reviewers or stale source lineage, and uses CSRF, no-store requests, explicit acknowledgement, bounded rejection reasons, and stable retry IDs. Acceptance atomically completes the replication with the reviewed outcome/evidence/maturity and reviewer attribution; a `failed` domain result remains distinct from operational `completed` status. Rejection preserves `active` for a revised report. The solution stage is unchanged.
 
-The focused Gateway, route-policy, console, and migration-metadata selection passes 86 tests; the focused proposal/review/activation/completion, console, and route-policy regression selection passes 88 tests. Ruff, Python compilation, inline JavaScript syntax, dependency-group alignment, capability validation, runtime SQL inventory validation, and diff checks pass. Disposable PostgreSQL 16 applies and replays migration 498 with twelve grouped authorization, actor-independence, rejection/revision, acceptance, retry, lifecycle, and role-boundary checks ([evidence](builds/2026-10-20-recovery/cap-035-solution-replication-completion-review-disposable.json)). Candidate and legacy databases remain untouched; migrations 497–498 are not rolled out. CAP-035 remains prepared pending populated parity, live OIDC/browser acceptance, broader ACL/RLS, recovery, and MAN-CAP-035 owner review. Checklist: 743 complete / 24 open; matrix: 31 baseline-retained, 7 deployed, 28 prepared across 66 rows. [Write contract](solution-lifecycle-kernel-write-contract.md); [read contract](solution-lifecycle-kernel-read-contract.md); [migration](../schemas/postgres/498_location_solution_replication_completion_review.sql); [Gateway tests](../tests/test_gateway_solution_replication_completion_review.py); [console tests](../tests/test_operator_console_solution_lifecycle.py); [disposable check](../../scripts/check-solution-replication-completion-review-disposable.py).
+The focused Gateway, route-policy, console, and migration-metadata selection passes 86 tests; the focused proposal/review/activation/completion, console, and route-policy regression selection passes 88 tests. Ruff, Python compilation, inline JavaScript syntax, dependency-group alignment, capability validation, runtime SQL inventory validation, and diff checks pass. Disposable PostgreSQL 16 applies and replays migration 498 with twelve grouped authorization, actor-independence, rejection/revision, acceptance, retry, lifecycle, and role-boundary checks ([evidence](builds/2026-10-20-recovery/cap-035-solution-replication-completion-review-disposable.json)). Candidate and legacy databases remain untouched; migrations 497–498 are not rolled out. CAP-035 remains prepared pending populated parity, live OIDC/browser acceptance, broader ACL/RLS, recovery, and MAN-CAP-035 owner review. Checklist: 743 complete / 24 open; matrix: 31 baseline-retained, 7 deployed, 28 prepared across 66 rows. [Write contract](solution-lifecycle-kernel-write-contract.md); [read contract](solution-lifecycle-kernel-read-contract.md); [migration](../../schemas/postgres/498_location_solution_replication_completion_review.sql); [Gateway tests](../../tests/test_gateway_solution_replication_completion_review.py); [console tests](../../tests/test_operator_console_solution_lifecycle.py); [disposable check](../../scripts/check-solution-replication-completion-review-disposable.py).
 
 ### CAP-035 completion-report submission console — 20 October 2026
 
-The replication status view now exposes a report form for active replications only to operators with exact location `solution_lifecycle:read` and `solution_lifecycle:submit` grants. It validates the allowed report outcome, evidence-maturity level, 10–4,000 character summary, and JSON evidence array (up to 100 items / 64 KiB). The same-origin POST uses CSRF and explicit acknowledgement; a pending uncertain request is locked to its original location, content, and request UUID. Submission records only a proposed report, leaves replication active, and does not change solution stage. The console suite passes 41 tests, including inline JavaScript syntax; the combined proposal/review/activation/completion, console, and route-policy selection passes 89 tests. Ruff and compilation pass. No database or migration was needed. CAP-035 remains prepared pending populated parity, live OIDC/browser acceptance, broader ACL/RLS, recovery, and MAN-CAP-035 owner review. Checklist: 744 complete / 24 open; matrix: 31 baseline-retained, 7 deployed, 28 prepared across 66 rows. [Write contract](solution-lifecycle-kernel-write-contract.md); [console](../apps/operator-console/index.html); [tests](../tests/test_operator_console_solution_lifecycle.py).
+The replication status view now exposes a report form for active replications only to operators with exact location `solution_lifecycle:read` and `solution_lifecycle:submit` grants. It validates the allowed report outcome, evidence-maturity level, 10–4,000 character summary, and JSON evidence array (up to 100 items / 64 KiB). The same-origin POST uses CSRF and explicit acknowledgement; a pending uncertain request is locked to its original location, content, and request UUID. Submission records only a proposed report, leaves replication active, and does not change solution stage. The console suite passes 41 tests, including inline JavaScript syntax; the combined proposal/review/activation/completion, console, and route-policy selection passes 89 tests. Ruff and compilation pass. No database or migration was needed. CAP-035 remains prepared pending populated parity, live OIDC/browser acceptance, broader ACL/RLS, recovery, and MAN-CAP-035 owner review. Checklist: 744 complete / 24 open; matrix: 31 baseline-retained, 7 deployed, 28 prepared across 66 rows. [Write contract](solution-lifecycle-kernel-write-contract.md); [console](../../apps/operator-console/index.html); [tests](../../tests/test_operator_console_solution_lifecycle.py).
 
 
 ### CAP-035 independent learning proposal review — 20 October 2026
 
 Migration 499 adds exact-location learning-review queue/detail and accept/reject routes under signed `solution_lifecycle:review` and an active human identity. PostgreSQL revalidates the completed replication and independent completion review, current validated source experiment/result, active location-visible solution, and reviewer independence from every upstream actor. The console exposes private lesson text with text-only rendering, conflict indicators, exact-grant gating, CSRF/no-store, acknowledgement, stale-record protection, and stable retry IDs. Decisions and immutable receipts are atomic; rejection requires a reason. Review records do not apply learning or change solution stage. The legacy apply path now requires accepted status and recorded reviewer attribution.
 
-The focused Gateway, route-policy, console, solution-application, and migration selection passes 94 tests; the database-backed solution-scale test is skipped because no permitted local PostgreSQL connection was available. Ruff, Python compilation, inline JavaScript parsing, and diff checks pass. Disposable PostgreSQL 16 applies/replays migrations through 499 and passes eleven grouped review checks. Candidate and legacy remain untouched; migration 499 is not rolled out. CAP-035 remains prepared pending populated parity, live OIDC/browser acceptance, broader ACL/RLS, recovery, and MAN-CAP-035 owner review. Checklist: 745 complete / 24 open; matrix: 31 baseline-retained, 7 deployed, 28 prepared across 66 rows. [Write contract](solution-lifecycle-kernel-write-contract.md); [read contract](solution-lifecycle-kernel-read-contract.md); [migration](../schemas/postgres/499_location_solution_learning_review.sql); [Gateway tests](../tests/test_gateway_solution_learning_review.py); [console tests](../tests/test_operator_console_solution_lifecycle.py); [disposable check](../../scripts/check-solution-learning-review-disposable.py); [evidence](builds/2026-10-20-recovery/cap-035-solution-learning-review-disposable.json).
+The focused Gateway, route-policy, console, solution-application, and migration selection passes 94 tests; the database-backed solution-scale test is skipped because no permitted local PostgreSQL connection was available. Ruff, Python compilation, inline JavaScript parsing, and diff checks pass. Disposable PostgreSQL 16 applies/replays migrations through 499 and passes eleven grouped review checks. Candidate and legacy remain untouched; migration 499 is not rolled out. CAP-035 remains prepared pending populated parity, live OIDC/browser acceptance, broader ACL/RLS, recovery, and MAN-CAP-035 owner review. Checklist: 745 complete / 24 open; matrix: 31 baseline-retained, 7 deployed, 28 prepared across 66 rows. [Write contract](solution-lifecycle-kernel-write-contract.md); [read contract](solution-lifecycle-kernel-read-contract.md); [migration](../../schemas/postgres/499_location_solution_learning_review.sql); [Gateway tests](../../tests/test_gateway_solution_learning_review.py); [console tests](../../tests/test_operator_console_solution_lifecycle.py); [disposable check](../../scripts/check-solution-learning-review-disposable.py); [evidence](builds/2026-10-20-recovery/cap-035-solution-learning-review-disposable.json).
 
 ### CAP-035 location-scoped accepted learning application — 20 October 2026
 
@@ -16616,8 +17969,8 @@ live OIDC/browser acceptance, broader ACL/RLS, recovery, and MAN-CAP-035 owner
 review. Checklist: 746 complete / 24 open; matrix: 31 baseline-retained,
 7 deployed, 28 prepared across 66 rows. [Write contract](solution-lifecycle-kernel-write-contract.md);
 [read contract](solution-lifecycle-kernel-read-contract.md);
-[migration](../schemas/postgres/500_location_solution_learning_application.sql);
-[Gateway tests](../tests/test_gateway_solution_learning_application.py);
+[migration](../../schemas/postgres/500_location_solution_learning_application.sql);
+[Gateway tests](../../tests/test_gateway_solution_learning_application.py);
 [disposable checker](../../scripts/check-solution-learning-application-disposable.py).
 
 ### CAP-035 fail-closed legacy retirement helpers — 20 October 2026
@@ -16634,8 +17987,8 @@ used. Retirement execution, sunset, post-retirement review, populated parity,
 live OIDC/browser, broader ACL/RLS, recovery, and MAN-CAP-035 owner acceptance
 remain open. Checklist: 747 complete / 24 open; matrix: 31 baseline-retained,
 7 deployed, 28 prepared across 66 rows. [Write contract](solution-lifecycle-kernel-write-contract.md);
-[service](../services/innovation/solution_scale.py);
-[tests](../tests/test_solution_scale.py).
+[service](../../services/innovation/solution_scale.py);
+[tests](../../tests/test_solution_scale.py).
 
 ### CAP-035 location-scoped scale-gate assessment and review — 20 October 2026
 
@@ -16661,7 +18014,7 @@ checks ([evidence](builds/2026-10-20-recovery/cap-035-scale-gate-review-disposab
 not rolled out. CAP-035 remains prepared pending remaining lifecycle parity,
 populated fixtures, live OIDC/browser acceptance, broader ACL/RLS, recovery, and
 MAN-CAP-035 owner review. Checklist: 748 complete / 24 open; matrix:
-31 baseline-retained, 7 deployed, 28 prepared across 66 rows. [Write contract](solution-lifecycle-kernel-write-contract.md); [migration](../schemas/postgres/501_location_solution_scale_gate_evaluation_review.sql); [Gateway tests](../tests/test_gateway_solution_scale_gate_reviews.py); [console tests](../tests/test_operator_console_solution_lifecycle.py); [disposable checker](../../scripts/check-solution-scale-gate-review-disposable.py).
+31 baseline-retained, 7 deployed, 28 prepared across 66 rows. [Write contract](solution-lifecycle-kernel-write-contract.md); [migration](../../schemas/postgres/501_location_solution_scale_gate_evaluation_review.sql); [Gateway tests](../../tests/test_gateway_solution_scale_gate_reviews.py); [console tests](../../tests/test_operator_console_solution_lifecycle.py); [disposable checker](../../scripts/check-solution-scale-gate-review-disposable.py).
 
 ### CAP-035 location-scoped retirement execution and review — 20 October 2026
 
@@ -16690,8 +18043,8 @@ Candidate and legacy remain untouched; migration 502 is not rolled out. CAP-035
 remains prepared pending populated parity, live OIDC/browser acceptance, broader
 ACL/RLS, recovery, and MAN-CAP-035 owner review. Checklist: 749 complete / 24
 open; matrix: 31 baseline-retained, 7 deployed, 28 prepared across 66 rows.
-[Write contract](solution-lifecycle-kernel-write-contract.md); [migration](../schemas/postgres/502_location_solution_retirement_execution.sql);
-[Gateway tests](../tests/test_gateway_solution_retirement_execution.py); [console tests](../tests/test_operator_console_solution_lifecycle.py);
+[Write contract](solution-lifecycle-kernel-write-contract.md); [migration](../../schemas/postgres/502_location_solution_retirement_execution.sql);
+[Gateway tests](../../tests/test_gateway_solution_retirement_execution.py); [console tests](../../tests/test_operator_console_solution_lifecycle.py);
 [disposable checker](../../scripts/check-solution-retirement-execution-disposable.py).
 ### CAP-035 fail-closed legacy gate approval and evaluation — 20 October 2026
 
@@ -16704,7 +18057,7 @@ remains direct and is still open; its consumer/test migration is tracked in the
 source-route audit. The focused two-helper mock tests pass; Ruff, compilation,
 matrix validation, runtime SQL inventory validation, and diff checks pass. No
 database or migration was used. Checklist: 753 complete / 24 open; matrix: 31
-baseline-retained, 7 deployed, 28 prepared across 66 rows. See the [audit](solution-lifecycle-source-route-audit.md), [contract](solution-lifecycle-kernel-write-contract.md), and [tests](../tests/test_solution_lifecycle.py).
+baseline-retained, 7 deployed, 28 prepared across 66 rows. See the [audit](solution-lifecycle-source-route-audit.md), [contract](solution-lifecycle-kernel-write-contract.md), and [tests](../../tests/test_solution_lifecycle.py).
 
 ### CAP-035 fail-closed legacy adoption-event writer — 20 October 2026
 
@@ -16720,7 +18073,7 @@ event-ingestion parity. The two focused mock cases pass; Ruff, Python
 compilation, capability-matrix validation, runtime SQL inventory validation,
 and diff checks pass. No migration or database was used. Checklist: 752
 complete / 24 open; matrix: 31
-baseline-retained, 7 deployed, 28 prepared across 66 rows. See the [source-to-route audit](solution-lifecycle-source-route-audit.md), [write contract](solution-lifecycle-kernel-write-contract.md), and [tests](../tests/test_solution_adoption.py).
+baseline-retained, 7 deployed, 28 prepared across 66 rows. See the [source-to-route audit](solution-lifecycle-source-route-audit.md), [write contract](solution-lifecycle-kernel-write-contract.md), and [tests](../../tests/test_solution_adoption.py).
 
 ### CAP-035 non-promotion stage transitions — 20 October 2026
 
@@ -16744,7 +18097,7 @@ Candidate and legacy remain untouched; migration 503 is not rolled out. CAP-035
 remains prepared pending populated legacy parity, live OIDC/browser acceptance,
 broader ACL/RLS review, recovery, and owner acceptance. Checklist: 755 complete
 / 24 open; matrix: 31 baseline-retained, 7 deployed, and 28 prepared across 66
-rows. [Migration](../schemas/postgres/503_location_solution_nonpromotion_stage_transition.sql); [write contract](solution-lifecycle-kernel-write-contract.md); [source-to-route audit](solution-lifecycle-source-route-audit.md).
+rows. [Migration](../../schemas/postgres/503_location_solution_nonpromotion_stage_transition.sql); [write contract](solution-lifecycle-kernel-write-contract.md); [source-to-route audit](solution-lifecycle-source-route-audit.md).
 
 ### CAP-035 legacy learning-write retirement and source-to-route audit — 20 October 2026
 
@@ -16760,7 +18113,7 @@ compilation, and diff checks pass. No migration or database was used. Checklist:
 766 complete / 24 open; matrix: 31 baseline-retained, 7 deployed, and 28 prepared
 across 66 rows. See the [source-to-route audit](solution-lifecycle-source-route-audit.md),
 [write contract](solution-lifecycle-kernel-write-contract.md), and
-[tests](../tests/test_solution_funding.py).
+[tests](../../tests/test_solution_funding.py).
 
 ### CAP-035 location-scoped adoption-program draft — 20 October 2026
 
@@ -16786,9 +18139,9 @@ Candidate and legacy databases are untouched; migration 513 is not rolled out.
 CAP-035 remains prepared. Checklist: 767 complete / 24 open; matrix: 31
 baseline-retained, 7 deployed, and 28 prepared across 66 rows. See the
 [source-to-route audit](solution-lifecycle-source-route-audit.md), [write
-contract](solution-lifecycle-kernel-write-contract.md), [migration](../schemas/postgres/513_location_solution_adoption_program_create.sql),
-[Gateway tests](../tests/test_gateway_solution_lifecycle_adoption_program.py),
-[console tests](../tests/test_operator_console_solution_lifecycle.py), and
+contract](solution-lifecycle-kernel-write-contract.md), [migration](../../schemas/postgres/513_location_solution_adoption_program_create.sql),
+[Gateway tests](../../tests/test_gateway_solution_lifecycle_adoption_program.py),
+[console tests](../../tests/test_operator_console_solution_lifecycle.py), and
 [disposable checker](../../scripts/check-solution-adoption-program-disposable.py).
 
 ### CAP-035 retirement of unscoped readiness/configuration writers — 20 October 2026
@@ -16809,8 +18162,8 @@ passes five grouped privilege checks ([evidence](builds/2026-10-20-recovery/cap-
 Candidate and legacy databases remain untouched. CAP-035 remains prepared.
 Checklist: 768 complete / 24 open; matrix: 31 baseline-retained, 7 deployed,
 and 28 prepared across 66 rows. See the [source-to-route audit](solution-lifecycle-source-route-audit.md),
-[write contract](solution-lifecycle-kernel-write-contract.md), [migration](../schemas/postgres/514_location_solution_adoption_write_boundary.sql),
-[tests](../tests/test_solution_adoption.py), and [disposable checker](../../scripts/check-solution-adoption-write-boundary-disposable.py).
+[write contract](solution-lifecycle-kernel-write-contract.md), [migration](../../schemas/postgres/514_location_solution_adoption_write_boundary.sql),
+[tests](../../tests/test_solution_adoption.py), and [disposable checker](../../scripts/check-solution-adoption-write-boundary-disposable.py).
 
 ### CAP-035 adoption preparation before the adoption-ready gate — 20 October 2026
 
@@ -16834,9 +18187,9 @@ runtime SQL inventory, and diff checks pass. Candidate and legacy remain
 untouched; migrations 513 and 515 are not rolled out. CAP-035 remains prepared.
 Checklist: 769 complete / 24 open; matrix: 31 baseline-retained, 7 deployed,
 and 28 prepared across 66 rows. See the [audit](solution-lifecycle-source-route-audit.md),
-[write contract](solution-lifecycle-kernel-write-contract.md), [migration](../schemas/postgres/515_location_solution_adoption_preparation.sql),
+[write contract](solution-lifecycle-kernel-write-contract.md), [migration](../../schemas/postgres/515_location_solution_adoption_preparation.sql),
 [checker](../../scripts/check-solution-adoption-program-disposable.py), and
-[console tests](../tests/test_operator_console_solution_lifecycle.py).
+[console tests](../../tests/test_operator_console_solution_lifecycle.py).
 
 ### CAP-035 adoption-program submit and independent review — 20 October 2026
 
@@ -16874,9 +18227,9 @@ participant events, populated legacy parity, live ZITADEL/browser acceptance,
 broader runtime ACL/RLS, recovery, and MAN-CAP-035 owner acceptance. Checklist:
 771 complete / 24 open; capability matrix remains 31 baseline-retained,
 7 deployed, and 28 prepared across 66 rows. See the [source-to-route audit](solution-lifecycle-source-route-audit.md),
-[write contract](solution-lifecycle-kernel-write-contract.md), [migration](../schemas/postgres/519_location_solution_adoption_program_revision.sql),
-[Gateway tests](../tests/test_gateway_solution_lifecycle_adoption_program_revision.py), and
-[console tests](../tests/test_operator_console_solution_lifecycle.py).
+[write contract](solution-lifecycle-kernel-write-contract.md), [migration](../../schemas/postgres/519_location_solution_adoption_program_revision.sql),
+[Gateway tests](../../tests/test_gateway_solution_lifecycle_adoption_program_revision.py), and
+[console tests](../../tests/test_operator_console_solution_lifecycle.py).
 
 
 ### Schema-bootstrap image override and Compose isolation contract — 20 October 2026
@@ -18194,7 +19547,7 @@ Migration 593 gives Kokonut Commons synthesis a task-specific signed login and N
 
 ### Progress addendum — CAP-038 retired shared synthesis source identity, 23 October 2026
 
-Migration 594 makes the historical shared synthesis source login and reader inert after migrations 580–593 split every registered synthesis task onto its own signed source identity. Both old roles are NOLOGIN/NOINHERIT; migration 594 removes their membership and direct schema, relation, sequence, and function grants, and checks for unexpected object ownership or default ACLs before commit. The disposable checker deliberately reintroduces a login, role membership, source/raw SELECT, schema CREATE, and scope-function grants, then reapplies 594 after legacy migration replay to prove the retired roles stay disabled. Focused worker/database/profile/migration checks pass (165); Ruff and compilation pass. Network-disabled PostgreSQL 16 applies/replays through 594 with 79 grouped assertions ([native evidence](docs/refactor/builds/2026-10-23-recovery/cap-038-retired-shared-agent-source-native-disposable.json)). Candidate and legacy remain untouched; no production worker credentials or grants were provisioned. CAP-038 remains prepared pending credential/grant provisioning, populated parity, live OIDC/provider/browser acceptance, broader ACL/RLS, production recovery, physical Raspberry Pi acceptance, and human review. Checklist: 1,020 complete / 24 open (1,044 total); 30 baseline-retained, 7 deployed, 29 prepared; 0/66 MAN-CAP checks accepted.
+Migration 594 makes the historical shared synthesis source login and reader inert after migrations 580–593 split every registered synthesis task onto its own signed source identity. Both old roles are NOLOGIN/NOINHERIT; migration 594 removes their membership and direct schema, relation, sequence, and function grants, and checks for unexpected object ownership or default ACLs before commit. The disposable checker deliberately reintroduces a login, role membership, source/raw SELECT, schema CREATE, and scope-function grants, then reapplies 594 after legacy migration replay to prove the retired roles stay disabled. Focused worker/database/profile/migration checks pass (165); Ruff and compilation pass. Network-disabled PostgreSQL 16 applies/replays through 594 with 79 grouped assertions ([native evidence](builds/2026-10-23-recovery/cap-038-retired-shared-agent-source-native-disposable.json)). Candidate and legacy remain untouched; no production worker credentials or grants were provisioned. CAP-038 remains prepared pending credential/grant provisioning, populated parity, live OIDC/provider/browser acceptance, broader ACL/RLS, production recovery, physical Raspberry Pi acceptance, and human review. Checklist: 1,020 complete / 24 open (1,044 total); 30 baseline-retained, 7 deployed, 29 prepared; 0/66 MAN-CAP checks accepted.
 
 
 ### Progress addendum — CAP-038 authenticated agent-task draft attribution, 23 October 2026
@@ -18454,7 +19807,7 @@ Checklist: 1,141 complete / 25 open (1,166 total); matrix: 24 baseline-retained,
 
 ### Progress addendum — CAP-037 separately approved learning-plan activation, 25 October 2026
 
-Migration 629 closes the implementation gap left by migration 610's independent approval: the learning-plan lifecycle now has a separate activation action requiring the exact location `operating_pilot:activate` grant. The receipt-backed queue includes only the latest approved submission still in `submitted`, excludes the owner's own plan and already activated versions, and omits identities and internal receipt fields. Activation rechecks signed tenant context, grant, active human binding, active Adelphi location mapping, exact submission timestamp and approval, then atomically changes status and writes a private idempotency receipt. The operator console uses explicit confirmation, CSRF/no-store, stable retries, and bounded text-only rendering. The focused Gateway, route-policy, console, and migration-integrity selection passes 430 tests. Network-disabled disposable PostgreSQL 16 applies/replays the selected CAP-037 migration sequence ending at 629 and passes 266 grouped assertions on native AMD64 and ARM64/QEMU (software portability only, not physical Raspberry Pi acceptance) ([contract](operating-pilot-kernel-read-contract.md); [migration](../schemas/postgres/629_location_operating_pilot_learning_plan_activation.sql); [native evidence](builds/2026-10-25-recovery/cap-037-learning-plan-activation-disposable.json); [ARM64/QEMU evidence](builds/2026-10-25-recovery/cap-037-learning-plan-activation-arm64-disposable.json)). Ruff, compilation, the runtime SQL inventory, dependency-group alignment, provider boundaries, capability matrix, and diff checks pass. Candidate and legacy remain untouched; migration 629 is not rolled out. CAP-037 remains prepared: populated parity, live ZITADEL/browser acceptance, broader ACL/RLS, recovery, privacy review, and named MAN-CAP-037 owner acceptance are still open. Checklist: 1,143 complete / 25 open (1,168 total); matrix: 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows; 0/67 named acceptance checks accepted.
+Migration 629 closes the implementation gap left by migration 610's independent approval: the learning-plan lifecycle now has a separate activation action requiring the exact location `operating_pilot:activate` grant. The receipt-backed queue includes only the latest approved submission still in `submitted`, excludes the owner's own plan and already activated versions, and omits identities and internal receipt fields. Activation rechecks signed tenant context, grant, active human binding, active Adelphi location mapping, exact submission timestamp and approval, then atomically changes status and writes a private idempotency receipt. The operator console uses explicit confirmation, CSRF/no-store, stable retries, and bounded text-only rendering. The focused Gateway, route-policy, console, and migration-integrity selection passes 430 tests. Network-disabled disposable PostgreSQL 16 applies/replays the selected CAP-037 migration sequence ending at 629 and passes 266 grouped assertions on native AMD64 and ARM64/QEMU (software portability only, not physical Raspberry Pi acceptance) ([contract](operating-pilot-kernel-read-contract.md); [migration](../../schemas/postgres/629_location_operating_pilot_learning_plan_activation.sql); [native evidence](builds/2026-10-25-recovery/cap-037-learning-plan-activation-disposable.json); [ARM64/QEMU evidence](builds/2026-10-25-recovery/cap-037-learning-plan-activation-arm64-disposable.json)). Ruff, compilation, the runtime SQL inventory, dependency-group alignment, provider boundaries, capability matrix, and diff checks pass. Candidate and legacy remain untouched; migration 629 is not rolled out. CAP-037 remains prepared: populated parity, live ZITADEL/browser acceptance, broader ACL/RLS, recovery, privacy review, and named MAN-CAP-037 owner acceptance are still open. Checklist: 1,143 complete / 25 open (1,168 total); matrix: 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows; 0/67 named acceptance checks accepted.
 
 
 ### Progress addendum — full current-schema ARM64/QEMU replay through migration 629, 25 October 2026
@@ -18700,7 +20053,7 @@ authoring, contribution, stopping evaluation, live OIDC/browser acceptance,
 populated parity, universal ACL/RLS, and MAN-CAP-027 remain open. CAP-027 stays
 prepared. Checklist: 1,169 complete / 25 open (1,194 total); matrix remains
 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows
-([contract](delphi-consultation-kernel-contract.md); [migration](../schemas/postgres/631_location_scoped_delphi_study_lifecycle.sql); [evidence](builds/2026-10-25-recovery/cap-027-delphi-study-lifecycle-disposable.json)).
+([contract](delphi-consultation-kernel-contract.md); [migration](../../schemas/postgres/631_location_scoped_delphi_study_lifecycle.sql); [evidence](builds/2026-10-25-recovery/cap-027-delphi-study-lifecycle-disposable.json)).
 
 ### Progress addendum — CAP-027 Delphi lifecycle console controls, 25 October 2026
 
@@ -18741,8 +20094,8 @@ prepared. Checklist: 1,172 complete / 25 open (1,197 total); matrix remains
 24 baseline-retained, 7 deployed, and 36
 prepared across 67 rows
 ([contract](delphi-consultation-kernel-contract.md);
-[migration](../schemas/postgres/632_location_scoped_delphi_study_items.sql);
-[Gateway](../services/gateway/delphi_study_items.py);
+[migration](../../schemas/postgres/632_location_scoped_delphi_study_items.sql);
+[Gateway](../../services/gateway/delphi_study_items.py);
 [evidence](builds/2026-10-25-recovery/cap-027-delphi-study-items-disposable.json)).
 
 ### Progress addendum — CAP-027 Delphi study-opening readiness, 25 October 2026
@@ -18766,7 +20119,7 @@ and contribution, stopping evaluation, live OIDC/browser, populated parity,
 broader ACL/RLS, and MAN-CAP-027 remain open. Checklist: 1,173 complete / 25
 open (1,198 total); matrix remains 24 baseline-retained, 7 deployed, and 36
 prepared across 67 rows ([contract](delphi-consultation-kernel-contract.md);
-[migration](../schemas/postgres/633_location_delphi_study_open_readiness.sql);
+[migration](../../schemas/postgres/633_location_delphi_study_open_readiness.sql);
 [evidence](builds/2026-10-25-recovery/cap-027-delphi-study-open-readiness-disposable.json)).
 
 
@@ -19108,7 +20461,7 @@ route-policy, existing Delphi review, and console checks pass. Network-disabled
 disposable PostgreSQL 16 applies and replays migration 640 and passes five
 grouped scope, active-consent, exact-retry, withdrawal-denial, and
 Runtime/Directus privilege checks ([contract](delphi-consultation-kernel-contract.md);
-[migration](../schemas/postgres/640_location_scoped_delphi_minority_report_review.sql);
+[migration](../../schemas/postgres/640_location_scoped_delphi_minority_report_review.sql);
 [evidence](builds/2026-10-25-recovery/cap-027-delphi-minority-review-disposable.json)).
 Candidate and legacy databases remain untouched; migration 640 is not rolled
 out. Participant minority-report submission, live OIDC/browser, populated
@@ -19161,8 +20514,8 @@ acceptance and fails closed on unknown values. The focused Gateway, console,
 participant-bundle, and migration regression passes 87 tests. Network-disabled
 disposable PostgreSQL 16 applies and replays migration 641 and passes eight
 grouped scope, digest, review, invite, acceptance, and runtime/Directus
-boundary assertions ([migration](../schemas/postgres/641_location_delphi_consent_activity_scopes.sql);
-[runner](../scripts/check-delphi-consent-scopes-disposable.py);
+boundary assertions ([migration](../../schemas/postgres/641_location_delphi_consent_activity_scopes.sql);
+[runner](../../scripts/check-delphi-consent-scopes-disposable.py);
 [evidence](builds/2026-10-25-recovery/cap-027-delphi-consent-scopes-disposable.json)).
 Ruff, Python compilation, participant JavaScript syntax, capability validation,
 Kernel release-input validation, refreshed runtime SQL inventory, and diff
@@ -19193,8 +20546,8 @@ The focused Gateway, route-policy, participant image-bundle, and migration
 selection passes 103 tests. Network-disabled PostgreSQL 16 applies/replays
 migrations 637–642 and passes eight grouped consent-scope, invalid-session,
 item-scope, content-bound, retry, withdrawal, and privilege assertions
-([migration](../schemas/postgres/642_location_scoped_delphi_minority_report_submission.sql);
-[runner](../scripts/check-delphi-minority-report-submission-disposable.py);
+([migration](../../schemas/postgres/642_location_scoped_delphi_minority_report_submission.sql);
+[runner](../../scripts/check-delphi-minority-report-submission-disposable.py);
 [evidence](builds/2026-10-25-recovery/cap-027-delphi-minority-report-submission-disposable.json)).
 Ruff, Python compilation, JavaScript syntax, refreshed runtime SQL inventory,
 and capability-matrix validation pass. Candidate and legacy databases remain
@@ -19269,13 +20622,13 @@ storage-endurance acceptance remain open ([evidence](builds/2026-10-25-recovery/
 
 Driver instance creation now requires a JSON-object configuration and calls the selected registered adapter's `validate_config` before opening the insert transaction. Validator failures are logged by exception class and returned as a generic invalid-config error, preventing plugin exception messages from leaking through the CLI. The persistence transaction rechecks that the driver is enabled and takes a `FOR SHARE` lock on its registry row before inserting; concurrent disable/update must wait until the instance transaction ends.
 
-Six focused regressions cover valid configuration, invalid/non-object configuration before persistence, sanitized validator errors, disabled-driver rejection, and the enabled-row lock. `python3 -m pytest tests/test_driver_registry.py tests/test_sensor_driver_schedule.py -q` passes 66 tests; Ruff, compilation, and `git diff --check` pass. Checks use mocks only. Third-party package code still runs in-process by design and is not sandboxed; PostgreSQL lock behavior requires disposable database acceptance. No database, provider, candidate, legacy service, or persistent Compose resource was used ([implementation](../../services/drivers/registry.py); [tests](../../tests/test_driver_registry.py); [evidence](../builds/2026-10-25-recovery/driver-instance-config-preflight.json)). Checklist: 1,192 complete / 25 open (1,217 total); capability classifications remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows.
+Six focused regressions cover valid configuration, invalid/non-object configuration before persistence, sanitized validator errors, disabled-driver rejection, and the enabled-row lock. `python3 -m pytest tests/test_driver_registry.py tests/test_sensor_driver_schedule.py -q` passes 66 tests; Ruff, compilation, and `git diff --check` pass. Checks use mocks only. Third-party package code still runs in-process by design and is not sandboxed; PostgreSQL lock behavior requires disposable database acceptance. No database, provider, candidate, legacy service, or persistent Compose resource was used ([implementation](../../services/drivers/registry.py); [tests](../../tests/test_driver_registry.py); [evidence](builds/2026-10-25-recovery/driver-instance-config-preflight.json)). Checklist: 1,192 complete / 25 open (1,217 total); capability classifications remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows.
 
 ## Bounded Gnosis indexer recovery — 25 October 2026
 
 Gnosis indexing now caps each invocation at 10,000 blocks, matching the existing first-run lookback. An oversized explicit range is rejected before opening the provider or database. Automatic catch-up clamps the target range and advances the existing cursor only through successful committed batches, allowing the next invocation to continue from the checkpoint without skipping blocks.
 
-The Gnosis CLI, mocked recovery, and scheduled-command selection passes 161 tests; Ruff, compilation, capability-matrix validation, and `git diff --check` pass. No network provider, database, candidate, legacy service, or persistent Compose resource was used. This bounds runtime but does not close the legacy shared database identity, provider recovery, or live-provider gates ([implementation](../../services/ingestion/gnosis_indexer.py); [tests](../../tests/test_gnosis_indexer_recovery.py); [evidence](../builds/2026-10-25-recovery/gnosis-indexer-run-bound.json)). Checklist: 1,193 complete / 25 open (1,218 total); capability classifications remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows.
+The Gnosis CLI, mocked recovery, and scheduled-command selection passes 161 tests; Ruff, compilation, capability-matrix validation, and `git diff --check` pass. No network provider, database, candidate, legacy service, or persistent Compose resource was used. This bounds runtime but does not close the legacy shared database identity, provider recovery, or live-provider gates ([implementation](../../services/ingestion/gnosis_indexer.py); [tests](../../tests/test_gnosis_indexer_recovery.py); [evidence](builds/2026-10-25-recovery/gnosis-indexer-run-bound.json)). Checklist: 1,193 complete / 25 open (1,218 total); capability classifications remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows.
 
 ## Gnosis Moloch worker identity and projection lineage — 25 October 2026
 
@@ -19668,3 +21021,4575 @@ touched. This is software portability under QEMU, not physical-device,
 power-loss, or sustained-load acceptance. Checklist: 1,234 complete / 25 open
 (1,259 total); capability classifications remain 24 baseline-retained, 7
 deployed, and 36 prepared across 67 rows.
+
+### Progress addendum — runtime relation ACL inventory and first scoped repair, 26 October 2026
+
+The isolated full-schema replay completed all 642 migrations with zero pending
+or failed entries, zero seeds, no farm data, and successful cleanup. Its real
+runtime/operator-auth logins pass the existing two-tenant forced-RLS probe on
+the synthetic test relation. The expanded catalog probe reports 1,101 public
+ordinary/partitioned tables with effective runtime DML and RLS disabled. After
+fixing a scanner that crossed PL/pgSQL statement boundaries, the source join
+reports 75 of those tables also match a migration that explicitly revokes
+runtime DML; 598 DML-bearing relations have no static SQL candidate site. The
+candidate-site parser is heuristic, and this does not prove
+universal tenant isolation or production state ([probe](builds/2026-10-26-recovery/sprint-runtime-relation-privilege-inventory.json);
+[join](builds/2026-10-26-recovery/sprint-runtime-privilege-callsite-report.json)).
+
+Based on that evidence, `runtime_role.py` now reapplies the governed circle,
+role, assignment, tactical item/session, and Delphi minority-report mutation
+denials plus private request, decision, binding, identity, audit-ledger, and
+selected Delphi review-receipt boundaries after its compatibility-wide grant.
+It preserves selected table reads and verifies both table and column
+privileges. Focused disposable runtime-role acceptance is
+still open; this code has not been applied to the candidate or production, and
+CAP-024 acceptance/classification is unchanged. No migration was needed for
+the provisioning-path correction. No tests were added or run in this batch.
+Checklist: 1,235 complete / 26 open (1,261 total); capability classifications
+remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows.
+
+### Progress addendum — restore all migration-declared runtime table denials, 26 October 2026
+
+The ACL/source join identified 75 unprotected tables and 15 RLS-enabled tables
+whose ordered migrations explicitly revoke runtime DML, plus the separately
+protected append-only farm-activity ledger. Runtime-role provisioning now
+restores all 91 matching relation policies after its compatibility-wide grant:
+79 private relations receive no direct runtime table or column access, 11
+mutation-only relations lose write privileges while retaining reads, and the
+farm-activity ledger remains SELECT-only with its dedicated writer. A
+source-only comparison between ordered migration revokes and the provisioner's
+explicit policy lists reports zero gaps. The provisioning verifier checks
+table and column privileges and aborts when a listed boundary is not enforced.
+The generated report now includes the provisioner SHA-256 and distinguishes
+529 relations with no static write candidate from the 334 with no static SQL
+candidate; these heuristic sets overlap. Its per-service write counts also
+overlap and are only triage data.
+The private relations span agent review receipts, business-canvas requests,
+governance and identity evidence, operating-pilot receipts, and
+solution-lifecycle receipts.
+
+This implements the existing migration policy rather than adding a schema
+migration. It does not remove the compatibility grant for the other 1,026
+unprotected DML relations, and it does not establish RLS, worker/Directus
+parity, production ACLs, or successful bounded-function behavior. Focused
+runtime-role tests pass (48). A disposable PostgreSQL 16 fixture exercises all
+91 synthetic relation ACLs and confirms the column-level verifier fails closed
+on a residual grant. This validates the ACL helper, not the migration-installed
+bootstrap or bounded Gateway/security-definer behavior. Candidate and legacy
+databases were untouched. Evidence is in the
+[isolated relation ACL probe](builds/2026-10-26-recovery/sprint-runtime-relation-privilege-inventory.json),
+[source/callsite join](builds/2026-10-26-recovery/sprint-runtime-privilege-callsite-report.json),
+the [disposable ACL check](builds/2026-10-26-recovery/runtime-scoped-write-boundary-disposable.json),
+and [runtime-role provisioner](../../services/migration/runtime_role.py).
+Checklist remains 1,235 complete / 26 open (1,261 total); capability
+classifications remain 24 baseline-retained, 7 deployed, and 36 prepared
+across 67 rows.
+
+### Progress addendum — migration-installed runtime ACL acceptance, 27 October 2026
+
+The prior C1 acceptance exercised the ACL helper against synthetic relation
+definitions but did not run role provisioning after full schema migrations.
+The updated disposable probe now replays all 642 ordered migrations through
+651, provisions the actual runtime and operator-auth logins, and checks the
+installed policy. It verifies all 79 private relations have no direct table or
+column privileges and all 12 mutation-denied relations have no direct table or
+column writes; the farm-activity event ledger remains readable and has no
+direct runtime writes. Provisioning completed its full verifier without an
+ACL violation.
+
+Using the resulting restricted logins, the probe created synthetic sessions
+for two operators and exercised the migration-backed signed operator-context
+function. Each operator saw only its own tenant in a forced-RLS fixture;
+cross-location use was denied, denial cleared context, and transaction end
+reset it. The focused runtime-role/replay selection passes 69 tests. The full
+disposable database applied 642/642 schemas with no failed or pending rows,
+zero seeds, and successful cleanup. Candidate and legacy databases were not
+touched. A separate ARM64/QEMU schema-only replay also passed all 642
+migrations; the combined role probe ran natively because the available client
+image was AMD64. The initial mismatched ARM64/client attempt is recorded with
+the platform diagnosis and cleanup status in its evidence; it does not negate
+the completed ARM64 migration replay.
+
+The provisioner also verifies the API-key authentication exception: reads are
+limited to the seven reviewed columns (`id`, `key_hash`, `key_prefix`,
+`role_id`, `scopes`, `expires_at`, `is_active`) and all writes are denied. The
+refreshed full-schema ACL inventory includes all 1,511 public relations, and
+the source-policy comparison covers 91 scoped table boundaries plus this
+API-key column allowlist with zero missing or mismatched policies. The focused
+runtime-role, report, and replay regression selection passes 72 tests.
+
+This closes full migration-installed acceptance for these 92 source-declared
+runtime boundaries, not the broader C1 goal. The compatibility runtime login
+still has table DML on 1,026 other public relations; RLS is not universal, and
+no candidate or production role rollout occurred. Next C1 work remains
+caller-identity and operation review of those remaining grants, starting with
+the analytics candidate group. Evidence:
+[full-schema runtime acceptance](builds/2026-10-26-recovery/runtime-role-full-schema-disposable.json),
+[synthetic ACL helper check](builds/2026-10-26-recovery/runtime-scoped-write-boundary-disposable.json),
+[ARM64 schema replay](builds/2026-10-26-recovery/arm64-qemu-current-schema-refresh-after-645-fix.json),
+and [source-to-policy join](builds/2026-10-26-recovery/sprint-runtime-privilege-callsite-report.json).
+
+Checklist: 1,236 complete / 25 open (1,261 total). Capability classifications
+remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows; no
+MAN-CAP acceptance status changes.
+
+### Progress addendum — C1 analytics write-candidate inventory, 27 October 2026
+
+To make the remaining broad runtime grants reviewable without revoking from
+static guesses, a reproducible inventory now joins the refreshed post-
+provisioning relation ACL report to the generated SQL execution-site inventory.
+It identifies 275 currently unprotected relations with analytics-package
+write candidates, 425 unique candidate sites across 89 source files, and 437
+relation/site associations. Every entry retains its source path, line, function
+scope, statement kind, expression classification, static SQL digest, and any
+operation reference. No relation lacked a matching SQL execution site. All
+entries remain marked for caller/source review; this report does not prove
+reachability or tenant authorization and does not recommend grant changes.
+
+The five focused inventory tests pass with Ruff, Python compilation, capability
+matrix validation, and `git diff --check`. No database, provider, candidate, or
+legacy service was used. Evidence:
+[analytics write candidates](builds/2026-10-27-recovery/analytics-runtime-write-candidate-inventory.json),
+[generator](../../scripts/runtime-analytics-write-candidate-inventory.py), and
+[tests](../../tests/test_runtime_analytics_write_candidate_inventory.py).
+This advances the review process only; C1 still has 1,026 unprotected DML
+relations and requires capability/caller review before scoped grant changes.
+
+Checklist: 1,237 complete / 25 open (1,262 total). Capability classifications
+remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows; no
+MAN-CAP acceptance status changes.
+
+### Progress addendum — data-portability audit schema alignment, 27 October 2026
+
+Source review found that third-party portability fulfillment attempted to
+insert `accessor_id`, `data_category`, and related fields into
+`access_audit_log`, whose migration-defined columns instead support the
+capability-token audit contract. It also used `allowed`, which is not a valid
+status for that table. The function now writes an `export`/`success` event to
+the existing `data_access_log` contract from migration 144, keeping the audit
+and request-state update in one transaction. No schema migration was needed.
+
+The data-governance and analytics-inventory suites pass 63 tests and 63
+subtests. Runtime SQL inventory freshness, Ruff, compilation, capability-matrix
+validation, and diff checks pass. No database or provider was used. Evidence:
+[focused tests](../../tests/test_data_governance.py),
+[schema](../../schemas/postgres/144_data_governance.sql), and the refreshed
+[runtime SQL inventory](runtime-sql-inventory.json).
+
+Checklist: 1,238 complete / 25 open (1,263 total). Capability classifications
+remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows; no
+MAN-CAP acceptance status changes.
+
+### Progress addendum — append-only runtime audit boundary, 27 October 2026
+
+Migration 652 and runtime-role provisioning now enforce the existing
+`data_access_log` append-only contract. The ordered migration removes table
+and stale column grants, then grants only `SELECT` and `INSERT`. Provisioning
+reapplies and verifies that contract after compatibility grants. Disposable
+PostgreSQL 16 acceptance confirms migration replay, read/append success,
+update/delete/truncate denial, and removal of stale column ACLs.
+
+A clean native replay applied all 643 ordered migrations through 652 and passed
+the full role provisioner and two-tenant signed-context probe. It loaded no
+seeds or farm data, cleaned up successfully, and did not touch candidate or
+legacy services. The refreshed policy report covers 1,511 relations and 93
+declared boundaries with zero gaps. Its 1,026 table-level DML/RLS-disabled
+count includes the intended insert-only audit ledger; it does not mean all
+1,026 relations allow UPDATE or DELETE. The analytics candidate inventory
+still identifies 275 relations / 425 sites / 89 source files for caller-scope
+review; one relation now has a declared boundary. C1 is not complete.
+
+The focused selection passes 176 tests and 63 subtests. Ruff, Python
+compilation, runtime-SQL inventory freshness, dependency/provider boundary
+checks, capability-matrix validation, and `git diff --check` pass. Rollback can
+revert application code while retaining migration 652 and the provisioner
+policy; reversing the append-only grant requires a separately reviewed
+forward migration. No candidate or production rollout occurred. Evidence:
+[migration](../../schemas/postgres/652_runtime_append_only_data_access_log.sql),
+[isolated ACL acceptance](builds/2026-10-27-recovery/runtime-append-only-data-access-log-disposable.json),
+[full-schema acceptance](builds/2026-10-27-recovery/runtime-role-full-schema-disposable.json),
+[policy report](builds/2026-10-27-recovery/sprint-runtime-privilege-callsite-report.json),
+and [analytics candidates](builds/2026-10-27-recovery/analytics-runtime-write-candidate-inventory.json).
+
+Checklist: 1,239 complete / 25 open (1,264 total). Capability classifications
+remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows; no
+MAN-CAP acceptance status changes.
+
+### Progress addendum — current schema portability on ARM64, 27 October 2026
+
+The repository's isolated schema replay harness successfully applied all 643
+ordered migration files through 652 to PostgreSQL/PostGIS under Docker
+`linux/arm64` QEMU. It recorded zero failed or pending migrations, applied no
+seeds, published no host ports, and cleaned up the disposable Compose project.
+The target database image is `kokonut-kernel-postgis-arm64:local`, platform
+`linux/arm64`, image ID
+`sha256:a0ff166b0949fb1a0224c9f9115e1eb211a3b2e3d3dbb2cd3f927c5901794296`.
+The replay took 1,624 seconds on the Docker host. It touched neither candidate
+nor legacy data. This proves schema replay portability under emulation only;
+it does not prove a physical Raspberry Pi, full application image/profile
+builds, resource-constrained operation, or backup/restore acceptance.
+
+Evidence: [ARM64 schema replay](builds/2026-10-27-recovery/arm64-schema-652-disposable.json)
+and [replay harness](../../scripts/check-arm64-schema-replay.py). The C7 gate
+remains open for ARM64 application/profile builds, constrained CPU/memory
+checks, and synthetic backup/restore rehearsal. No capability classification
+or MAN-CAP acceptance changed.
+
+Checklist: 1,240 complete / 25 open (1,265 total). Capability classifications
+remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows; no
+MAN-CAP acceptance status changes.
+
+### Progress addendum — Kernel application ARM64 build and smoke, 27 October 2026
+
+The current `Dockerfile.kernel` target built successfully for both
+`linux/amd64` and `linux/arm64` into a temporary OCI archive. The release-input
+validator confirmed the image index and matching versions for all 72 locked
+Python packages. A separately loaded ARM64 image ran under QEMU in an offline,
+read-only container with a 64 MiB `/tmp`; the smoke imported the Gateway
+factory, process supervisor, and migration-652 runtime-role policy, confirmed
+the `aarch64` architecture, and verified the no-worker process plan contains
+only the API. It made no database or provider calls. The archive and loaded
+image were removed after capture. No service was started, published, or
+deployed, and candidate/legacy state was untouched.
+
+Evidence: [build and runtime smoke](builds/2026-10-27-recovery/arm64-kernel-app-build-smoke.json).
+C7 remains open for ClickHouse-superset and Compose profile builds, constrained
+CPU/memory operation, and synthetic backup/restore. QEMU does not close
+physical Raspberry Pi power-loss, thermal, performance, or endurance checks.
+No capability classification or MAN-CAP acceptance changed.
+
+Checklist: 1,241 complete / 25 open (1,266 total). Capability classifications
+remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows; no
+MAN-CAP acceptance status changes.
+
+### Progress addendum — optional ClickHouse and ARM64 profile configuration, 27 October 2026
+
+The optional ClickHouse-superset Kernel image also built for both AMD64 and
+ARM64. The release-input validator confirmed all 75 locked package versions
+match across the two architectures. A local ARM64/QEMU image smoke imported
+`clickhouse_connect` 1.10.0 and confirmed the API-only process plan in a
+network-disabled, read-only container with 64 MiB of temporary storage; it
+made no database or ClickHouse connection. The image and OCI archive were
+removed after acceptance.
+
+The ARM64 Compose selections for minimal, edge, standard, and analytics all
+pass `config --quiet` with synthetic placeholder values, without creating
+containers. Evidence is consolidated with the [base Kernel multiarch build and
+smoke](builds/2026-10-27-recovery/arm64-kernel-app-build-smoke.json). Optional
+service image combinations, constrained CPU/memory operation, and synthetic
+backup/restore remain open, as does physical-device validation. No capability
+classification or MAN-CAP acceptance changed.
+
+Checklist: 1,242 complete / 25 open (1,267 total). Capability classifications
+remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows; no
+MAN-CAP acceptance status changes.
+
+
+### Progress addendum — resource-limited current ARM64 schema replay, 27 October 2026
+
+The current 643-migration schema chain through migration 652 now passes on
+Docker linux/arm64/QEMU with the isolated PostgreSQL container capped at
+1.5 GiB memory, an equal swap ceiling, and two CPUs. The harness sets these
+limits on the unstarted disposable container and verifies Docker's effective
+HostConfig before the replay. All migrations applied with zero pending or
+failed, no seeds, and no OOM kill. The replay took 1,663.4 seconds and cleaned
+up its temporary container, network, and volume. Docker reached the two-CPU
+ceiling in samples while memory remained below 252 MiB. This is a bounded
+software check, not a performance benchmark or Raspberry Pi hardware result.
+Evidence: [resource-limited replay](builds/2026-10-27-recovery/arm64-resource-limited-schema-652.json).
+
+The replay harness now accepts optional `--memory-limit` and `--cpu-limit`
+arguments and records both requested and Docker-verified limits. On Docker
+Desktop, the memory swap cap must be set alongside memory; it is set equal to
+the requested memory budget to disable additional swap. Python compilation,
+CLI help, valid/invalid budget parsing, `git diff --check`, and the capability
+matrix validator pass.
+
+The candidate and legacy stacks were untouched; no seeds or farm data were
+loaded. Kernel app resource limits, remaining optional service-image
+combinations, synthetic backup/restore, and physical device acceptance remain
+open. No capability classification or MAN-CAP acceptance changed.
+
+Checklist: 1,243 complete / 25 open (1,268 total). Capability classifications
+remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows.
+
+
+### Progress addendum — synthetic encrypted backup/restore primitives, 27 October 2026
+
+A reusable offline checker now exercises a synthetic two-row PostgreSQL
+round-trip. It streams `pg_dump` directly into age encryption, stores only the
+ciphertext temporarily, rejects a wrong decryption identity, streams the valid
+archive directly into `pg_restore`, and compares the restored rows in a fresh
+`template0` database. Both containers use separate uniquely labeled volumes,
+`--network none`, no published ports, and a pinned PostgreSQL/PostGIS image;
+all resources and temporary files were removed. The archive checksum and byte
+count are recorded without recording the age identity path or any secret.
+
+Python compilation, Ruff, CLI help, the live synthetic round-trip, wrong-key
+rejection, evidence assertions, cleanup inspection, capability validation, and
+`git diff --check` pass. Evidence: [synthetic backup/restore](builds/2026-10-27-recovery/kernel-synthetic-backup-restore.json); checker: [check-kernel-backup-restore-disposable.py](../../scripts/check-kernel-backup-restore-disposable.py).
+
+This tests streaming backup/restore primitives only. It does not call
+`kernel-checkpoint.sh`, restore the full schema/role prerequisites, validate
+provider/media state, or establish a production recovery point. Candidate and
+legacy data were untouched; no seeds or farm records were used. The full
+recovery procedure, R2 transfer, and physical Raspberry Pi behavior remain
+open. No capability classification or MAN-CAP status changed.
+
+Checklist: 1,244 complete / 25 open (1,269 total). Capability classifications
+remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows.
+
+### Full ARM64/QEMU schema and operator-scope replay through migration 662 — 27 October 2026
+
+The current 653-file schema chain applied cleanly through
+`662_runtime_access_audit_log_append_only` on the repository's ARM64 PostGIS
+image under QEMU. The disposable database had a verified 1.5 GiB memory/swap
+and two-CPU budget; it applied zero seeds, loaded no farm records, published no
+host ports, was not OOM-killed, and was removed with its temporary resources.
+The two-tenant operator-scope probe passed all 17 assertions and verified 106
+declared runtime boundaries: 79 private relations, 24 mutation-denied
+relations, two append-only relations, and the API-key read-only column
+boundary. It found no direct table or column privilege violations. The probe
+reports 1,014 public relations with effective table-level DML while RLS is
+disabled; broad compatibility DML and universal application tenant isolation
+remain open. This is software portability evidence only, not physical
+Raspberry Pi acceptance. Candidate and legacy databases were untouched.
+
+Evidence: [ARM64 full-schema and two-tenant replay](builds/2026-10-27-recovery/arm64-resource-limited-schema-662.json).
+
+Checklist: 1,266 complete / 25 open (1,291 total). Capability classifications
+remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows; no
+MAN-CAP acceptance status changed.
+
+### Optional Kernel ARM64 targets and OIDC dependency correction — 27 October 2026
+
+All four optional Dockerfile targets (gRPC, MQTT, OIDC, and ML anomaly) now
+build from pushed revision `8da25cfd` for `linux/arm64`. Network-disabled,
+read-only QEMU smokes import the target entry points and generated gRPC stubs;
+CLI help passes within per-target CPU, memory, and PID limits. The OIDC image
+smoke exposed that Authlib's Starlette integration imports `httpx2` or `httpx`,
+but the optional image had neither. A shared `requirements/http-client.txt`
+now supplies `httpx2` to the OIDC image and developer ASGI test setup without
+adding it to the default Kernel runtime. The dependency-group alignment check
+and 38 focused Kernel/OIDC tests pass. No database, broker, provider, external
+network, Compose service, or ML model fit was used. Image sizes and digests,
+imports, versions, and limitations are recorded in [ARM64 optional target
+evidence](builds/2026-10-27-recovery/arm64-optional-kernel-targets-8da25cfd.json).
+This closes the remaining optional Dockerfile image-build slice of C7, not
+physical Raspberry Pi behavior, live providers, whole-profile acceptance, or
+the remaining recovery gates. Candidate and legacy deployments remain
+untouched; reverting the source change restores the prior dependency manifests
+and image recipe. Checklist: 1,267 complete / 25 open (1,292 total). Capability
+classifications remain 24 baseline-retained, 7 deployed, and 36 prepared across
+67 rows; no MAN-CAP acceptance status changed.
+
+### Current-schema encrypted checkpoint and restore — 27 October 2026
+
+The repository's actual checkpoint command and documented role-prerequisite
+restore procedure now pass against all 653 ordered schema files through
+`662_runtime_access_audit_log_append_only`. The isolated source applied no
+seeds and loaded no farm data. `kernel-checkpoint.sh` streamed the database
+dump into age encryption; only the encrypted archive was written to temporary
+storage, with its manifest digest verified. The restore applied role
+prerequisites to a fresh PostGIS cluster, then restored transactionally into a
+new `template0` database using the enlarged lock budget. The source and restored
+migration fingerprints and a synthetic sentinel match. Both uniquely labeled
+internal-only Compose projects and the temporary archive were cleaned up; an
+unrelated pre-existing volume from a similarly named old Compose project was
+left untouched. Candidate and legacy databases were not accessed. The checker
+now derives its expected migration count/head from the same ordered schema
+filenames as the migration runner, rather than pinning the old 643/652 state;
+two focused unit tests pass, along with Ruff, compilation, and diff checks.
+Evidence: [current-schema checkpoint/restore](builds/2026-10-27-recovery/kernel-checkpoint-restore-current-schema.json).
+This is synthetic schema recovery evidence, not populated-farm, R2,
+whole-platform, constrained-device, production RPO/RTO, or 24-hour acceptance.
+Checklist: 1,268 complete / 25 open (1,293 total). Capability classifications
+remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows; no
+MAN-CAP acceptance status changed.
+
+### SDK parameter-name parity contract — 27 October 2026
+
+The Python/TypeScript SDK parity guard now compares positional argument names
+in addition to the existing method inventory, inherited generic surfaces, and
+required/optional argument shapes. Four reviewed naming aliases are explicit:
+Python `item_id`/TypeScript `id`, `sensor_id`/`deviceId`, and attestation
+`subject_type`/`entityType` plus `subject_id`/`entityId`. Public method
+signatures were not changed, preserving Python keyword callers. The focused
+SDK parity suite passes three tests; Ruff, Python compilation, and whitespace
+checks pass. This is static contract coverage only: parameter types, runtime
+serialization, authorization, and complete route/SDK parity remain open. No
+database, provider, or network was used. Evidence: [SDK method parity test](../../tests/test_sdk_method_parity.py).
+Checklist: 1,269 complete / 25 open (1,294 total). Capability classifications
+remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows; no
+MAN-CAP acceptance status changed.
+
+### Export-format typing parity — 27 October 2026
+
+The Python SDK now exports the same five-value `ExportFormat` literal as the
+TypeScript SDK and applies it to the `ExportLog.format` model field and
+`exports.create_export(format=...)`. This tightens static typing only; runtime
+request payloads and accepted server behavior are unchanged, and Python 3.9+
+compatibility is retained. The focused Python SDK plus cross-language parity
+selection passes 98 tests. A source regression compares the actual Python
+`Literal` values to the TypeScript `ExportFormat` union. The SDK schema check
+passes for 109 models and 2,150 canonical columns; Ruff, compilation, and diff
+checks pass. No database, provider, or network was used. Evidence: [focused SDK
+test](../../tests/test_sdk.py) and [cross-language parity test](../../tests/test_sdk_method_parity.py).
+Checklist: 1,270 complete / 25 open (1,295 total). Capability classifications
+remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows; no
+MAN-CAP acceptance status changed.
+
+### Native full-schema runtime-role revalidation through migration 662 — 27 October 2026
+
+A fresh native AMD64 replay applied all 653 ordered schema files through
+`662_runtime_access_audit_log_append_only` on a disposable database capped at
+1.5 GiB memory/swap and two CPUs. The signed two-tenant operator probe passed
+all 17 assertions: 79 private relations, 24 mutation-denied relations, two
+append-only ledgers, API-key column boundaries, forced-RLS tenant separation,
+wrong-location denial cleanup, and transaction-end context reset. It found
+zero direct table/column privilege violations for those declared boundaries,
+while 1,014 public relations still retain effective table DML with RLS off;
+therefore C1 remains open and the synthetic probe is not universal isolation
+evidence. No seeds or farm records were loaded, no host ports were published,
+and the uniquely labeled Compose project and temporary client image were
+removed. The refreshed ACL/source report shows 1,511 relations, 106 declared
+boundaries, and zero explicit-revoke mismatches; its linked analytics inventory
+remains 273 actual write-target relations / 425 sites, with no unmatched
+analytics candidates. The former `farm` join gap was a classification error:
+two `INSERT … SELECT` statements read `farm` and write to
+`farm_template_instance` and `farm_onboarding_workflow`. Thirteen focused
+report/inventory tests pass; Ruff, compilation, SQL-inventory freshness,
+capability matrix validation, and diff checks pass. Candidate and legacy databases remain
+untouched. Evidence: [full-schema native replay](builds/2026-10-27-recovery/runtime-role-full-schema-662-native-disposable.json),
+[ACL report](builds/2026-10-27-recovery/sprint-runtime-privilege-callsite-report.json),
+and [analytics candidate inventory](builds/2026-10-27-recovery/analytics-runtime-write-candidate-inventory.json).
+Checklist: 1,271 complete / 25 open (1,296 total). Capability classifications
+remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows; no
+MAN-CAP acceptance status changed.
+
+### Correct analytics DML target classification — 27 October 2026
+
+The ACL/source report now tracks SQL-referenced relations separately from
+actual `INSERT`, `UPDATE`, `DELETE`, and `MERGE` write targets. The analytics
+write-candidate generator uses only the latter, so `farm` is correctly
+recognized as a read source rather than an analytics writer. The two affected
+statements write to `farm_template_instance` and
+`farm_onboarding_workflow`. The regenerated inventory has 273 target relations
+and 425 candidate write sites across 89 files, with no unmatched candidates;
+the ACL report still shows 1,014 relations with effective DML while RLS is off,
+so C1 remains open. Thirteen focused report/inventory tests pass. No grants,
+migrations, database state, candidate service, or legacy service changed.
+Rollback reverts the reporting logic and regenerated JSON; no data rollback is
+needed. Evidence: [ACL report](builds/2026-10-27-recovery/sprint-runtime-privilege-callsite-report.json)
+and [analytics candidate inventory](builds/2026-10-27-recovery/analytics-runtime-write-candidate-inventory.json).
+Checklist: 1,272 complete / 25 open (1,297 total); capability classifications
+remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows; no
+MAN-CAP acceptance status changed.
+
+### Track runtime TRUNCATE targets and privileges — 27 October 2026
+
+The shared runtime SQL inventory now extracts simple `TRUNCATE` targets,
+including comma-separated tables and the `ONLY`, `RESTART IDENTITY`, and
+`CASCADE` clauses. It treats `TRUNCATE` as a write candidate. The C1 ACL report
+shows effective `TRUNCATE` grants separately from ordinary table DML and
+lists affected relations, including those where RLS is disabled. The saved
+migration-662 native replay reports zero effective runtime `TRUNCATE` grants
+across 1,511 public relations. This is a synthetic ACL snapshot, not current
+candidate or production state. The scanner, ACL report, and analytics
+inventory selection passes 41 tests; Ruff, compilation, inventory freshness,
+capability validation, and diff checks pass. No database or provider was used.
+Rollback reverts the scanner/report changes and regenerates the artifacts.
+Checklist: 1,273 complete / 25 open (1,298 total); capability classifications
+remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows; no
+MAN-CAP acceptance status changed.
+
+### Progress addendum — `agent_action_log` runtime read-only boundary — 27 October 2026
+
+The legacy `log_agent_action()` and `get_agent_actions()` paths already fail
+before database access without an authenticated identity, and the source
+inventory contains no direct runtime SQL writer. The generic exporter still
+allows this collection, so migration 663 keeps `SELECT` for `kokonut_runtime`
+and revokes table and residual column INSERT/UPDATE/REFERENCES access; the
+runtime policy also denies DELETE, TRUNCATE, and other mutations. Directus is
+provisioned under a separate role; its current DML grants are not named by the
+migration and remain intact. The native and ARM64/QEMU disposable PostgreSQL 16
+checks pass apply/replay, read access, table/column write denial, provisioner
+reapplication after compatibility grants, and Directus-role preservation. A
+fresh native replay of all 654 ordered schema files through migration 663
+passes all 17 synthetic two-tenant checks under 1.5 GiB/two-CPU limits; no
+seeds are loaded and temporary resources are removed. The refreshed report
+matches all 107 declared controls with zero policy gaps, while 1,013 relations
+still retain effective table DML with RLS disabled. The focused six-module
+selection passes 135 tests; Ruff, compilation, dependency/provider checks,
+SQL-inventory freshness, and diff checks pass. Candidate/legacy services,
+provider state, and farm rows were untouched. C1 remains open; this source and
+synthetic ACL acceptance does not prove populated-data tenant safety or
+production role state. Evidence: [migration](../../schemas/postgres/663_runtime_agent_action_log_read_only.sql),
+[native ACL](builds/2026-10-27-recovery/agent-action-log-read-only-disposable.json),
+[ARM64/QEMU ACL](builds/2026-10-27-recovery/agent-action-log-read-only-arm64-disposable.json),
+[full-schema replay and probe](builds/2026-10-27-recovery/runtime-role-full-schema-663-native-disposable.json),
+and [ACL report](builds/2026-10-27-recovery/sprint-runtime-privilege-callsite-report.json).
+Checklist: 1,274 complete / 25 open (1,299 total); capability classifications
+remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows; no
+MAN-CAP acceptance status changed.
+
+### Progress addendum — `ghg_emission_factor` runtime read-only boundary — 27 October 2026
+
+Source review confirmed `ghg_emission_factor` is a shared reference catalog
+defined by migration 028 and initialized/upserted by seed 027. The carbon
+analytics consumer builds a dynamic `SELECT`; repository search and the runtime
+SQL write-target inventory found no application writer. Migration 665 keeps
+`SELECT` for `kokonut_runtime` and revokes table plus residual column-level
+INSERT, UPDATE, REFERENCES, DELETE, and TRUNCATE access. The runtime role
+provisioner reapplies the policy after compatibility grants. The migration
+names only the Kernel runtime role. Native and ARM64/QEMU disposable PostgreSQL
+16 checks pass migration apply/replay, read access, table and column write
+denial, provisioner reapplication, and preservation of the separate Directus
+role's existing DML grants.
+
+A fresh native AMD64 replay applied all 656 ordered schema files through
+migration 665 and passed all 18 two-tenant operator-scope checks under verified
+1.5 GiB/two-CPU limits. No seeds or farm data were loaded, no host ports were
+published, the database was not OOM-killed, and temporary resources were
+removed. The regenerated source/ACL report covers 109 declared controls with
+zero policy mismatches; 1,011 public relations retain effective table DML
+while RLS is disabled, so C1 and universal tenant isolation remain open. The
+six-module focused regression selection passes 137 tests; Ruff, Python
+compilation, dependency/provider boundaries, SQL-inventory freshness, and
+capability-matrix validation pass. Candidate/legacy databases and live provider
+state were untouched. This synthetic ACL acceptance does not verify populated
+tenant data, Directus API behavior, or a future Gateway-mediated reference
+editing flow. Rollback retains ordered migration 665; restoring runtime writes
+requires a reviewed forward migration.
+
+Evidence: [migration](../../schemas/postgres/665_runtime_ghg_emission_factor_read_only.sql),
+[native ACL](builds/2026-10-27-recovery/ghg-emission-factor-runtime-read-only-disposable.json),
+[ARM64/QEMU ACL](builds/2026-10-27-recovery/ghg-emission-factor-runtime-read-only-arm64-disposable.json),
+[full-schema replay and probe](builds/2026-10-27-recovery/runtime-role-full-schema-665-native-disposable.json),
+[ACL report](builds/2026-10-27-recovery/sprint-runtime-privilege-callsite-report.json),
+and [analytics write-candidate inventory](builds/2026-10-27-recovery/analytics-runtime-write-candidate-inventory.json).
+Checklist: 1,276 complete / 25 open (1,301 total); capability classifications
+remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows; no
+MAN-CAP acceptance status changed.
+
+### Progress addendum — `operations_protocol` runtime read-only boundary — 27 October 2026
+
+Source review confirmed `operations_protocol` is a shared, versioned handbook
+catalog defined by migration 028 and initialized/upserted by seed 027. The
+report generator reads active protocol titles and metadata; repository search
+and the SQL write-target inventory found no runtime writer. Migration 666
+keeps `SELECT` for `kokonut_runtime` and revokes table plus residual column
+INSERT, UPDATE, REFERENCES, DELETE, and TRUNCATE access. The role provisioner
+reapplies the policy after compatibility grants. The migration names only the
+Kernel runtime role. Native and ARM64/QEMU disposable PostgreSQL 16 checks
+pass migration apply/replay, read access, table and column write denial,
+provisioner reapplication, and preservation of the separate Directus role's
+existing DML grants.
+
+A fresh native AMD64 replay applied all 657 ordered schema files through
+migration 666 and passed all 19 two-tenant operator-scope checks under verified
+1.5 GiB/two-CPU limits. No seeds or farm data were loaded, no host ports were
+published, the database was not OOM-killed, and temporary resources were
+removed. The regenerated source/ACL report covers 110 declared controls with
+zero policy mismatches; 1,010 public relations retain effective table DML
+while RLS is disabled, so C1 and universal tenant isolation remain open. The
+six-module focused regression selection passes 138 tests; Ruff, Python
+compilation, dependency/provider boundaries, SQL-inventory freshness, and
+capability-matrix validation pass. Candidate/legacy databases and live provider
+state were untouched. This synthetic ACL acceptance does not verify populated
+tenant data or Directus API behavior. Rollback retains ordered migration 666;
+restoring runtime writes requires a reviewed forward migration.
+
+Evidence: [migration](../../schemas/postgres/666_runtime_operations_protocol_read_only.sql),
+[native ACL](builds/2026-10-27-recovery/operations-protocol-runtime-read-only-disposable.json),
+[ARM64/QEMU ACL](builds/2026-10-27-recovery/operations-protocol-runtime-read-only-arm64-disposable.json),
+[full-schema replay and probe](builds/2026-10-27-recovery/runtime-role-full-schema-666-native-disposable.json),
+[ACL report](builds/2026-10-27-recovery/sprint-runtime-privilege-callsite-report.json),
+and [analytics write-candidate inventory](builds/2026-10-27-recovery/analytics-runtime-write-candidate-inventory.json).
+Checklist: 1,277 complete / 25 open (1,302 total); capability classifications
+remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows; no
+MAN-CAP acceptance status changed.
+
+
+### Progress addendum — static taxonomy runtime read-only boundary — 27 October 2026
+
+Source review confirmed `process_maturity_level` and
+`pollinator_species_reference` are migration-defined static catalogs with inline
+initial values and no runtime SQL write targets. Migration 667 preserves
+`SELECT` and revokes `kokonut_runtime` table and residual column INSERT,
+UPDATE, REFERENCES, DELETE, and TRUNCATE privileges. Runtime-role provisioning
+reapplies the boundary after compatibility grants. The migration does not
+change the separate Directus role. Focused native and ARM64/QEMU disposable
+PostgreSQL 16 checks pass apply/replay, reads, table/column mutation denial,
+provisioner reapplication, and preservation of Directus grants.
+
+A fresh native AMD64 replay applied all 658 ordered schema files through
+migration 667 and passed all 21 two-tenant operator-scope checks under
+verified 1.5 GiB/two-CPU limits. No seeds or farm data were loaded, no ports
+were published, the database was not OOM-killed, and temporary resources were
+removed. The refreshed report recognizes 112 runtime-role controls with zero
+policy mismatches; 1,008 public relations retain effective table DML while RLS
+is disabled, so broad C1 hardening and universal tenant isolation remain open.
+The six-module focused regression selection passes 139 tests; Ruff, Python
+compilation, dependency/provider boundaries, SQL-inventory freshness, and
+capability-matrix validation pass. Candidate/legacy databases and live provider
+state were untouched. The ACL evidence does not verify populated tenant data,
+Directus API behavior, or physical Raspberry Pi behavior. Rollback retains
+ordered migration 667; re-enabling runtime writes requires a reviewed forward
+migration.
+
+Evidence: [migration](../../schemas/postgres/667_runtime_static_reference_catalogs_read_only.sql),
+[native ACL](builds/2026-10-27-recovery/static-reference-catalogs-runtime-read-only-disposable.json),
+[ARM64/QEMU ACL](builds/2026-10-27-recovery/static-reference-catalogs-runtime-read-only-arm64-disposable.json),
+[full-schema replay and probe](builds/2026-10-27-recovery/runtime-role-full-schema-667-native-disposable.json),
+[ACL report](builds/2026-10-27-recovery/sprint-runtime-privilege-callsite-report.json),
+and [analytics write-candidate inventory](builds/2026-10-27-recovery/analytics-runtime-write-candidate-inventory.json).
+Checklist: 1,278 complete / 25 open (1,303 total); capability classifications
+remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows; no
+MAN-CAP acceptance status changed.
+
+
+### Progress addendum — reporting and governance registries runtime read-only boundary — 27 October 2026
+
+Source review confirmed `gri_indicator` is a shared GRI reporting map
+initialized by seed 062 and read by the reporting service, while
+`governance_framework` is the migration-defined registry of adapter/deployment
+metadata initialized by seed 020 and read by the governance CLI. No runtime SQL
+write targets or service/extension write statements were found. Migration 668
+preserves `SELECT` and revokes `kokonut_runtime` table and residual column
+INSERT, UPDATE, REFERENCES, DELETE, and TRUNCATE privileges. Runtime-role
+provisioning reapplies the boundary after compatibility grants. The migration
+does not change the separate Directus role. Focused native and ARM64/QEMU
+disposable PostgreSQL 16 checks pass apply/replay, read access, table/column
+mutation denial, provisioner reapplication, and preservation of synthetic
+Directus grants.
+
+A fresh native AMD64 replay applied all 659 ordered schema files through
+migration 668 and passed all 23 two-tenant operator-scope checks under
+verified 1.5 GiB/two-CPU limits. No seeds or farm data were loaded, no ports
+were published, the database was not OOM-killed, and temporary resources were
+removed. Seeded GRI and governance catalog contents were not exercised by this
+empty schema fixture. The refreshed report recognizes 114 runtime-role controls
+with zero policy mismatches; 1,006 public relations retain effective table DML
+while RLS is disabled, so broad C1 hardening and universal tenant isolation
+remain open. The six-module focused regression selection passes 141 tests;
+Ruff, Python compilation, dependency/provider boundaries, SQL-inventory
+freshness, and capability-matrix validation pass. Candidate/legacy databases
+and live provider state were untouched. Directus API behavior and live adapter
+reads remain unverified. Rollback retains ordered migration 668; re-enabling
+runtime writes requires a reviewed forward migration.
+
+Evidence: [migration](../../schemas/postgres/668_runtime_reporting_registry_read_only.sql),
+[native ACL](builds/2026-10-27-recovery/reporting-registries-runtime-read-only-disposable.json),
+[ARM64/QEMU ACL](builds/2026-10-27-recovery/reporting-registries-runtime-read-only-arm64-disposable.json),
+[full-schema replay and probe](builds/2026-10-27-recovery/runtime-role-full-schema-668-native-disposable.json),
+[ACL report](builds/2026-10-27-recovery/sprint-runtime-privilege-callsite-report.json),
+and [analytics write-candidate inventory](builds/2026-10-27-recovery/analytics-runtime-write-candidate-inventory.json).
+Checklist: 1,279 complete / 25 open (1,304 total); capability classifications
+remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows; no
+MAN-CAP acceptance status changed.
+
+
+### Progress addendum — impact framework catalogs runtime read-only boundary — 27 October 2026
+
+Migration 025 defines `impact_framework` and `impact_dimension`; seed 023
+provides initial shared reference rows. Repository source review and runtime SQL
+inventory found no direct service or extension writes or query sites for these
+tables. Migration 669 preserves `SELECT` and revokes `kokonut_runtime` table
+and residual column INSERT, UPDATE, REFERENCES, DELETE, and TRUNCATE
+privileges. Runtime-role provisioning reapplies the boundary after
+compatibility grants. The migration leaves the separate Directus role alone.
+Focused native and ARM64/QEMU disposable PostgreSQL 16 checks pass
+apply/replay, read access, table/column mutation denial, provisioner
+reapplication, and preservation of synthetic Directus grants.
+
+A fresh native AMD64 replay applied all 660 ordered schema files through
+migration 669 and passed all 25 two-tenant operator-scope checks under
+verified 1.5 GiB/two-CPU limits. No seeds or farm data were loaded, no ports
+were published, the database was not OOM-killed, and temporary resources were
+removed. Seeded impact-framework rows were therefore not exercised. The
+refreshed report recognizes 116 runtime-role controls with zero policy
+mismatches; 1,004 public relations retain effective table DML while RLS is
+disabled, so broad C1 hardening and universal tenant isolation remain open.
+The six-module focused regression selection passes 142 tests; Ruff, Python
+compilation, dependency/provider boundaries, SQL-inventory freshness, and
+capability-matrix validation pass. Candidate/legacy databases and live provider
+state were untouched. Directus API behavior, seeded report parity, and physical
+Raspberry Pi behavior remain unverified. Rollback retains ordered migration
+669; re-enabling runtime writes requires a reviewed forward migration.
+
+Evidence: [migration](../../schemas/postgres/669_runtime_impact_framework_catalogs_read_only.sql),
+[native ACL](builds/2026-10-27-recovery/impact-framework-catalogs-runtime-read-only-disposable.json),
+[ARM64/QEMU ACL](builds/2026-10-27-recovery/impact-framework-catalogs-runtime-read-only-arm64-disposable.json),
+[full-schema replay and probe](builds/2026-10-27-recovery/runtime-role-full-schema-669-native-disposable.json),
+[ACL report](builds/2026-10-27-recovery/sprint-runtime-privilege-callsite-report.json),
+and [analytics write-candidate inventory](builds/2026-10-27-recovery/analytics-runtime-write-candidate-inventory.json).
+Checklist: 1,280 complete / 25 open (1,305 total); capability classifications
+remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows; no
+MAN-CAP acceptance status changed.
+
+
+### Progress addendum — governed expense category runtime read-only boundary — 27 October 2026
+
+Migration 004 defines `expense_category` as a shared governed taxonomy and
+seed 000 supplies the default values. Finance and AI-summary source paths read
+the taxonomy; the runtime SQL inventory and source review found no service or
+extension write target. Migration 670 preserves `SELECT` and revokes
+`kokonut_runtime` table and residual column INSERT, UPDATE, REFERENCES, DELETE,
+and TRUNCATE privileges. Runtime-role provisioning reapplies the boundary
+after compatibility grants. The migration leaves the separate Directus role
+unchanged. Focused native and ARM64/QEMU disposable PostgreSQL 16 checks pass
+apply/replay, read access, table/column mutation denial, provisioner
+reapplication, and preservation of synthetic Directus grants.
+
+A fresh native AMD64 replay applied all 661 ordered schema files through
+migration 670 and passed all 26 two-tenant operator-scope checks under
+verified 1.5 GiB/two-CPU limits. No seeds or farm data were loaded, no ports
+were published, the database was not OOM-killed, and temporary resources were
+removed. Seeded category contents were therefore not exercised. The refreshed
+report recognizes 117 runtime-role controls with zero policy mismatches; 1,003
+public relations retain effective table DML while RLS is disabled, so broad
+C1 hardening and universal tenant isolation remain open. The six-module
+focused regression selection passes 143 tests; Ruff, Python compilation,
+dependency/provider boundaries, SQL-inventory freshness, and capability-matrix
+validation pass. Candidate/legacy databases and live provider state were
+untouched. Directus API behavior and populated category parity remain
+unverified. Rollback retains ordered migration 670; re-enabling runtime writes
+requires a reviewed forward migration and an authenticated category-management
+path.
+
+Evidence: [migration](../../schemas/postgres/670_runtime_expense_category_read_only.sql),
+[native ACL](builds/2026-10-27-recovery/expense-category-runtime-read-only-disposable.json),
+[ARM64/QEMU ACL](builds/2026-10-27-recovery/expense-category-runtime-read-only-arm64-disposable.json),
+[full-schema replay and probe](builds/2026-10-27-recovery/runtime-role-full-schema-670-native-disposable.json),
+[ACL report](builds/2026-10-27-recovery/sprint-runtime-privilege-callsite-report.json),
+and [analytics write-candidate inventory](builds/2026-10-27-recovery/analytics-runtime-write-candidate-inventory.json).
+Checklist: 1,281 complete / 25 open (1,306 total); capability classifications
+remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows; no
+MAN-CAP acceptance status changed.
+
+
+### Progress addendum — CRISP risk-dimension runtime read-only boundary — 27 October 2026
+
+Schema 076 and seed 076 define the shared CRISP scoring dimensions and default
+weights. Source review found a read join in the CRISP scoring engine and no
+service or extension writer. Location-specific adjustments remain in
+`crisp_location_weight`; migration 671 therefore makes only the global
+dimension catalog read-only for `kokonut_runtime`, leaving the separate
+location-weight relation outside the deny policy. The migration removes table
+and residual column INSERT, UPDATE, and REFERENCES rights, restores SELECT,
+and the role provisioner reapplies the rule after compatibility grants.
+Focused native and ARM64/QEMU PostgreSQL 16 checks pass migration apply/replay,
+read access, mutation/TRUNCATE/REFERENCES and stale-column denial, provisioner
+reapplication, and preservation of synthetic Directus grants.
+
+A fresh native AMD64 replay applied all 662 ordered schema files through 671
+and passed all 27 two-tenant operator-scope checks under verified 1.5 GiB/two-
+CPU limits. No seeds or farm data were loaded, no ports were published, no OOM
+occurred, and disposable resources were removed. Thus seeded CRISP-dimension
+contents were not checked for populated parity. The refreshed source/ACL report
+covers 118 controls with zero policy mismatches; 1,002 public relations retain
+effective table-level DML while RLS is disabled, so C1 and universal tenant
+isolation remain open. Six focused suites pass 145 tests; Ruff, compilation,
+dependency/provider boundaries, SQL-inventory freshness, and capability-matrix
+validation pass. Candidate/legacy databases and live providers were untouched.
+Global scoring-methodology edits now require a reviewed migration; per-location
+weight overrides remain writable. Directus API behavior and populated
+reference parity remain unverified. Rollback retains migration 671; runtime
+writes to the global definitions require a reviewed forward migration.
+
+Evidence: [migration](../../schemas/postgres/671_runtime_crisp_risk_dimension_read_only.sql),
+[native ACL](builds/2026-10-27-recovery/crisp-risk-dimension-runtime-read-only-disposable.json),
+[ARM64/QEMU ACL](builds/2026-10-27-recovery/crisp-risk-dimension-runtime-read-only-arm64-disposable.json),
+[full-schema replay and probe](builds/2026-10-27-recovery/runtime-role-full-schema-671-native-disposable.json),
+[ACL report](builds/2026-10-27-recovery/sprint-runtime-privilege-callsite-report.json),
+and [analytics write-candidate inventory](builds/2026-10-27-recovery/analytics-runtime-write-candidate-inventory.json).
+Checklist: 1,282 complete / 25 open (1,307 total); capability classifications
+remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows; no
+MAN-CAP acceptance status changed.
+
+## Progress addendum — SDK path-segment parity — 27 October 2026
+
+The Python and JavaScript generic Directus clients now percent-encode caller-
+controlled collection and item IDs as single route segments. They reject empty
+and dot-only segments before transport, so slashes, query delimiters, and
+fragments in caller values remain encoded in the serialized route segment.
+Inspection of the pinned Directus 17.x request descriptors confirmed that its helper
+functions interpolate these values without encoding, so the protection belongs
+in Kokonut's SDK boundary. The full Python SDK suite passes 98 tests; JavaScript
+passes 56 tests, with TypeScript build, Ruff, and Python compilation clean. All
+checks capture URLs without contacting a service. This closes the SDK path
+serialization subgate only; the full C2 route/auth/scope, pagination/error,
+live OIDC, and populated acceptance gates remain open. No capability
+classification or MAN-CAP acceptance changed.
+
+Evidence: [SDK path-segment regression](builds/2026-10-27-recovery/sdk-path-segment-parity.json).
+Checklist: 1,283 complete / 25 open (1,308 total); capability classifications
+remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows.
+
+
+## Progress addendum — SDK pagination parity — 27 October 2026
+
+The Python generic `list_items(..., **kwargs)` path now normalizes pagination
+options after merging them, matching the TypeScript contract. Offset pagination
+requires a limit; when offset and limit are valid, offset takes precedence over
+page. If offset has no limit, it is removed and an explicit page remains active.
+A zero limit with offset fails before transport. The complete Python SDK suite
+passes 99 tests, JavaScript passes 57 tests, TypeScript build and Ruff pass, and
+the schema parity checker passes across 109 models. These checks use mocks and
+static schema sources only. Broader C2 authorization, error/runtime, live OIDC,
+and populated acceptance remain open; capability classifications and MAN-CAP
+acceptance are unchanged.
+
+Evidence: [SDK pagination contract](builds/2026-10-27-recovery/sdk-pagination-contract.json).
+Checklist: 1,284 complete / 25 open (1,309 total); capability classifications
+remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows.
+
+## Progress addendum — ARM64/QEMU schema replay through migration 671 — 27 October 2026
+
+A fresh network-disabled ARM64/QEMU disposable replay applied all 662 ordered
+schema files through migration 671. The database ran as `aarch64` under verified
+1.5 GiB memory/two-CPU limits; no OOM occurred. No seeds, farm data, host ports,
+or candidate/legacy database were used, and cleanup completed. This replay did
+not include the synthetic operator-scope probe; that acceptance remains covered
+by the separate native run and focused ARM64 migration checks. The result is
+software emulation only: physical-device, power-failure, populated-data, and
+production recovery acceptance remain open. Capability classifications and
+MAN-CAP acceptance did not change.
+
+Evidence: [ARM64/QEMU full-schema replay through migration 671](builds/2026-10-27-recovery/arm64-resource-limited-schema-671.json).
+Checklist: 1,285 complete / 25 open (1,310 total); capability classifications
+remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows.
+
+## Progress addendum — Currency reference catalog runtime read-only boundary — 27 October 2026
+
+Repository review found `dfs_currency` is created and populated by ordered
+finance migration 141, used by financial views as a read join, and has no
+service or extension write target. Migration 672 now revokes table and residual
+column INSERT/UPDATE/REFERENCES grants for `kokonut_runtime` and restores
+SELECT. The runtime provisioner reapplies the boundary after compatibility
+grants. Native and ARM64/QEMU disposable PostgreSQL 16 checks pass apply/replay,
+read access, table/column mutation and TRUNCATE denial, stale-column grant
+cleanup, provisioner reapplication, and preservation of synthetic Directus
+grants. The full native replay applied all 663 ordered schemas through 672 and
+passed all 28 two-tenant scope assertions under verified 1.5 GiB/two-CPU
+limits; the restricted runtime also successfully read migration 141's USD row.
+It loaded no seed files or farm data, published no ports, avoided OOM, and
+cleaned up successfully.
+
+The refreshed ACL/source report covers 119 declared policies with zero
+mismatches across 1,511 public relations. It reports 1,001 relations retaining
+effective table DML while RLS is disabled; broad compatibility grants and
+non-universal table RLS keep C1 open. The runtime-role, report, and schema
+replay regression selection passes 103 tests. Ruff, compilation, dependency
+and provider boundaries, SQL-inventory freshness, capability-matrix validation,
+and diff checks pass. No candidate or legacy database was touched. This does
+not verify Directus API permissions, populated finance data, physical Pi
+hardware, or production operation; rollback retains migration 672 and any
+runtime write restoration requires a reviewed forward migration.
+
+Evidence: [migration](../../schemas/postgres/672_runtime_dfs_currency_read_only.sql),
+[native ACL](builds/2026-10-27-recovery/dfs-currency-runtime-read-only-disposable.json),
+[ARM64/QEMU ACL](builds/2026-10-27-recovery/dfs-currency-runtime-read-only-arm64-disposable.json),
+[full native schema and scope probe](builds/2026-10-27-recovery/runtime-role-full-schema-672-native-disposable.json),
+[refreshed source/ACL report](builds/2026-10-27-recovery/sprint-runtime-privilege-callsite-report.json).
+Checklist: 1,286 complete / 25 open (1,311 total); capability classifications
+remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows.
+
+## Progress addendum — Crop GDD configuration runtime read-only boundary — 27 October 2026
+
+Schema 134 defines the shared `crop_gdd_config` table and seed 088 supplies
+curated thresholds and crop coefficients. `services/analytics/crop_phenology.py`
+and `services/analytics/evapotranspiration.py` read the configuration; the
+runtime SQL inventory and source review found no service or extension writer.
+Migration 673 revokes table and residual column INSERT/UPDATE/REFERENCES from
+`kokonut_runtime`, restores SELECT, and the runtime provisioner reapplies the
+boundary after compatibility grants.
+
+Native and ARM64/QEMU disposable PostgreSQL 16 checks pass migration
+apply/replay, read access, table/column mutation and TRUNCATE denial, stale
+column-grant cleanup, provisioner reapplication, and preservation of synthetic
+Directus grants. A fresh native replay applied all 664 ordered schemas through
+673 and passed all 29 two-tenant scope assertions under verified 1.5 GiB/two-CPU
+limits. It loads no seeds, so the probe confirms the table can be queried but
+does not establish parity against populated GDD rows. No farm data or host ports
+were used; no OOM occurred and cleanup passed. Candidate and legacy databases
+remain untouched.
+
+The refreshed source/ACL report covers 120 declared policies with zero
+mismatches; 1,000 relations still have effective table DML while RLS is
+disabled, so C1 remains open. The runtime-role, report, and schema-replay
+regression selection passes 104 tests. Native/ARM64 ACL checks, Ruff,
+compilation, dependency/provider boundaries, SQL inventory, capability
+validation, and diff checks are recorded for this batch. Rollback retains
+migration 673; restoring runtime writes requires a reviewed forward migration.
+Physical Raspberry Pi and power-failure acceptance remain open, and this does
+not establish populated-data or production acceptance.
+
+Evidence: [migration](../../schemas/postgres/673_runtime_crop_gdd_config_read_only.sql),
+[native ACL](builds/2026-10-27-recovery/crop-gdd-config-runtime-read-only-disposable.json),
+[ARM64/QEMU ACL](builds/2026-10-27-recovery/crop-gdd-config-runtime-read-only-arm64-disposable.json),
+[full native schema and scope probe](builds/2026-10-27-recovery/runtime-role-full-schema-673-native-disposable.json),
+[refreshed source/ACL report](builds/2026-10-27-recovery/sprint-runtime-privilege-callsite-report.json).
+Checklist: 1,287 complete / 25 open (1,312 total); capability classifications
+remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows.
+
+## Progress addendum — Pest degree-day configuration runtime read-only boundary — 27 October 2026
+
+Schema migration 149 defines and inserts the shared `pest_degree_day_config`
+defaults. `services/analytics/pest_management.py` reads them for lifecycle
+tracking; its degree-day recording path writes the separate operational
+`degree_day_record`, and its pest-reference management function writes
+`pest_biology_reference`. The runtime SQL inventory and service/extension scan
+found no writer to the config relation. Migration 674 revokes table and
+residual column INSERT/UPDATE/REFERENCES from `kokonut_runtime`, restores
+SELECT, and the runtime provisioner reapplies that boundary after compatibility
+grants.
+
+Native and ARM64/QEMU disposable PostgreSQL 16 checks pass migration
+apply/replay, SELECT, table/column mutation and TRUNCATE denial, stale column
+grant removal, provisioner reapplication, and preservation of synthetic
+Directus grants. The fresh native full-schema replay applied all 665 ordered
+schemas through migration 674, verified 1.5 GiB/two-CPU limits, and passed all
+30 two-tenant scope assertions. The probe confirms runtime can read the
+schema-defined `fall_armyworm` default. No optional seed files or farm data were
+loaded, no ports were published, no OOM occurred, and cleanup passed; candidate
+and legacy databases remain untouched.
+
+The refreshed report covers 121 declared policies with zero mismatches; 999
+relations still have effective table DML while RLS is disabled, so C1 remains
+open. The runtime-role, report, and schema-replay selection passes 105 tests.
+Ruff, Python compilation, dependency/provider boundaries, SQL inventory,
+capability validation, and diff checks pass. Rollback retains migration 674;
+restoring runtime writes requires a reviewed forward migration. This is
+software-only synthetic acceptance; it does not establish broad populated-data
+or Directus API parity, physical Raspberry Pi acceptance, or production
+operation.
+
+Evidence: [migration](../../schemas/postgres/674_runtime_pest_degree_day_config_read_only.sql),
+[native ACL](builds/2026-10-27-recovery/pest-degree-day-config-runtime-read-only-disposable.json),
+[ARM64/QEMU ACL](builds/2026-10-27-recovery/pest-degree-day-config-runtime-read-only-arm64-disposable.json),
+[full native schema and scope probe](builds/2026-10-27-recovery/runtime-role-full-schema-674-native-disposable.json),
+[refreshed source/ACL report](builds/2026-10-27-recovery/sprint-runtime-privilege-callsite-report.json).
+Checklist: 1,288 complete / 25 open (1,313 total); capability classifications
+remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows.
+
+## Progress addendum — Revenue multiplier configuration runtime read-only boundary — 27 October 2026
+
+Schema 016 defines `revenue_multiplier_config`; optional seed files 015 and 069
+provide its configurable business parameters. `services/revenue_multiplier/config.py`
+reads the table and falls back to code defaults. The runtime SQL inventory and
+service/extension source scan show no table writer. Migration 675 revokes table
+and residual column INSERT/UPDATE/REFERENCES from `kokonut_runtime`, restores
+SELECT, and the runtime provisioner reapplies the boundary after compatibility
+grants. The migration leaves the separate Directus/admin role untouched.
+
+Native and ARM64/QEMU disposable PostgreSQL 16 checks pass migration
+apply/replay, SELECT, table/column mutation and TRUNCATE denial, stale-column
+grant removal, provisioner reapplication, and preservation of synthetic
+Directus grants. A fresh native replay applies all 666 ordered schemas through
+migration 675 and passes all 31 two-tenant scope assertions under verified
+1.5 GiB/two-CPU limits. The runtime probe successfully queries the config
+relation, which is empty because optional seeds were skipped. No farm data or
+host ports were used, no OOM occurred, cleanup passed, and candidate/legacy
+databases remain untouched. Existing revenue multiplier unit tests pass 14
+tests.
+
+The refreshed source/ACL report covers 122 declared policies with zero
+mismatches; 998 relations still have effective table DML while RLS is disabled,
+so C1 remains open. The runtime-role, report, and schema-replay regression
+selection passes 106 tests. Ruff, Python compilation, dependency/provider
+boundaries, SQL inventory, capability validation, and diff checks pass.
+Rollback retains migration 675; restoring runtime writes requires a reviewed
+forward migration. This does not establish configured-value parity, Directus
+API parity, physical Raspberry Pi acceptance, or production operation.
+
+Evidence: [migration](../../schemas/postgres/675_runtime_revenue_multiplier_config_read_only.sql),
+[native ACL](builds/2026-10-27-recovery/revenue-multiplier-config-runtime-read-only-disposable.json),
+[ARM64/QEMU ACL](builds/2026-10-27-recovery/revenue-multiplier-config-runtime-read-only-arm64-disposable.json),
+[full native schema and scope probe](builds/2026-10-27-recovery/runtime-role-full-schema-675-native-disposable.json),
+[refreshed source/ACL report](builds/2026-10-27-recovery/sprint-runtime-privilege-callsite-report.json).
+Checklist: 1,289 complete / 25 open (1,314 total); capability classifications
+remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows.
+
+### Implementation progress — report input scope and Gateway pagination — 28 October 2026
+
+Two further report generators, `replication_readiness` and `scaling_roadmap`, now reject missing location scope before opening a cursor, matching their registered CLI contract. Their selected-location queries retain only reviewed global rows exposed by the safe views. The expanded integrated reporting selection passes 563 tests with four database-dependent skips; the generated source inventory records 167 direct query sites, 166 positional-bind sites, and zero unresolved sites.
+
+Thirty Gateway list families now publish and enforce the downstream service's page-size and offset bounds in OpenAPI: Field Activity, nutrient balances, irrigation, crop simulations, traceability, geostatistics, trend analysis, extension learning, pollinator health, Delphi consultation, Delphi recommendation drafts/reviews, minority review, competitive landscape, business architecture/planning, stakeholder identity/trust, AI-summary review, strategy, sequential decisions, governance roles, planning budgets, business-planning history, threatcasting, Delphi invites, consent notices, all 21 operating-pilot routes, and all 25 solution-lifecycle routes, plus the waste-incident offset cap. Focused route suites pass across all touched modules (6–448 tests per module), including invalid-input rejection before service invocation. The final changed Gateway/operator route selection passes 732 tests after the independent irrigation/crop review added the missing offset upper bounds.
+
+No database, provider, external network, candidate, or legacy service was used for these changes. The query guards align input contracts but do not establish tenant authorization, deployed proxy behavior, or populated-data parity. The capability matrix remains 67 rows (24 baseline-retained, 7 deployed, 36 prepared); no MAN-CAP was accepted. Checklist: 1,350 complete / 25 open (1,375 total).
+
+### Progress addendum — parallel report-scope and Gateway contract batch — 28 October 2026
+
+The report-source review found direct calls that bypassed CLI location
+requirements. All 18 location-only strategy report generators now reject
+missing locations before cursor/helper access. Three location-only Kokonut
+Commons reports and `perpetual_value_stress` do the same, retaining reviewed
+shared public rows only when a farm location is selected. Explicit network
+reports keep their network scope. Location-scoped stakeholder outcomes no
+longer query unlineaged network architecture rows; those remain available from
+the separate `stakeholder_value_streams` report. Location-scoped fork detection
+omits `insight_transfer` until the table has location lineage, while network
+detection keeps the feature. Focused report selections pass 158 strategy tests,
+132 Kokonut Commons tests, and 285 Open Source Capitalist stress/cursor tests.
+The integrated reporting selection passes 563 tests with four database-
+dependent skips. Its generated inventory now records 94 report types, 167
+direct SQL sites, 166 static positional-bind sites, zero unresolved queries,
+and zero bind mismatches.
+
+Gateway pagination contracts now cover the participant Delphi workspace and
+six operator list routes that were missing OpenAPI bounds. The workspace
+enforces `limit=1..50` and `offset=0..10,000`; operator review, mobile
+collection, farm-activity intake/list/published, and inventory routes enforce
+their existing `1..100` cap. Invalid values are rejected before service
+access. The combined changed Gateway/operator route selection passes 732 tests.
+The focused platform-integrity selection passes 374 tests plus six subtests.
+
+The Directus hook suite passes 120 tests and its extension build/typecheck;
+the JavaScript SDK passes 56 tests and TypeScript build; the focused Python
+SDK/outbox/worker selection passes 113 tests. Ruff and Python compilation pass
+for 101 changed Python files, as do dependency/provider-boundary checks and
+capability-matrix validation. No migration, candidate/legacy database,
+provider, or external network was used. Capability classifications remain
+24 baseline-retained, 7 deployed, and 36 prepared across 67 rows; MAN-CAP
+acceptance is unchanged. Checklist: 1,350 complete / 25 open (1,375 total).
+
+Evidence: [report query inventory](report-generator-query-scope-inventory.json),
+[Kokonut Commons scope](builds/2026-10-28-recovery/kokonut-commons-report-location-scope.json),
+[strategy scope](builds/2026-10-28-recovery/stakeholder-outcomes-direct-scope.json),
+[perpetual stress scope](builds/2026-10-28-recovery/perpetual-value-stress-location-scope.json),
+[Delphi workspace bounds](builds/2026-10-28-recovery/delphi-participant-workspace-pagination-openapi.json),
+[operator list bounds](builds/2026-10-28-recovery/operator-list-pagination-openapi-bounds.json),
+[combined verification](builds/2026-10-28-recovery/parallel-report-gateway-contracts.json).
+
+### Progress addendum — parallel C1–C5 source-contract batch — 28 October 2026
+
+The runtime SQL inventory now resolves a query held in one unambiguous local
+assignment when its SQL template uses only literal/f-string fragments. It
+deliberately leaves dynamic identifiers, reassigned variables, and ambiguous
+or helper-produced SQL unresolved. The refreshed inventory records 4,935
+execution sites across 971 files, 1,223 relation candidates, 588 write-target
+relations, and 53 such local templates. The new scan exposed two
+`service_registry` writes in a public helper, but repository search found no
+internal API/CLI/SDK/scheduled caller; migration and seed ownership still need
+reconciliation. `process_benchmark` has no repository caller or seed, but its
+location-linked schema and possibility of external import do not prove it
+should be immutable. `farm_task_framework_step` is an operational cascading
+many-to-many edge without a direct location key; historic reconciliation found
+20 unresolved scope edges among 41 links. No grants on these three relations
+changed.
+
+Gateway pagination now publishes the existing page bounds for data-stream post
+metadata, attachment metadata, federation nodes, and Baal proposal lists. The
+federation route retains its `nodes` field and adds exact `has_more`,
+`next_offset`, and offset-ceiling metadata, so clients can detect when the old
+full-list response has become a bounded page. The pollution-incident queue
+audit found its service already returns at most 100 rows and exposes bounded
+offset, so it received no invented `limit` parameter.
+The JavaScript public API now uses a configurable 10-second request timeout by
+default, matching the Python SDK. The SDK's focused 13 JavaScript tests, 8
+Python tests, and TypeScript build pass.
+
+The Directus source audit confirmed managed `workflow_history` and `approval`
+permissions remain unfiltered and include wildcard fields such as notes and
+rejection reasons. A new explicitly-targeted aggregate-only preflight traces
+only reviewed source-to-location mappings and suppresses identifiers/contents.
+Eight offline tests pass. A no-seed disposable PostgreSQL replay applied all
+671 schemas through migration 680, found 29 required relations and 60 columns,
+and executed both preflight queries read-only; cleanup was verified. The
+database contained no historical rows, so this is SQL/schema compatibility
+only. No Directus permission changed without populated lineage and pinned-runtime
+authorization evidence.
+
+Five location-only report generators now reject missing direct-call locations
+before cursor/analyzer access (`climate_impact`, `revenue_multiplier`,
+`environmental`, `ecological_modeling`, and `ebf_scorecard`). The five focused
+source selections pass 2, 125, 2, 2, and 324 tests. The report query inventory
+is fresh at 94 types, 167 query sites, 166 positional-bind sites, and zero
+unresolved sites or bind mismatches. The other 13 inventory entries lacking a
+visible bound-location SQL predicate were reviewed: twelve are intentionally
+network-scoped and guarded, and `business_plan` has its own location guard.
+
+Worker-contract docs/tests were refreshed to match the current 23 JobSpecs and
+registered sensor contract. The climate CLI/worker audit confirms dataset and
+location preflight before provider/database access and a location-bound,
+default-off signed scheduled worker. Those focused selections pass 40 and 174
+tests. The combined C1–C5 source selection passes 230 tests, plus a separate 31
+route/report checks. SQL-inventory, privilege-report, and write-candidate
+regressions also pass 27 tests after updating the synthetic ACL fixture for
+migration 680's 45 mutation-denied runtime relations. Ruff, Python compilation,
+runtime SQL, report query and helper inventory freshness checks, the
+capability-matrix validator, the JavaScript
+SDK tests, and TypeScript build pass. No provider, candidate/legacy database,
+or populated data was used; no capability classifications or MAN-CAP status
+changed. The credit-custody summary also gained a strict response model for its
+existing service output; seven focused Gateway tests pass, preserving auth and
+response headers. The traceability batch list/detail routes now enforce strict
+service-derived response models that reject unexpected fields and omit actor
+identities, GPS, free text, evidence URLs, and arbitrary payloads; eleven
+focused checks pass with existing authorization and no-store behavior
+preserved. A follow-up C1 source audit found seed-managed impact-framework
+labels that are read-only in application code but may be owner-customizable;
+grants remain unchanged pending confirmation ([catalog audit](builds/2026-10-28-recovery/impact-framework-catalog-candidate-audit.json)). CAP-038 review found existing
+authenticated draft paths already record the session operator, while remaining
+helpers are in-memory/read-only and need a designed dispatch/receipt contract
+before durable attribution. The route audit found the waste incident queue
+already returns no more than 100 rows, so no configurable limit was invented.
+The JavaScript SDK also rejects unsupported timeout values above the browser
+and Node timer limit; fake-timer coverage verifies cleanup on success, failure,
+and abort, including the 1 ms overflow-clamp regression. Eighteen public API
+tests and the TypeScript build pass. The ARM64/QEMU full-schema replay then
+completed through migration 680: 671/671 schemas applied, no pending or failed
+migrations, networking disabled, no seeds/ports/OOM, verified 1.5 GiB/two-CPU
+limits, and cleanup verified. This remains software-only, not Pi hardware or
+production recovery evidence. Checklist: 1,361 complete / 25 open (1,386 total);
+matrix remains 24
+baseline-retained, 7 deployed, and 36 prepared
+across 67 rows.
+
+Evidence: [runtime SQL resolver](builds/2026-10-28-recovery/runtime-sql-local-query-resolution.json),
+[Directus preflight](directus-polymorphic-lineage-preflight.md),
+[Directus schema replay](builds/2026-10-28-recovery/directus-polymorphic-lineage-schema-disposable.json),
+[data-stream post pagination](builds/2026-10-28-recovery/data-stream-post-list-pagination-openapi.json),
+[attachment pagination](builds/2026-10-28-recovery/data-stream-file-list-pagination.json),
+[federation pagination](builds/2026-10-28-recovery/federation-node-list-pagination.json),
+[Baal proposal pagination](builds/2026-10-28-recovery/baal-proposal-list-pagination-openapi.json),
+[SDK timeout parity](builds/2026-10-28-recovery/sdk-public-api-timeout-parity.json),
+[traceability response contract](builds/2026-10-28-recovery/traceability-response-contract.json),
+[SDK timeout overflow fix](builds/2026-10-28-recovery/sdk-javascript-timeout-overflow.json),
+[ARM64 full schema replay through 680](builds/2026-10-28-recovery/arm64-resource-limited-schema-680.json),
+[report query inventory](report-generator-query-scope-inventory.json),
+[worker source contract](builds/2026-10-28-recovery/worker-job-source-contract-refresh.json).
+
+The additive `core` deployment profile now uses a separate hash-locked
+dependency closure. Web3, spreadsheet/S3 export, and local encrypted media are
+selectable overlays, while the existing full-capability profiles retain their
+current images. The release gate checks core-only and all-overlay OCI package
+inventories for AMD64 and ARM64; local imports and profile contracts pass, but
+the hosted multi-architecture build remains pending. Core intentionally does
+not claim OIDC support until its identity/runtime composition is implemented.
+Evidence: [core profile contract](builds/2026-10-28-recovery/kernel-core-profile-contract.json),
+[profile selection](profile-selection.md), and
+[release input gate](kernel-release-inputs.md).
+
+The parallel C2/C5 follow-up added a strict, privacy-bounded OIDC attestation
+response contract (20 focused Gateway checks) and closed two source-confirmed
+cross-location report leaks: tactical companion threats now remain within the
+selected location, and State-of-Kokonut actor/funding queries bind every
+selected location while empty scopes fail before reads. The focused report
+selections pass 73 and 285 tests, and helper/query inventories are current.
+C1 source review found the pest-reference tables retain service/CLI writers;
+C4 review found the legacy Yahoo flow does not persist observations, can report
+an empty fetch as success, and never runs its documented attestation step, so
+it remains unregistered. These checks closed no candidate or production gate.
+Evidence: [attestation contract](builds/2026-10-28-recovery/attestation-response-model-contract.json),
+[tactical scope](builds/2026-10-28-recovery/tactical-layer-companion-location-scope.json),
+[State of Kokonut scope](builds/2026-10-28-recovery/state-of-kokonut-selected-actor-scope.json),
+[pest-reference audit](builds/2026-10-28-recovery/pest-reference-runtime-write-audit.json),
+[Yahoo flow audit](builds/2026-10-28-recovery/yahoo-price-feed-contract-audit.json).
+Checklist: 1,367 complete / 25 open (1,392 total); matrix remains 24
+baseline-retained, 7 deployed, and 36 prepared across 67 rows.
+
+### Progress addendum — parallel Kernel-hardening batch — 28 October 2026
+
+The user-authorized parallel pass used independent agents for Gateway
+contracts, Directus policy, reporting scope, provider jobs, SDK parity, ARM64
+profiles, candidate runtime ACLs, and capability review. It closed six
+source-verifiable checklist items:
+
+- Migration 681 makes `metric_definition` read-only to `kokonut_runtime`.
+  The current service inventory has 25 SELECT sites across 15 files and no
+  write targets; curated edits remain on the admin seed/migration path.
+  Disposable PostgreSQL 16 apply/replay, runtime SELECT, denied table/column
+  writes, provisioner reapplication, and Directus-role preservation all pass.
+  The overall synthetic harness covers 127 relations: 79 private, 46
+  mutation-denied, and two append-only. This is not RLS or tenant-isolation
+  evidence, and full-schema replay remains at migration 679.
+- The location-scoped ecocredit batch route validates a bounded response model
+  and omits undeclared wallet/account fields; 13 focused route/OpenAPI checks
+  pass while auth and cache headers remain intact.
+- The Python SDK rejects invalid timeouts before networking while keeping its
+  10-second default; 17 focused tests and generated-contract checks pass.
+- Tenant-scoped Directus reads reject unresolved relationship predicates,
+  `_some`/`_none`, relation sort, and relation grouping. Twelve focused hook
+  tests and TypeScript checks pass; populated/live Directus parity stays open.
+- The legacy Prefect health-check flow remains unregistered because its probes
+  assume the legacy full-stack topology and it has no profile-aware Kernel
+  health contract.
+- The edge Compose profile's 1 GiB/two-CPU app and database limits now have an
+  offline regression. This does not measure Raspberry Pi runtime behavior.
+
+The C5 re-audit found no further safe location-scope fix beyond the report
+changes already made; C6 found no additional source-only capability work that
+avoids owner or populated-data decisions. The combined Gateway/report
+selection passes 385 tests; the focused kernel-profile regression passes one
+test; the C1 static/runtime-role pair passes two, and its disposable PostgreSQL
+acceptance passes. Ruff, Python compilation, TypeScript, SQL/report/helper
+inventory freshness, capability validation, and diff checks pass. No
+candidate/legacy database, production identity, external provider, or live
+Directus service was used.
+
+The latest checklist is 1,373 complete / 25 open (1,398 total). Capability
+classifications remain 24 baseline-retained, 7 deployed, and 36 prepared across
+67 rows; no MAN-CAP acceptance changed.
+
+### Progress addendum — parallel Kernel hardening follow-up — 28 October 2026
+
+Four more checklist items closed without changing capability classifications.
+The detailed `/api/health/services` route now requires `service_health:read`
+before probing PostgreSQL, ClickHouse, or Directus; public `/health` liveness
+remains available. The default-off signed weather-forecast worker now consumes
+its dedicated `KOKONUT_WEATHER_FORECAST_OPENWEATHERMAP_API_KEY`, routed through
+the standard and portability worker profiles, and fails before database access
+when that key is missing. The full-schema runtime ACL report now separates the
+actual observation through migration 679 from current source policy at migration
+681; it shows the historical runtime DML grant on `metric_definition` and marks
+the current full-schema replay as unobserved. Source review found no next safe
+catalog revoke: `competency_framework` contains editable training policy and
+needs its curator/administration path confirmed. The TypeScript SDK audit also
+confirmed it is gRPC-only, so the REST SDK timeout contract does not justify a
+new default deadline for long-running unary or streaming calls.
+
+Integrated checks pass: 417 Gateway/report tests; 89 runtime-role/report tests;
+227 forecast-worker/scheduler contract tests; 67 Python SDK/profile tests; 121
+Directus hook tests; and the Directus TypeScript check. Changed Python Ruff and
+compilation, report/runtime SQL inventories, worker source/function/SQL
+reachability and boundary inventories, provider boundaries, release-input lock,
+requirement groups, capability matrix, and `git diff --check` pass. The
+separate migration-681 disposable PostgreSQL acceptance remains recorded in
+its evidence and verified runtime read/write denial plus Directus grant
+preservation. No candidate/legacy database, live provider, external identity,
+or production deployment was used in this follow-up.
+
+The current checklist is 1,377 complete / 25 open (1,402 total). The capability
+matrix remains 67 rows: 24 baseline-retained, 7 deployed, and 36 prepared; MAN-CAP
+acceptance is unchanged. Evidence: [detailed health boundary](builds/2026-10-28-recovery/detailed-health-route-auth-boundary.json),
+[forecast provider-key routing](builds/2026-10-28-recovery/weather-forecast-provider-key-routing.json),
+[runtime ACL report provenance](builds/2026-10-28-recovery/sprint-runtime-privilege-callsite-report.json),
+[metric-definition disposable acceptance](builds/2026-10-28-recovery/runtime-scoped-write-boundary-disposable.json),
+[competency-framework source audit](builds/2026-10-28-recovery/competency-framework-runtime-write-audit.json),
+[Directus relation boundary](builds/2026-10-28-recovery/directus-relation-query-boundary.json).
+
+### Progress addendum — parallel CLI, Gateway, worker, and replay hardening — 28 October 2026
+
+Five additional checklist items closed without changing capability classifications.
+The anonymous driver catalog now reads a stable, enabled-only projection and
+limits each page to 50 rows with continuation metadata; registry internals are
+not exposed. Location-only tactical analytics commands require a valid
+location or an explicit all-locations mode before opening the database. The
+isolated ClickHouse outbox receives `CLICKHOUSE_PASSWORD` through an exact
+worker allowlist while other isolated workers continue to exclude it. Schema
+replay ACL expectations now derive from the current runtime-role policy and
+reject stale counts.
+
+A fresh network-disabled native PostgreSQL 16 replay applied all 672 ordered
+schema files through migration 681 under verified 1.5 GiB/two-CPU limits. It
+had zero pending or failed files, no host ports/seeds/farm data, and completed
+cleanup. The two-tenant runtime/operator probe passed with 79 private, 46
+mutation-denied, and two append-only relations; direct table/column privilege
+violations were zero. The regenerated ACL report observes current migration
+and source policy and verifies the `metric_definition` SELECT-only boundary.
+This is disposable synthetic evidence only; candidate/legacy databases and
+providers were untouched, global tenant isolation remains open, and physical
+Raspberry Pi acceptance is not claimed.
+
+The combined focused selection passes 165 tests; the refreshed ACL-report and
+runtime-role regressions pass 89 tests. Ruff, Python compilation, the
+capability validator, runtime SQL and worker inventories, dependency/provider
+boundaries, and `git diff --check` pass. The current checklist is 1,382 complete / 25
+open (1,407 total). Capability classifications remain 24 baseline-retained,
+7 deployed, and 36 prepared across 67 rows; MAN-CAP acceptance is unchanged.
+Evidence: [public driver catalog](builds/2026-10-28-recovery/public-driver-catalog-projection.json),
+[tactical analytics CLI scope](builds/2026-10-28-recovery/analytics-tactical-cli-scope-preflight.json),
+[ClickHouse worker secret routing](builds/2026-10-28-recovery/worker-clickhouse-secret-routing.json),
+[native full schema replay through 681](builds/2026-10-28-recovery/runtime-role-full-schema-681-native-disposable.json),
+[runtime ACL report](builds/2026-10-28-recovery/sprint-runtime-privilege-callsite-report.json).
+
+Evidence: [metric-definition ACL](builds/2026-10-28-recovery/runtime-scoped-write-boundary-disposable.json),
+[ecocredit response](builds/2026-10-28-recovery/ecocredit-batch-response-contract.json),
+[Python SDK deadline](builds/2026-10-28-recovery/sdk-python-public-api-timeout-parity.json),
+[Directus relation boundary](builds/2026-10-28-recovery/directus-relation-query-boundary.json),
+[health-check flow audit](builds/2026-10-28-recovery/prefect-health-check-contract-audit.json),
+[edge resource contract](builds/2026-10-28-recovery/edge-compose-resource-contract.json),
+[Yahoo price-feed audit](builds/2026-10-28-recovery/yahoo-price-feed-contract-audit.json),
+[C5 scope evidence](builds/2026-10-28-recovery/state-of-kokonut-selected-actor-scope.json).
+
+### Progress addendum — public driver SDK and Directus reference scoping — 28 October 2026
+
+The native Gateway now exposes the enabled driver catalog as a versioned,
+anonymous GET with bounded pagination and a generated OpenAPI envelope. Python
+and TypeScript clients expose typed pagination, validate limits before making
+requests, and use the checked-in generated route/schema. `has_more` is false
+when the next page offset would exceed the advertised ceiling. Database
+failures now propagate to a generic no-store 500 instead of an empty page. The
+focused Python Gateway/OpenAPI/SDK selection passes 47 tests; the JavaScript
+public API suite passes 25 tests and the full JavaScript SDK suite passes 73;
+TypeScript build and generated SDK freshness checks pass.
+
+The optional Directus tenant hook now places the requested location in each
+writable-reference lookup and returns the same unavailable error for missing
+and foreign-location UUIDs. Fourteen focused tests verify the SQL predicates
+and non-disclosure behavior; the full extension suite passes 124 tests, and
+the extension bundle and TypeScript check pass.
+This narrows the source-level adapter boundary only; live Directus permissions,
+effective role/field/row parity, and populated data remain open.
+
+Ruff, Python compilation, and `git diff --check` pass for the changed Python
+surface. A separate network-disabled ARM64/QEMU replay applied all 672 ordered
+schema files through migration 681 under verified 1.5 GiB/two-CPU limits; it
+did not run the optional operator-scope probe, so it is schema portability
+evidence only. Cleanup completed without OOM or candidate/legacy access. The
+current checklist is 1,386 complete / 25 open (1,411 total); the
+67 capability rows remain 24 baseline-retained, 7 deployed, and 36 prepared,
+with MAN-CAP acceptance unchanged. Evidence: [driver API/SDK](builds/2026-10-28-recovery/public-driver-catalog-v1-sdk-parity.json),
+[Directus reference boundary](builds/2026-10-28-recovery/directus-tenant-reference-nondisclosure.json),
+[ARM64/QEMU schema replay](builds/2026-10-28-recovery/arm64-resource-limited-schema-681.json).
+
+### Progress addendum — ARM64 resource-limit preflight — 28 October 2026
+
+The ARM64 schema replay runner now rejects a positive CPU budget that rounds
+to zero nanocpus during argument parsing. Previously it could pass the
+positive-finite check and fail later at `docker update --cpus 0`, after creating
+the disposable database. The focused runner suite passes 26 tests, including
+exact 0.5- and 2-CPU conversions and rejection of `1e-12`; the CLI smoke check
+returns its argument error before any Docker command. Ruff, compilation,
+capability-matrix validation, and diff checks pass. No Docker or database was
+used, and no candidate/legacy state changed. This improves failure handling
+only; ARM64 runtime, physical Pi, and production recovery gates remain open.
+
+Evidence: [resource-limit preflight](builds/2026-10-28-recovery/arm64-resource-limit-nanocpu-preflight.json).
+Checklist: 1,387 complete / 25 open (1,412 total); capability classifications
+remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows, with
+MAN-CAP acceptance unchanged.
+
+### Progress addendum — cooperative management response contract — 28 October 2026
+
+The private location-scoped cooperative summary now publishes a strict
+OpenAPI success response model and explicitly validates its projection before
+constructing `JSONResponse`. Extra fields fail closed to a generic no-store
+500; existing 403, 404, 400, and 503 responses retain their payloads and cache
+headers. Ten focused route tests, Ruff, compilation, and diff checks pass with
+fakes; no database, candidate, legacy service, or provider was used. This
+closes one response-contract slice, not live authorization or populated-data
+parity.
+
+Evidence: [cooperative summary response contract](builds/2026-10-28-recovery/cooperative-summary-response-contract.json).
+Checklist: 1,388 complete / 25 open (1,413 total); capability classifications
+remain unchanged.
+
+### Progress addendum — unresolved SQL write review gate — 28 October 2026
+
+The runtime SQL inventory check now enforces an explicit review ledger for
+unresolved direct DML and conservative `WITH` candidates. Its 37 pre-existing
+entries (eight unresolved DML targets and 29 `WITH` statements) are tracked by
+a pinned baseline; the hosted `ci-check.sh` inventory check now fails new candidates
+with metadata that explicitly says review is not ACL approval. Scope-AST
+fingerprints with per-scope ordinals catch same-scope binding edits and
+duplicate call sites while ignoring line movement. Twenty-two focused inventory
+tests pass, and the combined C1/C2/C7/driver-catalog selection passes 119
+tests. The refreshed 4,936-site inventory and ledger checks pass. Ruff and
+compilation pass; no database or Docker was used. This detects source drift but
+does not reduce broad runtime grants or prove query reachability/RLS. Values
+from parameters, imports, mutable globals, and helper calls are outside the
+fingerprint.
+
+Evidence: [unresolved-write drift gate](builds/2026-10-28-recovery/runtime-sql-unresolved-write-drift-gate.json).
+Checklist: 1,389 complete / 25 open (1,414 total); capability classifications
+remain unchanged.
+
+### Progress addendum — yield-monitoring response contract — 28 October 2026
+
+The private location-scoped yield-monitoring summary now publishes strict
+OpenAPI response models for its aggregate groups and bounded recent-harvest
+projection. The route validates the service result before constructing
+`JSONResponse`; extra or malformed values return a sanitized no-store 500.
+Fourteen focused tests cover the schema, exact success projection, malformed
+fields, and unchanged authorization, database, and cache behavior. The
+combined C1/C2/C7/driver-catalog selection passes 119 tests. No database or
+provider was used; live OIDC and populated-data parity remain open.
+
+Evidence: [yield summary response contract](builds/2026-10-28-recovery/yield-summary-response-contract.json).
+Checklist: 1,390 complete / 25 open (1,415 total); capability classifications
+remain unchanged.
+
+### Progress addendum — coordination and emergency response contracts — 28 October 2026
+
+The location-scoped coordination-governance and emergency-response aggregate
+routes now publish strict OpenAPI success models and validate service
+projections before returning JSON. Coordination requires its exact location
+identifier and 19 strict nonnegative count fields. Emergency response uses the
+database-constrained incident/severity values, strict nonnegative counts,
+bounded percentages, and maximum group sizes. Invalid projections fail with a
+sanitized no-store response; the existing authorization, input, database, and
+Retry-After contracts are preserved. Focused route selections pass 16 and 18
+tests respectively with fakes. The combined C1/C2/C7/driver-contract selection
+passes 153 tests. Ruff, compilation, the runtime SQL inventory/ledger, the
+capability-matrix validator, generated SDK parity, shell syntax, JSON parsing,
+and diff checks pass. No database or provider was used. Live OIDC,
+populated-data parity, and broader tenant isolation remain open.
+
+Evidence: [coordination summary contract](builds/2026-10-28-recovery/coordination-governance-response-contract.json),
+[emergency-response summary contract](builds/2026-10-28-recovery/emergency-response-summary-contract.json),
+[combined response-contract batch](builds/2026-10-28-recovery/response-contract-batch.json).
+Checklist: 1,392 complete / 25 open (1,417 total); capability classifications
+remain unchanged.
+
+### Progress addendum — three private Gateway summary contracts — 28 October 2026
+
+Comprehensive Status now publishes a one-location response envelope with the
+exact 14 canonical sections and preserves its existing 512 KiB cap. The
+individual section bodies remain JSON-compatible until their generators have
+been audited, so this does not claim strict nested parity. Energy monitoring
+now validates nested source, renewable, efficiency, and cost aggregates against
+schema values and query-derived bounds. True-cost accounting now validates all
+six nested aggregate sections, enum values, finite numeric fields, and the
+requested location identity. The routes preserve existing auth and error/cache
+behavior. These three modules pass 55 focused route tests with fakes; no
+database or provider was used. The comprehensive C1/C2/C7/driver selection
+passes 208 tests including these three route modules. Ruff, compilation, the
+runtime SQL inventory/ledger, capability-matrix validator, generated SDK
+parity, worker-job inventory, shell syntax, JSON parsing, and diff checks pass.
+Live OIDC, populated-data parity, and broader tenant isolation remain open.
+
+Evidence: [Comprehensive Status](builds/2026-10-28-recovery/comprehensive-status-response-contract.json),
+[energy](builds/2026-10-28-recovery/energy-summary-response-contract.json),
+[true-cost](builds/2026-10-28-recovery/true-cost-summary-response-contract.json),
+[combined regression batch](builds/2026-10-28-recovery/private-summary-contract-batch.json).
+Checklist: 1,395 complete / 25 open (1,420 total); capability classifications
+remain unchanged.
+
+### Progress addendum — three more private Gateway summaries — 28 October 2026
+
+Business architecture now publishes strict mission and roadmap mapping models,
+including schema enums, nullable joins, bounded records, and request-matched
+pagination. Extension learning publishes strict catalog and aggregate summary
+contracts with enum-derived bounds and location matching. Waste management now
+validates its nested waste, composting, recycling, and incident aggregates,
+including schema enums, count/finite-number constraints, requested period, and
+location identity. Existing authorization, database, cache, and Retry-After
+behavior remains intact. These slices pass 73 focused tests; the combined
+C1/C2/C7/driver selection passes 281 tests. Ruff, compilation, inventory and
+matrix gates, generated SDK parity, worker-job inventory, JSON parsing, and
+diff checks pass. No database or provider was used. Live OIDC, populated-data
+parity, and broader tenant isolation remain open.
+
+Evidence: [business architecture](builds/2026-10-28-recovery/business-architecture-summary-response-contract.json),
+[extension learning](builds/2026-10-28-recovery/extension-learning-response-contract.json),
+[waste summary](builds/2026-10-28-recovery/waste-summary-response-contract.json),
+[combined route batch](builds/2026-10-28-recovery/gateway-route-response-contract-batch.json).
+Checklist: 1,398 complete / 25 open (1,423 total); capability classifications
+remain unchanged.
+
+
+### Progress addendum — irrigation, landscape, and pollinator response contracts — 28 October 2026
+
+The private irrigation status route now validates the service projection with
+a strict response model, including nested zone fields, active/pending status
+values, positive grouped counts, requested-location identity, and pagination
+consistent with the requested page. The landscape conservation and pollinator
+health summaries now enforce strict nested aggregate contracts with
+schema-aligned enums, bounded groups, count and finite-number checks, and
+location identity. Existing auth and error/cache behavior is preserved; invalid
+service projections return sanitized no-store errors. Updating the shared test
+fixtures restored full success-path coverage across the routes. The combined
+selection passes 77 tests; Ruff, Python compilation, the capability-matrix
+validator, and diff checks pass. No database/provider was used, and candidate
+and legacy services were untouched. This does not establish live OIDC,
+populated-data parity, or broader tenant isolation.
+
+Evidence: [irrigation](builds/2026-10-28-recovery/irrigation-status-response-contract.json),
+[landscape](builds/2026-10-28-recovery/landscape-summary-response-contract.json),
+[pollinator](builds/2026-10-28-recovery/pollinator-summary-response-contract.json),
+[combined selection](builds/2026-10-28-recovery/irrigation-landscape-pollinator-response-contract-batch.json).
+Checklist: 1,401 complete / 25 open (1,426 total); capability classifications
+remain unchanged.
+
+
+### Progress addendum — nutrient, strategy, competitive landscape, and CI inventory portability — 28 October 2026
+
+The private nutrient-balance route now rejects malformed aggregate projections
+and pagination totals, including invalid continuation past the 10,000-offset
+cap. The location-scoped strategy-plan response matches the migration 452
+query bounds and excludes rationale, party identities, private amounts, and
+execution authority. Competitive-landscape results expose only validated
+aggregates and omit identity and evidence fields. All three preserve their
+authorization, sanitized error, and cache contracts.
+
+The hosted CI failure on the runtime SQL review gate was caused by Python 3.12
+including an empty `type_params` AST field in fingerprints. The scanner now
+normalizes that version-only field from a copied tree while retaining generic
+parameters; both supported Python runtimes pass the inventory gate without
+changing the unresolved-write ledger or its pinned digest.
+
+The combined Gateway response selection passes 182 tests; the runtime SQL
+inventory suite passes 24. Ruff, compilation, matrix validation, fresh
+inventory checks on Python 3.11 and 3.12, and diff checks pass. The Python 3.12
+interpreter lacks pytest, so its inventory gate and compilation were verified
+there while the inventory regression suite ran on Python 3.11. No live
+database/provider, candidate, or legacy service was used. Evidence: [nutrient
+response](builds/2026-10-28-recovery/nutrient-balances-response-contract.json),
+[strategy response](builds/2026-10-28-recovery/strategy-plan-response-contract.json),
+[competitive-landscape response](builds/2026-10-28-recovery/competitive-landscape-response-contract.json),
+[Python-version fingerprint repair](builds/2026-10-28-recovery/runtime-sql-inventory-python312-ast-normalization.json),
+[combined verification](builds/2026-10-28-recovery/gateway-nutrient-strategy-competitive-response-contract-batch.json).
+Checklist: 1,405 complete / 25 open (1,430 total); capability classifications
+remain unchanged.
+
+
+### Progress addendum — six more private Gateway response families — 28 October 2026
+
+The crop-simulation run list and detail routes now validate strict nested
+responses and request identity while excluding raw run configuration, errors,
+costs, and metadata. Their service readers and response models now stop
+advertising another page when it would exceed offset 10,000; regressions cover
+offsets 9,975, 9,976, and 10,000. The geostatistics autocorrelation read now
+publishes a schema-derived model with strict enums, finite numeric values, and
+location/pagination binding. All five trend-analysis GET routes publish
+strict nested response schemas and bind location, metric, and page values.
+
+Management-work summaries now expose only schema-derived counts and the latest
+event time. Business-planning canvas reads validate the nine canonical content
+blocks and stop continuation at the offset ceiling. Planning-budget reads
+validate financial summary types and status, omit plan narrative, vendor,
+transaction, scenario-assumption, and evidence detail, and stop continuation
+at the same cap.
+
+The combined Gateway selection passes 188 tests and the crop module passes 36,
+including the offset-boundary cases. Ruff, compilation, capability-matrix
+validation, evidence JSON parsing, runtime SQL inventory checks on Python
+3.11/3.12, and diff checks pass; the 37-entry unresolved-write ledger remains
+unchanged. No live database/provider, candidate, or legacy service was used. These are
+source/API contracts only; populated-data parity, live OIDC/browser behavior,
+tenant isolation, and physical Raspberry Pi acceptance remain open. Evidence:
+[crop](builds/2026-10-28-recovery/crop-simulation-response-contract.json),
+[geostatistics](builds/2026-10-28-recovery/geostatistics-autocorrelation-response-contract.json),
+[trend](builds/2026-10-28-recovery/trend-analysis-get-response-contracts.json),
+[management](builds/2026-10-28-recovery/management-work-summary-response-contract.json),
+[business planning](builds/2026-10-28-recovery/business-planning-canvas-response-contract.json),
+[planning budget](builds/2026-10-28-recovery/planning-budget-summary-response-contract.json),
+[combined verification](builds/2026-10-28-recovery/gateway-private-response-contracts-batch-2.json).
+Checklist: 1,411 complete / 25 open (1,436 total); capability classifications
+remain unchanged.
+
+
+### Implementation progress — 28 October 2026 — geostatistics and pollinator responses
+
+All eight saved geostatistics GET routes now have strict response contracts,
+including cross-validation fold aggregates, variogram models, sensor-network
+designs, kriging summaries/points, and realization summaries/points. Returned
+location/run IDs, page bounds, field allowlists, source enums, finite values,
+coordinate bounds, and point numbering are checked. Pollinator review queue,
+habitat details, and hive details now publish strict OpenAPI schemas; review
+details use a record-type-discriminated union. Existing location grants and
+no-store sanitized error behavior are preserved.
+
+The affected readers stop advertising continuation when the next page would
+exceed offset 10,000. The combined geostatistics/pollinator route selection
+passes 158 tests; the runtime SQL inventory regression suite passes 24 and the
+inventory is current on Python 3.11/3.12. Two conservative geostatistics CTE
+fingerprints changed because the pagination code changed inside their lexical
+scopes. Source review confirmed both statements are SELECT-only; the ledger now
+tracks their current fingerprints as reviewed-unresolved, with no ACL approval
+or grants changed. Ruff, compilation, capability-matrix validation, and diff
+checks pass. No live database/provider, candidate, or legacy service was used.
+Live OIDC, populated-data parity, and broader tenant isolation remain open.
+
+The checklist now records 1,414 complete / 25 open (1,439 total); the TODO
+ledger has 121 checked / 16 open entries. The capability matrix records 38
+strict private Gateway response endpoints across 67 rows and remains at 24
+baseline-retained, 7 deployed, and 36 prepared. MAN-CAP acceptance is
+unchanged. Evidence: [combined Gateway contract checks](builds/2026-10-28-recovery/gateway-geostatistics-pollinator-response-contracts.json).
+
+
+### Progress addendum — six private Gateway response contracts — 28 October 2026
+
+The AI-summary review queue now validates the full migration-backed source
+catalog, including network and mixed-scope labels and the unregistered-worker
+blocker. Business-canvas version history validates its canonical snapshot
+blocks and byte bound. Sequential-evidence summaries and timelines validate
+the fixed SQL outputs, request scope, and page metadata. Nutrient soil-test and
+input/removal reads validate nested source fields, event type, cost
+classification, totals, and the 10,000-offset ceiling. Existing private grants,
+no-store behavior, and error boundaries remain unchanged.
+
+The combined selection passes 157 focused Gateway tests and 24 runtime-SQL
+inventory regression tests. Ruff, Python 3.11 compilation, capability-matrix
+validation, inventory freshness on Python 3.11/3.12, and diff checks pass. The
+inventory source-line shifts do not change its 37 unresolved candidates or
+review ledger; no grants changed. No live database, provider, candidate, or
+legacy service was used. Populated-data parity, live OIDC/browser behavior, and
+broader tenant/RLS acceptance remain open. Evidence:
+[batch 4](builds/2026-10-28-recovery/gateway-private-read-contracts-batch-4.json).
+
+The checklist records 1,418 complete / 25 open (1,443 total), the TODO ledger
+has 125 checked / 16 open entries, and the matrix records 44 strict private
+Gateway response endpoints across 67 rows. Capability classifications remain
+24 baseline-retained, 7 deployed, and 36 prepared; MAN-CAP acceptance is
+unchanged.
+
+
+### Progress addendum — Delphi, stakeholder, and incident response contracts — 28 October 2026
+
+Seven additional private GET route templates now publish bounded response
+schemas and validate their runtime projections: Delphi consent notices,
+consultation studies, minority reports and recommendations; stakeholder
+identity cases and trust evidence; and pollution incidents. Request location,
+party, page, and cursor identities are checked. Delphi consultation results
+retain the minimum-participant privacy floor, and independent-review queues
+preserve their readiness blockers. JSONB item timestamps accept only an aware
+ISO timestamp representation.
+
+The combined focused Gateway selection passes 198 tests; Ruff, Python
+compilation, capability validation, runtime SQL inventory freshness on Python
+3.11/3.12, and diff checks pass. The runtime inventory contains the same 37
+unresolved write candidates; no grant or migration changed. No database,
+provider, candidate, or legacy service was used. Live OIDC/browser behavior,
+populated-data parity, and broader tenant isolation remain open. Evidence:
+[batch evidence](builds/2026-10-28-recovery/gateway-delphi-stakeholder-incident-response-contracts.json).
+
+The checklist now records 1,422 complete / 25 open (1,447 total); the TODO
+ledger has 129 checked / 16 open entries. The capability matrix records 51
+strict private Gateway response endpoints across 67 rows. Classifications
+remain 24 baseline-retained, 7 deployed, and 36 prepared; MAN-CAP acceptance
+is unchanged.
+
+
+### Progress addendum — parallel read-contract and source-scope batch — 28 October 2026
+
+The Delphi participant-invite inventory and threatcasting backcast-plan
+list/detail routes now publish strict OpenAPI success schemas and validate
+their runtime projections against requested scope, order, cursor, and bounded
+pagination. The invite projection excludes private tokens; threatcasting stays
+advisory-only. The optional Directus tenant hook now validates MRV sensor-device
+and sensor-alert references against their owning device's location. Its
+polymorphic source-record list remains unresolved because source table identity
+is absent from the payload. Four State-of-Kokonut funding/actor queries now use
+static named parameters for both the selected-location and explicit network
+rollup paths. The report helper inventory resolves 169/169 sites.
+
+The focused Python selection passes 279 tests; Directus tenant validation
+passes 16 tests and the extension bundle/typecheck succeeds. Ruff, Python
+compilation, capability-matrix validation, report-inventory checks, runtime SQL
+inventory checks on Python 3.11/3.12, and diff checks pass. The runtime SQL
+unresolved-write ledger remains at 37 candidates. No migration, database,
+provider, candidate, or legacy service was used. The matrix records 54 strict
+private Gateway response endpoints across 67 rows (24 baseline-retained, 7
+deployed, 36 prepared); no capability classification or MAN-CAP acceptance
+changed. Live Directus API/field/row parity, OIDC/browser behavior,
+populated-data parity, and broader tenant isolation remain open ([evidence](batches.md)).
+
+The checklist is 1,426 complete / 25 open (1,451 total); the TODO ledger has
+133 checked / 16 open entries.
+
+
+### Progress addendum — governance queue and weekly workflow correction — 28 October 2026
+
+The governance tension review queue now publishes a strict success response
+schema and validates exact request location, allowed source enums, severity,
+aware timestamps, projection fields, ordering, and cursor-to-last-item
+consistency. Invalid service projections return its sanitized no-store error.
+The weekly Prefect flow no longer claims ML retraining: the source function
+only invokes climate refresh, and a regression locks that actual behavior.
+Legacy ML retraining remains outside the Kernel scheduler contract pending a
+dedicated signed source identity and bounded retry/idempotency design.
+
+The governance/Prefect focused selection passes 39 tests. Ruff, compilation,
+runtime SQL inventory checks on Python 3.11/3.12, capability validation, and
+diff checks pass. The inventory retains its 37 unresolved candidates. A
+parallel source audit found no further safe Directus reference mapping, report
+query change, or provider JobSpec without better source or owner data. The
+matrix now records 55 strict private Gateway response endpoints across 67 rows
+(24 baseline-retained, 7 deployed, and 36 prepared); classifications and
+MAN-CAP acceptance are unchanged. No database, provider, candidate, or legacy
+service was used ([evidence](builds/2026-10-28-recovery/kernel-governance-weekly-contract-batch.json)).
+
+The checklist is 1,428 complete / 25 open (1,453 total); the TODO ledger has
+135 checked / 16 open entries.
+
+
+### Progress addendum — stakeholder identity resolution read contract — 28 October 2026
+
+The private location-scoped stakeholder identity resolution route now has a
+strict OpenAPI and runtime response model. It publishes only the requested
+location, canonical party UUID, and aware resolution timestamp. Extra fields,
+invalid identifiers, and naive timestamps fail closed with a sanitized
+no-store error. The identity route family passes 31 tests; Ruff, compilation,
+diff checks, and runtime SQL inventory freshness on Python 3.11/3.12 pass.
+
+The matrix records 56 strict private Gateway response endpoints across 67
+capabilities. A C1 source audit found no safe next ACL revoke: `consent_data_type`
+is reseeded by an upsert in schema 148, has retention fields changed by
+migration 401, and is owned by Data Governance/Consent. Grants remain
+unchanged pending owner confirmation. The C6 audit likewise found that
+remaining CAP-035 through CAP-038 gaps require owner policy, populated lineage,
+or live acceptance. No migration, database, provider, candidate, or legacy
+service was used ([evidence](builds/2026-10-28-recovery/kernel-stakeholder-identity-resolution-response.json)).
+
+The checklist is 1,429 complete / 25 open (1,454 total); the TODO ledger has
+136 checked / 16 open entries.
+
+
+### Progress addendum — Delphi readiness response and REST SDK parity — 28 October 2026
+
+The location-scoped Delphi study-open-readiness route now publishes a strict
+success schema and validates the exact SQL function projection, requested study
+and location, fixed blocker order, and eligibility facts. Bad service output
+returns its sanitized no-store error. The native Python and JavaScript REST
+clients now both preserve the underlying HTTP response on HTTP, malformed-JSON,
+and invalid-envelope exceptions; transport failures remain response-less.
+
+The focused Delphi/route-policy/Python SDK selection passes 67 tests and the
+JavaScript selection passes 28; the JavaScript TypeScript build, Ruff,
+compilation, diff check, and Python 3.11/3.12 runtime SQL inventory checks pass.
+The unresolved SQL review ledger remains at 37 candidates. A second C1 source
+audit found no safe runtime ACL migration: `bio_ingredient_composition_reference`
+has a governed lifecycle and appears in the agent-write allowlist. Its grants
+remain unchanged. The matrix now records 57 strict private Gateway response
+endpoints across 67 rows (24 baseline-retained, 7 deployed, 36 prepared). No
+migration, database, provider, candidate, or legacy service was used
+([evidence](builds/2026-10-28-recovery/kernel-delphi-readiness-sdk-parity-batch.json)).
+
+The checklist is 1,431 complete / 25 open (1,456 total); the TODO ledger has
+138 checked / 16 open entries.
+
+
+### Progress addendum — Gateway response and SDK catalog contracts — 28 October 2026
+
+Private farm-activity summary and published-summary routes now expose strict
+OpenAPI/runtime contracts, validate the requested location, exclude Field
+Collector records, and limit the published view to verified or published
+rows. Pollution incident resolution now validates its exact location/incident
+identity and resolved state. Governance-tension detail now has a strict safe
+projection and bounded event contract bound to the request IDs. The native
+Python and JavaScript REST clients validate public driver-catalog pages against
+the generated exact field, type, enum, and bound contract before constructing
+typed results. They also verify that response pagination echoes the requested
+limit and offset.
+
+Focused Python tests pass (93) across the four affected route/SDK areas; the
+JavaScript SDK tests pass (39), and its TypeScript build, Ruff, Python
+compilation, and diff checks pass. The capability matrix records 61 strict
+private Gateway response endpoints across 67 rows (24 baseline-retained, 7
+deployed, 36 prepared). No migration, database, provider, candidate, or legacy
+service was used ([evidence](builds/2026-10-28-recovery/kernel-gateway-sdk-contract-batch.json)).
+
+The checklist is 1,435 complete / 25 open (1,460 total); the TODO ledger has
+142 checked / 16 open entries. Capability classifications and MAN-CAP
+acceptance remain unchanged.
+
+
+### Progress addendum — Directus, report-scope, and operating-pilot contracts — 28 October 2026
+
+The optional Directus tenant hook now checks retirement-certificate retirement,
+credit, and batch references against the certificate location on create and
+update; the shared credit-class reference remains global. Location-required
+strategy report paths reject missing or malformed location UUIDs before opening
+the database, while network-scope behavior remains intact. The operating-pilot
+resource-category route now validates its exact request-bound page, ordering,
+continuation, and small-count suppression projection.
+
+Focused checks pass: 21 Directus tenant-hook tests and TypeScript checking, 107
+strategy/report tests with four database-dependent skips, and 15 operating-pilot
+resource-category tests. Ruff, Python compilation, report-query inventory
+validation (94 report types, 167 query sites, no unresolved/bind mismatches),
+and diff checks pass. The capability matrix records 62 strict private Gateway
+response endpoints across 67 rows; classifications remain 24 baseline-retained,
+7 deployed, and 36 prepared. The checklist is 1,438 complete / 25 open; TODO is
+145 checked / 16 open. No migration, database, provider, candidate, or legacy
+service was used. Evidence: [batch](builds/2026-10-28-recovery/kernel-directus-operating-report-contracts.json).
+
+
+### Progress addendum — tenant, report, SDK, and Gateway contracts — 28 October 2026
+
+Directus now validates the `revenue_event` sales-event and financial-transaction
+references against the event's location on create and update. Two optional
+treasury/value-flow references were deliberately left unchanged: their source
+tables allow null locations, so enforcing equality would require an owner
+decision about legitimate network-wide references. The forecast report now
+requires a UUID location before opening a cursor; its report reads already bind
+that location. Python SDK malformed Directus error envelopes now use the same
+stable `HTTP <status>` fallback as JavaScript, avoiding arbitrary raw-body
+disclosure.
+
+The Delphi draft-study list now has an exact location/page-bound response model
+and suppresses `has_more` when the next request would exceed the 10,000 offset
+ceiling. Comprehensive Status validates the nested `crop_noi` report against
+its generator's SQL-backed projection and enclosing location; other section
+bodies remain JSON-compatible pending independent generator audits.
+
+The farm-summary audit found that the section uses `SELECT *` across location,
+farm, plot, and crop-cycle relations, so additive schema changes can expand its
+payload without a contract change. It also aggregates financial transactions
+without a lifecycle status while other farm-summary subqueries filter by
+verification/publication. This remains open until a reviewed field allowlist
+and consistent report-measure semantics are defined; no output was changed.
+
+The integrated focused suites pass 459 Python tests, 90 JavaScript tests, and
+24 Directus tenant-hook tests. JavaScript build and Directus TypeScript checks,
+Ruff, Python compilation, report-query inventory validation, and diff checks
+pass. The capability matrix records 63 strict private Gateway response
+endpoints across 67 rows (24 baseline-retained, 7 deployed, 36 prepared). The
+checklist is 1,443 complete / 25 open; TODO is 150 checked / 16 open. No
+migration, database, provider, candidate, legacy service, or live network was
+used. Evidence: [batch](builds/2026-10-28-recovery/kernel-parallel-tenant-report-sdk-contracts.json).
+
+
+### Progress addendum — Directus, report scope, and environmental response contracts — 28 October 2026
+
+Directus now validates `expense_event.farm_task_id` against the expense
+location on create and update; schema and migration evidence confirm a
+same-location contract. `generate_climate_impact` now rejects missing, `all`,
+malformed, and multi-location identifiers before opening a cursor or invoking
+helpers, while its shared protocol reference remains unchanged.
+
+Comprehensive Status now validates the environmental section against its four
+explicit SQL projections and the enclosing location. PostgreSQL `Decimal`
+measurements are converted to finite JSON numbers by the shared response
+validator. The generator's lifecycle filters, ignored period arguments, and
+free-text species notes/loss causes are unchanged; they need semantic and
+audience review. The farm-summary contract remains open because of its
+`SELECT *` projections and mixed lifecycle filters.
+
+Focused checks pass: 41 Python tests across climate scope, Comprehensive Status,
+environmental response, and crop-NOI; 25 Directus tenant-hook tests; Directus
+TypeScript checking, Ruff, compilation, report-query inventory validation, and
+diff checks pass. The matrix remains 67 rows (24 baseline-retained, 7 deployed,
+36 prepared) and records 63 strict private Gateway response endpoints. The
+checklist is 1,446 complete / 25 open; TODO is 153 checked / 16 open. No
+migration, database, provider, candidate, legacy service, or live network was
+used. Evidence: [batch](builds/2026-10-28-recovery/kernel-parallel-directus-report-environment-contracts.json).
+
+
+### Progress addendum — direct report scope and private response contracts — 28 October 2026
+
+Directus now validates `farm_activity.farm_task_id` and
+`expense_event.weekly_plan_id` against the owning location on create and
+update. The `crop_noi`, `resource_efficiency`, `holistic_wellbeing`, and
+`revenue_multiplier` generators reject malformed, `all`, and multi-location
+scope before opening a cursor or calling an analyzer. Farm-activity detail,
+governance-role detail, and the report-review queue now validate source-derived
+response projections and bind them to the request while retaining tenant
+denials and no-store behavior.
+
+The Directus `workflow_history` and `approval` audit found no location key on
+their polymorphic rows. Their filters remain open pending populated lineage and
+approval-visibility rules. The separate Comprehensive Status `farm_summary`
+field/lifecycle review also remains open.
+
+The integrated focused selection passes 411 Python tests and 27 Directus
+tenant-hook tests; TypeScript, Ruff, compilation, both report inventories,
+matrix validation, and diff hygiene pass. The matrix records 66 strict private
+Gateway response endpoints across 67 capabilities; checklist is 1,455 complete
+/ 25 open and TODO is 162 checked / 16 open. No migration, database, provider,
+candidate, legacy service, or live network was used. Evidence: [batch](builds/2026-10-28-recovery/kernel-parallel-report-and-gateway-contracts.json).
+
+
+### Progress addendum — Directus, report scope, and private queue contracts — 28 October 2026
+
+The curated Analyst `stakeholder_feedback` permission now declares only its
+public-safe fields while preserving existing row predicates. A broader
+wildcard audit found the Auditor's all-status access serves forensic review;
+the repository does not define a safe private-field subset, so that permission
+remains unchanged. Neither source change establishes deployed Directus
+permissions or tenant isolation.
+
+Direct calls to `generate_farm_summary` and `generate_regenerative_outcomes`
+now reject missing, aggregate, malformed, and multi-location scope before
+opening a cursor; their SQL projections and report semantics are unchanged.
+The `farm_summary` schema audit counted 33 location, 28 farm, 24 plot, and 30
+crop-cycle keys. Its broad-audience field allowlist and consistent lifecycle
+measures remain open.
+
+The private mobile-collection review queue and farm-activity intake queue now
+publish exact OpenAPI/runtime response contracts bound to the requested
+location. They reject undeclared or inconsistent service projections while
+preserving existing authorization, wire shape, and no-store behavior. The
+integrated focused selection passes 400 tests; Ruff, Python compilation,
+report inventories, Directus permission inventory, capability-matrix
+validation, and diff checks pass. The matrix records 68 strict private Gateway
+response endpoints across 67 capabilities (24 baseline-retained, 7 deployed,
+36 prepared). Checklist: 1,461 complete / 25 open; TODO: 168 checked / 16 open.
+No migration, database, provider, Directus runtime, candidate, legacy service,
+or live network was used. Evidence: [batch](builds/2026-10-28-recovery/kernel-parallel-directus-mobile-report-scope-contracts.json).
+
+
+### Progress addendum — GNH scope, mobile inventory contract, and forecast tenant reads — 28 October 2026
+
+Direct calls to `generate_gnh_alignment` now validate a single location UUID
+before cursor creation. The private mobile operations inventory publishes a
+strict, request-bound success model and checks queue counters and device-limit
+values without exposing collection content. The optional Directus tenant
+adapter now treats `forecast_output` as location-scoped and read-only: the
+grant filter and returned-row check deny unassigned outputs.
+
+The integrated selection passes 422 Python tests and 138 Directus extension
+tests; extension build/typecheck, Ruff, Python compilation, report
+source/query inventories, capability-matrix validation, and diff hygiene
+pass. The matrix remains 67 rows (24 baseline-retained, 7 deployed, 36
+prepared) and records 69 strict private Gateway response endpoints. Checklist:
+1,464 complete / 25 open; TODO: 171 checked / 16 open. No migration, database,
+provider, live Directus runtime, candidate, legacy service, or live network was
+used. Runtime permissions and historical forecast lineage remain unverified.
+Evidence: [batch](builds/2026-10-28-recovery/kernel-parallel-gnh-mobile-inventory-forecast-output-boundary.json).
+
+
+### Progress addendum — report, CLI, Governance API, and Directus reads — 28 October 2026
+
+The capital-provider utility report now validates its required location UUID
+before opening a cursor. The traceability `create-batch` and `certs` commands
+reject malformed location UUIDs before the shared CLI opens PostgreSQL. The
+private Governance roles page now validates its exact service projection,
+requested location, page bound, and continuation cursor. Directus tenant reads
+now also cover `noi_snapshot` and `water_access`; both use required direct
+location keys and read-only grants, so writes are denied.
+
+The integrated selection passes 459 Python tests with three skipped and 140
+Directus extension tests. The extension build/typecheck, Ruff, Python
+compilation, report inventories, matrix validation, and diff checks pass. The
+matrix remains 67 rows (24 baseline-retained, 7 deployed, 36 prepared) and
+records 70 strict private Gateway response endpoints. Directus runtime
+enforcement and populated parity remain unverified. Checklist: 1,469 complete
+/ 25 open; TODO: 176 checked / 16 open. No database, provider, live Directus
+runtime, candidate, legacy service, or live network was used. Evidence:
+[batch](builds/2026-10-28-recovery/kernel-parallel-report-cli-governance-directus-reads.json).
+
+
+### Progress addendum — cultural report scope, crop CLI, retirement page, and Directus capex reads — 28 October 2026
+
+Direct `generate_cultural_preservation` calls now reject invalid location UUIDs
+before cursor creation. Crop-rotation CLI commands validate required location
+arguments, and validate the optional `record-impact` location when supplied,
+before the shared command runner can open PostgreSQL. The solution-retirement
+candidate GET now has a strict OpenAPI/runtime response model bound to the
+requested location, offset, page size, and continuation state. The optional
+Directus hook now grant-scopes `capex_breakdown` and denies its mutations.
+
+The integrated focused selection passes 551 Python tests and 141 Directus
+extension tests. Extension build/typecheck, Ruff, compilation, report
+inventories, matrix validation, and diff hygiene pass. The capability matrix
+remains 67 rows (24 baseline-retained, 7 deployed, 36 prepared) and now records
+71 strict private Gateway response endpoints. The Directus adapter covers 26
+location-scoped collections, all source-validated; live runtime and populated
+data parity remain open. Checklist: 1,473 complete / 25 open; TODO: 180
+checked / 16 open. No database, provider, Directus runtime, candidate, legacy
+service, or live network was used. Evidence:
+[batch](builds/2026-10-28-recovery/kernel-parallel-culture-crop-solution-capex-boundaries.json).
+
+
+### Progress addendum — renewable report, pollinator CLI, own-capacity page, and Directus attestation — 28 October 2026
+
+Direct `generate_renewable_energy` calls now reject malformed location scope
+before opening a cursor. The pollinator health CLI validates the location UUID
+for its five active database-backed reads before connecting; retired write
+commands remain unchanged. The private own-capacity page now validates the
+migration-554 projection, source/status enums, period and capacity invariants,
+requested location, and pagination against its signed own-operator query. The
+optional Directus hook now scopes `attestation_plan` reads to operator grants
+and denies mutations.
+
+The integrated focused selection passes 573 Python tests and 142 Directus
+extension tests. Extension build/typecheck, Ruff, compilation, report
+inventories, matrix validation, and diff hygiene pass. The capability matrix
+remains 67 rows (24 baseline-retained, 7 deployed, 36 prepared) and records 72
+strict private Gateway response endpoints. The Directus source adapter covers
+27 location-scoped collections; live runtime enforcement and populated parity
+remain open. Checklist: 1,477 complete / 25 open; TODO: 184 checked / 16 open.
+No database, provider, live Directus runtime, candidate, legacy service, or
+live network was used. Evidence:
+[batch](builds/2026-10-28-recovery/kernel-parallel-renewable-pollinator-capacity-attestation.json).
+
+
+### Local-only progress addendum — wellbeing reports, energy CLI, Delphi workspace, and Directus source audit — 28 October 2026
+
+Direct vulnerable-access and foundational-wellbeing report calls now reject malformed location scope before opening a cursor. The energy-monitoring `add-source` CLI validates its location UUID before database setup. The Delphi participant workspace has a strict session-derived response contract, including the exact consent-scope allowlist and request-bound pagination. A bounded Directus source audit found all twelve collections with a direct required location key and a managed read permission are already covered by the 27-collection tenant adapter; broader runtime, relationship, field, hook/schedule, and populated-data parity remain open.
+
+The integrated focused Python selection passes 437 tests. Ruff, compilation, report inventories, capability-matrix validation, and diff checks pass. Checklist: 1,482 complete / 25 open; TODO: 188 checked / 16 open. The matrix remains 67 rows (24 baseline-retained, 7 deployed, 36 prepared), with 73 strict private Gateway response endpoints. No migration, database, provider, Directus runtime, candidate, legacy service, or live network was used. Evidence: `docs/refactor/builds/2026-10-28-recovery/kernel-parallel-wellbeing-energy-delphi-directus-audit.json`.
+
+
+### Progress addendum — report scope, CLI preflight, Gateway responses, and Directus tenant reads — 28 October 2026
+
+Fourteen direct report entry points now reject malformed location UUIDs before cursor or analyzer access. Ten CLI command groups preflight location UUIDs before opening PostgreSQL while retaining global modes and optional unfiltered reads. The private Governance tactical-item page and Data Stream attestation read now validate exact response projections, request scope, and pagination; the tactical action text also follows migration 445's nonblank 4,000-character bound. The optional Directus tenant adapter adds read-only, grant-filtered `digital_lego_usage` access, bringing its source-covered location collection count to 28. Report source and query-scope inventories were regenerated.
+
+The combined focused selection passes 715 Python tests; the Directus extension suite passes 143 tests and its build/typecheck succeeds. Ruff, Python compilation, report inventories, capability-matrix validation, and diff checks pass. Checklist: 1,487 complete / 25 open; TODO: 193 checked / 16 open. The capability matrix remains 67 rows (24 baseline-retained, 7 deployed, 36 prepared), with 75 strict private Gateway response endpoints. Live OIDC, Gateway database behavior, effective Directus permissions, populated data parity, and broader tenant isolation remain open. No database, provider, Directus runtime, candidate, legacy service, or live network was used. Evidence: `docs/refactor/builds/2026-10-28-recovery/kernel-parallel-report-cli-gateway-directus-guards.json`.
+
+
+### Progress addendum — remaining report scope, operating-pilot response, and Directus audit — 28 October 2026
+
+All nineteen registered, location-scoped report generators found in the latest source audit now reject malformed or missing UUID scope before cursor access. The private operating-pilot own-resource-request history page validates its exact migration-backed projection, request location/page, descending `(updated_at, id)` order, field bounds, and continuation semantics. A bounded Directus source audit found no further safe managed-read collection with direct location lineage; remaining approval, workflow-history, and file-like reads require verified polymorphic source joins.
+
+The combined focused report/Gateway selection passes 712 Python tests with 7 skips. Ruff, Python compilation, report inventories, capability-matrix validation, and diff checks pass. Checklist: 1,491 complete / 25 open; TODO: 197 checked / 16 open. The matrix remains 67 rows (24 baseline-retained, 7 deployed, 36 prepared), with 76 strict private Gateway response endpoints and 28 Directus location-scoped collections. Live OIDC, production database behavior, effective Directus permissions, populated parity, and polymorphic lineage remain open. No database, provider, Directus runtime, candidate, legacy service, or live network was used. Evidence: `docs/refactor/builds/2026-10-28-recovery/kernel-parallel-report-gateway-acceptance.json`.
+
+
+### Progress addendum — CLI/report scope preflight and competency history response — 28 October 2026
+
+Five additional mixed-scope report paths now reject malformed local UUIDs before cursor/helper access, while network-wide scaling and aggregate value-stream modes keep their existing behavior. The private operating-pilot own competency-assessment page now has a strict OpenAPI/runtime projection with migration-backed field limits and status values, request-bound location and pagination, descending SQL ordering, unique draft IDs, and consistent continuation. Invalid database projections fail closed with a generic no-store response.
+
+Location UUID preflight now covers 17 CLI groups: Capital, Certificates, Drivers, Events, Finance, Forecast, Fortune500, Geostatistics, Graph Projection, Management, Office, Planning, RDF, Revenue Multiplier, Sandbox, Strategic Reserve, and Threatcasting. Their intentional global modes remain available when the optional scope is omitted. This is an input-safety boundary only; it does not prove database row-level isolation.
+
+The combined route/report/CLI regression selection passes 745 tests with 2 skips. Ruff passes on changed files; Graph Projection passes Ruff import/undefined-name checks, with its legacy compact formatting E701/E702 findings documented. Python compilation, both report inventory checks, capability-matrix validation, and `git diff --check` pass. The matrix remains 67 rows (24 baseline-retained, 7 deployed, 36 prepared), and strict private Gateway response endpoints increase from 76 to 77. Checklist: 1,494 complete / 25 open; TODO: 200 checked / 16 open. No database, provider, live network, candidate, or legacy service was used. Evidence: `docs/refactor/builds/2026-10-28-recovery/kernel-scope-preflight-competency-response.json`.
+
+
+### Progress addendum — operating-pilot response, report scope, and CLI preflight — 28 October 2026
+
+The private operating-pilot capacity-period and work-claim pages now validate strict response projections, request location and pagination, ordering, and capacity/count suppression rules. Business-plan and State-of-Kokonut report entry points reject malformed selected location UUIDs before query/helper access while retaining their intentional `all` or unfiltered modes. CLI preflight now covers seven additional groups: Data Stream, Security verification, Precision Irrigation, stakeholder grievances, Treasury, Cooperative, and Traceability. Their malformed location values fail before database or provisioning work, and supported no-scope behavior remains available. Report source, helper, and query inventories were regenerated.
+
+The integrated route/report/CLI selection passes 961 tests. Adjacent grievance, Treasury, Cooperative, and Traceability suites pass 94 tests, with 2 skips and 4 passing subtests. Ruff, Python compilation, all report inventory checks, capability-matrix validation, and diff checks pass. The capability matrix remains 67 rows (24 baseline-retained, 7 deployed, 36 prepared); strict private Gateway response endpoints increase from 77 to 79, and location UUID preflight covers 24 CLI groups. Checklist: 1,498 complete / 25 open; TODO: 204 checked / 16 open. No database, provider, live network, candidate, or legacy service was used. Broader tenant isolation and authenticated Gateway/database behavior remain open. Evidence: `docs/refactor/builds/2026-10-28-recovery/kernel-parallel-response-report-cli-boundaries.json`.
+
+
+### Progress addendum — work opportunities, governance detail, CRISP, and report audit — 28 October 2026
+
+The private operating-pilot work-opportunities page now has a strict projection matching the migration JSON, including own-claim consistency, priority/due-date ordering, request scope, and pagination. The private governance-circle detail page validates its exact seven-field query projection against both requested IDs. CRISP validates supplied location UUIDs before database setup, and Data Governance canonicalizes UUIDs in both accepted flag forms. A source audit across all 94 registered reports found no location-scope validation gap.
+
+The combined operating-pilot/Gateway/CLI regression passes 262 tests; adjacent governance tests pass 44 with 5 skips. Focused CRISP and Data Governance selections pass 97 and 9 tests, and the route-specific work-opportunity and governance-circle selections pass 110 and 39; these selections overlap. Ruff, Python compilation, the report source inventory, capability-matrix validation, and diff checks pass. The capability matrix remains 67 rows (24 baseline-retained, 7 deployed, 36 prepared), with 81 strict private Gateway response endpoints and 25 CLI groups preflighting location UUIDs. Checklist: 1,503 complete / 25 open; TODO: 209 checked / 16 open. No database, provider, live network, candidate, or legacy service was used. Live OIDC, tenant isolation, and populated parity remain open. Evidence: `docs/refactor/builds/2026-10-28-recovery/kernel-parallel-governance-work-opportunity-boundaries.json`.
+
+
+### Progress addendum — solution lifecycle gate response and CLI UUID preflight — 28 October 2026
+
+The private solution-lifecycle gate page now enforces a strict response contract against the migration's 16-field projection. It binds the requested location and page, verifies the canonical 1–6 maturity range, checks unique gate IDs and stable `(created_at DESC, id ASC)` order, and validates exact continuation behavior. Analytics now validates and canonicalizes location UUIDs for all 13 database-backed commands before dispatch; Credit Class does the same for location-bearing batch and enrollment operations.
+
+The integrated Gateway/CLI selection passes 159 tests. Ruff, Python compilation, capability-matrix validation, and diff checks pass. Strict private Gateway response contracts now total 82 and CLI location UUID preflight covers 27 groups. Checklist: 1,506 complete / 25 open; TODO: 212 checked / 16 open. The matrix remains 67 rows (24 baseline-retained, 7 deployed, 36 prepared). No database, provider, candidate, legacy service, or live network was used; these checks do not establish tenant isolation, live OIDC, or populated-data parity. Evidence: `docs/refactor/builds/2026-10-28-recovery/kernel-parallel-solution-lifecycle-cli-boundaries.json`.
+
+
+### Progress addendum — solution lifecycle read contracts and CLI UUID normalization — 28 October 2026
+
+The private stage-transition target page, aggregate summary, and experiment page now publish strict request-bound contracts against migrations 503, 459, and 467. The models enforce exact fields, location identity, enum and numeric bounds, pagination/continuation, SQL ordering, and aggregate consistency. Seven domain CLIs now pass canonical location UUIDs to handlers before database setup while preserving required and optional scope behavior.
+
+The integrated Gateway/CLI selection passes 295 tests. Ruff, Python compilation, capability-matrix validation, and diff checks pass. Strict private Gateway response contracts total 85; the 27 counted CLI groups retain UUID preflight. Checklist: 1,510 complete / 25 open; TODO: 215 checked / 16 open. The matrix remains 67 rows (24 baseline-retained, 7 deployed, 36 prepared). No database, provider, candidate, legacy service, or live network was used. Mocked source checks do not prove live OIDC/database behavior, tenant isolation, or populated parity. Evidence: `docs/refactor/builds/2026-10-28-recovery/kernel-parallel-solution-lifecycle-read-and-cli-canonicalization.json`.
+
+
+### Progress addendum — lifecycle, demand-signals, and pollinator CLI — 28 October 2026
+
+The private solution-lifecycle funding-target page now publishes a strict
+migration-488 response projection and validates location, pagination, enum and
+name bounds, continuation, duplicate IDs, and reproducible same-name UUID
+ordering. The private operating-pilot demand-signals page now enforces
+migration 479's redacted field set, location and pagination binding, SQL order,
+scope consistency, date/status rules, and the `NUMERIC(10,2)` maximum. Pollinator
+health CLI reads canonicalize the supplied location UUID before the command
+runner can open PostgreSQL; retired writes remain outside that read preflight.
+
+The combined Gateway/CLI regression selection passes 564 tests. Ruff, Python
+compilation, capability-matrix validation, and diff checks pass. The capability
+matrix remains 67 rows (24 baseline-retained, 7 deployed, 36 prepared), with 87
+strict private Gateway response contracts and 27 counted CLI groups retaining
+UUID preflight. Checklist: 1,513 complete / 25 open; TODO: 218 checked / 16
+open. No database, provider, candidate, legacy service, or live network was
+used. Mocked Gateway checks do not prove live OIDC, tenant RLS, or populated
+parity. Evidence:
+`docs/refactor/builds/2026-10-28-recovery/kernel-parallel-lifecycle-demand-pollinator.json`.
+
+
+### Progress addendum — private export foundation — 28 October 2026
+
+C2 now has a local private artifact-storage port that accepts UUID keys, uses
+0700/0600 permissions, rejects symlink traversal, replaces writes atomically,
+and only deletes on an explicit call. It applies no cleanup schedule. A
+separate pure report-snapshot serializer requires exact location scope,
+verified/published status, a matching SHA-256, and payloads within 512 KiB; it
+returns only `report_data` and ignores legacy `file_url`.
+
+The two focused suites pass 33 tests total; Ruff, compilation, and diff hygiene
+pass. No database/provider was used. The queue, current-grant reader, Gateway
+download, worker, R2 adapter, and dynamic retention integration remain open.
+Checklist: 1,515 complete / 25 open; TODO: 220 checked / 16 open. Matrix
+classifications remain unchanged. Evidence:
+`docs/refactor/builds/2026-10-28-recovery/kernel-c2-private-export-primitives.json`.
+
+
+### Progress addendum — service registry boundary and SQL review reconciliation — 28 October 2026
+
+Migration 682 makes the global `service_registry` catalog readable but
+immutable to `kokonut_runtime`; runtime-role provisioning reapplies the same
+table and column boundary after compatibility grants. The unused registration,
+update, deprecation, and retirement helpers now fail explicitly before opening
+a database connection. Directus permissions and capability-service mappings
+remain unchanged. Disposable PostgreSQL 16 replay and re-provisioning checks
+passed across 128 synthetic tables.
+
+The source/policy selection passes 118 tests; migration checks pass 37, and
+post-reconciliation SQL inventory/privilege checks pass 32. The SQL scanner is
+current with 37 tracked unresolved candidates. A pre-existing stale fingerprint
+for `generate_farm_summary` was reconciled after source review confirmed that
+its CTEs are SELECT-only; the scanner retains it as `reviewed_unresolved`, and
+this is not ACL approval. Checklist: 1,517 complete / 25 open; TODO: 222
+checked / 16 open. The capability matrix remains 67 rows. No candidate or
+legacy database was touched; this does not establish RLS or tenant isolation.
+Evidence:
+`docs/refactor/builds/2026-10-28-recovery/kernel-c1-service-registry-boundary.json`.
+
+
+### Progress addendum — durable private report snapshot exports — 28 October 2026
+
+C2 now connects the private artifact store and verified-snapshot serializer to
+an idempotent location-scoped request queue, strict operator create/list/detail
+routes, a reauthorized artifact-download route, and a dedicated default-off
+one-shot worker. Migration 683 provides bounded API and worker functions,
+forced-RLS source reads, append-only attempt receipts, retry scheduling, and
+lease fencing; neither runtime nor Directus can access the new queue tables
+directly. The API's signed tenant-context setter locks current grant and owner
+rows, so its normal transactions call only fixed bounded read functions rather
+than using PostgreSQL `READ ONLY`, which is incompatible with those locks.
+
+The integrated focused Gateway/worker/migration-contract/runtime-role/route
+policy and worker-inventory selection passes **238 tests**; the bounded-read
+follow-up passes **65 storage/Gateway/worker tests**, and the refreshed worker
+function-graph regression passes **13 tests**. The
+network-disabled disposable PostgreSQL 16 acceptance applies and replays
+migration 683 on native x86_64 and ARM64/QEMU (`aarch64`), verifying synthetic
+two-tenant authorization, lifecycle/hash checks, forced RLS, direct-table and
+function boundaries, retries, atomic receipts, and worker lease fencing.
+ARM64/QEMU is portability evidence, not a physical Raspberry Pi run. Ruff,
+compilation, seven worker/runtime SQL inventory checks, capability-matrix
+validation, dependency-group alignment, provider-boundary checks, and diff
+checks pass. The isolated worker is present in refreshed source/function/SQL
+inventories; aggregate worker preflight remains `review_required` for broader
+existing boundary debt. The latest migration digest is
+`0c78b7736819330a3741fb2c7416395b1f9a62a0ba8362698306226e395fd56a`.
+Candidate and legacy databases remain untouched; live OIDC, candidate rollout,
+browser/worker recovery, R2, retention ownership, populated report parity, and
+stakeholder access remain open. C2 and MAN-CAP acceptance are not complete.
+Evidence: [contract](report-snapshot-export-contract.md),
+[bounded-read checks](builds/2026-10-28-recovery/report-snapshot-export-bounded-read-checks.json),
+[integrated checks](builds/2026-10-28-recovery/report-snapshot-export-integration-checks.json),
+[disposable acceptance](builds/2026-10-28-recovery/report-snapshot-export-migration-disposable.json).
+
+Checklist: 1,519 complete / 25 open; TODO: 224 checked / 16 open. The matrix
+remains 67 rows (24 baseline-retained, 7 deployed, 36 prepared); the three
+strict export create/list/detail contracts bring its recorded private-response
+count to 90. Capability classifications and MAN-CAP acceptance are unchanged.
+
+### Progress addendum — optional S3-compatible report artifact storage — 28 October 2026
+
+The report artifact port now has a lazy S3-compatible adapter for optional R2
+use while retaining local storage as the default. It accepts only UUID-derived
+keys below a fixed private prefix, requires bounded streaming reads, and does
+not expose provider URLs or exception text. Compose passes separate Gateway
+read-only and worker write/delete credentials; neither needs `ListBucket`.
+The optional boto3 import stays within the exports dependency group.
+
+The focused storage/Gateway/worker selection passes 77 tests, and the worker-inventory regression selection passes 67 tests with all seven generated reports current. Ruff,
+compilation, dependency-group alignment, and provider-boundary checks pass.
+Coverage uses a synthetic client and did not contact R2 or any database.
+Production bucket policy/connectivity, inventory and deletion, backup/retention,
+and orphan reconciliation remain open. Evidence:
+[contract](report-snapshot-export-contract.md),
+[adapter checks](builds/2026-10-28-recovery/report-snapshot-export-s3-adapter-checks.json).
+
+Checklist: 1,520 complete / 25 open; TODO: 225 checked / 16 open. Capability
+classifications remain 24 baseline-retained, 7 deployed, and 36 prepared.
+
+### Progress addendum — parallel C1/C2/C5 source-contract batch — 28 October 2026
+
+The conservative runtime SQL scanner now resolves a single immutable
+same-module string or literal-only f-string binding when source proves it is
+unconditional and unshadowed. Reassignment, conditional stores, imports,
+dynamic initialization, and ambiguous bindings remain unresolved. Its module
+binding participates in the review fingerprint, so edits to a resolved query
+template are detected. The refreshed inventory records 4,960 execution sites
+across 984 files, 1,243 relation candidates, and 587 write-target relations.
+Two tenant-preflight `WITH` candidates and the changed report CTE were source-
+reviewed and recorded; those reviews do not approve ACL changes.
+
+The four protected Baal Gateway reads now validate config, proposal-list,
+proposal-detail, and member projections against strict OpenAPI/runtime models.
+Authentication errors match the actual middleware body, no-store and
+authorization behavior remain intact, and the routes stay outside the public
+OpenAPI/SDK contract. Farm-summary queries now select explicit current-schema
+fields rather than `SELECT *`; financial lifecycle semantics were not changed.
+
+The focused Gateway/report/scanner selection passes 75 tests, and the
+worker/static-inventory regression selection passes 67. Ruff, compilation,
+three report inventories, seven worker/runtime inventories, dependency-group
+alignment, provider boundaries, and capability validation pass. A parallel
+Directus audit found no safe additional collection change without populated
+polymorphic-lineage review; the SDK parity audit found no missing public
+operation. The ACL candidate audit found no additional table safe to revoke
+from source evidence alone. The legacy Prefect health flow remains
+unregistered pending a profile-aware alert/retry contract. No migration,
+database, provider, candidate, or legacy service was used. Aggregate worker
+preflight remains `review_required`. Evidence:
+[batch](builds/2026-10-28-recovery/kernel-parallel-c1-c2-c5-code-batch.json).
+
+Checklist: 1,524 complete / 25 open; TODO: 227 checked / 16 open. The
+capability matrix remains 67 rows (24 baseline-retained, 7 deployed, 36
+prepared); MAN-CAP acceptance and classifications are unchanged.
+
+### C1 runtime-role regression check — 28 October 2026
+
+Following migrations 682–683, the documented disposable runtime-role check
+passed against the current provisioner. Compatibility grants were reapplied
+before verifying 79 private, 47 mutation-only, and two append-only boundaries
+across 128 synthetic PostgreSQL 16 tables. Source migrations and bounded
+Gateway functions were not installed or exercised; full-schema replay remains
+through migration 681. Tenant isolation and production grant acceptance remain
+open ([evidence](builds/2026-10-28-recovery/runtime-scoped-write-boundary-disposable.json)).
+
+### Progress addendum — strict composite-report section contracts — 28 October 2026
+
+Comprehensive Status now validates its farm-summary and published
+financial-sustainability sections with strict nested models. They mirror the
+current report/view projections, retain the existing bounded section-error
+shape, and bind the financial report and each plan row to the requested
+location. The climate-impact projection changed, while its filters, lifecycle
+behavior, and financial calculations remain unchanged. It explicitly selects all 24 current
+`climate_impact_summary` columns while preserving its location/year bindings
+and complete returned row.
+
+The combined Gateway/composite-report/climate selection passes 56 tests. Ruff,
+compilation, all three report inventories, and diff checks pass. Existing farm
+and plot geometry, metadata, actor IDs, and public financial summary contents
+remain present; this validates shape and scope rather than content-level
+privacy or populated-data parity. No migration, database, candidate, legacy
+service, or provider was used. Evidence:
+[batch](builds/2026-10-28-recovery/kernel-parallel-comprehensive-report-contracts.json).
+
+Checklist: 1,526 complete / 25 open; TODO: 229 checked / 16 open. The
+capability matrix remains 67 rows (24 baseline-retained, 7 deployed, 36
+prepared); MAN-CAP acceptance and classifications are unchanged.
+
+### Progress addendum — climate and Statement of Work contracts — 28 October 2026
+
+The private Comprehensive Status climate-impact section now has a strict
+success/error contract. It binds the report and nested calculation/stored
+summary location and year, and it retains the generator's declared shared
+operations-protocol metadata. Current evidence/reviewer/source fields and
+period-calculation semantics remain unchanged. The SOW report now selects
+explicit migration-063 projections for its main row and the deliverable,
+payment-schedule, and change-request rows; parent/location predicates,
+ordering, and serialized output are preserved.
+
+The combined Gateway, composite-report, SOW, report-scope, cursor-cleanup, and
+inventory selection passes 457 tests. Ruff, compilation, all three report
+inventories, and diff checks pass. This does not review existing note, invoice,
+raw-source, evidence-path, or reviewer-ID content for privacy, and it does
+not establish populated-data parity. No database, migration, candidate,
+legacy service, or provider was used. Evidence:
+[batch](builds/2026-10-28-recovery/kernel-parallel-climate-sow-contracts.json).
+
+Checklist: 1,528 complete / 25 open; TODO: 231 checked / 16 open. The
+capability matrix remains 67 rows (24 baseline-retained, 7 deployed, 36
+prepared); MAN-CAP acceptance and classifications are unchanged.
+
+### Progress addendum — parallel response and report projection contracts — 28 October 2026
+
+Comprehensive Status now has a strict regenerative-outcomes success/error
+contract that binds the report and each row to the requested location, checks
+period order, and verifies the total restored hectares while preserving the
+existing summary and metadata. The federation node response validates its
+`shared_capabilities` as JSON at runtime while preserving the existing JSONB
+shape; the route policy, pagination, and SDK exposure are unchanged. Pydantic's
+recursive `JsonValue` currently emits an empty OpenAPI schema component. The
+stakeholder-outcome report now selects its 22 current schema columns, and Green
+Paper publication status selects its 14 view fields explicitly.
+
+The integrated Gateway, composite-report, federation, route-policy, SDK,
+financial-resilience, stakeholder, and report-inventory selection passes 525
+tests. Ruff, Python compilation, all three report-generator inventories,
+capability-matrix validation, and diff checks pass. Existing summaries,
+metadata, stakeholder descriptions/actors, and Green Paper path/reviewer/CID/
+hash values remain present; this work does not establish content-level privacy
+or populated-data parity. No migration, database, candidate, legacy service,
+provider, or production resource was used. Evidence:
+[batch](builds/2026-10-28-recovery/kernel-parallel-regenerative-federation-report-projections.json).
+
+Checklist: 1,532 complete / 25 open (1,557 total); TODO: 235 checked / 16
+open. Capability classifications and MAN-CAP acceptance remain unchanged.
+
+### Progress addendum — GNH, report projections, and SDK location validation — 28 October 2026
+
+Comprehensive Status now validates the GNH section against its public-view
+projection, including selected-location identity for every assessment and the
+rounded mean of non-null scores. Regenerative-outcomes and time-liberation
+reports now explicitly select their full public-view columns while preserving
+filters, ordering, row serialization, and aggregates. Python and TypeScript
+public-location list/detail SDK methods now check the exact Gateway field set,
+UUID syntax, nullable country/region fields, and active status.
+
+The combined focused Python selection passes 186 tests and the TypeScript
+public-API selection passes 43. Ruff, Python compilation, all three report
+inventories, capability-matrix validation, and diff checks pass. Existing
+public summaries, arrays, and metadata remain unchanged; content-level privacy
+and populated-data parity are not established. No migration, database,
+candidate, legacy service, provider, or production resource was used. Evidence:
+[batch](builds/2026-10-28-recovery/kernel-parallel-gnh-sdk-report-projection-contracts.json).
+
+Checklist: 1,536 complete / 25 open (1,561 total); TODO: 239 checked / 16
+open. Capability classifications and MAN-CAP acceptance remain unchanged.
+
+### Progress addendum — capital efficiency, public wellbeing projections, and CRISP SDK parity — 28 October 2026
+
+Comprehensive Status now validates capital-efficiency scenarios and
+regenerative-efficiency observations against strict public-view models and the
+requested location. GNH alignment, cultural preservation, and renewable-energy
+reports explicitly select all 14, 16, and 18 current public-view fields,
+preserving query filters, ordering, serialization, aggregates, and status
+counts. Python and TypeScript native SDKs validate CRISP assessments against
+the Gateway's exact response fields and the requested location; malformed
+offset components are rejected.
+
+The integrated focused Python selection passes 209 tests; the TypeScript
+public-API selection passes 75, and `npm run build` passes. Ruff, Python
+compilation, all three report inventories, capability-matrix validation, and
+diff checks pass. Existing public narratives and metadata remain unchanged;
+content-level privacy and populated-data parity remain open. No migration,
+database, candidate, legacy service, provider, or production resource was
+used. Evidence:
+[batch](builds/2026-10-28-recovery/kernel-parallel-capital-wellbeing-crisp-contracts.json).
+
+Checklist: 1,541 complete / 25 open (1,566 total); TODO: 244 checked / 16
+open. Capability classifications and MAN-CAP acceptance remain unchanged.
+
+### Progress addendum — community wellbeing and public SDK summaries — 28 October 2026
+
+Comprehensive Status now validates the public community-governance and
+foundational-wellbeing sections. Community governance keeps globally shared
+records with null `location_id` separate from location-specific records;
+foundational wellbeing accepts qualitative-only source observations with
+nullable score/count. Vulnerable access, foundational wellbeing, and community
+governance use explicit projections of all 16, 12, and 17 current public-view
+columns. Both SDKs validate public metric summaries against the requested
+location and the Gateway's count semantics; nested location summaries validate
+both location identities and nullable timestamp fields.
+
+The integrated focused Python selection passes 278 tests and the TypeScript
+public-API selection passes 121. The TypeScript build, Ruff, Python
+compilation, all three report inventories, capability-matrix validation, and
+diff checks pass. Public narratives and metadata remain unchanged; content
+privacy and populated-data parity are not established. No migration,
+database, candidate, legacy service, provider, or production resource was
+used. Evidence:
+[batch](builds/2026-10-28-recovery/kernel-parallel-wellbeing-community-sdk-contracts.json).
+
+Checklist: 1,548 complete / 25 open (1,573 total); TODO: 251 checked / 16
+open. Capability classifications and MAN-CAP acceptance remain unchanged.
+
+### Progress addendum — Data Stream, report projection, and SDK contracts — 28 October 2026
+
+The private Data Stream post list now validates its exact fixed projection,
+page size, field types, and requested location. Invalid, extra, or
+cross-location source rows fail as a sanitized no-store server error. The
+replication-readiness, adaptive-stewardship, and capital-alignment reports
+now explicitly select their complete 19-, 19-, and 17-column public views,
+with query and payload regressions. Python and TypeScript public REST clients
+reject extra success-envelope keys and reject location-detail data whose UUID
+does not match the requested UUID after case normalization.
+
+The integrated focused selection passes 232 Python tests and 125 TypeScript
+tests; `npm run build` passes. Ruff, Python compilation, all three report
+inventories, capability-matrix validation, and diff checks pass. No database,
+migration, provider, candidate, legacy service, or production resource was
+used. These source contracts do not establish populated-data parity or
+content-level privacy. Evidence:
+[batch](builds/2026-10-28-recovery/kernel-parallel-report-sdk-datastream-contracts.json).
+
+Checklist: 1,554 complete / 25 open (1,579 total); TODO: 257 checked / 16
+open. The capability matrix remains 67 rows (24 baseline-retained,
+7 deployed, 36 prepared), with 95 strict private Gateway response contracts;
+MAN-CAP acceptance and classifications are unchanged.
+
+### Progress addendum — wellbeing, governance, and scaling projections — 29 October 2026
+
+Four additional report queries now use complete, migration-grounded public
+projections: network scaling, governance inclusion, EBF scorecard summaries,
+and financial sustainability. Existing network-shared rows, location/date
+filters, ordering, report payloads, and aggregates remain covered by synthetic
+mock regressions.
+
+The focused selection passes 4 tests. Ruff, Python compilation, the three
+report inventories, capability-matrix validation, and diff checks pass. No
+database, migration, candidate, provider, legacy service, or production
+resource was used. These checks do not establish content privacy, populated
+data parity, live OIDC, or tenant isolation. Evidence:
+[batch](builds/2026-10-29-recovery/kernel-parallel-report-projection-batch-2.json).
+
+Checklist: 1,571 complete / 25 open (1,596 total); TODO: 270 checked / 16
+open. The capability matrix remains 67 rows (24 baseline-retained,
+7 deployed, 36 prepared), with 98 strict private Gateway response contracts;
+MAN-CAP acceptance and classifications are unchanged.
+
+### Progress addendum — operations reports and governance summary contract — 28 October 2026
+
+The private location-governance summary now has an exact OpenAPI/runtime
+contract for its location-bound circle metadata and aggregate counts. Invalid,
+extra, negative, or wrong-location results fail with a sanitized no-store
+server error. Resource efficiency, revenue streams, and prediction accuracy
+now explicitly select all 16, 16, and 19 current public-view columns. Focused
+regressions preserve the existing filters, bindings, ordering, aggregates,
+serialized dates, and metrics.
+
+The integrated focused selection passes 386 tests. Ruff, Python compilation,
+all three report inventories, capability-matrix validation, and diff checks
+pass. Two pre-existing F841 findings in the ecological-modeling test module
+were excluded from Ruff; unrelated lines were left unchanged. Existing public
+notes/measures remain, so content-level privacy and populated-data parity are
+not established. No database, provider, candidate, legacy service, or
+production resource was used. Evidence:
+[batch](builds/2026-10-28-recovery/kernel-parallel-operations-governance-contracts.json).
+
+Checklist: 1,558 complete / 25 open (1,583 total); TODO: 261 checked / 16
+open. The capability matrix remains 67 rows (24 baseline-retained,
+7 deployed, 36 prepared) and now documents 96 strict private Gateway response
+contracts. MAN-CAP acceptance and classifications are unchanged.
+
+### Progress addendum — operations projections, tactical sessions, and SDK errors — 28 October 2026
+
+The governance tactical-session list now publishes an exact location-bound
+page schema with bounded pagination/cursor validation; malformed or mismatched
+server data fails closed. Feature importance, livestock feed intake, and the
+organic compliance dashboard explicitly select their complete 13-, 17-, and
+25-column public views. The Python and TypeScript SDKs accept application
+error text only from exact `{"error": string}` envelopes and preserve the
+framework's 422 detail behavior.
+
+The integrated focused selection passes 578 Python tests and 131 TypeScript
+tests; the SDK build, Ruff, Python compilation, report inventories,
+capability-matrix validation, and diff checks pass. Three pre-existing unused
+names in broad report test modules were excluded from Ruff. Existing public
+notes and domain fields are unchanged, so this does not establish
+content-level privacy, tenant isolation, or populated-data parity. No database,
+provider, candidate, legacy service, or production resource was used. Evidence:
+[batch](builds/2026-10-28-recovery/kernel-parallel-operations-governance-sdk-error-contracts.json).
+
+Checklist: 1,563 complete / 25 open (1,588 total); TODO: 266 checked / 16
+open. The capability matrix remains 67 rows (24 baseline-retained,
+7 deployed, 36 prepared), with 97 strict private Gateway response contracts;
+MAN-CAP acceptance and classifications are unchanged.
+
+### Progress addendum — report projections and operating-pilot response — 29 October 2026
+
+The ecological-modeling report now selects the complete ordered public views
+for interactions, model runs, population dynamics, energy flows, and soil
+input retention. Bio Factory regional inputs and Open Source Impact now also
+use their complete schema-backed public projections. The private operating-
+pilot own-learning-plans route publishes and enforces a strict response model
+for item fields, review metadata, location identity, ordering, and bounded
+continuation; malformed service results fail with a sanitized no-store 500.
+
+The approved synthetic selection passes 41 tests. Ruff, Python compilation,
+the three report inventories, capability-matrix validation, and diff checks
+pass. No database, migration, candidate, provider, legacy service, or
+production resource was used. These source contracts do not establish
+populated-data parity, content-level privacy, live OIDC, or tenant isolation.
+Evidence:
+[batch](builds/2026-10-29-recovery/kernel-parallel-ecological-biofactory-operating-pilot-contracts.json).
+
+Checklist: 1,567 complete / 25 open (1,592 total); TODO: 266 checked / 16
+open. The capability matrix remains 67 rows (24 baseline-retained,
+7 deployed, 36 prepared), with 98 strict private Gateway response contracts;
+MAN-CAP acceptance and classifications are unchanged.
+
+### Progress addendum — governance readback and report projection batch — 29 October 2026
+
+Token-reward distribution and calibration reports now select the exact
+16-column and 15-column public views. Capital-provider utility selects all 16
+summary fields, and stakeholder representation selects its exact 8-field
+participation and 10-field distribution projections while retaining network
+scope and shared observations. The private
+governance assignment-proposal endpoint now declares and validates an exact
+response contract, including location/page bounds, aware timestamps, unique
+descending order, input and continuation cursors, and sanitized no-store
+failures. UTC timestamps serialize consistently as `Z`.
+
+The focused synthetic/mock selection passes 22 tests. Ruff, Python
+compilation, all report inventories, capability-matrix validation, and diff
+checks pass. No database, migration, provider, candidate, legacy stack, or
+production service was used. This does not establish populated-data parity,
+content privacy, live OIDC, tenant isolation, or runtime database behavior.
+Evidence: [batch](builds/2026-10-29-recovery/kernel-parallel-governance-and-report-projection-batch-3.json).
+
+Checklist: 1,575 complete / 25 open (1,600 total); TODO: 274 checked / 16
+open. Capability classifications remain 24 baseline-retained, 7 deployed,
+and 36 prepared across 67 rows; strict private Gateway response contracts now
+total 99. MAN-CAP acceptance is unchanged.
+
+### Progress addendum — wellbeing risk, capital, and governance report projections — 29 October 2026
+
+Five report queries now select complete, ordered projections defined by
+migrations 035 and 036: risk mitigation, scaling roadmap, capital-efficiency
+scenarios, regenerative-efficiency observations, and governance throughput.
+Location and date predicates, shared null-location observations, ordering,
+serialized rows, capital totals, and the decision-latency average remain
+covered by focused synthetic mocks.
+
+The focused selection passes 4 tests. Ruff, Python compilation, all report
+inventories, capability-matrix validation, and diff checks pass. No database,
+migration, provider, candidate, legacy service, or production resource was
+used. This does not prove populated-data parity, tenant isolation, live OIDC,
+or content-level privacy. Evidence:
+[batch](builds/2026-10-29-recovery/kernel-wellbeing-risk-capital-governance-projections.json).
+
+Checklist: 1,580 complete / 25 open (1,605 total); TODO: 279 checked / 16
+open. Capability classifications remain 24 baseline-retained, 7 deployed,
+and 36 prepared across 67 rows; strict private Gateway response contracts
+remain 99. MAN-CAP acceptance is unchanged.
+
+### Progress addendum — Bio Factory public report projections — 29 October 2026
+
+Bio Factory batch, input-provenance, recipe-library, and quality-test reports
+now select all 21, 20, 23, and 18 fields in migration 043's public views.
+The focused mock regression checks each projection and retains the existing
+location-plus-network and date predicates, ordering, serialization, regional
+input share, recipe breakdown, production totals, and quality pass rate.
+
+The focused selection passes 1 test. Ruff, compilation, all report
+inventories, matrix validation, and diff checks pass. No database, migration,
+provider, candidate, legacy service, or production resource was used. This
+does not prove populated-data parity, tenant isolation, live OIDC, or
+content-level privacy. Evidence:
+[batch](builds/2026-10-29-recovery/kernel-bio-factory-report-projection-batch.json).
+
+Checklist: 1,584 complete / 25 open (1,609 total); TODO: 283 checked / 16
+open. Capability classifications remain 24 baseline-retained, 7 deployed,
+and 36 prepared across 67 rows; strict private Gateway response contracts
+remain 99. MAN-CAP acceptance is unchanged.
+
+### Progress addendum — scaling-economics report projections — 29 October 2026
+
+The scaling-economics report now selects all 27 fields from the migration-040
+farm-launch unit-economics view in both network and farm modes. Adoption
+barriers and perpetual-value stress select their complete 17- and 20-column
+views. The focused regression retains existing scope/date predicates, order,
+payloads, capital totals, active-barrier count, and watchlist count.
+
+The focused selection passes 1 test. Ruff, compilation, all report
+inventories, capability validation, and diff checks pass. No database,
+migration, provider, candidate, legacy service, or production resource was
+used. This does not establish populated-data parity, tenant isolation, live
+OIDC, or content-level privacy. Evidence:
+[batch](builds/2026-10-29-recovery/kernel-scaling-report-projection-batch.json).
+
+Checklist: 1,587 complete / 25 open (1,612 total); TODO: 286 checked / 16
+open. Capability classifications remain 24 baseline-retained, 7 deployed,
+and 36 prepared across 67 rows; strict private Gateway response contracts
+remain 99. MAN-CAP acceptance is unchanged.
+### Progress addendum — operations training and reward-calibration report projections — 29 October 2026
+
+The training-impact and reward-calibration reports now use exact ordered
+15-column projections from migrations 048 and 050. The report queries retain
+their location predicates, descending date order, existing metric-link
+aggregate, training participant/hour/improvement calculations, and serialized
+row payload. The approved focused mock selection also rechecked the latest
+wellbeing, capital, scaling, governance-inclusion, EBF, token-reward,
+stakeholder-representation, and private assignment-proposal response
+contracts.
+
+The focused selection passes 37 tests. Ruff, Python compilation, all three
+report inventories, capability-matrix validation, and diff checks pass. No
+database, provider, candidate, legacy service, or production resource was
+used. This does not establish populated-data parity, live OIDC, tenant
+isolation, or content-level privacy. Evidence:
+[batch](builds/2026-10-29-recovery/kernel-operations-training-reward-report-projections.json).
+
+Checklist: 1,589 complete / 25 open (1,614 total); TODO: 288 checked / 16
+open. Capability classifications remain 24 baseline-retained, 7 deployed,
+and 36 prepared across 67 rows; strict private Gateway response contracts
+remain 99. MAN-CAP acceptance is unchanged.
+### Progress addendum — organic certification report projections — 29 October 2026
+
+The organic-certification reports now use exact ordered projections for
+readiness (24 fields), transition (23), certifications (21), prohibited
+substances (17), input audits (20), and harvest segregation (16). Existing
+location predicates, active-transition filtering, newest-first ordering,
+payloads, and report aggregates remain intact.
+
+The focused fake-cursor regression passes. Ruff, Python compilation, all three
+report inventories, capability-matrix validation, and diff checks pass. No
+database, provider, candidate, or live service was used. This is source-level
+contract and payload evidence only; it does not establish populated-data
+parity, live OIDC, content privacy, or tenant isolation. Evidence:
+[batch](builds/2026-10-29-recovery/kernel-organic-report-projections.json).
+
+Checklist: 1,595 complete / 25 open (1,620 total); TODO: 290 checked / 16
+open. Capability classifications remain 24 baseline-retained, 7 deployed,
+and 36 prepared across 67 rows; strict private Gateway response contracts
+remain 99. MAN-CAP acceptance is unchanged.
+### Progress addendum — stakeholder and coordination cockpit projections — 29 October 2026
+
+The public stakeholder cockpit and published coordination-alliance reports
+now select their exact 13 migration-238 view fields. Both retain network-wide
+scope; the internal aggregate paths and public response sections remain
+separate. The focused fake-cursor regression verifies exact order and
+payloads. A bounded scan found no remaining `SELECT * FROM v_public_*` query
+in `services/export/reports`; this does not cover private/internal views or
+direct table reads.
+
+The focused test passes. Ruff, Python compilation, all three report
+inventories, capability-matrix validation, and diff checks pass. No database,
+provider, candidate, or live service was used. This does not establish
+populated-data parity, content privacy, live OIDC, or tenant isolation.
+Evidence: [batch](builds/2026-10-29-recovery/kernel-strategy-cockpit-report-projections.json).
+
+Checklist: 1,597 complete / 25 open (1,622 total); TODO: 292 checked / 16
+open. Capability classifications remain 24 baseline-retained, 7 deployed,
+and 36 prepared across 67 rows; strict private Gateway response contracts
+remain 99. MAN-CAP acceptance is unchanged.
+### Progress addendum — internal stakeholder and coordination cockpit projections — 29 October 2026
+
+The stakeholder internal summary now uses the exact 20 fields at both report
+callsites (`stakeholder_cockpit` and `stakeholder_ecosystem`). The coordination
+internal summary selects all 22 migration-238 fields. A focused fake-cursor
+test checks exact order, network-wide behavior, and unchanged payloads across
+all three callers.
+
+The focused regression passes. Ruff, Python compilation, all report
+inventories, capability-matrix validation, and diff checks pass. No database,
+provider, candidate, or live service was used. This does not establish
+populated-data parity, content privacy, OIDC, or tenant isolation. Evidence:
+[batch](builds/2026-10-29-recovery/kernel-strategy-internal-cockpit-projections.json).
+
+Checklist: 1,599 complete / 25 open (1,624 total); TODO: 294 checked / 16
+open. Capability classifications remain 24 baseline-retained, 7 deployed,
+and 36 prepared across 67 rows; strict private Gateway response contracts
+remain 99. MAN-CAP acceptance is unchanged.
+
+### Progress addendum — strategy roadmap and engagement projections — 29 October 2026
+
+The technology-roadmap overview, stakeholder-engagement summary, and overdue
+commitment-health reads now select all 17, 16, and 14 migration-defined fields
+explicitly. The reports retain their network/location scope guards, selected
+location predicate, overdue-only selection, sort order, nested requirement and
+alternative reads, and serialized row payloads. One focused fake-cursor test
+asserts exact column order and unchanged report output.
+
+The focused regression, Ruff, Python compilation, three report inventory
+checks, and diff checks pass. No database, provider, candidate, legacy service,
+or live route was used. Populated-data parity, content privacy, OIDC, and tenant
+isolation remain unproven. Evidence:
+[batch](builds/2026-10-29-recovery/kernel-strategy-roadmap-engagement-projections.json).
+
+Checklist: 1,602 complete / 25 open (1,627 total); TODO: 297 checked / 16
+open. Capability classifications remain 24 baseline-retained, 7 deployed,
+and 36 prepared across 67 rows; strict private Gateway response contracts
+remain 99. MAN-CAP acceptance is unchanged.
+
+### Progress addendum — report projections and SDK response contracts — 29 October 2026
+
+The commons reports now select fixed migration-backed fields for their five
+public Kokonut views and the land-stewardship projection. Strategy reports
+replace additional stakeholder, grievance, trust, value-stream, technology,
+and governance wildcards with explicit view/table projections while retaining
+existing scope, filters, ordering, and serialized rows.
+
+The Gateway and both public SDKs enforce source-backed count relationships:
+zero metrics pair with a null latest timestamp, positive metric counts have a
+timestamp, and published attestations cannot exceed total attestations. Driver
+pagination rejects contradictory `has_more` responses. The TypeScript gRPC
+DataService now maps all declared response shapes, validates proto int32
+versions, and uses a bounded, cancellation-safe stream adapter. `IRIInfo`
+field 6 is now the algorithm returned by the Python service.
+
+Focused mock checks pass: commons 2, strategy 2, Gateway model 8, Python SDK
+47, JavaScript SDK 45, TypeScript gRPC DataService 25, and Python gRPC
+response serialization 1. Ruff, TypeScript
+lint, JavaScript type-check, report inventories, and capability-matrix
+validation pass. The report helper inventory explicitly records ten
+allowlisted dynamic projection sites as statically unresolved. No database,
+provider, candidate, legacy service, or live gRPC endpoint was used. Evidence:
+[batch](builds/2026-10-29-recovery/kernel-public-projections-and-sdk-contracts.json).
+
+Checklist: 1,606 complete / 25 open (1,631 total); TODO: 301 checked / 16
+open. Capability classifications remain 24 baseline-retained, 7 deployed,
+and 36 prepared across 67 rows; strict private Gateway response contracts
+remain 99. MAN-CAP acceptance is unchanged.
+
+### Progress addendum — strict Data Stream attachment and CRISP contracts — 29 October 2026
+
+The tenant-scoped Data Stream attachment route now publishes and enforces a
+strict 17-field response schema. It excludes storage URLs, Directus file IDs,
+and arbitrary metadata, rejects invalid status/visibility and coordinate
+pairs, binds every attachment to the requested post, and returns sanitized
+no-store errors. CRISP evidence maturity is constrained to its canonical
+0–6 level in Gateway, Python, and JavaScript; the public OpenAPI snapshot and
+generated SDK types were refreshed.
+
+Focused mocked checks pass 197 Python tests and 141 JavaScript tests. Ruff,
+Python compilation, TypeScript build, public OpenAPI generation, generated SDK
+check, capability-matrix validation, and diff checks pass. No database,
+provider, candidate, legacy service, or live route was accessed. The checks do
+not prove populated-data parity, RLS, tenant isolation, OIDC, or live browser
+behavior. Rollback reverts the route/model, SDK validators, generated
+artifacts, and tests; no migration/data rollback is required. Evidence:
+[batch](builds/2026-10-29-recovery/kernel-c2-file-and-crisp-contracts.json).
+
+Checklist: 1,607 complete / 25 open (1,632 total); TODO: 302 checked / 16
+open. Capability classifications remain 24 baseline-retained, 7 deployed,
+and 36 prepared across 67 rows; strict private Gateway response contracts
+now total 100. MAN-CAP acceptance is unchanged.
+
+### Progress addendum — private report-export candidate listing and console — 29 October 2026
+
+Migration 684 adds a bounded SECURITY DEFINER projection that lists only
+exact-location verified/published snapshots with a valid SHA-256-form digest,
+object-shaped JSON, and a payload within the worker's size bound. The Gateway
+route requires the independent export read grant, binds the response to the
+requested location/page, and returns private headers for success, denial, and
+validation paths. Runtime provisioning now includes the listing function.
+
+The operator console now lists eligible snapshots and export status, gates
+creation and download actions independently, retries uncertain submissions
+with the same session idempotency key, polls active requests, and offers
+completed-only private JSON downloads. It renders fixed metadata through
+text nodes and stops pagination at the configured browse limit.
+
+Focused route-policy, service, migration-contract, OpenAPI, console, and
+migration tests pass 88 checks. Disposable PostgreSQL 16 applies/replays 683
+and 684 and verifies exact-location scope, read-grant separation, lifecycle,
+hash/size filtering, pagination, and role boundaries. Ruff, runtime SQL
+inventory, provider-boundary checks, matrix validation, JavaScript syntax, and
+diff checks pass. Candidate and legacy databases remain untouched; migration
+684 is not rolled out. Live OIDC/browser use, populated report parity, worker
+recovery, R2, and production download ownership remain separate gates.
+Evidence: [disposable acceptance](builds/2026-10-29-recovery/report-snapshot-export-migration-disposable.json),
+[focused checks](builds/2026-10-29-recovery/report-snapshot-export-console-contracts.json),
+[contract](report-snapshot-export-contract.md).
+
+Checklist: 1,611 complete / 25 open (1,636 total); TODO: 306 checked / 16
+open. Capability classifications remain 24 baseline-retained, 7 deployed,
+and 36 prepared across 67 rows; strict private Gateway response contracts
+now total 101. MAN-CAP acceptance is unchanged.
+
+### Progress addendum — stakeholder identity proposal and decision contracts — 29 October 2026
+
+The location-scoped stakeholder identity Gateway now validates proposal and
+independent-decision inputs against migration-backed UUID, enum, confidence,
+and precision constraints before service access. OpenAPI publishes exact
+request and typed response models. Service results are validated before
+return; malformed data produces generic no-store errors. The database-backed
+service remains responsible for signed location context, transaction
+ownership, and enforcing that the reviewer differs from the proposer.
+
+The focused route/service/OpenAPI selection passes 36 tests. Ruff, Python
+compilation, capability-matrix validation, and `git diff --check` pass. All
+HTTP service behavior checks use mocks; no candidate/legacy database or
+provider was touched. Live OIDC/browser, populated data, and broad tenant/RLS
+acceptance remain open. No migration or data rollback is needed. Evidence:
+[focused checks](builds/2026-10-29-recovery/stakeholder-identity-write-gateway-contracts.json).
+
+Checklist: 315 checked / 16 open. Capability classifications and MAN-CAP
+acceptance remain unchanged; strict private Gateway response contracts now
+total 103.
+
+### Progress addendum — signed trend-forecast creation contract — 29 October 2026
+
+The signed trend-forecast POST now advertises and validates a strict request:
+one supported metric key, a bounded integer horizon, and one supported
+confidence level. OpenAPI documents a discriminated created/reused result.
+Runtime validation preserves the established 201 response for a new forecast
+and 200 response for reuse, rejects response identity/options that do not
+match the request, and returns a generic no-store error for malformed results.
+
+The focused route/compute suites pass 66 tests. Ruff, Python compilation, and
+`git diff --check` pass. The checks use fake database connections and mocked
+forecast models; no live database/provider, candidate, or legacy service was
+accessed. Evidence:
+[focused checks](builds/2026-10-29-recovery/trend-forecast-create-gateway-contract.json).
+
+Checklist: 318 checked / 16 open. Capability classifications and MAN-CAP
+acceptance remain unchanged; strict private Gateway response contracts now
+total 104.
+
+### Progress addendum — registered AI-synthesis task receipt contract — 29 October 2026
+
+The operator synthesis-request route now publishes task-key and summary-type
+enums and validates the registry pairing before work is dispatched. Its
+response is a strict receipt containing only request/location identity, task,
+summary, creation time, replay flag, and authorized status. Runtime checks
+bind receipt identity to the request and preserve the existing 201 new / 200
+replay semantics with no-store errors.
+
+The focused task-request/draft selection passes 30 tests. Ruff, Python
+compilation, matrix validation, and diff checks pass. Synthetic connections
+and mocks only; no live database/provider, candidate, or legacy service was
+used. Evidence:
+[focused checks](builds/2026-10-29-recovery/ai-synthesis-task-receipt-gateway-contract.json).
+
+Checklist: 321 checked / 16 open. Capability classifications and MAN-CAP
+acceptance remain unchanged; strict private Gateway response contracts now
+total 105.
+
+### Progress addendum — governance assignment review queue contract — 29 October 2026
+
+The location-scoped governance assignment review queue now validates its
+fixed SQL projection in the Gateway and publishes the exact 14-field item
+schema. Page validation binds the location and limit, rejects duplicates and
+incorrect order, and checks both the request cursor and the continuation
+cursor against the final item. Errors stay generic and no-store; signed review
+scope and active governance-person binding remain in the service/database
+boundary.
+
+The focused assignment-review and pagination/OpenAPI selection passes 24
+tests. Ruff, compilation, and diff checks pass. Mocked routes and synthetic
+connections only; no live database/provider was touched. Evidence:
+[focused checks](builds/2026-10-29-recovery/governance-assignment-review-queue-contract.json).
+
+Checklist: 324 checked / 16 open. Capability classifications and MAN-CAP
+acceptance remain unchanged; strict private Gateway response contracts now
+total 106.
+
+### Progress addendum — full ARM64/QEMU schema replay through migration 684 — 29 October 2026
+
+A fresh, network-disabled ARM64 PostgreSQL 16/PostGIS database applied all 675
+ordered schemas through migration 684 under QEMU. The database ran with a
+verified 1.5 GiB/two-CPU limit, reported `aarch64`, and finished with zero
+pending or failed migrations, zero seeds, no farm data, no OOM, and successful
+disposable cleanup. Candidate and legacy databases were not touched. The
+optional two-tenant operator-scope probe was not run; this establishes schema
+portability under software emulation only. Physical Raspberry Pi performance,
+power-loss/storage behavior, populated-data parity, tenant acceptance on ARM64,
+and whole-platform recovery remain open.
+
+The focused farm-summary/Gateway geometry contract selection passes 145 tests.
+Ruff, Python compilation, all three report-inventory freshness checks,
+capability-matrix validation, and `git diff --check` pass. The capability matrix
+remains 67 rows (24 baseline-retained, 7 deployed, 36 prepared); strict private
+Gateway response contracts remain 109. Current checklist: 1,658 complete / 25
+open (1,683 total); TODO: 353 checked / 16 open. Evidence:
+[ARM64/QEMU replay](builds/2026-10-29-recovery/arm64-resource-limited-schema-684.json)
+and [farm-summary GeoJSON contract](builds/2026-10-29-recovery/comprehensive-status-farm-geojson-contract.json).
+
+### Progress addendum — requester privacy and contract consistency — 29 October 2026
+
+Report-export request status, detail and artifact access now require the
+request's signed-in creator; eligible report snapshots remain shared within an
+authorized location. Migration 685 and migrations 683–684 pass network-disabled
+PostgreSQL 16 replay and same-location cross-operator checks. Migration 685 is
+not applied to the local candidate or legacy database.
+
+The operating-pilot capacity-review queue and solution scale-gate assessment
+targets now have strict response models that bind exact schema projections,
+domain constraints, request location and pagination. The capacity queue also
+checks returned row count against `total - offset`. Python REST SDK response
+integer fields now match JavaScript for integral JSON floats while rejecting
+booleans and fractional numbers. Directus Auditor certificate reads now have
+an explicit field allowlist; private beneficiary content, free-form reason,
+rendered certificate hash/HTML and arbitrary metadata are excluded, and replay
+repairs old field selections. Prefect location fan-out rejects unsupplied job
+inputs before database lookup, and ecological residual averages now omit
+unmeasured mass and readings.
+
+The combined focused Gateway, SDK, export, Directus inventory, Prefect, and
+ecological suite passes 480 tests. Ruff, Python compilation, capability-matrix
+validation and `git diff --check` pass. No candidate/legacy database or
+production/provider state was used. Evidence:
+[contract batch](builds/2026-10-29-recovery/kernel-next-contract-batch.json),
+[migration replay](builds/2026-10-29-recovery/report-snapshot-export-migration-disposable.json),
+[Directus inventory](builds/2026-10-29-recovery/directus-permission-auditor-certificate-source.json).
+
+Checklist: 1,665 complete / 25 open (1,690 total); TODO: 353 checked / 16
+open. Capability matrix remains 67 rows (24 baseline-retained, 7 deployed,
+36 prepared); strict private Gateway response contracts now total 111.
+
+### Progress addendum — Gateway, scheduler CLI, and analytics contract batch — 29 October 2026
+
+The private Field Collector review-detail route now publishes a strict response
+schema and validates returned collection and location IDs against the request.
+Form fields remain extensible inside the JSON payload, with the same 512 KiB
+limit enforced at the Gateway boundary. Review events and evidence must match
+the database's decisions, nonblank text, UUID/timestamp types, and 20-item
+bounds; malformed results return a generic no-store response.
+
+The scheduler job-plan CLI now exposes `--driver-instance-id` and passes it to
+the job catalog. Sensor plans require both location and registered driver
+instance, still produce a disabled definition, and fail before database access
+when an input is missing.
+
+Resource-efficiency SQL now aggregates verified/published harvest and labor
+per crop cycle before joining, follows `crop_cycle.crop_id`, and includes only
+event rows whose location matches the cycle. Disposable PostgreSQL 16
+acceptance used two harvest and two labor rows on one cycle, another crop
+cycle, and deliberately mismatched event locations; it verified 190 kg,
+9 labor hours, and 21.11 kg/hour overall without fan-out or cross-location
+contribution.
+
+Focused checks pass 32 Field Collector/Gateway tests and 155 scheduler/command
+tests. Ruff, Python compilation, capability-matrix validation, and
+`git diff --check` pass. The query test used only a temporary local PostgreSQL
+container; candidate/legacy databases, providers, and production identity were
+not touched. No migration is required. Evidence:
+[contract batch](builds/2026-10-29-recovery/kernel-next-operations-contract-batch.json)
+and [disposable SQL acceptance](builds/2026-10-29-recovery/resource-efficiency-disposable.json).
+
+Checklist: 1,669 complete / 25 open (1,694 total); TODO: 357 checked / 16
+open. Capability classifications remain 24 baseline-retained, 7 deployed,
+and 36 prepared across 67 rows; strict private Gateway response contracts
+increase to 112.
+
+### Progress addendum — enrollment response, optional weather, and revenue scope — 29 October 2026
+
+The private OIDC mobile-enrollment route now validates its exact three-field
+success payload, including a 32-byte URL-safe one-time code and timezone-aware
+expiry, before returning it. Malformed internal service output is logged only
+by exception class and becomes a generic no-store response. OpenAPI now
+declares that response shape. Focused enrollment tests pass 15 cases.
+
+Prefect ingestion and six-hour composites now report a structured skip when
+the signed weather worker is disabled by default, allowing unrelated ingestion
+and later composite stages to continue. Direct weather worker/job behavior
+remains fail-closed. The workflow and direct-worker selections pass 30 and 2
+tests respectively.
+
+Migration 686 preserves revenue-stream contributions while limiting the
+optional crop-cycle label join to the same location. The ordered migration
+source validates and its network-disabled PostgreSQL 16 apply/replay passes:
+all three location-A contribution rows and $175 gross/$120 net totals remain,
+the same-location cycle label remains, and the foreign cycle label becomes
+NULL. The temporary container was removed. Ruff, Python compilation,
+migration-source validation, and `git diff --check` pass. No candidate or
+legacy database, provider, or production identity was used. Evidence:
+[focused contracts](builds/2026-10-29-recovery/mobile-enrollment-prefect-weather-contracts.json)
+and [migration acceptance](builds/2026-10-29-recovery/revenue-stream-location-join-disposable.json).
+
+Checklist: 1,675 complete / 26 open (1,701 total); TODO: 360 checked / 17
+open. Capability classifications remain 24 baseline-retained, 7 deployed,
+and 36 prepared across 67 rows; strict private Gateway response contracts
+total 114.
+
+The Delphi study-item creation route now has a strict 11-field response and
+OpenAPI contract, including location/study request binding, NUMERIC(8,4) score
+bounds, sanitized malformed-output handling, and replay-specific 200/201 status
+selection. Its focused Gateway acceptance passes 37 tests. Evidence:
+[Delphi response contract](builds/2026-10-29-recovery/delphi-study-item-response-contract.json).
+
+Checklist: 1,676 complete / 25 open (1,701 total); TODO: 361 checked / 16
+open. Capability classifications remain 24 baseline-retained, 7 deployed,
+and 36 prepared across 67 rows; strict private Gateway response contracts
+total 115. Broader C2/C4/C5, production OIDC, populated-data parity, and
+candidate/legacy migration acceptance remain open.
+
+### Progress addendum — climate worker boundary, TCO projection, and SDK parity — 29 October 2026
+
+The weekly Prefect deployment now skips climate refresh before location
+fanout when `signed_climate_worker` is disabled. Enabling the feature preserves
+the flow call and result, and direct worker behavior remains fail-closed.
+Two weekly-flow checks and one direct-worker check pass.
+
+The total-cost-of-ownership analytics query now selects the nine ordered
+columns defined by migration 196 instead of using a wildcard. It preserves
+unfiltered, location-only, process-only, and combined filters, bind parameter
+ordering, descending cost sort, and serialized rows. Four fake-cursor checks
+pass without database access.
+
+The Python public REST SDK now rejects finite timeout values above the
+JavaScript timer-safe maximum of 2,147,483.647 seconds before networking. Its
+10-second default and maximum boundary are preserved. The Python suite passes
+156 tests; the JavaScript timeout selection passes six. Ruff and Python
+compilation pass. Runtime SQL and worker reachability inventories are current.
+Evidence: [climate, TCO, and SDK checks](builds/2026-10-29-recovery/climate-tco-sdk-parity.json).
+
+Checklist: 1,681 complete / 20 open (1,701 total); TODO: 366 checked / 11
+open. Capability classifications remain 24 baseline-retained, 7 deployed,
+and 36 prepared across 67 rows; strict private Gateway response contracts
+remain 116. Broader C2/C4/C5, production OIDC, populated-data parity, and
+candidate/legacy migration acceptance remain open.
+
+### Progress addendum — health contract and pest projections — 29 October 2026
+
+The authenticated detailed health route now publishes and validates a strict
+OpenAPI response for dependency status, readiness, and aggregate counts. It
+returns generic no-store errors for malformed health output; authorization
+still runs before any dependency probe. Nine focused route checks pass.
+
+Pest-management reports now select the exact migration-047 columns from the
+pest-trend and biocontrol views instead of using wildcards. Location and
+optional period predicates, positional binds, descending order, result rows,
+and aggregate calculations are unchanged. Two focused mock-cursor checks pass.
+Ruff, compilation, and diff checks pass; the checks used mocks only. Evidence:
+[health and pest contracts](builds/2026-10-29-recovery/health-and-pest-projection-contracts.json).
+
+Checklist: 1,678 complete / 23 open (1,701 total); TODO: 363 checked / 14
+open. Capability classifications remain 24 baseline-retained, 7 deployed,
+and 36 prepared across 67 rows; strict private Gateway response contracts
+total 116. Broader C2/C4/C5, production OIDC, populated-data parity, and
+candidate/legacy migration acceptance remain open.
+
+### Progress addendum — worker input and competitive-health projection — 29 October 2026
+
+The event and notification worker CLI now rejects NaN, infinite, zero, and
+negative polling intervals before feature checks or connection creation. Event
+processing batches are bounded to 1–100 before opening connections; the
+notification-only path keeps its existing 1–500 outbox bound. Finite positive
+poll intervals retain the existing retry/sleep behavior.
+
+The competitive-health reader now selects the exact 12 columns defined by
+migration 284. The technology-roadmap list now selects the exact 17 columns
+defined by migration 212, retaining all status/entity-type filter combinations,
+bindings, order, and serialization.
+
+The EventBus worker recovery suite passes 18 tests and 34 subtests. The
+technology-roadmap projection check passes four filter combinations; two
+competitive-health projection/not-found tests pass. Ruff, Python compilation,
+all worker/runtime SQL inventories, capability-matrix validation, and
+`git diff --check` pass. Mocks only; no database, provider, candidate, or legacy
+service was contacted. Evidence:
+[worker and projection checks](builds/2026-10-29-recovery/kernel-worker-input-and-competitive-projection.json).
+
+Checklist: 1,685 complete / 20 open (1,705 total); TODO: 370 checked / 16
+open. Capability classifications remain 24 baseline-retained, 7 deployed,
+and 36 prepared across 67 rows; strict private Gateway response contracts
+remain 116. Immediately before the 29 October analytics/SDK batch, PR #71 was
+at `2008977759ee16bea323b73fc9858b4213c33932`; Security #673 passed and CI
+#949 was in progress.
+
+### Progress addendum — analytics and Ecocredit input contracts — 29 October 2026
+
+The capability dashboard now names the exact 15 columns in migration 207's
+view, retaining its optional guild filter, stable ordering, and row conversion.
+Predictive BPM rejects NaN, infinities, and negative age/SLA values before
+database access; breach thresholds are finite and bounded to 0–1. The
+TypeScript Ecocredit client now validates page limits locally from 0 through
+500 across all nine list methods and preserves cursor bytes.
+
+The focused Python selection passes 20 tests; the TypeScript pagination suite
+passes 36. Ruff, Python compilation, `tsc --noEmit`, and diff checks pass.
+Mocks only; no database, provider, or live gRPC endpoint was used. Evidence:
+[analytics and Ecocredit checks](builds/2026-10-29-recovery/kernel-analytics-and-ecocredit-input-contracts.json).
+
+Checklist: 1,688 complete / 25 open (1,713 total); TODO: 373 checked / 16
+open. Capability classifications remain 24 baseline-retained, 7 deployed,
+and 36 prepared across 67 rows; strict private Gateway response contracts
+remain 116. These source checks do not close populated report parity, owner
+acceptance, or live provider/runtime gates.
+
+### Progress addendum — public read and verify preflight contracts — 29 October 2026
+
+The public governance cockpit now selects only the six aggregate/privacy
+columns defined by migration 249; its existing response and empty result are
+preserved. Python and JavaScript REST SDK generic writes now fail locally for
+report, NOI, attestation, and export audit projections; reads and unrelated
+writes remain available. Report snapshot verification now accepts UUID or
+64-character SHA-256 identifiers, rejects malformed input before opening
+PostgreSQL, and uses a UUID- or hash-specific lookup predicate to avoid type
+coercion errors.
+
+The focused governance tests pass two cases, Python SDK checks pass five,
+JavaScript client checks pass 50, the report CLI selection passes 20, and the
+snapshot cursor-cleanup selection passes four. Ruff, Python compilation, and
+the JavaScript SDK build pass. Mocks only; no database, provider, or live
+service was contacted. Evidence:
+[public read and verify checks](builds/2026-10-29-recovery/kernel-public-read-and-verify-preflight.json).
+
+Checklist: 1,691 complete / 25 open (1,716 total); TODO: 376 checked / 16
+open. Capability classifications remain 24 baseline-retained, 7 deployed,
+and 36 prepared across 67 rows; strict private Gateway response contracts
+remain 116. Populated report parity and live acceptance remain open.
+
+### Progress addendum — Data Stream signer CLI batch bound — 29 October 2026
+
+The Data Stream signer CLI now limits each `process --limit` invocation to
+1–100 and rejects invalid values before handler/database access. Values 1 and
+100 are forwarded unchanged to the signer handler. The focused CLI suite passes
+19 tests; Ruff, Python compilation, and diff checks pass. No database, chain,
+or provider was contacted. Evidence:
+[signer CLI checks](builds/2026-10-29-recovery/datastream-signer-cli-batch-bound.json).
+
+Checklist: 1,692 complete / 25 open (1,717 total); TODO: 377 checked / 16
+open. Capability classifications remain 24 baseline-retained, 7 deployed,
+and 36 prepared across 67 rows; strict private Gateway response contracts
+remain 116. Production/provider and populated-data gates remain open.
+
+### Progress addendum — sensor stream batch-size preflight — 29 October 2026
+
+Stream processing now bounds batches to 1–500 at both the CLI and service
+boundary. Invalid CLI arguments fail before processor construction; direct
+service calls reject malformed bounds before database acquisition. The focused
+mock suite passes 13 tests; Ruff, compilation, and diff checks pass. Evidence:
+[stream preflight](builds/2026-10-29-recovery/stream-processor-batch-size-preflight.json).
+
+Checklist: 1,693 complete / 25 open (1,718 total); TODO: 378 checked / 16
+open. Capability classifications remain 24 baseline-retained, 7 deployed, and
+36 prepared across 67 rows; strict private Gateway response contracts remain
+116. Production/provider and populated-data gates remain open.
+
+### Progress addendum — Gateway OpenAPI operator-cookie security — 29 October 2026
+
+OpenAPI now declares the OIDC operator session cookie for every private
+`/operator/api/` operation plus authenticated session/logout. Public login,
+callback, operator landing, driver catalog, and health operations remain
+without the cookie requirement. Sixteen focused Gateway tests pass; Ruff,
+compilation, and diff checks pass. Only a synthetic OIDC provider was used.
+Evidence:
+[Gateway security](builds/2026-10-29-recovery/gateway-openapi-operator-cookie-security.json).
+
+Checklist: 1,694 complete / 25 open (1,719 total); TODO: 379 checked / 16
+open. Capability classifications remain 24 baseline-retained, 7 deployed, and
+36 prepared across 67 rows; strict private Gateway response contracts remain
+116. Production identity-provider and populated-data gates remain open.
+
+### Progress addendum — PRM outcome-correlation projection — 29 October 2026
+
+`outcome_correlation()` now selects migration 196's exact seven view columns
+and retains its sort order and serialized rows. The focused mock-cursor check
+passes; Ruff, compilation, and diff checks pass. No database/provider was
+contacted. Evidence:
+[PRM projection](builds/2026-10-29-recovery/prm-outcome-correlation-projection.json).
+
+Checklist: 1,695 complete / 25 open (1,720 total); TODO: 380 checked / 16
+open. Capability classifications remain 24 baseline-retained, 7 deployed, and
+36 prepared across 67 rows; strict private Gateway response contracts remain
+116. Production identity-provider and populated-data gates remain open.
+
+### Progress addendum — strategy advantage performance projection — 29 October 2026
+
+`performance()` now selects migration 286's exact 15 view columns and
+preserves its plan filter, stable sort, UUID serialization, and row shape. The
+focused mock-cursor check passes; Ruff, compilation, and diff checks pass. No
+database/provider was contacted. Evidence:
+[strategy advantage projection](builds/2026-10-29-recovery/strategy-advantage-performance-projection.json).
+
+Checklist: 1,696 complete / 25 open (1,721 total); TODO: 381 checked / 16
+open. Capability classifications remain 24 baseline-retained, 7 deployed, and
+36 prepared across 67 rows; strict private Gateway response contracts remain
+116. Production identity-provider and populated-data gates remain open.
+
+### Progress addendum — standard Gateway credential OpenAPI contracts — 29 October 2026
+
+OpenAPI now documents API-key or capability-token authentication for private
+Data Stream post/list/attachment/attestation and detailed health operations.
+Public drivers, lightweight liveness, and device-token Field Collector sync
+remain outside generic credential requirements. Two focused contract tests
+pass; Ruff, compilation, and diff checks pass. No database/provider was used.
+Evidence:
+[standard Gateway security](builds/2026-10-29-recovery/gateway-standard-auth-openapi.json).
+
+Checklist: 1,697 complete / 25 open (1,722 total); TODO: 382 checked / 16
+open. Capability classifications remain 24 baseline-retained, 7 deployed, and
+36 prepared across 67 rows; strict private Gateway response contracts remain
+116. Production identity-provider and populated-data gates remain open.
+
+### Progress addendum — marketplace pagination preflight — 29 October 2026
+
+Marketplace `list-active` now bounds `limit` to 1–100 and `offset` to
+0–10,000 at the CLI and service boundary. Invalid input fails before
+`get_db()` or cursor acquisition; valid endpoint values are preserved. The
+focused marketplace suite passes 27 tests; Ruff, compilation, and diff checks
+pass. No database/provider was used. Evidence:
+[marketplace pagination](builds/2026-10-29-recovery/marketplace-pagination-preflight.json).
+
+Checklist: 1,698 complete / 25 open (1,723 total); TODO: 383 checked / 16
+open. Capability classifications remain 24 baseline-retained, 7 deployed, and
+36 prepared across 67 rows; strict private Gateway response contracts remain
+116. Production identity-provider and populated-data gates remain open.
+
+### Progress addendum — value-stream performance projection — 29 October 2026
+
+`get_stream_performance()` now selects migration 210's exact 16 view columns
+while retaining the stream filter, sequence ordering, and UUID/datetime
+serialization. Its focused mock-cursor regression passes; Ruff, compilation,
+and diff checks pass. No database/provider was contacted. Evidence:
+[value-stream projection](builds/2026-10-29-recovery/value-stream-performance-projection.json).
+
+Checklist: 1,699 complete / 25 open (1,724 total); TODO: 384 checked / 16
+open. Capability classifications remain 24 baseline-retained, 7 deployed, and
+36 prepared across 67 rows; strict private Gateway response contracts remain
+116. Production identity-provider and populated-data gates remain open.
+
+### Progress addendum — analytics, graph CLI, and waste capture contracts — 29 October 2026
+
+The value-stream summary and coordination-health queries now select their exact
+migration-defined projections while preserving filters, ordering, and row
+serialization. Graph-projection CLI inputs now fail before database acquisition
+when depth/node bounds, UUIDs, entity keys, edge types, or rebuild actors are
+invalid. Four waste-capture Gateway routes now validate strict migration-aligned
+OpenAPI/runtime responses, bind the returned location to the request, preserve
+201 creation/200 replay behavior, and return generic no-store errors for
+malformed service results. Focused checks pass: three analytics projection
+tests, 16 graph CLI tests, and 21 capture contract tests plus 92 existing waste
+route tests. Ruff, compilation, and diff checks pass; no database/provider was
+used. Evidence:
+[analytics projections](builds/2026-10-29-recovery/analytics-view-projection-contracts.json),
+[graph CLI](builds/2026-10-29-recovery/graph-projection-cli-preflight.json),
+[waste capture](builds/2026-10-29-recovery/waste-capture-response-contracts.json).
+
+Checklist: 1,703 complete / 25 open (1,728 total); TODO: 388 checked / 16
+open. Capability classifications remain 24 baseline-retained, 7 deployed, and
+36 prepared across 67 rows; strict private Gateway response contracts now
+total 120. C2/C4/C5, populated-data parity, and live provider gates remain
+open.
+
+### Progress addendum — stakeholder and cooperative view projections — 29 October 2026
+
+Stakeholder engagement summary, commitment detail/list, and cooperative
+governance health now select the exact migration 217/216/222 view columns. The
+existing filter combinations, bind order, sorting, empty/list behavior, and
+UUID/datetime serialization remain covered by 11 mock-cursor tests. Compilation
+and diff checks pass. Default Ruff reports existing E702/F401/I001/F841
+findings in these older modules; the focused check excluding those legacy rules
+passes. No database/provider was used. Evidence:
+[projection contracts](builds/2026-10-29-recovery/analytics-stakeholder-cooperative-view-projections.json).
+
+Checklist: 1,707 complete / 25 open (1,732 total); TODO: 392 checked / 16
+open. Capability classifications remain 24 baseline-retained, 7 deployed, and
+36 prepared across 67 rows; strict private Gateway response contracts remain
+120. C2/C4/C5, populated-data parity, and live provider gates remain open.
+
+### Progress addendum — precision-irrigation CLI preflight — 29 October 2026
+
+Precision-irrigation CLI now validates rule priority against migration 146's
+0–100 check before opening PostgreSQL, parses automation readings as a JSON
+object before connecting, and validates schedule start timestamps before
+dispatch. Valid priority boundaries, empty JSON readings, and ISO timestamps
+remain supported. The focused CLI suite passes 30 tests; Ruff, compilation, and
+diff checks pass. No database/provider was used. Evidence:
+[preflight checks](builds/2026-10-29-recovery/precision-irrigation-cli-preflight.json).
+
+Checklist: 1,710 complete / 25 open (1,735 total); TODO: 395 checked / 16
+open. Capability classifications remain 24 baseline-retained, 7 deployed, and
+36 prepared across 67 rows; strict private Gateway response contracts remain
+120. C2/C4/C5, populated-data parity, and live provider gates remain open.
+
+### Progress addendum — governance proposal lineage ordering repair — 29 October 2026
+
+Source review found the proposal list ordered by `created_at` even though
+migration 246's view did not expose that column. Migration 687 appends the
+existing base-table timestamp without editing the historical migration, and
+the service now selects the exact 24-column view contract. A disposable
+PostgreSQL 16 check reproduced the old missing-column error, applied/replayed
+migration 687 transactionally, and exercised the actual service filter/order
+path against synthetic proposals. Five assertions passed; the temporary
+container was removed and candidate/legacy databases were untouched. Evidence:
+[proposal lineage check](builds/2026-10-29-recovery/governance-proposal-created-at-disposable.json).
+
+Checklist: 1,713 complete / 25 open (1,738 total); TODO: 398 checked / 16
+open. Capability classifications remain 24 baseline-retained, 7 deployed, and
+36 prepared across 67 rows; strict private Gateway response contracts remain
+120. C2/C4/C5, populated-data parity, and live provider gates remain open.
+
+### Progress addendum — business-canvas draft create contracts — 29 October 2026
+
+Both private business-canvas creation routes now publish strict OpenAPI
+responses for newly created drafts and idempotent replays. Runtime validation
+binds the returned location, enforces draft-only lifecycle and exact UUID,
+version, timestamp, replay, generated-source, and populated-block fields, and
+returns sanitized no-store errors for malformed writer output. The focused
+business-planning route suite passes 28 tests. Ruff, Python compilation, and
+diff checks pass; no database/provider, candidate, or legacy service was used.
+Evidence: [contract checks](builds/2026-10-29-recovery/business-canvas-draft-create-contracts.json).
+
+Checklist: 1,716 complete / 25 open (1,741 total); TODO: 401 checked / 16
+open. Capability classifications remain 24 baseline-retained, 7 deployed, and
+36 prepared across 67 rows; strict private Gateway response contracts now
+total 122. C2/C4/C5, populated-data parity, and live provider gates remain
+open.
+
+### Progress addendum — CRISP dates, pollinator capture, and tension ordering — 29 October 2026
+
+CRISP composite and rate commands now reject invalid/noncanonical dates and
+reversed ranges before connecting, with valid dates passed as canonical ISO
+strings. The pollinator observation capture route now validates the exact
+migration-619 nine-field response, binds location and submitted observation
+values, publishes created/replay OpenAPI responses, and returns generic
+no-store errors for malformed writer output. Migration 688 appends the
+existing `created_at` value to governance tension health, and the analytics
+service now explicitly selects the 29-column view contract. Migration 244 was
+left unchanged.
+
+The CRISP selection passes 36 tests; pollinator response checks pass 12 tests
+with 89 unrelated tests deselected. Migration 688 applies and replays on a
+disposable PostgreSQL 16 instance, reproduces the old missing-column error,
+and verifies actual list/detail service queries plus ordering in five
+assertions. Ruff, Python compilation, runtime SQL inventory, capability-matrix
+validation, and diff checks pass. Candidate and legacy databases were not
+contacted. Evidence:
+[CRISP](builds/2026-10-29-recovery/crisp-cli-period-preflight.json),
+[pollinator](builds/2026-10-29-recovery/pollinator-observation-create-response-contract.json),
+[migration 688](builds/2026-10-29-recovery/governance-tension-created-at-disposable.json).
+
+Checklist: 1,725 complete / 25 open (1,750 total); TODO: 405 checked / 16
+open. Capability classifications remain 24 baseline-retained, 7 deployed,
+and 36 prepared across 67 rows; strict private Gateway response contracts
+now total 123. C2/C4/C5, populated-data parity, and live provider gates remain
+open.
+
+### Progress addendum — pesticide capture and strategy-fit projections — 29 October 2026
+
+The private pesticide-impact capture route now validates the exact six-field
+migration-620 result, publishes the same schema for 201 creation and 200
+replay, binds location/toxicity/date to the request, and returns sanitized
+no-store errors for malformed results. Three remaining strategy readers now
+select migration 271's exact ordered advantage-fit projection: coherence,
+competitive report, and fit dashboard. Plan filters, existing report/dashboard
+ordering, and finding/row serialization remain unchanged.
+
+Pesticide checks pass 12 mock-only tests; strategy-fit checks pass three
+mock-cursor tests. Ruff, Python compilation, runtime SQL inventory, and diff
+checks pass. No database/provider, candidate, or legacy state was used.
+Evidence:
+[pesticide capture](builds/2026-10-29-recovery/pesticide-impact-create-response-contract.json),
+[strategy projections](builds/2026-10-29-recovery/strategy-advantage-fit-projections.json).
+
+Checklist: 1,731 complete / 25 open (1,756 total); TODO: 408 checked / 16
+open. Capability classifications remain 24 baseline-retained, 7 deployed,
+and 36 prepared across 67 rows; strict private Gateway response contracts
+now total 124. C2/C4/C5, populated-data parity, and live provider gates remain
+open.
+
+### Progress addendum — contracts and analytics projection acceptance — 29 October 2026
+
+The stakeholder landscape reader now selects migration 316's explicit
+11-column contract and uses its `party_status` alias for the status filter.
+Prediction CLI inputs are validated before database acquisition, including
+UUIDs, timezone-aware timestamps, source/unit/calibration bounds, and exact
+`NUMERIC(20,8)` range/rounding behavior using `Decimal`. Delphi study-draft
+and consent create/decision routes now expose strict response schemas and
+validate request binding, lifecycle state, identifiers, digests, timestamps,
+and replay semantics. Internal governance, strategy execution, stakeholder
+representation, and equity analytics now select their migration-defined
+columns explicitly.
+
+The stakeholder-decision readers now pin migration 229's 26-column lineage
+view while preserving the existing filters and approved-time ordering. Delphi
+recommendation-draft creation now declares a strict four-field OpenAPI
+response, validates UUID/status/timestamp fields, binds the response study to
+the route, and keeps the current 200 response and no-store behavior.
+
+Governance circle links, circle and role registries, role assignments,
+tactical-session health, and strategy execution now use the exact ordered
+columns exposed by migrations 242, 243, 247, 248, and 260. Existing filters,
+sort order, and row serialization are preserved.
+
+PR #71 CI failed on pushed head `16315d832fe3fa4424c87e1d860a9055f97a09aa`
+because the Directus permission-source and report-helper-scope snapshots were
+stale; Security passed. Both generated snapshots are refreshed and their
+local freshness gates pass, along with the runtime SQL inventory gate. The
+cause and repair are recorded in
+[the CI inventory-refresh evidence](builds/2026-10-29-recovery/ci-40949871199-inventory-refresh.json).
+
+The authorized grouped offline selection passes 173 tests across Delphi
+study/consent/recommendation response contracts, prediction CLI preflight, and
+explicit migration-backed analytics projections. Ruff, Python compilation,
+Directus permission inventory, report-helper scope inventory, runtime SQL
+inventory, capability matrix, and diff checks pass. Synthetic fixtures and
+mocked connections only; no database, candidate, legacy service, or external
+provider was used. Hosted CI must rerun on the pushed head.
+Checklist: 1,749 complete / 25 open; TODO: 425 checked / 16 open. Capability
+classifications remain 24 baseline-retained, 7 deployed, and 36 prepared
+across 67 rows; strict private Gateway response contracts total 128. C2/C4/C5,
+populated-data parity, and live provider gates remain open. Evidence:
+[grouped checks](builds/2026-10-29-recovery/kernel-next-contract-projection-checks.json).
+
+### Progress addendum — Delphi review-decision response schemas — 29 October 2026
+
+Recommendation and minority-report review decision endpoints now publish
+strict six-field response schemas. Each handler validates the lifecycle result
+against the submitted decision and binds the returned recommendation/report
+identifier to the path; malformed service output receives a sanitized
+no-store error. The authorized mock-only route/OpenAPI selection passes 12
+tests, including field completeness, request/path binding, decision/status
+consistency, and sanitized failures. Ruff, Python compilation, and diff checks
+pass; no database/provider was used. Checklist: 1,751 complete / 25 open;
+TODO: 427 checked / 16 open; strict private Gateway response contracts total
+130. Evidence:
+[Delphi decision contracts](builds/2026-10-29-recovery/delphi-review-decision-response-contracts.json).
+On feature head `eaefae7dee6484b8df6bbd5d6f1b47b5ded57864`, Gitleaks passed and
+CI was still in progress at last check.
+
+### Progress addendum — Delphi study lifecycle response schemas — 29 October 2026
+
+Study open/close routes now declare a strict shared response schema and check
+the returned study/location, requested action state, and timestamp lifecycle.
+Stopping evaluation now declares a strict nested response for the study and
+item outcomes, accepts only source-defined outcomes, checks aggregate stop
+state against item results, and binds response IDs to the request path.
+Malformed results receive sanitized no-store responses. The approved mock-only
+selection passes 20 tests, including exact OpenAPI response shapes, valid
+open/close and evaluation results, path binding, timestamp/status checks,
+malformed nested rows, and sanitized no-store errors. Ruff, Python compilation,
+capability validation, and diff checks pass. No database or provider was used.
+Checklist: 1,755 complete / 25 open; TODO: 431 checked / 16 open; strict
+private Gateway response contracts total 133. Evidence:
+[lifecycle response contracts](builds/2026-10-29-recovery/delphi-study-lifecycle-response-contracts.json).
+
+### Progress addendum — Delphi participant write response contracts — 29 October 2026
+
+Strict OpenAPI/runtime response models are implemented for invite preview,
+consent acceptance and withdrawal, questionnaire contribution, and minority-
+report submission. They bind fixed lifecycle states, identifiers, timestamps,
+consent scopes, and replay status to the migration-backed service outputs.
+Malformed success data receives a sanitized no-store 503; consent tokens are
+not set when acceptance output is invalid, and withdrawal cookies are cleared
+only after a valid withdrawal response. The three focused participant route
+suites pass 56 tests, including OpenAPI fields, lifecycle/replay behavior,
+request binding, malformed response rejection, and cookie behavior. Ruff,
+Python compilation, schema generation, capability-matrix validation, and diff
+checks pass; no database or provider was used. Checklist: 1,761 complete / 25
+open; TODO: 434 checked / 16 open; strict private Gateway response contracts
+total 138. Evidence:
+[participant response contracts](builds/2026-10-29-recovery/delphi-participant-write-response-contracts.json).
+
+### Progress addendum — Delphi operator invite issue/revoke responses — 29 October 2026
+
+Operator invite issuance and revocation now declare strict response schemas.
+Issuance validates location/study binding, notice digest/version, lifecycle,
+and the one-time token rule: a first issue returns a token, while replay must
+return null. Revocation validates its fixed `revoked` state and binds the invite
+ID to the path. Malformed service output gets a sanitized no-store 503. Ruff,
+Python compilation, response-schema generation, and diff checks pass. The
+focused operator invite suite passes 45 tests for OpenAPI, field and path
+binding, one-time token replay behavior, revocation, and sanitized failures.
+Capability-matrix validation passes; no database or provider was used.
+Checklist: 1,766 complete / 25 open; TODO: 437 checked / 16 open; strict
+private Gateway response contracts total 140. Evidence:
+[operator invite response contracts](builds/2026-10-29-recovery/delphi-operator-invite-response-contracts.json).
+
+### Progress addendum — private operating-pilot coaching response — 29 October 2026
+
+The coaching-session create route now declares a strict six-field response
+for location, session ID, completed/private lifecycle, session date, and replay
+state. It binds location to the path and returns HTTP 201 for creation or 200
+for an idempotent replay. Invalid service output is sanitized and uncached.
+The approved focused route selection passes 19 tests (176 unrelated tests
+deselected), including OpenAPI, request binding, replay, and malformed output.
+Ruff, Python compilation, schema generation, capability validation, and diff
+checks pass; no database or provider was used. Checklist: 1,771 complete / 25
+open; TODO: 440 checked / 16 open; strict private Gateway response contracts
+total 141. Evidence:
+[coaching response contract](builds/2026-10-29-recovery/operating-pilot-coaching-create-response-contract.json).
+
+### Progress addendum — capacity-profile draft response — 29 October 2026
+
+The operating-pilot capacity draft route now declares a strict four-field
+response for location, profile ID, canonical lifecycle status, and replay.
+It binds the result location to the path and returns HTTP 200 on an idempotent
+replay while keeping HTTP 201 for a new draft. Ruff, Python compilation,
+response-schema generation, and diff checks pass. The approved focused
+route selection passes 20 tests (179 unrelated tests deselected), including
+OpenAPI, lifecycle, path binding, replay, and malformed output. Capability
+validation passes; no database or provider was used. Checklist: 1,776 complete
+/ 25 open; TODO: 443 checked / 16 open; strict private Gateway response
+contracts total 142. Evidence:
+[capacity-draft response contract](builds/2026-10-29-recovery/operating-pilot-capacity-draft-create-response-contract.json).
+
+### Progress addendum — capacity-profile revision response — 29 October 2026
+
+Capacity-profile revision now declares a strict five-field response for
+location, replacement profile, replaced profile, lifecycle status, and replay.
+It binds both IDs and location to the route, requires new revisions to stay
+draft-only, preserves the existing lifecycle on exact replay, and keeps HTTP
+200 for the PUT operation. The approved mock-only route selection passes 12
+tests (193 unrelated tests deselected), including OpenAPI, path binding,
+replacement identity, replay status, and sanitized no-store failures. Ruff,
+Python compilation, schema generation, capability validation, and diff checks
+pass. No database or provider was used. Checklist: 1,781 complete / 25 open;
+TODO: 447 checked / 16 open; strict private Gateway response contracts total
+143. Evidence:
+[capacity-draft revision response contract](builds/2026-10-29-recovery/operating-pilot-capacity-draft-revision-response-contract.json).
+
+### Progress addendum — capacity submission and review response contracts — 29 October 2026
+
+Capacity submission and independent review now publish strict OpenAPI response
+models. Both bind location and profile IDs to the route and reject extra or
+malformed service fields with a sanitized no-store 503. A first submission must
+remain `submitted`, while a replay may report the profile's current lifecycle;
+review status must match its `approved` or `rejected` decision. The approved
+focused mock-only selection passes 25 tests (190 unrelated tests deselected),
+including replay and path-binding behavior. Ruff, Python compilation,
+capability validation, and diff checks pass. No database or provider was used.
+Checklist: 1,786 complete / 25 open; TODO: 450 checked / 16 open; strict
+private Gateway response contracts total 145. Evidence:
+[capacity submit/review contracts](builds/2026-10-29-recovery/operating-pilot-capacity-submit-review-response-contracts.json).
+
+### Progress addendum — operating-demand lifecycle response contracts — 29 October 2026
+
+Demand draft creation, revision, submission, and independent review now expose
+strict OpenAPI/runtime responses. Each response binds location and signal IDs
+to the path; first create/revision and submission results remain in their
+required lifecycle states; replay can preserve later terminal states, including
+`fulfilled` and `cancelled`; and review status must match its decision. OpenAPI
+now declares the existing create status as HTTP 201. The approved mock-only
+selection passes 28 tests (207 unrelated tests deselected), including malformed
+output and no-store behavior. Ruff, Python compilation, capability validation,
+and diff checks pass. No database or provider was used. Checklist: 1,791
+complete / 25 open; TODO: 453 checked / 16 open; strict private Gateway
+response contracts total 149. Evidence:
+[demand lifecycle response contracts](builds/2026-10-29-recovery/operating-pilot-demand-lifecycle-response-contracts.json).
+
+### Progress addendum — resource-request lifecycle response contracts — 29 October 2026
+
+Resource-request draft create, revision, submission, and independent review
+now expose strict OpenAPI/runtime response models. The responses bind location
+and draft/request IDs to the route, constrain first-time revisions to drafts,
+and restrict the review projection to `reviewed` with an approved/rejected
+decision. OpenAPI declares the existing create response as HTTP 201. The
+approved mock-only selection passes 27 tests (229 unrelated tests deselected),
+including replay, malformed-output, and no-store behavior. Ruff, Python
+compilation, capability validation, and diff checks pass. No database or
+provider was used. Checklist: 1,796 complete / 25 open; TODO: 456 checked / 16
+open; strict private Gateway response contracts total 153. Evidence:
+[resource lifecycle response contracts](builds/2026-10-29-recovery/operating-pilot-resource-lifecycle-response-contracts.json).
+
+### Progress addendum — operating-pilot competency lifecycle response contracts — 29 October 2026
+
+Competency draft create, revision, submission, and independent review now have
+strict OpenAPI/runtime response contracts. They bind returned locations and
+draft IDs to request paths, require replacement IDs to differ from the
+superseded draft, constrain first-write lifecycle states, and preserve current
+state on idempotent replay. Review status must match its `verified` or
+`rejected` decision. OpenAPI declares creation as HTTP 201, matching the
+existing runtime behavior. The approved mock-only selection passes 22 tests
+(253 unrelated tests deselected), including malformed-output and no-store
+handling. Ruff, Python compilation, capability validation, and diff checks
+pass. No database or provider was used. Checklist: 1,801 complete / 25 open;
+TODO: 459 checked / 16 open; strict private Gateway response contracts total
+157. Evidence:
+[competency lifecycle response contracts](builds/2026-10-29-recovery/operating-pilot-competency-lifecycle-response-contracts.json).
+
+### Progress addendum — operating-pilot learning-plan review and activation response contracts — 29 October 2026
+
+Learning-plan review and activation now expose strict OpenAPI/runtime response
+models. Both bind location and plan IDs to the request path. Approval remains
+`submitted` until a separate activation action; rejection returns the plan to
+`draft`; activation reports `active`. Exact retries preserve the recorded
+decision or active state, while malformed or mismatched service data produces
+a sanitized no-store 503. The approved mock-only selection passes 13 tests
+(273 unrelated tests deselected). Ruff, Python compilation, and diff checks
+pass. No database or provider was used. Checklist: 1,805 complete / 25 open;
+TODO: 462 checked / 16 open; strict private Gateway response contracts total
+159. Evidence:
+[learning-plan review/activation response contracts](builds/2026-10-29-recovery/operating-pilot-learning-plan-review-activation-response-contracts.json).
+
+### Progress addendum — operating-pilot learning-plan write response contracts — 29 October 2026
+
+Learning-plan draft create, revision, and submission now expose strict
+OpenAPI/runtime response models. Each binds the returned location and plan to
+the request path; first writes must remain draft or submitted as appropriate,
+while replays may reflect later valid lifecycle states. Revision responses
+include a timezone-aware `updated_at`. Create is declared HTTP 201 in OpenAPI,
+matching runtime behavior. These contracts complete the response layer across
+learning-plan create, revision, submission, review, and activation while
+keeping review and activation as independent transitions. The approved
+mock-only selection passes 32 tests (268 unrelated tests deselected). Ruff,
+Python compilation, capability validation, and diff checks pass. No database
+or provider was used. Checklist: 1,810 complete / 25 open; TODO: 465 checked /
+16 open; strict private Gateway response contracts total 162. Evidence:
+[learning-plan write response contracts](builds/2026-10-29-recovery/operating-pilot-learning-plan-write-response-contracts.json).
+
+### Progress addendum — operating-pilot work-claim lifecycle response contracts — 29 October 2026
+
+Work-claim proposal, independent review, and separate allocation now expose
+strict OpenAPI/runtime responses. The proposal binds its work item to the
+request path and remains `proposed` on first write; an exact replay may report
+the claim's later valid state. Review is limited to `accepted` or `rejected`,
+and allocation returns the distinct `allocated` status. Every route binds its
+location and claim/work-item IDs and sanitizes invalid service output with a
+no-store 503. The proposal remains HTTP 201 in both OpenAPI and runtime. The
+approved mock-only selection passes 18 tests (300 unrelated tests deselected).
+Ruff, Python compilation, capability validation, and diff checks pass. No
+database or provider was used. Checklist: 1,815 complete / 25 open; TODO: 468
+checked / 16 open; strict private Gateway response contracts total 165.
+Evidence:
+[work-claim lifecycle response contracts](builds/2026-10-29-recovery/operating-pilot-work-claim-lifecycle-response-contracts.json).
+
+### Progress addendum — operating-pilot resource fulfillment response contract — 29 October 2026
+
+The separately authorized resource-fulfillment operation now has a strict
+OpenAPI/runtime response model. It binds location and resource-request IDs to
+the route and accepts only the migration's `closed` status with `fulfilled`
+decision. The response keeps fulfillment distinct from approval, payment, and
+inventory execution, preserves exact replay, and sanitizes malformed results
+with a no-store 503. The approved mock-only selection passes 7 tests (316
+unrelated tests deselected). Ruff, Python compilation, capability validation,
+and diff checks pass. No database or provider was used. Checklist: 1,820
+complete / 25 open; TODO: 471 checked / 16 open; strict private Gateway
+response contracts total 166. Evidence:
+[resource fulfillment response contract](builds/2026-10-29-recovery/operating-pilot-resource-fulfillment-response-contract.json).
+
+### Progress addendum — farm-activity draft and transition response contracts — 29 October 2026
+
+Farm-activity draft create and edit now publish a strict 17-field response
+under `data`, bound to the requested location and activity. New writes must
+remain `draft` and use the Gateway source marker; creation documents HTTP 201.
+Lifecycle commands are enumerated in OpenAPI, and each response must bind its
+location, activity, and persisted event action to the URL command while
+matching the transition's source and resulting states. Rejection, rework, and
+exception closure require a nonblank reason. Malformed service output remains
+a generic no-store error. The approved mock-only route suite passes 45 tests;
+Ruff, Python compilation, capability validation, and diff checks pass. No
+database, provider, candidate, or legacy state was used. Checklist: 1,825
+complete / 25 open; TODO: 474 checked / 16 open; strict private Gateway
+response contracts total 169. Evidence:
+[farm-activity write response contracts](builds/2026-10-29-recovery/farm-activity-write-response-contracts.json).
+
+### Progress addendum — operating-pilot work-claim queue response contracts — 29 October 2026
+
+The migration-565 review queue and migration-566 allocation queue now publish
+strict OpenAPI/runtime page and item models. Both bind the exact requested
+location and page bounds, validate order and continuation, and reject
+duplicate claim IDs. The review projection remains identity-blind; the
+allocation projection alone includes the migration-defined `claimant_name`
+under its separate `allocate` grant. The routes retain 403 tenant denials and
+return sanitized no-store 503 responses for malformed service results. The
+approved mock-only route/pagination selection passes 70 tests. Ruff, Python
+compilation, capability validation, and diff checks pass; no database,
+provider, candidate, or legacy state was used. Checklist: 1,830 complete / 25
+open; TODO: 477 checked / 16 open; strict private Gateway response contracts
+total 171. Evidence:
+[work-claim queue response contracts](builds/2026-10-29-recovery/operating-pilot-work-claim-queue-contracts.json).
+
+### Progress addendum — business-canvas edit response contracts — 29 October 2026
+
+The block-edit and metadata-edit PATCH routes now return strict migration-
+backed response projections in OpenAPI and at runtime. Both bind location and
+canvas IDs to the path, preserve draft-only lifecycle, require the returned
+version to equal the submitted expected version plus one for writes and exact
+retries, and require an aware update timestamp. Block names and metadata
+`changed_fields` are constrained to the migration-backed allowlists; metadata
+fields must match the submitted editable keys in sorted unique order. Invalid
+or mismatched service output is replaced with a generic no-store 503. The
+approved mock-only route/OpenAPI selection passes 71 tests. Ruff, Python
+compilation, capability validation, and diff checks pass. No database,
+provider, candidate, or legacy state was used. Checklist: 1,835 complete / 25
+open; TODO: 480 checked / 16 open; strict private Gateway response contracts
+total 173. Evidence:
+[business-canvas edit response contracts](builds/2026-10-29-recovery/business-canvas-edit-response-contracts.json).
+
+### Progress addendum — competency review queue and PESTEL projections — 29 October 2026
+
+The operating-pilot competency review queue now has a strict OpenAPI/runtime
+contract based on migration 577. It binds location and page values to the
+request, validates finite bounded levels and their relationship, permits only
+submitted drafts, enforces the migration-defined key pattern, checks item
+count/continuation and SQL order, and rejects private undeclared fields. Its
+response keeps numeric JSON values and malformed
+service output becomes a generic no-store error. PESTEL list/detail queries now
+select migration-203 columns explicitly for both analyses and factors; optional
+location filtering, the all-analysis branch, ordering, and dictionary output
+remain unchanged. The Gateway caps continuations at its 10,000-offset request
+limit; the console now indicates when more records exist beyond that bound.
+OpenAPI records the competency levels' two-decimal precision. The approved
+focused selection passes 25 Gateway checks, one operator-console cap-state
+check, and three PESTEL checks. Ruff, Python compilation, capability
+validation, and diff checks pass. No database, provider, candidate, or legacy
+state was used.
+Checklist: 1,840 complete / 25 open; TODO: 483 checked / 16 open; strict
+private Gateway response contracts total 174. Evidence:
+[competency queue and PESTEL projections](builds/2026-10-29-recovery/competency-queue-and-pestel-projections.json).
+
+### Progress addendum — adoption review, competitive projections, and trust CLI — 29 October 2026
+
+The solution-lifecycle adoption-program review queue now publishes and validates
+migration 520's exact ten-field item projection, consent-policy tuple, location
+and page binding, community-review state, and SQL order. Its lookahead is
+converted to an explicit bounded result at the 10,000-offset cap; the console
+discloses when additional programs remain outside that bound. The competitive
+report now selects explicit migration-268 landscape and migration-269 position
+columns with filters, ordering, UUID cleanup, and payload unchanged. The
+stakeholder-trust CLI validates and canonicalizes every supplied UUID-backed ID
+before it opens PostgreSQL, while optional IDs remain optional. The approved
+offline selection passes 53 focused checks across Gateway, console, report,
+unified CLI, and command preflight; Ruff, Python compilation, capability
+validation, and diff checks pass. No database, provider, candidate, or legacy
+state was used. Checklist: 1,845 complete / 25 open; TODO: 488 checked / 16
+open; strict private Gateway response contracts total 175. Evidence:
+[adoption review, competitive projections, and trust CLI](builds/2026-10-29-recovery/adoption-review-competitive-projections-trust-cli.json).
+
+### Progress addendum — adoption drafts, benchmark projection, and energy CLI — 29 October 2026
+
+The own-drafts adoption-program route now validates the exact migration-520
+projection, draft status, consent tuple, location/page echo, and SQL order. It
+marks a capped SQL lookahead explicitly and the console explains when additional
+drafts remain outside the 10,000-offset range. Customer-value benchmark reads
+now select migration 285's explicit columns without changing filters, ordering,
+or UUID-cleaned payloads. Energy-monitoring CLI date inputs are rejected before
+the shared command runner acquires PostgreSQL; valid dates and omitted/empty
+fallback behavior remain intact. The approved offline selection passes 25
+focused checks; Ruff, Python compilation, capability validation, and diff checks
+pass. No database, provider, candidate, or legacy state was used. Checklist:
+1,850 complete / 25 open; TODO: 493 checked / 16 open; strict private Gateway
+response contracts total 176. Evidence:
+[adoption drafts, benchmark projection, and energy CLI](builds/2026-10-29-recovery/adoption-drafts-benchmark-energy-preflight.json).
+
+### Progress addendum — adoption redesign, grievance projection, and crop-date preflight — 29 October 2026
+
+The private adoption-redesign queue now validates migration 519's seven-field
+item projection, exact location and page values, unique IDs, and stable
+`reviewed_at DESC, program_id ASC` order. Its service lookahead is converted
+to a bounded `offset_limited` response when another page would exceed 10,000;
+the operator console validates the complete page before rendering and tells
+the operator when that cap is reached. `stakeholder_grievances.list_case_health`
+now selects all 21 columns in migration 218's declared order, preserving
+optional status/overdue filters, binds, result serialization, and internal
+access boundary. Crop-rotation impact dates are parsed in argparse before the
+shared command runner can acquire PostgreSQL; invalid calendar dates fail
+early and valid dates are passed through as `datetime.date` values.
+
+The approved offline selection passes 120 focused tests with two skips. Ruff,
+Python compilation, capability-matrix validation, refreshed runtime SQL
+inventory, provider-boundary and dependency-group checks, and diff checks pass.
+No database, provider, candidate, or legacy state was used; no migration was
+needed. Checklist: 1,855 complete / 25 open; TODO: 498 checked / 16 open;
+strict private Gateway response contracts total 177. Evidence:
+[adoption redesign, grievance projection, and crop-date checks](builds/2026-10-29-recovery/adoption-redesign-grievances-crop-date.json).
+
+### Progress addendum — consent, readiness review, and CLI preflight — 29 October 2026
+
+The consent resolver's `check_consent` and `list_effective_consent` now select
+all 24 migration-320 view columns in declared order while preserving their
+filters, bind order, limit/sort, serialization, and internal access boundary.
+Consent CLI record/check/list/withdraw UUID inputs are canonicalized or
+rejected before `get_db()`. Farmer-identity DOB, credential, and role-expiry
+values parse into their prior date/datetime types before connection creation;
+digital-finance `file-claim --evidence` JSON is decoded in argparse before the
+runner can open PostgreSQL.
+
+The private migration-516 adopter-readiness review queue now declares a strict
+OpenAPI/runtime contract with exact seven-field items, location/page binding,
+finite numeric bounds, remediation text limits, aware timestamps, unique IDs,
+SQL ordering, coherent lookahead, and an explicit terminal page when the
+10,000-offset ceiling is reached. The operator console validates the entire
+page before rendering and reports capped results. The approved combined
+offline selection passes 157 tests with four skips. Ruff, Python compilation,
+capability validation, refreshed runtime SQL inventory, provider-boundary
+and dependency-group checks, and diff checks pass. No database/provider or
+candidate/legacy state was used; no migration was required. Checklist: 1,861
+complete / 25 open; TODO: 504 checked / 16 open; strict private Gateway
+response contracts total 178. Evidence:
+[consent, readiness, and CLI preflight](builds/2026-10-29-recovery/consent-readiness-cli-preflight.json).
+
+### Progress addendum — stakeholder projections, CLI preflight, and configuration drafts — 29 October 2026
+
+The stakeholder trust readers now select migration 222's exact 13-column
+profile and 18-column evidence timeline. Identity resolution now selects the
+exact 12-column review queue and 11-column verified-source-link projections
+from migration 227. Their filters, ordering, payloads, and internal/reviewed
+access boundaries are unchanged.
+
+Pest-management date and date-range options are parsed in argparse before the
+database connection factory runs; valid dates reach the service functions as
+`datetime.date`. Marketplace harvest dates receive the same preflight, and
+buyer preference/contact inputs must be valid JSON objects before `get_db()`.
+
+The private migration-517 configuration own-drafts queue now has strict
+OpenAPI/runtime item and page schemas. The Gateway binds location and paging,
+validates unique configuration IDs and the database's `proposed_at DESC,
+id DESC` order, and returns a terminal `offset_limited` page when another
+continuation would exceed 10,000. The operator console validates the full
+response before rendering and reports the cap. Its ordering helper preserves
+PostgreSQL microseconds and normalizes timezone offsets before applying the
+UUID tie-break.
+
+The approved mock-only selection passes 177 tests. Ruff, Python compilation,
+capability validation, refreshed runtime SQL inventory, provider-boundary and
+dependency-group checks, and diff checks pass. No database/provider,
+candidate, or legacy state was used; migration 517 was not applied. Checklist:
+1,867 complete / 25 open; TODO: 507 checked / 16 open; strict private Gateway
+response contracts total 179. Evidence:
+[stakeholder projections, marketplace/pest preflight, and configuration queue](builds/2026-10-29-recovery/stakeholder-projections-marketplace-pest-configuration-queue.json).
+
+### Progress addendum — governance CLI, carbon-credit source, and configuration review — 29 October 2026
+
+The governance `domain-add --constraints` CLI now parses and validates a JSON
+object before database acquisition, preserving the existing empty-object
+default. The carbon-credit climate summary now uses migration 028's annual
+`reporting_year` field and exact location/year/verified-or-published filters;
+the former period-bound query referenced columns the canonical view does not
+define.
+
+The private migration-517 independent configuration review queue now exposes
+strict OpenAPI/runtime item and page schemas. The Gateway binds exact location
+and page inputs, validates the source-defined component objects and their
+combined 65,536-byte limit, evidence/classification/version/timestamp bounds,
+unique identifiers, and `submitted_at DESC, configuration_id DESC` ordering.
+Continuation stops at offset 10,000 with an explicit cap marker. The operator
+console validates the complete page before rendering and compares timestamps
+at PostgreSQL microsecond precision.
+
+The approved mock-only selection passes 110 tests. Ruff, compilation,
+capability validation, refreshed runtime SQL inventory, provider-boundary and
+dependency-group checks, and diff checks pass. No database/provider,
+candidate, or legacy state was used; migration 517 was not applied. Checklist:
+1,872 complete / 25 open; TODO: 511 checked / 16 open; strict private Gateway
+response contracts total 180. Evidence:
+[governance CLI, carbon-credit lookup, and configuration review queue](builds/2026-10-29-recovery/governance-cli-carbon-lookup-configuration-review-queue.json).
+
+### Progress addendum — consent expiry, capacity projection, and operating-pilot summary — 29 October 2026
+
+The `record-consent --expires-at` value is now parsed before PostgreSQL access
+and must include an explicit timezone offset, so its TIMESTAMPTZ meaning does
+not vary with session configuration. `capacity_signals.list_gaps()` now
+selects migration 251's exact ten-column view projection, retaining its
+optional scope filters, bind order, sort, UUID conversion, and payload.
+
+The private migration-461 operating-pilot summary route now publishes and
+validates a strict nested response contract. It binds `location_id` to the
+request path; constrains counts and numeric measures; enforces nullability for
+suppressed participant aggregates; and returns a sanitized no-store failure
+for malformed service output. The existing auth and tenant checks remain
+before the summary read.
+
+The approved mock-only selection passes 211 tests. Ruff, compilation,
+capability validation, refreshed runtime SQL inventory, provider-boundary and
+dependency-group checks, and diff checks pass. No database/provider,
+candidate, or legacy state was used; no migration was applied. Checklist:
+1,877 complete / 25 open; TODO: 515 checked / 16 open; strict private Gateway
+response contracts total 181. Evidence:
+[consent, capacity, and operating-pilot contracts](builds/2026-10-29-recovery/consent-capacity-operating-pilot-contracts.json).
+
+### Progress addendum — equipment timestamps, carbon balance, and learning-plan review — 29 October 2026
+
+Equipment usage CLI timestamps now parse as ISO-8601 values with explicit
+timezone offsets before PostgreSQL is acquired. `carbon_balance` now selects
+the exact six migration-028 annual summary values used by its requested-year
+and latest-year branches, preserving the location/year filters, latest-year
+sort, calculation, fallback, and output.
+
+The private migration-610 learning-plan review queue now publishes strict
+OpenAPI/runtime item and page models. It validates location/page binding,
+`updated_at DESC, id DESC` ordering, unique plan IDs, exact item counts,
+continuation against the total, and the 10,000-offset ceiling. The source
+JSON arrays remain flexible while respecting 50-item, 8,000-byte-per-array,
+and 12,000-byte combined bounds. Auth and tenant authorization remain before
+the read; malformed output is sanitized and no-store.
+
+The approved mock-only selection passes 218 tests. CI security Ruff,
+compilation, capability validation, refreshed runtime SQL inventory,
+provider-boundary and dependency-group checks, and diff checks pass. Default
+Ruff on changed files passes with the unrelated existing unused `capacity`
+local ignored. No database/provider, candidate, or legacy state was used; no
+migration was applied. Checklist: 1,882 complete / 25 open; TODO: 519 checked
+/ 16 open; strict private Gateway response contracts total 182. Evidence:
+[equipment, carbon-balance, and learning-plan queue contracts](builds/2026-10-29-recovery/equipment-carbon-balance-learning-queue-contracts.json).
+
+
+### Progress addendum — private own-demand response contract — 29 October 2026
+
+The signed operator's `my-demand-signals` route now publishes and validates
+the exact migration-561 item/page projection. It binds the returned location
+and page to the request, validates source bounds and lifecycle, exact row
+counts, unique IDs, and the database's `updated_at DESC, id DESC` order. When
+the SQL reader reports another page beyond offset 10,000, the Gateway returns
+a terminal page instead of an unusable continuation. Numeric hours stay JSON
+numbers; the existing `operating_pilot:read_own` grant and signed tenant
+context remain unchanged. Malformed output receives a generic no-store error.
+
+The approved mock-only selection passes 42 tests. Default and source security
+Ruff, Python compilation, capability-matrix validation, runtime SQL inventory
+and unresolved-write ledger, report-generator helper-scope inventory,
+provider-boundary and dependency-group checks, and diff checks pass. Hosted
+CI #992 failed on the previously pushed head because the report-helper and
+runtime-SQL inventories were stale; both now pass locally, and the next hosted
+head remains gated on CI. No database/provider, candidate, or legacy state was
+used; no migration was applied. Checklist: 1,897 complete / 25 open; TODO:
+531 checked / 16 open; strict private Gateway response contracts total 186.
+Evidence:
+[private own-demand response](builds/2026-10-29-recovery/operating-pilot-own-demand-read-contract.json).
+
+### Progress addendum — private demand-review response contract — 29 October 2026
+
+The independent demand-review queue now publishes and validates migration
+560's exact private response. Its item projection contains only signal ID,
+work type, period, required hours, priority, submitted status, and update time;
+the page adds the requested location and bounded pagination metadata. Runtime
+validation binds location and page values to the request, checks source
+bounds, exact row counts, unique IDs, and `updated_at DESC, id DESC` ordering,
+and suppresses continuations beyond the Gateway's 10,000-offset limit. It
+does not return demand descriptions, creator identity, receipt data, or
+reviewer identity. The existing exact `operating_pilot:review` grant and
+signed tenant context remain unchanged, and malformed results receive a
+sanitized no-store response.
+
+The approved mock-only route/OpenAPI and tenant-read selection passes 35
+tests. Default Ruff on changed source/tests, source security Ruff, Python
+compilation, capability validation, runtime SQL and unresolved-write
+inventories, report-helper-scope inventory, provider-boundary,
+dependency-group, and diff checks pass. No database/provider, candidate, or
+legacy state was used; no migration was applied. Checklist: 1,902 complete /
+25 open; TODO: 535 checked / 16 open; strict private Gateway response
+contracts total 187. Evidence:
+[demand-review response](builds/2026-10-29-recovery/operating-pilot-demand-review-response-contract.json).
+
+### Progress addendum — private resource-review response contract — 29 October 2026
+
+The independent resource-review queue now publishes and validates the exact
+migration-571 projection: request ID, resource type, description, urgency,
+and requested date, plus exact-location and bounded pagination metadata. The
+Gateway binds location/page values to the request, enforces the source-defined
+text/date bounds, exact item counts, unique IDs, and `requested_by DESC, id
+DESC` order, and suppresses continuations beyond offset 10,000. Requester
+identity and private receipt values remain excluded. Existing review grant,
+signed tenant context, and no-store behavior remain unchanged; malformed
+responses receive a generic error.
+
+The approved mock-only route/OpenAPI and tenant-read selection passes 35
+tests. Default Ruff on changed source/tests, source security Ruff, Python
+compilation, capability validation, runtime SQL and unresolved-write
+inventories, report-helper-scope inventory, provider-boundary,
+dependency-group, and diff checks pass. No database/provider, candidate, or
+legacy state was used; no migration was applied. Checklist: 1,907 complete /
+25 open; TODO: 539 checked / 16 open; strict private Gateway response
+contracts total 188. Evidence:
+[resource-review response](builds/2026-10-29-recovery/operating-pilot-resource-review-response-contract.json).
+
+
+### Progress addendum — independent resource-fulfillment queue contract — 29 October 2026
+
+The migration-573 approved-request queue now has an explicit OpenAPI and runtime response contract. Its five identity-blind item fields and seven page fields are bound to the request location and pagination. Validation enforces field bounds, exact row counts, unique request IDs, `requested_by DESC, id DESC` order, and the 10,000-offset continuation ceiling. The route keeps its exact `operating_pilot:fulfill` grant and signed tenant context; it remains read-only and excludes requester/fulfiller identities and private receipt data. Malformed output gets a generic no-store response.
+
+The approved mock-only Gateway/OpenAPI selection passes 33 tests. Default Ruff, source security Ruff, Python compilation, capability-matrix validation, runtime SQL and unresolved-write inventories, report-helper-scope inventory, provider-boundary, dependency-group, and diff checks pass. No database/provider, candidate, or legacy state was used; no migration was applied. Evidence: [focused checks](builds/2026-10-29-recovery/operating-pilot-resource-fulfillment-queue-response-contract.json).
+
+Checklist: 1,912 complete / 25 open; TODO: 543 checked / 16 open. Capability classifications remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows; strict private Gateway response contracts total 189.
+
+
+### Progress addendum — learning-plan activation queue contract — 29 October 2026
+
+The migration-629 learning-plan activation queue now publishes and validates its exact eight-field item and seven-field page. The Gateway binds requested location and pagination, checks count/continuation invariants, duplicate IDs, source title/JSON bounds, `submitted` eligibility, aware timestamps, and approval-after-submission ordering. Migration SQL retains deterministic `updated_at DESC, id DESC` ordering; that source contract is pinned by a regression because the public projection intentionally omits `updated_at`. The route keeps the separate `operating_pilot:activate` grant and signed tenant context, and malformed output returns a generic no-store 503.
+
+The approved mock-only Gateway/OpenAPI selection passes 30 tests. Default Ruff, source security Ruff, Python compilation, capability-matrix validation, runtime SQL and unresolved-write inventories, report-helper-scope inventory, provider-boundary, dependency-group, and diff checks pass. No database/provider, candidate, or legacy state was used; no migration was applied. Evidence: [focused checks](builds/2026-10-29-recovery/operating-pilot-learning-plan-activation-queue-response-contract.json).
+
+Checklist: 1,917 complete / 25 open; TODO: 547 checked / 16 open. Capability classifications remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows; strict private Gateway response contracts total 190.
+
+
+### Progress addendum — replication-review detail response contract — 29 October 2026
+
+The private migration-495 replication-review detail now has an exact 15-field
+OpenAPI/runtime contract. The Gateway binds the returned replication ID to the
+requested ID and checks solution/experiment enums, text/protocol bounds,
+aware timestamps, and reviewed-source consistency. It preserves the existing
+exact-location review grant and signed tenant context, rejects extra fields,
+and returns a generic no-store error for malformed service output. The
+response intentionally does not add `location_id`; the signed tenant context
+and SQL function scope the read to the requested location.
+
+The approved mock-only Gateway/OpenAPI selection passes 21 tests. Default and
+source-security Ruff, Python compilation, capability-matrix validation,
+runtime SQL and unresolved-write inventories, report-helper-scope inventory,
+provider-boundary, dependency-group, and diff checks pass. No
+database/provider, candidate, or legacy state was used; no migration was
+applied. Checklist: 1,935 complete / 25 open; TODO: 562 checked / 16 open;
+strict private Gateway response contracts total 193. Evidence:
+[focused checks](builds/2026-10-29-recovery/solution-replication-review-detail-response-contract.json).
+
+
+### Progress addendum — source projection and CLI preflight batch — 29 October 2026
+
+CAP-035 completion-report detail now has a strict 18-field OpenAPI/runtime
+contract from migration 498. Both proposal and replication IDs bind to the
+route; source status, outcome, maturity, summary/evidence bounds, aware time,
+and reviewer-conflict values are validated. The nullable `source_is_current`
+result follows SQL's LEFT JOIN semantics. Existing exact-location review
+authorization, signed context, and sanitized no-store behavior remain intact,
+and proposer/reviewer identity is not returned.
+
+The public EBF scorecard JSON exporter now selects the exact ordered 17-column
+migration-032 summary. Process-simulation and pitch CLIs validate their JSON
+inputs before database acquisition, reject malformed/non-object/non-array or
+non-finite data as appropriate, and preserve valid values through their
+existing handlers.
+
+The approved mock-only selection passes 37 tests. Default Ruff and Python
+compilation pass on changed sources/tests; source-security Ruff passes on the
+Gateway, scoring, and pitch files. The process-simulation file has one
+pre-existing S608 finding in its unchanged `list_simulations()` query builder.
+Capability validation, refreshed runtime SQL and helper-scope inventories,
+provider boundaries, dependency groups, and diff checks pass. No
+database/provider, candidate, or legacy state was used; no migration was
+applied. Checklist: 1,941 complete / 25 open; TODO: 567 checked / 16 open;
+strict private Gateway response contracts total 194. Evidence:
+[batch record](builds/2026-10-29-recovery/kernel-source-contracts-and-cli-preflight.json).
+
+
+### Progress addendum — retirement review and freshness projection — 29 October 2026
+
+The private solution-retirement detail now enforces migration 482's exact
+14-field SQL projection plus the Gateway's `location_id` envelope. It binds
+both IDs to the route and validates the migration-defined enums, field bounds,
+evidence JSON size/count, aware timestamp, and authorship consistency. Nullable
+legacy migration plans and replacement names remain representable. The exact
+location review grant, signed context, and no-store policy are unchanged;
+malformed service data produces a generic sanitized error.
+
+The data-freshness summary now selects the exact ordered ten columns from
+migration 077 and preserves the same output between the standalone and unified
+CLIs. The approved selection passes 23 focused mock-only tests. Default Ruff,
+Python compilation, capability validation, refreshed runtime SQL inventory,
+report-helper scope, provider-boundary, dependency-group, and diff checks pass.
+The scoped security-Ruff run reports two existing S608 findings in unchanged
+freshness SQL builders; this slice adds no SQL construction. No
+database/provider, candidate, or legacy state was used, and no migration was
+applied. Evidence:
+[retirement and freshness checks](builds/2026-10-29-recovery/retirement-review-and-freshness-projection.json).
+
+Four CLI preflight guards now have approved regressions: cooperative asset
+booking start/end values reject malformed, date-only, mixed-awareness, and
+reversed intervals before dispatch; traceability harvest dates require a real
+canonical date; sensor date/time values reuse the UTC parser before database
+access while preserving valid values/defaults; and stakeholder target dates
+are canonical while scheduled/due TIMESTAMPTZ values require explicit zones.
+Valid inputs are passed through unchanged and omitted fields remain None. The
+focused CLI selection passes 31 tests, and the full batch selection passes 54.
+Current totals: 1,949 complete / 26 open; TODO 576 checked / 16 open; 195
+strict private Gateway response contracts across 67 capability rows
+(24 baseline-retained, 7 deployed, 36 prepared).
+
+
+### Progress addendum — bounded CLI inputs and Gateway farm-task linkage — 29 October 2026
+
+Stakeholder salience now rejects non-finite scores and enforces its inclusive
+0–10 range before CLI database acquisition and again in the service.
+Training assessments require an explicit valid location; the old fallback that
+guessed location from learning progress or selected the first location is
+removed. Value-stream observation reads now reject limits outside 1–500 in
+both CLI and service paths.
+
+The native farm-activity Gateway now carries optional `farm_task_id` through
+create, edit, detail, list, OpenAPI, and operator-console flows. It validates
+task/location match on the same transaction and locks the task row until the
+write completes. Migration 359's trigger remains defense in depth and was
+replayed in a temporary PostgreSQL 16 container together with migration 404.
+Same-location assignment succeeds; foreign-location assignment is rejected.
+
+The approved focused selection passes 126 pytest tests and two unittest
+subtests; the disposable PostgreSQL check passes 13 assertions. Ruff,
+compilation, capability validation, refreshed runtime SQL inventory,
+dependency-group alignment, provider boundaries, and diff checks pass. No
+candidate/legacy database or live provider was used; no persistent migration
+was applied. Existing S608 reports cover fixed allowlist-driven dynamic SQL
+builders and other pre-existing query sites. Evidence: [CLI and farm-task
+contracts](builds/2026-10-29-recovery/cli-and-farm-task-integrity.json) and
+[disposable PostgreSQL trigger replay](builds/2026-10-29-recovery/farm-activity-task-link-disposable.json).
+
+Current totals: 1,954 complete / 26 open; TODO 581 checked / 16 open; 195
+strict private Gateway response contracts across 67 capability rows
+(24 baseline-retained, 7 deployed, 36 prepared).
+
+**Latest local batch — runtime-role ACL portability and solution-create contract (29 October 2026):** The ordered 679-file schema replays through migration 688 pass on native x86_64 and ARM64/QEMU under a 1.5 GiB/2-CPU database limit. The synthetic operator-scope probe passes on both targets, including readable-but-immutable `service_registry`, 79 private relations, 47 mutation-denied relations, append-only and API-key boundaries, and zero table/column grant violations. This remains isolated portability evidence, not physical Raspberry Pi acceptance or production approval; 991 public tables still have DML while RLS is disabled, so C1 remains open. The migration-504 location-solution create route now publishes and enforces strict request/response contracts, preserves exact-location authorization, validates response binding, returns 201 for creation and 200 for replay, documents no-store/cookie variance on both, and mirrors PostgreSQL's U+0020 `btrim()` for names. The 61-test focused selection, Ruff, compilation, capability validation, SQL/helper inventory checks, provider/dependency checks, and diff check pass. Candidate, legacy, and production databases were untouched; no migration was applied. Temporary replay resources and the probe image were removed ([native replay](builds/2026-10-29-recovery/runtime-role-full-schema-688-native-disposable.json); [ARM64/QEMU replay](builds/2026-10-29-recovery/runtime-role-full-schema-688-arm64-disposable.json); [runtime ACL report](builds/2026-10-29-recovery/sprint-runtime-privilege-callsite-report-688.json); [solution-create contract](builds/2026-10-29-recovery/solution-create-response-contract.json)).
+
+**Latest source continuation — tactical-session create response contract (29 October 2026):** The migration-444 tactical-session create route now validates a strict request and exact internal action result, then returns an identity-minimized receipt that omits `actor_party_id`. It preserves the exact-location create grant, signed tenant scope, 201 behavior for creation and idempotent retries, and no-store/cookie variance. Twenty-one focused mock-only route checks and all 38 governance-operations tests pass, alongside Ruff, compilation, capability, SQL/helper-scope, provider-boundary, dependency-group, and diff checks. No database/provider, candidate, or legacy state was used; no migration was applied. Capability classifications and MAN-CAP acceptance are unchanged ([evidence](builds/2026-10-29-recovery/governance-tactical-session-create-contract.json)).
+
+**Latest source continuation — tactical-item create response contract (29 October 2026):** The migration-445 tactical-item create route now documents and enforces a strict request schema, validates the exact SQL action result, binds the returned operation/session to the request, and omits the internal `actor_party_id`. It preserves exact-location create authorization, signed tenant context, HTTP 201 on creation/retry, and no-store/cookie variance. Twenty-one focused mock-only checks and all 57 governance-operations tests pass, along with Ruff, compilation, capability, SQL/helper-scope, provider-boundary, dependency-group, and diff checks. No database/provider, candidate, or legacy state was used; no migration was applied ([evidence](builds/2026-10-29-recovery/governance-tactical-item-create-contract.json)).
+
+**Latest source continuation — tactical-content update response contracts (29 October 2026):** The migration-445 item and session PATCH routes now publish strict partial-update contracts, reject empty/invalid updates before the service call, bind each result to the route operation and path IDs, and omit `actor_party_id`. The session response correctly retains `item_id: null`. Existing exact-location update grants, signed context, HTTP 200 retry behavior, and no-store/cookie variance are preserved. Nineteen focused mock-only tests and all 76 governance-operations tests pass, alongside Ruff, compilation, capability, SQL/helper-scope, provider-boundary, dependency-group, and diff checks. No database/provider, candidate, or legacy state was used; no migration was applied ([evidence](builds/2026-10-29-recovery/governance-tactical-content-update-contracts.json)).
+
+**Latest source continuation — tactical-item lifecycle response contracts (30 October 2026):** The migration-441 start, dispose, and cancel routes now enforce strict action-specific request and response models, bind returned item/action IDs to the route, and validate the permitted state transitions in both OpenAPI and runtime. The internal actor ID is checked and omitted from the public response. Existing exact-location action grants, signed context, HTTP 200 retry behavior, and no-store/cookie variance remain intact. Twenty-two focused mock-only checks and all 98 governance-operations tests pass, alongside Ruff, compilation, capability, SQL/helper-scope, provider-boundary, dependency-group, and diff checks. No database/provider, candidate, or legacy state was used; no migration was applied ([evidence](builds/2026-10-30-recovery/governance-tactical-action-response-contracts.json)).
+
+Current totals: 1,984 complete / 25 open; TODO 610 checked / 16 open; 203
+strict private Gateway response contracts across 67 capability rows
+(24 baseline-retained, 7 deployed, 36 prepared).
+
+
+### Progress addendum — current-schema native and ARM64 portability replay — 30 October 2026
+
+The native PostgreSQL 16 replay applied all 680 schema files through migration
+689 under verified 1.5 GiB/two-CPU limits. Its synthetic operator-scope probe
+passed for two tenants, 79 private relations, and 47 mutation-denied relations,
+with zero direct table/column privilege violations. The run was network-disabled,
+used no host ports or seeds, loaded no farm data, and cleaned up successfully;
+candidate and legacy databases were untouched. Evidence:
+[native replay and operator probe](builds/2026-10-30-recovery/native-resource-limited-schema-689-operator-probe.json).
+
+An ARM64/QEMU replay then applied all 680 files through migration 689 under the
+same verified limits. The synthetic operator-scope probe passed 35 checks for
+two tenants, 79 private relations, and 47 mutation-denied relations, with zero
+direct table/column privilege violations. The database reported `aarch64`, no
+seeds or farm data were used, no ports were published, and cleanup passed. The
+probe client was the cached AMD64 image and ran on the Docker host; the replay
+runner now checks local client executability before database startup and uses
+the immutable inspected image ID ([ARM64 replay and operator probe](builds/2026-10-30-recovery/arm64-resource-limited-schema-689-operator-probe-cross-arch.json)).
+The earlier failed ARM64 attempts remain recorded for context
+([first preserved retry](builds/2026-10-30-recovery/arm64-resource-limited-schema-689-operator-probe.json)); the overwritten first run is not counted as evidence.
+This closes the software-only ARM64 replay/probe slice, not physical Raspberry
+Pi, populated-data, or production recovery acceptance. Both native and ARM64
+probes report 991 public tables with DML while RLS is disabled; C1 therefore
+remains open.
+
+Current totals: 2,061 complete / 25 open; TODO 682 checked / 16 open; 222
+strict private Gateway response contracts across 67 capability rows
+(24 baseline-retained, 7 deployed, 36 prepared). The SDK schema-parity guard
+optimization is committed locally; the local batch remains unpushed for grouped
+delivery.
+
+### Progress addendum — scheduler error redaction and JobSpec inventory parity — 30 October 2026
+
+The `JobFailed` compatibility exception no longer includes raw child stderr in
+its message, preventing Prefect/workflow exception logging from echoing provider
+diagnostics. The existing bounded output attribute is retained for callers that
+apply an explicit diagnostic policy. The focused JobSpec contract module passes
+41 tests, including a synthetic stderr redaction assertion. The scheduler
+ownership inventory now contains all 23 catalog entries, including the five
+previously undocumented Gnosis/Baal/anomaly/freshness compatibility rows; a
+read-only source comparison confirms exact key parity. Ruff, compilation, and
+`git diff --check` pass. No provider, database, persisted schedule, or external
+scheduler state was accessed; no schedule activation is implied
+([evidence](builds/2026-10-30-recovery/provider-job-error-and-catalog-parity.json)).
+
+Current totals: 2,061 complete / 25 open; TODO 682 checked / 16 open; 222
+strict private Gateway response contracts across 67 capability rows
+(24 baseline-retained, 7 deployed, 36 prepared).
+
+### Progress addendum — climate fan-out stderr redaction — 30 October 2026
+
+The climate Prefect fan-out previously copied `JobFailed.output` into its
+aggregate report. It now preserves the location and exit code while storing
+only the safe exception message. A focused mocked regression confirms synthetic
+provider stderr is absent from the report; Ruff, compilation, and diff checks
+pass. No database, provider, or external schedule was accessed
+([evidence](builds/2026-10-30-recovery/climate-fanout-stderr-redaction.json)).
+
+Current totals: 2,062 complete / 25 open; TODO 682 checked / 16 open; 222
+strict private Gateway response contracts across 67 capability rows
+(24 baseline-retained, 7 deployed, 36 prepared).
+
+### Progress addendum — legacy Prefect error redaction — 30 October 2026
+
+The retained health-check and Yahoo price-feed flows now report a safe failure
+label and exit code rather than embedding subprocess stderr. Both mocked
+regressions pass with Ruff, compilation, and diff checks. No provider, database,
+or live Prefect workflow was used. The price-feed flow remains unsuitable for
+JobSpec registration until its persistence and human-attestation behavior is
+corrected ([evidence](builds/2026-10-30-recovery/legacy-prefect-error-redaction.json);
+[source audit](builds/2026-10-28-recovery/yahoo-price-feed-contract-audit.json)).
+
+Current totals: 2,064 complete / 25 open; TODO 682 checked / 16 open; 223
+strict private Gateway response contracts across 67 capability rows
+(24 baseline-retained, 7 deployed, 36 prepared).
+
+### Progress addendum — funding-tranche review response contract — 30 October 2026
+
+The CAP-035 migration-492 funding-tranche detail route now publishes and
+validates its exact 14-field response, binds funding and tranche IDs to the
+path, checks its approval eligibility invariants and milestone JSON limit, and
+returns sanitized no-store errors. Six focused Gateway/OpenAPI checks pass with
+Ruff, compilation, and diff checks. No database, provider, or candidate/legacy
+state was touched
+([evidence](builds/2026-10-30-recovery/solution-funding-tranche-review-response-contract.json)).
+
+Current totals: 2,064 complete / 25 open; TODO 682 checked / 16 open; 223
+strict private Gateway response contracts across 67 capability rows
+(24 baseline-retained, 7 deployed, 36 prepared).
+
+### Progress addendum — funding review queue and case detail contracts — 30 October 2026
+
+The migration-490 CAP-035 funding review queue and case-detail routes now have
+strict OpenAPI/runtime contracts. Queue validation binds the requested
+location, offset, page size, continuation, SQL ordering, and unique case IDs;
+reviewer identities remain omitted. Detail validation binds the funding case
+path ID and checks numeric, text, and JSON bounds. Both routes preserve the
+existing exact review grant and no-store behavior, and return sanitized errors
+for malformed service output. The read helper now suppresses continuation at
+offset 10,000 rather than advertising an unreachable page.
+
+The approved mock-only Gateway/OpenAPI selection passes 23 tests, including
+malformed pagination, duplicate IDs, ordering, path binding, bounds, and the
+offset cap. Ruff, Python compilation, capability validation, and diff checks
+pass. No database/provider or candidate/legacy state was touched; no migration
+was applied ([evidence](builds/2026-10-30-recovery/solution-funding-review-queue-detail-response-contract.json)).
+
+Current totals: 2,067 complete / 25 open; TODO 684 checked / 16 open; 225
+strict private Gateway response contracts across 67 capability rows
+(24 baseline-retained, 7 deployed, 36 prepared). This completes the source
+response-contract slice only; populated parity, live OIDC/browser acceptance,
+broader ACL/RLS, recovery, and MAN-CAP-035 owner acceptance remain open.
+
+### Progress addendum — C1 ACL/source inventory and funding approval contract — 30 October 2026
+
+The current migration-689 ACL snapshot is now joined to the repository's
+runtime SQL inventory in
+`builds/2026-10-30-recovery/runtime-privilege-callsite-report-689.json`.
+The grouped findings are summarized in
+`builds/2026-10-30-recovery/c1-runtime-acl-source-audit-689.json`.
+Native and ARM64/QEMU snapshots match across 1,513 public relations. The 991
+relations with effective DML while RLS is disabled comprise 989 with
+INSERT/UPDATE/DELETE and two append-only audit tables with INSERT only. The
+source join finds 571 static write-target candidates, 175 relations with only
+other SQL candidates, 245 with no inventoried SQL site, and 420 without a
+static write-target. These are risk-scope counts, not confirmed data leaks or
+safe-revocation decisions. The current report verifies 129 declared runtime
+controls with no policy mismatch; it does not include every dynamic, ORM,
+Directus, external, owner, populated-data, or production path. A bulk grant
+revocation remains unsafe until all writers and tenant/global semantics are
+classified. No broad grant, role, schema, candidate, or legacy state changed.
+The refreshed SQL inventory reports 4,962 execution sites across 989 source
+files, 1,253 relation candidates, and 587 write-target relations; its
+unresolved-write ledger currently tracks 42 candidates. The analytics-only
+cross-reference covers 280 write-target relations and 439 sites in 92 files,
+with no unmatched static candidates.
+
+Migration 491 funding approval now has an exact four-field Gateway/OpenAPI
+response, route-ID binding, create/replay status validation, and sanitized
+no-store failures while retaining the existing location review grant. The
+approved focused selection passes eight mock-only tests; Ruff, compilation,
+and diff checks pass with no database or provider use
+([funding contract evidence](builds/2026-10-30-recovery/funding-approval-response-contract.json)).
+
+Current totals: 2,070 complete / 25 open; TODO 690 checked / 16 open; 226
+strict private Gateway response contracts. Capability classifications remain
+24 baseline-retained, 7 deployed, and 36 prepared across 67 rows. Broad C1
+ACL/RLS remains open.
+
+### Local implementation — scoped credit gRPC writes — 30 October 2026
+
+The owner confirmed there are no active gRPC clients for batch, marketplace,
+or bridge mutations, so compatibility with the legacy unscoped mutation keys
+is no longer a blocker. `CreateBatch` and `ApplyToClass` now require exact
+`resource:action:location-uuid` scopes (`ecocredit_batch:create` and
+`ecocredit_enrollment:apply`) before connection acquisition. The interceptor
+propagates only the SHA-256 credential hash. Both handlers then use the
+existing PostgreSQL-signed tenant-context function on the same non-autocommit
+connection before calling their domain writer; PostgreSQL rechecks key status,
+expiry, exact scope, and the current verified location owner.
+
+The other credit-class mutation RPCs remain unchanged pending exact location
+resolution, wallet/account grants, and a separate platform-admin contract for
+global class/basket operations. No migration or privilege revocation was made;
+991 public relations still have runtime DML while RLS is disabled. The new
+scoped-write and policy selection passes 13 mock tests; 13 existing auth/scope
+regressions pass, and the synthetic-key CreateBatch loopback acceptance passes
+once. Ruff, compilation, capability-matrix validation, and diff checks pass.
+No database, candidate, legacy service, provider, or active external client
+was used. Evidence: `builds/2026-10-30-recovery/grpc-credit-location-scope.json`.
+
+### C1 implementation continuation — `capex_breakdown` runtime write denial — 30 October 2026
+
+The source audit found only two inventoried application uses of
+`capex_breakdown`, both SELECTs, and no static application write target. The
+Directus Auditor contract already denies create/update/delete for this
+collection. Additive migration 690 removes `kokonut_runtime` table-level and
+residual column-level INSERT/UPDATE/REFERENCES privileges while preserving
+SELECT; the compatibility role provisioner reapplies and verifies the same
+boundary after its legacy broad grant. No Directus role was changed.
+
+The approved focused acceptance passed on a network-disabled disposable
+PostgreSQL 16 container with only synthetic relations: migration apply/replay,
+SELECT, INSERT/UPDATE/DELETE/TRUNCATE denial, residual column-grant removal,
+and provisioner reapplication. A targeted source regression also passes.
+Evidence: [disposable ACL check](builds/2026-10-30-recovery/runtime-capex-breakdown-690-disposable.json).
+This does not establish tenant-isolated SELECT or represent a full-schema
+replay; migration 690 has not been rolled out to candidate, legacy, or
+production. The earlier 991-table full-schema snapshot remains the latest
+database measurement. The remaining C1 cohorts, including other gRPC mutations
+and the broader analytics writers, remain open.
+
+### C1 runtime ACL continuation — migrations 690–691 — 30 October 2026
+
+Migration 690 makes `capex_breakdown` read-only to `kokonut_runtime` after the
+generated inventory found only two application SELECT sites and no write
+target. Migration 691 applies the same narrow boundary to `water_access` and
+`attestation_plan`: the current SQL inventory contains two and one SELECT
+sites, no write targets, and the Directus Auditor hook already denies these
+collection mutations. Both migrations preserve SELECT; migration 691 leaves
+the separate Directus SQL role unchanged. This is a DML restriction and does
+not establish tenant-safe reads.
+
+Focused checks on network-disabled disposable PostgreSQL 16 passed migration
+replay, runtime SELECT, table and column write denial, and compatibility-role
+reapplication. Migration 691 also preserves synthetic Directus SQL grants.
+The full native PostgreSQL 16 replay through migration 691 passed all 682
+schema files, with no pending or failed migrations, no seeds/farm data, a
+passing two-tenant operator-scope probe, and 988 relations retaining runtime
+DML while RLS is disabled. The fresh ARM64/QEMU replay also passed all 682
+files, the two-tenant operator probe, and the same 988-relation ACL snapshot;
+the database ran as `aarch64` under QEMU with 1.5 GiB/2-CPU limits and no OOM.
+QEMU is not physical Raspberry Pi acceptance. No candidate, legacy, or
+production state was changed, and the temporary replay resources were removed.
+
+Evidence: [migration 690 focused ACL](builds/2026-10-30-recovery/runtime-capex-breakdown-690-disposable.json),
+[migration 691 focused ACL](builds/2026-10-30-recovery/runtime-water-access-attestation-plan-691-disposable.json),
+[native schema-691 replay](builds/2026-10-30-recovery/native-resource-limited-schema-691-operator-probe.json),
+[ARM64 schema-691 replay](builds/2026-10-30-recovery/arm64-resource-limited-schema-691-operator-probe-cross-arch.json),
+[ARM64 schema-690 replay](builds/2026-10-30-recovery/arm64-resource-limited-schema-690-operator-probe-cross-arch.json).
+C1 remains open for the remaining runtime writers, broader tenant/RLS boundaries,
+populated-data parity, and reviewed rollout.
+
+## C1 runtime ACL continuation — migration 695 — 30 October 2026
+
+Reviewed the remaining `capital_source` boundary. All four application callsites
+are SELECT-only, the Directus Auditor role is read-only, and pilot seed 008
+executes through the maintenance `kokonut` identity. Migration 695 therefore
+removes only `kokonut_runtime` table and stale column writes, preserving
+SELECT, Directus SQL grants, and seed behavior. Network-disabled disposable
+PostgreSQL 16 apply/replay and privilege checks pass on native and ARM64/QEMU.
+The native full-schema replay applies 686/686 files and passes the 37-check
+two-tenant operator probe; full-schema ARM64/QEMU replay remains through 693.
+
+The refreshed report records 139 migration-declared controls with no policy
+mismatches or direct privilege violations, and 981 relations with effective
+runtime DML while RLS is disabled. This is privilege reach, not confirmed data
+leaks. There are 41 tracked unresolved writer candidates. `capital_source`
+still has a global SELECT scope, and the broader tenant/RLS, populated-data,
+and rollout gates remain open. No candidate, legacy, or production state was
+changed. Checklist: 2,109 complete / 25 open; TODO: 716 checked / 16 open.
+
+Evidence: [native ACL](builds/2026-10-30-recovery/runtime-capital-source-695-disposable.json),
+[ARM64/QEMU focused ACL](builds/2026-10-30-recovery/runtime-capital-source-695-arm64-disposable.json),
+[native full-schema replay](builds/2026-10-30-recovery/native-resource-limited-schema-695-operator-probe.json),
+[source/ACL report](builds/2026-10-30-recovery/runtime-privilege-callsite-report-695.json).
+
+## C1 runtime ACL continuation — migration 696 — 30 October 2026
+
+The next source-reviewed boundary is `consent_data_type`, a schema-maintained
+category catalog with no application SQL callsites, application/extension DML,
+or Directus collection permission entry. Migration 696 denies writes only to
+`kokonut_runtime`, retaining SELECT and separate Directus SQL plus
+maintenance/migration authority. It leaves `data_retention_policy` and legal
+holds unchanged: migration 401 sets category retention defaults to NULL, and
+actual retention periods remain configurable as policy records.
+
+Focused network-disabled PostgreSQL 16 acceptance passes migration
+apply/replay, runtime SELECT, table/column mutation denial, Directus grant
+preservation, and compatibility-provisioner reapplication on native and
+ARM64/QEMU. The native full-schema replay passes through migration 696 (687/687
+files, 38 two-tenant operator checks, no OOM or seeds, successful cleanup).
+The focused source/role-boundary suite passes 89 tests; the reporter, SQL
+inventory, and ARM64 replay-contract selection passes 78. The report covers
+140 declared boundaries with zero policy mismatches or direct privilege
+violations; 980 relations still have effective runtime DML while RLS is
+disabled. That is privilege reach, not confirmed data leaks. Full-schema
+ARM64/QEMU replay remains through 693, and the retained global category SELECT
+is not tenant-isolated by this change. No candidate, legacy, or production
+state changed. Checklist: 2,114 complete / 25 open; TODO: 717 checked / 16
+open.
+
+Evidence: [native focused ACL](builds/2026-10-30-recovery/runtime-consent-data-type-696-disposable.json),
+[ARM64/QEMU focused ACL](builds/2026-10-30-recovery/runtime-consent-data-type-696-arm64-disposable.json),
+[native full-schema replay](builds/2026-10-30-recovery/native-resource-limited-schema-696-operator-probe.json),
+[source/ACL report](builds/2026-10-30-recovery/runtime-privilege-callsite-report-696.json).
+
+### C1 continuation — full ARM64/QEMU replay and candidate review — 30 October 2026
+
+The full network-disabled ARM64/QEMU schema replay now passes through migration
+696: 687/687 files applied and all 38 synthetic two-tenant operator-scope checks
+passed. It used no seeds, farm data, or host ports, and the disposable project
+was cleaned up. This closes the full-schema emulation gap for migration 696;
+it does not establish physical Raspberry Pi behavior. Evidence:
+[ARM64/QEMU replay](builds/2026-10-30-recovery/arm64-resource-limited-schema-696-operator-probe.json).
+
+The next two apparent no-callsite relations are not safe revokes yet.
+`process_benchmark` has no in-repository application reader/writer, seed, or
+Directus permission, but external benchmark imports have not been reconciled.
+`farm_task_framework_step` has no direct location key and historical
+reconciliation records unresolved scope among its 41 edges. Their runtime DML
+remains enabled until writer ownership and relationship scope are confirmed.
+This is a safeguard against breaking supported imports/links, not evidence of
+confirmed data leaks. No candidate, legacy, or production database or role was
+changed. Latest checklist counts are 2,116 complete / 25 open and 719 checked /
+16 open; capability classifications and Gateway contract totals are unchanged.
+
+## C1 runtime ACL continuation — migration 697 — 30 October 2026
+
+The owner confirmed no external importer writes `process_benchmark` through the
+runtime database identity. The repository has no application read/write path,
+seed writer, or Directus collection permission for the relation. Migration 697
+and the runtime-role provisioner now preserve application SELECT while denying
+table and column writes, keeping maintenance/import authority separate. Focused
+network-disabled PostgreSQL 16 apply/replay, denied mutations, Directus grant
+preservation, and provisioner reapplication pass on native and ARM64/QEMU.
+
+The native full-schema replay passes through migration 697: 688/688 files, 38
+synthetic two-tenant operator checks, no seeds or farm data, no published host
+ports, no OOM, and successful cleanup. The source/ACL report finds 141 declared
+controls, no migration-policy mismatches, no direct table/column privilege
+violations, and 979 relations retaining effective runtime DML while RLS is
+disabled. This is privilege reach, not a count of confirmed data leaks. The
+full ARM64/QEMU replay remains through 696; the focused 697 ACL check passes on
+ARM64/QEMU, which is not physical Raspberry Pi acceptance. The refreshed SQL
+inventory has 41 unresolved write candidates. `farm_task_framework_step`
+remains blocked on reconciliation of 20 unresolved-scope links among 41
+historical edges. No candidate, legacy, or production database or role changed.
+Checklist: 2,120 complete / 25 open; TODO: 722 checked / 16 open.
+
+Evidence: [migration](../../schemas/postgres/697_runtime_process_benchmark_read_only.sql),
+[native ACL](builds/2026-10-30-recovery/runtime-process-benchmark-697-disposable.json),
+[ARM64/QEMU ACL](builds/2026-10-30-recovery/runtime-process-benchmark-697-arm64-disposable.json),
+[native full-schema replay](builds/2026-10-30-recovery/native-resource-limited-schema-697-operator-probe.json),
+[source/ACL report](builds/2026-10-30-recovery/runtime-privilege-callsite-report-697.json).
+
+## C1 relationship-scope continuation — migration 698 — 30 October 2026
+
+Migration 698 adds `location_id` to `farm_task_framework_step` and backfills
+only edges whose `farm_task` and `framework_step` already share the same
+location. Historical mismatches remain present with NULL scope; no scope is
+guessed and no row is deleted. Deferred composite foreign keys bind scoped
+associations to both endpoint locations. A trigger derives location for
+existing named-column insert shapes and rejects new cross-location edges. A
+NOT VALID check keeps unresolved historical rows readable but prevents edits;
+endpoint-location changes remain blocked until those links are reconciled or
+removed. Runtime DML grants were not changed.
+
+The focused network-disabled PostgreSQL 16 replay passes on native and
+ARM64/QEMU using synthetic matching and mismatched edges. It verifies safe
+backfill, mismatch preservation, old named-column insert shape, cross-location
+denial, unresolved-edge edit/move denial, single-endpoint move denial, and a
+coordinated same-location move. The 112-test farm-task schema/SDK selection and
+SDK schema parity pass. Native full-schema replay through migration 698 passes
+(689/689 files, 38 two-tenant operator checks); no seeds, farm data, or ports
+were used, and cleanup succeeded. C1 remains at 979 relations with runtime DML
+while RLS is disabled, with 141 declared boundaries and no report mismatches
+or direct privilege violations. This is privilege reach, not confirmed leaks.
+The 168-test source/ACL selection also passes against the refreshed 698 replay,
+including runtime-role boundaries, report joins, SQL inventory, and ARM64 replay
+parser regressions.
+
+The prior aggregate identified 20 historical links with unresolved scope; this
+batch uses only synthetic records and did not alter the candidate, legacy, or
+production database. Human rollout gates remain: confirm external importers do
+not use positional `INSERT ... VALUES`, then reconcile or dispose unmatched
+historical edges. Full ARM64/QEMU replay remains through 696; migration 698 has
+focused QEMU acceptance only. Checklist: 2,127 complete / 25 open; TODO: 728
+checked / 16 open.
+
+Evidence: [migration](../../schemas/postgres/698_farm_task_framework_step_location_scope.sql),
+[native focused check](builds/2026-10-30-recovery/farm-task-framework-step-698-disposable.json),
+[ARM64/QEMU focused check](builds/2026-10-30-recovery/farm-task-framework-step-698-arm64-disposable.json),
+[source/ACL regression selection](builds/2026-10-30-recovery/farm-task-framework-step-698-source-checks.json),
+[native full-schema replay](builds/2026-10-30-recovery/native-resource-limited-schema-698-operator-probe.json),
+[source/ACL report](builds/2026-10-30-recovery/runtime-privilege-callsite-report-698.json).
+
+
+### Progress addendum — C1 public farm-summary view ACL — 30 October 2026
+
+Migration 699 removes unnecessary `kokonut_runtime` table/column mutations
+from the grouped `v_public_farm_summary` view, preserves SELECT and Directus
+grants, and checks that the view remains non-updatable. Since the aggregate
+view was already inherently non-updatable, this is least-privilege
+future-proofing rather than fixing a previously working write path. The
+runtime-role provisioner preserves the read-only policy.
+
+Network-disabled disposable PostgreSQL 16 checks pass on native and
+ARM64/QEMU, including migration replay, actual SELECT, mutation ACLs, stale
+column grants, Directus grant preservation, and provisioner reapplication.
+Native full-schema replay through 699 passes all 690 migrations and 38
+two-tenant checks. The source/ACL reporter, inventory, role-boundary, and
+ARM64 parser tests pass across the 168-pass main run and the corrected fixture
+rerun (169 tests total). The refreshed report records 142 controls, zero
+mismatches or direct privilege violations, 1,367 public relations with any
+DML, 979 tables with runtime DML while RLS is disabled, and 41 unresolved
+write candidates. Privilege reach is not a confirmed leak count. Candidate,
+legacy, and production state were not touched. Full ARM64/QEMU schema replay
+remains through migration 696; focused QEMU is not physical Pi acceptance.
+Checklist: 2,133 complete / 25 open; TODO: 732 checked / 16 open. Capability
+classifications remain 24 baseline-retained, 7 deployed, and 36 prepared
+across 67 rows; strict private Gateway response contracts total 226
+([evidence](builds/2026-10-30-recovery/runtime-public-farm-summary-699-source-checks.json)).
+
+
+### C1 next-candidate review — living-wage benchmark — 30 October 2026
+
+The next reviewed relation, `living_wage_benchmark`, has one application read
+scoped to the requested location and active status, no in-repository service
+write target, and one Adelphi demo/reference seed writer. No Directus extension
+permission was found. Static repository evidence cannot rule out an external
+importer, so the runtime grants remain unchanged pending owner confirmation.
+No database was touched. Evidence:
+[living-wage source audit](builds/2026-10-30-recovery/living-wage-benchmark-c1-source-audit.json).
+Checklist: 2,134 complete / 26 open; TODO: 733 checked / 17 open.
+
+
+### Progress addendum — C1 code-first governance-tension actions — 30 October 2026
+
+Added strict location-scoped Gateway action contracts for tension triage,
+start, linking, work-item linking, resolution, and deferral, along with an
+exact OIDC action policy, signed tenant-context call, idempotency binding,
+identity-minimized no-store receipt, and a 32 KiB body cap. The database
+function and grants remain for the final migration phase; no tests were run.
+
+Code review confirmed the legacy tension service supports network,
+organization, farm, cooperative, value-stream, initiative, and decision scopes,
+which the new location-only route cannot replace. Its legacy writers remain
+active until broader authenticated scope contracts exist. Parallel source
+audits likewise found no exact replacement for the inspected planning,
+finance, agronomic, cooperative, identity, consent, marketplace,
+extension-training, metrics, coordination, mobile-manifest, attestation, and
+certificate writers. No migration or candidate/legacy/production database or
+role was changed. See the [C1 closure plan](c1-runtime-acl-closure-plan.md)
+and [batch record](batches.md) for the code-first gates.
+
+
+### Progress addendum — C1 extension learning and landscape capture — 30 October 2026
+
+Added strict location-scoped Gateway write contracts for extension peer-network
+creation and progress updates, plus five record-only landscape captures
+(habitat, corridor, hedgerow, buffer check, biodiversity assessment). The
+routes use exact OIDC grants, signed tenant context, bounded bodies, idempotent
+receipts, identity-minimized no-store responses, and duplicate-key/NUL
+validation. The console exposes peer-network creation only; participant-linked
+progress remains an API operation without a roster UI.
+
+Database functions, grants, source-default parity, focused tests, and disposable
+PostgreSQL acceptance remain open for the final grouped validation phase. Legacy
+writers remain active; no capability or grant was retired. The new routes are
+not deployable until migrations land. No tests or migrations were run. The
+capability matrix remains at its last verified classification and acceptance
+snapshot; these source contracts are pending evidence.
+
+### Progress addendum — C1 metrics and planning preflight — 30 October 2026
+
+Metric computation now has a read/calculation-only draft API and location-bound
+Gateway list/write adapters; the old CLI insert path remains for compatibility.
+The console supports bounded metric listing, draft computation, and separately
+granted human verification. The routes install signed location context, validate
+calculated values and source references, and derive reviewer identity from the
+authenticated session. Their database functions and grants are pending, so the
+routes are not deployable yet. Planning create now checks canonical
+`YYYY-MM-DD` values and ordered dates before service/database acquisition. No
+tests or migrations were run; capability classifications and verified
+acceptance counts are unchanged.
+
+
+### Progress addendum — C1 integration and documentation parity — 31 October 2026
+
+The previously pending migration-700–703 validation is complete. The focused
+Gateway/console/source/ACL/migration/parser selection passes 216 tests
+([test evidence](builds/2026-10-30-recovery/c1-700-703-focused-tests.json)).
+The ordered native replay passes 694/694 schema files and 38 two-tenant
+operator checks; the network-disabled ARM64/QEMU replay passes the same 694
+files and 38 checks, with no seeds or host ports and disposable cleanup
+([native replay](builds/2026-10-30-recovery/kernel-c1-full-schema-703-native-r2.json),
+[ARM64/QEMU replay](builds/2026-10-30-recovery/kernel-c1-full-schema-703-arm64-r1.json)). QEMU is software portability evidence only; no physical Raspberry Pi acceptance is claimed.
+
+ClickHouse fixed TTLs are now absent from fresh DDL. Schema 011 is a manifest
+applied through `scripts/apply-clickhouse-retention.py`, which inspects each
+table and runs `REMOVE TTL` only when the table still declares a TTL. The
+network-disabled pinned-image check passes fresh-bootstrap skip, all eight
+simulated legacy TTL removals, repeat application, and preservation of an
+old-dated event after a merge
+([ClickHouse evidence](builds/2026-10-30-recovery/clickhouse-retention-no-prune-disposable.json)). No persistent ClickHouse target was changed; apply and verify it on each existing analytics target before enabling ingestion.
+
+The repository documentation index now identifies the current-state guide as
+the maintained architecture/status source. Stale agent-safety counts and scope
+claims, unqualified legacy seed commands, and the old full-stack architecture
+visual have been corrected or clearly marked historical. The project-owned
+Markdown link audit covers 416 files and 10,243 local links, with zero missing
+targets
+([audit](builds/2026-10-30-recovery/documentation-link-audit.json)); it checks
+link existence, not every external URL or semantic claim.
+
+The source/ACL report still records 979 tables with runtime DML while RLS is
+disabled and 41 unresolved write candidates; these are privilege-reach counts,
+not confirmed leaks. Metric source IDs remain shape-checked but are not
+independently mapped to the requested location in SQL. Candidate, legacy, and
+production PostgreSQL/ClickHouse data and roles were not touched. The batch
+checklist now records 2,152 complete / 29 open, and the TODO queue 746 checked
+/ 28 open. Physical-device, populated-data, live-provider, owner, target
+rollout, and broader tenant-isolation gates remain open.
+
+### Progress addendum — Standard profile, C1 ACL guardrails, and CI ordering — 31 October 2026
+
+The Standard deployment profile now includes default loopback-only Caddy
+ingress, with an explicit `--no-proxy` path for externally managed ingress.
+Migrations 704 and 705 add a runtime read-only reference boundary and a
+migration-owned Directus relation privilege policy reapplied by the optional
+Directus role provisioner. The combined migration/profile/role-boundary
+selection passes 213 tests; the migration-705 disposable Directus acceptance
+also passes. Native ordered schema replay through migration 705 applies all
+696 schema files and passes 38 synthetic two-tenant operator checks. The
+full ARM64/QEMU replay through 705 was stopped after 583.6 seconds at migration
+116 (111/696) without an observed migration error; disposable teardown passed.
+The earlier full 703 QEMU replay and focused ARM64 checks remain the available
+portability evidence for the uncompleted suffix.
+
+The hosted CI attempt passed its multi-architecture image job but `full-ci`
+was interrupted by a runner shutdown. Log output also exposed an ordering
+defect: the ignored Directus hook bundle was built after Directus startup. The
+runner now builds hooks before starting Directus, and a source regression
+checks the ordering. The subsequent CI run #1017 found stale locked SHA-256
+values for the changed profile planner and guide. Both hashes are now
+refreshed; the release-input checker and 70 profile tests pass locally. Run
+#1017's `full-ci` was still running when this correction was prepared, and the
+next hosted run will validate the new head. The workflow tests, hook
+build/typecheck, and 143 hook tests also pass locally. Candidate,
+legacy, and production services/data were not changed. The active checklist
+records 2,159 complete / 30 open and the TODO queue 753 checked / 29 open;
+the capability classifications remain 24 baseline-retained, 7 deployed, and
+36 prepared across 67 rows. Public ingress acceptance, external importer
+ownership, refreshed post-704 ACL reporting, ARM64 full replay, populated-data
+parity, and broader tenant isolation remain open.

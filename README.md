@@ -2,7 +2,10 @@
 
 Open-source intelligence layer for regenerative farm operations, financial performance, ecological outcomes, partner reporting, and Web3 verification.
 
-PostgreSQL and Directus are the canonical schema/API layer. ClickHouse stores analytical events. Python services compute metrics, forecasts, exports, registry payloads, AI summaries, and ingestion jobs. EAS on Celo anchors public verification metadata while private evidence stays offchain. Eleven Solidity contracts power the Guild protocol, credit token, price oracle, selective disclosure, and EAS resolver on Gnosis Mainnet.
+PostgreSQL with PostGIS is the canonical operational store and schema. The Kokonut Gateway and Python domain services provide the native application layer. Directus, ClickHouse, Metabase, Prefect, Redis, Mosquitto, gRPC, and Caddy are optional or replaceable adapters; they are not all required to run the Kernel. Web3 remains a proof and coordination layer, while private evidence stays off-chain by default.
+
+> [!IMPORTANT]
+> The repository contains both the legacy Compose bundle and an isolated Kernel candidate. The candidate is under active parity and deployment acceptance; its successful build or health check is not a production-readiness claim. Use the [current refactor status and implementation guide](docs/refactor/current-state-and-implementation.md) for the authoritative gates, completed work, and remaining decisions. No physical Raspberry Pi acceptance is claimed.
 
 ## Table Of Contents
 
@@ -12,7 +15,7 @@ PostgreSQL and Directus are the canonical schema/API layer. ClickHouse stores an
 - [Core Capabilities](#core-capabilities)
 - [On-Chain Deployments](#on-chain-deployments)
 - [How Metrics Enable Answers](#how-metrics-enable-answers)
-- [Data Lifecycle And Roles](#data-lifecycle-and-roles)
+- [Data Lifecycle And Review](#data-lifecycle-and-review)
 - [Key Commands](#key-commands)
 - [CI And Contributing](#ci-and-contributing)
 - [Repository Layout](#repository-layout)
@@ -26,19 +29,17 @@ PostgreSQL and Directus are the canonical schema/API layer. ClickHouse stores an
 
 | Layer | Technology | Role |
 |-------|------------|------|
-| Canonical core | PostgreSQL 16 + PostGIS 3.4 + Directus 12.1.1 | Schema, API, permissions, workflows, data entry UI |
-| Analytics | ClickHouse 25.8 | Time-series events, high-volume analytical queries, PromQL support |
-| Cache | Redis 7 | Directus caching, rate limiting, session store |
-| BI | Metabase 0.62.4 | Internal dashboards, aggregate reporting, custom visualizations, MCP server |
-| Intelligence | Python services | Metrics, forecasts, scoring, exports, ingestion, AI summaries, ML anomaly detection |
-| Verification | EAS on Celo + offchain evidence storage | Onchain attestations, offchain signed claims, MRV proof metadata |
-| Governance and Guilds | Gnosis Moloch DAO + Colony metadata | Treasury governance, Guild contribution records, reputation snapshots |
-| Contracts | Foundry + Solidity (11 contracts) | Guild protocol, Credit Token, Price Oracle, Selective Disclosure, EAS Resolver |
-| MQTT | Mosquitto 2 | TLS sensor broker for IoT ingestion |
-| Systems Intelligence | Python services | Trend analysis, geostatistics, systems thinking, process mining, causal loops, stock-and-flow simulation |
-| Organizational | Python services | Work items, escalation, budgets, objectives, portfolio, S&OP, capability maps, strategy execution |
-| Workflow | Prefect 3.x | Pipeline orchestration with event-driven automations |
-| External API | gRPC (port 50051) + Protobuf | Type-safe external API with streaming, API key auth, Buf codegen |
+| Canonical core | PostgreSQL 16 + PostGIS | Governed schema, operational records, migrations, spatial data, durable worker state |
+| Native application | FastAPI Gateway + Python domain services | Browser/API access, authorization boundaries, business operations, workers, and CLI |
+| Browser operations | Gateway operator routes + optional OIDC provider | Human-reviewed location-scoped operations; Directus is not required for this path |
+| Analytics adapter | Optional ClickHouse | Analytical event projections when selected and configured |
+| Data-entry adapter | Optional Directus | Compatibility/admin API where its separate permission and tenant gates are accepted |
+| Reporting adapters | Optional Metabase or native projections | Replaceable reporting interfaces; not required by the Kernel base profile |
+| Scheduling | Native durable scheduler/workers; optional Prefect adapter | Durable runs and dispatch; provider orchestration remains configurable |
+| Edge ingestion | Optional Mosquitto/MQTT and HTTP sensor receiver | Selectable edge input services; not in the minimal profile |
+| Ingress | Optional Caddy | TLS and reverse proxy; the candidate app is loopback-bound by default |
+| Verification | EAS on Celo + off-chain evidence storage | Public proofs and metadata; private evidence remains off-chain by default |
+| Smart contracts | Foundry + Solidity | Reviewed Web3 components; repository artifacts do not prove current chain state |
 
 See [Architecture](docs/architecture.md) for system design, data flow, and security model details.
 
@@ -46,41 +47,39 @@ See [Architecture](docs/architecture.md) for system design, data flow, and secur
 
 ## Quick Start
 
+The default `docker-compose.yml` is the legacy integration stack. For an
+isolated Kernel evaluation, first review the profile planner output. It only
+prints commands; it does not start services, read secrets, migrate, seed, or
+switch deployments.
+
 ```bash
-# 1. Configure environment
-cp .env.example .env
-# Edit .env with local secrets before starting services.
+# Load encrypted local settings, or prepare the documented local secret source.
+source scripts/load-secrets.sh
 
-# 2. Build the Directus hook bundle (required by the Directus Compose mount)
-make hooks-build
-
-# 3. Start infrastructure
-docker compose up -d
-
-# 4. Apply schema, base seeds, and pilot data
-./scripts/seed.sh
-./scripts/seed-pilot.sh
-
-# 5. Compute draft, unverified governed metric values
-./scripts/compute-metrics.sh
-
-# 6. Have a human reviewer verify each accepted value
-python3 -m services.metrics --verify-value METRIC_VALUE_UUID \
-  --verified-by REVIEWER_UUID --verification-notes "Reviewed evidence"
-
-# 7. Verify the platform definition of done
-./scripts/verify-platform.sh
+# Review the minimal candidate Compose configuration and proposed start command.
+python3 scripts/kernel-profile.py minimal --project kokonut-kernel-dev --action config
+python3 scripts/kernel-profile.py minimal --project kokonut-kernel-dev --action up
 ```
 
+Review the printed commands before executing them. The candidate is isolated
+from legacy Compose projects and has no automatic migration or seeding. Apply
+the checksummed schema migrations only after explicitly selecting the candidate
+Compose project and file; see [candidate setup](docs/refactor/kernel-candidate.md)
+and [migration targeting](docs/migrations.md#kernel-candidate-targeting). The
+default candidate API binds to `127.0.0.1:8098` and its PostgreSQL port remains
+private. Do not reuse legacy volumes or live farm data during local evaluation.
+
 > [!TIP]
-> Run `make ci` to execute the full local CI suite in one command. It applies seeds, runs all tests, and performs lint checks.
+> `make ci` runs the fast-fail import/CLI/extension-build checks. It does not
+> start the Kernel candidate, apply candidate migrations, or run the full test
+> suite. Use the specific checks described in [CI Gates](docs/ci.md).
 
 Or using Make targets:
 
 ```bash
-make seed          # applies schema + base seeds
-make ci            # runs the full local CI suite
-make test          # runs pytest over all tests
+make seed          # legacy Compose bootstrap; review scope before running
+make ci            # fast-fail imports, CLIs, and Directus extension build
+make test          # runs the Python pytest tree
 make lint          # ruff lint check
 make typecheck     # mypy type check
 make fmt           # ruff format
@@ -88,52 +87,57 @@ make forge-test    # Solidity tests
 make hooks-test    # Directus hooks tests
 ```
 
-Run the full local check with `./scripts/ci-check.sh` or `make ci`. For sandbox-specific setup, see [Developer Sandbox](docs/sandbox.md). For deployment guidance, see [Deployment](docs/deployment.md).
+Run the fast-fail checks with `./scripts/ci-check.sh` or `make ci`. For the
+strict database-backed host selection, see `./scripts/verify-local-test-suite.sh`.
+For the legacy sample-data sandbox, see [Developer Sandbox](docs/sandbox.md).
+For current deployment profiles and rollout limits, see
+[Deployment](docs/deployment.md) and the [refactor status guide](docs/refactor/current-state-and-implementation.md).
 
 ---
 
 ## Local Services
 
-Base `docker-compose.yml` exposes Caddy and gRPC on the host, binds Directus, gateway, and MQTT to loopback, and keeps PostgreSQL, ClickHouse, and Redis private. Metabase remains available under the opt-in `metabase` profile and is excluded from the default stack. The optional worker overlay joins the private database network without turning metric computation into a persistent service.
+The Kernel candidate and legacy Compose bundle are separate deployment targets.
+The candidate profile planner is the entry point for Kernel work. Optional
+services appear only when their overlay is selected. The table below describes
+the candidate defaults; it is not a production acceptance matrix.
 
 | Service | Base URL | Notes |
 |---------|----------|-------|
-| Caddy | `https://localhost` | TLS termination, reverse proxy, security headers |
-| Field Collector | `https://localhost/mobile/` | Offline-first companion; LAN phones use `https://<lan-ip>/mobile/` |
-| Directus API | `https://localhost/directus` | Canonical API and data access |
-| Directus admin | `https://localhost/admin` | Admin UI and data entry |
-| Directus direct | `http://127.0.0.1:8055` | Loopback-only API/admin access in base Compose |
-| Gateway | `http://127.0.0.1:8099` | FastAPI gateway (mobile API); Caddy proxies `/mobile` and `/api/mobile/*` |
-| Metabase (opt-in) | `http://localhost:3001` when enabled | BI dashboards; start with `docker compose --profile metabase up -d metabase` |
-| gRPC | `localhost:50051` | Host-exposed external API in base Compose; removed by the production overlay |
-| MQTT | `mqtts://127.0.0.1:8883` | Loopback-only TLS sensor broker |
-| PostgreSQL | Docker service `database:5432` | Canonical data store; use `docker compose exec database ...` |
-| ClickHouse | Docker service `clickhouse:8123` | Analytical store; use Docker network or `docker compose exec clickhouse ...` |
-| Worker | Compose service `kokonut-worker` | Cron/one-shot Python execution; `compute-metrics.sh` uses an ephemeral `run --rm` worker when the Compose database is running |
+| Kernel app (minimal) | `http://127.0.0.1:8098` | FastAPI app plus enabled workers in the isolated candidate project |
+| PostgreSQL/PostGIS | Docker service `database:5432` | Private canonical store; no host port in the candidate base manifest |
+| API and worker (standard) | API uses candidate port; worker has no HTTP port | Separate runtime roles; inspect durable run/delivery state for worker progress |
+| Caddy (optional proxy overlay) | `https://127.0.0.1:8448` | Loopback default; public bind requires explicit configuration and review |
+| Directus (optional adapter) | `http://127.0.0.1:18055` | Compatibility/admin integration; not the canonical Kernel API |
+| ClickHouse (optional analytics overlay) | Docker service `clickhouse:8123` | Private analytics adapter |
+| Mosquitto (optional MQTT overlay) | Loopback `mqtts://127.0.0.1:8883` | TLS sensor broker; requires certificates and identity provisioning |
+| gRPC (optional overlay) | Private Compose service | External API transport; opt in explicitly |
+| Metabase | Legacy `metabase` Compose profile | Not part of the candidate planner's standard defaults |
 
-The local override maps Metabase to `http://localhost:3001` only when the `metabase` profile is enabled. Metabase is not routed through default Caddy.
+For the candidate planner, use an explicit project name and inspect `config`
+before `up`. Do not use the legacy default project name for candidate data.
 
 ### Field Collector on the LAN
 
-```bash
-docker compose up -d --build gateway caddy
-# Phone on the same Wi‑Fi:
-#   https://<host-lan-ip>/mobile/
-```
-
-Caddy terminates TLS and proxies `/mobile*` and `/api/mobile/*` to the gateway.
-Use `/mobile/` as the canonical Field Collector URL; `/mobile` redirects to it
-so relative shell assets stay within the Gateway route.
-Full deploy steps (local, production Caddy, Traefik) are in
-[Deployment — Field Collector](docs/deployment.md#field-collector-mobile-lan-access).
+The candidate proxy is an optional overlay and binds to loopback by default.
+The Kernel profile planner does not certify LAN or public exposure. Configure a
+trusted certificate, bind, domain, CORS origins, and trusted-proxy policy and
+complete browser acceptance before using it for phones. The older LAN recipe
+below in [Deployment](docs/deployment.md) is for the legacy Compose bundle.
 
 ---
 
 ## Core Capabilities
 
+The table below is a repository-level capability inventory, not a statement
+that every workflow has full Kernel parity, an enabled provider, current live
+data, or production acceptance. Review the [current refactor status](docs/refactor/current-state-and-implementation.md)
+before relying on a particular capability. Optional services and external
+integrations must be selected and configured explicitly.
+
 | Category | Capability | Key Components |
 |----------|------------|----------------|
-| **Farm Operations** | Governed farm operations | Activities, harvests, sales, expenses, losses, labor, field notes, inventory, maintenance, revenue events, partner-scoped access via Directus |
+| **Farm Operations** | Governed farm operations | Activities, harvests, sales, expenses, losses, labor, field notes, inventory, maintenance, revenue events; native Gateway scope is primary and Directus is optional |
 | | Precision agriculture | Yield monitoring with prediction/benchmarking, precision irrigation with zone management and water-balance, digital twin crop simulation, nutrient budget tracking, mobile offline-first collection |
 | | Traceability | Batch tracking with custody chain, quality testing, food safety, cold chain monitoring, forward/backward tracing |
 | | Extension & peer learning | Learning modules, peer groups, delivery tracking, assessment effectiveness |
@@ -150,7 +154,7 @@ Full deploy steps (local, production Caddy, Traefik) are in
 | | Organic certification readiness | Organic compliance records for transition tracking, input audit, buffer zones, harvest segregation, composite readiness scoring (0-100) |
 | | True cost accounting | Hidden cost tracking, natural/social capital valuation, life cycle assessment, GRI indicator mapping, cross-capital flow analysis |
 | | Emergency response | Incident tracking with response actions, recovery timelines, lessons learned |
-| **Web3 & Verification** | EAS on Celo | KokonutResolver attester gating, onchain/offchain attestations, private evidence hashes, public attestation summaries, 4 registered schemas |
+| **Web3 & Verification** | EAS on Celo | Repository support for resolver-gated onchain/offchain attestations, private evidence hashes, and public attestation summaries; verify live schemas and resolver state before use |
 | | Ecocredit module | Credit class/batch hierarchy, basket with token deposits, marketplace with escrow, per-account balance tracking, bridge operations, project enrollment, retirement certificates |
 | | Credit custody & retirement | Ledger-backed balances preserving account/batch custody, atomic retirement with human confirmation, governed certificate generation |
 | | Linked data infrastructure | IRI system with versioning, RDF triple store, SPARQL queries, content-addressed storage, resolver registry, evidence chaining |
@@ -172,18 +176,18 @@ Full deploy steps (local, production Caddy, Traefik) are in
 | | Operating pilot | Capacity-aware planning, work selection claims, competencies/learning tracking, coaching/resources, dual-scope operating pilot |
 | **Agents & AI** | Agent ecosystem | Agent identities with capability manifests, tasks, action logs, AI summaries, scoped MCP/Directus access; agents can draft/submit but cannot verify/publish/attest/score |
 | | Unified meta-CLI | Single `python3 -m services.cli` entry point aggregating all service CLIs; legacy per-service invocations remain supported |
-| | dMRV architecture | Automated satellite data collection (GEE/Copernicus), real-time IoT ingestion (MQTT/HTTP), ML anomaly detection (Prophet + Isolation Forest), EAS on-chain verification |
+| | dMRV architecture | Provider adapters and code paths for satellite data, IoT transports, anomaly analysis, and governed EAS verification; provider activation and hardware acceptance are deployment-specific |
 | | Digital soil mapping | XGBoost-based SOC prediction with spectral indices, time-series features, geographic cross-validation |
-| **Smart Contracts** | Guild protocol | Registry, Domain, TaskBoard, EvidenceReview, Governance, Points, UpgradeTimelock — all deployed on Gnosis Mainnet |
-| | Credit Token | ERC-20 with burning, pausing, and role-based access; deployed behind ERC1967 proxy |
-| | Price Oracle | On-chain price feeds with emergency updater role; deployed behind ERC1967 proxy |
-| | Selective Disclosure | Privacy-preserving attestation gating; deployed behind ERC1967 proxy |
+| **Smart Contracts** | Guild protocol | Repository contracts and deployment records for Registry, Domain, TaskBoard, EvidenceReview, Governance, Points, and UpgradeTimelock |
+| | Credit Token | ERC-20 implementation and proxy deployment records |
+| | Price Oracle | Oracle contracts and deployment records |
+| | Selective Disclosure | Privacy-preserving attestation contract implementation and deployment records |
 | | KokonutResolver | EAS attester gating for registered schemas on Celo |
 | **Platform** | Platform integrity | Ordered checksummed PostgreSQL migrations reject drift; API gateway defaults unknown routes to authenticated access; durable scheduler leases and event outbox/dead-letter handling |
 | | Strategic reserve | Monitorable reserve registry (carbon buffer, commons reserve, financial ring-fence, capability standby, seed vault) with adequacy, drawdown headroom, trigger/breach status; release proposals are DRAFT-only and human-approved |
 | | Capital accounting | Dynamic 8 Forms of Capital inventory, Keynes-inspired deferred-credit ledger, capacity assessment, consumption-vs-reinvestment diversion, value-capture risk diagnostics |
 | | Tactical layer & simulation | Chess-inspired governance tactics (fork, pin, zwischenzug, double-check, promotion ladder), Monte Carlo perturbation, CRT-style clash resolution |
-| | Data governance | Consent management, access logging, data portability, retention policies, sharing agreements with audit trails |
+| | Data governance | Consent management, access logging, data portability, configurable retention/hold policy, and sharing agreements with audit trails; policy configuration and jurisdictional acceptance remain deployment work |
 | | Platform upgrade system | Timelock-gated upgrade authority, staged deployment with temporary upgrader handoff, upgrade verification scripts |
 | **Field Data** | Field data collection | Detailed SOPs for soil sampling, tree measurement, biodiversity surveys, water sampling, harvest recording, pest monitoring with measurement cadence matrix |
 | | Silvi tree tracking | Individual tree GPS tracking, growth rate analytics, GeoJSON/KML/XML export, spatial clustering, pest hotspots, canopy analysis, habitat connectivity scoring |
@@ -196,7 +200,7 @@ Full deploy steps (local, production Caddy, Traefik) are in
 | | Regen Network parity | ClaimType, VerificationStatus, VerdictType enums, CreditClassInfo, ProjectInfo, ProjectPost schemas, Data module v2 concepts |
 | | ARKIV parity | Time-scoped data (expires_at), origin transaction indexing, marketplace fee collection/distribution |
 | | GeoNode parity | Shapefile/KML import, raster metadata, CSW OGC Catalogue Service, ISO 19115 metadata, hierarchical thesaurus, Leaflet map viewer, geostories |
-| **External** | gRPC API | Type-safe external API with Protobuf schemas, server-side streaming (5s batching), API key auth, Buf codegen for Python/TypeScript, gRPC-web support |
+| **External** | gRPC API | Optional type-safe transport with Protobuf schemas and API-key policy; it is not required by the native Kernel profile |
 | | Business Model Canvas | 1-click BMC derivation from canonical tables; 14-section comprehensive status with an exact-location Gateway read and network-wide CLI rollup |
 | | State of Kokonut | Ecosystem report across locations with ecosystem-actor funding view; Mermaid + JSON visual timelines (ecosystem tree, Ikigai, farm phases, crop timelines) |
 
@@ -209,7 +213,10 @@ Full deploy steps (local, production Caddy, Traefik) are in
 
 ### Gnosis Mainnet (Chain ID 100)
 
-All contracts are verified on GnosisScan. Deployment records live in `contracts/broadcast/*/100/run-latest.json`.
+Addresses below are recorded in repository deployment artifacts under
+`contracts/broadcast/`. Verify current deployed bytecode, chain, resolver
+ownership, and authority before interacting with them; a checked-in record does
+not prove current chain state.
 
 | Contract | Address |
 |----------|---------|
@@ -225,7 +232,9 @@ All contracts are verified on GnosisScan. Deployment records live in `contracts/
 | Price Oracle proxy | `0xA6D24A665FB2f41C07c54b145034576e9BC6826a` |
 
 > [!IMPORTANT]
-> The KGP upgrade timelock enforces a **48-hour delay** (`172800s`) on all implementation upgrades. The `UPGRADER_ROLE` is self-administered — only the timelock holder can grant/revoke it.
+> The repository documents a 48-hour KGP upgrade-timelock design. Confirm the
+> live contract configuration and role state on-chain before relying on this
+> delay or authority boundary.
 
 See [Gnosis Mainnet Deployment](docs/gnosis-mainnet-deployment.md) for full addresses, transactions, authority matrix, and verification status.
 
@@ -240,11 +249,17 @@ See [Gnosis Mainnet Deployment](docs/gnosis-mainnet-deployment.md) for full addr
 | `kokonut-compliance` | `0x59632edcf1d04be0c2dcfd572282bbd4dac518e7a92872ec45ade29876ef95f5` | Partner compliance and audit trails |
 | `kokonut-data-post` | `0xf0de37f5c4a441aedb794d5585201c6ef150543dc53f894e1212f7e330205045` | Data stream posts for environmental project tracking |
 
+These are source-controlled schema UID records. Confirm live Celo registry
+state and resolver behavior before making an attestation or external claim.
+
 See [Attestation Guide](docs/attestation-guide.md) for schema details and registration flow.
 
 ---
 
 ## How Metrics Enable Answers
+
+The examples below are illustrative questions and answer formats, not current
+farm results or populated production measurements.
 
 The platform combines governed metrics, analytics functions, agents, and report types to answer questions across six tiers:
 
@@ -261,7 +276,7 @@ See [Metrics by Development Phase](docs/metrics-by-phase.md) for the complete ma
 
 ---
 
-## Data Lifecycle And Roles
+## Data Lifecycle And Review
 
 Governed records use the canonical lifecycle:
 
@@ -271,16 +286,18 @@ draft -> submitted -> verified -> published
 
 `rejected` is available for rework and exception paths. Payment, attestation, execution, and domain-specific states live in dedicated fields such as `payment_status`, `attestation_uid`, `attested_at`, `execution_status`, and `revocation_date`.
 
-| Role | Access | Description |
-|------|--------|-------------|
-| Administrator | Full | Platform admin and all permissions |
-| Field Worker | Create/read scoped records | Data entry; records start as `draft` and create permissions exclude lifecycle audit fields |
-| Supervisor | Read all, submit | Submits records for review |
-| Manager | Approve/verify operational records | Reviews and verifies governed operations |
-| Finance | Finance approvals | Approves expenses, verifies sales, and approves revenue events |
-| Analyst | Read verified/published | Read-only analysis over governed data |
+Authorization is specific to the route, capability, operator grant, service
+identity, and deployment. The optional Directus roles and its hooks are a
+separate compatibility surface; do not assume they define native Gateway
+permissions or that every collection has passed parity. Use the documented
+human-review workflow for the record type. Agents may prepare or submit only
+where the task contract permits; verification and publication remain explicit
+human decisions.
 
-Directus hooks enforce review workflows for stakeholder feedback, stakeholder outcomes, impact claims, metric proposals, agent tasks, AI summaries, and agent action logs. Stakeholder feedback is private by default and requires explicit public consent plus a non-empty `public_summary` before public exposure. Public carbon claims require Evidence Maturity Level 6, external verifier text, and methodology reference.
+Stakeholder feedback is private by default and requires explicit public consent
+plus a non-empty public-safe summary before publication. Public carbon claims
+require the applicable evidence-maturity, external-verifier, and methodology
+gates.
 
 Workflow time-based enforcement:
 - Stakeholder feedback requires a minimum 7-day review period before verification.
@@ -294,6 +311,11 @@ See [User Guide](docs/user-guide.md) for role workflows and data-entry walkthrou
 
 > [!NOTE]
 > `AGENTS.md` is the canonical command reference for all local commands — CLI flags, analytics, ingestion, agents, report types, and tests. The examples below are the most common entry points.
+
+The examples assume a correctly configured local database and the required
+provider or worker identity. A command being present in the repository does
+not prove that its provider is enabled or that its authorization boundary is
+accepted for a deployment.
 
 ```bash
 # Unified meta-CLI (aggregates all service CLIs)
@@ -369,9 +391,11 @@ python3 -m services.governance.cli baal proposals
 python3 -m services.export.report_generator --type tactical_layer --location-id UUID
 python3 -m services.export.report_generator --type simulation_wargame --location-id UUID
 
-# Migration
-python3 -m services.migration status
-python3 -m services.migration migrate
+# Validate migration source without a database
+python3 -m services.migration validate --schemas-only
+
+# For database status/plan/apply, select the intended Compose project and files.
+# See docs/migrations.md; do not use the ambient legacy Compose default for Kernel.
 ```
 
 See [AGENTS.md](AGENTS.md) for the full command catalogue and [CHANGELOG.md](CHANGELOG.md) for release history.
@@ -380,22 +404,19 @@ See [AGENTS.md](AGENTS.md) for the full command catalogue and [CHANGELOG.md](CHA
 
 ## CI And Contributing
 
-CI and security checks run through GitHub Actions on pull requests targeting, and pushes to, both `develop` and `main`. Feature work is reviewed into `develop`; release batches are promoted from `develop` to `main` by a separate pull request. The `CI` workflow runs the complete suite, dependency and static-analysis gates, Solidity and Directus hook checks, and locked AMD64/ARM64 builds. The `Security` workflow scans tracked source and full Git history with Gitleaks. See [the GitHub Actions operations guide](docs/github-actions.md) for deployment setup and required repository settings.
+The GitHub Actions CI workflow runs on pull requests and pushes targeting
+`develop` and `main`. Feature work is reviewed into `develop`; release batches
+are promoted to `main` by a separate reviewed PR. CI and Security jobs are
+defined in `.github/workflows/`; their current steps and required checks are
+documented in [GitHub Actions](docs/github-actions.md) and [CI Gates](docs/ci.md).
+The CI runner uses a pinned Compose project and loopback high ports for
+database-backed checks. A green CI run is a code gate, not a production
+deployment or migration approval.
 
-1. **Supply-chain gates**: Secret scanning (`check-tracked-secrets.sh`) and image digest pinning (`check-image-digests.sh`).
-2. **Fast-fail steps** (fail immediately, no Docker needed):
-   - `ruff` security scan (`S`, `BLE` selectors)
-   - `pip-audit` dependency vulnerability check
-   - `ci-check.sh` — Python import validation, CLI smoke tests, TypeScript build
-   - Unified CLI smoke test (`python3 -m services.cli --help`)
-3. **Infrastructure**: Docker Compose brings up PostgreSQL 16, ClickHouse 25.8, Redis 7, cache, and Directus. Database is seeded and metrics are computed.
-4. **Version verification**: Reads `VERSION` file and compares to `services.__version__` and `KOKONUT_GIT_SHA` in running containers.
-5. **Full test suite**: 4,034+ Python tests, 62 Solidity tests, 54 Directus hook tests via `verify-full-test-suite.sh` (fails closed on any skip).
-6. **Static analysis**: Slither (Solidity), Aderyn (Solidity), and Semgrep (`python.lang.security` + `python.lang.correctness`).
-7. **Solidity**: `forge fmt --check`, `forge build --sizes`, `forge test`.
-8. **Directus hooks**: `npm ci`, `npm run build`, `npm test`.
-
-The GitHub-hosted CI runner uses the isolated Compose project and loopback-only database ports for host-run checks. `compute-metrics.sh` runs in CI to populate governed metric rows required by platform-integrity tests. Staging remains paused behind a disabled workflow flag and manual dispatch; production promotion is manual and environment-gated.
+The staging workflow is manually dispatched but currently hard-disabled. The
+production workflow is manual and protected by the GitHub `production`
+environment; neither workflow proves that the target host is reachable or that
+Kernel release gates have passed. See [Deployment](docs/deployment.md).
 
 Contributing guidelines:
 
@@ -406,73 +427,42 @@ Contributing guidelines:
 
 ---
 
-## Production Deployment
+## Deployment
 
-Build the Directus hook bundle once from the checked-in lockfile before starting
-any Compose deployment. `make hooks-build` runs `npm ci` and produces the
-ignored `extensions/kokonut-hooks/dist/` artifact mounted by Directus. It only
-reinstalls dependencies when they are missing or the lockfile is newer.
-
-```bash
-# With built-in Caddy (default)
-docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
-
-# With external Traefik (VPS already running Traefik)
-docker compose -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.traefik.yml up -d
-
-# With the legacy ingestion worker, event dispatcher, and notification sender
-docker compose -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.worker.yml --profile worker up -d
-
-# Run only event dispatch (plus its declared dependencies)
-docker compose -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.worker.yml --profile worker up -d event-worker
-
-# Run only notification delivery (plus its declared dependencies)
-docker compose -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.worker.yml --profile worker up -d notification-worker
-```
-
-Health monitoring with alerting:
-
-```bash
-# Manual health check
-./scripts/health-check.sh
-
-# JSON output for external monitoring
-./scripts/health-check.sh --json
-
-# Cron wrapper (quiet on success, alerts on failure)
-*/5 * * * * /opt/Kokonut-Intelligence/scripts/health-alert.sh
-```
-
-See [Deployment](docs/deployment.md) for full production setup, reverse proxy options, worker container, monitoring, and a production checklist.
+The Kernel candidate is the active refactor path; it is not yet a certified
+production release. Use the profile planner, explicit Compose project, and
+separate migration selection described in [Deployment](docs/deployment.md) and
+[Migrations](docs/migrations.md). Legacy production Compose examples remain
+reference material only. Do not start public ingress or migrate live data from
+this README.
 
 ---
 
 ## Repository Layout
 
 ```text
-config/             Docker, PostgreSQL, ClickHouse, Caddy, Directus, Mosquitto, and worker crontab config
-contracts/          Foundry project with 11 Solidity contracts, deploy scripts, and upgrade tooling
-dashboards/         Metabase dashboard templates with backing SQL
-docs/               108 guides and references; see Documentation below
+config/             Legacy and Kernel Docker, PostgreSQL, optional provider, and worker configuration
+contracts/          Foundry project, deployment records, and upgrade tooling
+dashboards/         Optional/legacy dashboard templates and backing SQL
+docs/               Architecture, operations, domain, and refactor documentation
 extensions/         Directus lifecycle hooks, workflow rules, metric hooks, AI helpers
 migrations/         Migration tooling and legacy migration helpers
-schemas/            PostgreSQL (344 migrations, up to #352) and ClickHouse schemas, Directus snapshots, seed files
-scripts/            29 scripts for setup, seed, schema, metrics, backup, restore, health-check, CI, and verification
+schemas/            Numbered PostgreSQL migrations, optional ClickHouse schemas, Directus snapshots, and seed files
+scripts/            Setup, migration, backup/restore, operations, CI, and verification scripts
 sdk/                JavaScript/TypeScript and Python SDKs
-tests/              382 test files covering platform services and invariants
+tests/              Python, JavaScript/TypeScript, and Solidity tests
 ```
 
 ```text
-Dockerfile.worker       Python runtime image for ingestion, event, and notification workers
-Dockerfile.gateway      FastAPI gateway / Field Collector app
-Dockerfile.grpc         gRPC server container
-docker-compose.yml      Base services (PostgreSQL 16, ClickHouse 25.8, Redis 7, Directus 12.1.1, Caddy, Mosquitto 2; Metabase is opt-in)
-docker-compose.prod.yml     Production overlay (resource limits, no direct port exposure)
-docker-compose.traefik.yml  Traefik overlay (disables Caddy, adds Traefik labels)
-docker-compose.worker.yml   Worker overlay (legacy ingestion, event dispatch, and notification delivery)
+Dockerfile.kernel           Kernel API/worker image with optional package targets
+docker-compose.kernel-*.yml Isolated Kernel candidate and optional service overlays
+Dockerfile.gateway          Legacy Compose Gateway image
+Dockerfile.worker           Legacy cron worker image
+Dockerfile.grpc              Optional/legacy gRPC server image
+docker-compose.yml           Legacy integration stack; not the Kernel profile
 ```
 
-The `services/` directory contains 65+ Python service modules organized by domain:
+The `services/` directory contains Python services organized by domain:
 
 ```text
 services/
@@ -496,20 +486,20 @@ See `AGENTS.md` for the full service catalogue with CLI commands, or `python3 -m
 ## Security And Privacy
 
 > [!IMPORTANT]
-> - Secrets come from environment variables; do not commit `.env` or private keys. See `.env.example` for the current catalog and placeholder warnings.
+> - Secrets come from protected environment variables or the SOPS loader; do not commit `.env` or private keys. See `.env.example` for current variable names and safe defaults.
 > - Public EAS metadata stores hashes, CIDs, UIDs, chain labels, transaction hashes, and timestamps; private evidence remains offchain.
 > - Agent-generated summaries are drafts and must use approved governed data; agents **cannot** verify or publish their own outputs.
 
 Additional security measures:
 
-- Base Compose keeps PostgreSQL, ClickHouse, and Redis internal, binds Directus and MQTT to loopback, and exposes Caddy plus gRPC. The production overlay removes direct application-service exposure.
-- `PUBLIC_RESTRICT=true` disables unauthenticated public Directus data access.
-- Directus rate limiting (100 req/s general, 5 login attempts per 15-min lockout) and login throttling are enabled.
+- Kernel base Compose keeps PostgreSQL private and binds the app to loopback. Optional ingress and adapters require explicit overlays; the legacy Compose network has separate bindings.
+- Public routes are explicitly listed; unknown Gateway routes remain protected. Browser operator routes use optional OIDC sessions, CSRF, and explicit grants.
+- Directus permissions and rate limiting apply only when its optional compatibility service is selected; they do not define native Gateway policy.
 - Public stakeholder feedback requires explicit consent and public-summary scoping; raw stakeholder feedback remains private by default.
 - Public carbon claims require Evidence Maturity Level 6 with external verification and methodology reference.
 - ClickHouse HTTP insert paths validate interpolated values before SQL construction.
-- KGP upgrades require a 48-hour timelock delay and human approval.
-- All container images are pinned to `@sha256` digests; CI fails on unpinned images.
+- The repository documents a 48-hour KGP upgrade-timelock design; verify live chain state before relying on the configured delay.
+- Compose images are digest-pinned where required by repository checks; inspect the specific manifest selected for an environment.
 
 See [Deployment](docs/deployment.md), [Attestation Guide](docs/attestation-guide.md), [Agent Access](docs/agent-access.md), and [KGP Security Model](docs/kgp-security-model.md) for operational security details.
 
@@ -525,11 +515,11 @@ Documentation lives under `docs/`. Key entry points:
 | [User Guide](docs/user-guide.md) | Role workflows, data entry, lifecycle, dashboards, analytics, export |
 | [Architecture](docs/architecture.md) | System overview, data flow, security model |
 | [Platform Integrity](docs/platform-integrity.md) | Cross-cutting integrity boundaries and operational guarantees |
-| [Kernel Refactor Baseline](docs/refactor/README.md) | Capability inventory, dependency decisions, and local data migration gates |
+| [Current refactor status](docs/refactor/current-state-and-implementation.md) | Consolidated architecture, implementation progress, and open gates |
 | [Migrations](docs/migrations.md) | Ordered migration execution, checksums, drift detection, and recovery |
 | [Gateway](docs/gateway.md) | Route policy, authentication, default-deny behavior, rate limits, and audit |
 | [Data Dictionary](docs/data-dictionary.md) | Collections, fields, governed metrics |
-| [API Reference](docs/api-reference.md) | Directus REST/GraphQL and ClickHouse access notes |
+| [API Reference](docs/api-reference.md) | Native Gateway routes plus optional Directus, gRPC, and analytics interfaces |
 | [gRPC API](docs/grpc-api.md) | Type-safe external API, streaming, Protobuf schemas |
 | **Metrics & Analytics** | |
 | [Metric Verification](docs/metric-verification.md) | Draft computation, independent human verification, and public exposure |

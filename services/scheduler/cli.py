@@ -190,6 +190,7 @@ def cmd_job_plan(args):
             args.job_plan,
             args.cadence,
             location_id=args.location_id,
+            driver_instance_id=getattr(args, "driver_instance_id", None),
             chain=getattr(args, "chain", None),
         )
     )
@@ -231,7 +232,11 @@ def main():
     parser.add_argument("--worker-id", default=None, help="Worker identifier")
     parser.add_argument("--limit", type=int, default=20, help="Max results")
     parser.add_argument("--cadence", choices=["hourly", "every-6h", "daily", "weekly"], default="daily")
-    parser.add_argument("--location-id", help="Location UUID for weather or climate job planning")
+    parser.add_argument("--location-id", help="Location UUID for location-scoped job planning")
+    parser.add_argument(
+        "--driver-instance-id",
+        help="Registered driver instance UUID required by sensor job planning",
+    )
     parser.add_argument("--chain", help="Explicit chain for EAS job planning (celo, optimism, or base)")
 
     args = parser.parse_args()

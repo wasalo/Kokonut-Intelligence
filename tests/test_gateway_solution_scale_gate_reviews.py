@@ -1,5 +1,7 @@
 """Tenant-scoped scale-gate assessment and independent-review contract."""
 
+from datetime import datetime, timezone
+from decimal import Decimal
 from types import SimpleNamespace
 from unittest.mock import patch
 from uuid import uuid4
@@ -334,3 +336,105 @@ def test_scale_gate_submit_http_route_is_no_store_and_oidc_disabled_fails_closed
         response = client.post(path, json=payload)
     assert response.status_code == 404
     assert response.headers["cache-control"] == "no-store"
+
+
+def test_scale_gate_review_detail_response_is_strict_and_request_bound(monkeypatch):
+    from services.gateway.solution_lifecycle_routes import register_solution_lifecycle_routes
+
+    valid = {
+        "location_id": LOCATION_ID,
+        "assessment_id": ASSESSMENT_ID,
+        "gate_id": GATE_ID,
+        "solution_name": "Soil moisture intervention",
+        "gate_type": "impact",
+        "requirement": "Improve the measured soil-moisture indicator.",
+        "threshold": "At least 3.0 pH units",
+        "metric_key": "soil_ph",
+        "comparison_operator": "gte",
+        "threshold_numeric": Decimal("3.0"),
+        "unit": "pH",
+        "passed": True,
+        "measured_value": "3.5",
+        "measured_numeric": Decimal("3.5"),
+        "sample_size": 12,
+        "evidence_refs": [{"source": "reviewed report", "page": 4}],
+        "evaluator_conflict": False,
+        "submitted_at": datetime(2026, 10, 20, 12, tzinfo=timezone.utc),
+    }
+    result = {"value": valid}
+    monkeypatch.setattr(
+        "services.gateway.solution_lifecycle_reads.get_location_solution_scale_gate_review_detail",
+        lambda *_args, **_kwargs: result["value"],
+    )
+    app = FastAPI()
+    router = APIRouter()
+
+    async def run_in_threadpool(function, *args, **kwargs):
+        return function(*args, **kwargs)
+
+    register_solution_lifecycle_routes(router, object(), run_in_threadpool,
+                                        SimpleNamespace(Error=Exception))
+    app.include_router(router)
+
+    @app.middleware("http")
+    async def add_operator(request, call_next):
+        request.state.operator_session = SimpleNamespace(
+            operator=SimpleNamespace(operator_id=OPERATOR_ID)
+        )
+        return await call_next(request)
+
+    path_template = "/operator/api/solution-lifecycle/{location_id}/scale-gates/review/{assessment_id}"
+    path = f"/operator/api/solution-lifecycle/{LOCATION_ID}/scale-gates/review/{ASSESSMENT_ID}"
+    assert auth_route_policy("GET", path, enabled=True) == {
+        "resource": "solution_lifecycle",
+        "action": "review",
+        "public": False,
+        "location_id": LOCATION_ID,
+        "scope_required": True,
+        "operator_auth": True,
+    }
+    operation = app.openapi()["paths"][path_template]["get"]
+    schema_ref = operation["responses"]["200"]["content"]["application/json"]["schema"]["$ref"]
+    schema_name = schema_ref.rsplit("/", 1)[-1]
+    response_schema = app.openapi()["components"]["schemas"][schema_name]
+    expected_fields = {
+        "location_id", "assessment_id", "gate_id", "solution_name", "gate_type",
+        "requirement", "threshold", "metric_key", "comparison_operator",
+        "threshold_numeric", "unit", "passed", "measured_value", "measured_numeric",
+        "sample_size", "evidence_refs", "evaluator_conflict", "submitted_at",
+    }
+    assert set(response_schema["properties"]) == expected_fields
+    assert set(response_schema["required"]) == expected_fields
+    assert response_schema["additionalProperties"] is False
+
+    with TestClient(app) as client:
+        response = client.get(path)
+    assert response.status_code == 200
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["vary"] == "Cookie"
+    assert set(response.json()) == expected_fields
+    assert response.json()["location_id"] == LOCATION_ID
+    assert response.json()["assessment_id"] == ASSESSMENT_ID
+    assert response.json()["evidence_refs"] == valid["evidence_refs"]
+    assert response.json()["evaluator_conflict"] is False
+
+    malformed_results = [
+        {**valid, "location_id": str(uuid4())},
+        {**valid, "assessment_id": str(uuid4())},
+        {**valid, "gate_type": "unknown"},
+        {**valid, "sample_size": 0},
+        {**valid, "comparison_operator": None},
+        {**valid, "evidence_refs": []},
+        {**valid, "evidence_refs": ["item"] * 101},
+        {**valid, "evidence_refs": [{"payload": "x" * 66_000}]},
+        {**valid, "evidence_refs": [{"payload": float("nan")}]},
+        {**valid, "reviewer_operator_id": str(uuid4())},
+    ]
+    for malformed in malformed_results:
+        result["value"] = malformed
+        with TestClient(app) as client:
+            rejected = client.get(path)
+        assert rejected.status_code == 500
+        assert rejected.headers["cache-control"] == "no-store"
+        assert rejected.headers["vary"] == "Cookie"
+        assert rejected.json() == {"error": "Scale-gate review detail unavailable"}

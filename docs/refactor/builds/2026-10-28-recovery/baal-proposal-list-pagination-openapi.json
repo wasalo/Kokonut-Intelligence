@@ -1,0 +1,24 @@
+{
+  "result": "passed",
+  "route": "GET /api/v1/governance/baal/proposals",
+  "page_contract": {
+    "limit_default": 50,
+    "limit_minimum": 1,
+    "limit_maximum": 100,
+    "type": "integer"
+  },
+  "behavior": {
+    "invalid_query_rejected_before_reader": true,
+    "validated_integer_forwarded": true,
+    "authorization_policy_changed": false
+  },
+  "verification": {
+    "pytest": "tests/test_gateway_governance.py: 26 passed",
+    "ruff": "passed",
+    "py_compile": "passed",
+    "git_diff_check": "passed"
+  },
+  "external_services_contacted": false,
+  "database_contacted": false,
+  "candidate_or_legacy_touched": false
+}

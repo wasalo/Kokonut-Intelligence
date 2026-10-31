@@ -7,10 +7,13 @@ from __future__ import annotations
 
 import argparse
 import sys
+from datetime import datetime
+from uuid import UUID
 
+from services.common.cli import print_json
 from services.common.database import get_db
 from services.management import responsibility, workbench
-from services.common.cli import print_json
+
 
 def _dump(rows):
     if rows is None:
@@ -19,6 +22,19 @@ def _dump(rows):
     if isinstance(rows, dict):
         rows = [rows]
     print_json([dict(r) for r in rows])
+
+
+def _parse_timestamptz(value: str | None, option: str, parser) -> datetime | None:
+    """Validate an optional TIMESTAMPTZ argument before database access."""
+    if value is None:
+        return None
+    try:
+        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except (AttributeError, TypeError, ValueError):
+        parser.error(f"{option} must be a valid ISO timestamp with an explicit timezone")
+    if parsed.tzinfo is None or parsed.utcoffset() is None:
+        parser.error(f"{option} must include an explicit timezone")
+    return parsed
 
 
 def _cmd_create(args):
@@ -210,6 +226,14 @@ def build_parser() -> argparse.ArgumentParser:
 def main(argv=None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
+    if args.group == "work-item" and args.action == "create" and args.location_id is not None:
+        try:
+            args.location_id = str(UUID(args.location_id))
+        except (AttributeError, TypeError, ValueError):
+            parser.error("--location-id must be a valid UUID")
+    if args.group == "work-item" and args.action == "create":
+        args.due_at = _parse_timestamptz(args.due_at, "--due-at", parser)
+        args.sla_at = _parse_timestamptz(args.sla_at, "--sla-at", parser)
     args.func(args)
     return 0
 

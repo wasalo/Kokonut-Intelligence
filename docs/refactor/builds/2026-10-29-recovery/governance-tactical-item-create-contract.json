@@ -1,0 +1,58 @@
+{
+  "date": "2026-10-29",
+  "slice": "governance tactical-item create contract",
+  "route": "POST /operator/api/governance/{location_id}/tactical-items",
+  "source_migration": "445",
+  "implementation": {
+    "request_schema": "strict; extra fields forbidden; requires request_id, reason, session_id, and requested_next_action; validates nullable UUID links, priority 1-5 with database default 3, and timezone-aware due_at",
+    "action_result_fields": [
+      "event_id",
+      "operation",
+      "session_id",
+      "item_id",
+      "actor_party_id",
+      "created_at"
+    ],
+    "public_response_fields": [
+      "event_id",
+      "operation",
+      "session_id",
+      "item_id",
+      "created_at"
+    ],
+    "binding": "requires operation=create_item and response session_id equal to request session_id",
+    "privacy": "actor_party_id is validated internally and omitted from public output",
+    "authorization": "existing private exact-location governance_tactical:create policy and signed tenant context",
+    "replay": "migration action returns the original creation receipt; route retains HTTP 201 because no replay discriminator is exposed",
+    "cache": "no-store with Vary: Cookie on success and documented error responses"
+  },
+  "verification": {
+    "focused": {
+      "command": "python3 -m pytest tests/test_gateway_governance_operations.py -k tactical_item -q",
+      "result": "21 passed, 36 deselected"
+    },
+    "module": {
+      "command": "python3 -m pytest tests/test_gateway_governance_operations.py -q",
+      "result": "57 passed"
+    },
+    "static": [
+      "ruff check services/gateway/governance_role_routes.py tests/test_gateway_governance_operations.py",
+      "python3 -m py_compile services/gateway/governance_role_routes.py tests/test_gateway_governance_operations.py",
+      "git diff --check"
+    ],
+    "repository_inventories": {
+      "capability_matrix": "67 rows valid: 24 baseline-retained, 7 deployed, 36 prepared",
+      "runtime_sql_inventory": "current; 42 unresolved write candidates remain explicitly unapproved",
+      "report_generator_helper_scope": "current",
+      "provider_boundaries": "passed; 17 vendor import sites",
+      "dependency_groups": "aligned; 14 groups, 33 requirements"
+    }
+  },
+  "isolation": {
+    "database": "none; mocked route/service checks only",
+    "provider": "none",
+    "candidate_or_legacy": "not accessed",
+    "migration_applied": false
+  },
+  "rollback": "Revert the create request/response models and route handler, focused regression, evidence, and progress records; no data rollback is required."
+}

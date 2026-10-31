@@ -1,0 +1,43 @@
+{
+  "result": "failed",
+  "date": "2026-10-30",
+  "source_revision": "a1de4183",
+  "working_tree_dirty": true,
+  "runtime_architecture": "linux/arm64",
+  "execution": "QEMU on Docker host",
+  "database_image": {
+    "name": "kokonut-kernel-postgis-arm64:local",
+    "platform": "linux/arm64",
+    "image_id": "sha256:2f82f530dcf482f61dbd34effffb2711ed8825fd9152a45cf8f4b82f8c92c1e6"
+  },
+  "isolated_compose_project": "kokonut-arm64-schema-20261030-b62f72f1",
+  "schema_files_expected": 680,
+  "schema_files_applied": 46,
+  "schema_files_pending": 633,
+  "schema_files_failed": 1,
+  "latest_migration": "schema:689_prm_portfolio_metric_scope.sql",
+  "network_mode": "none",
+  "host_ports_published": false,
+  "seeds_applied": 0,
+  "farm_data_loaded": false,
+  "candidate_or_legacy_touched": false,
+  "resource_limits": {
+    "requested_memory_bytes": 1610612736,
+    "requested_cpu_count": 2.0,
+    "verified_database_limits": {
+      "memory_bytes": 1610612736,
+      "memory_swap_bytes": 1610612736,
+      "nano_cpus": 2000000000
+    }
+  },
+  "cleanup": {
+    "attempted": true,
+    "completed": true
+  },
+  "failed_migration": "schema:050_remaining_gaps.sql",
+  "latest_applied_migration": "schema:049_model_validation.sql",
+  "failed_stage": "migration_050_remaining_gaps.sql",
+  "failure": "ReplayCommandFailure",
+  "migration_diagnostic": "DETAIL:  Consistent recovery state has not been yet reached.",
+  "elapsed_seconds": 942.5
+}

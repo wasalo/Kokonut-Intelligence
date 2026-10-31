@@ -43,17 +43,30 @@ def test_inventory_counts_literal_wildcard_rules_and_keeps_limits_explicit() -> 
     root = Path(__file__).resolve().parents[1]
     inventory = build_inventory(root / "config/directus/permissions.sql", root)
 
-    assert inventory["summary"]["literal_permission_rows"] == 175
-    assert inventory["summary"]["wildcard_field_rows"] == 123
-    assert inventory["summary"]["explicit_field_rows"] == 52
+    assert inventory["summary"]["literal_permission_rows"] == 176
+    assert inventory["summary"]["wildcard_field_rows"] == 122
+    assert inventory["summary"]["explicit_field_rows"] == 54
     assert inventory["summary"]["declared_farm_activity_rules"] == 0
-    assert inventory["summary"]["update_statements"] == 6
+    assert inventory["summary"]["update_statements"] == 7
     assert inventory["summary"]["delete_statements"] == 1
     assert inventory["summary"]["wildcard_rows_by_policy"]["Auditor Policy"] == 26
     assert "not effective deployed permission state" in inventory["limitations"][0]
     delete = next(item for item in inventory["source_mutations"] if item["operation"] == "delete")
     assert "collection = 'farm_activity'" in delete["statement"]
     assert "policy IN" in delete["statement"]
+
+    analyst_feedback = next(
+        rule
+        for rule in inventory["rules"]
+        if rule["policy"] == "Analyst Policy"
+        and rule["collection"] == "stakeholder_feedback"
+        and rule["action"] == "read"
+    )
+    assert analyst_feedback["field_access"] == "explicit"
+    assert analyst_feedback["fields"] == [
+        "id", "location_id", "farm_id", "feedback_type", "stakeholder_group",
+        "feedback_date", "sentiment", "themes", "public_summary", "evidence_maturity",
+    ]
 
     dashboard = next(
         rule
@@ -101,6 +114,25 @@ def test_inventory_counts_literal_wildcard_rules_and_keeps_limits_explicit() -> 
         and "collection = 'metric_value'" in item["statement"]
     )
     assert "fields = '*'" in metric_repair["statement"]
+
+    certificate = next(
+        rule
+        for rule in inventory["rules"]
+        if rule["policy"] == "Auditor Policy"
+        and rule["collection"] == "retirement_certificate"
+        and rule["action"] == "read"
+    )
+    assert certificate["field_access"] == "explicit"
+    assert certificate["fields"] == [
+        "id", "retirement_id", "credit_id", "credit_class_id", "credit_batch_id",
+        "location_id", "certificate_number", "retired_tonnes", "vintage_year",
+        "methodology", "attestation_uid", "chain", "issued_at", "status", "created_at",
+    ]
+    assert not {
+        "beneficiary_name", "beneficiary_wallet", "retirement_reason",
+        "retirement_statement", "certificate_hash", "certificate_html",
+        "certificate_cid", "verification_url", "qr_code_data", "metadata", "created_by",
+    } & set(certificate["fields"])
 
     feedback = next(
         rule

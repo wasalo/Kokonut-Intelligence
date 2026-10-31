@@ -16,10 +16,25 @@ Usage:
 from __future__ import annotations
 
 import argparse
+from datetime import date
+from uuid import UUID
 
 from services.common.cli import print_json
 
 from ..ingestion.base import get_db
+
+
+def _period_dates(parser: argparse.ArgumentParser, start: str, end: str, command: str) -> tuple[str, str]:
+    try:
+        parsed_start = date.fromisoformat(start)
+        parsed_end = date.fromisoformat(end)
+    except (TypeError, ValueError):
+        parser.error(f"--{command} period dates must use YYYY-MM-DD")
+    if start != parsed_start.isoformat() or end != parsed_end.isoformat():
+        parser.error(f"--{command} period dates must use YYYY-MM-DD")
+    if parsed_start > parsed_end:
+        parser.error(f"--{command} --period-start must be on or before --period-end")
+    return parsed_start.isoformat(), parsed_end.isoformat()
 
 
 def main() -> None:
@@ -39,6 +54,12 @@ def main() -> None:
     parser.add_argument("--ex-ante", type=float, help="Ex-ante carbon yield estimate for yield risk")
     parser.add_argument("--methodology-version", help="Override methodology version")
     args = parser.parse_args()
+
+    if args.location_id is not None:
+        try:
+            args.location_id = str(UUID(args.location_id))
+        except (AttributeError, TypeError, ValueError):
+            parser.error("--location-id must be a valid UUID")
 
     if args.carbon_yield:
         if not args.location_id:
@@ -95,6 +116,9 @@ def main() -> None:
             parser.error("--composite requires --location-id")
         if not args.period_start or not args.period_end:
             parser.error("--composite requires --period-start and --period-end")
+        args.period_start, args.period_end = _period_dates(
+            parser, args.period_start, args.period_end, "composite"
+        )
         from .scoring_engine import compute_composite_rating
         conn = get_db()
         result = compute_composite_rating(
@@ -111,6 +135,9 @@ def main() -> None:
             parser.error("--rate requires --location-id")
         if not args.period_start or not args.period_end:
             parser.error("--rate requires --period-start and --period-end")
+        args.period_start, args.period_end = _period_dates(
+            parser, args.period_start, args.period_end, "rate"
+        )
         from .scoring_engine import compute_composite_rating, persist_assessment
         conn = get_db()
         try:

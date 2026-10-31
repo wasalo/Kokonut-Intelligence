@@ -185,6 +185,22 @@ describe('KokonutClient', () => {
     });
   });
 
+  it.each([
+    { errors: [], response: { status: 404 } },
+    { errors: [{ message: null }], response: { status: 404 } },
+    { response: { status: 404 } },
+  ])('uses a stable HTTP fallback for malformed Directus error envelopes', async (failure) => {
+    const directus = (client as any).directus as {
+      request: (command: unknown) => Promise<unknown>;
+    };
+    vi.spyOn(directus, 'request').mockRejectedValueOnce(failure);
+
+    const error = await client.getItem('location', 'missing').catch((result) => result);
+
+    expect(error).toBeInstanceOf(NotFoundError);
+    expect(error).toMatchObject({ message: 'HTTP 404', statusCode: 404 });
+  });
+
   it('preserves native network errors without an HTTP response', async () => {
     const directus = (client as any).directus as {
       request: (command: unknown) => Promise<unknown>;
@@ -230,8 +246,17 @@ describe('KokonutClient', () => {
     expect(typeof client.attestations.listPending).toBe('function');
     expect(typeof client.attestations.listByEntity).toBe('function');
     expect(typeof client.reports.listByType).toBe('function');
+    expect('create' in client.reports).toBe(false);
+    expect('createMany' in client.reports).toBe(false);
+    expect('update' in client.reports).toBe(false);
+    expect('delete' in client.reports).toBe(false);
     expect(typeof client.noi.listByCropCycle).toBe('function');
-    expect(typeof client.exports.createExport).toBe('function');
+    expect(typeof client.exports.list).toBe('function');
+    expect(typeof client.exports.get).toBe('function');
+    expect('create' in client.exports).toBe(false);
+    expect('createMany' in client.exports).toBe(false);
+    expect('update' in client.exports).toBe(false);
+    expect('delete' in client.exports).toBe(false);
     expect(typeof client.lossEvents.listByLocation).toBe('function');
     expect(typeof client.laborEvents.listByLocation).toBe('function');
     expect(typeof client.fieldNotes.listByLocation).toBe('function');
@@ -880,6 +905,23 @@ describe('KokonutClient', () => {
     });
   });
 
+  it('keeps offset pagination paired with a limit and gives it precedence over page', async () => {
+    await client.listItems('farm', { offset: 10 });
+    await client.listItems('farm', { offset: 10, page: 3 });
+    await client.listItems('farm', { limit: 25, offset: 10, page: 3 });
+
+    const request = (client as any).directus.request;
+    expect(request.mock.calls.slice(-3)).toEqual([
+      [{ collection: 'farm', query: {} }],
+      [{ collection: 'farm', query: { page: 3 } }],
+      [{ collection: 'farm', query: { limit: 25, offset: 10 } }],
+    ]);
+    await expect(client.listItems('farm', { limit: 0, offset: 10 })).rejects.toThrow(
+      'offset pagination requires a non-zero limit',
+    );
+    expect(request).toHaveBeenCalledTimes(3);
+  });
+
   it('preserves additional Directus list-query parameters and pagination precedence', async () => {
     await client.listItems('harvest_event', {
       search: 'coconut',
@@ -1191,72 +1233,6 @@ describe('KokonutClient', () => {
     expect(event.approved_by).toBe('reviewer-1');
   });
 
-  it('preserves Python SDK export inputs through createExport()', async () => {
-    const createItem = vi.spyOn(client, 'createItem').mockResolvedValue({ id: 'export-1' });
-    const request = {
-      export_type: 'farm_data',
-      target_table: 'harvest_event',
-      entity_type: 'location',
-      entity_ids: ['location-1'],
-      filters: { status: 'published' },
-    };
-
-    await client.exports.createExport(request);
-
-    expect(createItem).toHaveBeenNthCalledWith(1, 'export_log', {
-      ...request,
-      format: null,
-      status: 'pending',
-      requested_by: 'sdk',
-    });
-  });
-
-  it('supports Python-style export type plus optional request fields', async () => {
-    const createItem = vi.spyOn(client, 'createItem').mockResolvedValue({ id: 'export-2' });
-
-    await client.exports.createExport('farm_data', {
-      entity_type: 'location',
-      entity_ids: ['location-1'],
-      target_table: 'harvest_event',
-      filters: { status: 'published' },
-    });
-
-    expect(createItem).toHaveBeenCalledWith('export_log', {
-      export_type: 'farm_data',
-      format: null,
-      entity_type: 'location',
-      entity_ids: ['location-1'],
-      target_table: 'harvest_event',
-      filters: { status: 'published' },
-      status: 'pending',
-      requested_by: 'sdk',
-    });
-  });
-
-  it('supports the Python export positional parameter contract', async () => {
-    const createItem = vi.spyOn(client, 'createItem').mockResolvedValue({ id: 'export-3' });
-
-    await client.exports.createExport(
-      'farm_data',
-      'csv',
-      'location',
-      ['location-1'],
-      'harvest_event',
-      { status: 'published' },
-    );
-
-    expect(createItem).toHaveBeenCalledWith('export_log', {
-      export_type: 'farm_data',
-      format: 'csv',
-      entity_type: 'location',
-      entity_ids: ['location-1'],
-      target_table: 'harvest_event',
-      filters: { status: 'published' },
-      status: 'pending',
-      requested_by: 'sdk',
-    });
-  });
-
   it('forwards export field projections like the Python SDK', async () => {
     const getItem = vi.spyOn(client, 'getItem').mockResolvedValue({
       id: 'export-1',
@@ -1269,33 +1245,79 @@ describe('KokonutClient', () => {
     expect(getItem).toHaveBeenCalledWith('export_log', 'export-1', ['id', 'status']);
   });
 
-  it('keeps the existing create() payload behavior', async () => {
-    const createItem = vi.spyOn(client, 'createItem').mockResolvedValue({ id: 'export-2' });
+  it('lists export logs through the canonical read-only collection', async () => {
+    const listItems = vi.spyOn(client, 'listItems').mockResolvedValue([{ id: 'export-1' }]);
 
-    await client.exports.create({ export_type: 'farm_data', format: 'csv' });
+    const result = await client.exports.list({ limit: 10 });
 
-    expect(createItem).toHaveBeenCalledWith('export_log', {
-      export_type: 'farm_data',
-      format: 'csv',
-      status: 'pending',
-      requested_by: 'sdk',
-    });
+    expect(result).toEqual([{ id: 'export-1' }]);
+    expect(listItems).toHaveBeenCalledWith('export_log', { limit: 10 });
   });
 
-  it('supports export createMany with the same raw batch semantics as Python', async () => {
-    const createItems = vi.spyOn(client, 'createItems').mockResolvedValue([
-      { id: 'export-1' },
-      { id: 'export-2' },
-    ]);
-    const requests = [
-      { export_type: 'farm_data', status: 'pending' },
-      { export_type: 'metric_data', status: 'pending' },
+  it('keeps attestation records read-only while preserving governed reads', async () => {
+    const listItems = vi.spyOn(client, 'listItems').mockResolvedValue([{ id: 'attestation-1' }]);
+    const getItem = vi.spyOn(client, 'getItem').mockResolvedValue({ id: 'attestation-1', status: 'published' });
+
+    await client.attestations.listByEntity('location', 'location-1');
+    expect(listItems).toHaveBeenCalledWith('attestation_record', {
+      filter: { subject_type: { _eq: 'location' }, subject_id: { _eq: 'location-1' } },
+    });
+    await client.attestations.get('attestation-1', ['id', 'status']);
+    expect(getItem).toHaveBeenCalledWith('attestation_record', 'attestation-1', ['id', 'status']);
+
+    expect(client.attestations).not.toHaveProperty('create');
+    expect(client.attestations).not.toHaveProperty('createMany');
+    expect(client.attestations).not.toHaveProperty('update');
+    expect(client.attestations).not.toHaveProperty('delete');
+  });
+
+  it('keeps calculated NOI snapshots read-only while preserving scoped reads', async () => {
+    const listItems = vi.spyOn(client, 'listItems').mockResolvedValue([{ id: 'noi-1' }]);
+    const getItem = vi.spyOn(client, 'getItem').mockResolvedValue({ id: 'noi-1', noi: 1250 });
+
+    await client.noi.listByCropCycle('cycle-1', { filter: { location_id: { _eq: 'location-1' } }, limit: 5 });
+    expect(listItems).toHaveBeenCalledWith('noi_snapshot', {
+      filter: { location_id: { _eq: 'location-1' }, crop_cycle_id: { _eq: 'cycle-1' } },
+      limit: 5,
+    });
+    await client.noi.get('noi-1', ['id', 'noi']);
+    expect(getItem).toHaveBeenCalledWith('noi_snapshot', 'noi-1', ['id', 'noi']);
+
+    expect(client.noi).not.toHaveProperty('create');
+    expect(client.noi).not.toHaveProperty('createMany');
+    expect(client.noi).not.toHaveProperty('update');
+    expect(client.noi).not.toHaveProperty('delete');
+  });
+
+  it('blocks generic mutations to read-only projections before transport', async () => {
+    const directus = (client as any).directus as {
+      request: (command: unknown) => Promise<unknown>;
+    };
+    const request = vi.spyOn(directus, 'request').mockResolvedValue({ id: 'synthetic' });
+    const protectedCollections = [
+      'report_snapshot',
+      'noi_snapshot',
+      'attestation_record',
+      'export_log',
+    ];
+    const mutations = [
+      (collection: string) => client.createItem(collection, { status: 'published' }),
+      (collection: string) => client.createItems(collection, [{ status: 'published' }]),
+      (collection: string) => client.updateItem(collection, 'synthetic-id', { status: 'published' }),
+      (collection: string) => client.deleteItem(collection, 'synthetic-id'),
     ];
 
-    const result = await client.exports.createMany(requests);
+    for (const collection of protectedCollections) {
+      for (const mutate of mutations) {
+        await expect(mutate(collection)).rejects.toBeInstanceOf(ValidationError);
+      }
+    }
+    expect(request).not.toHaveBeenCalled();
 
-    expect(result).toEqual([{ id: 'export-1' }, { id: 'export-2' }]);
-    expect(createItems).toHaveBeenCalledWith('export_log', requests);
+    await client.listItems('report_snapshot');
+    await client.getItem('noi_snapshot', 'noi-1');
+    await client.createItem('location', { name: 'Synthetic Location' });
+    expect(request).toHaveBeenCalledTimes(3);
   });
 
   it('keeps required convenience filters authoritative and forwards list options', async () => {

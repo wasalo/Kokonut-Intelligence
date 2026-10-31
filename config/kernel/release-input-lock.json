@@ -1,29 +1,49 @@
 {
   "format_version": 1,
-  "lock_scope": "Kernel default and ClickHouse-enabled application, optional sensor-anomaly ML worker, and PostGIS image build inputs",
+  "lock_scope": "Kernel default and ClickHouse-enabled application, opt-in lean core app and capability overlays, optional sensor-anomaly ML worker, and PostGIS image build inputs",
   "base_images": {
     "application": "python:3.11-slim@sha256:db3ff2e1800a8581e2c48a27c3995339d47bdf046da21c7627accd3d51053a93",
     "database": "postgres:16-bookworm@sha256:0ea6700a3b4f0ae6ce746519073558aed4d88a79d8d07622a9a644946c7319c4"
   },
   "sha256_inputs": {
-    "Dockerfile.kernel": "a6165caaef175891430564c537fbbb2598a601128806a4e50d2e371d53fc9830",
+    "Dockerfile.kernel": "8f5a7aea75dc6e761be8be20aa591d7a50919197a9d5cdbf4870aa480bf2273d",
     "Dockerfile.kernel-postgis": "180b813d48759c170cc36a78526c893dc71e51a78c18a75cd101c330a1958d8c",
     "requirements/kernel.txt": "bcafcb498d1d0551cc5a400e0b45ecd903fd996cafd974792f4e67f6cefb7e83",
     "requirements/web3.txt": "be91e5a4302c32cf7b3035cca8bc538eaeba5e85997348081632c2286fb4da33",
     "requirements/exports.txt": "1780570edca5518251d507d39d9c9fed24db4451315d73e75f9c8faceec36c71",
     "requirements/storage.txt": "55b669581f72f640218f77096989eef395448cf37f61b72db17029dc74440e1b",
+    "requirements/http-client.txt": "b261922c56b1b8f13dc45b03783db5b35f2d9fb99e26b093688a8f005e9edc4e",
     "requirements/clickhouse.txt": "94e0790ca756b254d8567ce2aeb69cdd47f7591e2944939adf1dddb00d073dfd",
     "requirements/kernel-runtime.in": "e619e8f2d898343db986881c108a6b35f371008d5c27fa2d340359896c7f82fe",
     "requirements/kernel-runtime.lock": "80e50a655e4f7c530d102fd09b4fc0502ae9020ed5a170303615e4c0dfd08921",
     "requirements/kernel-clickhouse.in": "d45f7ea822daef4616987cb57a240a4e2eea4fdf74424aa6222b1f0167c2bc4e",
     "requirements/kernel-clickhouse.lock": "ea9154ed4eb3c4234dee73a6588f4550191f227de82f972644d937b090dc66ab",
     "requirements/ml-anomaly.txt": "47739b7c732e8cbb203f1aca416dd03339ac0c0f16e8a17f108fcd89e307da22",
+    "requirements/oidc.txt": "c346c96cf48fb62a18a85c2160fb1a4b9cc4e88a2be76f2d3bac3ab4d32cfcbe",
     "requirements/ml-anomaly-runtime.in": "ced2ea751e17c00b41755469c7df18e690bbafea17a429cbdcdbf281dc292dd8",
     "config/postgres/kernel-postgis-packages.json": "c436d6268f440f7ac54bf298b65529199680cf48526f0504cb1bceed02bec79c",
     "config/postgres/kernel-apt.sources": "1bc6a4368d8284b4e8a35f24e381449e493eff6f9993869987f5193538f0cd42",
     "config/postgres/kernel-pgdg.pref": "cfb19023faf4c4b54c39f471cc8287a022922f159adbae1a8c4bf26f7077a4ec",
     "config/postgres/kernel-bootstrap.sources": "a4bf76ae4956dcda020029113fb722f0dd35c9597331554a96f63883dfda1f51",
-    "requirements/ml-anomaly-runtime.lock": "70fc5fc6c0f4ea896444fe4f55ae6d1ace3d86391daecdcd111db47d87aaa677"
+    "requirements/ml-anomaly-runtime.lock": "70fc5fc6c0f4ea896444fe4f55ae6d1ace3d86391daecdcd111db47d87aaa677",
+    "docker-compose.kernel-core.yml": "aabccbe6ae34c87d0c39b90115d592f08a4dbf8183ad60f28a3b927aece697a5",
+    "docker-compose.kernel-core-web3.yml": "d24c466ebffecac2780b9421efac4456ed7b90b00746bcbc67533a1773e44e61",
+    "docker-compose.kernel-core-exports.yml": "c064fa91b1fb9d7f58fc4802ef1748954a9ebc7154f7db12e2f00e367b5de836",
+    "docker-compose.kernel-core-local-media.yml": "1737947928be8f0652019351a83955e74ea169e09080f39d879a39e6202e778d",
+    "requirements/kernel-core.in": "596400b8d8eb78b3def0716189c5f5ca244f319d5da614637eb976fe55c2ba23",
+    "requirements/kernel-core.lock": "2a7e820a9ce84bbea04797700b9f62509f43539b328deecde8718db8b33f5a3c",
+    "requirements/kernel-core-web3.in": "65e6fcf5cbb897057514952b00af638bb3c14df9550411c24fb5aa1c11df2890",
+    "requirements/kernel-core-web3.lock": "43cde4be00e5ef4607fc589ddc960dda5e346cd171d2a86a0ee7f18eede6c8a8",
+    "requirements/kernel-core-exports.in": "15225f6576de2273678ed06f6feadc4ff1aa3cb4d266ebdab99ad514d307b0e5",
+    "requirements/kernel-core-exports.lock": "f3c331760c3b31722fb6224ce0d35c048531c091763d4b3b388832091f0c4fb5",
+    "requirements/kernel-core-storage.in": "33ddfcfb920e4bb7b9b51591a575da43c8475b8475ad143e0496243d693df4d1",
+    "requirements/kernel-core-storage.lock": "e34f4138c02279044f016ddda963ab442b691e0da42d906f2ca0a1c98c66f149",
+    "services/core/image_manifest.py": "3d9f2d39463e7c3ba25c0d8673182df7255b5c69bc43d6c5e4633f7032abed39",
+    "scripts/kernel-profile.py": "544898f731d117dd63040e5ff98fe28c53eca3ffa692cf222ad22ed1d6c11375",
+    "scripts/check-kernel-release-inputs.py": "4116116c380c2d407f8e315f0057cbf30fdbf64ba58a43f0172a8bcdaf989402",
+    "scripts/build-kernel-multiarch.sh": "d4bfa9240f8f17686a9bfb3314ee39acb588f645dd9b4ca630b57d12fefc2339",
+    "docs/refactor/profile-selection.md": "bf532935f81c5dbfa7ef2a17f8993fd603af329094d8b584ed8cb3dc74d4f232",
+    "requirements/README.md": "699bfef971be138ca125640284a47ef7a3a73d67f1007ea85bc3d2217f2bed36"
   },
   "postgis_packages": {
     "POSTGIS_PACKAGE_VERSION": "3.6.4+dfsg-2.pgdg12+1",
@@ -35,7 +55,7 @@
   },
   "dependency_lock_status": {
     "python_direct_inputs": "SHA-256-locked source requirement manifests",
-    "python_transitive_dependencies": "Hash-locked default, ClickHouse, and optional ML dependency closures; local AMD64/ARM64 locked image acceptance passed; hosted release CI remains pending.",
+    "python_transitive_dependencies": "Hash-locked default, ClickHouse, opt-in lean core and capability-overlay, and optional ML dependency closures; existing default/ClickHouse/ML image acceptance passed, while lean core base and full capability-union multiarch OCI acceptance runs in CI.",
     "apt_transitive_dependencies": "Debian dependencies resolve from timestamped bookworm snapshots; exact PGDG PostGIS packages come from its archive; release gate compares complete installed package inventories against exact locked architecture-specific expectations; multi-architecture acceptance pending"
   }
 }

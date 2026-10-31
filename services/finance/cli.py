@@ -10,6 +10,7 @@ Usage:
 """
 
 import argparse
+from uuid import UUID
 
 from services.common.cli import print_json
 from services.common.database import get_db
@@ -49,6 +50,10 @@ def main():
 
     if not args.location_id:
         parser.error("--location-id is required")
+    try:
+        args.location_id = str(UUID(args.location_id))
+    except ValueError:
+        parser.error("--location-id must be a valid UUID")
 
     conn = get_pg()
 

@@ -1,0 +1,9 @@
+{
+  "audit": "repository-owned local Markdown links",
+  "date": "2026-10-31",
+  "markdown_files_checked": 416,
+  "local_links_checked": 10243,
+  "missing_local_links": 0,
+  "result": "passed",
+  "scope_note": "Checks local links in repository-owned Markdown; excludes vendored contracts/lib documentation, ignored files, and backup copies. Does not prove external URL liveness or semantic completeness."
+}

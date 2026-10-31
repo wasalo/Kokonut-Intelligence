@@ -10,6 +10,7 @@ JSONObject = Dict[str, JSONValue]
 LifecycleStatus = Literal["draft", "submitted", "verified", "published", "rejected"]
 EntityStatus = Literal["active", "inactive", "archived"]
 EntityStatusExtended = Literal["active", "inactive", "maintenance", "decommissioned"]
+DirectusListMeta = Literal["total_count", "filter_count"]
 PaymentStatus = Literal["pending", "partial", "paid", "overdue", "cancelled"]
 SensorSeverity = Literal["info", "warning", "critical"]
 AlertLifecycle = Literal["open", "acknowledged", "resolved", "false_positive"]
@@ -171,16 +172,23 @@ class ActivityTypeSourceOption(TypedDict):
 
 @dataclass
 class ListOptions:
+    """Shared list controls plus backend-specific Directus query parameters."""
+
     filter: Optional[Dict[str, Any]] = None
     sort: Optional[List[str]] = None
     fields: Optional[List[str]] = None
     limit: Optional[int] = None
     offset: Optional[int] = None
     page: Optional[int] = None
-    meta: Optional[str] = None
+    meta: Optional[DirectusListMeta] = None
+    extra_params: Optional[Dict[str, Any]] = None
 
     def to_params(self) -> Dict[str, Any]:
-        params: Dict[str, Any] = {}
+        # Extension parameters support Directus features without making them
+        # mandatory SDK dependencies. The typed options below remain authoritative.
+        params: Dict[str, Any] = dict(self.extra_params or {})
+        for key in ("filter", "sort", "fields", "limit", "offset", "page", "meta"):
+            params.pop(key, None)
         if self.filter is not None:
             params["filter"] = self.filter
         if self.sort is not None:
@@ -502,10 +510,11 @@ class FarmTaskDependency:
 
 @dataclass
 class FarmTaskFrameworkStep:
-    """Task-to-framework-step association record."""
+    """Location-bound task-to-framework-step association record."""
 
     task_id: str
     framework_step_id: str
+    location_id: Optional[str] = None
     source_system: Optional[str] = None
     source_database_id: Optional[int] = None
     source_table_id: Optional[int] = None
@@ -2762,9 +2771,6 @@ class AiSummary:
 class ExportLog:
     id: str
     export_type: str
-    format: Optional[str] = None
-    entity_type: Optional[str] = None
-    entity_ids: Optional[List[str]] = None
     user_id: Optional[str] = None
     target_table: Optional[str] = None
     filters: Optional[JSONObject] = None

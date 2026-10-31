@@ -87,6 +87,8 @@ def test_isolated_clickhouse_outbox_receives_only_its_dedicated_dsn():
         "PG_USER": "kokonut_runtime",
         "PG_PASSWORD": "shared-secret",
         "DATABASE_URL": "postgresql://shared/app",
+        "CLICKHOUSE_PASSWORD": "synthetic-clickhouse-sink-secret",
+        "ETH_RPC_URL": "https://rpc.example.invalid/?key=synthetic-rpc-secret",
     }
     module = "services.ingestion.clickhouse_outbox_worker"
     worker_key = scheduled_module_worker_key(module)
@@ -98,8 +100,36 @@ def test_isolated_clickhouse_outbox_receives_only_its_dedicated_dsn():
         environ=source,
     ) == {
         "KOKONUT_CLICKHOUSE_OUTBOX_DATABASE_URL": "postgresql://clickhouse-worker",
+        "CLICKHOUSE_PASSWORD": "synthetic-clickhouse-sink-secret",
         ISOLATED_WORKER_KEY_ENV: "clickhouse_outbox",
     }
+
+
+def test_other_isolated_workers_do_not_receive_clickhouse_sink_password():
+    source = {
+        "KOKONUT_WEATHER_DATABASE_URL": "postgresql://weather-worker",
+        "CLICKHOUSE_PASSWORD": "synthetic-clickhouse-sink-secret",
+        "CLICKHOUSE_HOST": "clickhouse.internal",
+    }
+
+    assert worker_subprocess_environment(
+        allowed_worker_keys=("weather",),
+        isolated_database_credentials=True,
+        environ=source,
+    ) == {
+        "KOKONUT_WEATHER_DATABASE_URL": "postgresql://weather-worker",
+        "CLICKHOUSE_HOST": "clickhouse.internal",
+        ISOLATED_WORKER_KEY_ENV: "weather",
+    }
+
+
+def test_non_isolated_supervisor_keeps_clickhouse_configuration():
+    source = {
+        "CLICKHOUSE_HOST": "clickhouse.internal",
+        "CLICKHOUSE_PASSWORD": "synthetic-clickhouse-sink-secret",
+    }
+
+    assert worker_subprocess_environment(environ=source) == source
 
 
 def test_scheduled_anomaly_replay_receives_only_its_existing_worker_identity():

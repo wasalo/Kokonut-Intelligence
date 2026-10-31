@@ -1,0 +1,44 @@
+{
+  "result": "reviewed",
+  "date": "2026-10-31",
+  "relation": "public.farmer_role",
+  "decision": {
+    "runtime_boundary": "read_only",
+    "runtime_select_preserved": true,
+    "default_permissions_are_authorization_sensitive": true,
+    "role_definition_changes": "reviewed schema or maintenance authority",
+    "external_importer_use_through_kokonut_runtime": "not_confirmed_by_repository_source_review",
+    "candidate_or_production_rollout_gate": "confirm external importers do not use kokonut_runtime before applying migration 707",
+    "tenant_isolation_established": false
+  },
+  "application_access": {
+    "read_callsite_count": 1,
+    "read_callsites": [
+      {
+        "path": "services/analytics/farmer_identity.py",
+        "line": 556,
+        "function": "assign_role",
+        "operation": "SELECT default_permissions FROM farmer_role WHERE name = %s"
+      }
+    ],
+    "application_write_callsite_count": 0,
+    "write_callsites": []
+  },
+  "definition_and_initialization": {
+    "schema": "schemas/postgres/148_farmer_identity.sql",
+    "table_definition_line": 352,
+    "default_role_initialization_line": 364,
+    "additional_seed_writer_found": false
+  },
+  "other_writer_review": {
+    "extension_write_reference_found": false,
+    "directus_permission_or_hook_reference_found": false,
+    "directus_search_scope": [
+      "config/directus/permissions.sql",
+      "extensions/kokonut-hooks/src/**/*.ts"
+    ],
+    "seed_and_maintenance_path": "Default roles are inserted by schemas/postgres/148_farmer_identity.sql; no separate seed writer was found. Role-definition changes remain on a reviewed schema/maintenance path.",
+    "role_assignments_use_separate_relation": "role_assignment"
+  },
+  "scope_limit": "Static repository/source review cannot prove absence of dynamic SQL, external importers, or manually granted database users."
+}

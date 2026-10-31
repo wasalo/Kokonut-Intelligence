@@ -1,0 +1,34 @@
+{
+  "date": "2026-10-29",
+  "migrations": [
+    "683_location_scoped_report_snapshot_exports.sql",
+    "684_report_snapshot_export_candidates.sql",
+    "685_report_snapshot_export_requester_isolation.sql"
+  ],
+  "migration_sha256": {
+    "683_location_scoped_report_snapshot_exports.sql": "0c78b7736819330a3741fb2c7416395b1f9a62a0ba8362698306226e395fd56a",
+    "684_report_snapshot_export_candidates.sql": "88941760f86f8196a46204a13eb0b03dfeba0d1afafed1e50c115d04101060b6",
+    "685_report_snapshot_export_requester_isolation.sql": "bb03637818202b7230b6cd82ee28da2e948a05af56ec8d455b880c5520a1aac0"
+  },
+  "database": "PostgreSQL 16 disposable container; Docker network disabled",
+  "database_image": "postgres:16",
+  "requested_platform": null,
+  "container_architecture": "x86_64",
+  "checks": [
+    "migration 683 applies and replays after enabling the dedicated login",
+    "signed operator tenant context, active create/read/download grants, and exact location are required",
+    "only verified/published snapshots with a valid hash can be requested; idempotency collision is rejected",
+    "runtime and Directus receive no export table rights; runtime has user functions only",
+    "worker login has bounded claim/read/finish functions and no direct request or receipt table access",
+    "forced-RLS source relations receive function-owner SELECT policies",
+    "claims are bounded and lease-token/worker fenced; source loads are exact-location and lifecycle scoped",
+    "download authorization returns opaque artifact UUID, digest, and size only to the current location download grant",
+    "eligible snapshot listing returns only exact-location verified/published records with bounded JSON payloads and valid SHA-256 text",
+    "eligible snapshot listing enforces its own read grant, preserves bounded pagination, and exposes no report payload or storage path",
+    "same-location operators can list shared candidates but cannot see each other's request status/detail or download each other's artifacts",
+    "request state and append-only attempt receipts commit atomically",
+    "transient storage failure respects available_at and dead-letters at attempt eight; deterministic source change dead-letters immediately"
+  ],
+  "candidate_or_legacy_database_touched": false,
+  "production_or_provider_state_established": false
+}

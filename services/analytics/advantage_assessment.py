@@ -106,5 +106,11 @@ def link_advantage(conn, advantage_id: str, entity_type: str, entity_id: str, re
 
 def fit_dashboard(conn, strategy_plan_id: str) -> List[Dict[str, Any]]:
     with conn.cursor(cursor_factory=RealDictCursor) as cur:
-        cur.execute("SELECT * FROM v_strategy_advantage_fit WHERE strategy_plan_id = %s::uuid ORDER BY defensibility_score DESC NULLS LAST", (strategy_plan_id,))
+        cur.execute(
+            "SELECT advantage_id, strategy_plan_id, name, defensibility_score, status, "
+            "link_count, capability_link_count, choice_link_count, investment_link_count, fit_status "
+            "FROM v_strategy_advantage_fit WHERE strategy_plan_id = %s::uuid "
+            "ORDER BY defensibility_score DESC NULLS LAST",
+            (strategy_plan_id,),
+        )
         return [_clean(row) for row in cur.fetchall()]

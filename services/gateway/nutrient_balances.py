@@ -135,7 +135,7 @@ def get_location_nutrient_balances(
             "total_summaries": total_summaries,
             "limit": limit,
             "offset": offset,
-            "has_more": len(rows) > limit,
+            "has_more": len(rows) > limit and offset + limit <= _MAX_OFFSET,
             "balances": balances,
         }
     finally:

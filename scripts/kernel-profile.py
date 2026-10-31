@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import re
 import shlex
 from pathlib import Path
 
@@ -21,6 +22,7 @@ ARM64_ANALYTICS = "docker-compose.kernel-arm64-analytics.yml"
 ARM64_SENSOR_ANOMALY_ML = "docker-compose.kernel-arm64-sensor-anomaly-ml.yml"
 PROFILES = {
     "minimal": [],
+    "core": ["docker-compose.kernel-core.yml"],
     "edge": ["docker-compose.kernel-edge.yml"],
     "standard": ["docker-compose.kernel-standard.yml"],
     "analytics": ["docker-compose.kernel-analytics.yml"],
@@ -34,6 +36,9 @@ OPTIONAL = {
     "directus": "docker-compose.kernel-directus.yml",
     "zitadel": "docker-compose.kernel-zitadel.yml",
     "sensor_anomaly_ml": "docker-compose.kernel-sensor-anomaly-ml.yml",
+    "web3": "docker-compose.kernel-core-web3.yml",
+    "exports": "docker-compose.kernel-core-exports.yml",
+    "local_media": "docker-compose.kernel-core-local-media.yml",
 }
 
 
@@ -44,17 +49,42 @@ def main() -> None:
                         help="Declare the deployment architecture for compatibility checks")
     parser.add_argument("--separate-workers", action="store_true",
                         help="Select separate API/worker roles for analytics")
+    parser.add_argument(
+        "--project", help="Explicit Compose project name (for example, a unique disposable test project)"
+    )
     for name in OPTIONAL:
         parser.add_argument(f"--{name.replace('_', '-')}", dest=name, action="store_true")
+    parser.add_argument(
+        "--no-proxy",
+        action="store_true",
+        help="omit the Standard profile's default Caddy ingress when using another ingress",
+    )
     parser.add_argument("--action", choices=["config", "build", "up", "ps"], default="config")
     args = parser.parse_args()
+    if args.project is not None and not re.fullmatch(r"[a-z0-9][a-z0-9_-]{0,62}", args.project):
+        parser.error("--project must be 1–63 lowercase letters, digits, hyphens, or underscores and start with a letter or digit")
     is_arm64 = args.target_platform == "linux/arm64"
-    if is_arm64 and args.profile not in {"minimal", "edge", "standard", "analytics"}:
-        parser.error("ARM64 currently supports only minimal, edge, standard, and analytics profiles")
     selected_optional = {name for name in OPTIONAL if getattr(args, name)}
+    if args.no_proxy and args.profile != "standard":
+        parser.error("--no-proxy applies only to standard; other profiles include ingress only when requested")
+    if args.no_proxy and args.proxy:
+        parser.error("--proxy and --no-proxy cannot be selected together")
+    if args.no_proxy and args.zitadel:
+        parser.error("--zitadel includes its Caddy routes and cannot be combined with --no-proxy")
+    if args.profile == "standard" and not args.no_proxy:
+        selected_optional.add("proxy")
+
+    if is_arm64 and args.profile not in {"minimal", "core", "edge", "standard", "analytics"}:
+        parser.error("ARM64 currently supports only core, minimal, edge, standard, and analytics profiles")
+    core_capability_overlays = {"web3", "exports", "local_media"}
+    selected_core_overlays = selected_optional & core_capability_overlays
+    if selected_core_overlays and args.profile != "core":
+        parser.error("--web3, --exports, and --local-media apply only to the core profile")
+    if args.profile == "core" and (args.oidc or args.zitadel):
+        parser.error("the core profile cannot use --oidc or --zitadel because those application overlays select the full OIDC image")
     arm64_verified_optional = {
         "proxy", "oidc", "zitadel", "grpc", "mqtt", "http_sensors", "directus",
-        "sensor_anomaly_ml",
+        "sensor_anomaly_ml", "web3", "exports", "local_media",
     }
     unverified_arm64_optional = selected_optional - arm64_verified_optional
     if is_arm64 and unverified_arm64_optional:
@@ -66,7 +96,7 @@ def main() -> None:
         parser.error("Scale is not implemented: shared rate limits and replica recovery acceptance are pending")
     if args.separate_workers and args.profile != "analytics":
         parser.error("--separate-workers applies only to analytics; standard already separates roles")
-    if args.oidc and not args.proxy and not args.zitadel:
+    if args.oidc and "proxy" not in selected_optional and not args.zitadel and args.profile != "standard":
         parser.error("--oidc requires --proxy so operator session cookies use the HTTPS origin")
 
     files = [BASE]
@@ -77,8 +107,8 @@ def main() -> None:
         files.append("docker-compose.kernel-standard-analytics.yml")
     if args.zitadel:
         # The self-hosted provider needs the HTTPS ingress and the Gateway's
-        # OIDC client settings. Keep all three opt-in while making one flag
-        # produce a complete, ordered stack.
+        # OIDC client settings. One flag produces a complete, ordered stack;
+        # Standard already includes the shared proxy overlay by default.
         selected_optional.update({"proxy", "oidc"})
     files.extend(path for name, path in OPTIONAL.items() if name in selected_optional)
     if is_arm64:
@@ -107,7 +137,9 @@ def main() -> None:
 
     # --env-file prevents Compose implicitly loading a plaintext .env. Export
     # required secrets explicitly before running the printed command.
-    project_name = "kokonut-kernel-candidate-arm64" if is_arm64 else "kokonut-kernel-candidate"
+    project_name = args.project or (
+        "kokonut-kernel-candidate-arm64" if is_arm64 else "kokonut-kernel-candidate"
+    )
     command = ["docker", "compose", "--project-directory", str(ROOT),
                "--env-file", "/dev/null", "-p", project_name]
     for filename in files:

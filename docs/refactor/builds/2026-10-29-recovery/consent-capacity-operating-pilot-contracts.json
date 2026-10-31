@@ -1,0 +1,89 @@
+{
+  "date": "2026-10-29",
+  "base_head": "d42d93f5",
+  "scope": "Consent expiry CLI preflight, capacity-gap explicit projection, and operating-pilot summary response validation",
+  "source_migrations": [
+    "schemas/postgres/144_data_governance_consent.sql",
+    "schemas/postgres/251_operating_capacity_demand.sql",
+    "schemas/postgres/461_location_scoped_operating_pilot_summary.sql"
+  ],
+  "files": [
+    "services/analytics/cli_data_governance.py",
+    "services/management/capacity_signals.py",
+    "services/gateway/operating_pilot_routes.py",
+    "tests/test_data_governance_cli_scope.py",
+    "tests/test_capacity_signals_projection.py",
+    "tests/test_gateway_operating_pilot_reads.py",
+    "docs/refactor/runtime-sql-inventory.json"
+  ],
+  "consent_expiry_cli": {
+    "argument": "record-consent --expires-at",
+    "contract": "ISO-8601 datetime with explicit timezone offset, parsed before database acquisition; omitted value remains None",
+    "reason": "The destination expires_at is TIMESTAMPTZ; requiring an offset avoids dependence on the database session timezone."
+  },
+  "capacity_gap_projection": {
+    "view": "v_operating_capacity_gap",
+    "columns": [
+      "scope_type",
+      "scope_id",
+      "work_type",
+      "period_start",
+      "period_end",
+      "available_hours",
+      "required_hours",
+      "net_hours",
+      "coverage_status",
+      "priority_rank"
+    ],
+    "filters_order": ["scope_type", "scope_id"],
+    "order_by": "period_start, priority_rank DESC, work_type"
+  },
+  "operating_pilot_summary_contract": {
+    "route": "GET /operator/api/operating-pilot/{location_id}/summary",
+    "source": "migration 461",
+    "sections": [
+      "scope_configured",
+      "capacity_profiles",
+      "demand_signals",
+      "work_items",
+      "work_claims",
+      "competency_reviews",
+      "learning_plans",
+      "resource_requests",
+      "aggregate_only_coaching_sessions"
+    ],
+    "invariants": [
+      "strict OpenAPI/runtime nested schemas reject missing and extra fields",
+      "response location must match the requested path",
+      "counts are nonnegative PostgreSQL BIGINT values and numeric measures are finite and nonnegative",
+      "suppressed aggregate sections require protected measures to be null; unsuppressed sections require them present",
+      "authentication and tenant authorization remain before the summary read",
+      "malformed service output returns sanitized no-store 503"
+    ]
+  },
+  "verification": {
+    "focused_tests_command": "python3 -m pytest tests/test_data_governance_cli_scope.py tests/test_capacity_signals_projection.py tests/test_gateway_operating_pilot_reads.py -q",
+    "focused_tests_passed": 211,
+    "focused_tests_skipped": 0,
+    "focused_file_counts": {
+      "consent_cli": 13,
+      "capacity_projection": 5,
+      "operating_pilot_gateway": 193
+    },
+    "ruff": "passed for all changed Python source and test files",
+    "python_compile": "passed",
+    "capability_matrix": "passed: 67 rows; 24 baseline-retained, 7 deployed, 36 prepared",
+    "runtime_sql_inventory": "refreshed and current; unresolved-write ledger current with 42 tracked candidates",
+    "provider_boundaries": "passed: 17 vendor import sites",
+    "dependency_groups": "passed: 14 groups, 33 requirements",
+    "git_diff_check": "passed"
+  },
+  "environment": {
+    "database_used": false,
+    "external_provider_used": false,
+    "candidate_or_legacy_state_changed": false,
+    "migration_applied": false,
+    "errors": 0
+  },
+  "rollback": "Revert the consent CLI preflight, explicit capacity-gap projection, Gateway response contract, focused tests, evidence/progress, and refreshed SQL inventory. No database migration or data rollback is needed."
+}

@@ -1,0 +1,45 @@
+{
+  "batch": "stakeholder-and-coordination-internal-cockpit-projections",
+  "date": "2026-10-29",
+  "base_commit": "035c73eb",
+  "scope": "Replace internal stakeholder and coordination cockpit view wildcards with exact migration-defined fields across every repository report callsite.",
+  "projections": [
+    {
+      "reports": ["stakeholder_cockpit", "stakeholder_ecosystem"],
+      "view": "v_stakeholder_cockpit_internal",
+      "schema": "schemas/postgres/238_coordination_governance_cockpit.sql",
+      "column_count": 20,
+      "columns": ["active_party_count", "active_relationship_count", "open_interest_count", "active_engagement_plan_count", "overdue_commitment_count", "open_grievance_count", "active_decision_count", "unresolved_harm_count", "open_relationship_risk_count", "pending_buyer_verification_count", "contested_trust_evidence_count", "stewardship_action_count", "unverified_value_stream_outcome_count", "generated_at", "active_alliance_count", "slow_cycle_alliance_count", "fast_cycle_alliance_count", "open_coordination_conflict_count", "open_coordination_remedy_count", "overdue_alliance_review_count"]
+    },
+    {
+      "report": "coordination_cockpit",
+      "view": "v_coordination_cockpit_internal",
+      "schema": "schemas/postgres/238_coordination_governance_cockpit.sql",
+      "column_count": 22,
+      "columns": ["alliance_id", "name", "coordination_type", "market_cycle", "status", "review_due_at", "ends_at", "work_item_id", "proxy_authority_id", "active_participant_count", "shared_objective_count", "contribution_count", "verified_benefit_count", "open_harm_count", "open_knowledge_exchange_count", "open_conflict_count", "trust_risk_count", "open_coordination_risk_count", "open_remedy_count", "preserved_minority_view_count", "verified_outcome_change_count", "ecological_obligation_count"]
+    }
+  ],
+  "focused_check": {
+    "command": "python3 -m pytest -q tests/test_report_generator_cli.py::test_internal_cockpit_views_use_exact_projections_at_every_report_callsite",
+    "passed": 1,
+    "coverage": "Asserts the exact 20- and 22-field projections at all three report callsites, network-wide query behavior, ordering, and unchanged internal result payloads.",
+    "boundary": "Synthetic rows and fake cursors only; no database, provider, candidate, legacy service, or live route was used."
+  },
+  "static_checks": {
+    "ruff": "passed",
+    "python_compile": "passed",
+    "report_generator_source_inventory": "check passed",
+    "report_generator_query_scope_inventory": "check passed",
+    "report_generator_helper_scope_inventory": "check passed",
+    "capability_matrix": "passed: 67 rows; 24 baseline-retained, 7 deployed, 36 prepared",
+    "git_diff_check": "passed"
+  },
+  "source_audit": "No SELECT * from v_stakeholder_cockpit_internal or v_coordination_cockpit_internal remains in services/export/reports/strategy.py.",
+  "rollback": "Revert the two internal-view projections, focused regression, generated inventory refresh, and progress records. No migration or data rollback is needed.",
+  "tracked_progress": {
+    "checklist": "1599 complete / 25 open (1624 total)",
+    "todo": "294 checked / 16 open",
+    "capability_matrix": "67 rows; 24 baseline-retained, 7 deployed, 36 prepared; 99 strict private Gateway response contracts",
+    "man_cap_acceptance": "unchanged; separately gated"
+  }
+}

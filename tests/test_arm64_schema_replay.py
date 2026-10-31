@@ -1,7 +1,13 @@
 """Regression coverage for partial progress in ARM64 schema replay evidence."""
 
+import json
 import runpy
 from pathlib import Path
+from types import SimpleNamespace
+
+import pytest
+
+from services.migration import runtime_role
 
 replay_module = runpy.run_path(
     str(Path(__file__).resolve().parents[1] / "scripts" / "check-arm64-schema-replay.py"),
@@ -13,6 +19,18 @@ migration_command = replay_module["migration_command"]
 safe_error_summary = replay_module["safe_error_summary"]
 ReplayCommandFailure = replay_module["ReplayCommandFailure"]
 run = replay_module["run"]
+operator_scope_probe_command = replay_module["operator_scope_probe_command"]
+parse_probe_image_inspection = replay_module["parse_probe_image_inspection"]
+probe_image_runtime_command = replay_module["probe_image_runtime_command"]
+prepare_operator_scope_probe_image = replay_module["prepare_operator_scope_probe_image"]
+parse_operator_scope_probe = replay_module["parse_operator_scope_probe"]
+ensure_disposable_project_unused = replay_module["ensure_disposable_project_unused"]
+resource_limit_values = replay_module["resource_limit_values"]
+
+probe_module = runpy.run_path(
+    str(Path(__file__).resolve().parents[1] / "scripts" / "fixtures" / "sprint_operator_scope_probe.py"),
+    run_name="sprint_operator_scope_probe_test_module",
+)
 
 
 def test_started_schema_migrations_extracts_ordered_ids_from_runner_log():
@@ -28,6 +46,16 @@ def test_started_schema_migrations_extracts_ordered_ids_from_runner_log():
         "schema:122_federation.sql",
         "schema:123_analysis_environments.sql",
     ]
+
+
+def test_operator_probe_fixture_implements_every_required_acceptance_check():
+    fixture = (
+        Path(__file__).resolve().parents[1]
+        / "scripts/fixtures/sprint_operator_scope_probe.py"
+    ).read_text()
+
+    for check in replay_module["OPERATOR_PROBE_CHECKS"]:
+        assert f'"{check}"' in fixture
 
 
 def test_started_schema_migrations_returns_empty_for_no_apply_log():
@@ -81,6 +109,21 @@ def test_migration_command_preserves_batch_order_and_exact_migration_ids():
     ]
 
 
+@pytest.mark.parametrize(
+    ("cpu_limit", "expected_nano_cpus"),
+    [(0.5, 500_000_000), (2.0, 2_000_000_000)],
+)
+def test_resource_limit_values_converts_positive_cpu_budgets(
+    cpu_limit, expected_nano_cpus
+):
+    assert resource_limit_values(None, cpu_limit) == (None, expected_nano_cpus)
+
+
+def test_resource_limit_values_rejects_cpu_budget_that_rounds_to_zero():
+    with pytest.raises(ValueError, match="at least one nanocpu"):
+        resource_limit_values(None, 1e-12)
+
+
 def test_safe_error_summary_keeps_only_bounded_postgres_diagnostics():
     output = (
         "connection details should be omitted\n"
@@ -116,3 +159,269 @@ def test_captured_failure_retains_output_for_migration_diagnostics(monkeypatch):
         assert error.stderr == "database error"
     else:
         raise AssertionError("captured command failure should be raised")
+
+
+def test_operator_probe_shares_only_the_disposable_database_network():
+    command = operator_scope_probe_command("a" * 64, "local-kernel-client:test")
+
+    assert command[command.index("--network") + 1] == "container:" + "a" * 64
+    assert "--pull=never" in command and "--read-only" in command
+    assert command.count("--volume") == 3
+    assert all(
+        command[index + 1].endswith(":ro")
+        for index, value in enumerate(command) if value == "--volume"
+    )
+    assert "SPRINT_ADMIN_PASSWORD" in command
+    assert not any(value.startswith("SPRINT_ADMIN_PASSWORD=") for value in command)
+    assert "--publish" not in command
+
+
+def test_probe_image_platform_may_differ_from_database_target():
+    image_id = "sha256:" + "a" * 64
+
+    assert parse_probe_image_inspection(f"linux/amd64 {image_id}") == {
+        "platform": "linux/amd64",
+        "image_id": image_id,
+    }
+    assert parse_probe_image_inspection(f"linux/arm64 {image_id}")["platform"] == "linux/arm64"
+
+
+@pytest.mark.parametrize(
+    "inspection",
+    [
+        "",
+        "linux/386 sha256:" + "a" * 64,
+        "linux/amd64 latest",
+        "linux/amd64 sha256:" + "g" * 64,
+        "linux/amd64 sha256:" + "a" * 64 + " extra",
+    ],
+)
+def test_probe_image_inspection_rejects_invalid_metadata(inspection):
+    with pytest.raises(ValueError, match="invalid platform or image ID"):
+        parse_probe_image_inspection(inspection)
+
+
+def test_probe_image_runtime_preflight_is_local_networkless_and_read_only():
+    image_id = "sha256:" + "b" * 64
+
+    command = probe_image_runtime_command(image_id)
+
+    assert command[:6] == ["docker", "run", "--rm", "--pull=never", "--network", "none"]
+    assert "--read-only" in command
+    assert "--publish" not in command
+    assert command[-2:] == ["-c", "import platform; print(platform.machine())"]
+    assert image_id in command
+
+
+def test_probe_image_runtime_preflight_rejects_invalid_image_id():
+    with pytest.raises(ValueError, match="invalid probe image ID"):
+        probe_image_runtime_command("kokonut-kernel-client:latest")
+
+
+def test_probe_image_preflight_runs_inspected_image_even_when_architecture_differs(monkeypatch):
+    image_id = "sha256:" + "c" * 64
+    outputs = iter([f"linux/amd64 {image_id}\n", "x86_64\n"])
+    commands = []
+
+    def fake_subprocess_run(command, **_kwargs):
+        commands.append(command)
+        return SimpleNamespace(returncode=0, stdout=next(outputs), stderr="")
+
+    monkeypatch.setattr(replay_module["subprocess"], "run", fake_subprocess_run)
+
+    result = prepare_operator_scope_probe_image("local-kernel-client:latest")
+
+    assert result == {
+        "name": "local-kernel-client:latest",
+        "platform": "linux/amd64",
+        "image_id": image_id,
+        "runtime_machine": "x86_64",
+    }
+    assert commands[0][0:3] == ["docker", "image", "inspect"]
+    assert image_id in commands[1]
+    assert commands[1][commands[1].index("--network") + 1] == "none"
+
+
+@pytest.mark.parametrize("container_id", ["", "../outside", "a" * 11, "g" * 64])
+def test_operator_probe_rejects_non_container_ids(container_id):
+    with pytest.raises(ValueError, match="container ID"):
+        operator_scope_probe_command(container_id, "local-kernel-client:test")
+
+
+def test_operator_probe_requires_both_tenants_and_a_success_result():
+    good = {
+        "result": "passed", "checks": list(replay_module["OPERATOR_PROBE_CHECKS"]),
+        "synthetic_tenant_count": 2, "synthetic_location_count": 2,
+        "synthetic_operator_count": 2, "runtime_public_tables_with_dml_and_rls_disabled": 4,
+        "runtime_scoped_write_policy": {
+            "private_relations_expected": len(runtime_role._RUNTIME_PRIVATE_TABLES),
+            "mutation_denied_relations_expected": len(runtime_role._RUNTIME_MUTATION_TABLES),
+            "private_relations_verified": len(runtime_role._RUNTIME_PRIVATE_TABLES),
+            "mutation_denied_relations_verified": len(runtime_role._RUNTIME_MUTATION_TABLES),
+            "direct_table_privilege_violations": 0,
+            "direct_column_privilege_violations": 0,
+            "farm_activity_ledger_readable": 1,
+            "service_registry_read_only_verified": 1,
+            "append_only_relations_expected": 2,
+            "append_only_relations_verified": 2,
+            "append_only_select_insert_verified": 2,
+            "append_only_mutations_denied": 2,
+            "append_only_column_grants_denied": 2,
+        },
+        "runtime_api_key_policy": {
+            "select_columns": [
+                "id", "key_hash", "key_prefix", "role_id", "scopes", "expires_at", "is_active"
+            ],
+            "insert_columns": [],
+            "update_columns": [],
+            "delete": False,
+            "verified_by_provisioner": True,
+        },
+        "runtime_append_only_policy": {
+            "relations_expected": 2,
+            "relations_verified": 2,
+            "select_insert_verified": 2,
+            "mutations_denied": 2,
+            "column_grants_denied": 2,
+            "verified_by_provisioner": True,
+        },
+    }
+    assert parse_operator_scope_probe(json.dumps(good))["result"] == "passed"
+    stale_count = {
+        **good,
+        "runtime_scoped_write_policy": {
+            **good["runtime_scoped_write_policy"],
+            "mutation_denied_relations_verified": len(
+                runtime_role._RUNTIME_MUTATION_TABLES
+            ) - 1,
+        },
+    }
+    with pytest.raises(ValueError, match="scoped-write ACL"):
+        parse_operator_scope_probe(json.dumps(stale_count))
+    stale_service_registry = {
+        **good,
+        "runtime_scoped_write_policy": {
+            **good["runtime_scoped_write_policy"],
+            "service_registry_read_only_verified": 0,
+        },
+    }
+    with pytest.raises(ValueError, match="scoped-write ACL"):
+        parse_operator_scope_probe(json.dumps(stale_service_registry))
+    with pytest.raises(ValueError, match="scoped-write ACL"):
+        parse_operator_scope_probe(json.dumps({
+            **good,
+            "runtime_scoped_write_policy": {
+                **good["runtime_scoped_write_policy"],
+                "service_registry_read_only_verified": True,
+            },
+        }))
+    with pytest.raises(ValueError):
+        parse_operator_scope_probe(json.dumps({**good, "synthetic_operator_count": 1}))
+    with pytest.raises(ValueError):
+        parse_operator_scope_probe(json.dumps({**good, "result": "failed"}))
+    with pytest.raises(ValueError):
+        parse_operator_scope_probe(json.dumps({**good, "checks": good["checks"][:-1]}))
+    with pytest.raises(ValueError):
+        parse_operator_scope_probe(json.dumps({**good, "runtime_public_tables_with_dml_and_rls_disabled": -1}))
+    with pytest.raises(ValueError, match="scoped-write boundary"):
+        parse_operator_scope_probe(json.dumps({**good, "runtime_scoped_write_policy": None}))
+    with pytest.raises(ValueError, match="scoped-write ACL"):
+        parse_operator_scope_probe(json.dumps({
+            **good,
+            "runtime_scoped_write_policy": {
+                **good["runtime_scoped_write_policy"],
+                "direct_column_privilege_violations": 1,
+            },
+        }))
+    with pytest.raises(ValueError, match="API-key column boundary"):
+        parse_operator_scope_probe(json.dumps({**good, "runtime_api_key_policy": None}))
+    with pytest.raises(ValueError, match="append-only audit boundary"):
+        parse_operator_scope_probe(json.dumps({**good, "runtime_append_only_policy": None}))
+
+
+def test_operator_probe_counts_insert_only_relations_as_effective_dml():
+    good = {
+        "result": "passed",
+        "checks": list(replay_module["OPERATOR_PROBE_CHECKS"]),
+        "synthetic_tenant_count": 2,
+        "synthetic_location_count": 2,
+        "synthetic_operator_count": 2,
+        "runtime_public_tables_with_dml_and_rls_disabled": 1,
+        "runtime_scoped_write_policy": {
+            "private_relations_expected": len(runtime_role._RUNTIME_PRIVATE_TABLES),
+            "mutation_denied_relations_expected": len(runtime_role._RUNTIME_MUTATION_TABLES),
+            "private_relations_verified": len(runtime_role._RUNTIME_PRIVATE_TABLES),
+            "mutation_denied_relations_verified": len(runtime_role._RUNTIME_MUTATION_TABLES),
+            "direct_table_privilege_violations": 0,
+            "direct_column_privilege_violations": 0,
+            "farm_activity_ledger_readable": 1,
+            "service_registry_read_only_verified": 1,
+            "append_only_relations_expected": 2,
+            "append_only_relations_verified": 2,
+            "append_only_select_insert_verified": 2,
+            "append_only_mutations_denied": 2,
+            "append_only_column_grants_denied": 2,
+        },
+        "runtime_api_key_policy": {
+            "select_columns": ["id", "key_hash", "key_prefix", "role_id", "scopes", "expires_at", "is_active"],
+            "insert_columns": [], "update_columns": [], "delete": False,
+            "verified_by_provisioner": True,
+        },
+        "runtime_append_only_policy": {
+            "relations_expected": 2, "relations_verified": 2,
+            "select_insert_verified": 2, "mutations_denied": 2,
+            "column_grants_denied": 2, "verified_by_provisioner": True,
+        },
+        "runtime_public_relation_acl": [
+            {
+                "schema": "public", "relation": "data_access_log", "kind": "r",
+                "select": True, "insert": True, "update": False, "delete": False,
+                "truncate": False, "rls_enabled": False, "rls_forced": False,
+            }
+        ],
+        "runtime_default_acl": [],
+    }
+    assert parse_operator_scope_probe(json.dumps(good))["result"] == "passed"
+
+
+def test_operator_probe_rejects_non_disposable_database_before_connecting(monkeypatch):
+    monkeypatch.setenv("SPRINT_DISPOSABLE", "yes")
+    monkeypatch.setenv("SPRINT_DATABASE", "kokonut_intelligence")
+
+    def unexpected_connection(*_args, **_kwargs):
+        raise AssertionError("the probe opened a database connection")
+
+    monkeypatch.setitem(probe_module, "_connection", unexpected_connection)
+    with pytest.raises(ValueError, match="isolated schema replay"):
+        probe_module["run_probe"]()
+
+
+@pytest.mark.parametrize("collision_index", range(5))
+def test_schema_replay_rejects_existing_project_resources_before_start(collision_index):
+    outputs = ["", "", "", "", ""]
+    outputs[collision_index] = (
+        "example_schema-bootstrap-data\n" if collision_index == 3
+        else "example-database-1\n" if collision_index == 4
+        else "existing-resource\n"
+    )
+    commands = []
+
+    def fake_run(command, **_kwargs):
+        index = len(commands)
+        commands.append(command)
+        return replay_module["subprocess"].CompletedProcess(command, 0, outputs[index], "")
+
+    with pytest.raises(RuntimeError, match="already"):
+        ensure_disposable_project_unused("example", command_runner=fake_run)
+    assert not any("down" in command or "up" in command for command in commands)
+
+
+def test_schema_replay_accepts_an_unused_project():
+    commands = []
+
+    def fake_run(command, **_kwargs):
+        commands.append(command)
+        return replay_module["subprocess"].CompletedProcess(command, 0, "unrelated\n" if len(commands) > 3 else "", "")
+
+    ensure_disposable_project_unused("example", command_runner=fake_run)
+    assert len(commands) == 5

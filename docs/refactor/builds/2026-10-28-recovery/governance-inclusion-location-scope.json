@@ -1,0 +1,29 @@
+{
+  "result": "passed",
+  "date": "2026-10-28",
+  "source_revision": "753b4645",
+  "working_tree_dirty": true,
+  "scope": "Governance inclusion report direct-call location scope",
+  "change": "generate_governance_inclusion now rejects missing or empty location_id before cursor creation and uses only the selected-location query, retaining reviewed public global rows.",
+  "checks": {
+    "focused_tests": {
+      "command": "python3 -m pytest tests/test_commons_liberation.py tests/test_report_state_cursor_cleanup.py -q",
+      "result": "290 passed"
+    },
+    "ruff": "passed",
+    "python_compilation": "passed",
+    "diff_check": "passed",
+    "query_scope_inventory": "passed after integrated regeneration: 171 direct sites, 170 statically counted positional-bind sites, zero unresolved sites"
+  },
+  "external_services": {
+    "database": false,
+    "provider": false,
+    "network": false,
+    "candidate_or_legacy": false
+  },
+  "rollback": "Restore the unscoped branch and remove the explicit-scope regression; no migration or persisted data changed.",
+  "limitations": [
+    "This guard prevents accidental unscoped report calls; it is not tenant authorization or RLS proof.",
+    "Populated governance-inclusion report parity and owner review remain open."
+  ]
+}

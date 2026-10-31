@@ -216,3 +216,122 @@ def test_gate_create_route_is_strict_no_store_and_forwards_operator(monkeypatch)
         ),
         {},
     )]
+
+
+def _gate_route_app(monkeypatch, result):
+    from services.gateway import solution_lifecycle_actions
+    from services.gateway.solution_lifecycle_routes import register_solution_lifecycle_routes
+
+    calls = []
+    result_holder = {"value": result}
+
+    def create(*args, **kwargs):
+        calls.append((args, kwargs))
+        return result_holder["value"]
+
+    monkeypatch.setattr(solution_lifecycle_actions, "create_location_solution_gate", create)
+    app = FastAPI()
+    router = APIRouter()
+
+    async def run_in_threadpool(function, *args, **kwargs):
+        return function(*args, **kwargs)
+
+    register_solution_lifecycle_routes(
+        router, object(), run_in_threadpool, SimpleNamespace(Error=Exception)
+    )
+    app.include_router(router)
+
+    @app.middleware("http")
+    async def add_operator(request, call_next):
+        request.state.operator_session = SimpleNamespace(
+            operator=SimpleNamespace(operator_id=OPERATOR_ID)
+        )
+        return await call_next(request)
+
+    return app, calls, result_holder
+
+
+def test_gate_create_route_documents_exact_request_and_response_contract(monkeypatch):
+    from services.gateway.solution_lifecycle_routes import (
+        SolutionLifecycleGateCreateResponse,
+    )
+
+    app, _calls, _result_holder = _gate_route_app(monkeypatch, CREATED)
+    path = (
+        "/operator/api/solution-lifecycle/{location_id}/solutions/{solution_id}/gates"
+    )
+    operation = app.openapi()["paths"][path]["post"]
+    schema = app.openapi()["components"]["schemas"][
+        "SolutionLifecycleGateCreateResponse"
+    ]
+
+    assert set(SolutionLifecycleGateCreateResponse.model_fields) == set(CREATED)
+    assert schema["additionalProperties"] is False
+    assert operation["responses"]["200"]["content"]["application/json"]["schema"]["$ref"].endswith(
+        "/SolutionLifecycleGateCreateResponse"
+    )
+    assert operation["responses"]["201"]["content"]["application/json"]["schema"]["$ref"].endswith(
+        "/SolutionLifecycleGateCreateResponse"
+    )
+    assert operation["responses"]["201"]["headers"]["Cache-Control"]["schema"]["example"] == "no-store"
+    request_schema = operation["requestBody"]["content"]["application/json"]["schema"]
+    assert request_schema["additionalProperties"] is False
+    assert set(request_schema["properties"]) == set(BODY)
+    assert schema["properties"]["minimum_evaluation_count"]["const"] == 1
+    assert schema["properties"]["requires_human_approval"]["const"] is True
+
+
+def test_gate_create_route_returns_draft_and_replay_receipts(monkeypatch):
+    replayed = {**CREATED, "gate_status": "approved", "replayed": True}
+    app, calls, result_holder = _gate_route_app(monkeypatch, CREATED)
+    path = f"/operator/api/solution-lifecycle/{LOCATION_ID}/solutions/{SOLUTION_ID}/gates"
+    with TestClient(app) as client:
+        created = client.post(path, json=BODY)
+        result_holder["value"] = replayed
+        replay = client.post(path, json=BODY)
+
+    assert created.status_code == 201
+    assert created.json() == CREATED
+    assert created.headers["cache-control"] == "no-store"
+    assert replay.status_code == 200
+    assert replay.json() == replayed
+    assert replay.headers["cache-control"] == "no-store"
+    assert len(calls) == 2
+
+
+@pytest.mark.parametrize(
+    "override",
+    [
+        {"extra_internal": "must not leak"},
+        {"solution_id": str(uuid4())},
+        {"gate_criterion": "A different criterion from the request."},
+        {"gate_status": "approved"},
+        {"from_stage": "investment_ready"},
+        {"requires_human_approval": False},
+        {"minimum_evaluation_count": 2},
+        {"gate_criterion": "🧪" * 1001},
+    ],
+)
+def test_gate_create_route_sanitizes_malformed_action_result(monkeypatch, override):
+    result = {**CREATED, **override}
+    app, _calls, _result_holder = _gate_route_app(monkeypatch, result)
+    path = f"/operator/api/solution-lifecycle/{LOCATION_ID}/solutions/{SOLUTION_ID}/gates"
+
+    with TestClient(app) as client:
+        response = client.post(path, json=BODY)
+
+    assert response.status_code == 500
+    assert response.headers["cache-control"] == "no-store"
+    assert response.json() == {"error": "Location solution gate creation unavailable"}
+
+
+def test_gate_create_route_rejects_malformed_uuid_before_service(monkeypatch):
+    app, calls, _result_holder = _gate_route_app(monkeypatch, CREATED)
+    path = f"/operator/api/solution-lifecycle/{LOCATION_ID}/solutions/not-a-uuid/gates"
+
+    with TestClient(app) as client:
+        response = client.post(path, json=BODY)
+
+    assert response.status_code == 400
+    assert response.headers["cache-control"] == "no-store"
+    assert calls == []

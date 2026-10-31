@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 from typing import Any, Dict, List, Optional
+from urllib.parse import quote
 
 import requests
 
@@ -107,6 +108,10 @@ from .types import (
     ValueFlowEvent,
     VariogramModel,
     WeatherObservation,
+)
+
+_READ_ONLY_PROJECTION_COLLECTIONS = frozenset(
+    {"attestation_record", "export_log", "noi_snapshot", "report_snapshot"}
 )
 
 
@@ -417,48 +422,71 @@ class KokonutClient:
     ) -> List[Any]:
         params = options.to_params() if options else {}
         params.update(kwargs)
-        resp = self.session.get(f"{self.base_url}/items/{collection}", params=self._serialize_params(params))
+        if params.get("offset") is not None:
+            if params.get("limit") is None:
+                # Match the TypeScript SDK and ListOptions contract: offset
+                # pagination is meaningful only with a limit; page may still
+                # be used when both forms are supplied without that limit.
+                params.pop("offset")
+            else:
+                if params["limit"] == 0:
+                    raise ValueError("offset pagination requires a non-zero limit")
+                params.pop("page", None)
+        resp = self.session.get(self._collection_url(collection), params=self._serialize_params(params))
         self._handle_error(resp)
         data = resp.json()
         return data.get("data", data)
 
     def get_item(self, collection: str, item_id: str, fields: Optional[List[str]] = None) -> Any:
         params: Dict[str, Any] = {}
-        if fields:
-            params["fields"] = ",".join(fields)
-        resp = self.session.get(f"{self.base_url}/items/{collection}/{item_id}", params=params)
+        if fields is not None:
+            # Match the pinned TypeScript Directus SDK's query shape: an empty
+            # projection is sent as JSON `[]`, while populated fields are CSV.
+            params["fields"] = json.dumps(fields) if not fields else ",".join(fields)
+        resp = self.session.get(self._item_url(collection, item_id), params=params)
         self._handle_error(resp)
         data = resp.json()
         return data.get("data", data)
 
     def create_item(self, collection: str, data: Dict[str, Any]) -> Any:
-        resp = self.session.post(f"{self.base_url}/items/{collection}", json=data)
+        self._assert_generic_write_allowed(collection)
+        resp = self.session.post(self._collection_url(collection), json=data)
         self._handle_error(resp)
         body = resp.json()
         return body.get("data", body)
 
     def create_items(self, collection: str, data: List[Dict[str, Any]]) -> List[Any]:
-        resp = self.session.post(f"{self.base_url}/items/{collection}", json=data)
+        self._assert_generic_write_allowed(collection)
+        resp = self.session.post(self._collection_url(collection), json=data)
         self._handle_error(resp)
         body = resp.json()
         return body.get("data", body)
 
     def update_item(self, collection: str, item_id: str, data: Dict[str, Any]) -> Any:
-        resp = self.session.patch(f"{self.base_url}/items/{collection}/{item_id}", json=data)
+        self._assert_generic_write_allowed(collection)
+        resp = self.session.patch(self._item_url(collection, item_id), json=data)
         self._handle_error(resp)
         body = resp.json()
         return body.get("data", body)
 
     def delete_item(self, collection: str, item_id: str) -> None:
-        resp = self.session.delete(f"{self.base_url}/items/{collection}/{item_id}")
+        self._assert_generic_write_allowed(collection)
+        resp = self.session.delete(self._item_url(collection, item_id))
         self._handle_error(resp)
+
+    @staticmethod
+    def _assert_generic_write_allowed(collection: str) -> None:
+        if collection in _READ_ONLY_PROJECTION_COLLECTIONS:
+            raise ValidationError(
+                f"Generic SDK mutations are disabled for read-only collection '{collection}'"
+            )
 
     # -- Aggregate -------------------------------------------------------------
 
     def aggregate(self, collection: str, **kwargs: Any) -> List[Any]:
         """Run a Directus aggregate query through /items/:collection."""
         resp = self.session.get(
-            f"{self.base_url}/items/{collection}",
+            self._collection_url(collection),
             params=self._serialize_params(kwargs),
         )
         self._handle_error(resp)
@@ -466,6 +494,21 @@ class KokonutClient:
         return data.get("data", data)
 
     # -- Internal helpers ------------------------------------------------------
+
+    @staticmethod
+    def _path_segment(value: str, name: str) -> str:
+        """Encode a Directus route segment so caller data cannot change the URL path."""
+        if not isinstance(value, str):
+            raise TypeError(f"{name} must be a string")
+        if value in {"", ".", ".."}:
+            raise ValueError(f"{name} must be a non-empty path segment")
+        return quote(value, safe="")
+
+    def _collection_url(self, collection: str) -> str:
+        return f"{self.base_url}/items/{self._path_segment(collection, 'collection')}"
+
+    def _item_url(self, collection: str, item_id: str) -> str:
+        return f"{self._collection_url(collection)}/{self._path_segment(item_id, 'item_id')}"
 
     @staticmethod
     def _serialize_params(params: Dict[str, Any]) -> Dict[str, Any]:
@@ -485,7 +528,10 @@ class KokonutClient:
         if resp.ok:
             return
         status = resp.status_code
-        message = resp.text or f"HTTP {status}"
+        # Keep malformed-envelope behavior aligned with the JavaScript SDK.
+        # Returning arbitrary response bodies here can also expose server detail
+        # that is not part of the public error contract.
+        message = f"HTTP {status}"
         try:
             body = resp.json()
         except ValueError:

@@ -282,7 +282,7 @@ def test_target_read_route_is_no_store_and_scoped(monkeypatch):
     from services.gateway.solution_lifecycle_routes import register_solution_lifecycle_routes
 
     calls = []
-    expected = {"location_id": LOCATION_ID, "offset": 0, "solutions": [], "has_more": False, "next_offset": None}
+    expected = {"location_id": LOCATION_ID, "offset": 2, "solutions": [], "has_more": False, "next_offset": None}
 
     def target_reader(*args, **kwargs):
         calls.append((args, kwargs))
@@ -312,4 +312,4 @@ def test_target_read_route_is_no_store_and_scoped(monkeypatch):
     assert response.status_code == 200
     assert response.headers["cache-control"] == "no-store"
     assert response.json() == expected
-    assert calls == [((OPERATOR_ID, LOCATION_ID), {"limit": "10", "offset": "2"})]
+    assert calls == [((OPERATOR_ID, LOCATION_ID), {"limit": 10, "offset": 2})]

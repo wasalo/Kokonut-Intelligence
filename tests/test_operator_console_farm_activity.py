@@ -110,6 +110,7 @@ def test_draft_creation_and_correction_are_csrf_protected_and_audited():
     )
     assert 'plot_id: optionalUuid("plot", "Plot ID")' in content_builder
     assert 'crop_cycle_id: optionalUuid("crop-cycle", "Crop cycle ID")' in content_builder
+    assert 'farm_task_id: optionalUuid("task", "Farm task ID")' in content_builder
     assert "materials_used: materials" in content_builder
     assert "evidence_urls: evidence" in content_builder
     assert "JSON.parse(materialsText)" in content_builder
@@ -175,11 +176,13 @@ def test_panel_dom_ids_and_refresh_detail_actions_are_wired():
         "farm-activity-record-create-form",
         "farm-activity-record-create-plot",
         "farm-activity-record-create-crop-cycle",
+        "farm-activity-record-create-task",
         "farm-activity-record-create-materials",
         "farm-activity-record-create-evidence",
         "farm-activity-record-edit-form",
         "farm-activity-record-edit-plot",
         "farm-activity-record-edit-crop-cycle",
+        "farm-activity-record-edit-task",
         "farm-activity-record-edit-materials",
         "farm-activity-record-edit-evidence",
         "farm-activity-record-transition-actions",
@@ -191,6 +194,22 @@ def test_panel_dom_ids_and_refresh_detail_actions_are_wired():
     assert "row.append(name, date, lifecycle, source, updated, action)" in list_reader
     assert "await refreshFarmActivityRecords();" in create_handler
     assert "await loadFarmActivityRecord(result.data.id);" in create_handler
+
+
+def test_task_link_is_restored_when_editing_and_sent_on_create_and_update():
+    source = CONSOLE.read_text(encoding="utf-8")
+    detail_reader = _function(
+        source,
+        "async function loadFarmActivityRecord(activityId)",
+        "function renderFarmActivityRecordActions()",
+    )
+    content_builder = _function(
+        source,
+        "function farmActivityRecordFormContent(mode)",
+        "async function refreshFarmActivityRecords()",
+    )
+    assert 'document.querySelector("#farm-activity-record-edit-task").value = currentFarmActivityRecord.farm_task_id || ""' in detail_reader
+    assert 'farm_task_id: optionalUuid("task", "Farm task ID")' in content_builder
 
 
 def test_inline_console_javascript_passes_node_syntax_check():

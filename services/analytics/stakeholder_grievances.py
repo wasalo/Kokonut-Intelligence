@@ -9,6 +9,31 @@ from typing import Any, Dict, List, Optional
 
 import psycopg2.extras
 
+# Keep this in the exact order defined by migration 218's internal health view.
+_CASE_HEALTH_PROJECTION = (
+    "case_id",
+    "case_number",
+    "category",
+    "severity",
+    "confidentiality",
+    "status",
+    "summary",
+    "location_id",
+    "complainant_name",
+    "affected_party_name",
+    "owner_name",
+    "received_at",
+    "due_at",
+    "work_item_id",
+    "investigation_count",
+    "evidence_count",
+    "remedy_count",
+    "open_remedy_count",
+    "appeal_count",
+    "satisfaction_score",
+    "is_overdue",
+)
+
 
 def _value(value: Any) -> Any:
     if isinstance(value, uuid.UUID):
@@ -328,5 +353,10 @@ def list_case_health(conn, *, status: Optional[str] = None, overdue_only: bool =
         clauses.append("is_overdue = TRUE")
     where = " WHERE " + " AND ".join(clauses) if clauses else ""
     with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
-        cur.execute(f"SELECT * FROM v_stakeholder_grievance_health{where} ORDER BY severity DESC, received_at", params)
+        projection = ", ".join(_CASE_HEALTH_PROJECTION)
+        cur.execute(
+            f"SELECT {projection} FROM v_stakeholder_grievance_health{where} "
+            "ORDER BY severity DESC, received_at",
+            params,
+        )
         return [_row(row) for row in cur.fetchall()]

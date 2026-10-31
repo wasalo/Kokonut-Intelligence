@@ -1,0 +1,34 @@
+{
+  "date": "2026-10-30",
+  "scope": "Migration 437 governance tension create and submit Gateway contracts",
+  "branch": "chore/kernel-next-sprint-plan",
+  "changes": {
+    "create_request": "Strict six-field request schema with UUID, enum, text, and integer bounds",
+    "internal_result": "Exact nine-field migration result validated, including the private generated correlation key",
+    "public_response": "Eight-field receipt omits tension_key, which embeds operator and request UUIDs",
+    "binding": "Create result matches authenticated operator, request UUID, and normalized content; submit result matches path tension UUID and submitted status",
+    "lifecycle": "HTTP 201 create/replay and HTTP 200 submit/replay behavior preserved",
+    "authorization": "Existing exact-location governance_tension create and submit grants preserved",
+    "privacy": "Success and sanitized error responses remain no-store and vary on Cookie"
+  },
+  "verification": {
+    "focused_pytest": {
+      "command": "python3 -m pytest tests/test_gateway_governance_tension_actions.py -q",
+      "result": "8 passed"
+    },
+    "ruff": "Passed for the route implementation and focused test file",
+    "python_compile": "Passed for the route implementation and focused test file",
+    "diff_check": "Passed",
+    "capability_matrix": "Valid: 67 rows; 24 baseline-retained, 7 deployed, 36 prepared",
+    "runtime_sql_inventory": "Current; 42 tracked candidates remain review-only",
+    "provider_boundaries": "Passed: 17 vendor import sites",
+    "dependency_groups": "Aligned: 14 groups, 33 requirements"
+  },
+  "isolation": {
+    "database_access": false,
+    "provider_access": false,
+    "candidate_or_legacy_access": false,
+    "migration_applied": false
+  },
+  "rollback": "Revert the route contract, focused tests, evidence, and progress-ledger changes; no data rollback is needed."
+}

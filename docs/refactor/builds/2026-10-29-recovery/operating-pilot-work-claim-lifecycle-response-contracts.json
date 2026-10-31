@@ -1,0 +1,31 @@
+{
+  "date": "2026-10-29",
+  "purpose": "Mock-only acceptance for operating-pilot work-claim proposal, independent review, and allocation response contracts.",
+  "command": "python3 -m pytest -q tests/test_gateway_operating_pilot_writes.py -k 'work_claim_proposal or work_claim_review_route or work_claim_review_replay or work_claim_review_rejects_malformed_response or work_claim_allocation_route or work_claim_allocation_replay or work_claim_allocation_rejects_malformed_response'",
+  "result": {
+    "passed": 18,
+    "failed": 0,
+    "deselected": 300
+  },
+  "coverage": [
+    "OpenAPI publishes strict proposal, review, and allocation response models",
+    "Proposal binds location/work-item IDs; review and allocation bind location/claim IDs",
+    "First proposal remains proposed; replay preserves current claim status",
+    "Independent review accepts only accepted/rejected states and preserves its result on replay",
+    "Allocation remains a separate allocated transition with replay support",
+    "Malformed, mismatched, or undeclared output returns sanitized no-store 503",
+    "Proposal creation remains HTTP 201 in OpenAPI and at runtime"
+  ],
+  "environment": {
+    "database_used": false,
+    "provider_used": false,
+    "candidate_or_legacy_state_touched": false,
+    "fixtures": "Synthetic service dictionaries and in-process FastAPI TestClient."
+  },
+  "static_checks": {
+    "ruff": "passed",
+    "python_compile": "passed",
+    "capability_matrix": "passed",
+    "git_diff_check": "passed"
+  }
+}

@@ -231,7 +231,9 @@ class JobFailed(RuntimeError):
     def __init__(self, label: str, result: subprocess.CompletedProcess):
         self.returncode = result.returncode
         self.output = (result.stderr or result.stdout)[-500:]
-        super().__init__(f"{label} failed: {result.stderr}")
+        # Prefect and other callers log exception text. Keep child output on
+        # the bounded compatibility attribute, but never expose it implicitly.
+        super().__init__(f"{label} failed (exit code {self.returncode})")
 
 
 def _run_job_spec(
@@ -422,11 +424,22 @@ def run_job_for_kokonut_network_locations(job_id: str) -> dict:
 
     Native scheduled commands still take one explicit location per task. This
     helper preserves the optional Prefect adapter's historical fan-out without
-    selecting unassigned or other-organization locations.
+    selecting unassigned or other-organization locations. It cannot satisfy
+    additional per-location inputs such as a registered sensor driver instance.
     """
     spec = JOBS[job_id]
     if "location_id" not in spec.required_inputs:
         raise ValueError(f"{job_id.replace('_', ' ').capitalize()} is not location-scoped")
+    additional_inputs = tuple(
+        required_input
+        for required_input in spec.required_inputs
+        if required_input != "location_id"
+    )
+    if additional_inputs:
+        raise ValueError(
+            f"{job_id.replace('_', ' ').capitalize()} cannot fan out by location without explicit "
+            f"{', '.join(additional_inputs)}"
+        )
 
     location_ids = kokonut_network_location_ids()
     if not location_ids:

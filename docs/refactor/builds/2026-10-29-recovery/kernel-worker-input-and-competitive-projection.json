@@ -1,0 +1,85 @@
+{
+  "date": "2026-10-29",
+  "scope": "source-only",
+  "competitive_health_projection": {
+    "view": "v_strategy_competitive_health",
+    "definition_migration": 284,
+    "selected_columns": [
+      "strategy_plan_id",
+      "scope_type",
+      "scope_id",
+      "landscape_count",
+      "verified_landscape_count",
+      "average_force_pressure_score",
+      "unreviewed_material_signal_count",
+      "approved_position_count",
+      "verified_advantage_count",
+      "unlinked_advantage_count",
+      "partial_advantage_count",
+      "open_competitive_review_count"
+    ],
+    "preserved": [
+      "strategy_plan_id UUID filter",
+      "parameter binding",
+      "serialized response fields and UUID normalization",
+      "not-found behavior"
+    ],
+    "focused_tests_passed": 2
+  },
+  "technology_roadmap_projection": {
+    "view": "v_technology_roadmap_overview",
+    "definition_migration": 212,
+    "selected_columns": [
+      "roadmap_id",
+      "name",
+      "entity_type",
+      "entity_id",
+      "planning_horizon_start",
+      "planning_horizon_end",
+      "detail_level",
+      "sponsor",
+      "owner",
+      "status",
+      "next_review_at",
+      "requirement_count",
+      "technology_area_count",
+      "driver_count",
+      "alternative_count",
+      "selected_alternative_count",
+      "last_reviewed_at"
+    ],
+    "preserved": [
+      "status and entity_type filter combinations and parameter order",
+      "ORDER BY name",
+      "serialized row fields and datetime/UUID conversion"
+    ],
+    "focused_test_cases_passed": 4
+  },
+  "event_worker_cli": {
+    "event_batch_size": "integer from 1 through 100",
+    "notification_batch_size": "integer from 1 through 500",
+    "preflight": "before feature checks or database connection creation",
+    "preserved": [
+      "one-shot and persistent event processing at batch sizes 1 and 100",
+      "notification-only workers retain the 500-item provider bound",
+      "finite positive poll intervals retain retry/sleep behavior"
+    ],
+    "focused_suite_passed": 18,
+    "subtests_passed": 34
+  },
+  "validation": {
+    "ruff": "passed",
+    "python_compile": "passed",
+    "runtime_sql_inventory": "current",
+    "worker_sql_inventory": "current",
+    "worker_source_closure": "current",
+    "worker_function_reachability": "current",
+    "worker_sql_reachability": "current",
+    "worker_boundary_preflight": "current",
+    "capability_matrix": "67 rows valid",
+    "git_diff_check": "passed",
+    "database_contacted": false,
+    "provider_contacted": false,
+    "candidate_or_legacy_service_contacted": false
+  }
+}

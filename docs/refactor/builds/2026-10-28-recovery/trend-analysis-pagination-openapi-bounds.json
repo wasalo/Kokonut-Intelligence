@@ -1,0 +1,27 @@
+{
+  "date": "2026-10-28",
+  "source_revision": "753b4645",
+  "result": "passed",
+  "slice": "trend-analysis Gateway pagination OpenAPI bounds",
+  "routes": {
+    "GET /operator/api/trends/{location_id}/estimates": {
+      "limit": {"default": 25, "minimum": 1, "maximum": 50},
+      "offset": {"default": 0, "minimum": 0, "maximum": 10000}
+    },
+    "GET /operator/api/trends/{location_id}/change-points": {
+      "limit": {"default": 100, "minimum": 1, "maximum": 100}
+    },
+    "GET /operator/api/trends/{location_id}/smoothing": {
+      "limit": {"default": 100, "minimum": 1, "maximum": 100}
+    }
+  },
+  "verification": {
+    "command": "python3 -m pytest tests/test_gateway_trend_analysis_reads.py -q",
+    "result": "34 passed",
+    "ruff": "passed",
+    "py_compile": "passed",
+    "git_diff_check": "passed"
+  },
+  "scope": "OpenAPI and mocked in-process request validation; invalid bounds are rejected before service invocation. No database, provider, or network was used.",
+  "rollback": "Revert the route Query bounds and their focused regression; no migration or persisted data changed."
+}

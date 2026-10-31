@@ -15,6 +15,7 @@ Examples:
 from __future__ import annotations
 
 import logging
+from uuid import UUID
 
 import typer
 
@@ -30,6 +31,14 @@ app = typer.Typer(name="treasury", help="SAFE smart account queries (read-only)"
 
 def _client(chain: str) -> SafeReadClient:
     return SafeReadClient(chain=chain)
+
+
+def _normalize_location_id(location_id: str) -> str:
+    """Validate a CLI location before provisioning opens PostgreSQL."""
+    try:
+        return str(UUID(location_id.strip()))
+    except (AttributeError, TypeError, ValueError) as exc:
+        raise typer.BadParameter("must be a valid UUID", param_hint="location_id") from exc
 
 
 @app.command("status")
@@ -105,6 +114,7 @@ def safe_propose(
     name: str | None = typer.Option(None, help="SAFE name"),
 ) -> None:
     """Agent proposes a new farm SAFE (draft record, human approval required)."""
+    location_id = _normalize_location_id(location_id)
     from services.treasury.provisioning import cli_propose
 
     logger.info(
@@ -141,6 +151,8 @@ def safe_farms(
     location_id: str | None = typer.Option(None, help="Filter by location UUID"),
 ) -> None:
     """List farm SAFEs (proposed, approved, active)."""
+    if location_id is not None:
+        location_id = _normalize_location_id(location_id)
     from services.treasury.provisioning import cli_list
 
     cli_list(location_id)

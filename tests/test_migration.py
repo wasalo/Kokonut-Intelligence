@@ -144,6 +144,19 @@ def test_discovery_includes_range_prefixed_seed_file(tmp_path, monkeypatch):
     cli._validate_sources(files)
 
 
+def test_farmer_role_acl_migration_is_discovered_as_ordered_latest_schema():
+    files = cli._discover_files(include_seeds=False)
+    schema_files = [item for item in files if item["kind"] == "schema"]
+    schema_ids = [item["id"] for item in schema_files]
+    previous = "schema:706_runtime_protocol_read_only.sql"
+    current = "schema:707_runtime_farmer_role_read_only.sql"
+
+    assert previous in schema_ids
+    assert current in schema_ids
+    assert schema_ids.index(current) == schema_ids.index(previous) + 1
+    assert schema_files[schema_ids.index(current)]["version"] == "707"
+
+
 def test_discovery_rejects_duplicate_ids(tmp_path, monkeypatch):
     directory = tmp_path / "sql"
     directory.mkdir()

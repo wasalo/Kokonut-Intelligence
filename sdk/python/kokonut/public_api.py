@@ -2,21 +2,263 @@
 
 from __future__ import annotations
 
+import math
+import re
 from dataclasses import dataclass
 from datetime import date, datetime
-from typing import Any, Literal, Optional
+from typing import Any, Callable, Literal, Optional
 from urllib.parse import quote
+from uuid import UUID
 
 import requests
 
 from .generated_public_api import (
     PUBLIC_API_PATHS_V1,
     ApiPublicCrispAssessment,
+    ApiPublicDriverCatalogResponse,
     ApiPublicLocation,
     ApiPublicLocationSummary,
     ApiPublicMetric,
     ApiPublicMetricSummary,
 )
+
+_UUID_PATTERN = re.compile(
+    r"^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-"
+    r"[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+)
+_ISO_DATE_PATTERN = re.compile(r"^[0-9]{4}-[0-9]{2}-[0-9]{2}$")
+_RFC3339_DATETIME_PATTERN = re.compile(
+    r"^[0-9]{4}-[0-9]{2}-[0-9]{2}T(?P<hour>[0-9]{2}):"
+    r"(?P<minute>[0-9]{2}):(?P<second>[0-9]{2})(?:\.[0-9]+)?"
+    r"(?P<zone>Z|[+-](?P<offset_hour>[0-9]{2}):(?P<offset_minute>[0-9]{2}))$"
+)
+_MAX_TIMEOUT_SECONDS = 2_147_483.647
+
+
+def _normalized_uuid(value: Any) -> str | None:
+    if not isinstance(value, str) or not _UUID_PATTERN.fullmatch(value):
+        return None
+    try:
+        return str(UUID(value))
+    except (TypeError, ValueError, AttributeError):
+        return None
+
+
+def _is_iso_date(value: Any) -> bool:
+    if not isinstance(value, str) or not _ISO_DATE_PATTERN.fullmatch(value):
+        return False
+    try:
+        date.fromisoformat(value)
+    except ValueError:
+        return False
+    return True
+
+
+def _is_rfc3339_datetime(value: Any) -> bool:
+    if not isinstance(value, str):
+        return False
+    match = _RFC3339_DATETIME_PATTERN.fullmatch(value)
+    if match is None:
+        return False
+    if (
+        int(match["hour"]) > 23
+        or int(match["minute"]) > 59
+        or int(match["second"]) > 59
+    ):
+        return False
+    if match["zone"] != "Z" and (
+        int(match["offset_hour"]) > 23 or int(match["offset_minute"]) > 59
+    ):
+        return False
+    try:
+        parsed = datetime.fromisoformat(value[:-1] + "+00:00" if value.endswith("Z") else value)
+    except ValueError:
+        return False
+    return parsed.utcoffset() is not None
+
+
+def _is_finite_number(value: Any) -> bool:
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        return False
+    try:
+        return math.isfinite(value)
+    except OverflowError:
+        return False
+
+
+def _is_integer(value: Any) -> bool:
+    """Match JSON Schema integer semantics for decoded JSON numbers."""
+    if isinstance(value, bool):
+        return False
+    if isinstance(value, int):
+        return True
+    return isinstance(value, float) and math.isfinite(value) and value.is_integer()
+
+
+def _is_public_crisp_assessment(value: Any, requested_location_id: str) -> bool:
+    if not isinstance(value, dict) or set(value) != {
+        "assessment_id",
+        "location_id",
+        "period_start",
+        "period_end",
+        "methodology_version",
+        "composite_score",
+        "rating",
+        "confidence_level",
+        "evidence_maturity_level",
+        "score_computed_at",
+        "status",
+    }:
+        return False
+
+    expected_location_id = _normalized_uuid(requested_location_id)
+    if expected_location_id is None:
+        return False
+    if _normalized_uuid(value["assessment_id"]) is None:
+        return False
+    if _normalized_uuid(value["location_id"]) != expected_location_id:
+        return False
+
+    score = value["composite_score"]
+    maturity = value["evidence_maturity_level"]
+    return (
+        _is_iso_date(value["period_start"])
+        and _is_iso_date(value["period_end"])
+        and isinstance(value["methodology_version"], str)
+        and (
+            score is None
+            or (
+                not isinstance(score, bool)
+                and isinstance(score, (int, float))
+                and 0 <= score <= 100
+            )
+        )
+        and (
+            value["rating"] is None
+            or (
+                isinstance(value["rating"], str)
+                and value["rating"] in {"AAA", "AA", "A", "B", "C", "D"}
+            )
+        )
+        and (
+            value["confidence_level"] is None
+            or (
+                isinstance(value["confidence_level"], str)
+                and value["confidence_level"]
+                in {"high", "moderate", "low", "insufficient_evidence"}
+            )
+        )
+        and (
+            maturity is None
+            or (_is_integer(maturity) and 0 <= maturity <= 6)
+        )
+        and (
+            value["score_computed_at"] is None
+            or _is_rfc3339_datetime(value["score_computed_at"])
+        )
+        and isinstance(value["status"], str)
+        and value["status"] == "published"
+    )
+
+
+def _is_public_metric_summary(value: Any, requested_location_id: str) -> bool:
+    if not isinstance(value, dict) or set(value) != {
+        "location_id",
+        "computed",
+        "total_computed",
+    }:
+        return False
+
+    expected_location_id = _normalized_uuid(requested_location_id)
+    computed = value["computed"]
+    total_computed = value["total_computed"]
+    if (
+        expected_location_id is None
+        or _normalized_uuid(value["location_id"]) != expected_location_id
+        or not isinstance(computed, list)
+        or not _is_integer(total_computed)
+        or total_computed < 0
+        or total_computed != len(computed)
+    ):
+        return False
+
+    for row in computed:
+        if not isinstance(row, dict) or set(row) != {
+            "metric_key",
+            "display_name",
+            "unit",
+            "value",
+            "computed_at",
+        }:
+            return False
+        metric_value = row["value"]
+        if (
+            not isinstance(row["metric_key"], str)
+            or not isinstance(row["display_name"], str)
+            or (row["unit"] is not None and not isinstance(row["unit"], str))
+            or (
+                metric_value is not None
+                and not _is_finite_number(metric_value)
+            )
+            or (
+                row["computed_at"] is not None
+                and not _is_rfc3339_datetime(row["computed_at"])
+            )
+        ):
+            return False
+    return True
+
+
+def _is_nonnegative_integer(value: Any) -> bool:
+    return _is_integer(value) and value >= 0
+
+
+def _is_public_location_summary(value: Any, requested_location_id: str) -> bool:
+    if not isinstance(value, dict) or set(value) != {
+        "summary_type",
+        "location_id",
+        "location",
+        "metrics",
+        "attestations",
+    }:
+        return False
+
+    expected_location_id = _normalized_uuid(requested_location_id)
+    location = value["location"]
+    metrics = value["metrics"]
+    attestations = value["attestations"]
+    if (
+        expected_location_id is None
+        or value["summary_type"] != "public_location_summary"
+        or _normalized_uuid(value["location_id"]) != expected_location_id
+        or not _is_public_location(location)
+        or _normalized_uuid(location["id"]) != expected_location_id
+        or not isinstance(metrics, dict)
+        or set(metrics) != {"metric_count", "latest_computed_at"}
+        or not isinstance(attestations, dict)
+        or set(attestations)
+        != {"total_attestations", "published_count", "latest_attestation"}
+    ):
+        return False
+
+    return (
+        _is_nonnegative_integer(metrics["metric_count"])
+        and (
+            metrics["latest_computed_at"] is None
+            or _is_rfc3339_datetime(metrics["latest_computed_at"])
+        )
+        and (
+            (metrics["metric_count"] == 0)
+            == (metrics["latest_computed_at"] is None)
+        )
+        and _is_nonnegative_integer(attestations["total_attestations"])
+        and _is_nonnegative_integer(attestations["published_count"])
+        and attestations["published_count"] <= attestations["total_attestations"]
+        and (
+            attestations["latest_attestation"] is None
+            or _is_rfc3339_datetime(attestations["latest_attestation"])
+        )
+    )
 
 
 @dataclass(frozen=True)
@@ -36,6 +278,130 @@ class PublicLocation:
             region=payload.get("region"),
             status=payload["status"],
         )
+
+
+def _is_public_location(value: Any) -> bool:
+    """Return whether a payload matches the Gateway's exact location model."""
+    if not isinstance(value, dict) or set(value) != {
+        "id", "name", "country", "region", "status"
+    }:
+        return False
+
+    location_id = value["id"]
+    if not isinstance(location_id, str):
+        return False
+    try:
+        parsed_id = UUID(location_id)
+    except (TypeError, ValueError, AttributeError):
+        return False
+    if str(parsed_id) != location_id.lower():
+        return False
+
+    return (
+        isinstance(value["name"], str)
+        and (value["country"] is None or isinstance(value["country"], str))
+        and (value["region"] is None or isinstance(value["region"], str))
+        and isinstance(value["status"], str)
+        and value["status"] == "active"
+    )
+
+
+def _is_public_location_list(value: Any) -> bool:
+    return isinstance(value, list) and all(_is_public_location(row) for row in value)
+
+
+@dataclass(frozen=True)
+class PublicDriverCatalogEntry:
+    driver_name: str
+    driver_version: str
+    driver_type: Literal[
+        "sensor", "remote_sensing", "market", "blockchain", "weather", "climate", "gis"
+    ]
+
+    @classmethod
+    def from_payload(cls, payload: dict[str, Any]) -> "PublicDriverCatalogEntry":
+        return cls(
+            driver_name=str(payload["driver_name"]),
+            driver_version=str(payload["driver_version"]),
+            driver_type=payload["driver_type"],
+        )
+
+
+@dataclass(frozen=True)
+class PublicDriverCatalogPage:
+    drivers: list[PublicDriverCatalogEntry]
+    limit: int
+    offset: int
+    has_more: bool
+
+    @classmethod
+    def from_payload(
+        cls, payload: ApiPublicDriverCatalogResponse
+    ) -> "PublicDriverCatalogPage":
+        return cls(
+            drivers=[
+                PublicDriverCatalogEntry.from_payload(row)
+                for row in payload["drivers"]
+            ],
+            limit=int(payload["limit"]),
+            offset=int(payload["offset"]),
+            has_more=bool(payload["has_more"]),
+        )
+
+
+def _validate_driver_page(limit: int, offset: int) -> None:
+    if isinstance(limit, bool) or not isinstance(limit, int) or not 1 <= limit <= 50:
+        raise ValueError("limit must be an integer from 1 through 50")
+    if isinstance(offset, bool) or not isinstance(offset, int) or not 0 <= offset <= 5000:
+        raise ValueError("offset must be an integer from 0 through 5000")
+
+
+def _is_driver_catalog_response(
+    value: Any, *, expected_limit: int, expected_offset: int
+) -> bool:
+    if not isinstance(value, dict):
+        return False
+    if set(value) != {"drivers", "limit", "offset", "has_more"}:
+        return False
+    drivers = value.get("drivers")
+    limit = value.get("limit")
+    offset = value.get("offset")
+    if (
+        not isinstance(drivers, list)
+        or not _is_integer(limit)
+        or not 1 <= limit <= 50
+        or not _is_integer(offset)
+        or not 0 <= offset <= 5000
+        or limit != expected_limit
+        or offset != expected_offset
+        or not isinstance(value.get("has_more"), bool)
+        or len(drivers) > limit
+        or (
+            value["has_more"]
+            and (len(drivers) != limit or offset + limit > 5000)
+        )
+    ):
+        return False
+    driver_types = {
+        "sensor",
+        "remote_sensing",
+        "market",
+        "blockchain",
+        "weather",
+        "climate",
+        "gis",
+    }
+    return all(
+        isinstance(row, dict)
+        and set(row) == {"driver_name", "driver_version", "driver_type"}
+        and isinstance(row.get("driver_name"), str)
+        and len(row["driver_name"]) <= 100
+        and isinstance(row.get("driver_version"), str)
+        and len(row["driver_version"]) <= 20
+        and isinstance(row.get("driver_type"), str)
+        and row["driver_type"] in driver_types
+        for row in drivers
+    )
 
 
 def _parse_datetime(value: Any) -> Optional[datetime]:
@@ -173,13 +539,39 @@ class PublicLocationMethods:
         path = PUBLIC_API_PATHS_V1["listPublicLocationsV1"]
         return [
             PublicLocation.from_payload(row)
-            for row in self._client._get(path, data_shape="array")["data"]
+            for row in self._client._get(
+                path,
+                data_shape="array",
+                data_validator=_is_public_location_list,
+            )["data"]
         ]
 
     def get(self, location_id: str) -> PublicLocation:
         path = self._client._path("getPublicLocationV1", location_id=location_id)
-        payload = self._client._get(path, data_shape="object")["data"]
+        payload = self._client._get(
+            path,
+            data_shape="object",
+            data_validator=lambda value: _is_public_location(value)
+            and _normalized_uuid(value["id"]) == _normalized_uuid(location_id),
+        )["data"]
         return PublicLocation.from_payload(payload)
+
+
+class PublicDriverMethods:
+    def __init__(self, client: "KokonutPublicApiClient") -> None:
+        self._client = client
+
+    def list(self, *, limit: int = 50, offset: int = 0) -> PublicDriverCatalogPage:
+        _validate_driver_page(limit, offset)
+        path = PUBLIC_API_PATHS_V1["listPublicDriversV1"]
+        payload = self._client._get(
+            f"{path}?limit={limit}&offset={offset}",
+            data_shape="object",
+            data_validator=lambda value: _is_driver_catalog_response(
+                value, expected_limit=limit, expected_offset=offset
+            ),
+        )["data"]
+        return PublicDriverCatalogPage.from_payload(payload)
 
 
 class PublicMetricMethods:
@@ -188,7 +580,11 @@ class PublicMetricMethods:
 
     def get(self, location_id: str) -> PublicMetricSummary:
         path = self._client._path("getPublicMetricSummaryV1", location_id=location_id)
-        payload = self._client._get(path, data_shape="object")["data"]
+        payload = self._client._get(
+            path,
+            data_shape="object",
+            data_validator=lambda value: _is_public_metric_summary(value, location_id),
+        )["data"]
         return PublicMetricSummary.from_payload(payload)
 
 
@@ -198,7 +594,11 @@ class PublicCrispMethods:
 
     def get(self, location_id: str) -> PublicCrispAssessment:
         path = self._client._path("getPublicCrispAssessmentV1", location_id=location_id)
-        payload = self._client._get(path, data_shape="object")["data"]
+        payload = self._client._get(
+            path,
+            data_shape="object",
+            data_validator=lambda value: _is_public_crisp_assessment(value, location_id),
+        )["data"]
         return PublicCrispAssessment.from_payload(payload)
 
 
@@ -208,7 +608,11 @@ class PublicAnalyticsMethods:
 
     def get_summary(self, location_id: str) -> PublicLocationSummary:
         path = self._client._path("getPublicLocationSummaryV1", location_id=location_id)
-        payload = self._client._get(path, data_shape="object")["data"]
+        payload = self._client._get(
+            path,
+            data_shape="object",
+            data_validator=lambda value: _is_public_location_summary(value, location_id),
+        )["data"]
         return PublicLocationSummary.from_payload(payload)
 
 
@@ -227,6 +631,20 @@ class KokonutPublicApiClient:
         timeout: float = 10.0,
         session: Optional[requests.Session] = None,
     ) -> None:
+        try:
+            valid_timeout = (
+                not isinstance(timeout, bool)
+                and isinstance(timeout, (int, float))
+                and math.isfinite(timeout)
+                and timeout > 0
+                and timeout <= _MAX_TIMEOUT_SECONDS
+            )
+        except (OverflowError, TypeError):
+            valid_timeout = False
+        if not valid_timeout:
+            raise ValueError(
+                "timeout must be finite, positive, and at most 2147483.647 seconds"
+            )
         self.base_url = base_url.rstrip("/") + "/api/v1"
         self.timeout = timeout
         self.session = session or requests.Session()
@@ -234,6 +652,7 @@ class KokonutPublicApiClient:
         if api_key:
             self.session.headers["x-api-key"] = api_key
         self.locations = PublicLocationMethods(self)
+        self.drivers = PublicDriverMethods(self)
         self.metrics = PublicMetricMethods(self)
         self.crisp = PublicCrispMethods(self)
         self.analytics = PublicAnalyticsMethods(self)
@@ -253,12 +672,17 @@ class KokonutPublicApiClient:
         path: str,
         *,
         data_shape: Literal["array", "object"],
+        data_validator: Optional[Callable[[Any], bool]] = None,
     ) -> dict[str, Any]:
         response = self.session.get(f"{self.base_url}{path}", timeout=self.timeout)
         if not response.ok:
             try:
                 body = response.json()
-                error_message = body.get("error") if isinstance(body, dict) else None
+                error_message = (
+                    body["error"]
+                    if isinstance(body, dict) and set(body) == {"error"}
+                    else None
+                )
                 if isinstance(error_message, str):
                     message = error_message
                 else:
@@ -274,10 +698,10 @@ class KokonutPublicApiClient:
                 response.status_code,
                 response,
             ) from exc
-        if not isinstance(body, dict):
+        if not isinstance(body, dict) or set(body) != {"data"}:
             raise PublicApiError("Invalid public API response envelope", response.status_code, response)
         data = body.get("data")
         valid_data = isinstance(data, list) if data_shape == "array" else isinstance(data, dict)
-        if not valid_data:
+        if not valid_data or (data_validator is not None and not data_validator(data)):
             raise PublicApiError("Invalid public API response envelope", response.status_code, response)
         return body

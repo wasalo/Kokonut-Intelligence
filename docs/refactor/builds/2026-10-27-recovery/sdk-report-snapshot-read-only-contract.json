@@ -1,0 +1,52 @@
+{
+  "date": "2026-10-27",
+  "contract": "The Python and TypeScript SDKs expose report_snapshot as read-only list, detail, and report-type-filtered reads.",
+  "source_of_truth": [
+    "services/export/reports/context.py::store_snapshot",
+    "services/workflow_specs/report_snapshot.py",
+    "services/gateway/operator_review.py"
+  ],
+  "findings": [
+    "The report generator stores a hashed, unfrozen draft with public-interest context.",
+    "The report snapshot has a governed draft/submitted/verified/published/rejected lifecycle.",
+    "The authenticated Gateway report-review endpoints currently provide scoped reads only.",
+    "No repository callsite uses SDK report create, bulk-create, update, or delete methods."
+  ],
+  "change": "Removed generic create, bulk-create, update, and delete operations from both SDK ReportMethods surfaces. Preserved list, get, and list_by_type/listByType. Report generation remains in the exporter service.",
+  "validation": {
+    "python_tests": {
+      "command": "python3 -m pytest tests/test_sdk.py tests/test_sdk_method_parity.py tests/test_report_governance.py -q",
+      "result": "passed",
+      "passed": 107
+    },
+    "javascript_tests": {
+      "command": "npm test",
+      "working_directory": "sdk/javascript",
+      "result": "passed",
+      "passed": 53
+    },
+    "typescript_build": {
+      "command": "npm run build",
+      "working_directory": "sdk/javascript",
+      "result": "passed"
+    },
+    "sdk_schema_parity": {
+      "command": "python3 scripts/check-sdk-schema-parity.py",
+      "result": "passed",
+      "models": 109,
+      "canonical_columns": 2150
+    },
+    "static_checks": [
+      "Ruff passed",
+      "Python compilation passed",
+      "Capability-matrix validation passed",
+      "git diff --check passed"
+    ]
+  },
+  "scope_limits": [
+    "SDK calls were mocked; no database, provider, candidate, or legacy service was used.",
+    "This does not add Gateway report generation or reviewer lifecycle transition routes.",
+    "Capability classifications and MAN-CAP acceptance remain unchanged."
+  ],
+  "rollback": "Restore report mutation methods only after the Gateway provides authenticated generation and reviewer-transition operations that enforce the report snapshot lifecycle and preserve hash/context invariants."
+}

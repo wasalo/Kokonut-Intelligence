@@ -20,9 +20,11 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import math
 import os
 import sys
 import time
+from uuid import UUID
 
 from services.common.cli import print_json
 from services.common.errors import safe_exception_class
@@ -30,8 +32,31 @@ from services.common.logging import get_logger
 
 logger = get_logger("events.cli")
 
+MAX_EVENT_BATCH_SIZE = 100
+MAX_NOTIFICATION_BATCH_SIZE = 500
+
+
+def _validate_batch_size(batch_size: int, *, maximum: int) -> None:
+    if (
+        isinstance(batch_size, bool)
+        or not isinstance(batch_size, int)
+        or not 1 <= batch_size <= maximum
+    ):
+        raise ValueError(f"batch_size must be between 1 and {maximum}")
+
+
+def _preflight_fork_location(parser: argparse.ArgumentParser, args) -> None:
+    """Validate a supplied fork location before opening the event DB connection."""
+    if args.location_id is None:
+        return
+    try:
+        args.location_id = str(UUID(args.location_id))
+    except (AttributeError, TypeError, ValueError):
+        parser.error("--location-id must be a valid UUID")
+
 
 def cmd_process(args):
+    _validate_batch_size(args.batch_size, maximum=MAX_EVENT_BATCH_SIZE)
     from services.events.backend import get_event_store
 
     bus = get_event_store()
@@ -49,8 +74,17 @@ def cmd_process(args):
 def _run_worker(args, *, process_events: bool, deliver_notifications: bool,
                 isolated_notification_delivery: bool = False,
                 isolated_event_dispatch: bool = False):
-    if args.poll_interval <= 0:
-        raise ValueError("poll_interval must be positive")
+    max_batch_size = (
+        MAX_EVENT_BATCH_SIZE
+        if process_events
+        else MAX_NOTIFICATION_BATCH_SIZE
+    )
+    _validate_batch_size(args.batch_size, maximum=max_batch_size)
+    from services.events.bus import _validate_lease_seconds
+
+    _validate_lease_seconds(args.lease_seconds)
+    if not math.isfinite(args.poll_interval) or args.poll_interval <= 0:
+        raise ValueError("poll_interval must be finite and positive")
 
     from services.core.features import is_enabled
 
@@ -299,6 +333,7 @@ def cmd_dispose_dead_letter(args):
 
 
 def cmd_notification_process(args):
+    _validate_batch_size(args.batch_size, maximum=MAX_NOTIFICATION_BATCH_SIZE)
     from services.common.database import get_connection
     from services.events.notification_outbox import deliver_batch
 
@@ -400,7 +435,12 @@ def main():
     group.add_argument("--add-rule", action="store_true",
                        help="Add a cross-domain rule (requires --source-domain/--target-domain/--pattern)")
 
-    parser.add_argument("--batch-size", type=int, default=100, help="Events per batch")
+    parser.add_argument(
+        "--batch-size",
+        type=int,
+        default=100,
+        help="Events per batch (1-100; notification-only workers accept up to 500)",
+    )
     parser.add_argument("--worker-id", default=os.environ.get("HOSTNAME", "cli"), help="Worker identifier")
     parser.add_argument("--poll-interval", type=float, default=2.0)
     parser.add_argument("--lease-seconds", type=int, default=300)
@@ -468,8 +508,10 @@ def main():
             )
         rc = cmd_notification_dispose_dead_letter(args)
     elif args.fork_opportunities:
+        _preflight_fork_location(parser, args)
         rc = cmd_fork_opportunities(args)
     elif args.propose_fork:
+        _preflight_fork_location(parser, args)
         rc = cmd_propose_fork(args)
     elif args.process_event:
         if not (args.source_domain and args.event_type):

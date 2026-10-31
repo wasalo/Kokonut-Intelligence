@@ -17,7 +17,11 @@ def get_project_stream(
 ) -> list[dict]:
     result = conn.execute(
         conn.text(
-            "SELECT * FROM v_project_data_stream "
+            "SELECT id, location_id, post_type, title, content, media_type, "
+            "evidence_urls, file_ids, visibility, status, is_anchored, "
+            "attestation_uid, chain, anchored_at, created_at, created_by, "
+            "metadata, location_name, farm_name, comment_count "
+            "FROM v_project_data_stream "
             "WHERE location_id = :location_id "
             "ORDER BY created_at DESC LIMIT :limit"
         ),

@@ -1,0 +1,32 @@
+{
+  "date": "2026-10-29",
+  "scope": "Private submitted-report detail response contract",
+  "focused_test_commands": [
+    "python3 -m pytest tests/test_operator_report_review_contract.py tests/test_operator_report_review.py -q",
+    "python3 -m pytest tests/test_operator_auth.py::test_report_review_routes_require_tenant_qualified_context -q"
+  ],
+  "focused_test_results": [
+    {"passed": 23, "failed": 0},
+    {"passed": 2, "failed": 0}
+  ],
+  "additional_checks": {
+    "ruff": "passed",
+    "python_compilation": "passed",
+    "capability_matrix": "passed",
+    "git_diff_check": "passed"
+  },
+  "checks_cover": [
+    "OpenAPI and runtime validation for the exact private detail wrapper and submitted-report fields",
+    "Returned report UUID matches the requested report ID",
+    "Report JSON remains an object and must serialize to at most 524288 UTF-8 bytes",
+    "Extra fields, wrong lifecycle, malformed data, and oversized output fail closed",
+    "Invalid/unmatched paths, authorization denial, missing rows, size rejection, and service errors remain private/no-store",
+    "Existing same-transaction tenant-qualified report reader authorization is unchanged"
+  ],
+  "database_or_provider_used": false,
+  "candidate_database_touched": false,
+  "legacy_database_touched": false,
+  "production_or_external_state_used": false,
+  "migration_required": false,
+  "rollback": "Revert the report detail response models, Gateway route validation/headers, tests, and evidence; no database rollback is required."
+}

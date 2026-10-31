@@ -1,0 +1,32 @@
+{
+  "status": "passed",
+  "timestamp": "2026-10-31T16:01:34Z",
+  "check": "standard_worker_backlog_focused_tests",
+  "command": "python3 -m pytest tests/test_worker_progress.py tests/test_kernel_profile.py -q",
+  "result": "92 passed in 11.73s",
+  "additional_checks": {
+    "ruff": {
+      "command": "python3 -m ruff check services/core/worker_progress.py tests/test_worker_progress.py tests/test_kernel_profile.py scripts/check-worker-progress-disposable.py",
+      "result": "passed"
+    },
+    "python_compile": {
+      "command": "python3 -m py_compile services/core/worker_progress.py tests/test_worker_progress.py tests/test_kernel_profile.py scripts/check-worker-progress-disposable.py",
+      "result": "passed"
+    },
+    "diff_check": {
+      "command": "git diff --check",
+      "result": "passed"
+    }
+  },
+  "scope": [
+    "stale claimed work remains unhealthy",
+    "aggregate active, queued, stale, and oldest-due values are validated",
+    "due backlog at/over a bounded threshold reports unhealthy",
+    "backlog below the threshold remains healthy",
+    "disabled queues are omitted from both SQL and response",
+    "invalid backlog configuration fails before database access",
+    "health output contains no queue row identifiers or payloads",
+    "Standard Compose configures the bounded backlog threshold"
+  ],
+  "database_target": "none; unit/profile tests use synthetic rows and repository files"
+}

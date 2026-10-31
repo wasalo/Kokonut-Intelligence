@@ -1,0 +1,6 @@
+# Optional spreadsheet and S3 package closure for the additive core app image.
+services:
+  app:
+    build:
+      args:
+        KOKONUT_CORE_EXPORTS: "true"

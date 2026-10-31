@@ -1,0 +1,39 @@
+{
+  "date": "2026-10-29",
+  "base_commit": "460aaa27",
+  "scope": "Five exact migration-backed report projections across risk mitigation, scaling roadmap, capital efficiency, regenerative efficiency, and governance throughput",
+  "python_test_command": [
+    "python3",
+    "-m",
+    "pytest",
+    "-q",
+    "tests/test_financial_resilience.py::test_risk_mitigation_uses_exact_projection_and_preserves_scope_payload",
+    "tests/test_financial_resilience.py::test_scaling_roadmap_filters_location_and_keeps_reviewed_global_rows",
+    "tests/test_capital_efficiency.py::test_capital_efficiency_uses_exact_scenario_and_regenerative_projections",
+    "tests/test_capital_efficiency.py::test_governance_throughput_keeps_selected_location_and_public_rows"
+  ],
+  "python_test_result": {
+    "passed": 4,
+    "failed": 0
+  },
+  "checks": {
+    "ruff": "passed for changed source and tests",
+    "python_compile": "passed for changed source and tests",
+    "report_source_inventory": "passed",
+    "report_query_scope_inventory": "passed",
+    "report_helper_scope_inventory": "passed",
+    "capability_matrix": "passed; 67 rows (24 baseline-retained, 7 deployed, 36 prepared)",
+    "git_diff_check": "passed"
+  },
+  "projections": {
+    "risk_mitigation": "20 ordered columns from migration 035; location, review-date range, null-review inclusion, ordering, and serialized row payload are preserved.",
+    "scaling_roadmap": "16 ordered columns from migration 035; selected-location plus shared null-location rows, date bounds, ordering, capital total, and milestone payload are preserved.",
+    "capital_efficiency": "16 ordered columns from migration 036; location/date bindings, order, and scenario output are preserved.",
+    "regenerative_efficiency": "16 ordered columns from migration 036; location/date bindings, order, and observation output are preserved.",
+    "governance_throughput": "16 ordered columns from migration 036; selected-location plus shared rows, date bounds, order, decision-latency average, and observation payload are preserved."
+  },
+  "limitations": "Synthetic mocked source-contract checks only. No database, migration, candidate, legacy service, provider, or production resource was used. Populated-data parity, tenant isolation, live OIDC, and content-level privacy are not established.",
+  "candidate_or_legacy_database_touched": false,
+  "provider_or_production_service_touched": false,
+  "migration_added": false
+}

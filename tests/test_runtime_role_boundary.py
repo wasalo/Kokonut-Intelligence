@@ -1,8 +1,1941 @@
+import hashlib
+import json
+import re
+import runpy
 from pathlib import Path
 
 import pytest
 
+from scripts.runtime_sql_inventory import build_inventory
 from services.migration import runtime_role
+
+REPORTER = runpy.run_path(
+    str(
+        Path(__file__).resolve().parents[1]
+        / "scripts"
+        / "runtime-privilege-callsite-report.py"
+    ),
+    run_name="runtime_privilege_callsite_report_boundary_test",
+)
+
+
+def test_runtime_acl_policy_matches_all_recorded_migration_revokes():
+    root = Path(__file__).resolve().parents[1]
+    source = (root / "services/migration/runtime_role.py").read_bytes()
+    probe = json.loads(
+        (
+            root
+            / "docs/refactor/builds/2026-10-30-recovery/"
+            "kernel-c1-full-schema-703-native-r2.json"
+        ).read_text()
+    )
+    inventory = build_inventory()
+    report = REPORTER["build_report"](probe, inventory)
+
+    assert set(runtime_role._RUNTIME_PRIVATE_TABLES).isdisjoint(
+        runtime_role._RUNTIME_MUTATION_TABLES
+    )
+    assert report["runtime_role_policy_source"]["sha256"] == hashlib.sha256(
+        source
+    ).hexdigest()
+    revokes = REPORTER["_source_revokes"]()
+    configured_boundaries, _ = REPORTER["_runtime_role_boundaries"]()
+    expected_relations = {
+        relation
+        for relation in set(revokes) | set(REPORTER["_SOURCE_REVOKE_POLICY_OVERRIDES"])
+        if relation in configured_boundaries
+    }
+    reported_relations = {
+        row["relation"]
+        for row in report["relations"]
+        if row["expected_runtime_boundary"] is not None
+    }
+    assert reported_relations == expected_relations
+    assert report["summary"][
+        "migration_revoked_relations_missing_or_mismatched_runtime_policy"
+    ] == 0
+    assert report["summary"]["migration_revoked_relations_with_runtime_policy"] == len(
+        reported_relations
+    )
+    assert report["migration_revoked_relations_missing_or_mismatched_runtime_policy"] == []
+    assert "service_registry" in configured_boundaries
+    assert configured_boundaries["service_registry"] == "runtime_mutations_denied"
+
+
+def test_landscape_capture_tables_are_in_the_reapplied_runtime_dml_denial_policy():
+    expected = {
+        "habitat_zone",
+        "wildlife_corridor",
+        "hedgerow_record",
+        "buffer_zone_monitoring",
+        "landscape_biodiversity_score",
+    }
+    assert expected.issubset(runtime_role._RUNTIME_MUTATION_TABLES)
+    assert expected.isdisjoint(runtime_role._RUNTIME_PRIVATE_TABLES)
+
+
+def test_historical_full_schema_acl_snapshot_matches_its_recorded_source_policy():
+    root = Path(__file__).resolve().parents[1]
+    probe = json.loads(
+        (
+            root
+            / "docs/refactor/builds/2026-10-30-recovery/"
+            "native-resource-limited-schema-699-operator-probe.json"
+        ).read_text()
+    )
+    inventory = build_inventory()
+    report = REPORTER["build_report"](probe, inventory)
+
+    acceptance = report["runtime_role_acceptance"]
+    assert acceptance["full_schema_replay_passed"] is True
+    assert acceptance["scoped_acl_checks_passed"] is True
+    assert acceptance["acl_snapshot_latest_migration_number"] == 699
+    latest_repository_migration = max(
+        int(path.name.split("_", maxsplit=1)[0])
+        for path in (root / "schemas/postgres").glob("*.sql")
+        if path.name.split("_", maxsplit=1)[0].isdigit()
+    )
+    assert acceptance["repository_latest_migration_number"] == latest_repository_migration
+    assert acceptance["current_migration_chain_observed"] is False
+    assert acceptance["production_or_candidate_state_established"] is False
+
+    metric_definition = next(
+        row for row in report["relations"] if row["relation"] == "metric_definition"
+    )
+    assert metric_definition["effective_privileges"] == {
+        "select": True,
+        "insert": False,
+        "update": False,
+        "delete": False,
+        "truncate": False,
+    }
+    assert metric_definition["dml_overlaps_explicit_revoke"] is False
+    consent_data_type = next(
+        row for row in report["relations"] if row["relation"] == "consent_data_type"
+    )
+    assert consent_data_type["effective_privileges"] == {
+        "select": True,
+        "insert": False,
+        "update": False,
+        "delete": False,
+        "truncate": False,
+    }
+    public_summary = next(
+        row for row in report["relations"] if row["relation"] == "v_public_farm_summary"
+    )
+    assert public_summary["effective_privileges"] == {
+        "select": True,
+        "insert": False,
+        "update": False,
+        "delete": False,
+        "truncate": False,
+    }
+    assert public_summary["expected_runtime_boundary"] == "runtime_mutations_denied"
+    assert public_summary["runtime_boundary_policy_matches_source"] is True
+
+
+def test_runtime_scoped_denials_follow_compatibility_table_grant():
+    source = (
+        Path(__file__).resolve().parents[1] / "services/migration/runtime_role.py"
+    ).read_text()
+    broad_grant = source.index(
+        "GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public"
+    )
+    scoped_reapply = source.index(
+        "scoped_write_grants = _apply_scoped_write_boundary("
+    )
+    scoped_verification = source.index("_verify_scoped_write_boundary(cur, runtime_user)")
+
+    assert broad_grant < scoped_reapply < scoped_verification
+
+
+def test_append_only_data_access_log_is_reapplied_after_compatibility_grant():
+    source = (
+        Path(__file__).resolve().parents[1] / "services/migration/runtime_role.py"
+    ).read_text()
+    assert runtime_role._RUNTIME_APPEND_ONLY_TABLES == (
+        "data_access_log", "access_audit_log"
+    )
+    broad_grant = source.index(
+        "GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public"
+    )
+    scoped_reapply = source.index(
+        "append_only_grants = _apply_runtime_append_only_boundary("
+    )
+    scoped_verification = source.index(
+        "_verify_runtime_append_only_boundary(cur, runtime_user)"
+    )
+    assert broad_grant < scoped_reapply < scoped_verification
+    assert '"data_access_log": "append-only evidence; runtime SELECT and INSERT only"' in source
+
+
+def test_append_only_access_audit_log_is_reapplied_after_compatibility_grant():
+    root = Path(__file__).resolve().parents[1]
+    source = (root / "services/migration/runtime_role.py").read_text()
+    assert runtime_role._RUNTIME_APPEND_ONLY_TABLES == (
+        "data_access_log", "access_audit_log"
+    )
+    assert '"access_audit_log": (' in source
+    assert "retention cleanup requires separately authorized administration" in source
+
+
+def test_advisory_rule_is_read_only_in_migration_and_runtime_provisioner():
+    root = Path(__file__).resolve().parents[1]
+    migration = (
+        root / "schemas/postgres/653_runtime_advisory_rule_read_only.sql"
+    ).read_text()
+    source = (root / "services/migration/runtime_role.py").read_text()
+
+    assert "advisory_rule" in runtime_role._RUNTIME_MUTATION_TABLES
+    assert "REVOKE ALL PRIVILEGES ON TABLE public.advisory_rule" in migration
+    assert "GRANT SELECT ON TABLE public.advisory_rule TO kokonut_runtime" in migration
+    assert "advisory_rule" in source
+    assert 'column_privileges = ("INSERT", "UPDATE", "REFERENCES")' in source
+
+
+def test_crop_family_is_read_only_after_its_seed_only_initialization():
+    root = Path(__file__).resolve().parents[1]
+    migration = (
+        root / "schemas/postgres/654_runtime_crop_family_read_only.sql"
+    ).read_text()
+    initial_schema = (root / "schemas/postgres/150_crop_rotation.sql").read_text()
+    source = (root / "services/migration/runtime_role.py").read_text()
+
+    assert "crop_family" in runtime_role._RUNTIME_MUTATION_TABLES
+    assert "INSERT INTO crop_family" in initial_schema
+    assert migration.count("BEGIN;") == 1 and migration.count("COMMIT;") == 1
+    assert "REVOKE ALL PRIVILEGES ON TABLE public.crop_family FROM kokonut_runtime" in migration
+    assert "GRANT SELECT ON TABLE public.crop_family TO kokonut_runtime" in migration
+    assert "REVOKE REFERENCES (%1$I)" in migration
+    assert "crop_family" in source
+
+
+def test_crop_nutrient_factors_are_read_only_after_schema_seed_initialization():
+    root = Path(__file__).resolve().parents[1]
+    migration = (
+        root
+        / "schemas/postgres/655_runtime_crop_nutrient_removal_factor_read_only.sql"
+    ).read_text()
+    initial_schema = (root / "schemas/postgres/151_nutrient_budget.sql").read_text()
+    runtime_source = (root / "services/analytics/nutrient_budget.py").read_text()
+    sql_inventory = build_inventory()
+    source_sites = [
+        site for site in sql_inventory["execution_sites"]
+        if "crop_nutrient_removal_factor" in site["candidate_relations"]
+    ]
+
+    assert "crop_nutrient_removal_factor" in runtime_role._RUNTIME_MUTATION_TABLES
+    assert "CREATE TABLE IF NOT EXISTS crop_nutrient_removal_factor" in initial_schema
+    assert "INSERT INTO crop_nutrient_removal_factor" in initial_schema
+    assert "UPDATE crop_nutrient_removal_factor" not in initial_schema
+    assert "INSERT INTO crop_nutrient_removal_factor" not in runtime_source
+    assert migration.count("BEGIN;") == 1 and migration.count("COMMIT;") == 1
+    assert "REVOKE ALL PRIVILEGES ON TABLE public.crop_nutrient_removal_factor" in migration
+    assert "GRANT SELECT ON TABLE public.crop_nutrient_removal_factor TO kokonut_runtime" in migration
+    assert source_sites
+    assert {site["statement_kind"] for site in source_sites} == {"SELECT"}
+
+
+def test_certification_types_are_read_only_after_reference_seed_initialization():
+    root = Path(__file__).resolve().parents[1]
+    migration = (
+        root / "schemas/postgres/656_runtime_certification_type_read_only.sql"
+    ).read_text()
+    initial_schema = (root / "schemas/postgres/143_traceability.sql").read_text()
+    sql_inventory = json.loads(
+        (root / "docs/refactor/runtime-sql-inventory.json").read_text()
+    )
+    source_sites = [
+        site for site in sql_inventory["execution_sites"]
+        if "certification_type" in site["candidate_relations"]
+    ]
+    application_sources = [
+        path for directory in (root / "services", root / "extensions")
+        for path in directory.rglob("*")
+        if path.is_file() and path.suffix in {".py", ".ts", ".js"}
+    ]
+
+    assert "certification_type" in runtime_role._RUNTIME_MUTATION_TABLES
+    assert "CREATE TABLE IF NOT EXISTS certification_type" in initial_schema
+    assert "INSERT INTO certification_type" in initial_schema
+    assert migration.count("BEGIN;") == 1 and migration.count("COMMIT;") == 1
+    assert "REVOKE ALL PRIVILEGES ON TABLE public.certification_type" in migration
+    assert "GRANT SELECT ON TABLE public.certification_type TO kokonut_runtime" in migration
+    assert source_sites
+    assert {site["statement_kind"] for site in source_sites} == {"SELECT"}
+    assert not any(
+        "INSERT INTO certification_type" in path.read_text(errors="replace")
+        for path in application_sources
+    )
+
+
+def test_migration_seeded_reference_catalogs_are_read_only():
+    root = Path(__file__).resolve().parents[1]
+    migration = (
+        root / "schemas/postgres/657_runtime_reference_catalogs_read_only.sql"
+    ).read_text()
+    sql_inventory = json.loads(
+        (root / "docs/refactor/runtime-sql-inventory.json").read_text()
+    )
+    application_sources = [
+        path for directory in (root / "services", root / "extensions", root / "scripts")
+        for path in directory.rglob("*")
+        if path.is_file() and path.suffix in {".py", ".ts", ".js", ".sh"}
+    ]
+    catalogs = {
+        "cooperative_type": root / "schemas/postgres/147_cooperative.sql",
+        "dfs_insurance_product_type": root / "schemas/postgres/141_digital_finance.sql",
+    }
+
+    assert set(catalogs).issubset(runtime_role._RUNTIME_MUTATION_TABLES)
+    assert migration.count("BEGIN;") == 1 and migration.count("COMMIT;") == 1
+    assert "REVOKE ALL PRIVILEGES ON TABLE public.%I FROM kokonut_runtime" in migration
+    assert "GRANT SELECT ON TABLE public.%I TO kokonut_runtime" in migration
+    for relation, initial_schema_path in catalogs.items():
+        initial_schema = initial_schema_path.read_text()
+        assert f"CREATE TABLE IF NOT EXISTS {relation}" in initial_schema
+        assert f"INSERT INTO {relation}" in initial_schema
+        source_sites = [
+            site for site in sql_inventory["execution_sites"]
+            if relation in site["candidate_relations"]
+        ]
+        assert source_sites
+        assert {site["statement_kind"] for site in source_sites} == {"SELECT"}
+        assert not any(
+            f"INSERT INTO {relation}" in path.read_text(errors="replace")
+            or f"UPDATE {relation}" in path.read_text(errors="replace")
+            for path in application_sources
+        )
+
+
+def test_evidence_maturity_policy_catalog_is_runtime_read_only():
+    root = Path(__file__).resolve().parents[1]
+    migration = (
+        root / "schemas/postgres/658_runtime_evidence_maturity_read_only.sql"
+    ).read_text()
+    initial_schema = (
+        root / "schemas/postgres/029_impact_accountability_foundation.sql"
+    ).read_text()
+    sql_inventory = json.loads(
+        (root / "docs/refactor/runtime-sql-inventory.json").read_text()
+    )
+    application_sources = [
+        path for directory in (root / "services", root / "extensions", root / "scripts")
+        for path in directory.rglob("*")
+        if path.is_file() and path.suffix in {".py", ".ts", ".js", ".sh"}
+    ]
+    source_sites = [
+        site for site in sql_inventory["execution_sites"]
+        if "evidence_maturity_level" in site["candidate_relations"]
+    ]
+
+    assert "evidence_maturity_level" in runtime_role._RUNTIME_MUTATION_TABLES
+    assert "CREATE TABLE IF NOT EXISTS evidence_maturity_level" in initial_schema
+    assert "INSERT INTO evidence_maturity_level" in initial_schema
+    assert "ON CONFLICT (level) DO UPDATE" in initial_schema
+    assert migration.count("BEGIN;") == 1 and migration.count("COMMIT;") == 1
+    assert "REVOKE ALL PRIVILEGES ON TABLE public.evidence_maturity_level" in migration
+    assert "GRANT SELECT ON TABLE public.evidence_maturity_level TO kokonut_runtime" in migration
+    assert source_sites
+    assert {site["statement_kind"] for site in source_sites} == {"SELECT"}
+    assert not any(
+        "INSERT INTO evidence_maturity_level" in path.read_text(errors="replace")
+        or "UPDATE evidence_maturity_level" in path.read_text(errors="replace")
+        for path in application_sources
+    )
+
+
+def test_sensor_type_reference_is_read_only_after_core_seed():
+    root = Path(__file__).resolve().parents[1]
+    migration = (
+        root / "schemas/postgres/659_runtime_sensor_type_read_only.sql"
+    ).read_text()
+    initial_schema = (root / "schemas/postgres/011_sensor_registry.sql").read_text()
+    sql_inventory = json.loads(
+        (root / "docs/refactor/runtime-sql-inventory.json").read_text()
+    )
+    application_sources = [
+        path for directory in (root / "services", root / "extensions", root / "scripts")
+        for path in directory.rglob("*")
+        if path.is_file() and path.suffix in {".py", ".ts", ".js", ".sh"}
+    ]
+    source_sites = [
+        site for site in sql_inventory["execution_sites"]
+        if "sensor_type" in site["candidate_relations"]
+    ]
+
+    assert "sensor_type" in runtime_role._RUNTIME_MUTATION_TABLES
+    assert "CREATE TABLE IF NOT EXISTS sensor_type" in initial_schema
+    assert "INSERT INTO sensor_type" in initial_schema
+    assert migration.count("BEGIN;") == 1 and migration.count("COMMIT;") == 1
+    assert "REVOKE ALL PRIVILEGES ON TABLE public.sensor_type" in migration
+    assert "GRANT SELECT ON TABLE public.sensor_type TO kokonut_runtime" in migration
+    assert source_sites
+    assert not any(
+        "sensor_type" in site["write_target_relations"] for site in source_sites
+    )
+    assert not any(
+        "INSERT INTO sensor_type" in path.read_text(errors="replace")
+        or "UPDATE sensor_type" in path.read_text(errors="replace")
+        for path in application_sources
+    )
+
+
+def test_waste_reference_catalogs_are_read_only_after_seed_initialization():
+    root = Path(__file__).resolve().parents[1]
+    migration = (
+        root / "schemas/postgres/660_runtime_waste_reference_catalogs_read_only.sql"
+    ).read_text()
+    initial_schema = (root / "schemas/postgres/153_waste_management.sql").read_text()
+    sql_inventory = json.loads(
+        (root / "docs/refactor/runtime-sql-inventory.json").read_text()
+    )
+    application_sources = [
+        path for directory in (root / "services", root / "extensions", root / "scripts")
+        for path in directory.rglob("*")
+        if path.is_file() and path.suffix in {".py", ".ts", ".js", ".sh"}
+    ]
+
+    assert migration.count("BEGIN;") == 1 and migration.count("COMMIT;") == 1
+    assert "ARRAY['waste_type', 'disposal_method']" in migration
+    for table in ("waste_type", "disposal_method"):
+        assert table in runtime_role._RUNTIME_MUTATION_TABLES
+        assert f"CREATE TABLE IF NOT EXISTS {table}" in initial_schema
+        assert f"INSERT INTO {table}" in initial_schema
+        assert not any(
+            table in site["write_target_relations"]
+            for site in sql_inventory["execution_sites"]
+        )
+        assert not any(
+            f"INSERT INTO {table}" in path.read_text(errors="replace")
+            or f"UPDATE {table}" in path.read_text(errors="replace")
+            for path in application_sources
+        )
+    assert "REVOKE ALL PRIVILEGES ON TABLE public.%I FROM kokonut_runtime" in migration
+    assert "GRANT SELECT ON TABLE public.%I TO kokonut_runtime" in migration
+
+
+def test_versioned_graph_projection_types_are_read_only_to_runtime():
+    root = Path(__file__).resolve().parents[1]
+    migration = (
+        root / "schemas/postgres/661_runtime_graph_projection_types_read_only.sql"
+    ).read_text()
+    initial_schema = (root / "schemas/postgres/173_typed_temporal_graph.sql").read_text()
+    sql_inventory = json.loads(
+        (root / "docs/refactor/runtime-sql-inventory.json").read_text()
+    )
+    application_sources = [
+        path for directory in (root / "services", root / "extensions", root / "scripts")
+        for path in directory.rglob("*")
+        if path.is_file() and path.suffix in {".py", ".ts", ".js", ".sh"}
+    ]
+    catalogs = ("graph_node_type", "graph_edge_type")
+
+    assert set(catalogs).issubset(runtime_role._RUNTIME_MUTATION_TABLES)
+    assert migration.count("BEGIN;") == 1 and migration.count("COMMIT;") == 1
+    assert "ARRAY['graph_node_type', 'graph_edge_type']" in migration
+    for table in catalogs:
+        assert f"CREATE TABLE IF NOT EXISTS {table}" in initial_schema
+        assert f"INSERT INTO {table}" in initial_schema
+        assert not any(
+            table in site["write_target_relations"]
+            for site in sql_inventory["execution_sites"]
+        )
+        assert not any(
+            f"INSERT INTO {table}" in path.read_text(errors="replace")
+            or f"UPDATE {table}" in path.read_text(errors="replace")
+            for path in application_sources
+        )
+    assert "REVOKE ALL PRIVILEGES ON TABLE public.%I FROM kokonut_runtime" in migration
+    assert "GRANT SELECT ON TABLE public.%I TO kokonut_runtime" in migration
+    assert "Versioned graph projection" in migration
+
+
+def test_data_access_log_migration_restores_only_read_and_append_access():
+    migration = (
+        Path(__file__).resolve().parents[1]
+        / "schemas/postgres/652_runtime_append_only_data_access_log.sql"
+    ).read_text()
+    assert migration.count("BEGIN;") == 1
+    assert migration.count("COMMIT;") == 1
+    assert "REVOKE ALL PRIVILEGES ON TABLE public.data_access_log FROM kokonut_runtime" in migration
+    assert "GRANT SELECT, INSERT ON TABLE public.data_access_log TO kokonut_runtime" in migration
+
+
+def test_access_audit_log_migration_restores_only_read_and_append_access():
+    migration = (
+        Path(__file__).resolve().parents[1]
+        / "schemas/postgres/662_runtime_access_audit_log_append_only.sql"
+    ).read_text()
+    assert "REVOKE ALL PRIVILEGES ON TABLE public.access_audit_log FROM kokonut_runtime" in migration
+    assert "GRANT SELECT, INSERT ON TABLE public.access_audit_log TO kokonut_runtime" in migration
+    assert "configured policy" in migration
+    assert "REVOKE UPDATE (%1$I)" in migration
+    assert "Capability-access audit evidence" in migration
+
+
+def test_access_audit_log_runtime_write_inventory_is_append_only():
+    root = Path(__file__).resolve().parents[1]
+    inventory = json.loads(
+        (root / "docs/refactor/runtime-sql-inventory.json").read_text()
+    )
+    writers = [
+        site
+        for site in inventory["execution_sites"]
+        if "access_audit_log" in site["write_target_relations"]
+    ]
+    assert len(writers) == 1
+    assert writers[0]["source"] == "services/security/audit.py"
+    assert writers[0]["scope"] == "AuditLogger.log_access"
+    assert writers[0]["statement_kind"] == "INSERT"
+
+
+def test_agent_action_log_is_read_only_for_kernel_runtime_and_remains_exportable():
+    root = Path(__file__).resolve().parents[1]
+    migration = (
+        root / "schemas/postgres/663_runtime_agent_action_log_read_only.sql"
+    ).read_text()
+    sql_inventory = json.loads(
+        (root / "docs/refactor/runtime-sql-inventory.json").read_text()
+    )
+    from services.export.exporter import ALLOWED_COLLECTIONS
+
+    assert "agent_action_log" in runtime_role._RUNTIME_MUTATION_TABLES
+    assert "agent_action_log" not in runtime_role._RUNTIME_PRIVATE_TABLES
+    assert migration.count("BEGIN;") == 1 and migration.count("COMMIT;") == 1
+    assert "REVOKE ALL PRIVILEGES ON TABLE public.agent_action_log FROM kokonut_runtime" in migration
+    assert "GRANT SELECT ON TABLE public.agent_action_log TO kokonut_runtime" in migration
+    assert all(
+        "agent_action_log" not in site["write_target_relations"]
+        for site in sql_inventory["execution_sites"]
+    )
+    assert "agent_action_log" in ALLOWED_COLLECTIONS
+    assert "kokonut_directus_runtime" not in migration
+    assert "Directus" in migration
+
+
+def test_carbon_benchmarks_are_seeded_references_read_only_to_kernel_runtime():
+    root = Path(__file__).resolve().parents[1]
+    migration = (
+        root / "schemas/postgres/664_runtime_carbon_benchmark_read_only.sql"
+    ).read_text()
+    initial_schema = (root / "schemas/postgres/028_carbon_framework.sql").read_text()
+    seed = (root / "schemas/seeds/027_carbon_framework_seeds.sql").read_text()
+    sql_inventory = json.loads(
+        (root / "docs/refactor/runtime-sql-inventory.json").read_text()
+    )
+    runtime_writers = [
+        site for site in sql_inventory["execution_sites"]
+        if "carbon_benchmark" in site["write_target_relations"]
+    ]
+    runtime_readers = {
+        site["source"] for site in sql_inventory["execution_sites"]
+        if "carbon_benchmark" in site["candidate_relations"]
+        and site["statement_kind"] == "SELECT"
+    }
+
+    assert "carbon_benchmark" in runtime_role._RUNTIME_MUTATION_TABLES
+    assert "carbon_benchmark" not in runtime_role._RUNTIME_PRIVATE_TABLES
+    assert "CREATE TABLE IF NOT EXISTS carbon_benchmark" in initial_schema
+    assert "INSERT INTO carbon_benchmark" in seed
+    assert runtime_writers == []
+    assert runtime_readers == {"services/crisp/carbon_yield.py"}
+    assert "SELECT * FROM carbon_benchmark WHERE 1=1" in (
+        root / "services/analytics/carbon_balance.py"
+    ).read_text()
+    assert "FROM carbon_benchmark" in (
+        root / "services/crisp/carbon_yield.py"
+    ).read_text()
+    assert migration.count("BEGIN;") == 1 and migration.count("COMMIT;") == 1
+    assert "REVOKE ALL PRIVILEGES ON TABLE public.carbon_benchmark FROM kokonut_runtime" in migration
+    assert "GRANT SELECT ON TABLE public.carbon_benchmark TO kokonut_runtime" in migration
+    assert "kokonut_directus_runtime" not in migration
+
+
+def test_ghg_emission_factors_are_seeded_references_read_only_to_kernel_runtime():
+    root = Path(__file__).resolve().parents[1]
+    migration = (
+        root / "schemas/postgres/665_runtime_ghg_emission_factor_read_only.sql"
+    ).read_text()
+    initial_schema = (root / "schemas/postgres/028_carbon_framework.sql").read_text()
+    seed = (root / "schemas/seeds/027_carbon_framework_seeds.sql").read_text()
+    sql_inventory = json.loads(
+        (root / "docs/refactor/runtime-sql-inventory.json").read_text()
+    )
+    runtime_writers = [
+        site for site in sql_inventory["execution_sites"]
+        if "ghg_emission_factor" in site["write_target_relations"]
+    ]
+
+    assert "ghg_emission_factor" in runtime_role._RUNTIME_MUTATION_TABLES
+    assert "ghg_emission_factor" not in runtime_role._RUNTIME_PRIVATE_TABLES
+    assert "CREATE TABLE IF NOT EXISTS ghg_emission_factor" in initial_schema
+    assert "INSERT INTO ghg_emission_factor" in seed
+    assert "ON CONFLICT (factor_key) DO UPDATE" in seed
+    assert runtime_writers == []
+    # The consumer's SELECT is assembled dynamically and is therefore checked
+    # directly instead of relying on the static SQL inventory.
+    assert "SELECT * FROM ghg_emission_factor WHERE 1=1" in (
+        root / "services/analytics/carbon_balance.py"
+    ).read_text()
+    assert migration.count("BEGIN;") == 1 and migration.count("COMMIT;") == 1
+    assert (
+        "REVOKE ALL PRIVILEGES ON TABLE public.ghg_emission_factor "
+        "FROM kokonut_runtime"
+    ) in migration
+    assert (
+        "GRANT SELECT ON TABLE public.ghg_emission_factor TO kokonut_runtime"
+    ) in migration
+    assert "kokonut_directus_runtime" not in migration
+
+
+def test_operations_protocols_are_seeded_references_read_only_to_kernel_runtime():
+    root = Path(__file__).resolve().parents[1]
+    migration = (
+        root / "schemas/postgres/666_runtime_operations_protocol_read_only.sql"
+    ).read_text()
+    initial_schema = (root / "schemas/postgres/028_carbon_framework.sql").read_text()
+    seed = (root / "schemas/seeds/027_carbon_framework_seeds.sql").read_text()
+    sql_inventory = json.loads(
+        (root / "docs/refactor/runtime-sql-inventory.json").read_text()
+    )
+    runtime_writers = [
+        site for site in sql_inventory["execution_sites"]
+        if "operations_protocol" in site["write_target_relations"]
+    ]
+    runtime_readers = {
+        site["source"] for site in sql_inventory["execution_sites"]
+        if "operations_protocol" in site["candidate_relations"]
+        and site["statement_kind"] == "SELECT"
+    }
+
+    assert "operations_protocol" in runtime_role._RUNTIME_MUTATION_TABLES
+    assert "operations_protocol" not in runtime_role._RUNTIME_PRIVATE_TABLES
+    assert "CREATE TABLE IF NOT EXISTS operations_protocol" in initial_schema
+    assert "INSERT INTO operations_protocol" in seed
+    assert runtime_writers == []
+    assert runtime_readers == {"services/export/reports/core.py"}
+    assert "FROM operations_protocol" in (
+        root / "services/export/reports/core.py"
+    ).read_text()
+    assert migration.count("BEGIN;") == 1 and migration.count("COMMIT;") == 1
+    assert (
+        "REVOKE ALL PRIVILEGES ON TABLE public.operations_protocol "
+        "FROM kokonut_runtime"
+    ) in migration
+    assert (
+        "GRANT SELECT ON TABLE public.operations_protocol TO kokonut_runtime"
+    ) in migration
+    assert "kokonut_directus_runtime" not in migration
+
+
+def test_static_reference_catalogs_are_read_only_to_kernel_runtime():
+    root = Path(__file__).resolve().parents[1]
+    migration = (
+        root / "schemas/postgres/667_runtime_static_reference_catalogs_read_only.sql"
+    ).read_text()
+    sql_inventory = json.loads(
+        (root / "docs/refactor/runtime-sql-inventory.json").read_text()
+    )
+
+    for table, schema_path in (
+        ("process_maturity_level", "schemas/postgres/191_process_targets.sql"),
+        ("pollinator_species_reference", "schemas/postgres/155_pollinator_health.sql"),
+    ):
+        schema = (root / schema_path).read_text()
+        runtime_writers = [
+            site for site in sql_inventory["execution_sites"]
+            if table in site["write_target_relations"]
+        ]
+
+        assert table in runtime_role._RUNTIME_MUTATION_TABLES
+        assert table not in runtime_role._RUNTIME_PRIVATE_TABLES
+        assert f"CREATE TABLE IF NOT EXISTS {table}" in schema
+        assert f"INSERT INTO {table}" in schema
+        assert runtime_writers == []
+        assert f"'{table}'" in migration
+
+    assert migration.count("BEGIN;") == 1 and migration.count("COMMIT;") == 1
+    assert "REVOKE ALL PRIVILEGES ON TABLE public.%I FROM kokonut_runtime" in migration
+    assert "GRANT SELECT ON TABLE public.%I TO kokonut_runtime" in migration
+    assert "kokonut_directus_runtime" not in migration
+
+
+def test_reporting_registries_are_read_only_to_kernel_runtime():
+    root = Path(__file__).resolve().parents[1]
+    migration = (
+        root / "schemas/postgres/668_runtime_reporting_registry_read_only.sql"
+    ).read_text()
+    inventory = json.loads(
+        (root / "docs/refactor/runtime-sql-inventory.json").read_text()
+    )
+    application_sources = [
+        path for directory in (root / "services", root / "extensions")
+        for path in directory.rglob("*")
+        if path.is_file() and path.suffix in {".py", ".ts", ".js"}
+    ]
+    sources = {
+        "gri_indicator": (
+            root / "schemas/postgres/062_true_cost_accounting.sql",
+            root / "schemas/seeds/062_true_cost_accounting.sql",
+            "services/analytics/gri_reporting.py",
+        ),
+        "governance_framework": (
+            root / "schemas/postgres/324_baal_governance.sql",
+            root / "schemas/seeds/020_gnosis_chain.sql",
+            "services/governance/cli.py",
+        ),
+    }
+
+    for table, (schema_path, seed_path, reader_path) in sources.items():
+        schema = schema_path.read_text()
+        seed = seed_path.read_text()
+        sites = [
+            site for site in inventory["execution_sites"]
+            if table in site["candidate_relations"]
+        ]
+
+        assert table in runtime_role._RUNTIME_MUTATION_TABLES
+        assert table not in runtime_role._RUNTIME_PRIVATE_TABLES
+        assert f"CREATE TABLE IF NOT EXISTS {table}" in schema
+        assert f"INSERT INTO {table}" in seed
+        assert sites and {site["statement_kind"] for site in sites} == {"SELECT"}
+        assert f"{table}" in (root / reader_path).read_text()
+        assert not any(
+            re.search(
+                rf"\b(?:INSERT\s+INTO|UPDATE|DELETE\s+FROM)\s+(?:public\.)?{table}\b",
+                path.read_text(errors="replace"),
+                re.I,
+            )
+            for path in application_sources
+        )
+        assert f"'{table}'" in migration
+
+    assert migration.count("BEGIN;") == 1 and migration.count("COMMIT;") == 1
+    assert "REVOKE ALL PRIVILEGES ON TABLE public.%I FROM kokonut_runtime" in migration
+    assert "GRANT SELECT ON TABLE public.%I TO kokonut_runtime" in migration
+    assert "kokonut_directus_runtime" not in migration
+
+
+def test_impact_framework_catalogs_are_read_only_to_kernel_runtime():
+    root = Path(__file__).resolve().parents[1]
+    migration = (
+        root / "schemas/postgres/669_runtime_impact_framework_catalogs_read_only.sql"
+    ).read_text()
+    inventory = json.loads(
+        (root / "docs/refactor/runtime-sql-inventory.json").read_text()
+    )
+    schema = (root / "schemas/postgres/025_kokonut_framework_alignment.sql").read_text()
+    seed = (root / "schemas/seeds/023_impact_frameworks.sql").read_text()
+    application_sources = [
+        path for directory in (root / "services", root / "extensions")
+        for path in directory.rglob("*")
+        if path.is_file() and path.suffix in {".py", ".ts", ".js"}
+    ]
+
+    assert "CREATE TABLE IF NOT EXISTS impact_framework" in schema
+    assert "CREATE TABLE IF NOT EXISTS impact_dimension" in schema
+    for table in ("impact_framework", "impact_dimension"):
+        sites = [
+            site for site in inventory["execution_sites"]
+            if table in site["candidate_relations"]
+        ]
+        assert table in runtime_role._RUNTIME_MUTATION_TABLES
+        assert table not in runtime_role._RUNTIME_PRIVATE_TABLES
+        assert f"INSERT INTO {table}" in seed
+        assert sites == []
+        assert not any(
+            re.search(
+                rf"\b(?:INSERT\s+INTO|UPDATE|DELETE\s+FROM)\s+(?:public\.)?{table}\b",
+                path.read_text(errors="replace"),
+                re.I,
+            )
+            for path in application_sources
+        )
+        assert f"'{table}'" in migration
+
+    assert migration.count("BEGIN;") == 1 and migration.count("COMMIT;") == 1
+    assert "REVOKE ALL PRIVILEGES ON TABLE public.%I FROM kokonut_runtime" in migration
+    assert "GRANT SELECT ON TABLE public.%I TO kokonut_runtime" in migration
+    assert "kokonut_directus_runtime" not in migration
+
+
+def test_expense_category_is_read_only_to_kernel_runtime():
+    root = Path(__file__).resolve().parents[1]
+    migration = (
+        root / "schemas/postgres/670_runtime_expense_category_read_only.sql"
+    ).read_text()
+    schema = (root / "schemas/postgres/004_finance.sql").read_text()
+    seed = (root / "schemas/seeds/000_expense_categories.sql").read_text()
+    readers = (root / "services/agents/ai_summary.py").read_text()
+    application_sources = [
+        path for directory in (root / "services", root / "extensions")
+        for path in directory.rglob("*")
+        if path.is_file() and path.suffix in {".py", ".ts", ".js"}
+    ]
+
+    assert "expense_category" in runtime_role._RUNTIME_MUTATION_TABLES
+    assert "expense_category" not in runtime_role._RUNTIME_PRIVATE_TABLES
+    assert "CREATE TABLE IF NOT EXISTS expense_category" in schema
+    assert "Expense categories (governed taxonomy)" in schema
+    assert "INSERT INTO expense_category" in seed
+    assert "FROM expense_category" in readers
+    assert "JOIN expense_category" in readers
+    assert not any(
+        re.search(
+            r"\b(?:INSERT\s+INTO|UPDATE|DELETE\s+FROM)\s+(?:public\.)?expense_category\b",
+            path.read_text(errors="replace"),
+            re.I,
+        )
+        for path in application_sources
+    )
+    assert "REVOKE ALL PRIVILEGES ON TABLE public.expense_category" in migration
+    assert "GRANT SELECT ON TABLE public.expense_category TO kokonut_runtime" in migration
+    assert "REVOKE INSERT (%1$I)" in migration
+    assert "REVOKE UPDATE (%1$I)" in migration
+    assert "REVOKE REFERENCES (%1$I)" in migration
+    assert "kokonut_directus_runtime" not in migration
+
+
+def test_crisp_risk_dimensions_are_read_only_to_kernel_runtime():
+    root = Path(__file__).resolve().parents[1]
+    migration = (
+        root / "schemas/postgres/671_runtime_crisp_risk_dimension_read_only.sql"
+    ).read_text()
+    schema = (root / "schemas/postgres/076_crisp_risk_scoring.sql").read_text()
+    seed = (root / "schemas/seeds/076_crisp_risk_scoring.sql").read_text()
+    readers = (root / "services/crisp/scoring_engine.py").read_text()
+    application_sources = [
+        path for directory in (root / "services", root / "extensions")
+        for path in directory.rglob("*")
+        if path.is_file() and path.suffix in {".py", ".ts", ".js"}
+    ]
+
+    assert "crisp_risk_dimension" in runtime_role._RUNTIME_MUTATION_TABLES
+    assert "crisp_risk_dimension" not in runtime_role._RUNTIME_PRIVATE_TABLES
+    assert "crisp_location_weight" not in runtime_role._RUNTIME_MUTATION_TABLES
+    assert "crisp_location_weight" not in runtime_role._RUNTIME_PRIVATE_TABLES
+    assert "CREATE TABLE IF NOT EXISTS crisp_risk_dimension" in schema
+    assert "Per-dimension risk factor configuration" in schema
+    assert "INSERT INTO crisp_risk_dimension" in seed
+    assert "JOIN crisp_risk_dimension" in readers
+    assert "crisp_location_weight" in schema
+    assert not any(
+        re.search(
+            r"\b(?:INSERT\s+INTO|UPDATE|DELETE\s+FROM)\s+(?:public\.)?crisp_risk_dimension\b",
+            path.read_text(errors="replace"),
+            re.I,
+        )
+        for path in application_sources
+    )
+    assert "REVOKE ALL PRIVILEGES ON TABLE public.crisp_risk_dimension" in migration
+    assert "GRANT SELECT ON TABLE public.crisp_risk_dimension TO kokonut_runtime" in migration
+    assert "REVOKE INSERT (%1$I)" in migration
+    assert "REVOKE UPDATE (%1$I)" in migration
+    assert "REVOKE REFERENCES (%1$I)" in migration
+    assert "kokonut_directus_runtime" not in migration
+
+
+def test_dfs_currency_is_read_only_to_kernel_runtime():
+    root = Path(__file__).resolve().parents[1]
+    migration = (
+        root / "schemas/postgres/672_runtime_dfs_currency_read_only.sql"
+    ).read_text()
+    schema = (root / "schemas/postgres/141_digital_finance.sql").read_text()
+    sql_inventory = json.loads(
+        (root / "docs/refactor/runtime-sql-inventory.json").read_text()
+    )
+    application_sources = [
+        path for directory in (root / "services", root / "extensions")
+        for path in directory.rglob("*")
+        if path.is_file() and path.suffix in {".py", ".ts", ".js"}
+    ]
+
+    assert "dfs_currency" in runtime_role._RUNTIME_MUTATION_TABLES
+    assert "dfs_currency" not in runtime_role._RUNTIME_PRIVATE_TABLES
+    assert "CREATE TABLE IF NOT EXISTS dfs_currency" in schema
+    assert "INSERT INTO dfs_currency" in schema
+    assert "LEFT JOIN dfs_currency" in schema
+    assert not any(
+        "dfs_currency" in site["write_target_relations"]
+        for site in sql_inventory["execution_sites"]
+    )
+    assert not any(
+        re.search(
+            r"\b(?:INSERT\s+INTO|UPDATE|DELETE\s+FROM)\s+(?:public\.)?dfs_currency\b",
+            path.read_text(errors="replace"),
+            re.I,
+        )
+        for path in application_sources
+    )
+    assert migration.count("BEGIN;") == 1 and migration.count("COMMIT;") == 1
+    assert "REVOKE ALL PRIVILEGES ON TABLE public.dfs_currency FROM kokonut_runtime" in migration
+    assert "GRANT SELECT ON TABLE public.dfs_currency TO kokonut_runtime" in migration
+    assert "REVOKE INSERT (%1$I)" in migration
+    assert "REVOKE UPDATE (%1$I)" in migration
+    assert "REVOKE REFERENCES (%1$I)" in migration
+    assert "kokonut_directus_runtime" not in migration
+
+
+def test_crop_gdd_config_is_read_only_to_kernel_runtime():
+    root = Path(__file__).resolve().parents[1]
+    migration = (
+        root / "schemas/postgres/673_runtime_crop_gdd_config_read_only.sql"
+    ).read_text()
+    schema = (root / "schemas/postgres/134_weather_forecast.sql").read_text()
+    seed = (root / "schemas/seeds/088_crop_gdd_configs.sql").read_text()
+    sql_inventory = json.loads(
+        (root / "docs/refactor/runtime-sql-inventory.json").read_text()
+    )
+    application_sources = [
+        path for directory in (root / "services", root / "extensions")
+        for path in directory.rglob("*")
+        if path.is_file() and path.suffix in {".py", ".ts", ".js"}
+    ]
+
+    assert "crop_gdd_config" in runtime_role._RUNTIME_MUTATION_TABLES
+    assert "crop_gdd_config" not in runtime_role._RUNTIME_PRIVATE_TABLES
+    assert "CREATE TABLE IF NOT EXISTS crop_gdd_config" in schema
+    assert "INSERT INTO crop_gdd_config" in seed
+    assert "crop_gdd_config" in (root / "services/analytics/crop_phenology.py").read_text()
+    assert "crop_gdd_config" in (root / "services/analytics/evapotranspiration.py").read_text()
+    assert not any(
+        "crop_gdd_config" in site["write_target_relations"]
+        for site in sql_inventory["execution_sites"]
+    )
+    assert not any(
+        re.search(
+            r"\b(?:INSERT\s+INTO|UPDATE|DELETE\s+FROM)\s+(?:public\.)?crop_gdd_config\b",
+            path.read_text(errors="replace"),
+            re.I,
+        )
+        for path in application_sources
+    )
+    assert migration.count("BEGIN;") == 1 and migration.count("COMMIT;") == 1
+    assert "REVOKE ALL PRIVILEGES ON TABLE public.crop_gdd_config FROM kokonut_runtime" in migration
+    assert "GRANT SELECT ON TABLE public.crop_gdd_config TO kokonut_runtime" in migration
+    assert "REVOKE INSERT (%1$I)" in migration
+    assert "REVOKE UPDATE (%1$I)" in migration
+    assert "REVOKE REFERENCES (%1$I)" in migration
+    assert "kokonut_directus_runtime" not in migration
+
+
+def test_pest_degree_day_config_is_read_only_to_kernel_runtime():
+    root = Path(__file__).resolve().parents[1]
+    migration = (
+        root / "schemas/postgres/674_runtime_pest_degree_day_config_read_only.sql"
+    ).read_text()
+    schema = (root / "schemas/postgres/149_pest_management.sql").read_text()
+    sql_inventory = json.loads(
+        (root / "docs/refactor/runtime-sql-inventory.json").read_text()
+    )
+    application_sources = [
+        path for directory in (root / "services", root / "extensions")
+        for path in directory.rglob("*")
+        if path.is_file() and path.suffix in {".py", ".ts", ".js"}
+    ]
+
+    assert "pest_degree_day_config" in runtime_role._RUNTIME_MUTATION_TABLES
+    assert "pest_degree_day_config" not in runtime_role._RUNTIME_PRIVATE_TABLES
+    assert "CREATE TABLE IF NOT EXISTS pest_degree_day_config" in schema
+    assert "('fall_armyworm'" in schema
+    assert "pest_degree_day_config" in (
+        root / "services/analytics/pest_management.py"
+    ).read_text()
+    assert not any(
+        "pest_degree_day_config" in site["write_target_relations"]
+        for site in sql_inventory["execution_sites"]
+    )
+    assert not any(
+        re.search(
+            r"\b(?:INSERT\s+INTO|UPDATE|DELETE\s+FROM)\s+(?:public\.)?pest_degree_day_config\b",
+            path.read_text(errors="replace"),
+            re.I,
+        )
+        for path in application_sources
+    )
+    assert migration.count("BEGIN;") == 1 and migration.count("COMMIT;") == 1
+    assert "REVOKE ALL PRIVILEGES ON TABLE public.pest_degree_day_config FROM kokonut_runtime" in migration
+    assert "GRANT SELECT ON TABLE public.pest_degree_day_config TO kokonut_runtime" in migration
+    assert "REVOKE INSERT (%1$I)" in migration
+    assert "REVOKE UPDATE (%1$I)" in migration
+    assert "REVOKE REFERENCES (%1$I)" in migration
+    assert "kokonut_directus_runtime" not in migration
+
+
+def test_revenue_multiplier_config_is_read_only_to_kernel_runtime():
+    root = Path(__file__).resolve().parents[1]
+    migration = (
+        root
+        / "schemas/postgres/675_runtime_revenue_multiplier_config_read_only.sql"
+    ).read_text()
+    schema = (root / "schemas/postgres/016_revenue_multiplier_config.sql").read_text()
+    sql_inventory = json.loads(
+        (root / "docs/refactor/runtime-sql-inventory.json").read_text()
+    )
+    application_sources = [
+        path for directory in (root / "services", root / "extensions")
+        for path in directory.rglob("*")
+        if path.is_file() and path.suffix in {".py", ".ts", ".js"}
+    ]
+
+    assert "revenue_multiplier_config" in runtime_role._RUNTIME_MUTATION_TABLES
+    assert "revenue_multiplier_config" not in runtime_role._RUNTIME_PRIVATE_TABLES
+    assert "CREATE TABLE IF NOT EXISTS revenue_multiplier_config" in schema
+    assert "SELECT config_key, config_value FROM revenue_multiplier_config" in (
+        root / "services/revenue_multiplier/config.py"
+    ).read_text()
+    assert not any(
+        "revenue_multiplier_config" in site["write_target_relations"]
+        for site in sql_inventory["execution_sites"]
+    )
+    assert not any(
+        re.search(
+            r"\b(?:INSERT\s+INTO|UPDATE|DELETE\s+FROM)\s+(?:public\.)?revenue_multiplier_config\b",
+            path.read_text(errors="replace"),
+            re.I,
+        )
+        for path in application_sources
+    )
+    assert migration.count("BEGIN;") == 1 and migration.count("COMMIT;") == 1
+    assert "REVOKE ALL PRIVILEGES ON TABLE public.revenue_multiplier_config FROM kokonut_runtime" in migration
+    assert "GRANT SELECT ON TABLE public.revenue_multiplier_config TO kokonut_runtime" in migration
+    assert "REVOKE INSERT (%1$I)" in migration
+    assert "REVOKE UPDATE (%1$I)" in migration
+    assert "REVOKE REFERENCES (%1$I)" in migration
+    assert "kokonut_directus_runtime" not in migration
+
+
+def test_governed_reference_classes_are_read_only_to_kernel_runtime():
+    root = Path(__file__).resolve().parents[1]
+    migration = (
+        root / "schemas/postgres/676_runtime_reference_class_read_only.sql"
+    ).read_text()
+    schema = (
+        root / "schemas/postgres/169_prediction_calibration_outside_view.sql"
+    ).read_text()
+    prediction_service = (root / "services/predictions/service.py").read_text()
+    product_contract = (
+        root / "docs/prediction-calibration-and-outside-view.md"
+    ).read_text()
+    sql_inventory = json.loads(
+        (root / "docs/refactor/runtime-sql-inventory.json").read_text()
+    )
+    application_sources = [
+        path for directory in (root / "services", root / "extensions")
+        for path in directory.rglob("*")
+        if path.is_file() and path.suffix in {".py", ".ts", ".js"}
+    ]
+
+    assert "reference_class" in runtime_role._RUNTIME_MUTATION_TABLES
+    assert "reference_class" not in runtime_role._RUNTIME_PRIVATE_TABLES
+    assert "CREATE TABLE IF NOT EXISTS reference_class" in schema
+    assert "rc.status IN ('verified','published')" in prediction_service
+    assert "does not create one" in product_contract
+    assert not any(
+        "reference_class" in site["write_target_relations"]
+        for site in sql_inventory["execution_sites"]
+    )
+    assert not any(
+        re.search(
+            r"\b(?:INSERT\s+INTO|UPDATE|DELETE\s+FROM)\s+(?:public\.)?reference_class\b",
+            path.read_text(errors="replace"),
+            re.I,
+        )
+        for path in application_sources
+    )
+    assert migration.count("BEGIN;") == 1 and migration.count("COMMIT;") == 1
+    assert "REVOKE ALL PRIVILEGES ON TABLE public.reference_class FROM kokonut_runtime" in migration
+    assert "GRANT SELECT ON TABLE public.reference_class TO kokonut_runtime" in migration
+    assert "REVOKE INSERT (%1$I)" in migration
+    assert "REVOKE UPDATE (%1$I)" in migration
+    assert "REVOKE REFERENCES (%1$I)" in migration
+    assert "kokonut_directus_runtime" not in migration
+
+
+def test_market_reference_labels_are_read_only_to_kernel_runtime():
+    root = Path(__file__).resolve().parents[1]
+    migration = (
+        root / "schemas/postgres/678_runtime_market_reference_data_read_only.sql"
+    ).read_text()
+    schema = (root / "schemas/postgres/142_marketplace.sql").read_text()
+    sql_inventory = json.loads(
+        (root / "docs/refactor/runtime-sql-inventory.json").read_text()
+    )
+    application_sources = [
+        path for directory in (root / "services", root / "extensions")
+        for path in directory.rglob("*")
+        if path.is_file() and path.suffix in {".py", ".ts", ".js"}
+    ]
+
+    assert "market_reference_data" in runtime_role._RUNTIME_MUTATION_TABLES
+    assert "CREATE TABLE IF NOT EXISTS market_reference_data" in schema
+    assert not any(
+        "market_reference_data" in site["write_target_relations"]
+        for site in sql_inventory["execution_sites"]
+    )
+    assert not any(
+        re.search(
+            r"\b(?:INSERT\s+INTO|UPDATE|DELETE\s+FROM)\s+(?:public\.)?market_reference_data\b",
+            path.read_text(errors="replace"),
+            re.I,
+        )
+        for path in application_sources
+    )
+    assert migration.count("BEGIN;") == 1 and migration.count("COMMIT;") == 1
+    assert "REVOKE ALL PRIVILEGES ON TABLE public.market_reference_data FROM kokonut_runtime" in migration
+    assert "GRANT SELECT ON TABLE public.market_reference_data TO kokonut_runtime" in migration
+    assert "REVOKE INSERT (%1$I)" in migration
+    assert "REVOKE UPDATE (%1$I)" in migration
+    assert "REVOKE REFERENCES (%1$I)" in migration
+    assert "kokonut_directus_runtime" not in migration
+
+
+def test_quantity_unit_catalog_is_read_only_to_kernel_runtime():
+    root = Path(__file__).resolve().parents[1]
+    migration = (
+        root / "schemas/postgres/679_runtime_quantity_unit_read_only.sql"
+    ).read_text()
+    schema = (root / "schemas/postgres/112_regen_standards_parity.sql").read_text()
+    sql_inventory = json.loads(
+        (root / "docs/refactor/runtime-sql-inventory.json").read_text()
+    )
+    application_sources = [
+        path for directory in (root / "services", root / "extensions")
+        for path in directory.rglob("*")
+        if path.is_file() and path.suffix in {".py", ".ts", ".js"}
+    ]
+
+    assert "quantity_unit" in runtime_role._RUNTIME_MUTATION_TABLES
+    assert "CREATE TABLE IF NOT EXISTS quantity_unit" in schema
+    assert "INSERT INTO quantity_unit" in schema
+    assert not any(
+        "quantity_unit" in site.get("write_target_relations", [])
+        for site in sql_inventory["execution_sites"]
+    )
+    assert not any(
+        re.search(
+            r"\b(?:INSERT\s+INTO|UPDATE|DELETE\s+FROM)\s+(?:public\.)?quantity_unit\b",
+            path.read_text(errors="replace"),
+            re.I,
+        )
+        for path in application_sources
+    )
+    assert migration.count("BEGIN;") == 1 and migration.count("COMMIT;") == 1
+    assert "REVOKE ALL PRIVILEGES ON TABLE public.quantity_unit FROM kokonut_runtime" in migration
+    assert "GRANT SELECT ON TABLE public.quantity_unit TO kokonut_runtime" in migration
+    assert "REVOKE INSERT (%1$I)" in migration
+    assert "REVOKE UPDATE (%1$I)" in migration
+    assert "REVOKE REFERENCES (%1$I)" in migration
+    assert "kokonut_directus_runtime" not in migration
+
+
+def test_yield_benchmark_is_read_only_to_kernel_runtime():
+    root = Path(__file__).resolve().parents[1]
+    migration = (
+        root / "schemas/postgres/680_runtime_yield_benchmark_read_only.sql"
+    ).read_text()
+    schema = (root / "schemas/postgres/137_yield_monitoring.sql").read_text()
+    sql_inventory = json.loads(
+        (root / "docs/refactor/runtime-sql-inventory.json").read_text()
+    )
+    application_sources = [
+        path for directory in (root / "services", root / "extensions")
+        for path in directory.rglob("*")
+        if path.is_file() and path.suffix in {".py", ".ts", ".js"}
+    ]
+    yield_benchmark_sites = [
+        site for site in sql_inventory["execution_sites"]
+        if "yield_benchmark" in site.get("candidate_relations", [])
+    ]
+
+    assert "yield_benchmark" in runtime_role._RUNTIME_MUTATION_TABLES
+    assert "CREATE TABLE IF NOT EXISTS yield_benchmark" in schema
+    assert len(yield_benchmark_sites) == 1
+    assert yield_benchmark_sites[0]["statement_kind"] == "SELECT"
+    assert yield_benchmark_sites[0]["source"] == "services/analytics/yield_monitoring.py"
+    assert not any(
+        "yield_benchmark" in site.get("write_target_relations", [])
+        for site in sql_inventory["execution_sites"]
+    )
+    assert not any(
+        re.search(
+            r"\b(?:INSERT\s+INTO|UPDATE|DELETE\s+FROM)\s+(?:public\.)?yield_benchmark\b",
+            path.read_text(errors="replace"),
+            re.I,
+        )
+        for path in application_sources
+    )
+    assert migration.count("BEGIN;") == 1 and migration.count("COMMIT;") == 1
+    assert "REVOKE ALL PRIVILEGES ON TABLE public.yield_benchmark FROM kokonut_runtime" in migration
+    assert "GRANT SELECT ON TABLE public.yield_benchmark TO kokonut_runtime" in migration
+    assert "REVOKE INSERT (%1$I)" in migration
+    assert "REVOKE UPDATE (%1$I)" in migration
+    assert "REVOKE REFERENCES (%1$I)" in migration
+    assert "kokonut_directus_runtime" not in migration
+    assert "does not establish tenant isolation" in migration
+
+
+def test_metric_definition_is_read_only_to_kernel_runtime():
+    root = Path(__file__).resolve().parents[1]
+    migration = (
+        root / "schemas/postgres/681_runtime_metric_definition_read_only.sql"
+    ).read_text()
+    schema = (root / "schemas/postgres/007_modeled_outputs.sql").read_text()
+    sql_inventory = json.loads(
+        (root / "docs/refactor/runtime-sql-inventory.json").read_text()
+    )
+    application_sources = [
+        path for directory in (root / "services", root / "extensions")
+        for path in directory.rglob("*")
+        if path.is_file() and path.suffix in {".py", ".ts", ".js"}
+    ]
+    definition_sites = [
+        site for site in sql_inventory["execution_sites"]
+        if "metric_definition" in site.get("candidate_relations", [])
+    ]
+
+    assert "metric_definition" in runtime_role._RUNTIME_MUTATION_TABLES
+    assert "CREATE TABLE IF NOT EXISTS metric_definition" in schema
+    assert definition_sites
+    assert all(site["statement_kind"] == "SELECT" for site in definition_sites)
+    assert not any(
+        "metric_definition" in site.get("write_target_relations", [])
+        for site in sql_inventory["execution_sites"]
+    )
+    assert not any(
+        re.search(
+            r"\b(?:INSERT\s+INTO|UPDATE|DELETE\s+FROM)\s+(?:public\.)?metric_definition\b",
+            path.read_text(errors="replace"),
+            re.I,
+        )
+        for path in application_sources
+    )
+    assert migration.count("BEGIN;") == 1 and migration.count("COMMIT;") == 1
+    assert "REVOKE ALL PRIVILEGES ON TABLE public.metric_definition FROM kokonut_runtime" in migration
+    assert "GRANT SELECT ON TABLE public.metric_definition TO kokonut_runtime" in migration
+    assert "REVOKE INSERT (%1$I)" in migration
+    assert "REVOKE UPDATE (%1$I)" in migration
+    assert "REVOKE REFERENCES (%1$I)" in migration
+    assert "kokonut_directus_runtime" not in migration
+    assert "does not establish tenant isolation" in migration
+
+
+def test_service_registry_is_read_only_to_kernel_runtime():
+    root = Path(__file__).resolve().parents[1]
+    migration = (
+        root / "schemas/postgres/682_runtime_service_registry_read_only.sql"
+    ).read_text()
+    schema = (root / "schemas/postgres/195_service_catalog.sql").read_text()
+    mapping_schema = (root / "schemas/postgres/207_capability_map.sql").read_text()
+    application_sources = [
+        path for directory in (root / "services", root / "extensions")
+        for path in directory.rglob("*")
+        if path.is_file() and path.suffix in {".py", ".ts", ".js"}
+    ]
+    sql_inventory = json.loads(
+        (root / "docs/refactor/runtime-sql-inventory.json").read_text()
+    )
+    registry_sites = [
+        site for site in sql_inventory["execution_sites"]
+        if "service_registry" in site.get("candidate_relations", [])
+    ]
+
+    assert "service_registry" in runtime_role._RUNTIME_MUTATION_TABLES
+    assert "CREATE TABLE IF NOT EXISTS service_registry" in schema
+    assert "CREATE TRIGGER" in schema and "trg_service_registry_updated_at" in schema
+    assert "REFERENCES service_registry(name) ON DELETE CASCADE" in mapping_schema
+    assert registry_sites
+    assert all(site["statement_kind"] == "SELECT" for site in registry_sites)
+    assert not any(
+        "service_registry" in site.get("write_target_relations", [])
+        for site in sql_inventory["execution_sites"]
+    )
+    assert not any(
+        re.search(
+            r"\b(?:INSERT\s+INTO|UPDATE|DELETE\s+FROM)\s+(?:public\.)?service_registry\b",
+            path.read_text(errors="replace"),
+            re.I,
+        )
+        for path in application_sources
+    )
+    assert migration.count("BEGIN;") == 1 and migration.count("COMMIT;") == 1
+    assert "REVOKE ALL PRIVILEGES ON TABLE public.service_registry FROM kokonut_runtime" in migration
+    assert "GRANT SELECT ON TABLE public.service_registry TO kokonut_runtime" in migration
+    assert "REVOKE INSERT (%1$I)" in migration
+    assert "REVOKE UPDATE (%1$I)" in migration
+    assert "REVOKE REFERENCES (%1$I)" in migration
+    assert "kokonut_directus_runtime" not in migration
+    assert "does not establish tenant isolation" in migration
+
+
+def test_capex_breakdown_is_read_only_to_kernel_runtime():
+    root = Path(__file__).resolve().parents[1]
+    migration = (
+        root / "schemas/postgres/690_runtime_capex_breakdown_read_only.sql"
+    ).read_text()
+    schema = (root / "schemas/postgres/019_module_b_gaps.sql").read_text()
+    sql_inventory = build_inventory()
+    source_sites = [
+        site for site in sql_inventory["execution_sites"]
+        if "capex_breakdown" in site.get("candidate_relations", [])
+    ]
+    application_sources = [
+        path
+        for directory in (root / "services", root / "extensions")
+        for path in directory.rglob("*")
+        if path.is_file() and path.suffix in {".py", ".ts", ".js", ".sh"}
+    ]
+
+    assert "capex_breakdown" in runtime_role._RUNTIME_MUTATION_TABLES
+    assert "CREATE TABLE IF NOT EXISTS capex_breakdown" in schema
+    assert len(source_sites) == 2
+    assert {site["statement_kind"] for site in source_sites} == {"SELECT"}
+    assert all(
+        "capex_breakdown" not in site.get("write_target_relations", [])
+        for site in source_sites
+    )
+    assert not any(
+        re.search(
+            r"\b(?:INSERT\s+INTO|UPDATE|DELETE\s+FROM|MERGE\s+INTO)\s+"
+            r"(?:public\.)?capex_breakdown\b",
+            path.read_text(errors="replace"),
+            re.I,
+        )
+        for path in application_sources
+    )
+    assert migration.count("BEGIN;") == 1 and migration.count("COMMIT;") == 1
+    assert "REVOKE ALL PRIVILEGES ON TABLE public.capex_breakdown FROM kokonut_runtime" in migration
+    assert "GRANT SELECT ON TABLE public.capex_breakdown TO kokonut_runtime" in migration
+    assert "REVOKE INSERT (%1$I)" in migration
+    assert "REVOKE UPDATE (%1$I)" in migration
+    assert "REVOKE REFERENCES (%1$I)" in migration
+    assert "kokonut_directus_runtime" not in migration
+    assert "does not establish tenant isolation" in migration
+
+
+def test_water_access_and_attestation_plan_are_read_only_to_kernel_runtime():
+    root = Path(__file__).resolve().parents[1]
+    migration = (
+        root
+        / "schemas/postgres/691_runtime_water_access_attestation_plan_read_only.sql"
+    ).read_text()
+    source = (root / "services/migration/runtime_role.py").read_text()
+    inventory = build_inventory()
+    directus_policy = (
+        root / "extensions/kokonut-hooks/src/directus-authorization.ts"
+    ).read_text()
+    expected_site_counts = {"water_access": 2, "attestation_plan": 1}
+    application_sources = [
+        path
+        for directory in (root / "services", root / "extensions")
+        for path in directory.rglob("*")
+        if path.is_file() and path.suffix in {".py", ".ts", ".js", ".sh"}
+    ]
+
+    assert {"water_access", "attestation_plan"}.issubset(
+        runtime_role._RUNTIME_MUTATION_TABLES
+    )
+    assert migration.count("BEGIN;") == 1 and migration.count("COMMIT;") == 1
+    assert "does not establish tenant isolation" in migration
+    assert "kokonut_directus_runtime" not in migration
+    read_only_collections = re.search(
+        r"export const READ_ONLY_TENANT_SCOPED_COLLECTIONS\s*=\s*\[(.*?)\]"
+        r"\s*as const",
+        directus_policy,
+        re.S,
+    )
+    assert read_only_collections is not None
+    for table in ("water_access", "attestation_plan"):
+        assert f"'{table}'" in read_only_collections.group(1)
+
+    for table, expected_count in expected_site_counts.items():
+        source_sites = [
+            site
+            for site in inventory["execution_sites"]
+            if table in site.get("candidate_relations", [])
+        ]
+        assert len(source_sites) == expected_count
+        assert {site["statement_kind"] for site in source_sites} == {"SELECT"}
+        assert all(not site.get("write_target_relations") for site in source_sites)
+        assert not any(
+            re.search(
+                rf"\b(?:INSERT\s+INTO|UPDATE|DELETE\s+FROM|MERGE\s+INTO)\s+"
+                rf"(?:public\.)?{table}\b",
+                path.read_text(errors="replace"),
+                re.I,
+            )
+            for path in application_sources
+        )
+        assert f"'{table}'" in migration
+        assert table in source
+    assert "REVOKE ALL PRIVILEGES ON TABLE %I.%I FROM kokonut_runtime" in migration
+    assert "GRANT SELECT ON TABLE %I.%I TO kokonut_runtime" in migration
+    assert "REVOKE INSERT (%I)" in migration
+    assert "REVOKE UPDATE (%I)" in migration
+    assert "REVOKE REFERENCES (%I)" in migration
+
+
+def test_managed_hive_legacy_writers_are_retired_and_acl_is_scoped():
+    root = Path(__file__).resolve().parents[1]
+    migration = (
+        root / "schemas/postgres/692_runtime_pollinator_hive_writes_read_only.sql"
+    ).read_text()
+    inventory = build_inventory()
+    expected = {"hive_record", "pollinator_hive_inspection"}
+
+    assert expected.issubset(runtime_role._RUNTIME_MUTATION_TABLES)
+    for table in expected:
+        source_sites = [
+            site
+            for site in inventory["execution_sites"]
+            if table in site.get("candidate_relations", [])
+        ]
+        assert source_sites
+        assert {site["statement_kind"] for site in source_sites} == {"SELECT"}
+        assert all(not site.get("write_target_relations") for site in source_sites)
+
+    pollinator_source = (
+        root / "services/analytics/pollinator_health.py"
+    ).read_text()
+    assert "def add_hive(" in pollinator_source
+    assert "def record_hive_inspection(" in pollinator_source
+    assert "Unscoped managed-hive writes are retired" in pollinator_source
+    assert "Unscoped hive inspection writes are retired" in pollinator_source
+    assert "kokonut_runtime" in migration
+    assert "kokonut_directus_runtime" in migration
+    assert "'PUBLIC'" in migration
+    assert "GRANT SELECT ON TABLE %I.%I TO %s" in migration
+    assert "REVOKE INSERT (%1$I), UPDATE (%1$I), REFERENCES (%1$I)" in migration
+    assert "kokonut_pollinator_hive_writer" not in migration
+    assert "kokonut_pollinator_inspection_writer" not in migration
+    assert "kokonut_pollinator_hive_lifecycle_writer" not in migration
+    assert "kokonut_pollinator_review_writer" not in migration
+
+
+def test_pollinator_capture_writers_are_retired_and_acl_is_scoped():
+    root = Path(__file__).resolve().parents[1]
+    migration = (
+        root / "schemas/postgres/693_runtime_pollinator_capture_writes_read_only.sql"
+    ).read_text()
+    inventory = build_inventory()
+    expected = {
+        "pollinator_observation",
+        "pollinator_habitat",
+        "pesticide_impact_log",
+    }
+    source = (root / "services/analytics/pollinator_health.py").read_text()
+
+    assert expected.issubset(runtime_role._RUNTIME_MUTATION_TABLES)
+    for table in expected:
+        source_sites = [
+            site
+            for site in inventory["execution_sites"]
+            if table in site.get("candidate_relations", [])
+        ]
+        assert source_sites
+        assert {site["statement_kind"] for site in source_sites} == {"SELECT"}
+        assert all(not site.get("write_target_relations") for site in source_sites)
+        assert f"'{table}'" in migration
+        assert table in source
+
+    assert migration.count("BEGIN;") == 1 and migration.count("COMMIT;") == 1
+    assert "'kokonut_runtime'" in migration
+    assert "'kokonut_directus_runtime'" in migration
+    assert "'PUBLIC'" in migration
+    assert "GRANT SELECT ON TABLE %I.%I TO %s" in migration
+    assert "REVOKE INSERT (%1$I), UPDATE (%1$I), REFERENCES (%1$I)" in migration
+    assert "does not make reads tenant-safe" in migration
+    assert "kokonut_pollinator_observation_writer" not in migration
+    assert "kokonut_pollinator_habitat_writer" not in migration
+    assert "kokonut_pesticide_impact_writer" not in migration
+    assert "Unscoped pollinator observation writes are retired" in source
+    assert "Unscoped pollinator habitat writes are retired" in source
+    assert "Unscoped pesticide-impact writes are retired" in source
+
+
+def test_event_handler_registry_is_runtime_read_only():
+    root = Path(__file__).resolve().parents[1]
+    migration = (
+        root / "schemas/postgres/694_runtime_event_handler_registry_read_only.sql"
+    ).read_text()
+    source_migration = (root / "schemas/postgres/116_event_bus.sql").read_text()
+    dispatch_migration = (
+        root / "schemas/postgres/648_isolated_event_dispatch_worker.sql"
+    ).read_text()
+    inventory = build_inventory()
+
+    sites = [
+        site
+        for site in inventory["execution_sites"]
+        if "event_handler" in site.get("candidate_relations", [])
+    ]
+    assert len(sites) == 2
+    assert {site["statement_kind"] for site in sites} == {"SELECT"}
+    assert not any(site.get("write_target_relations") for site in sites)
+    assert {site["source"] for site in sites} == {
+        "services/events/bus.py",
+        "services/events/cli.py",
+    }
+    assert "event_handler" in runtime_role._RUNTIME_MUTATION_TABLES
+    assert migration.count("BEGIN;") == 1 and migration.count("COMMIT;") == 1
+    assert "REVOKE ALL PRIVILEGES ON TABLE public.event_handler FROM kokonut_runtime" in migration
+    assert "GRANT SELECT ON TABLE public.event_handler TO kokonut_runtime" in migration
+    assert "REVOKE INSERT (%1$I), UPDATE (%1$I), REFERENCES (%1$I)" in migration
+    assert "kokonut_directus_runtime" not in migration
+    assert "kokonut_event_dispatch_owner" not in migration
+    assert "FROM PUBLIC" not in migration and "TO PUBLIC" not in migration
+    assert "CREATE TABLE IF NOT EXISTS event_handler" in source_migration
+    assert "INSERT INTO event_handler" in source_migration
+    assert "GRANT SELECT (id, event_type, module_path, function_name, is_enabled," in dispatch_migration
+    assert "ON public.event_handler TO kokonut_event_dispatch_owner" in dispatch_migration
+
+
+def test_capital_source_is_read_only_to_the_runtime_role():
+    root = Path(__file__).resolve().parents[1]
+    migration = (
+        root / "schemas/postgres/695_runtime_capital_source_read_only.sql"
+    ).read_text()
+    seed = (root / "schemas/seeds/008_pilot_capital_flows.sql").read_text()
+    seed_runner = (root / "scripts/lib/common.sh").read_text()
+    pilot_runner = (root / "scripts/seed-pilot.sh").read_text()
+    directus_permissions = (root / "config/directus/permissions.sql").read_text()
+    inventory = build_inventory()
+    sites = [
+        site
+        for site in inventory["execution_sites"]
+        if "capital_source" in site.get("candidate_relations", [])
+    ]
+    application_sources = [
+        path
+        for directory in (root / "services", root / "extensions")
+        for path in directory.rglob("*")
+        if path.is_file() and path.suffix in {".py", ".ts", ".js", ".sh"}
+    ]
+
+    assert "capital_source" in runtime_role._RUNTIME_MUTATION_TABLES
+    assert len(sites) == 4
+    assert {site["statement_kind"] for site in sites} == {"SELECT"}
+    assert all(not site.get("write_target_relations") for site in sites)
+    assert not any(
+        re.search(
+            r"\b(?:INSERT\s+INTO|UPDATE|DELETE\s+FROM|MERGE\s+INTO)\s+"
+            r"(?:public\.)?capital_source\b",
+            path.read_text(errors="replace"),
+            re.I,
+        )
+        for path in application_sources
+    )
+    assert "INSERT INTO capital_source" in seed
+    assert "ON CONFLICT (id) DO UPDATE SET" in seed
+    assert 'psql -v ON_ERROR_STOP=1 -U kokonut -d kokonut_intelligence < "$tmp"' in seed_runner
+    assert 'for seed_file in "$SEED_DIR"/*_pilot_*.sql; do' in pilot_runner
+    assert 'seed_apply "$seed_file" pilot' in pilot_runner
+    assert "('capital_source', 'read'," in directus_permissions
+    assert not re.search(
+        r"\('capital_source',\s*'(?:create|update|delete)',",
+        directus_permissions,
+    )
+    assert migration.count("BEGIN;") == 1 and migration.count("COMMIT;") == 1
+    assert "REVOKE ALL PRIVILEGES ON TABLE public.capital_source FROM kokonut_runtime" in migration
+    assert "GRANT SELECT ON TABLE public.capital_source TO kokonut_runtime" in migration
+    assert "REVOKE INSERT (%1$I), UPDATE (%1$I), REFERENCES (%1$I)" in migration
+    assert "kokonut_directus_runtime" not in migration
+    assert "does not establish tenant isolation" in migration
+
+
+def test_consent_data_type_catalog_is_read_only_to_the_runtime_role():
+    root = Path(__file__).resolve().parents[1]
+    migration = (
+        root / "schemas/postgres/696_runtime_consent_data_type_read_only.sql"
+    ).read_text()
+    schema = (root / "schemas/postgres/148_farmer_identity.sql").read_text()
+    retention_migration = (
+        root / "schemas/postgres/401_dynamic_retention_and_legal_holds.sql"
+    ).read_text()
+    inventory = build_inventory()
+    sites = [
+        site for site in inventory["execution_sites"]
+        if "consent_data_type" in site.get("candidate_relations", [])
+    ]
+    write_sites = [
+        site for site in inventory["execution_sites"]
+        if "consent_data_type" in site.get("write_target_relations", [])
+    ]
+    application_sources = [
+        path
+        for directory in (root / "services", root / "extensions")
+        for path in directory.rglob("*")
+        if path.is_file() and path.suffix in {".py", ".ts", ".js"}
+    ]
+    directus_permissions = (root / "config/directus/permissions.sql").read_text()
+
+    assert "consent_data_type" in runtime_role._RUNTIME_MUTATION_TABLES
+    assert sites == [] and write_sites == []
+    assert "CREATE TABLE IF NOT EXISTS consent_data_type" in schema
+    assert "INSERT INTO consent_data_type" in schema
+    assert "ON CONFLICT (name) DO UPDATE SET" in schema
+    assert "consent_data_type" not in directus_permissions
+    assert not any(
+        re.search(
+            r"\b(?:INSERT\s+INTO|UPDATE|DELETE\s+FROM|MERGE\s+INTO)\s+"
+            r"(?:public\.)?consent_data_type\b",
+            path.read_text(errors="replace"),
+            re.I,
+        )
+        for path in application_sources
+    )
+    assert "ALTER COLUMN default_retention_days DROP DEFAULT" in retention_migration
+    assert "UPDATE consent_data_type SET default_retention_days = NULL" in retention_migration
+    assert "data_retention_policy" in retention_migration
+    assert not re.search(
+        r"\b(?:ALTER\s+TABLE|INSERT\s+INTO|UPDATE|DELETE\s+FROM)\s+"
+        r"(?:public\.)?data_retention_policy\b",
+        migration,
+        re.I,
+    )
+    assert migration.count("BEGIN;") == 1 and migration.count("COMMIT;") == 1
+    assert (
+        "REVOKE ALL PRIVILEGES ON TABLE public.consent_data_type "
+        "FROM kokonut_runtime"
+    ) in migration
+    assert (
+        "GRANT SELECT ON TABLE public.consent_data_type TO kokonut_runtime"
+    ) in migration
+    assert "REVOKE INSERT (%1$I), UPDATE (%1$I), REFERENCES (%1$I)" in migration
+    assert "kokonut_directus_runtime" not in migration
+    assert "retention windows are configured in data_retention_policy" in migration
+
+
+def test_process_benchmark_is_read_only_to_the_runtime_role():
+    root = Path(__file__).resolve().parents[1]
+    migration = (
+        root / "schemas/postgres/697_runtime_process_benchmark_read_only.sql"
+    ).read_text()
+    schema = (root / "schemas/postgres/192_process_costing.sql").read_text()
+    inventory = build_inventory()
+    sites = [
+        site for site in inventory["execution_sites"]
+        if "process_benchmark" in site.get("candidate_relations", [])
+    ]
+    write_sites = [
+        site for site in inventory["execution_sites"]
+        if "process_benchmark" in site.get("write_target_relations", [])
+    ]
+    application_sources = [
+        path
+        for directory in (root / "services", root / "extensions")
+        for path in directory.rglob("*")
+        if path.is_file() and path.suffix in {".py", ".ts", ".js"}
+    ]
+    seed_writes = [
+        path for path in (root / "schemas/seeds").glob("*.sql")
+        if re.search(
+            r"\b(?:INSERT\s+INTO|UPDATE|DELETE\s+FROM|MERGE\s+INTO)\s+"
+            r"(?:public\.)?process_benchmark\b",
+            path.read_text(errors="replace"),
+            re.I,
+        )
+    ]
+    directus_permissions = (root / "config/directus/permissions.sql").read_text()
+
+    assert "process_benchmark" in runtime_role._RUNTIME_MUTATION_TABLES
+    assert "CREATE TABLE IF NOT EXISTS process_benchmark" in schema
+    assert "Cross-location process performance benchmarks" in schema
+    assert sites == [] and write_sites == []
+    assert not any(
+        re.search(
+            r"\b(?:INSERT\s+INTO|UPDATE|DELETE\s+FROM|MERGE\s+INTO)\s+"
+            r"(?:public\.)?process_benchmark\b",
+            path.read_text(errors="replace"),
+            re.I,
+        )
+        for path in application_sources
+    )
+    assert seed_writes == []
+    assert "process_benchmark" not in directus_permissions
+    assert migration.count("BEGIN;") == 1 and migration.count("COMMIT;") == 1
+    assert (
+        "REVOKE ALL PRIVILEGES ON TABLE public.process_benchmark "
+        "FROM kokonut_runtime"
+    ) in migration
+    assert (
+        "GRANT SELECT ON TABLE public.process_benchmark TO kokonut_runtime"
+    ) in migration
+    assert "REVOKE INSERT (%1$I), UPDATE (%1$I), REFERENCES (%1$I)" in migration
+    assert "kokonut_directus_runtime" not in migration
+    assert "does not establish tenant isolation" in migration
+
+
+def test_living_wage_benchmark_is_read_only_to_runtime_with_separate_seed_boundary():
+    root = Path(__file__).resolve().parents[1]
+    migration = (
+        root / "schemas/postgres/704_runtime_living_wage_benchmark_read_only.sql"
+    ).read_text()
+    schema = (root / "schemas/postgres/062_true_cost_accounting.sql").read_text()
+    seed = (root / "schemas/seeds/062_true_cost_accounting.sql").read_text()
+    inventory = build_inventory()
+    sites = [
+        site for site in inventory["execution_sites"]
+        if "living_wage_benchmark" in site.get("candidate_relations", [])
+    ]
+    write_sites = [
+        site for site in inventory["execution_sites"]
+        if "living_wage_benchmark" in site.get("write_target_relations", [])
+    ]
+    application_sources = [
+        path
+        for directory in (root / "services", root / "extensions")
+        for path in directory.rglob("*")
+        if path.is_file() and path.suffix in {".py", ".ts", ".js"}
+    ]
+    application_writes = [
+        path
+        for path in application_sources
+        if re.search(
+            r"\b(?:INSERT\s+INTO|UPDATE|DELETE\s+FROM|MERGE\s+INTO)\s+"
+            r"(?:public\.)?living_wage_benchmark\b",
+            path.read_text(errors="replace"),
+            re.I,
+        )
+    ]
+    seed_writes = [
+        path for path in (root / "schemas/seeds").glob("*.sql")
+        if re.search(
+            r"\b(?:INSERT\s+INTO|UPDATE|DELETE\s+FROM|MERGE\s+INTO)\s+"
+            r"(?:public\.)?living_wage_benchmark\b",
+            path.read_text(errors="replace"),
+            re.I,
+        )
+    ]
+    directus_permissions = (root / "config/directus/permissions.sql").read_text()
+    analytics_source = (
+        root / "services/analytics/true_cost_accounting.py"
+    ).read_text()
+    policy_overrides = REPORTER["_SOURCE_REVOKE_POLICY_OVERRIDES"]
+
+    assert "living_wage_benchmark" in runtime_role._RUNTIME_MUTATION_TABLES
+    assert "CREATE TABLE IF NOT EXISTS living_wage_benchmark" in schema
+    assert len(sites) == 1
+    assert sites[0]["source"] == "services/analytics/true_cost_accounting.py"
+    assert sites[0]["statement_kind"] == "SELECT"
+    assert re.search(
+        r"FROM\s+living_wage_benchmark\s+WHERE\s+location_id\s*=\s*%s\s+"
+        r"AND\s+status\s*=\s*'active'\s+LIMIT\s+1",
+        analytics_source,
+        re.I,
+    )
+    assert write_sites == []
+    assert application_writes == []
+    assert seed_writes == [root / "schemas/seeds/062_true_cost_accounting.sql"]
+    assert re.search(r"living_wage_benchmark", seed, re.I)
+    assert "living_wage_benchmark" not in directus_permissions
+    assert policy_overrides["living_wage_benchmark"] == "runtime_mutations_denied"
+    assert migration.count("BEGIN;") == 1 and migration.count("COMMIT;") == 1
+    assert (
+        "REVOKE ALL PRIVILEGES ON TABLE public.living_wage_benchmark "
+        "FROM kokonut_runtime"
+    ) in migration
+    assert (
+        "GRANT SELECT ON TABLE public.living_wage_benchmark TO kokonut_runtime"
+    ) in migration
+    assert "REVOKE INSERT (%1$I), UPDATE (%1$I), REFERENCES (%1$I)" in migration
+    assert "kokonut_directus_runtime" not in migration
+    assert "separate maintenance authority" in migration
+    assert "External importer use through kokonut_runtime is unconfirmed" in migration
+    assert "does not establish tenant isolation" in migration
+
+
+def test_protocol_reference_is_read_only_to_runtime_and_seeded_by_maintenance():
+    root = Path(__file__).resolve().parents[1]
+    migration = (
+        root / "schemas/postgres/706_runtime_protocol_read_only.sql"
+    ).read_text()
+    inventory = build_inventory()
+    sites = [
+        site for site in inventory["execution_sites"]
+        if "protocol" in site.get("candidate_relations", [])
+    ]
+    write_sites = [
+        site for site in inventory["execution_sites"]
+        if "protocol" in site.get("write_target_relations", [])
+    ]
+    expected_sources = {
+        "services/ingestion/baal_indexer.py",
+        "services/ingestion/gnosis_indexer.py",
+        "services/metrics/calculators/digital_lego.py",
+        "services/revenue_multiplier/dimensions/web3_replication.py",
+    }
+    seed_paths = [root / "schemas/seeds/004_pilot_web3.sql", root / "schemas/seeds/020_gnosis_chain.sql"]
+    seed_writes = [
+        path
+        for path in seed_paths
+        if re.search(
+            r"\bINSERT\s+INTO\s+(?:public\.)?protocol\b",
+            path.read_text(),
+            re.I,
+        )
+    ]
+    policy_overrides = REPORTER["_SOURCE_REVOKE_POLICY_OVERRIDES"]
+
+    assert "protocol" in runtime_role._RUNTIME_MUTATION_TABLES
+    assert policy_overrides["protocol"] == "runtime_mutations_denied"
+    assert {site["source"] for site in sites} == expected_sources
+    assert all(site["statement_kind"] == "SELECT" for site in sites)
+    assert write_sites == []
+    assert seed_writes == seed_paths
+    assert migration.count("BEGIN;") == 1 and migration.count("COMMIT;") == 1
+    assert "REVOKE ALL PRIVILEGES ON TABLE public.protocol FROM kokonut_runtime" in migration
+    assert "GRANT SELECT ON TABLE public.protocol TO kokonut_runtime" in migration
+    assert "kokonut_directus_runtime" not in migration
+    assert "External importer use through kokonut_runtime is unconfirmed" in migration
+    assert "does not establish tenant isolation" in migration
+
+
+def test_farmer_role_defaults_are_read_only_to_runtime_and_maintenance_owned():
+    root = Path(__file__).resolve().parents[1]
+    migration = (
+        root / "schemas/postgres/707_runtime_farmer_role_read_only.sql"
+    ).read_text()
+    schema = (root / "schemas/postgres/148_farmer_identity.sql").read_text()
+    inventory = build_inventory()
+    sites = [
+        site for site in inventory["execution_sites"]
+        if "farmer_role" in site.get("candidate_relations", [])
+    ]
+    write_sites = [
+        site for site in inventory["execution_sites"]
+        if "farmer_role" in site.get("write_target_relations", [])
+    ]
+    directus_files = [root / "config/directus/permissions.sql"]
+    directus_files.extend(
+        path
+        for path in (root / "extensions/kokonut-hooks/src").rglob("*.ts")
+        if path.is_file()
+    )
+    directus_references = [
+        path for path in directus_files
+        if "farmer_role" in path.read_text(errors="ignore")
+    ]
+    policy_overrides = REPORTER["_SOURCE_REVOKE_POLICY_OVERRIDES"]
+
+    assert len(sites) == 1
+    assert sites[0]["source"] == "services/analytics/farmer_identity.py"
+    assert sites[0]["statement_kind"] == "SELECT"
+    assert "SELECT default_permissions FROM farmer_role" in (
+        root / "services/analytics/farmer_identity.py"
+    ).read_text()
+    assert write_sites == []
+    assert "CREATE TABLE IF NOT EXISTS farmer_role" in schema
+    assert "INSERT INTO farmer_role" in schema
+    assert directus_references == []
+    assert "farmer_role" in runtime_role._RUNTIME_MUTATION_TABLES
+    assert policy_overrides["farmer_role"] == "runtime_mutations_denied"
+    assert migration.count("BEGIN;") == 1 and migration.count("COMMIT;") == 1
+    assert (
+        "REVOKE ALL PRIVILEGES ON TABLE public.farmer_role FROM kokonut_runtime"
+        in migration
+    )
+    assert "GRANT SELECT ON TABLE public.farmer_role TO kokonut_runtime" in migration
+    assert "REVOKE INSERT (%1$I), UPDATE (%1$I), REFERENCES (%1$I)" in migration
+    assert "kokonut_directus_runtime" not in migration
+    assert "External importer use through kokonut_runtime is unconfirmed" in migration
+    assert "does not establish tenant isolation" in migration
+
+
+def test_schema_version_writes_remain_on_the_ordered_migration_path():
+    root = Path(__file__).resolve().parents[1]
+    migration = (
+        root / "schemas/postgres/709_runtime_schema_version_read_only.sql"
+    ).read_text()
+    inventory = build_inventory()
+    service_sites = [
+        site
+        for site in inventory["execution_sites"]
+        if "schema_version" in site.get("candidate_relations", [])
+    ]
+    service_write_sites = [
+        site
+        for site in inventory["execution_sites"]
+        if "schema_version" in site.get("write_target_relations", [])
+    ]
+    application_runtime_sql = []
+    runtime_sql = re.compile(
+        r"\b(?:INSERT\s+INTO|UPDATE|DELETE\s+FROM|MERGE\s+INTO)\s+"
+        r"(?:public\.)?schema_version\b",
+        re.IGNORECASE,
+    )
+    for directory in (root / "services", root / "extensions"):
+        for path in directory.rglob("*"):
+            if path.is_file() and path.suffix in {".py", ".ts", ".js", ".sql"}:
+                if runtime_sql.search(path.read_text(errors="ignore")):
+                    application_runtime_sql.append(path.relative_to(root).as_posix())
+    directus_permissions = (root / "config/directus/permissions.sql").read_text()
+    policy_overrides = REPORTER["_SOURCE_REVOKE_POLICY_OVERRIDES"]
+
+    assert service_sites == []
+    assert service_write_sites == []
+    assert application_runtime_sql == []
+    assert "schema_version" not in directus_permissions
+    assert "schema_version" in runtime_role._RUNTIME_MUTATION_TABLES
+    assert policy_overrides["schema_version"] == "runtime_mutations_denied"
+    assert migration.count("BEGIN;") == 1 and migration.count("COMMIT;") == 1
+    assert "REVOKE INSERT, UPDATE, DELETE, TRUNCATE, REFERENCES, TRIGGER " in migration
+    assert "ON TABLE public.schema_version FROM kokonut_runtime" in migration
+    assert "GRANT SELECT ON TABLE public.schema_version TO kokonut_runtime" in migration
+    assert "external importer" in migration.lower()
+    assert "does not establish tenant isolation" in migration
+
+
+def test_cache_invalidation_rules_are_read_only_to_runtime_and_schema_owned():
+    root = Path(__file__).resolve().parents[1]
+    migration = (
+        root
+        / "schemas/postgres/710_runtime_cache_invalidation_rule_read_only.sql"
+    ).read_text()
+    schema = (root / "schemas/postgres/118_computation_cache.sql").read_text()
+    inventory = build_inventory()
+    sites = [
+        site
+        for site in inventory["execution_sites"]
+        if "cache_invalidation_rule" in site.get("candidate_relations", [])
+    ]
+    write_sites = [
+        site
+        for site in inventory["execution_sites"]
+        if "cache_invalidation_rule" in site.get("write_target_relations", [])
+    ]
+    application_writes = []
+    runtime_sql = re.compile(
+        r"\b(?:INSERT\s+INTO|UPDATE|DELETE\s+FROM|MERGE\s+INTO)\s+"
+        r"(?:public\.)?cache_invalidation_rule\b",
+        re.IGNORECASE,
+    )
+    for directory in (root / "services", root / "extensions"):
+        for path in directory.rglob("*"):
+            if path.is_file() and path.suffix in {".py", ".ts", ".js", ".sql"}:
+                if runtime_sql.search(path.read_text(errors="ignore")):
+                    application_writes.append(path.relative_to(root).as_posix())
+    directus_permissions = (root / "config/directus/permissions.sql").read_text()
+    policy_overrides = REPORTER["_SOURCE_REVOKE_POLICY_OVERRIDES"]
+
+    assert sites == []
+    assert write_sites == []
+    assert application_writes == []
+    assert "CREATE TABLE IF NOT EXISTS cache_invalidation_rule" in schema
+    assert "INSERT INTO cache_invalidation_rule" in schema
+    assert "cache_invalidation_rule" not in directus_permissions
+    assert "cache_invalidation_rule" in runtime_role._RUNTIME_MUTATION_TABLES
+    assert policy_overrides["cache_invalidation_rule"] == "runtime_mutations_denied"
+    assert migration.count("BEGIN;") == 1 and migration.count("COMMIT;") == 1
+    assert "REVOKE INSERT, UPDATE, DELETE, TRUNCATE, REFERENCES, TRIGGER " in migration
+    assert "ON TABLE public.cache_invalidation_rule FROM kokonut_runtime" in migration
+    assert (
+        "GRANT SELECT ON TABLE public.cache_invalidation_rule TO kokonut_runtime"
+        in migration
+    )
+    assert "external" in migration.lower() and "unconfirmed" in migration.lower()
+    assert "does not establish tenant isolation" in migration
 
 
 def test_mobile_credential_columns_are_excluded_from_runtime_reads():
@@ -336,6 +2269,76 @@ def test_baal_indexer_provisioning_requires_paired_credentials_and_distinct_owne
             baal_indexer_user="kokonut_baal_indexer_owner",
             baal_indexer_password="b" * 32,
         )
+
+
+def test_c1_gateway_writer_functions_are_private_and_owned_by_isolated_roles():
+    expected = {
+        "kokonut_security.mutate_governance_tension_action(uuid,uuid,text,uuid,jsonb,text)":
+            "kokonut_governance_action_owner",
+        "kokonut_security.create_extension_peer_network(uuid,uuid,text,text,text,integer,text,text,jsonb)":
+            "kokonut_extension_learning_writer",
+        "kokonut_security.update_extension_learning_progress(uuid,uuid,uuid,text,numeric,numeric,integer,jsonb)":
+            "kokonut_extension_learning_writer",
+        "kokonut_security.extension_learning_grant_allows(uuid,text,uuid)":
+            "kokonut_extension_learning_writer",
+        "kokonut_security.extension_compact_json_text(jsonb)":
+            "kokonut_extension_learning_writer",
+        "kokonut_security.create_location_landscape_record(uuid,text,uuid,jsonb,text)":
+            "kokonut_landscape_capture_writer",
+        "kokonut_security.create_location_metric_value_draft(uuid,uuid,uuid,text,date,date,numeric,text,text,uuid[],jsonb)":
+            "kokonut_metric_value_manager",
+        "kokonut_security.verify_location_metric_value(uuid,uuid,uuid,text)":
+            "kokonut_metric_value_manager",
+        "kokonut_security.list_location_metric_values(uuid,text,integer)":
+            "kokonut_metric_value_manager",
+    }
+    owner_map = dict(runtime_role._SECURITY_DEFINER_OWNERS)
+    assert set(expected) <= set(runtime_role._PRIVATE_RUNTIME_FUNCTIONS)
+    assert {function: owner_map[function] for function in expected} == expected
+
+
+@pytest.mark.parametrize(
+    "owner,owner_label",
+    [
+        ("kokonut_governance_action_owner", "governance-action"),
+        ("kokonut_extension_learning_writer", "extension-learning"),
+        ("kokonut_landscape_capture_writer", "landscape-capture"),
+        ("kokonut_metric_value_manager", "metric-value"),
+    ],
+)
+def test_c1_function_owner_roles_cannot_be_application_logins(owner, owner_label):
+    with pytest.raises(ValueError, match=f"differ from the {owner_label} function owner"):
+        runtime_role.provision_runtime_role(
+            None,
+            database="kokonut_intelligence",
+            admin_user="kokonut",
+            admin_password="admin-password",
+            runtime_user=owner,
+            runtime_password="runtime-password",
+            operator_auth_user="kokonut_operator_auth",
+            operator_auth_password="operator-password",
+        )
+
+
+def test_c1_receipt_and_audit_tables_stay_private_after_runtime_reprovisioning():
+    expected_private_tables = {
+        "governance_tension_action_request",
+        "extension_peer_network_create_receipt",
+        "extension_learning_progress_update_receipt",
+        "landscape_capture_receipt",
+        "metric_value_compute_receipt",
+        "metric_value_verification_receipt",
+        "metric_value_operator_audit",
+    }
+    private_tables = set(runtime_role._RUNTIME_PRIVATE_TABLES)
+    boundaries, _ = REPORTER["_runtime_role_boundaries"]()
+
+    assert expected_private_tables <= private_tables
+    assert expected_private_tables.isdisjoint(runtime_role._RUNTIME_MUTATION_TABLES)
+    assert {
+        table: boundaries[table]
+        for table in expected_private_tables
+    } == {table: "no_direct_runtime_access" for table in expected_private_tables}
 
 
 def test_freshness_worker_has_an_execute_only_role_contract():

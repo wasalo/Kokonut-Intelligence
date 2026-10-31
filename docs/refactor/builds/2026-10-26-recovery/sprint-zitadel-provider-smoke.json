@@ -1,0 +1,22 @@
+{
+  "result": "passed",
+  "project": "kokonut-sprint-idp-ae54eb37e80f",
+  "candidate_or_legacy_touched": false,
+  "discovery": {
+    "status": 200,
+    "issuer": "https://zitadel.localhost:18448"
+  },
+  "services": [
+    "zitadel-db",
+    "zitadel-api",
+    "zitadel-login"
+  ],
+  "network_internal": true,
+  "database_role_restricted": true,
+  "scope_limit": "Provider startup and internal HTTP discovery only; no browser login, TLS trust, Gateway session, or tenant authorization is asserted.",
+  "cleanup": {
+    "attempted": true,
+    "completed": true
+  },
+  "checked_at": "2026-10-27T02:27:01.496680+00:00"
+}

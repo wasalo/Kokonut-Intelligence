@@ -37,6 +37,25 @@ services:
       retries: 8
       start_period: 10s
 
+  # Prepare only the dedicated Login UI token volume before the non-root API
+  # writes the initial token. The Login UI mounts this volume read-only.
+  zitadel-bootstrap-permissions:
+    image: ${KOKONUT_ZITADEL_POSTGRES_IMAGE:-postgres:17.10-alpine@sha256:742f40ea20b9ff2ff31db5458d127452988a2164df9e17441e191f3b72252193}
+    user: "0:0"
+    restart: "no"
+    network_mode: none
+    read_only: true
+    cap_drop: [ALL]
+    cap_add: [CHOWN, FOWNER, DAC_OVERRIDE]
+    security_opt: [no-new-privileges:true]
+    entrypoint: ["/bin/sh", "/scripts/prepare-bootstrap.sh"]
+    environment:
+      KOKONUT_ZITADEL_API_UID: ${KOKONUT_ZITADEL_API_UID:-1000}
+      KOKONUT_ZITADEL_LOGIN_GID: ${KOKONUT_ZITADEL_LOGIN_GID:-65533}
+    volumes:
+      - kernel-zitadel-bootstrap:/zitadel/bootstrap
+      - ./scripts/zitadel/prepare-bootstrap.sh:/scripts/prepare-bootstrap.sh:ro
+
   zitadel-api:
     image: ${KOKONUT_ZITADEL_API_IMAGE:-ghcr.io/zitadel/zitadel:v4.19.4@sha256:90a3045b80a2b5b395e1e770302076906af3a5911225af7c464b4f3bd00d0a1b}
     restart: unless-stopped
@@ -65,6 +84,8 @@ services:
     depends_on:
       zitadel-db:
         condition: service_healthy
+      zitadel-bootstrap-permissions:
+        condition: service_completed_successfully
     networks:
       - kernel
       - zitadel-data

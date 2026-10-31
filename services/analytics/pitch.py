@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import textwrap
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
@@ -18,8 +19,9 @@ from typing import Any, Dict, List, Optional
 import psycopg2
 import psycopg2.extras
 
-from services.common.database import get_db
 from services.common.cli import print_json
+from services.common.database import get_db
+
 AUDIENCES = ("funders", "operators", "developers", "refi", "impact", "elevator")
 
 
@@ -445,10 +447,10 @@ def render_html(pitch: Dict[str, Any]) -> str:
         title = section.get("title", "")
         content = section.get("content", "")
         if title and content:
-            sections_html += f'<section class="pitch-section">\n'
+            sections_html += '<section class="pitch-section">\n'
             sections_html += f'<h2>{title}</h2>\n'
             sections_html += f'<p>{content}</p>\n'
-            sections_html += f'</section>\n'
+            sections_html += '</section>\n'
     return f"""<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -647,15 +649,48 @@ def _cmd_templates(args, conn) -> None:
         out = get_template(conn, args.audience)
         print_json(out)
     elif args.templates_command == "create":
-        sections = None
-        if args.sections:
-            sections = json.loads(args.sections)
         out = create_template(
             conn, args.audience, args.hook, args.problem,
             args.solution, args.proof, args.cta_label,
-            args.cta_url, sections=sections,
+            args.cta_url, sections=args.sections,
         )
         print_json(out)
+
+
+def _parse_template_sections(raw: str) -> List[Dict[str, Any]]:
+    """Validate CLI template sections before `_cmd` opens PostgreSQL."""
+
+    def reject_constant(value: str):
+        raise ValueError(f"non-standard JSON constant {value}")
+
+    try:
+        sections = json.loads(raw, parse_constant=reject_constant)
+    except (json.JSONDecodeError, ValueError) as exc:
+        raise ValueError("--sections must be a valid JSON array") from exc
+    if not isinstance(sections, list):
+        raise ValueError("--sections must be a JSON array")
+
+    def require_finite_numbers(value: Any) -> None:
+        if isinstance(value, float) and not math.isfinite(value):
+            raise ValueError("--sections must not contain non-finite numbers")
+        if isinstance(value, dict):
+            for nested in value.values():
+                require_finite_numbers(nested)
+        elif isinstance(value, list):
+            for nested in value:
+                require_finite_numbers(nested)
+
+    require_finite_numbers(sections)
+    for index, section in enumerate(sections):
+        if (
+            not isinstance(section, dict)
+            or not isinstance(section.get("title"), str)
+            or not isinstance(section.get("content"), str)
+        ):
+            raise ValueError(
+                f"--sections item {index} must be an object with string title and content"
+            )
+    return sections
 
 
 def main() -> None:
@@ -693,6 +728,12 @@ def main() -> None:
                     help='JSON array of {"title": ..., "content": ...} objects')
 
     args = p.parse_args()
+    if args.command == "templates" and args.templates_command == "create":
+        if args.sections is not None:
+            try:
+                args.sections = _parse_template_sections(args.sections)
+            except ValueError as exc:
+                p.error(str(exc))
     _cmd(args)
 
 

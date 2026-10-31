@@ -8,6 +8,9 @@ focused on queries/business logic. Reachable via:
 
 
 import json
+import sys
+from datetime import datetime
+from uuid import UUID
 
 from ..common.commands import CommandLine
 from .cooperative import (
@@ -397,7 +400,36 @@ cli.subcommand("member-dashboard", "Member dashboard") \
 
 
 def main(argv=None):
-    return cli.run(argv)
+    parser = cli.build_parser()
+    command_argv = list(argv if argv is not None else sys.argv[1:])
+    args = parser.parse_args(command_argv)
+    if args.command == "book-asset":
+        try:
+            if not any(separator in args.start for separator in ("T", "t", " ")):
+                raise ValueError("start has no time component")
+            if not any(separator in args.end for separator in ("T", "t", " ")):
+                raise ValueError("end has no time component")
+            start_time = datetime.fromisoformat(args.start)
+            end_time = datetime.fromisoformat(args.end)
+            interval_is_positive = end_time > start_time
+        except (TypeError, ValueError):
+            parser.error(
+                "--start and --end must be valid ISO 8601 datetimes with compatible timezone formats"
+            )
+        if not interval_is_positive:
+            parser.error("--end must be later than --start")
+    if args.command in {"create-coop", "list"}:
+        try:
+            location_id = str(UUID(args.location_id))
+        except (AttributeError, TypeError, ValueError):
+            parser.error(f"--location-id must be a valid UUID for {args.command}")
+
+        for index, argument in enumerate(command_argv):
+            if argument == "--location-id" and index + 1 < len(command_argv):
+                command_argv[index + 1] = location_id
+            elif argument.startswith("--location-id="):
+                command_argv[index] = f"--location-id={location_id}"
+    return cli.run(command_argv)
 
 
 if __name__ == "__main__":

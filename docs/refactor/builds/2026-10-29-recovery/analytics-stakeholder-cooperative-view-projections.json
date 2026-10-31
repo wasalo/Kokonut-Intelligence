@@ -1,0 +1,76 @@
+{
+  "date": "2026-10-29",
+  "scope": "mock-cursor-migration-view-contracts",
+  "views": [
+    {
+      "name": "v_stakeholder_engagement_summary",
+      "migration": 217,
+      "columns": [
+        "plan_id",
+        "name",
+        "status",
+        "engagement_mode",
+        "stakeholder_party_id",
+        "stakeholder_name",
+        "objective_count",
+        "touchpoint_count",
+        "commitment_count",
+        "open_commitment_count",
+        "fulfilled_commitment_count",
+        "overdue_commitment_count",
+        "outcome_count",
+        "last_outcome_at",
+        "scope_type",
+        "scope_id"
+      ],
+      "filters": ["stakeholder_party_id", "status"],
+      "ordering": "name",
+      "serialization": ["uuid", "datetime"]
+    },
+    {
+      "name": "v_stakeholder_commitment_health",
+      "migration": 216,
+      "columns": [
+        "commitment_id",
+        "plan_id",
+        "plan_name",
+        "stakeholder_name",
+        "owner_name",
+        "title",
+        "status",
+        "due_at",
+        "work_item_id",
+        "work_item_status",
+        "responsibility_id",
+        "is_overdue",
+        "outcome_count",
+        "last_outcome_at"
+      ],
+      "filters": ["commitment_id", "plan_id", "is_overdue"],
+      "ordering": "due_at NULLS LAST, title",
+      "serialization": ["uuid", "datetime"]
+    },
+    {
+      "name": "v_cooperative_governance_health",
+      "migration": 222,
+      "columns": [
+        "cooperative_id",
+        "name",
+        "active_member_count",
+        "meeting_count",
+        "open_proposal_count",
+        "open_conflict_count",
+        "pending_distribution_count"
+      ],
+      "filters": ["cooperative_id"],
+      "ordering": "name",
+      "serialization": "preserved existing row mapping"
+    }
+  ],
+  "focused_tests_passed": 11,
+  "ruff": "passed with pre-existing E702, F401, I001, and F841 findings suppressed",
+  "python_compile": "passed",
+  "diff_check": "passed",
+  "database_contacted": false,
+  "provider_contacted": false
+}

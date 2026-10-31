@@ -1,0 +1,77 @@
+{
+  "date": "2026-10-29",
+  "base_head": "adbbe4acdb5aabcc409a039799422d291edf184e",
+  "scope": "Gateway farm-activity draft creation/edit and lifecycle transition response contracts",
+  "files": [
+    "services/gateway/farm_activity_routes.py",
+    "tests/test_farm_activity_routes.py"
+  ],
+  "contracts": {
+    "draft_create": {
+      "method": "POST",
+      "path": "/operator/api/farm-activity-records",
+      "status": 201,
+      "fields": [
+        "id",
+        "location_id",
+        "plot_id",
+        "crop_cycle_id",
+        "activity_type",
+        "activity_date",
+        "description",
+        "labor_hours",
+        "labor_cost",
+        "materials_used",
+        "evidence_urls",
+        "notes",
+        "status",
+        "source_system",
+        "created_at",
+        "updated_at",
+        "event_id"
+      ],
+      "invariants": ["status=draft", "source_system=kokonut_gateway", "response location matches request"]
+    },
+    "draft_edit": {
+      "method": "PATCH",
+      "path": "/operator/api/farm-activity-records/{activity_id}/draft",
+      "status": 200,
+      "invariants": ["response location and activity IDs match request", "status=draft"]
+    },
+    "transition": {
+      "method": "POST",
+      "path": "/operator/api/farm-activity-records/{activity_id}/{action}",
+      "status": 200,
+      "request_actions": ["submit", "verify", "reject", "request-rework", "publish", "close-exception"],
+      "response_fields": ["event_id", "activity_id", "location_id", "action", "from_status", "to_status", "reason", "created_at"],
+      "event_state_mapping": {
+        "submitted": "draft -> submitted",
+        "verified": "submitted -> verified",
+        "rejected": "submitted|verified -> rejected",
+        "rework_requested": "rejected -> draft",
+        "published": "verified -> published",
+        "exception_closed": "rejected -> rejected"
+      },
+      "invariants": ["response location/activity/action match request", "rejection/rework/exception closure require a nonblank reason"]
+    }
+  },
+  "verification": {
+    "focused_test_command": "python3 -m pytest tests/test_farm_activity_routes.py -q",
+    "focused_tests_passed": 45,
+    "ruff": "passed",
+    "python_compileall": "passed",
+    "capability_matrix": "passed: 67 rows; 24 baseline-retained, 7 deployed, 36 prepared",
+    "git_diff_check": "passed"
+  },
+  "environment": {
+    "database_used": false,
+    "external_provider_used": false,
+    "candidate_or_legacy_state_changed": false,
+    "errors": 0
+  },
+  "notes": [
+    "Malformed service projections return a generic no-store error.",
+    "The route action is an OpenAPI enum and invalid actions fail before service access.",
+    "Lifecycle state changes and their transaction boundaries are unchanged."
+  ]
+}

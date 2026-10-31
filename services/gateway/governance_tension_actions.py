@@ -1,7 +1,10 @@
-"""Tenant-scoped Gateway intake and submission for governance tensions."""
+"""Tenant-scoped Gateway intake, submission, and lifecycle actions."""
 
 from __future__ import annotations
 
+import json
+import re
+from datetime import datetime
 from functools import partial
 from typing import Callable
 from uuid import UUID
@@ -24,6 +27,135 @@ _TENSION_TYPES = frozenset(
         "role_overload",
     }
 )
+_TENSION_ACTIONS = frozenset(
+    {"triage", "start", "link", "link_work_item", "resolve", "defer"}
+)
+_LINK_TYPES = frozenset(
+    {
+        "interest",
+        "commitment",
+        "work_item",
+        "decision",
+        "grievance",
+        "evidence",
+        "relationship",
+        "proposal",
+        "outcome",
+    }
+)
+
+
+def _normalize_action_payload(action: str, payload: object) -> tuple[str, str, dict]:
+    """Validate an action body before opening PostgreSQL.
+
+    The future migration contract is
+    `kokonut_security.mutate_governance_tension_action(UUID location_id,
+    UUID tension_id, TEXT action, UUID request_id, JSONB content, TEXT reason)`.
+    It returns exactly `(tension_id UUID, action TEXT, status TEXT,
+    updated_at TIMESTAMPTZ, request_id UUID, link_id UUID NULL)`. The function
+    must verify the signed operator context and exact action grant, bind the
+    tension and every linked object to `location_id`, enforce the state graph,
+    persist an idempotent request receipt, and append the lifecycle event
+    atomically. The response never includes actor identities.
+    """
+    if action not in _TENSION_ACTIONS:
+        raise GovernanceTensionInvalid("Governance tension action is not supported")
+    if not isinstance(payload, dict):
+        raise GovernanceTensionInvalid("Governance tension action must be an object")
+    common = {"request_id", "reason"}
+    extra = {
+        "triage": {"owner_role_id", "owner_party_id", "review_due_at", "note"},
+        "start": set(),
+        "link": {"link_type", "entity_type", "entity_id", "summary"},
+        "link_work_item": {"work_item_id"},
+        "resolve": {"resolution_summary"},
+        "defer": {"deferred_until", "note"},
+    }[action]
+    if not common.issubset(payload) or set(payload) - common - extra:
+        raise GovernanceTensionInvalid(
+            "Governance tension action has missing or unsupported fields"
+        )
+    try:
+        request_id = str(UUID(payload["request_id"]))
+    except (TypeError, ValueError, AttributeError) as exc:
+        raise GovernanceTensionInvalid("Invalid request identifier") from exc
+    reason = payload["reason"]
+    if not isinstance(reason, str) or not 1 <= len(reason.strip()) <= 2000 or "\x00" in reason:
+        raise GovernanceTensionInvalid("reason must contain 1 to 2000 characters")
+    content = {key: value for key, value in payload.items() if key not in common}
+
+    def normalize_uuid(field: str) -> None:
+        if field not in content:
+            raise GovernanceTensionInvalid(f"{field} is required")
+        value = content[field]
+        if value is None and field in {"owner_role_id", "owner_party_id"}:
+            return
+        try:
+            content[field] = str(UUID(value))
+        except (TypeError, ValueError, AttributeError) as exc:
+            raise GovernanceTensionInvalid(f"Invalid {field.removesuffix('_id')} identifier") from exc
+
+    if action == "triage":
+        if not content.get("owner_role_id") and not content.get("owner_party_id"):
+            raise GovernanceTensionInvalid("triage requires an owner role or party")
+        for field in ("owner_role_id", "owner_party_id"):
+            if field in content and content[field] is not None:
+                normalize_uuid(field)
+        if "review_due_at" in content and content["review_due_at"] is not None:
+            content["review_due_at"] = _normalize_tension_timestamp(
+                content["review_due_at"], "review_due_at"
+            )
+        if "note" in content:
+            content["note"] = _bounded_optional_text(content["note"], "note", 2000)
+    elif action == "link":
+        link_type = content.get("link_type")
+        if not isinstance(link_type, str) or link_type not in _LINK_TYPES:
+            raise GovernanceTensionInvalid("link_type is not supported")
+        entity_type = content.get("entity_type")
+        if not isinstance(entity_type, str) or not re.fullmatch(r"[a-z][a-z0-9_]{0,79}", entity_type):
+            raise GovernanceTensionInvalid("entity_type is not supported")
+        normalize_uuid("entity_id")
+        if "summary" in content:
+            content["summary"] = _bounded_optional_text(content["summary"], "summary", 4000)
+    elif action == "link_work_item":
+        normalize_uuid("work_item_id")
+    elif action == "resolve":
+        summary = content.get("resolution_summary")
+        if not isinstance(summary, str) or not 1 <= len(summary.strip()) <= 4000 or "\x00" in summary:
+            raise GovernanceTensionInvalid(
+                "resolution_summary must contain 1 to 4000 characters"
+            )
+        content["resolution_summary"] = summary.strip()
+    elif action == "defer":
+        if "deferred_until" not in content:
+            raise GovernanceTensionInvalid("deferred_until is required")
+        content["deferred_until"] = _normalize_tension_timestamp(
+            content["deferred_until"], "deferred_until"
+        )
+        if "note" in content:
+            content["note"] = _bounded_optional_text(content["note"], "note", 2000)
+
+    return request_id, reason.strip(), content
+
+
+def _normalize_tension_timestamp(value: object, field: str) -> str:
+    if not isinstance(value, str):
+        raise GovernanceTensionInvalid(f"{field} must be an ISO timestamp with a timezone")
+    try:
+        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError as exc:
+        raise GovernanceTensionInvalid(f"{field} must be a valid ISO timestamp") from exc
+    if parsed.tzinfo is None or parsed.utcoffset() is None:
+        raise GovernanceTensionInvalid(f"{field} must include a timezone")
+    return parsed.isoformat()
+
+
+def _bounded_optional_text(value: object, field: str, maximum: int) -> str | None:
+    if value is None:
+        return None
+    if not isinstance(value, str) or len(value) > maximum or "\x00" in value:
+        raise GovernanceTensionInvalid(f"{field} must be text up to {maximum} characters or null")
+    return value.strip() or None
 
 
 class GovernanceTensionConflict(RuntimeError):
@@ -157,6 +289,64 @@ def submit_governance_tension(
                 (location_id, tension_id),
             )
             result = _row(cursor, operation="submit")
+        conn.commit()
+        committed = True
+        return result
+    finally:
+        if not committed:
+            conn.rollback()
+        conn.close()
+
+
+def mutate_governance_tension_action(
+    operator_id: str,
+    location_id: str,
+    tension_id: str,
+    action: str,
+    payload: object,
+    *,
+    connection_factory: Callable | None = None,
+) -> dict:
+    """Run an audited location-scoped tension lifecycle action.
+
+    The database API is the exact six-argument migration contract documented
+    by `_normalize_action_payload`; one call owns one transaction, and retries
+    reuse the action's request UUID.
+    """
+    if action not in _TENSION_ACTIONS:
+        raise GovernanceTensionInvalid("Governance tension action is not supported")
+    request_id, reason, content = _normalize_action_payload(action, payload)
+    operator_id, location_id, tension_id = _normalize_ids(
+        operator_id, location_id, tension_id
+    )
+    conn = (connection_factory or _connection_factory())()
+    committed = False
+    try:
+        with conn.cursor() as cursor:
+            cursor.execute("SET LOCAL statement_timeout = '8s'")
+            cursor.execute("SET LOCAL lock_timeout = '2s'")
+        set_operator_tenant_context(
+            conn,
+            operator_id=operator_id,
+            location_id=location_id,
+            resource="governance_tension",
+            action=action,
+        )
+        with conn.cursor() as cursor:
+            cursor.execute(
+                """SELECT * FROM kokonut_security.mutate_governance_tension_action(
+                           %s::uuid, %s::uuid, %s, %s::uuid, %s::jsonb, %s
+                       )""",
+                (
+                    location_id,
+                    tension_id,
+                    action,
+                    request_id,
+                    json.dumps(content, separators=(",", ":")),
+                    reason,
+                ),
+            )
+            result = _row(cursor, operation=action)
         conn.commit()
         committed = True
         return result

@@ -11,7 +11,7 @@ Kokonut agents assist with drafts, exports, synthesis, and review preparation. T
 
 ## Governed Collections
 
-The constant `GOVERNED_COLLECTIONS` in `services/agents/safety.py` defines **167 collection names** that agents cannot freely write to. This includes:
+The constant `GOVERNED_COLLECTIONS` in `services/agents/safety.py` currently defines **170 collection names** with collection-specific agent policy. This includes:
 
 - **Agent outputs:** `ai_summary`, `agent_task`, `ebf_scorecard`, `ebf_score`, `ebf_calibration_decision`
 - **Stakeholder records:** `stakeholder_feedback`, `impact_claim`, `metric_proposal`, `party`, `party_identifier`, `party_relationship`, and all stakeholder engagement/grievance/decision collections
@@ -26,11 +26,11 @@ The constant `GOVERNED_COLLECTIONS` in `services/agents/safety.py` defines **167
 - **Capital accounting:** `capital_capacity_assessment`, `capital_diversion_observation`, `capital_capture_risk`, `regenerative_credit_ledger`
 - **Governance:** `iri_registry`, `app_project_metadata`, `delphi_study`, `delphi_recommendation`, `report_snapshot`, `dashboard_dataset`
 
-The full set is defined in `services/agents/safety.py:26-192`. Any collection not in this set is unrestricted for agents.
+The full set is defined in `services/agents/safety.py:26-192`. A collection outside this set has no collection-specific rule in this constant; global high-risk action denials, task input/write validation, and entrypoint-specific checks can still apply. This Python policy is not a database least-privilege boundary.
 
 ## Human-Review Collections
 
-The constant `STAKEHOLDER_HUMAN_REVIEW_COLLECTIONS` defines **43 collections** in Python (46 in TypeScript, which includes `governance_tension`, `governance_proposal`, and `governance_tactical_item` in the blocked set with explicit exception handling) where agents cannot write at all — not even drafts. These are entirely human-governed:
+The constant `STAKEHOLDER_HUMAN_REVIEW_COLLECTIONS` currently defines **47 collections** in Python and **46 in TypeScript** where agents cannot write through the corresponding policy — not even drafts, apart from the separately coded draft exceptions. The sets are not identical: Python additionally blocks `protocol_execution_intent`, `protocol_execution_outbox`, `protocol_execution_reconciliation`, and `protocol_project_location`; TypeScript additionally includes `governance_tension`, `governance_proposal`, and `governance_tactical_item` with explicit draft exceptions. These are human-governed:
 
 - All `coordination_*` collections (except `coordination_alliance` draft creation)
 - All `governance_circle`, `governance_role`, `governance_role_*` collections
@@ -38,7 +38,7 @@ The constant `STAKEHOLDER_HUMAN_REVIEW_COLLECTIONS` defines **43 collections** i
 - All `party_trust_evidence`, `stewardship_proxy_authority`, `nature_stewardship_obligation`, `future_generation_principle`
 - All stakeholder consent, decision, and grievance collections
 
-Agents may only `read`, `list`, or `query` these collections.
+For entries in the human-review set, agents may only `read`, `list`, or `query`; separately coded exceptions are evaluated by their specific policy path.
 
 ## Draftable Exceptions
 
@@ -83,42 +83,23 @@ EBF (Ecological Benefit Framework) scorecards have additional constraints:
 - Agents can only set status to `draft`, `submitted`, or `rejected` on `ebf_scorecard`, `ebf_score`, and `ebf_calibration_decision` records.
 - Agents **cannot** raise `evidence_maturity_level` above **3** on `ebf_scorecard` or `ebf_score` records. Levels 4–6 (third-party verified, externally verified, registry issued) require human review.
 
-## Enforcement Architecture
+## Enforcement Coverage and Limits
 
-Agent safety is enforced across four defense-in-depth layers:
+These controls have different scopes. They do not form a universal four-step
+path through which every agent write passes:
 
-```
-Agent Module (Python)
-    |
-    | 1. Python preflight guard
-    |    assert_agent_action_allowed() → assess_agent_action()
-    |    Raises ValueError if not allowed
-    |
-    v
-Directus API Request
-    |
-    | 2. Directus hook filter
-    |    resolveUserRoles() → isAgentActorByRoles()
-    |    enforceAgentTaskSafety / enforceAiSummarySafety /
-    |    enforceStakeholderGovernanceSafety
-    |    Throws Error if not allowed
-    |
-    v
-PostgreSQL Write
-    |
-    | 3. Database CHECK constraints
-    |    chk_ai_summary_agent_draft_only
-    |    chk_agent_task_draft_submit_only
-    |
-    v
-Audit Log
-    |
-    | 4. Explicit audit_agent_action() call
-    |    high_risk, requires_human_approval,
-    |    payload_hash, metadata JSONB (not automatic)
-```
+| Control | Actual coverage | Important limit |
+|---|---|---|
+| Python safety and task validation | Calls that use `services/agents/safety.py` or the shared task executor; task write targets are also preflighted before their database connection. | Direct SQL, unguarded legacy helpers, or other callers can bypass Python policy. |
+| Directus hooks | Selected agent-task, AI-summary, and stakeholder-governance writes made through Directus. | Directus is optional; hooks do not cover direct Gateway/service/SQL paths or every collection. |
+| Database constraints/triggers | Specific lifecycle fields, including the two constraints and migration 350 trigger described below. | They do not protect every agent collection or establish a database-authenticated agent identity. |
+| Audit records | Calls that explicitly invoke `audit_agent_action()` or applicable Directus action logging. | Audit is not automatic for every operation and does not authorize a write. |
 
-### Layer 1: Python Preflight Guards
+Least-privilege database identities for agents remain an open acceptance gate.
+Use the sections below to check the exact control before relying on it for a
+particular path.
+
+### Python Preflight Guards
 
 **File:** `services/agents/safety.py`
 

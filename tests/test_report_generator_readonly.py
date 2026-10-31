@@ -208,6 +208,8 @@ def _accepts_cli_signature(generator):
 
 def test_business_plan_adapter_preserves_single_and_all_location_scopes(monkeypatch):
     generated = []
+    location_a = "a0000000-0000-4000-8000-000000000001"
+    location_b = "b0000000-0000-4000-8000-000000000002"
 
     def fake_generate(_conn, *, location_id):
         generated.append(location_id)
@@ -229,7 +231,7 @@ def test_business_plan_adapter_preserves_single_and_all_location_scopes(monkeypa
             self.connection.queries.append(query)
 
         def fetchall(self):
-            return [("location-a",), ("location-b",)]
+            return [(location_a,), (location_b,)]
 
     class Connection:
         def __init__(self):
@@ -240,7 +242,7 @@ def test_business_plan_adapter_preserves_single_and_all_location_scopes(monkeypa
 
     connection = Connection()
     single = business_plan_reports.generate_business_plan_report(
-        connection, "location-a", None, None
+        connection, location_a, None, None
     )
     all_locations = business_plan_reports.generate_business_plan_report(
         connection, "all", None, None
@@ -248,16 +250,39 @@ def test_business_plan_adapter_preserves_single_and_all_location_scopes(monkeypa
 
     assert single == {
         "report_type": "business_plan",
-        "meta": {"location_id": "location-a"},
+        "meta": {"location_id": location_a},
     }
     assert all_locations == {
         "report_type": "business_plan",
         "scope": "all_locations",
         "location_count": 2,
         "plans": [
-            {"meta": {"location_id": "location-a"}},
-            {"meta": {"location_id": "location-b"}},
+            {"meta": {"location_id": location_a}},
+            {"meta": {"location_id": location_b}},
         ],
     }
-    assert generated == ["location-a", "location-a", "location-b"]
+    assert generated == [location_a, location_a, location_b]
     assert connection.queries == ["SELECT id FROM location ORDER BY id"]
+
+
+def test_revenue_multiplier_requires_location_before_analyzer(monkeypatch):
+    from services.export.reports import core
+    from services.revenue_multiplier import analyzer
+
+    def fail_if_analyzer_runs(_location_id):
+        raise AssertionError("revenue analysis must not start without a location")
+
+    monkeypatch.setattr(analyzer, "analyze_location", fail_if_analyzer_runs)
+
+    for location_id in (
+        None,
+        "",
+        "all",
+        "not-a-uuid",
+        "11111111-1111-4111-8111-111111111111,22222222-2222-4222-8222-222222222222",
+    ):
+        with pytest.raises(
+            ValueError,
+            match="revenue_multiplier requires an explicit location_id",
+        ):
+            core.generate_revenue_multiplier(None, location_id)

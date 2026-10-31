@@ -1,10 +1,10 @@
 {
   "version": 1,
   "reviewed": "2026-10-26",
-  "purpose": "Source inventory of every allowlisted scheduler module and event handler; this is not an authorization or RLS policy.",
+  "purpose": "Source inventory of every allowlisted scheduler module, isolated worker, and event handler; this is not an authorization or RLS policy.",
   "shared_boundary": {
-    "database_identity": "Scheduler and legacy EventBus control-plane processes retain the configured runtime PG_USER and PG_PASSWORD. Child processes receive standard application settings, but worker-specific secrets are filtered unless an exact source-controlled mapping permits them. The sensor-anomaly handler and four cache handlers use dedicated worker database helpers without shared-DSN fallback; the two global notification handlers can opt into a separate notification-enqueue login. The NOI snapshot, current-weather, weather-forecast, climate, market-data, sensor-ingestion, remote-sensing, and EAS modules use separately named worker DSNs, strip shared PostgreSQL settings from their children, and use exact secret mappings; other scheduled jobs and handlers still use the shared runtime database identity. Migration 436 adds a default-off global RPC balance-snapshot worker with its own exact database URL and provider-endpoint JSON mapping; shared runtime PostgreSQL settings and global per-chain RPC variables are not forwarded to that child. Migrations 643 and 644 add default-off global Gnosis Moloch and Baal indexing workers with dedicated logins, bounded database functions, and exact worker-specific RPC endpoints; the Baal worker has its own HTTPS endpoint and preserves the legacy manual CLI. Migration 645 adds a default-off global freshness worker with a dedicated login and bounded source-timestamp/check/alert/event functions; it does not claim farm tenant context. Migration 647 adds a default-off isolated notification-delivery worker with a dedicated login and bounded claim/completion functions; operator statistics and dead-letter actions remain on the reviewed CLI. Migration 648 adds a default-off isolated EventBus dispatcher with a dedicated login and seven bounded queue/receipt functions; event publication remains in producer transactions and operator statistics/dead-letter actions remain on the reviewed CLI.",
-    "signed_tenant_context": "Migration 405 and services.common.tenant_context provide signed worker context. Scheduler dispatch and the EventBus parent do not establish it; the legacy shared-identity parent uses the runtime identity, while the isolated migration-648 dispatcher handles the global queue under a separate non-tenant control-plane identity and passes only the exact mapped child-handler credentials. Tenant-scoped handlers establish their own signed context. The sensor-anomaly handler uses dedicated credentials and signed transaction context through migrations 405-414, and the four cache handlers use the shared dedicated cache_invalidation worker identity through migrations 415-416 when enabled. Migration 417 provides the global data_stale and threshold_breached enqueue handlers a separate exact login and bounded source-event validation, not tenant scope. Migrations 418-419 revoke inherited PUBLIC EXECUTE on mobile credential and worker-context functions; the runtime-role bootstrap restores only the exact runtime, worker, and bounded-owner grants. Migrations 425-427 add default-off signed location-scoped NOI snapshot, current-weather, and weather-forecast operations; migration 429 adds signed climate location lookup and whitelisted summary/audit writes. Migration 430 gives the global market-data worker a distinct login and a bounded, source-validating batch/audit function without a tenant grant. Migration 431 adds a dedicated sensor-ingestion login, signed sensor_driver/ingest location scope, bounded catalog/instance/batch/status functions, and no direct sensor-table access. Migration 432 adds a dedicated remote-sensing login, signed remote_sensing/run location scope, and bounded claim plus atomic observation/attempt/audit/outbox completion functions without direct application-table access. Migration 433 adds the global EAS indexer login with chain-scoped bounded functions and no direct table access; it has no tenant context because tracked wallet and attestation protocol data are global. Migration 436 adds the same global-data boundary for RPC wallet balance snapshots, with a dedicated login and bounded chain/wallet/status functions; it does not claim location tenancy. Migration 599 adds a default-off signed, location-bound, read-only carbon-credit adjustment snapshot function with no direct worker access to source tables. Other scheduled jobs and handlers remain outside these integrations. Migrations 643 and 644 add separate Gnosis Moloch and Baal global indexer logins with bounded database functions; these read global chain/protocol data and do not claim location-tenant context. Migration 645 adds bounded global and location-scoped timestamp reads plus atomic freshness/check/alert/event writes under an explicit global control-plane identity, not signed farm context. Migration 647 isolates global notification delivery through its own login and two bounded functions; it does not claim location tenant context. Migration 648 isolates global EventBus queue claims and handler receipts through seven bounded functions; event publication retains the producer's transaction and tenancy remains the responsibility of each exact handler.",
+    "database_identity": "Scheduler and legacy EventBus control-plane processes retain the configured runtime PG_USER and PG_PASSWORD. Child processes receive standard application settings, but worker-specific secrets are filtered unless an exact source-controlled mapping permits them. The sensor-anomaly handler and four cache handlers use dedicated worker database helpers without shared-DSN fallback; the two global notification handlers can opt into a separate notification-enqueue login. The NOI snapshot, current-weather, weather-forecast, climate, market-data, sensor-ingestion, remote-sensing, and EAS modules use separately named worker DSNs, strip shared PostgreSQL settings from their children, and use exact secret mappings; other scheduled jobs and handlers still use the shared runtime database identity. Migration 436 adds a default-off global RPC balance-snapshot worker with its own exact database URL and provider-endpoint JSON mapping; shared runtime PostgreSQL settings and global per-chain RPC variables are not forwarded to that child. Migrations 643 and 644 add default-off global Gnosis Moloch and Baal indexing workers with dedicated logins, bounded database functions, and exact worker-specific RPC endpoints; the Baal worker has its own HTTPS endpoint and preserves the legacy manual CLI. Migration 645 adds a default-off global freshness worker with a dedicated login and bounded source-timestamp/check/alert/event functions; it does not claim farm tenant context. Migration 647 adds a default-off isolated notification-delivery worker with a dedicated login and bounded claim/completion functions; operator statistics and dead-letter actions remain on the reviewed CLI. Migration 648 adds a default-off isolated EventBus dispatcher with a dedicated login and seven bounded queue/receipt functions; event publication remains in producer transactions and operator statistics/dead-letter actions remain on the reviewed CLI. Migration 683 adds a default-off private report-snapshot export worker with a dedicated login, bounded request/source/attempt functions, a shared private artifact volume, and no direct table access.",
+    "signed_tenant_context": "Migration 405 and services.common.tenant_context provide signed worker context. Scheduler dispatch and the EventBus parent do not establish it; the legacy shared-identity parent uses the runtime identity, while the isolated migration-648 dispatcher handles the global queue under a separate non-tenant control-plane identity and passes only the exact mapped child-handler credentials. Tenant-scoped handlers establish their own signed context. The sensor-anomaly handler uses dedicated credentials and signed transaction context through migrations 405-414, and the four cache handlers use the shared dedicated cache_invalidation worker identity through migrations 415-416 when enabled. Migration 417 provides the global data_stale and threshold_breached enqueue handlers a separate exact login and bounded source-event validation, not tenant scope. Migrations 418-419 revoke inherited PUBLIC EXECUTE on mobile credential and worker-context functions; the runtime-role bootstrap restores only the exact runtime, worker, and bounded-owner grants. Migrations 425-427 add default-off signed location-scoped NOI snapshot, current-weather, and weather-forecast operations; migration 429 adds signed climate location lookup and whitelisted summary/audit writes. Migration 430 gives the global market-data worker a distinct login and a bounded, source-validating batch/audit function without a tenant grant. Migration 431 adds a dedicated sensor-ingestion login, signed sensor_driver/ingest location scope, bounded catalog/instance/batch/status functions, and no direct sensor-table access. Migration 432 adds a dedicated remote-sensing login, signed remote_sensing/run location scope, and bounded claim plus atomic observation/attempt/audit/outbox completion functions without direct application-table access. Migration 433 adds the global EAS indexer login with chain-scoped bounded functions and no direct table access; it has no tenant context because tracked wallet and attestation protocol data are global. Migration 436 adds the same global-data boundary for RPC wallet balance snapshots, with a dedicated login and bounded chain/wallet/status functions; it does not claim location tenancy. Migration 599 adds a default-off signed, location-bound, read-only carbon-credit adjustment snapshot function with no direct worker access to source tables. Other scheduled jobs and handlers remain outside these integrations. Migrations 643 and 644 add separate Gnosis Moloch and Baal global indexer logins with bounded database functions; these read global chain/protocol data and do not claim location-tenant context. Migration 645 adds bounded global and location-scoped timestamp reads plus atomic freshness/check/alert/event writes under an explicit global control-plane identity, not signed farm context. Migration 647 isolates global notification delivery through its own login and two bounded functions; it does not claim location tenant context. Migration 648 isolates global EventBus queue claims and handler receipts through seven bounded functions; event publication retains the producer's transaction and tenancy remains the responsibility of each exact handler. Migration 683 does not establish general signed farm context in its worker; bounded database functions revalidate the operator request grant, exact snapshot location, verified/published lifecycle, and active lease.",
     "module_argument_validation": "Static module-specific operation schemas validate command_args before schedule activation, run-now, generated job plans, scheduler-allowlisted code-owned job runs, and worker subprocess creation. Unsupported manual/destructive operations and source-less recurring sensor ingestion fail closed; existing task rows are not rewritten.",
     "deployment_effect": "Inventory only; it does not change grants, activate schedules, or enable RLS."
   },
@@ -712,7 +712,7 @@
         "No provider call in the scanner; event handling queues notification intents and approval-required actuation intents for separate workers/review."
       ],
       "idempotency": "Migration 649 returns one canonical event per reading only while at least one current enabled device rule lacks a location-bound receipt. The existing worker commits the alert/claim/notification/actuation intent and per-reading/rule receipts atomically for each event. Duplicate event rows do not consume multiple batch slots.",
-      "retry_boundary": "The inventory function is read-only and enforces signed location equality, a 24-hour maximum lookback, and a 1–100 batch limit. Each event is processed in its own worker transaction; a failed event remains eligible for retry, and previous committed events are suppressed by receipts. The feature defaults off and the scheduler falls back to the legacy per-location job until worker credentials, grant, migration rollout, and schedule reconciliation are completed.",
+      "retry_boundary": "The inventory function is read-only and enforces signed location equality, a 24-hour maximum lookback, and a 1\u2013100 batch limit. Each event is processed in its own worker transaction; a failed event remains eligible for retry, and previous committed events are suppressed by receipts. The feature defaults off and the scheduler falls back to the legacy per-location job until worker credentials, grant, migration rollout, and schedule reconciliation are completed.",
       "sources": [
         "services/ingestion/sensor_anomaly_scan_worker.py",
         "services/ingestion/sensor_anomaly_worker.py",
@@ -1548,6 +1548,40 @@
       ]
     },
     {
+      "module": "services.export.report_snapshot_export_worker",
+      "worker_key": "report_snapshot_export",
+      "scope": "Default-off one-shot export worker for existing location-scoped report snapshots. It requires the isolated_report_snapshot_export_worker feature and dedicated export-worker DSN, uses migration 683 bounded claim/source/finish functions, rechecks the current operator create grant and exact verified/published source location, and has no direct access to request, attempt, or snapshot tables. It is not a signed farm-context worker: migration functions enforce the request lease, source lineage, and current grant before returning report data. Private storage defaults to the local volume; optional S3-compatible storage uses a dedicated worker credential limited to object writes and explicit lease-rejection deletes.",
+      "reads": [
+        "public.report_snapshot through kokonut_security.read_report_snapshot_export_source",
+        "public.report_snapshot_export_request through bounded claim/source/finish functions"
+      ],
+      "writes": [
+        "public.report_snapshot_export_request through bounded claim/finish functions",
+        "public.report_snapshot_export_attempt through append-only finish receipts",
+        "Private local or S3-compatible report artifacts under UUID-derived keys; only explicit rejected-lease cleanup deletes an artifact"
+      ],
+      "external_effects": [
+        "Local default writes private JSON artifacts to the dedicated volume; if S3-compatible storage is explicitly configured, the worker performs PutObject and explicit DeleteObject calls without bucket listing"
+      ],
+      "idempotency": "Operator request UUID keys are scoped to operator/location/snapshot; repeated identical keys replay the same request. Attempt-specific artifact UUIDs prevent stale writes from replacing a newer attempt, and a stale worker cannot complete or delete a newer lease artifact.",
+      "retry_boundary": "Each bounded claim commits before private file/object work; completion/retry writes are fenced by worker ID, lease token, and expiry. Deterministic source or serialization errors dead-letter immediately; transient storage errors retry with bounded delay and dead-letter at eight attempts. Disable the feature or Compose profile to stop processing. There is no automatic artifact/history pruning; no automatic artifact/history pruning is introduced.",
+      "sources": [
+        "services/export/report_snapshot_export_worker.py",
+        "services/export/report_snapshot_export.py",
+        "services/export/artifact_storage.py",
+        "services/common/worker_database.py",
+        "services/core/features.py",
+        "services/migration/runtime_role.py",
+        "schemas/postgres/683_location_scoped_report_snapshot_exports.sql",
+        "docker-compose.worker.yml",
+        "docker-compose.kernel-runtime-role.yml",
+        "scripts/check-report-snapshot-export-disposable.py",
+        "tests/test_export_artifact_s3.py",
+        "tests/test_report_snapshot_export_worker.py",
+        "tests/test_report_snapshot_export_migration_contract.py"
+      ]
+    },
+    {
       "module": "services.agents.worker_cli",
       "worker_keys": [
         "agent_bio_factory_source",
@@ -1604,84 +1638,120 @@
       "function": "run_worker_summary_list",
       "worker_key": "agent_summary_inspection_source",
       "scope": "Read up to twenty AI-summary metadata rows for one exact signed location. Content and cross-location summaries are not returned.",
-      "reads": ["kokonut_agent_source.ai_summary_list"],
+      "reads": [
+        "kokonut_agent_source.ai_summary_list"
+      ],
       "writes": [],
       "external_effects": [],
       "idempotency": "Bounded read-only projection; retries have no writes.",
       "retry_boundary": "Validates the location UUID before opening the source login, then uses repeatable-read, read-only mode and signed location context.",
-      "sources": ["services/agents/worker_cli.py", "services/agents/ai_summary.py"]
+      "sources": [
+        "services/agents/worker_cli.py",
+        "services/agents/ai_summary.py"
+      ]
     },
     {
       "module": "services.agents.worker_cli",
       "function": "run_worker_summary_list_result",
       "worker_key": "agent_summary_inspection_source",
       "scope": "Return the same bounded, exact-location AI-summary list with explicit source-view scope, including when there are zero rows.",
-      "reads": ["kokonut_agent_source.ai_summary_list"],
+      "reads": [
+        "kokonut_agent_source.ai_summary_list"
+      ],
       "writes": [],
       "external_effects": [],
       "idempotency": "Bounded read-only projection; retries have no writes.",
       "retry_boundary": "Validates the location UUID before opening the source login, then uses repeatable-read, read-only mode and signed location context.",
-      "sources": ["services/agents/worker_cli.py", "services/agents/ai_summary.py"]
+      "sources": [
+        "services/agents/worker_cli.py",
+        "services/agents/ai_summary.py"
+      ]
     },
     {
       "module": "services.agents.worker_cli",
       "function": "run_worker_summary_digest",
       "worker_key": "agent_summary_inspection_source",
       "scope": "Read digest metadata for one summary ID under one exact signed location; never returns summary content.",
-      "reads": ["kokonut_agent_source.ai_summary_digest"],
+      "reads": [
+        "kokonut_agent_source.ai_summary_digest"
+      ],
       "writes": [],
       "external_effects": [],
       "idempotency": "Bounded read-only projection; retries have no writes.",
       "retry_boundary": "Validates both UUIDs before opening the source login and requires both summary and location to match the signed context.",
-      "sources": ["services/agents/worker_cli.py", "services/agents/ai_summary.py"]
+      "sources": [
+        "services/agents/worker_cli.py",
+        "services/agents/ai_summary.py"
+      ]
     },
     {
       "module": "services.agents.worker_cli",
       "function": "run_worker_summary_digest_result",
       "worker_key": "agent_summary_inspection_source",
       "scope": "Return digest metadata and explicit source-view scope for one summary ID and exact signed location, including when no row matches.",
-      "reads": ["kokonut_agent_source.ai_summary_digest"],
+      "reads": [
+        "kokonut_agent_source.ai_summary_digest"
+      ],
       "writes": [],
       "external_effects": [],
       "idempotency": "Bounded read-only projection; retries have no writes.",
       "retry_boundary": "Validates both UUIDs before opening the source login and requires both summary and location to match the signed context.",
-      "sources": ["services/agents/worker_cli.py", "services/agents/ai_summary.py"]
+      "sources": [
+        "services/agents/worker_cli.py",
+        "services/agents/ai_summary.py"
+      ]
     },
     {
       "module": "services.agents.worker_cli",
       "function": "run_worker_ebf_evidence_gap",
       "worker_key": "agent_ebf_source",
       "scope": "Read the bounded public-safe EBF evidence-gap projection for one scorecard and its exact signed location.",
-      "reads": ["kokonut_agent_source.v_ebf_evidence_gap_summary"],
+      "reads": [
+        "kokonut_agent_source.v_ebf_evidence_gap_summary"
+      ],
       "writes": [],
       "external_effects": [],
       "idempotency": "Read-only synthesis; retries do not mutate scorecard state.",
       "retry_boundary": "Validates scorecard and location UUIDs, establishes the signed EBF scope, and fails closed on source or output validation errors.",
-      "sources": ["services/agents/worker_cli.py", "services/agents/ebf_evidence_gap_agent.py"]
+      "sources": [
+        "services/agents/worker_cli.py",
+        "services/agents/ebf_evidence_gap_agent.py"
+      ]
     },
     {
       "module": "services.agents.worker_cli",
       "function": "run_worker_cids_export",
       "worker_key": "agent_cids_source",
       "scope": "Build a location-scoped CIDS document from the registered source-view set and return per-property provenance and a bound artifact digest; it does not publish or attest.",
-      "reads": ["CIDS_SOURCE_VIEWS through kokonut_agent_source"],
+      "reads": [
+        "CIDS_SOURCE_VIEWS through kokonut_agent_source"
+      ],
       "writes": [],
       "external_effects": [],
       "idempotency": "Read-only export; repeating the request produces a source-derived artifact without database writes.",
       "retry_boundary": "Validates the location UUID, establishes signed cids_export/read context, constrains source_schema, and validates output before returning.",
-      "sources": ["services/agents/worker_cli.py", "services/agents/cids_agent.py", "services/registry/cids_export.py"]
+      "sources": [
+        "services/agents/worker_cli.py",
+        "services/agents/cids_agent.py",
+        "services/registry/cids_export.py"
+      ]
     },
     {
       "module": "services.agents.worker_cli",
       "function": "run_worker_delphi_facilitation",
       "worker_key": "agent_delphi_source",
       "scope": "Read the consent-aware live Delphi aggregate for one study and exact signed location; participant identities and raw responses are not returned.",
-      "reads": ["kokonut_agent_source.delphi_live_summary"],
+      "reads": [
+        "kokonut_agent_source.delphi_live_summary"
+      ],
       "writes": [],
       "external_effects": [],
       "idempotency": "Read-only aggregate; retries do not change study, participant, or review state.",
       "retry_boundary": "Validates study and location UUIDs, establishes signed delphi/read context, and rejects missing or mismatched location rows.",
-      "sources": ["services/agents/worker_cli.py", "services/agents/delphi_facilitator_agent.py"]
+      "sources": [
+        "services/agents/worker_cli.py",
+        "services/agents/delphi_facilitator_agent.py"
+      ]
     }
   ]
 }

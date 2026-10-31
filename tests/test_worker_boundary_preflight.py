@@ -48,6 +48,8 @@ def test_preflight_covers_every_worker_root_but_keeps_identity_gate_blocked(repo
     assert "services.events.notification_delivery_worker" not in ALLOWED_SCHEDULED_MODULES
     assert "services.agents.worker_cli" in ISOLATED_WORKER_MODULES
     assert "services.agents.worker_cli" not in ALLOWED_SCHEDULED_MODULES
+    assert "services.export.report_snapshot_export_worker" in ISOLATED_WORKER_MODULES
+    assert "services.export.report_snapshot_export_worker" not in ALLOWED_SCHEDULED_MODULES
     assert set(ISOLATED_WORKER_ENTRYPOINTS) == set(ISOLATED_WORKER_MODULES)
     assert coverage["missing_source_closure_operations"] == []
     assert coverage["missing_function_graph_operations"] == []
@@ -85,6 +87,20 @@ def test_isolated_delivery_worker_is_traced_without_becoming_schedulable():
         function["qualname"] == "_finish"
         for function in operation["reachable_functions"]
     )
+
+
+def test_report_snapshot_export_worker_is_traced_as_an_isolated_entrypoint():
+    operation = next(
+        item
+        for item in build_function_graph()["operations"]
+        if item["kind"] == "isolated_worker"
+        and item["name"] == "services.export.report_snapshot_export_worker"
+    )
+    assert [entry["function"] for entry in operation["entry_functions"]] == [
+        "services.export.report_snapshot_export_worker:run_once"
+    ]
+    reachable = {function["qualname"] for function in operation["reachable_functions"]}
+    assert {"_claim", "_read_source", "_process_claim", "_finish"} <= reachable
 
 
 def test_preflight_lists_unmatched_sql_without_query_text_or_database_claims(report):

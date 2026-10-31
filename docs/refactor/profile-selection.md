@@ -1,5 +1,12 @@
 # Kernel candidate command planner
 
+> **Status reference:** This page documents the planner's current source-level
+> options and Compose selections. It is not a deployment or rollout ledger.
+> Acceptance snapshots elsewhere on this page and in linked records are dated
+> evidence; they do not establish the state of a local or production target.
+> For present gates, current migration source, and deployment limits, see the
+> [current refactor status and implementation guide](current-state-and-implementation.md).
+
 `python3 scripts/kernel-profile.py PROFILE` prints a shell-quoted Compose
 command with absolute manifest paths and the explicit isolated candidate project.
 It does not invoke Docker, load secrets, inspect containers, migrate data, or
@@ -14,7 +21,7 @@ the planner appends `docker-compose.kernel-arm64.yml`, selects the custom
 PostgreSQL/PostGIS 16 image, and uses the distinct project
 `kokonut-kernel-candidate-arm64`; this keeps its database volume separate from
 the AMD64 candidate. The standard profile also appends the ARM64 worker
-override. Current ARM64 command selection supports minimal, edge, standard, and
+override. Current ARM64 command selection supports core, minimal, edge, standard, and
 analytics. The HTTPS proxy, Gateway OIDC application, self-hosted ZITADEL
 profile, gRPC, MQTT, HTTP sensor receiver, and Directus adapter are also
 selectable on ARM64. ClickHouse analytics is supported as a combined or
@@ -23,23 +30,57 @@ build/runtime evidence and dedicated platform overlays. This is software
 compatibility evidence under QEMU, not a Raspberry Pi resource/performance
 recommendation.
 Image environment overrides must preserve the selected architecture.
-Current-source minimal ARM64 runtime,
-schema replay through migration 402, restore, and short recovery checks now pass
-under QEMU; this does not certify Raspberry Pi hardware. See the
+An earlier 15 October 2026 ARM64 evidence record documents a minimal runtime,
+schema replay through migration 402, restore, and short recovery checks under
+QEMU. That snapshot is superseded by later schema-replay records and does not
+certify Raspberry Pi hardware. See the
 [ARM64 profile record](arm64-database.md).
 
 | Selection | Services/configuration | Acceptance remaining |
 | --- | --- | --- |
-| minimal | PostgreSQL + combined API/workers | Capability parity and recovery |
-| edge | Minimal + encrypted local media/resource limits | Media/storage recovery and physical-device behavior |
-| standard | PostgreSQL + separate API and worker; PostgreSQL shared limiter by default | Migration 373, role cutover, and worker progress monitoring |
-| analytics | Minimal + private ClickHouse | Schema bootstrap and projection parity |
-| analytics --separate-workers | Standard + ClickHouse settings for both roles | Same gates plus worker analytics parity |
-| scale | Rejected with an explanation | Multi-host failover, replica concurrency, recovery and measured sizing |
+| core | PostgreSQL + combined API/workers with only the selected kernel dependency set | Release CI, full capability parity, upgrade/restore recovery, and target resource acceptance |
+| minimal | PostgreSQL + combined API/workers | End-to-end governed workflow, populated-data parity, backup/restore, and operational recovery |
+| edge | Minimal + encrypted local media/resource limits | Media failure/recovery, offline/device acceptance, and physical-hardware behavior |
+| standard | PostgreSQL + separate API and worker + loopback Caddy ingress by default; PostgreSQL shared limiter by default | Current-target ordered migration/role rollout, worker progress monitoring, public ingress/TLS and trusted-proxy policy, backups, and recovery acceptance |
+| analytics | Minimal + private ClickHouse | Schema bootstrap, projection parity, and outage/rebuild acceptance |
+| analytics --separate-workers | Standard + ClickHouse settings for both roles | Standard gates plus worker analytics parity and recovery |
+| scale | Rejected with an explanation | Shared rate limits, replica/failover behavior, recovery, and measured sizing |
+
+Standard now matches the source architecture plan by including the Caddy proxy
+overlay once by default. Its host ports are loopback-bound and its default
+`localhost` certificate is for development, not public TLS. To use an
+externally managed ingress, select `standard --no-proxy`; preserve the HTTPS
+origin and callback behavior required by browser sessions. Public binding,
+public TLS, DNS, firewall, and multi-hop trusted-proxy policy still require
+acceptance. The Gateway ignores forwarded headers by default.
+
+Migration numbers referenced below (including 371–373) identify when specific
+features were introduced. They are not a current target's migration status or
+a complete deployment instruction. New and existing targets must use the full
+ordered checksummed migration runner and inspect that target's ledger.
+
+`core` is an additive opt-in package profile. It does not change `minimal` or
+the existing profile defaults. Web3, spreadsheet/S3, and encrypted local-media
+dependencies are omitted from core until selected with `--web3`, `--exports`,
+or `--local-media`. The local-media overlay still requires the existing
+runtime `MOBILE_MEDIA_LOCAL_KEY` from the encrypted environment. The release
+gate builds the core base and the composition with all three package overlays
+enabled for linux/amd64 and linux/arm64, then checks exact locked package
+inventories. Hosted CI acceptance is pending. Even a successful ARM64 OCI build
+does not establish Raspberry Pi resource suitability. `--oidc` and `--zitadel`
+are rejected with core because the current OIDC application target is built on
+the full image.
 
 Add `--proxy`, `--oidc`, `--zitadel`, `--grpc`, `--mqtt`, `--http-sensors`, or
-`--directus` explicitly for the corresponding optional overlay. `--oidc` requires `--proxy`
-so Secure operator-session cookies use the HTTPS origin. `--zitadel` selects
+`--directus` explicitly for the corresponding optional overlay. The Standard
+profile already includes `--proxy` by default, so `standard --oidc` needs no
+redundant proxy flag. Minimal, edge, and analytics need `--proxy` with `--oidc`;
+core rejects OIDC because it does not use the required application image. To
+replace Standard's Caddy with an external ingress, select
+`standard --no-proxy --oidc`; that ingress must provide the browser HTTPS origin
+and OIDC callback path.
+`--no-proxy` is Standard-only and cannot be combined with `--proxy` or
+`--zitadel`. `--zitadel` selects
 the proxy, Gateway OIDC client, and self-hosted ZITADEL overlays together. It
 uses a separate private PostgreSQL service and exposes its HTTP/2 API and
 Login V2 UI only through Caddy. ZITADEL remains absent from minimal and edge
@@ -57,7 +98,11 @@ Examples that only print commands:
 
 ```sh
 python3 scripts/kernel-profile.py minimal
-python3 scripts/kernel-profile.py standard --proxy --action build
+python3 scripts/kernel-profile.py core --action config
+python3 scripts/kernel-profile.py core --web3 --exports --local-media --action config
+python3 scripts/kernel-profile.py standard --action build
+python3 scripts/kernel-profile.py standard --no-proxy --action config
+python3 scripts/kernel-profile.py standard --oidc --action config
 python3 scripts/kernel-profile.py analytics --separate-workers --action config
 python3 scripts/kernel-profile.py edge --mqtt --action up
 python3 scripts/kernel-profile.py minimal --proxy --oidc --action config

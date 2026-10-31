@@ -1,0 +1,66 @@
+{
+  "date": "2026-10-28",
+  "scope": "Strict OpenAPI and runtime contract for the private location-scoped spatial-autocorrelation read.",
+  "route": {
+    "method": "GET",
+    "path": "/operator/api/geostatistics/{location_id}/autocorrelation",
+    "response_model": "SpatialAutocorrelationPage",
+    "source": "schemas/postgres/133_geostatistics.sql::spatial_autocorrelation",
+    "projection": [
+      "property_key",
+      "metric",
+      "statistic_value",
+      "expected_value",
+      "p_value",
+      "z_score",
+      "n_samples",
+      "spatial_weights_type",
+      "distance_threshold",
+      "k_neighbors",
+      "computed_at"
+    ],
+    "constraints": {
+      "extra_fields": "forbidden",
+      "metric": ["morans_i", "gearys_c", "join_count"],
+      "spatial_weights_type": ["queen", "rook", "distance", "knn", null],
+      "sample_and_neighbor_counts": "strict nonnegative integers",
+      "numeric_values": "finite numbers or null after existing source sanitization",
+      "timestamps": "timezone-aware",
+      "pagination": "strict request-bound location, limit 1..50, offset 0..10000; a short page cannot advertise more results, and continuation cannot exceed the offset ceiling"
+    }
+  },
+  "behavior": {
+    "authorization": "existing signed location-scoped read policy preserved",
+    "cache": "Cache-Control: no-store and Vary: Cookie preserved",
+    "invalid_projection": "fixed sanitized 500 response; no-store headers preserved",
+    "offset_ceiling": "service reports has_more=false when next offset would exceed 10000"
+  },
+  "checks": [
+    {
+      "command": "python3 -m pytest -q tests/test_gateway_geostatistics_reads.py",
+      "result": "passed",
+      "passed": 42
+    },
+    {
+      "command": "ruff check services/gateway/geostatistics_routes.py services/gateway/geostatistics_reads.py tests/test_gateway_geostatistics_reads.py",
+      "result": "passed"
+    },
+    {
+      "command": "python3 -m py_compile services/gateway/geostatistics_routes.py services/gateway/geostatistics_reads.py tests/test_gateway_geostatistics_reads.py",
+      "result": "passed"
+    },
+    {
+      "command": "git diff --check",
+      "result": "passed"
+    }
+  ],
+  "environment": {
+    "database_used": false,
+    "provider_called": false,
+    "candidate_or_legacy_touched": false
+  },
+  "limitations": [
+    "The response contract covers the autocorrelation endpoint only; other saved geostatistics reads remain unaudited in this batch.",
+    "This is source/API behavior evidence, not populated-data, live OIDC, or broad tenant-isolation acceptance."
+  ]
+}

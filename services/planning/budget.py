@@ -27,6 +27,11 @@ def create_plan(
     created_by_id: Optional[str] = None,
 ) -> Mapping:
     """Create a financial plan in ``draft``."""
+    period_start_date = _as_date(period_start)
+    period_end_date = _as_date(period_end)
+    if period_end_date < period_start_date:
+        raise ValueError("period_end must be on or after period_start")
+
     conn2, own = model._conn_or(conn)
     try:
         with conn2.cursor(cursor_factory=RealDictCursor) as cur:
@@ -40,7 +45,7 @@ def create_plan(
                 """,
                 (
                     uuid.UUID(organization_id), uuid.UUID(objective_id) if objective_id else None,
-                    name, _as_date(period_start), _as_date(period_end), currency,
+                    name, period_start_date, period_end_date, currency,
                     created_by_type, uuid.UUID(created_by_id) if created_by_id else None,
                 ),
             )

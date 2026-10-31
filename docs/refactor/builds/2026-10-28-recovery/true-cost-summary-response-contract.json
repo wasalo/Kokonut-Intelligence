@@ -1,0 +1,57 @@
+{
+  "date": "2026-10-28",
+  "source_revision": "caa1ba4a",
+  "working_tree_dirty": true,
+  "scope": "Strict nested response contract for the private location-scoped true-cost accounting summary.",
+  "route": {
+    "method": "GET",
+    "path": "/operator/api/true-cost/{location_id}/summary",
+    "response_model": "TrueCostSummaryResponse",
+    "nested_sections": [
+      "true_cost_statement",
+      "hidden_costs",
+      "natural_capital",
+      "social_impact",
+      "capital_flows",
+      "cross_capital_dependencies"
+    ],
+    "constraints": {
+      "extra_fields": "forbidden at every response object level",
+      "counts": "strict nonnegative integers",
+      "domain_enums": "match hidden-cost, natural-capital, social-impact, and capital-flow schema checks",
+      "numeric_values": "finite; monetary values retain signed semantics",
+      "request_path": "top-level location identifier must match the requested path",
+      "validation": "Explicitly validate the service projection before returning JSONResponse"
+    }
+  },
+  "error_contract": {
+    "disabled_oidc": "existing 404 preserved",
+    "tenant_denial": "existing 403 preserved",
+    "invalid_input": "existing 400 preserved",
+    "database_failure": "existing sanitized 503 preserved",
+    "invalid_projection": "sanitized 500 with Cache-Control: no-store and Vary: Cookie"
+  },
+  "checks": [
+    {
+      "command": "python3 -m pytest tests/test_gateway_true_cost.py -q",
+      "result": "passed",
+      "passed": 12
+    },
+    {
+      "command": "python3 -m ruff check services/gateway/true_cost_routes.py tests/test_gateway_true_cost.py",
+      "result": "passed"
+    },
+    {
+      "command": "python3 -m py_compile services/gateway/true_cost_routes.py tests/test_gateway_true_cost.py",
+      "result": "passed"
+    }
+  ],
+  "environment": {
+    "live_database_used": false,
+    "candidate_or_legacy_touched": false,
+    "provider_called": false
+  },
+  "limitations": [
+    "This closes one response-contract slice only; live OIDC behavior, populated-data parity, and broader tenant isolation remain separate gates."
+  ]
+}

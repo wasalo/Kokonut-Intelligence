@@ -1,0 +1,22 @@
+{
+  "result": "passed",
+  "date": "2026-10-29",
+  "scope": "CRISP composite/rate period preflight",
+  "tests": {
+    "command": "python3 -m pytest tests/test_crisp_cli_location_preflight.py -q",
+    "passed": 36,
+    "failed": 0
+  },
+  "acceptance": [
+    "malformed, impossible, noncanonical, and reversed periods fail before get_db for --composite and --rate",
+    "valid same-day and ordered periods reach the scorer in canonical YYYY-MM-DD form",
+    "existing valid location and command-specific requirements remain intact"
+  ],
+  "environment": {
+    "database": "not used",
+    "provider": "not used",
+    "candidate": "untouched",
+    "legacy": "untouched"
+  },
+  "rollback": "Revert the CLI preflight and focused tests; no database rollback is required."
+}

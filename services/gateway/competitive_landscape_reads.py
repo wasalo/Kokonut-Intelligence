@@ -9,6 +9,7 @@ from uuid import UUID
 from services.common.tenant_context import set_operator_tenant_context
 
 _MAX_PAGE_SIZE = 50
+MAX_COMPETITIVE_LANDSCAPE_OFFSET = 10_000
 
 
 class CompetitiveLandscapeReadInvalid(ValueError):
@@ -62,7 +63,7 @@ def list_location_competitive_landscape_summaries(
     operator_id = _normalize_uuid(operator_id, "operator")
     location_id = _normalize_uuid(location_id, "location")
     page_size = _page_value(limit, "Limit", 1, _MAX_PAGE_SIZE)
-    page_offset = _page_value(offset, "Offset", 0, 10000)
+    page_offset = _page_value(offset, "Offset", 0, MAX_COMPETITIVE_LANDSCAPE_OFFSET)
 
     connection = (connection_factory or _connection_factory())()
     try:
@@ -86,14 +87,18 @@ def list_location_competitive_landscape_summaries(
             )
             rows = [_mapping(cursor, row) for row in cursor.fetchall()]
 
-        has_more = len(rows) > page_size
+        next_offset = page_offset + page_size
+        has_more = (
+            len(rows) > page_size
+            and next_offset <= MAX_COMPETITIVE_LANDSCAPE_OFFSET
+        )
         landscapes = rows[:page_size]
         return {
             "location_id": location_id,
             "offset": page_offset,
             "landscapes": landscapes,
             "has_more": has_more,
-            "next_offset": page_offset + page_size if has_more else None,
+            "next_offset": next_offset if has_more else None,
         }
     except Exception:
         connection.rollback()

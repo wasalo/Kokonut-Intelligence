@@ -137,6 +137,20 @@ def test_proposal_projection_is_bounded_and_excludes_raw_provider_fields():
     assert "private event details" not in serialized
 
 
+def test_onchain_description_fallback_keeps_the_existing_projection_bound():
+    class OnchainDescription(_Client):
+        def proposal(self, proposal_id):
+            proposal = super().proposal(proposal_id)
+            proposal.details = None
+            proposal.raw["description"] = "B" * 5000
+            return proposal
+
+    result = read_baal_proposal("1", client_factory=OnchainDescription)
+
+    assert len(result["proposal"]["details"]) == 4000
+    assert result["proposal"]["details"] == "B" * 4000
+
+
 def test_member_quantities_are_exact_decimal_strings():
     result = read_baal_member("0x1111111111111111111111111111111111111111", client_factory=_factory)
 
@@ -181,7 +195,10 @@ def isolated_gateway_audit_spool(tmp_path, monkeypatch):
 def test_global_governance_routes_require_explicit_api_key_scope(monkeypatch):
     monkeypatch.setenv("KOKONUT_API_KEYS", "governance-key:governance-reader")
     monkeypatch.setenv("KOKONUT_API_KEY_SCOPES", "governance-reader:governance:read")
-    monkeypatch.setattr("services.gateway.governance.read_baal_config", lambda: {"chain_id": 100})
+    monkeypatch.setattr(
+        "services.gateway.governance.read_baal_config",
+        lambda: read_baal_config(client_factory=_factory),
+    )
 
     with TestClient(create_app()) as client:
         denied = client.get("/api/v1/governance/baal/config")
@@ -191,15 +208,22 @@ def test_global_governance_routes_require_explicit_api_key_scope(monkeypatch):
         )
 
     assert denied.status_code == 401
+    assert denied.json() == {
+        "error": "Unauthorized",
+        "reason": "credentials_required",
+    }
     assert allowed.status_code == 200
     assert allowed.headers["cache-control"] == "no-store"
-    assert allowed.json() == {"data": {"chain_id": 100}}
+    assert allowed.json() == {"data": read_baal_config(client_factory=_factory)}
 
 
 def test_global_governance_route_uses_global_capability_scope(monkeypatch):
     from unittest.mock import patch
 
-    monkeypatch.setattr("services.gateway.governance.read_baal_config", lambda: {"chain_id": 100})
+    monkeypatch.setattr(
+        "services.gateway.governance.read_baal_config",
+        lambda: read_baal_config(client_factory=_factory),
+    )
     with patch(
         "services.security.capabilities.CapabilityManager.verify",
         return_value={"holder": "governance-reader", "token_id": "synthetic"},
@@ -211,6 +235,7 @@ def test_global_governance_route_uses_global_capability_scope(monkeypatch):
             )
 
     assert response.status_code == 200
+    assert response.json()["data"]["chain_id"] == EXPECTED_GNOSIS_CHAIN_ID
     verify.assert_called_once_with(
         "synthetic-token",
         resource="governance",
@@ -233,6 +258,10 @@ def test_location_scoped_key_cannot_authorize_global_governance_route(monkeypatc
         )
 
     assert response.status_code == 403
+    assert response.json() == {
+        "error": "Unauthorized",
+        "reason": "api_key_scope_denied",
+    }
 
 
 def test_invalid_governance_identifiers_reach_validation_with_global_scope(monkeypatch):
@@ -253,6 +282,57 @@ def test_invalid_governance_identifiers_reach_validation_with_global_scope(monke
     assert bad_wallet.status_code == 400
 
 
+def test_baal_proposal_route_publishes_service_page_bounds():
+    parameter = create_app().openapi()["paths"]["/api/v1/governance/baal/proposals"]["get"]["parameters"][0]
+
+    assert parameter["name"] == "limit"
+    assert parameter["schema"]["type"] == "integer"
+    assert parameter["schema"]["default"] == 50
+    assert parameter["schema"]["minimum"] == 1
+    assert parameter["schema"]["maximum"] == 100
+
+
+@pytest.mark.parametrize("limit", ["0", "101", "not-an-integer"])
+def test_baal_proposal_route_rejects_invalid_page_before_reader(monkeypatch, limit):
+    monkeypatch.setenv("KOKONUT_API_KEYS", "governance-key:governance-reader")
+    monkeypatch.setenv("KOKONUT_API_KEY_SCOPES", "governance-reader:governance:read")
+
+    def fail_reader(*_args, **_kwargs):
+        pytest.fail("invalid page must be rejected before proposal reader access")
+
+    monkeypatch.setattr("services.gateway.governance.read_baal_proposals", fail_reader)
+    with TestClient(create_app()) as client:
+        response = client.get(
+            "/api/v1/governance/baal/proposals",
+            params={"limit": limit},
+            headers={"x-api-key": "governance-key"},
+        )
+
+    assert response.status_code == 422
+
+
+def test_baal_proposal_route_forwards_integer_page_limit(monkeypatch):
+    monkeypatch.setenv("KOKONUT_API_KEYS", "governance-key:governance-reader")
+    monkeypatch.setenv("KOKONUT_API_KEY_SCOPES", "governance-reader:governance:read")
+    seen = []
+
+    def read(limit):
+        seen.append(limit)
+        return read_baal_proposals(limit, client_factory=_factory)
+
+    monkeypatch.setattr("services.gateway.governance.read_baal_proposals", read)
+    with TestClient(create_app()) as client:
+        response = client.get(
+            "/api/v1/governance/baal/proposals",
+            params={"limit": "4"},
+            headers={"x-api-key": "governance-key"},
+        )
+
+    assert response.status_code == 200
+    assert response.json()["data"]["limit"] == 4
+    assert seen == [4]
+
+
 @pytest.mark.parametrize(
     ("path", "method"),
     [
@@ -271,3 +351,138 @@ def test_governance_route_policies_are_global_private_reads(path, method):
         "public": False,
         "location_id": None,
     }
+
+
+def test_baal_governance_routes_publish_strict_models_but_stay_out_of_public_spec():
+    from scripts.export_public_api_openapi import build_public_api_spec
+
+    app_spec = create_app().openapi()
+    response_refs = {
+        "/api/v1/governance/baal/config": "#/components/schemas/BaalConfigEnvelope",
+        "/api/v1/governance/baal/proposals": "#/components/schemas/BaalProposalListEnvelope",
+        "/api/v1/governance/baal/proposals/{proposal_id}": "#/components/schemas/BaalProposalDetailEnvelope",
+        "/api/v1/governance/baal/members/{wallet}": "#/components/schemas/BaalMemberDetailEnvelope",
+    }
+    error_codes = {
+        "/api/v1/governance/baal/config": {"400", "401", "403", "500", "503"},
+        "/api/v1/governance/baal/proposals": {"400", "401", "403", "500", "503"},
+        "/api/v1/governance/baal/proposals/{proposal_id}": {"400", "401", "403", "404", "500", "503"},
+        "/api/v1/governance/baal/members/{wallet}": {"400", "401", "403", "500", "503"},
+    }
+
+    for path, expected_ref in response_refs.items():
+        route = app_spec["paths"][path]["get"]
+        success = route["responses"]["200"]["content"]["application/json"]["schema"]
+        assert success["$ref"] == expected_ref
+        assert error_codes[path] <= set(route["responses"])
+        schema_name = expected_ref.rsplit("/", 1)[1]
+        assert app_spec["components"]["schemas"][schema_name]["additionalProperties"] is False
+        for status in ("401", "403"):
+            auth_schema = route["responses"][status]["content"]["application/json"]["schema"]
+            assert auth_schema["$ref"] == "#/components/schemas/BaalAuthorizationError"
+    assert set(response_refs).isdisjoint(build_public_api_spec()["paths"])
+
+    auth_error_schema = app_spec["components"]["schemas"]["BaalAuthorizationError"]
+    assert auth_error_schema["additionalProperties"] is False
+    assert set(auth_error_schema["properties"]) == {"error", "reason"}
+    assert auth_error_schema["properties"]["error"]["const"] == "Unauthorized"
+
+    config_schema = app_spec["components"]["schemas"]["BaalGovernanceConfigValues"]
+    assert config_schema["additionalProperties"] is False
+    assert set(config_schema["properties"]) == {
+        "baal_version",
+        "total_shares",
+        "total_loot",
+        "proposal_count",
+        "shares_token",
+        "loot_token",
+        "avatar",
+        "voting_period",
+        "grace_period",
+        "proposal_offering",
+        "quorum_percent",
+        "sponsor_threshold",
+        "min_retention_percent",
+    }
+    proposal_schema = app_spec["components"]["schemas"]["BaalProposal"]
+    assert proposal_schema["additionalProperties"] is False
+    assert set(proposal_schema["properties"]) == {
+        "proposal_id",
+        "lifecycle",
+        "title",
+        "details",
+        "yes_votes",
+        "no_votes",
+        "voting_starts",
+        "voting_ends",
+        "grace_ends",
+        "expiration",
+        "passed",
+        "action_failed",
+    }
+    member_schema = app_spec["components"]["schemas"]["BaalMember"]
+    assert member_schema["additionalProperties"] is False
+    assert set(member_schema["properties"]) == {"wallet", "shares", "loot", "delegate"}
+
+
+def test_baal_governance_routes_validate_projected_payloads_and_keep_no_store(monkeypatch):
+    monkeypatch.setenv("KOKONUT_API_KEYS", "governance-key:governance-reader")
+    monkeypatch.setenv("KOKONUT_API_KEY_SCOPES", "governance-reader:governance:read")
+    monkeypatch.setattr(
+        "services.gateway.governance.read_baal_config",
+        lambda: read_baal_config(client_factory=_factory),
+    )
+    monkeypatch.setattr(
+        "services.gateway.governance.read_baal_proposals",
+        lambda limit=50: read_baal_proposals(limit, client_factory=_factory),
+    )
+    monkeypatch.setattr(
+        "services.gateway.governance.read_baal_proposal",
+        lambda proposal_id: read_baal_proposal(proposal_id, client_factory=_factory),
+    )
+    monkeypatch.setattr(
+        "services.gateway.governance.read_baal_member",
+        lambda wallet: read_baal_member(wallet, client_factory=_factory),
+    )
+
+    base = "/api/v1/governance/baal"
+    headers = {"x-api-key": "governance-key"}
+    with TestClient(create_app()) as client:
+        responses = [
+            client.get(f"{base}/config", headers=headers),
+            client.get(f"{base}/proposals?limit=1", headers=headers),
+            client.get(f"{base}/proposals/2", headers=headers),
+            client.get(
+                f"{base}/members/0x1111111111111111111111111111111111111111",
+                headers=headers,
+            ),
+        ]
+
+    assert [response.status_code for response in responses] == [200, 200, 200, 200]
+    assert all(response.headers["cache-control"] == "no-store" for response in responses)
+    assert responses[0].json()["data"]["config"]["total_shares"] == "1000"
+    assert responses[1].json()["data"]["returned_count"] == 1
+    assert responses[1].json()["data"]["proposals"][0]["proposal_id"] == "2"
+    assert len(responses[2].json()["data"]["proposal"]["details"]) == 4000
+    assert responses[3].json()["data"]["member"]["shares"] == "12"
+
+
+def test_baal_governance_route_rejects_projection_drift_without_leaking_fields(monkeypatch):
+    monkeypatch.setenv("KOKONUT_API_KEYS", "governance-key:governance-reader")
+    monkeypatch.setenv("KOKONUT_API_KEY_SCOPES", "governance-reader:governance:read")
+    bad_projection = read_baal_config(client_factory=_factory)
+    bad_projection["config"]["unreviewed_secret"] = "must stay private"
+    monkeypatch.setattr(
+        "services.gateway.governance.read_baal_config", lambda: bad_projection
+    )
+
+    with TestClient(create_app()) as client:
+        response = client.get(
+            "/api/v1/governance/baal/config",
+            headers={"x-api-key": "governance-key"},
+        )
+
+    assert response.status_code == 500
+    assert response.headers["cache-control"] == "no-store"
+    assert response.json() == {"error": "Gateway request failed"}
+    assert "must stay private" not in response.text

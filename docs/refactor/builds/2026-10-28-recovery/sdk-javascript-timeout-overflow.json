@@ -1,0 +1,20 @@
+{
+  "status": "passed",
+  "scope": "JavaScript public Gateway SDK timeout validation",
+  "finding": "Finite positive delays above the signed 32-bit timer limit are accepted by the SDK but Node clamps them to 1ms with TimeoutOverflowWarning; such requests can be aborted almost immediately.",
+  "change": "Validate timeoutMs as a finite number greater than zero and at most 2147483647ms before constructing the client. An explicitly null timeout is rejected rather than silently treated as omitted.",
+  "cancellation_review": "The client uses an internal AbortController and always clears its timeout in finally. Focused fake-timer checks verify cleanup after success, fetch failure, and timeout. It does not expose per-request caller signals; Python's public API SDK has the same current cancellation surface.",
+  "python_parity": "Both SDKs default to a 10-second timeout. Python forwards its seconds value to requests; JavaScript converts its millisecond value to a Fetch AbortController timer. The JavaScript timer-specific maximum is documented.",
+  "reproduction": {
+    "runtime": "Node.js",
+    "timeout_ms": 2147483648,
+    "observed_idle_timeout_ms": 1,
+    "warning": "TimeoutOverflowWarning"
+  },
+  "checks": {
+    "command": "cd sdk/javascript && npm test -- --run src/__tests__/public-api.test.ts",
+    "result": "18 tests passed",
+    "typescript_build": "passed",
+    "database_or_provider_used": false
+  }
+}

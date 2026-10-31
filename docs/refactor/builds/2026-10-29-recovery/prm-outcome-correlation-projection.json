@@ -1,0 +1,22 @@
+{
+  "date": "2026-10-29",
+  "scope": "mock-cursor-view-projection",
+  "view": "v_process_outcome_correlation",
+  "migration": 196,
+  "columns": [
+    "process_key",
+    "process_name",
+    "maturity_level",
+    "maturity_name",
+    "metric_count",
+    "avg_metric_value",
+    "location_count"
+  ],
+  "ordering": ["process_key", "maturity_level"],
+  "focused_tests_passed": 1,
+  "ruff": "passed",
+  "python_compile": "passed",
+  "diff_check": "passed",
+  "database_contacted": false,
+  "provider_contacted": false
+}

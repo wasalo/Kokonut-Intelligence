@@ -98,7 +98,9 @@ def list_location_delphi_draftable_studies(
                 }
                 for row in rows[:page_size]
             ],
-            "has_more": len(rows) > page_size,
+            "has_more": (
+                len(rows) > page_size and page_offset + page_size <= 10_000
+            ),
         }
     except Exception:
         connection.rollback()

@@ -8,10 +8,10 @@ import math
 import os
 import uuid
 from datetime import datetime, timezone
+from decimal import Decimal
 from typing import Any, Optional
 
 import psycopg2.extras
-
 
 CALCULATION_VERSION = "v1"
 _MAX_CALIBRATION_AGE_DAYS = int(os.environ.get("CALIBRATION_MAX_AGE_DAYS", "90"))
@@ -98,7 +98,7 @@ class PredictionService:
 
     def record_outcome(
         self, prediction_id: str, source_table: str, source_id: str,
-        actual_timestamp: datetime, actual_value: float, unit: str,
+        actual_timestamp: datetime, actual_value: float | Decimal, unit: str,
         verified_by: Optional[str] = None, source_status: Optional[str] = None,
     ) -> dict[str, Any]:
         status = "verified" if verified_by else "draft"

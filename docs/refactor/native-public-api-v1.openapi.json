@@ -89,6 +89,8 @@
           "evidence_maturity_level": {
             "anyOf": [
               {
+                "maximum": 6.0,
+                "minimum": 0.0,
                 "type": "integer"
               },
               {
@@ -180,6 +182,91 @@
           "data"
         ],
         "title": "PublicCrispAssessmentEnvelope",
+        "type": "object"
+      },
+      "PublicDriverCatalogEntry": {
+        "additionalProperties": false,
+        "description": "Non-sensitive public metadata for an available data-source driver.",
+        "properties": {
+          "driver_name": {
+            "maxLength": 100,
+            "title": "Driver Name",
+            "type": "string"
+          },
+          "driver_type": {
+            "enum": [
+              "sensor",
+              "remote_sensing",
+              "market",
+              "blockchain",
+              "weather",
+              "climate",
+              "gis"
+            ],
+            "title": "Driver Type",
+            "type": "string"
+          },
+          "driver_version": {
+            "maxLength": 20,
+            "title": "Driver Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "driver_name",
+          "driver_version",
+          "driver_type"
+        ],
+        "title": "PublicDriverCatalogEntry",
+        "type": "object"
+      },
+      "PublicDriverCatalogEnvelope": {
+        "additionalProperties": false,
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/PublicDriverCatalogResponse"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "title": "PublicDriverCatalogEnvelope",
+        "type": "object"
+      },
+      "PublicDriverCatalogResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "drivers": {
+            "items": {
+              "$ref": "#/components/schemas/PublicDriverCatalogEntry"
+            },
+            "title": "Drivers",
+            "type": "array"
+          },
+          "has_more": {
+            "title": "Has More",
+            "type": "boolean"
+          },
+          "limit": {
+            "maximum": 50.0,
+            "minimum": 1.0,
+            "title": "Limit",
+            "type": "integer"
+          },
+          "offset": {
+            "maximum": 5000.0,
+            "minimum": 0.0,
+            "title": "Offset",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "drivers",
+          "limit",
+          "offset",
+          "has_more"
+        ],
+        "title": "PublicDriverCatalogResponse",
         "type": "object"
       },
       "PublicError": {
@@ -644,6 +731,67 @@
           "location_scoped": true,
           "public": true,
           "resource": "crisp_risk_assessment"
+        }
+      }
+    },
+    "/api/v1/drivers": {
+      "get": {
+        "description": "List an enabled, bounded driver catalog through the stable v1 envelope.",
+        "operationId": "listPublicDriversV1",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 50,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "maximum": 5000,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicDriverCatalogEnvelope"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Public Drivers V1",
+        "x-kokonut-policy": {
+          "action": "read",
+          "location_scoped": false,
+          "public": true,
+          "resource": "driver"
         }
       }
     },

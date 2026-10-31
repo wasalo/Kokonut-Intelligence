@@ -3,11 +3,11 @@
   "generated_by": "scripts/worker_sql_inventory.py",
   "scope": "Direct Python SQL execution calls found in the static worker source-import closure. Relation names are regex-derived candidates, not a parsed SQL AST. The inventory does not prove function reachability, complete database effects, or authorization.",
   "summary": {
-    "operation_roots": 49,
-    "source_files": 136,
-    "execution_sites": 471,
-    "static_literal_sites": 384,
-    "composed_or_variable_sites": 87
+    "operation_roots": 50,
+    "source_files": 142,
+    "execution_sites": 494,
+    "static_literal_sites": 406,
+    "composed_or_variable_sites": 88
   },
   "execution_sites": [
     {
@@ -1779,9 +1779,9 @@
       ]
     },
     {
-      "id": "services/analytics/carbon_balance.py:42:4",
+      "id": "services/analytics/carbon_balance.py:43:4",
       "source": "services/analytics/carbon_balance.py",
-      "line": 42,
+      "line": 43,
       "column": 4,
       "scope": "compute_ghg_emissions",
       "method": "execute",
@@ -1794,9 +1794,9 @@
       ]
     },
     {
-      "id": "services/analytics/carbon_balance.py:140:8",
+      "id": "services/analytics/carbon_balance.py:141:8",
       "source": "services/analytics/carbon_balance.py",
-      "line": 140,
+      "line": 141,
       "column": 8,
       "scope": "compute_carbon_balance",
       "method": "execute",
@@ -1805,15 +1805,15 @@
       "candidate_relations": [
         "climate_impact_summary"
       ],
-      "static_sql_sha256": "2049c211f18fe176df56a84a71b50faf59952b32ec19a62198c45b837ad030c2",
+      "static_sql_sha256": "191b57324850fbbc761490a70d3feeebe1c31ba832c33e74d530033ecdaaf250",
       "operation_refs": [
         "scheduled_module:services.analytics.carbon_credit_adjustment_check"
       ]
     },
     {
-      "id": "services/analytics/carbon_balance.py:147:8",
+      "id": "services/analytics/carbon_balance.py:154:8",
       "source": "services/analytics/carbon_balance.py",
-      "line": 147,
+      "line": 154,
       "column": 8,
       "scope": "compute_carbon_balance",
       "method": "execute",
@@ -1822,15 +1822,15 @@
       "candidate_relations": [
         "climate_impact_summary"
       ],
-      "static_sql_sha256": "caf843e140857614061a65e58dfab525f47cc202505287de1ea83027d7a0bf81",
+      "static_sql_sha256": "eb5f39662eddf98b6f7264c2c481a11c5481e77634c3f01da0beb5f0a41927f5",
       "operation_refs": [
         "scheduled_module:services.analytics.carbon_credit_adjustment_check"
       ]
     },
     {
-      "id": "services/analytics/carbon_balance.py:168:8",
+      "id": "services/analytics/carbon_balance.py:181:8",
       "source": "services/analytics/carbon_balance.py",
-      "line": 168,
+      "line": 181,
       "column": 8,
       "scope": "compute_carbon_balance",
       "method": "execute",
@@ -1845,9 +1845,9 @@
       ]
     },
     {
-      "id": "services/analytics/carbon_balance.py:177:8",
+      "id": "services/analytics/carbon_balance.py:190:8",
       "source": "services/analytics/carbon_balance.py",
-      "line": 177,
+      "line": 190,
       "column": 8,
       "scope": "compute_carbon_balance",
       "method": "execute",
@@ -1862,9 +1862,9 @@
       ]
     },
     {
-      "id": "services/analytics/carbon_balance.py:205:8",
+      "id": "services/analytics/carbon_balance.py:218:8",
       "source": "services/analytics/carbon_balance.py",
-      "line": 205,
+      "line": 218,
       "column": 8,
       "scope": "compute_carbon_balance",
       "method": "execute",
@@ -1879,9 +1879,9 @@
       ]
     },
     {
-      "id": "services/analytics/carbon_balance.py:297:4",
+      "id": "services/analytics/carbon_balance.py:310:4",
       "source": "services/analytics/carbon_balance.py",
-      "line": 297,
+      "line": 310,
       "column": 4,
       "scope": "list_emission_factors",
       "method": "execute",
@@ -1894,9 +1894,9 @@
       ]
     },
     {
-      "id": "services/analytics/carbon_balance.py:326:4",
+      "id": "services/analytics/carbon_balance.py:339:4",
       "source": "services/analytics/carbon_balance.py",
-      "line": 326,
+      "line": 339,
       "column": 4,
       "scope": "list_carbon_benchmarks",
       "method": "execute",
@@ -1969,11 +1969,9 @@
       "expression_kind": "literal",
       "statement_kind": "SELECT",
       "candidate_relations": [
-        "climate_impact_summary",
-        "period_end",
-        "period_start"
+        "climate_impact_summary"
       ],
-      "static_sql_sha256": "aacad1cbf410263b30e4db1b2ef85dbec133d7d0fc24b5bc25e35f18d776cd62",
+      "static_sql_sha256": "f006c7a5cdf581cc5abbb3d92704d00058a94fa51709f4ccfd1d4cd02924a3a7",
       "operation_refs": [
         "scheduled_module:services.analytics.carbon_credit_adjustment_check"
       ]
@@ -2326,15 +2324,15 @@
       "candidate_relations": [
         "soil_input_application"
       ],
-      "static_sql_sha256": "70609491377c3ca7df49323081b25dd467bc0651739978fb482922c4a2a126b3",
+      "static_sql_sha256": "73503fc168f33ec216789f8de678f5c75f93fb675ba7e857cd6153e426373454",
       "operation_refs": [
         "isolated_worker:services.agents.worker_cli"
       ]
     },
     {
-      "id": "services/analytics/ecological_modeling_v2.py:58:4",
+      "id": "services/analytics/ecological_modeling_v2.py:73:4",
       "source": "services/analytics/ecological_modeling_v2.py",
-      "line": 58,
+      "line": 73,
       "column": 4,
       "scope": "compute_pest_trends",
       "method": "execute",
@@ -2349,9 +2347,9 @@
       ]
     },
     {
-      "id": "services/analytics/ecological_modeling_v2.py:114:4",
+      "id": "services/analytics/ecological_modeling_v2.py:129:4",
       "source": "services/analytics/ecological_modeling_v2.py",
-      "line": 114,
+      "line": 129,
       "column": 4,
       "scope": "compute_biocontrol_effectiveness",
       "method": "execute",
@@ -2366,9 +2364,9 @@
       ]
     },
     {
-      "id": "services/analytics/ecological_modeling_v2.py:166:4",
+      "id": "services/analytics/ecological_modeling_v2.py:181:4",
       "source": "services/analytics/ecological_modeling_v2.py",
-      "line": 166,
+      "line": 181,
       "column": 4,
       "scope": "compute_resource_efficiency",
       "method": "execute",
@@ -2383,9 +2381,9 @@
       ]
     },
     {
-      "id": "services/analytics/ecological_modeling_v2.py:181:4",
+      "id": "services/analytics/ecological_modeling_v2.py:196:4",
       "source": "services/analytics/ecological_modeling_v2.py",
-      "line": 181,
+      "line": 196,
       "column": 4,
       "scope": "compute_resource_efficiency",
       "method": "execute",
@@ -2401,9 +2399,9 @@
       ]
     },
     {
-      "id": "services/analytics/ecological_modeling_v2.py:223:4",
+      "id": "services/analytics/ecological_modeling_v2.py:238:4",
       "source": "services/analytics/ecological_modeling_v2.py",
-      "line": 223,
+      "line": 238,
       "column": 4,
       "scope": "compute_conservation_status_summary",
       "method": "execute",
@@ -3006,6 +3004,7 @@
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "isolated_worker:services.agents.worker_cli",
         "isolated_worker:services.events.dispatch_worker",
+        "isolated_worker:services.export.report_snapshot_export_worker",
         "scheduled_module:services.analytics.carbon_credit_adjustment_check",
         "scheduled_module:services.analytics.carbon_credit_adjustment_worker",
         "scheduled_module:services.events",
@@ -3068,6 +3067,7 @@
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "isolated_worker:services.agents.worker_cli",
         "isolated_worker:services.events.dispatch_worker",
+        "isolated_worker:services.export.report_snapshot_export_worker",
         "scheduled_module:services.analytics.carbon_credit_adjustment_check",
         "scheduled_module:services.analytics.carbon_credit_adjustment_worker",
         "scheduled_module:services.events",
@@ -3130,6 +3130,7 @@
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "isolated_worker:services.agents.worker_cli",
         "isolated_worker:services.events.dispatch_worker",
+        "isolated_worker:services.export.report_snapshot_export_worker",
         "scheduled_module:services.analytics.carbon_credit_adjustment_check",
         "scheduled_module:services.analytics.carbon_credit_adjustment_worker",
         "scheduled_module:services.events",
@@ -3468,9 +3469,9 @@
       ]
     },
     {
-      "id": "services/common/worker_database.py:142:12",
+      "id": "services/common/worker_database.py:143:12",
       "source": "services/common/worker_database.py",
-      "line": 142,
+      "line": 143,
       "column": 12,
       "scope": "get_worker_db",
       "method": "execute",
@@ -3489,6 +3490,7 @@
         "isolated_worker:services.agents.worker_cli",
         "isolated_worker:services.events.dispatch_worker",
         "isolated_worker:services.events.notification_delivery_worker",
+        "isolated_worker:services.export.report_snapshot_export_worker",
         "scheduled_module:services.analytics.carbon_credit_adjustment_worker",
         "scheduled_module:services.events",
         "scheduled_module:services.ingestion.anomaly_detector",
@@ -3806,9 +3808,9 @@
       ]
     },
     {
-      "id": "services/drivers/registry.py:183:16",
+      "id": "services/drivers/registry.py:185:16",
       "source": "services/drivers/registry.py",
-      "line": 183,
+      "line": 185,
       "column": 16,
       "scope": "DriverRegistry.register",
       "method": "execute",
@@ -3825,9 +3827,9 @@
       ]
     },
     {
-      "id": "services/drivers/registry.py:233:16",
+      "id": "services/drivers/registry.py:235:16",
       "source": "services/drivers/registry.py",
-      "line": 233,
+      "line": 235,
       "column": 16,
       "scope": "DriverRegistry.load",
       "method": "execute",
@@ -3843,9 +3845,9 @@
       ]
     },
     {
-      "id": "services/drivers/registry.py:274:20",
+      "id": "services/drivers/registry.py:276:20",
       "source": "services/drivers/registry.py",
-      "line": 274,
+      "line": 276,
       "column": 20,
       "scope": "DriverRegistry.list_drivers",
       "method": "execute",
@@ -3861,9 +3863,9 @@
       ]
     },
     {
-      "id": "services/drivers/registry.py:285:20",
+      "id": "services/drivers/registry.py:287:20",
       "source": "services/drivers/registry.py",
-      "line": 285,
+      "line": 287,
       "column": 20,
       "scope": "DriverRegistry.list_drivers",
       "method": "execute",
@@ -3879,9 +3881,27 @@
       ]
     },
     {
-      "id": "services/drivers/registry.py:327:16",
+      "id": "services/drivers/registry.py:336:16",
       "source": "services/drivers/registry.py",
-      "line": 327,
+      "line": 336,
+      "column": 16,
+      "scope": "DriverRegistry.list_public_drivers_page",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "driver_registry"
+      ],
+      "static_sql_sha256": "937279dceb8db3f96668b92d8fb5aa5ae9fb05e2af62538a3adcf1623e99a06f",
+      "operation_refs": [
+        "scheduled_module:services.ingestion.sensor_ingester",
+        "scheduled_module:services.ingestion.sensor_worker"
+      ]
+    },
+    {
+      "id": "services/drivers/registry.py:383:16",
+      "source": "services/drivers/registry.py",
+      "line": 383,
       "column": 16,
       "scope": "DriverRegistry.list_instances",
       "method": "execute",
@@ -3898,9 +3918,9 @@
       ]
     },
     {
-      "id": "services/drivers/registry.py:368:12",
+      "id": "services/drivers/registry.py:424:12",
       "source": "services/drivers/registry.py",
-      "line": 368,
+      "line": 424,
       "column": 12,
       "scope": "DriverRegistry.get_schedulable_instance",
       "method": "execute",
@@ -3917,9 +3937,9 @@
       ]
     },
     {
-      "id": "services/drivers/registry.py:474:16",
+      "id": "services/drivers/registry.py:530:16",
       "source": "services/drivers/registry.py",
-      "line": 474,
+      "line": 530,
       "column": 16,
       "scope": "DriverRegistry.create_instance",
       "method": "execute",
@@ -3935,9 +3955,9 @@
       ]
     },
     {
-      "id": "services/drivers/registry.py:487:16",
+      "id": "services/drivers/registry.py:543:16",
       "source": "services/drivers/registry.py",
-      "line": 487,
+      "line": 543,
       "column": 16,
       "scope": "DriverRegistry.create_instance",
       "method": "execute",
@@ -3953,9 +3973,9 @@
       ]
     },
     {
-      "id": "services/drivers/registry.py:523:16",
+      "id": "services/drivers/registry.py:579:16",
       "source": "services/drivers/registry.py",
-      "line": 523,
+      "line": 579,
       "column": 16,
       "scope": "DriverRegistry.update_instance_status",
       "method": "execute",
@@ -3971,9 +3991,9 @@
       ]
     },
     {
-      "id": "services/drivers/registry.py:535:20",
+      "id": "services/drivers/registry.py:591:20",
       "source": "services/drivers/registry.py",
-      "line": 535,
+      "line": 591,
       "column": 20,
       "scope": "DriverRegistry.update_instance_status",
       "method": "execute",
@@ -3989,9 +4009,9 @@
       ]
     },
     {
-      "id": "services/drivers/registry.py:546:20",
+      "id": "services/drivers/registry.py:602:20",
       "source": "services/drivers/registry.py",
-      "line": 546,
+      "line": 602,
       "column": 20,
       "scope": "DriverRegistry.update_instance_status",
       "method": "execute",
@@ -4007,9 +4027,9 @@
       ]
     },
     {
-      "id": "services/events/bus.py:88:16",
+      "id": "services/events/bus.py:106:16",
       "source": "services/events/bus.py",
-      "line": 88,
+      "line": 106,
       "column": 16,
       "scope": "EventBus.publish",
       "method": "execute",
@@ -4031,9 +4051,9 @@
       ]
     },
     {
-      "id": "services/events/bus.py:107:12",
+      "id": "services/events/bus.py:125:12",
       "source": "services/events/bus.py",
-      "line": 107,
+      "line": 125,
       "column": 12,
       "scope": "EventBus._claim",
       "method": "execute",
@@ -4057,9 +4077,9 @@
       ]
     },
     {
-      "id": "services/events/bus.py:157:12",
+      "id": "services/events/bus.py:175:12",
       "source": "services/events/bus.py",
-      "line": 157,
+      "line": 175,
       "column": 12,
       "scope": "EventBus._process_event",
       "method": "execute",
@@ -4082,9 +4102,9 @@
       ]
     },
     {
-      "id": "services/events/bus.py:176:16",
+      "id": "services/events/bus.py:200:16",
       "source": "services/events/bus.py",
-      "line": 176,
+      "line": 200,
       "column": 16,
       "scope": "EventBus._process_event",
       "method": "execute",
@@ -4106,9 +4126,9 @@
       ]
     },
     {
-      "id": "services/events/bus.py:188:16",
+      "id": "services/events/bus.py:212:16",
       "source": "services/events/bus.py",
-      "line": 188,
+      "line": 212,
       "column": 16,
       "scope": "EventBus._process_event",
       "method": "execute",
@@ -4131,9 +4151,9 @@
       ]
     },
     {
-      "id": "services/events/bus.py:204:16",
+      "id": "services/events/bus.py:228:16",
       "source": "services/events/bus.py",
-      "line": 204,
+      "line": 228,
       "column": 16,
       "scope": "EventBus._process_event",
       "method": "execute",
@@ -4155,9 +4175,9 @@
       ]
     },
     {
-      "id": "services/events/bus.py:209:16",
+      "id": "services/events/bus.py:233:16",
       "source": "services/events/bus.py",
-      "line": 209,
+      "line": 233,
       "column": 16,
       "scope": "EventBus._process_event",
       "method": "execute",
@@ -4179,9 +4199,9 @@
       ]
     },
     {
-      "id": "services/events/bus.py:275:12",
+      "id": "services/events/bus.py:299:12",
       "source": "services/events/bus.py",
-      "line": 275,
+      "line": 299,
       "column": 12,
       "scope": "EventBus._complete",
       "method": "execute",
@@ -4203,9 +4223,9 @@
       ]
     },
     {
-      "id": "services/events/bus.py:290:12",
+      "id": "services/events/bus.py:314:12",
       "source": "services/events/bus.py",
-      "line": 290,
+      "line": 314,
       "column": 12,
       "scope": "EventBus._retry_or_dead_letter",
       "method": "execute",
@@ -4227,9 +4247,9 @@
       ]
     },
     {
-      "id": "services/events/bus.py:299:16",
+      "id": "services/events/bus.py:323:16",
       "source": "services/events/bus.py",
-      "line": 299,
+      "line": 323,
       "column": 16,
       "scope": "EventBus._retry_or_dead_letter",
       "method": "execute",
@@ -4253,9 +4273,9 @@
       ]
     },
     {
-      "id": "services/events/bus.py:315:12",
+      "id": "services/events/bus.py:339:12",
       "source": "services/events/bus.py",
-      "line": 315,
+      "line": 339,
       "column": 12,
       "scope": "EventBus.replay_dead_letter",
       "method": "execute",
@@ -4281,9 +4301,9 @@
       ]
     },
     {
-      "id": "services/events/bus.py:352:12",
+      "id": "services/events/bus.py:376:12",
       "source": "services/events/bus.py",
-      "line": 352,
+      "line": 376,
       "column": 12,
       "scope": "EventBus.dispose_dead_letter",
       "method": "execute",
@@ -4305,9 +4325,9 @@
       ]
     },
     {
-      "id": "services/events/bus.py:364:12",
+      "id": "services/events/bus.py:388:12",
       "source": "services/events/bus.py",
-      "line": 364,
+      "line": 388,
       "column": 12,
       "scope": "EventBus.get_stats",
       "method": "execute",
@@ -4329,9 +4349,9 @@
       ]
     },
     {
-      "id": "services/events/bus.py:377:16",
+      "id": "services/events/bus.py:401:16",
       "source": "services/events/bus.py",
-      "line": 377,
+      "line": 401,
       "column": 16,
       "scope": "EventBus.cleanup_old_events",
       "method": "execute",
@@ -4351,9 +4371,9 @@
       ]
     },
     {
-      "id": "services/events/bus.py:380:16",
+      "id": "services/events/bus.py:404:16",
       "source": "services/events/bus.py",
-      "line": 380,
+      "line": 404,
       "column": 16,
       "scope": "EventBus.cleanup_old_events",
       "method": "execute",
@@ -4375,9 +4395,9 @@
       ]
     },
     {
-      "id": "services/events/bus.py:421:16",
+      "id": "services/events/bus.py:445:16",
       "source": "services/events/bus.py",
-      "line": 421,
+      "line": 445,
       "column": 16,
       "scope": "EventBus.cleanup_old_events",
       "method": "execute",
@@ -4403,9 +4423,9 @@
       ]
     },
     {
-      "id": "services/events/bus.py:450:16",
+      "id": "services/events/bus.py:474:16",
       "source": "services/events/bus.py",
-      "line": 450,
+      "line": 474,
       "column": 16,
       "scope": "EventBus.cleanup_old_events",
       "method": "execute",
@@ -4427,9 +4447,9 @@
       ]
     },
     {
-      "id": "services/events/bus.py:458:16",
+      "id": "services/events/bus.py:482:16",
       "source": "services/events/bus.py",
-      "line": 458,
+      "line": 482,
       "column": 16,
       "scope": "EventBus.cleanup_old_events",
       "method": "execute",
@@ -4451,9 +4471,9 @@
       ]
     },
     {
-      "id": "services/events/cli.py:220:12",
+      "id": "services/events/cli.py:254:12",
       "source": "services/events/cli.py",
-      "line": 220,
+      "line": 254,
       "column": 12,
       "scope": "cmd_list_handlers",
       "method": "execute",
@@ -4468,9 +4488,9 @@
       ]
     },
     {
-      "id": "services/events/cli.py:249:12",
+      "id": "services/events/cli.py:283:12",
       "source": "services/events/cli.py",
-      "line": 249,
+      "line": 283,
       "column": 12,
       "scope": "cmd_list_dead_letter",
       "method": "execute",
@@ -4549,10 +4569,10 @@
       ]
     },
     {
-      "id": "services/events/fork_detector.py:36:8",
+      "id": "services/events/fork_detector.py:41:12",
       "source": "services/events/fork_detector.py",
-      "line": 36,
-      "column": 8,
+      "line": 41,
+      "column": 12,
       "scope": "detect_fork_opportunities",
       "method": "execute",
       "expression_kind": "literal",
@@ -4566,9 +4586,9 @@
       ]
     },
     {
-      "id": "services/events/fork_detector.py:59:8",
+      "id": "services/events/fork_detector.py:64:8",
       "source": "services/events/fork_detector.py",
-      "line": 59,
+      "line": 64,
       "column": 8,
       "scope": "detect_fork_opportunities",
       "method": "execute",
@@ -4583,9 +4603,9 @@
       ]
     },
     {
-      "id": "services/events/fork_detector.py:133:12",
+      "id": "services/events/fork_detector.py:138:12",
       "source": "services/events/fork_detector.py",
-      "line": 133,
+      "line": 138,
       "column": 12,
       "scope": "propose_fork_opportunities",
       "method": "execute",
@@ -4925,9 +4945,9 @@
       ]
     },
     {
-      "id": "services/events/notification_outbox.py:394:8",
+      "id": "services/events/notification_outbox.py:395:8",
       "source": "services/events/notification_outbox.py",
-      "line": 394,
+      "line": 395,
       "column": 8,
       "scope": "claim_batch",
       "method": "execute",
@@ -4950,9 +4970,9 @@
       ]
     },
     {
-      "id": "services/events/notification_outbox.py:422:12",
+      "id": "services/events/notification_outbox.py:423:12",
       "source": "services/events/notification_outbox.py",
-      "line": 422,
+      "line": 423,
       "column": 12,
       "scope": "claim_batch",
       "method": "execute",
@@ -4973,9 +4993,9 @@
       ]
     },
     {
-      "id": "services/events/notification_outbox.py:507:8",
+      "id": "services/events/notification_outbox.py:508:8",
       "source": "services/events/notification_outbox.py",
-      "line": 507,
+      "line": 508,
       "column": 8,
       "scope": "_finish_attempt",
       "method": "execute",
@@ -4996,9 +5016,9 @@
       ]
     },
     {
-      "id": "services/events/notification_outbox.py:531:8",
+      "id": "services/events/notification_outbox.py:532:8",
       "source": "services/events/notification_outbox.py",
-      "line": 531,
+      "line": 532,
       "column": 8,
       "scope": "_finish_attempt",
       "method": "execute",
@@ -5019,9 +5039,9 @@
       ]
     },
     {
-      "id": "services/events/notification_outbox.py:601:8",
+      "id": "services/events/notification_outbox.py:602:8",
       "source": "services/events/notification_outbox.py",
-      "line": 601,
+      "line": 602,
       "column": 8,
       "scope": "get_stats",
       "method": "execute",
@@ -5042,9 +5062,9 @@
       ]
     },
     {
-      "id": "services/events/notification_outbox.py:603:8",
+      "id": "services/events/notification_outbox.py:604:8",
       "source": "services/events/notification_outbox.py",
-      "line": 603,
+      "line": 604,
       "column": 8,
       "scope": "get_stats",
       "method": "execute",
@@ -5066,9 +5086,9 @@
       ]
     },
     {
-      "id": "services/events/notification_outbox.py:644:8",
+      "id": "services/events/notification_outbox.py:645:8",
       "source": "services/events/notification_outbox.py",
-      "line": 644,
+      "line": 645,
       "column": 8,
       "scope": "list_dead_letters",
       "method": "execute",
@@ -5089,9 +5109,9 @@
       ]
     },
     {
-      "id": "services/events/notification_outbox.py:674:8",
+      "id": "services/events/notification_outbox.py:675:8",
       "source": "services/events/notification_outbox.py",
-      "line": 674,
+      "line": 675,
       "column": 8,
       "scope": "replay_dead_letter",
       "method": "execute",
@@ -5112,9 +5132,9 @@
       ]
     },
     {
-      "id": "services/events/notification_outbox.py:685:8",
+      "id": "services/events/notification_outbox.py:686:8",
       "source": "services/events/notification_outbox.py",
-      "line": 685,
+      "line": 686,
       "column": 8,
       "scope": "replay_dead_letter",
       "method": "execute",
@@ -5135,9 +5155,9 @@
       ]
     },
     {
-      "id": "services/events/notification_outbox.py:697:8",
+      "id": "services/events/notification_outbox.py:698:8",
       "source": "services/events/notification_outbox.py",
-      "line": 697,
+      "line": 698,
       "column": 8,
       "scope": "replay_dead_letter",
       "method": "execute",
@@ -5158,9 +5178,9 @@
       ]
     },
     {
-      "id": "services/events/notification_outbox.py:725:8",
+      "id": "services/events/notification_outbox.py:726:8",
       "source": "services/events/notification_outbox.py",
-      "line": 725,
+      "line": 726,
       "column": 8,
       "scope": "dispose_dead_letter",
       "method": "execute",
@@ -5181,9 +5201,9 @@
       ]
     },
     {
-      "id": "services/events/notification_outbox.py:736:8",
+      "id": "services/events/notification_outbox.py:737:8",
       "source": "services/events/notification_outbox.py",
-      "line": 736,
+      "line": 737,
       "column": 8,
       "scope": "dispose_dead_letter",
       "method": "execute",
@@ -5204,9 +5224,9 @@
       ]
     },
     {
-      "id": "services/events/notification_outbox.py:745:8",
+      "id": "services/events/notification_outbox.py:746:8",
       "source": "services/events/notification_outbox.py",
-      "line": 745,
+      "line": 746,
       "column": 8,
       "scope": "dispose_dead_letter",
       "method": "execute",
@@ -5292,6 +5312,380 @@
       "static_sql_sha256": "1e92d2b85656fd1fc212b416fc0062eb5c2623c2acba6a532ae20f3253b8743c",
       "operation_refs": [
         "scheduled_module:services.export.dataset_refresh"
+      ]
+    },
+    {
+      "id": "services/export/report_snapshot_export_worker.py:78:12",
+      "source": "services/export/report_snapshot_export_worker.py",
+      "line": 78,
+      "column": 12,
+      "scope": "_claim",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "kokonut_security.claim_report_snapshot_export_batch"
+      ],
+      "static_sql_sha256": "3311476cd2fac4a9c73e6ed5af049866d96221623dce225430a26b6df2a3c6a4",
+      "operation_refs": [
+        "isolated_worker:services.export.report_snapshot_export_worker"
+      ]
+    },
+    {
+      "id": "services/export/report_snapshot_export_worker.py:101:12",
+      "source": "services/export/report_snapshot_export_worker.py",
+      "line": 101,
+      "column": 12,
+      "scope": "_read_source",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "kokonut_security.read_report_snapshot_export_source"
+      ],
+      "static_sql_sha256": "793c3a37a5805520121b335e4fd73a74dd8d1b16680f30df43ca1085388233fe",
+      "operation_refs": [
+        "isolated_worker:services.export.report_snapshot_export_worker"
+      ]
+    },
+    {
+      "id": "services/export/report_snapshot_export_worker.py:154:12",
+      "source": "services/export/report_snapshot_export_worker.py",
+      "line": 154,
+      "column": 12,
+      "scope": "_finish",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [],
+      "static_sql_sha256": "dae5496dd867e54c837858e4a205029b31a8fcc030731f229a8251187fa58e63",
+      "operation_refs": [
+        "isolated_worker:services.export.report_snapshot_export_worker"
+      ]
+    },
+    {
+      "id": "services/export/reports/common.py:192:8",
+      "source": "services/export/reports/common.py",
+      "line": 192,
+      "column": 8,
+      "scope": "fetch_public_interest_context",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "v_public_stakeholder_feedback_summary"
+      ],
+      "static_sql_sha256": "7074cdeab138a5e8198df335b5e5bc1461010056d97204ddd3419105f021398c",
+      "operation_refs": [
+        "isolated_worker:services.export.report_snapshot_export_worker"
+      ]
+    },
+    {
+      "id": "services/export/reports/common.py:205:8",
+      "source": "services/export/reports/common.py",
+      "line": 205,
+      "column": 8,
+      "scope": "fetch_public_interest_context",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "v_public_impact_claim_summary"
+      ],
+      "static_sql_sha256": "9b55a46cc6e1e63ad3283b06beed6c79d5a8f80388b33a014c7305f90dd22704",
+      "operation_refs": [
+        "isolated_worker:services.export.report_snapshot_export_worker"
+      ]
+    },
+    {
+      "id": "services/export/reports/common.py:219:8",
+      "source": "services/export/reports/common.py",
+      "line": 219,
+      "column": 8,
+      "scope": "fetch_public_interest_context",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "impact_claim"
+      ],
+      "static_sql_sha256": "01100fa9cd1562d9e4a0aac21fe7bd35bb36ff2a216046f99723d6c0c79af55c",
+      "operation_refs": [
+        "isolated_worker:services.export.report_snapshot_export_worker"
+      ]
+    },
+    {
+      "id": "services/export/reports/common.py:250:8",
+      "source": "services/export/reports/common.py",
+      "line": 250,
+      "column": 8,
+      "scope": "fetch_public_interest_context",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "stakeholder_feedback"
+      ],
+      "static_sql_sha256": "65f1910f6cc4039c9c9da7e2e55bb0c236080093877beb024c0eff8ab49982e9",
+      "operation_refs": [
+        "isolated_worker:services.export.report_snapshot_export_worker"
+      ]
+    },
+    {
+      "id": "services/export/reports/common.py:267:8",
+      "source": "services/export/reports/common.py",
+      "line": 267,
+      "column": 8,
+      "scope": "fetch_public_interest_context",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "v_public_cultural_context_summary"
+      ],
+      "static_sql_sha256": "fd0e5da8a2874b9bb9cfa5b1000bbdf82ab626b49e8651934c02af0c741ea518",
+      "operation_refs": [
+        "isolated_worker:services.export.report_snapshot_export_worker"
+      ]
+    },
+    {
+      "id": "services/export/reports/common.py:280:8",
+      "source": "services/export/reports/common.py",
+      "line": 280,
+      "column": 8,
+      "scope": "fetch_public_interest_context",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "v_public_wellbeing_metric_summary"
+      ],
+      "static_sql_sha256": "c9bd1ef82b2464f218f149f822a36822ca53295481b2b2e3cbd54ab6c01a3e97",
+      "operation_refs": [
+        "isolated_worker:services.export.report_snapshot_export_worker"
+      ]
+    },
+    {
+      "id": "services/export/reports/common.py:294:8",
+      "source": "services/export/reports/common.py",
+      "line": 294,
+      "column": 8,
+      "scope": "fetch_public_interest_context",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "v_public_participatory_governance_summary"
+      ],
+      "static_sql_sha256": "c127fdfec6147897fc57095a491d4bade5a31132bfe8fb46b2bb71209a442d9d",
+      "operation_refs": [
+        "isolated_worker:services.export.report_snapshot_export_worker"
+      ]
+    },
+    {
+      "id": "services/export/reports/common.py:308:8",
+      "source": "services/export/reports/common.py",
+      "line": 308,
+      "column": 8,
+      "scope": "fetch_public_interest_context",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "v_public_financial_sustainability_summary"
+      ],
+      "static_sql_sha256": "b49c0cd162718c74d2a0f57e2e263bec52a4603f3a594019404ab34ed0c8209d",
+      "operation_refs": [
+        "isolated_worker:services.export.report_snapshot_export_worker"
+      ]
+    },
+    {
+      "id": "services/export/reports/common.py:323:8",
+      "source": "services/export/reports/common.py",
+      "line": 323,
+      "column": 8,
+      "scope": "fetch_public_interest_context",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "v_public_risk_mitigation_summary"
+      ],
+      "static_sql_sha256": "55fa4206d2b158c7126beb38cb54905649915e35937959d835fecc916d0913d4",
+      "operation_refs": [
+        "isolated_worker:services.export.report_snapshot_export_worker"
+      ]
+    },
+    {
+      "id": "services/export/reports/common.py:337:8",
+      "source": "services/export/reports/common.py",
+      "line": 337,
+      "column": 8,
+      "scope": "fetch_public_interest_context",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "v_public_prediction_accuracy"
+      ],
+      "static_sql_sha256": "ae1ef424ad27fc87ed43c63e92c73118e6af03c22336d4ee1fc9f3260c67521d",
+      "operation_refs": [
+        "isolated_worker:services.export.report_snapshot_export_worker"
+      ]
+    },
+    {
+      "id": "services/export/reports/common.py:350:8",
+      "source": "services/export/reports/common.py",
+      "line": 350,
+      "column": 8,
+      "scope": "fetch_public_interest_context",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "threat_backcast_plan"
+      ],
+      "static_sql_sha256": "9e75b9026f239873eddad42d3ea4008caf5a315e79f83bd4ae56c88113c6c35c",
+      "operation_refs": [
+        "isolated_worker:services.export.report_snapshot_export_worker"
+      ]
+    },
+    {
+      "id": "services/export/reports/common.py:367:8",
+      "source": "services/export/reports/common.py",
+      "line": 367,
+      "column": 8,
+      "scope": "fetch_public_interest_context",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "backcast_assumption_challenge",
+        "backcast_plan"
+      ],
+      "static_sql_sha256": "b01e5473294681641862555e35cfd968c8baac8c4370c8dc328c18acdbc8b02d",
+      "operation_refs": [
+        "isolated_worker:services.export.report_snapshot_export_worker"
+      ]
+    },
+    {
+      "id": "services/export/reports/common.py:378:8",
+      "source": "services/export/reports/common.py",
+      "line": 378,
+      "column": 8,
+      "scope": "fetch_public_interest_context",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "delphi_study",
+        "v_delphi_consensus_public"
+      ],
+      "static_sql_sha256": "813382400664cf7fbf93b2b650252bad80738d7ac54fb246f84be11af2ab6d38",
+      "operation_refs": [
+        "isolated_worker:services.export.report_snapshot_export_worker"
+      ]
+    },
+    {
+      "id": "services/export/reports/common.py:390:8",
+      "source": "services/export/reports/common.py",
+      "line": 390,
+      "column": 8,
+      "scope": "fetch_public_interest_context",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "v_crisp_composite_rating"
+      ],
+      "static_sql_sha256": "618416a772b30bd8c100848535b5d856cced8891d5de9a77de897b6f64d4e846",
+      "operation_refs": [
+        "isolated_worker:services.export.report_snapshot_export_worker"
+      ]
+    },
+    {
+      "id": "services/export/reports/common.py:403:8",
+      "source": "services/export/reports/common.py",
+      "line": 403,
+      "column": 8,
+      "scope": "fetch_public_interest_context",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "v_prediction_calibration_summary"
+      ],
+      "static_sql_sha256": "f6c2364e9e61fe25428cabe162557ec39260897291be36214ed312a5de79679a",
+      "operation_refs": [
+        "isolated_worker:services.export.report_snapshot_export_worker"
+      ]
+    },
+    {
+      "id": "services/export/reports/context.py:48:8",
+      "source": "services/export/reports/context.py",
+      "line": 48,
+      "column": 8,
+      "scope": "store_snapshot",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "INSERT",
+      "candidate_relations": [
+        "report_snapshot"
+      ],
+      "static_sql_sha256": "dd639ea7932711d485a2bdadca0b98296d802dfab2557fa2b60eaf7a49f2fe70",
+      "operation_refs": [
+        "isolated_worker:services.export.report_snapshot_export_worker"
+      ]
+    },
+    {
+      "id": "services/export/reports/context.py:87:12",
+      "source": "services/export/reports/context.py",
+      "line": 87,
+      "column": 12,
+      "scope": "list_snapshots",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "report_snapshot"
+      ],
+      "static_sql_sha256": "5153217b352d9ebcbfc6d4131c0195a2ed7bac7072f66ea8563b0ce014ba78a4",
+      "operation_refs": [
+        "isolated_worker:services.export.report_snapshot_export_worker"
+      ]
+    },
+    {
+      "id": "services/export/reports/context.py:92:12",
+      "source": "services/export/reports/context.py",
+      "line": 92,
+      "column": 12,
+      "scope": "list_snapshots",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "report_snapshot"
+      ],
+      "static_sql_sha256": "1af7a9135d3801ff02c21503fc11e41d67b28f3172f67fd6bf1ab43fbbcbd88e",
+      "operation_refs": [
+        "isolated_worker:services.export.report_snapshot_export_worker"
+      ]
+    },
+    {
+      "id": "services/export/reports/context.py:116:8",
+      "source": "services/export/reports/context.py",
+      "line": 116,
+      "column": 8,
+      "scope": "_verify_snapshot",
+      "method": "execute",
+      "expression_kind": "fstring",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "report_snapshot"
+      ],
+      "static_sql_sha256": null,
+      "operation_refs": [
+        "isolated_worker:services.export.report_snapshot_export_worker"
       ]
     },
     {
@@ -6677,7 +7071,7 @@
       "candidate_relations": [
         "v_data_freshness_summary"
       ],
-      "static_sql_sha256": "5cf5e69cad7d4c732757fbf3ec9e0c2fd5befa70c62234dff2e16d4c8caa4875",
+      "static_sql_sha256": "8db9376316fcc7b212c908536f26c58cff40b881eb2624fad0358424bd0bc1c7",
       "operation_refs": [
         "scheduled_module:services.ingestion.data_freshness",
         "scheduled_module:services.ingestion.freshness_worker"
@@ -8655,9 +9049,9 @@
       ]
     },
     {
-      "id": "services/ingestion/weather_forecast.py:104:12",
+      "id": "services/ingestion/weather_forecast.py:109:12",
       "source": "services/ingestion/weather_forecast.py",
-      "line": 104,
+      "line": 109,
       "column": 12,
       "scope": "insert_forecasts",
       "method": "execute",
@@ -8674,9 +9068,9 @@
       ]
     },
     {
-      "id": "services/ingestion/weather_forecast.py:154:8",
+      "id": "services/ingestion/weather_forecast.py:159:8",
       "source": "services/ingestion/weather_forecast.py",
-      "line": 154,
+      "line": 159,
       "column": 8,
       "scope": "insert_location_forecasts",
       "method": "execute",
@@ -8690,9 +9084,9 @@
       ]
     },
     {
-      "id": "services/ingestion/weather_forecast.py:159:12",
+      "id": "services/ingestion/weather_forecast.py:164:12",
       "source": "services/ingestion/weather_forecast.py",
-      "line": 159,
+      "line": 164,
       "column": 12,
       "scope": "insert_location_forecasts",
       "method": "execute",
@@ -8706,9 +9100,9 @@
       ]
     },
     {
-      "id": "services/ingestion/weather_forecast.py:160:12",
+      "id": "services/ingestion/weather_forecast.py:165:12",
       "source": "services/ingestion/weather_forecast.py",
-      "line": 160,
+      "line": 165,
       "column": 12,
       "scope": "insert_location_forecasts",
       "method": "execute",
@@ -8722,9 +9116,9 @@
       ]
     },
     {
-      "id": "services/ingestion/weather_forecast.py:163:8",
+      "id": "services/ingestion/weather_forecast.py:168:8",
       "source": "services/ingestion/weather_forecast.py",
-      "line": 163,
+      "line": 168,
       "column": 8,
       "scope": "insert_location_forecasts",
       "method": "execute",
@@ -8738,9 +9132,9 @@
       ]
     },
     {
-      "id": "services/ingestion/weather_forecast.py:251:8",
+      "id": "services/ingestion/weather_forecast.py:256:8",
       "source": "services/ingestion/weather_forecast.py",
-      "line": 251,
+      "line": 256,
       "column": 8,
       "scope": "get_daily_summary",
       "method": "execute",
@@ -8756,9 +9150,9 @@
       ]
     },
     {
-      "id": "services/ingestion/weather_forecast.py:271:8",
+      "id": "services/ingestion/weather_forecast.py:276:8",
       "source": "services/ingestion/weather_forecast.py",
-      "line": 271,
+      "line": 276,
       "column": 8,
       "scope": "get_spray_windows",
       "method": "execute",
@@ -8774,9 +9168,9 @@
       ]
     },
     {
-      "id": "services/ingestion/weather_forecast.py:305:16",
+      "id": "services/ingestion/weather_forecast.py:310:16",
       "source": "services/ingestion/weather_forecast.py",
-      "line": 305,
+      "line": 310,
       "column": 16,
       "scope": "_ingest_locations",
       "method": "execute",
@@ -8790,9 +9184,9 @@
       ]
     },
     {
-      "id": "services/ingestion/weather_forecast.py:325:16",
+      "id": "services/ingestion/weather_forecast.py:330:16",
       "source": "services/ingestion/weather_forecast.py",
-      "line": 325,
+      "line": 330,
       "column": 16,
       "scope": "_ingest_locations",
       "method": "execute",
@@ -8806,9 +9200,9 @@
       ]
     },
     {
-      "id": "services/ingestion/weather_forecast.py:331:20",
+      "id": "services/ingestion/weather_forecast.py:336:20",
       "source": "services/ingestion/weather_forecast.py",
-      "line": 331,
+      "line": 336,
       "column": 20,
       "scope": "_ingest_locations",
       "method": "execute",
@@ -8822,9 +9216,9 @@
       ]
     },
     {
-      "id": "services/ingestion/weather_forecast.py:332:20",
+      "id": "services/ingestion/weather_forecast.py:337:20",
       "source": "services/ingestion/weather_forecast.py",
-      "line": 332,
+      "line": 337,
       "column": 20,
       "scope": "_ingest_locations",
       "method": "execute",
@@ -8838,9 +9232,9 @@
       ]
     },
     {
-      "id": "services/ingestion/weather_forecast.py:382:16",
+      "id": "services/ingestion/weather_forecast.py:387:16",
       "source": "services/ingestion/weather_forecast.py",
-      "line": 382,
+      "line": 387,
       "column": 16,
       "scope": "run",
       "method": "execute",
@@ -8856,9 +9250,9 @@
       ]
     },
     {
-      "id": "services/ingestion/weather_forecast.py:388:16",
+      "id": "services/ingestion/weather_forecast.py:393:16",
       "source": "services/ingestion/weather_forecast.py",
-      "line": 388,
+      "line": 393,
       "column": 16,
       "scope": "run",
       "method": "execute",
@@ -8874,9 +9268,9 @@
       ]
     },
     {
-      "id": "services/ingestion/weather_forecast_worker.py:44:12",
+      "id": "services/ingestion/weather_forecast_worker.py:52:12",
       "source": "services/ingestion/weather_forecast_worker.py",
-      "line": 44,
+      "line": 52,
       "column": 12,
       "scope": "_load_location",
       "method": "execute",
@@ -8891,9 +9285,9 @@
       ]
     },
     {
-      "id": "services/ingestion/weather_forecast_worker.py:85:12",
+      "id": "services/ingestion/weather_forecast_worker.py:93:12",
       "source": "services/ingestion/weather_forecast_worker.py",
-      "line": 85,
+      "line": 93,
       "column": 12,
       "scope": "_store_batch",
       "method": "execute",
@@ -9249,10 +9643,11 @@
       "expression_kind": "literal",
       "statement_kind": "SELECT",
       "candidate_relations": [
+        "farm",
         "plot",
         "soil_carbon_measurement"
       ],
-      "static_sql_sha256": "00460061584e764a46da73d2bc712a33d378f871bbe39b848ea3db282838cd05",
+      "static_sql_sha256": "23366e654ff8cb16efcb4925556b45a549b01b6d0c05f902c7814f9ffb74fdcb",
       "operation_refs": [
         "scheduled_module:services.metrics"
       ]
@@ -9382,26 +9777,9 @@
       ]
     },
     {
-      "id": "services/metrics/engine.py:47:8",
+      "id": "services/metrics/engine.py:54:8",
       "source": "services/metrics/engine.py",
-      "line": 47,
-      "column": 8,
-      "scope": "compute_metric",
-      "method": "execute",
-      "expression_kind": "literal",
-      "statement_kind": "SELECT",
-      "candidate_relations": [
-        "metric_definition"
-      ],
-      "static_sql_sha256": "6d60a617fc6cb5c3005868cc90ce3534c1d2f53af66658726b08a8bfb410da22",
-      "operation_refs": [
-        "scheduled_module:services.metrics"
-      ]
-    },
-    {
-      "id": "services/metrics/engine.py:75:8",
-      "source": "services/metrics/engine.py",
-      "line": 75,
+      "line": 54,
       "column": 8,
       "scope": "compute_metric",
       "method": "execute",
@@ -9416,9 +9794,26 @@
       ]
     },
     {
-      "id": "services/metrics/engine.py:117:4",
+      "id": "services/metrics/engine.py:107:8",
       "source": "services/metrics/engine.py",
-      "line": 117,
+      "line": 107,
+      "column": 8,
+      "scope": "compute_metric_draft",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "metric_definition"
+      ],
+      "static_sql_sha256": "6d60a617fc6cb5c3005868cc90ce3534c1d2f53af66658726b08a8bfb410da22",
+      "operation_refs": [
+        "scheduled_module:services.metrics"
+      ]
+    },
+    {
+      "id": "services/metrics/engine.py:163:4",
+      "source": "services/metrics/engine.py",
+      "line": 163,
       "column": 4,
       "scope": "compute_all",
       "method": "execute",
@@ -9433,9 +9828,9 @@
       ]
     },
     {
-      "id": "services/metrics/engine.py:180:8",
+      "id": "services/metrics/engine.py:226:8",
       "source": "services/metrics/engine.py",
-      "line": 180,
+      "line": 226,
       "column": 8,
       "scope": "verify_metric_value",
       "method": "execute",

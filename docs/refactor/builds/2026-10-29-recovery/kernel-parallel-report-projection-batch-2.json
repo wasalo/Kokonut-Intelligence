@@ -1,0 +1,38 @@
+{
+  "date": "2026-10-29",
+  "base_commit": "61184551",
+  "scope": "Four schema-backed report projections for scaling, governance inclusion, EBF scorecards, and financial sustainability",
+  "python_test_command": [
+    "python3",
+    "-m",
+    "pytest",
+    "-q",
+    "tests/test_open_source_capitalist_scaling.py::test_scaling_economics_network_scope_includes_network_targets",
+    "tests/test_commons_liberation.py::test_governance_inclusion_keeps_selected_location_and_global_rows",
+    "tests/test_ebf_report_scope.py::test_ebf_scorecard_uses_exact_public_projections_and_preserves_scope_and_payload",
+    "tests/test_financial_resilience.py::test_financial_sustainability_uses_exact_public_projection_and_preserves_scope_payload"
+  ],
+  "python_test_result": {
+    "passed": 4,
+    "failed": 0
+  },
+  "checks": {
+    "ruff": "passed for changed report source and focused tests",
+    "python_compile": "passed for changed report source and focused tests",
+    "report_source_inventory": "passed",
+    "report_query_scope_inventory": "passed",
+    "report_helper_scope_inventory": "passed",
+    "capability_matrix": "passed; 67 rows (24 baseline-retained, 7 deployed, 36 prepared)",
+    "git_diff_check": "passed"
+  },
+  "contracts": {
+    "network_scaling_target": "Replaces the network target wildcard with the exact 20 public-view columns while preserving date bounds, network scope, order, rows, and aggregates.",
+    "governance_inclusion": "Replaces the wildcard with all 16 ordered public-view fields while retaining selected-location plus shared null-location rows, date bounds, ordering, and aggregate behavior.",
+    "ebf_scorecard": "Selects the exact 17-column public scorecard summary. Existing scorecard/date filters, single-row ordering, pillar query, and report output remain stable.",
+    "financial_sustainability": "Selects all 21 current public-view columns while preserving location/date bounds, ordering, location name, and serialized plan rows."
+  },
+  "limitations": "These are synthetic mocked source-contract checks. They do not establish populated-data parity, content-level privacy, live OIDC, database behavior, tenant isolation, or production acceptance.",
+  "candidate_or_legacy_database_touched": false,
+  "provider_or_production_service_touched": false,
+  "migration_added": false
+}

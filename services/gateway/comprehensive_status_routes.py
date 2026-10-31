@@ -1,5 +1,1483 @@
 """OIDC routes for location-scoped Comprehensive Status reports."""
 
+from datetime import date, datetime
+from decimal import Decimal
+from typing import Annotated, Literal
+from uuid import UUID
+
+from pydantic import (
+    BaseModel,
+    BeforeValidator,
+    ConfigDict,
+    Field,
+    JsonValue,
+    ValidationError,
+    model_validator,
+)
+
+
+def _report_uuid(value):
+    if isinstance(value, UUID):
+        return value
+    if not isinstance(value, str):
+        raise ValueError("Report identifiers must be UUID strings")
+    try:
+        return UUID(value)
+    except ValueError as exc:
+        raise ValueError("Report identifier is invalid") from exc
+
+
+def _report_date(value):
+    if isinstance(value, date) and not isinstance(value, datetime):
+        return value
+    if not isinstance(value, str):
+        raise ValueError("Report dates must be ISO strings")
+    try:
+        parsed = date.fromisoformat(value)
+    except ValueError as exc:
+        raise ValueError("Report date is invalid") from exc
+    if parsed.isoformat() != value:
+        raise ValueError("Report date is not canonical")
+    return parsed
+
+
+def _report_datetime(value):
+    if isinstance(value, datetime):
+        parsed = value
+    elif isinstance(value, str):
+        try:
+            parsed = datetime.fromisoformat(value)
+        except ValueError as exc:
+            raise ValueError("Report timestamp is invalid") from exc
+        if parsed.isoformat() != value:
+            raise ValueError("Report timestamp is not canonical")
+    else:
+        raise ValueError("Report timestamps must be ISO strings")
+    if parsed.utcoffset() is None:
+        raise ValueError("Report timestamp must include a timezone")
+    return parsed
+
+
+def _report_number(value):
+    if isinstance(value, bool) or not isinstance(value, (int, float, Decimal)):
+        raise ValueError("Report measures must be numeric values")
+    return float(value)
+
+
+ReportUuid = Annotated[UUID, BeforeValidator(_report_uuid)]
+ReportDate = Annotated[date, BeforeValidator(_report_date)]
+ReportDateTime = Annotated[datetime, BeforeValidator(_report_datetime)]
+ReportNumber = Annotated[float, BeforeValidator(_report_number)]
+
+
+class _ComprehensiveStatusModel(BaseModel):
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False)
+
+
+class ComprehensiveStatusCropNoiCycle(_ComprehensiveStatusModel):
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False, strict=True)
+
+    cycle_id: ReportUuid
+    cycle_name: str | None
+    crop_name: str
+    plot_name: str
+    status: str | None
+    planting_date: ReportDate | None
+    actual_harvest_date: ReportDate | None
+    expected_yield: ReportNumber
+    actual_yield: ReportNumber
+    expected_revenue: ReportNumber
+    actual_revenue: ReportNumber
+    allocated_cost: ReportNumber
+    gross_revenue: ReportNumber
+    returns_and_discounts: ReportNumber
+    net_revenue: ReportNumber
+    direct_crop_costs: ReportNumber
+    allocated_shared_costs: ReportNumber
+    total_costs: ReportNumber
+    crop_noi: ReportNumber
+    operating_margin_pct: ReportNumber
+    loss_rate_pct: ReportNumber
+
+
+class ComprehensiveStatusCropNoiSummary(_ComprehensiveStatusModel):
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False, strict=True)
+
+    total_revenue: ReportNumber
+    total_gross_revenue: ReportNumber
+    total_returns_and_discounts: ReportNumber
+    total_direct_crop_costs: ReportNumber
+    total_allocated_shared_costs: ReportNumber
+    total_cost: ReportNumber
+    total_noi: ReportNumber
+    overall_margin_pct: ReportNumber
+
+
+class ComprehensiveStatusCropNoiReport(_ComprehensiveStatusModel):
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False, strict=True)
+
+    report_type: Literal["crop_noi"]
+    location_id: ReportUuid
+    crop_cycles: list[ComprehensiveStatusCropNoiCycle]
+    summary: ComprehensiveStatusCropNoiSummary
+    generated_at: ReportDateTime
+
+
+class ComprehensiveStatusFinancialSustainabilityPlan(_ComprehensiveStatusModel):
+    """Exact row projection returned by the published-plan summary view."""
+
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False, strict=True)
+
+    id: ReportUuid
+    location_id: ReportUuid
+    farm_id: ReportUuid | None
+    plan_name: str = Field(min_length=1, max_length=255)
+    farm_model: Literal[
+        "public_good_optimized",
+        "blended",
+        "for_profit",
+        "cooperative",
+        "research_pilot",
+        "other",
+    ]
+    plan_period_start: ReportDate
+    plan_period_end: ReportDate | None
+    revenue_streams: list[str] | None
+    grant_dependency_pct: ReportNumber | None = Field(ge=0, le=100)
+    reinvestment_pct: ReportNumber | None = Field(ge=0, le=100)
+    public_goods_allocation_pct: ReportNumber | None = Field(ge=0, le=100)
+    break_even_month: int | None
+    runway_months: ReportNumber | None
+    projected_annual_revenue_usd: ReportNumber | None
+    projected_annual_operating_cost_usd: ReportNumber | None
+    projected_annual_noi_usd: ReportNumber | None
+    sustainability_status: Literal[
+        "draft",
+        "grant_dependent",
+        "transitioning",
+        "self_sustaining",
+        "surplus_generating",
+        "needs_rework",
+    ] | None
+    public_summary: str | None
+    evidence_maturity: int = Field(ge=3, le=6, strict=True)
+    evidence_maturity_label: str | None
+    metadata: JsonValue
+
+
+class ComprehensiveStatusFinancialSustainability(_ComprehensiveStatusModel):
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False, strict=True)
+
+    report_type: Literal["financial_sustainability"]
+    location_id: ReportUuid
+    location_name: str | None
+    plans: list[ComprehensiveStatusFinancialSustainabilityPlan]
+    limitations: list[str]
+    generated_at: ReportDateTime
+
+    @model_validator(mode="after")
+    def keep_plans_in_scope(self):
+        if any(plan.location_id != self.location_id for plan in self.plans):
+            raise ValueError("Financial sustainability plan is outside report location scope")
+        return self
+
+
+class ComprehensiveStatusRegenerativeOutcome(_ComprehensiveStatusModel):
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False, strict=True)
+
+    id: ReportUuid
+    location_id: ReportUuid
+    farm_id: ReportUuid | None
+    period_start: ReportDate
+    period_end: ReportDate
+    summary_name: str
+    hectares_restored: ReportNumber | None = Field(ge=0)
+    baseline_species_count: int | None = Field(ge=0, strict=True)
+    latest_species_count: int | None = Field(ge=0, strict=True)
+    species_diversity_delta: ReportNumber | None
+    baseline_soil_carbon_t_ha: ReportNumber | None
+    latest_soil_carbon_t_ha: ReportNumber | None
+    soil_carbon_delta_t_ha: ReportNumber | None
+    trees_planted_count: int | None = Field(ge=0, strict=True)
+    trees_surviving_count: int | None = Field(ge=0, strict=True)
+    tree_survival_rate_pct: ReportNumber | None = Field(ge=0, le=100)
+    regenerative_score: ReportNumber | None = Field(ge=0, le=100)
+    jobs_or_roles_supported_count: int | None = Field(ge=0, strict=True)
+    training_hours: ReportNumber | None = Field(ge=0)
+    beneficiary_count: int | None = Field(ge=0, strict=True)
+    evidence_confidence: Literal["high", "moderate", "low", "insufficient_evidence"] | None
+    public_summary: str | None
+    evidence_maturity: int = Field(ge=3, le=6, strict=True)
+    evidence_maturity_label: str | None
+    metadata: JsonValue
+
+    @model_validator(mode="after")
+    def keep_period_order(self):
+        if self.period_start > self.period_end:
+            raise ValueError("Regenerative outcome period starts after it ends")
+        return self
+
+
+class ComprehensiveStatusRegenerativeOutcomes(_ComprehensiveStatusModel):
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False, strict=True)
+
+    report_type: Literal["regenerative_outcomes"]
+    location_id: ReportUuid
+    location_name: str | None
+    outcomes: list[ComprehensiveStatusRegenerativeOutcome]
+    total_hectares_restored: ReportNumber = Field(ge=0)
+    limitations: list[str]
+    generated_at: ReportDateTime
+
+    @model_validator(mode="after")
+    def keep_outcomes_in_scope_and_total_consistent(self):
+        if any(outcome.location_id != self.location_id for outcome in self.outcomes):
+            raise ValueError("Regenerative outcome is outside report location scope")
+        expected_hectares = round(
+            sum(float(outcome.hectares_restored or 0) for outcome in self.outcomes), 4
+        )
+        if self.total_hectares_restored != expected_hectares:
+            raise ValueError("Regenerative outcome total does not match its rows")
+        return self
+
+
+class ComprehensiveStatusGnhAlignmentAssessment(_ComprehensiveStatusModel):
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False, strict=True)
+
+    id: ReportUuid
+    location_id: ReportUuid
+    farm_id: ReportUuid | None
+    assessment_date: ReportDate
+    gnh_domain: Literal[
+        "psychological_wellbeing",
+        "health",
+        "education",
+        "culture",
+        "time_use",
+        "good_governance",
+        "community_vitality",
+        "ecological_diversity",
+        "living_standards",
+        "other",
+    ]
+    principle_refs: list[str] | None
+    alignment_score: ReportNumber | None = Field(ge=0, le=10)
+    strengths: list[str] | None
+    gaps: list[str] | None
+    safeguards: list[str] | None
+    public_summary: str
+    evidence_maturity: int = Field(ge=3, le=6, strict=True)
+    evidence_maturity_label: str | None
+    metadata: JsonValue
+
+
+class ComprehensiveStatusGnhAlignment(_ComprehensiveStatusModel):
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False, strict=True)
+
+    report_type: Literal["gnh_alignment"]
+    location_id: ReportUuid
+    location_name: str | None
+    assessments: list[ComprehensiveStatusGnhAlignmentAssessment]
+    average_alignment_score: ReportNumber | None
+    limitations: list[str]
+    generated_at: ReportDateTime
+
+    @model_validator(mode="after")
+    def keep_assessments_in_scope_and_average_consistent(self):
+        if any(assessment.location_id != self.location_id for assessment in self.assessments):
+            raise ValueError("GNH alignment assessment is outside report location scope")
+        scores = [
+            float(assessment.alignment_score)
+            for assessment in self.assessments
+            if assessment.alignment_score is not None
+        ]
+        expected_average = round(sum(scores) / len(scores), 2) if scores else None
+        if self.average_alignment_score != expected_average:
+            raise ValueError("GNH alignment average does not match its assessments")
+        return self
+
+
+class ComprehensiveStatusCapitalEfficiencyScenario(_ComprehensiveStatusModel):
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False, strict=True)
+
+    id: ReportUuid
+    location_id: ReportUuid
+    farm_id: ReportUuid | None
+    scenario_name: str = Field(max_length=255)
+    scenario_type: Literal[
+        "farm_establishment",
+        "practice_upgrade",
+        "public_goods_loop",
+        "replication",
+        "sponsor_supported",
+        "partner_infrastructure",
+        "other",
+    ]
+    period_start: ReportDate
+    period_end: ReportDate | None
+    capital_deployed_usd: ReportNumber = Field(ge=0)
+    gross_output_value_usd: ReportNumber | None = Field(ge=0)
+    net_output_value_usd: ReportNumber | None
+    public_goods_value_usd: ReportNumber | None = Field(ge=0)
+    capital_leverage_ratio: ReportNumber | None = Field(ge=0)
+    public_summary: str
+    evidence_maturity: int = Field(ge=3, le=6, strict=True)
+    evidence_maturity_label: str | None
+    metadata: JsonValue
+
+
+class ComprehensiveStatusCapitalEfficiencyObservation(_ComprehensiveStatusModel):
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False, strict=True)
+
+    id: ReportUuid
+    location_id: ReportUuid
+    farm_id: ReportUuid | None
+    practice_event_id: ReportUuid | None
+    observation_date: ReportDate
+    practice_type: str = Field(max_length=100)
+    baseline_cost_usd: ReportNumber | None = Field(ge=0)
+    observed_cost_usd: ReportNumber | None = Field(ge=0)
+    cost_savings_pct: ReportNumber | None = Field(ge=-100, le=100)
+    incremental_output_value_usd: ReportNumber | None
+    implementation_cost_usd: ReportNumber | None = Field(ge=0)
+    payback_months: ReportNumber | None = Field(ge=0)
+    public_summary: str
+    evidence_maturity: int = Field(ge=3, le=6, strict=True)
+    evidence_maturity_label: str | None
+    metadata: JsonValue
+
+
+class ComprehensiveStatusCapitalEfficiency(_ComprehensiveStatusModel):
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False, strict=True)
+
+    report_type: Literal["capital_efficiency"]
+    location_id: ReportUuid
+    location_name: str | None
+    scenarios: list[ComprehensiveStatusCapitalEfficiencyScenario]
+    regenerative_efficiency: list[ComprehensiveStatusCapitalEfficiencyObservation]
+    limitations: list[str]
+    generated_at: ReportDateTime
+
+    @model_validator(mode="after")
+    def keep_rows_in_scope(self):
+        if any(scenario.location_id != self.location_id for scenario in self.scenarios):
+            raise ValueError("Capital efficiency scenario is outside report location scope")
+        if any(
+            observation.location_id != self.location_id
+            for observation in self.regenerative_efficiency
+        ):
+            raise ValueError("Regenerative efficiency observation is outside report location scope")
+        return self
+
+
+class ComprehensiveStatusCommunityGovernanceMechanism(_ComprehensiveStatusModel):
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False, strict=True)
+
+    id: ReportUuid
+    location_id: ReportUuid | None
+    farm_id: ReportUuid | None
+    mechanism_name: str = Field(max_length=255)
+    governance_level: Literal["farm", "guild", "dao", "network", "publication_review", "other"]
+    decision_body: str = Field(max_length=255)
+    decision_method: Literal[
+        "consensus",
+        "consent",
+        "token_vote",
+        "multisig",
+        "steward_review",
+        "hybrid",
+        "other",
+    ]
+    quorum_rule: str | None
+    voting_or_consensus_rights: str | None
+    community_veto_rights: str | None
+    escalation_path: str | None
+    power_distribution_summary: str
+    participation_cadence: str | None = Field(max_length=100)
+    public_summary: str
+    evidence_maturity: int = Field(ge=3, le=6, strict=True)
+    evidence_maturity_label: str | None
+    metadata: JsonValue
+
+
+class ComprehensiveStatusCommunityGovernance(_ComprehensiveStatusModel):
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False, strict=True)
+
+    report_type: Literal["community_governance"]
+    location_id: ReportUuid
+    mechanisms: list[ComprehensiveStatusCommunityGovernanceMechanism]
+    limitations: list[str]
+    generated_at: ReportDateTime
+
+    @model_validator(mode="after")
+    def keep_location_mechanisms_in_scope(self):
+        if any(
+            mechanism.location_id is not None and mechanism.location_id != self.location_id
+            for mechanism in self.mechanisms
+        ):
+            raise ValueError("Community governance mechanism is outside report location scope")
+        return self
+
+
+class ComprehensiveStatusFoundationalWellbeingObservation(_ComprehensiveStatusModel):
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False, strict=True)
+
+    id: ReportUuid
+    location_id: ReportUuid
+    farm_id: ReportUuid | None
+    observation_date: ReportDate
+    wellbeing_domain: Literal[
+        "happiness",
+        "peace",
+        "safety",
+        "food_security",
+        "basic_needs",
+        "dignity",
+        "belonging",
+        "other",
+    ]
+    stakeholder_group: str | None = Field(max_length=100)
+    score_value: ReportNumber | None = Field(ge=0, le=10)
+    count_value: int | None = Field(ge=0, strict=True)
+    public_summary: str
+    evidence_maturity: int = Field(ge=3, le=6, strict=True)
+    evidence_maturity_label: str | None
+    metadata: JsonValue
+
+
+class ComprehensiveStatusFoundationalWellbeing(_ComprehensiveStatusModel):
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False, strict=True)
+
+    report_type: Literal["foundational_wellbeing"]
+    location_id: ReportUuid
+    location_name: str | None
+    observations: list[ComprehensiveStatusFoundationalWellbeingObservation]
+    limitations: list[str]
+    generated_at: ReportDateTime
+
+    @model_validator(mode="after")
+    def keep_observations_in_scope(self):
+        if any(observation.location_id != self.location_id for observation in self.observations):
+            raise ValueError("Foundational wellbeing observation is outside report location scope")
+        return self
+
+
+class ComprehensiveStatusClimateCarbonBalance(_ComprehensiveStatusModel):
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False, strict=True)
+
+    location_id: ReportUuid
+    reporting_year: int
+    above_ground_carbon_tonnes: ReportNumber
+    below_ground_carbon_tonnes: ReportNumber
+    total_sequestration_tonnes_co2e: ReportNumber
+    total_emissions_tonnes_co2e: ReportNumber
+    net_climate_impact_tonnes_co2e: ReportNumber
+    carbon_position: Literal["net_sequester", "net_emitter", "neutral"]
+
+
+class ComprehensiveStatusClimateGhgCategory(_ComprehensiveStatusModel):
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False, strict=True)
+
+    category: str
+    record_count: int = Field(ge=0)
+    total_co2e_kg: ReportNumber
+    total_co2e_tonnes: ReportNumber
+
+
+class ComprehensiveStatusClimateGhgTotals(_ComprehensiveStatusModel):
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False, strict=True)
+
+    total_co2e_kg: ReportNumber
+    total_co2e_tonnes: ReportNumber
+    record_count: int = Field(ge=0)
+
+
+class ComprehensiveStatusClimateGhgEmissions(_ComprehensiveStatusModel):
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False, strict=True)
+
+    location_id: ReportUuid
+    period_start: ReportDate | None
+    period_end: ReportDate | None
+    categories: list[ComprehensiveStatusClimateGhgCategory]
+    summary: ComprehensiveStatusClimateGhgTotals
+
+
+class ComprehensiveStatusClimateTreeSpecies(_ComprehensiveStatusModel):
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False, strict=True)
+
+    species_name: str
+    total_trees: int
+    total_biomass_kg: ReportNumber
+    total_carbon_tonnes: ReportNumber
+    total_co2e_tonnes: ReportNumber
+    survey_count: int = Field(ge=0)
+
+
+class ComprehensiveStatusClimateTreeTotals(_ComprehensiveStatusModel):
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False, strict=True)
+
+    total_trees: int
+    total_carbon_tonnes: ReportNumber
+    total_co2e_tonnes: ReportNumber
+    species_count: int = Field(ge=0)
+
+
+class ComprehensiveStatusClimateTreeCarbon(_ComprehensiveStatusModel):
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False, strict=True)
+
+    location_id: ReportUuid
+    species: list[ComprehensiveStatusClimateTreeSpecies]
+    summary: ComprehensiveStatusClimateTreeTotals
+
+
+class ComprehensiveStatusClimatePrinciple(_ComprehensiveStatusModel):
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False, strict=True)
+
+    principle_key: str
+    principle_name: str
+    score: int = Field(ge=0, le=5)
+    max_score: Literal[5]
+    assessment_date: ReportDate
+    evidence_path: str | None
+    notes: str | None
+
+
+class ComprehensiveStatusClimateRegenerativeTotals(_ComprehensiveStatusModel):
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False, strict=True)
+
+    # The legacy query includes all verified/published assessment dates, so
+    # accumulated totals may exceed a single five-principle 25-point scale.
+    total_score: int = Field(ge=0)
+    max_score: Literal[25]
+    score_pct: ReportNumber = Field(ge=0)
+    principles_assessed: int = Field(ge=0)
+    last_assessment_date: ReportDate | None
+
+
+class ComprehensiveStatusClimateRegenerativeScore(_ComprehensiveStatusModel):
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False, strict=True)
+
+    location_id: ReportUuid
+    principles: list[ComprehensiveStatusClimatePrinciple]
+    summary: ComprehensiveStatusClimateRegenerativeTotals
+
+
+class ComprehensiveStatusClimateFrameworkPhase(_ComprehensiveStatusModel):
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False, strict=True)
+
+    framework_key: str
+    phase: str
+    phase_status: str
+    phase_start_date: ReportDate | None
+    review_cadence: str | None
+
+
+class ComprehensiveStatusClimateOperationsProtocol(_ComprehensiveStatusModel):
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False, strict=True)
+
+    title: str
+    section: str | None
+    version: str
+
+
+class ComprehensiveStatusClimateStoredSummary(_ComprehensiveStatusModel):
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False, strict=True)
+
+    id: ReportUuid
+    location_id: ReportUuid
+    reporting_year: int
+    above_ground_carbon_tonnes: ReportNumber | None
+    below_ground_carbon_tonnes: ReportNumber | None
+    total_sequestration_tonnes_co2e: ReportNumber | None
+    transport_emissions_tonnes_co2e: ReportNumber | None
+    machinery_emissions_tonnes_co2e: ReportNumber | None
+    input_emissions_tonnes_co2e: ReportNumber | None
+    total_emissions_tonnes_co2e: ReportNumber | None
+    net_climate_impact_tonnes_co2e: ReportNumber | None
+    species_count: int | None
+    shannon_index: ReportNumber | None
+    regenerative_score_total: int | None
+    methodology_version: str | None
+    data_quality_score: ReportNumber | None
+    status: str | None
+    reviewed_by: ReportUuid | None
+    reviewed_at: ReportDateTime | None
+    notes: str | None
+    source_system: str | None
+    source_id: str | None
+    created_at: ReportDateTime | None
+    updated_at: ReportDateTime | None
+
+
+class ComprehensiveStatusClimateImpact(_ComprehensiveStatusModel):
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False, strict=True)
+
+    report_type: Literal["climate_impact"]
+    location_id: ReportUuid
+    location_name: str
+    reporting_year: int
+    carbon_balance: ComprehensiveStatusClimateCarbonBalance
+    ghg_emissions: ComprehensiveStatusClimateGhgEmissions
+    tree_carbon: ComprehensiveStatusClimateTreeCarbon
+    regenerative_score: ComprehensiveStatusClimateRegenerativeScore
+    framework_phases: list[ComprehensiveStatusClimateFrameworkPhase]
+    # Active operations protocols are intentionally shared platform metadata,
+    # as stated by the generator's limitations field.
+    operations_protocols: list[ComprehensiveStatusClimateOperationsProtocol]
+    stored_summary: ComprehensiveStatusClimateStoredSummary | None
+    limitations: list[str]
+    generated_at: ReportDateTime
+
+    @model_validator(mode="after")
+    def keep_calculations_and_stored_summary_in_scope(self):
+        nested_location_ids = (
+            self.carbon_balance.location_id,
+            self.ghg_emissions.location_id,
+            self.tree_carbon.location_id,
+            self.regenerative_score.location_id,
+        )
+        if any(location_id != self.location_id for location_id in nested_location_ids):
+            raise ValueError("Climate impact calculation is outside report location scope")
+        if self.carbon_balance.reporting_year != self.reporting_year:
+            raise ValueError("Climate impact carbon balance is outside report year scope")
+        if self.stored_summary is not None and (
+            self.stored_summary.location_id != self.location_id
+            or self.stored_summary.reporting_year != self.reporting_year
+        ):
+            raise ValueError("Climate impact stored summary is outside report location/year scope")
+        return self
+
+
+class ComprehensiveStatusSectionError(_ComprehensiveStatusModel):
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False, strict=True)
+
+    error: str = Field(
+        max_length=100,
+        pattern=r"^report section failed \([A-Za-z_][A-Za-z0-9_]{0,63}\)$",
+    )
+
+
+class ComprehensiveStatusEnvironmentalSoilCarbon(_ComprehensiveStatusModel):
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False, strict=True)
+
+    measurement_date: ReportDate
+    carbon_tonnes_per_ha: ReportNumber | None
+    measurement_method: str | None
+    depth_cm: ReportNumber | None
+
+
+class ComprehensiveStatusEnvironmentalSpecies(_ComprehensiveStatusModel):
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False, strict=True)
+
+    observation_date: ReportDate
+    count: int | None
+    habitat_type: str | None
+    notes: str | None
+
+
+class ComprehensiveStatusEnvironmentalRemoteSensing(_ComprehensiveStatusModel):
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False, strict=True)
+
+    observation_date: ReportDate
+    ndvi: ReportNumber | None
+    ndre: ReportNumber | None
+    cloud_cover_pct: ReportNumber | None
+
+
+class ComprehensiveStatusEnvironmentalLoss(_ComprehensiveStatusModel):
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False, strict=True)
+
+    loss_date: ReportDate
+    loss_type: str
+    quantity: ReportNumber | None
+    unit: str | None
+    cause: str | None
+
+
+class ComprehensiveStatusEnvironmental(_ComprehensiveStatusModel):
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False, strict=True)
+
+    report_type: Literal["environmental"]
+    location_id: ReportUuid
+    soil_carbon: list[ComprehensiveStatusEnvironmentalSoilCarbon]
+    species_observations: list[ComprehensiveStatusEnvironmentalSpecies]
+    remote_sensing: list[ComprehensiveStatusEnvironmentalRemoteSensing]
+    loss_events: list[ComprehensiveStatusEnvironmentalLoss]
+    generated_at: ReportDateTime
+
+
+class ComprehensiveStatusFarmLocation(_ComprehensiveStatusModel):
+    """Current location projection embedded in the farm-summary report."""
+
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False, strict=True)
+
+    id: ReportUuid
+    name: str
+    slug: str
+    description: str | None
+    country: str | None
+    region: str | None
+    sub_region: str | None
+    timezone: str | None
+    latitude: ReportNumber | None
+    longitude: ReportNumber | None
+    baseline_revenue: ReportNumber | None
+    baseline_asset_value: ReportNumber | None
+    baseline_cash_flow: ReportNumber | None
+    baseline_cost: ReportNumber | None
+    baseline_assumptions: JsonValue
+    baseline_source: str | None
+    baseline_date: ReportDate | None
+    status: str | None
+    metadata: JsonValue
+    created_at: ReportDateTime | None
+    updated_at: ReportDateTime | None
+    created_by: ReportUuid | None
+    updated_by: ReportUuid | None
+    project_url: str | None
+    project_start_date: ReportDate | None
+    project_end_date: ReportDate | None
+    bioregion: list[str] | None
+    biome_type: list[str] | None
+    watershed: str | None
+    sub_watershed: str | None
+    schema_version: str | None
+    organization_id: ReportUuid | None
+    baseline_recorded_at: ReportDateTime | None
+
+
+GeoJSONPosition = Annotated[list[ReportNumber], Field(min_length=2, max_length=3)]
+
+
+class ComprehensiveStatusPolygonGeometry(_ComprehensiveStatusModel):
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False, strict=True)
+
+    type: Literal["Polygon"]
+    coordinates: list[list[GeoJSONPosition]]
+
+    @model_validator(mode="after")
+    def validate_rings(self):
+        positions = [position for ring in self.coordinates for position in ring]
+        if not self.coordinates:
+            return self
+        if any(len(ring) < 4 or ring[0] != ring[-1] for ring in self.coordinates):
+            raise ValueError("Polygon rings must contain four positions and be closed")
+        dimensions = {len(position) for position in positions}
+        if len(dimensions) > 1:
+            raise ValueError("Polygon positions must use a consistent coordinate dimension")
+        return self
+
+
+class ComprehensiveStatusPointGeometry(_ComprehensiveStatusModel):
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False, strict=True)
+
+    type: Literal["Point"]
+    coordinates: list[ReportNumber]
+
+    @model_validator(mode="after")
+    def validate_coordinates(self):
+        if self.coordinates and len(self.coordinates) not in {2, 3}:
+            raise ValueError("Point coordinates must contain two or three ordinates")
+        return self
+
+
+class ComprehensiveStatusFarmRecord(_ComprehensiveStatusModel):
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False, strict=True)
+
+    id: ReportUuid
+    location_id: ReportUuid
+    name: str
+    slug: str
+    description: str | None
+    farm_type: str | None
+    total_area: ReportNumber | None
+    area_unit: str | None
+    boundary: ComprehensiveStatusPolygonGeometry | None
+    center: ComprehensiveStatusPointGeometry | None
+    status: str | None
+    metadata: JsonValue
+    created_at: ReportDateTime | None
+    updated_at: ReportDateTime | None
+    created_by: ReportUuid | None
+    updated_by: ReportUuid | None
+    property_id: ReportUuid | None
+    schema_version: str | None
+    logo_url: str | None
+    logo_file_id: ReportUuid | None
+    traditional_name: str | None
+    languages: list[str] | None
+    global_standard_certifications: list[str] | None
+    economic_sectors: list[str] | None
+    credits_registries: list[str] | None
+    data_privacy_status: str | None
+    data_privacy_standard: str | None
+    data_privacy_criteria: JsonValue
+
+
+class ComprehensiveStatusFarmPlot(_ComprehensiveStatusModel):
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False, strict=True)
+
+    id: ReportUuid
+    farm_id: ReportUuid
+    name: str
+    slug: str
+    description: str | None
+    area: ReportNumber | None
+    area_unit: str | None
+    boundary: ComprehensiveStatusPolygonGeometry | None
+    center: ComprehensiveStatusPointGeometry | None
+    soil_type: str | None
+    water_source: str | None
+    elevation_m: ReportNumber | None
+    slope_pct: ReportNumber | None
+    aspect: str | None
+    status: str | None
+    metadata: JsonValue
+    created_at: ReportDateTime | None
+    updated_at: ReportDateTime | None
+    created_by: ReportUuid | None
+    updated_by: ReportUuid | None
+    schema_version: str | None
+    bed_count: int | None
+    bed_area_sqm: ReportNumber | None
+    farm_name: str
+
+
+class ComprehensiveStatusFarmCropCycle(_ComprehensiveStatusModel):
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False, strict=True)
+
+    id: ReportUuid
+    plot_id: ReportUuid
+    crop_id: ReportUuid
+    location_id: ReportUuid
+    cycle_name: str | None
+    season: str | None
+    planting_date: ReportDate | None
+    expected_harvest_date: ReportDate | None
+    actual_harvest_date: ReportDate | None
+    expected_yield: ReportNumber | None
+    expected_yield_unit: str | None
+    actual_yield: ReportNumber | None
+    actual_yield_unit: str | None
+    expected_price_per_unit: ReportNumber | None
+    expected_revenue: ReportNumber | None
+    actual_revenue: ReportNumber | None
+    planting_density: ReportNumber | None
+    planting_density_unit: str | None
+    area_planted: ReportNumber | None
+    area_unit: str | None
+    status: str | None
+    failure_reason: str | None
+    metadata: JsonValue
+    schema_version: str | None
+    created_at: ReportDateTime | None
+    updated_at: ReportDateTime | None
+    created_by: ReportUuid | None
+    updated_by: ReportUuid | None
+    crop_name: str
+    plot_name: str
+
+
+class ComprehensiveStatusFarmHarvestSummary(_ComprehensiveStatusModel):
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False, strict=True)
+
+    total_harvests: int = Field(ge=0)
+    total_quantity: ReportNumber | None
+    avg_harvest_size: ReportNumber | None
+    cycles_with_harvest: int = Field(ge=0)
+    quantity_unit: str | None
+    total_quantity_by_unit: dict[str, ReportNumber]
+
+
+class ComprehensiveStatusFarmFinancialSummary(_ComprehensiveStatusModel):
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False, strict=True)
+
+    total_revenue: ReportNumber
+    total_expenses: ReportNumber
+    net_income: ReportNumber
+
+
+class ComprehensiveStatusFarmExpenseCategory(_ComprehensiveStatusModel):
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False, strict=True)
+
+    category: str
+    total: ReportNumber
+
+
+class ComprehensiveStatusFarmAttestationCoverage(_ComprehensiveStatusModel):
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False, strict=True)
+
+    total_records: int = Field(ge=0)
+    attested: int = Field(ge=0)
+    draft: int = Field(ge=0)
+
+
+class ComprehensiveStatusFarmActivityType(_ComprehensiveStatusModel):
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False, strict=True)
+
+    activity_type: str
+    activity_count: int = Field(ge=0)
+    reported_labor_hours: ReportNumber
+    reported_labor_hours_unit: Literal["hours"]
+
+
+class ComprehensiveStatusFarmActivitySummary(_ComprehensiveStatusModel):
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False, strict=True)
+
+    published_activity_count: int = Field(ge=0)
+    reported_labor_hours: ReportNumber
+    reported_labor_hours_unit: Literal["hours"]
+    by_activity_type: list[ComprehensiveStatusFarmActivityType]
+
+
+class ComprehensiveStatusFarmSummary(_ComprehensiveStatusModel):
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False, strict=True)
+
+    report_type: Literal["farm_summary"]
+    location: ComprehensiveStatusFarmLocation
+    farms: list[ComprehensiveStatusFarmRecord]
+    plots: list[ComprehensiveStatusFarmPlot]
+    crop_cycles: list[ComprehensiveStatusFarmCropCycle]
+    harvest_summary: ComprehensiveStatusFarmHarvestSummary
+    financial_summary: ComprehensiveStatusFarmFinancialSummary
+    expense_breakdown: list[ComprehensiveStatusFarmExpenseCategory]
+    attestation_coverage: ComprehensiveStatusFarmAttestationCoverage
+    farm_activity_summary: ComprehensiveStatusFarmActivitySummary
+    generated_at: ReportDateTime
+
+
+class ComprehensiveStatusHolisticCulturalContext(_ComprehensiveStatusModel):
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False, strict=True)
+
+    practice_name: str
+    practice_type: str
+    stakeholder_group: str | None
+    language: str | None
+    public_summary: str
+    evidence_maturity: int | None = Field(default=None, ge=0, le=6)
+    evidence_maturity_label: str | None
+
+
+class ComprehensiveStatusHolisticMetric(_ComprehensiveStatusModel):
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False, strict=True)
+
+    metric_key: str
+    metric_name: str | None
+    observation_date: ReportDate
+    stakeholder_group: str | None
+    language: str | None
+    score_value: ReportNumber | None
+    count_value: int | None
+    public_summary: str | None
+    evidence_maturity: int | None = Field(default=None, ge=0, le=6)
+    evidence_maturity_label: str | None
+
+
+class ComprehensiveStatusHolisticParticipatoryAction(_ComprehensiveStatusModel):
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False, strict=True)
+
+    action_type: str
+    action_date: ReportDate
+    stakeholder_group: str | None
+    feedback_type: str | None
+    sentiment: str | None
+    metric_name: str | None
+    metric_proposal_status: str | None
+    decision_status: Literal["draft", "planned", "in_progress", "completed", "deferred", "rejected"] | None
+    public_summary: str
+    evidence_maturity: int | None = Field(default=None, ge=0, le=6)
+    evidence_maturity_label: str | None
+
+
+class ComprehensiveStatusHolisticWellbeing(_ComprehensiveStatusModel):
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False, strict=True)
+
+    report_type: Literal["holistic_wellbeing"]
+    location_id: ReportUuid
+    location_name: str | None
+    languages: list[str]
+    cultural_context: list[ComprehensiveStatusHolisticCulturalContext]
+    wellbeing_metrics: list[ComprehensiveStatusHolisticMetric]
+    participatory_actions: list[ComprehensiveStatusHolisticParticipatoryAction]
+    limitations: list[str]
+    generated_at: ReportDateTime
+
+
+class ComprehensiveStatusStakeholderOutcome(_ComprehensiveStatusModel):
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False, strict=True)
+
+    id: ReportUuid
+    location_id: ReportUuid
+    farm_id: ReportUuid | None
+    outcome_name: str
+    outcome_description: str | None
+    stakeholder_group: str
+    stakeholder_description: str | None
+    importance: Literal["high", "moderate", "low", "neutral", "unimportant", "unknown"] | None
+    importance_perspective: str | None
+    is_underserved: bool | None
+    framework_key: str | None
+    dimension_key: str | None
+    sdg_number: int | None
+    capital_key: str | None
+    pillar_key: str | None
+    evidence_maturity: int | None = Field(default=None, ge=0, le=6)
+    status: Literal["verified", "published"]
+    metadata: JsonValue
+    created_at: ReportDateTime | None
+    updated_at: ReportDateTime | None
+    created_by: ReportUuid | None
+    updated_by: ReportUuid | None
+
+
+class ComprehensiveStatusStakeholderOutcomes(_ComprehensiveStatusModel):
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False, strict=True)
+
+    report_type: Literal["stakeholder_outcomes"]
+    location_id: ReportUuid
+    outcome_count: int = Field(ge=0, strict=True)
+    outcomes: list[ComprehensiveStatusStakeholderOutcome]
+    capability_and_value_stream_links: list[JsonValue] = Field(max_length=0)
+    limitations: list[str]
+    generated_at: ReportDateTime
+
+    @model_validator(mode="after")
+    def match_outcome_count(self):
+        if self.outcome_count != len(self.outcomes):
+            raise ValueError("Stakeholder outcome count does not match its rows")
+        return self
+
+
+class ComprehensiveStatusTrainingSession(_ComprehensiveStatusModel):
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False, strict=True)
+
+    id: ReportUuid
+    location_id: ReportUuid
+    location_name: str
+    participant_name: str
+    participant_role: str | None
+    session_date: ReportDate
+    session_topic: str
+    session_type: Literal[
+        "soil_management",
+        "pest_management",
+        "harvesting",
+        "post_harvest",
+        "financial_management",
+        "organic_inputs",
+        "water_management",
+        "record_keeping",
+        "agroforestry",
+        "other",
+    ] | None
+    duration_hours: ReportNumber | None
+    pre_score: ReportNumber | None
+    post_score: ReportNumber | None
+    improvement_pct: ReportNumber | None
+    trainer: str | None
+    notes: str | None
+    status: Literal["verified", "published"]
+
+
+class ComprehensiveStatusTrainingImpact(_ComprehensiveStatusModel):
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False, strict=True)
+
+    report_type: Literal["training_impact"]
+    location_id: ReportUuid
+    location_name: str | None
+    sessions: list[ComprehensiveStatusTrainingSession]
+    total_sessions: int = Field(ge=0, strict=True)
+    unique_participants: int = Field(ge=0, strict=True)
+    total_training_hours: ReportNumber
+    avg_improvement_pct: ReportNumber
+    limitations: list[str]
+    generated_at: ReportDateTime
+
+    @model_validator(mode="after")
+    def match_session_aggregates(self):
+        if self.total_sessions != len(self.sessions):
+            raise ValueError("Training session count does not match its rows")
+        expected_participants = len(
+            {session.participant_name for session in self.sessions if session.participant_name}
+        )
+        if self.unique_participants != expected_participants:
+            raise ValueError("Training participant count does not match its rows")
+        expected_hours = round(
+            sum(float(session.duration_hours or 0) for session in self.sessions), 2
+        )
+        if self.total_training_hours != expected_hours:
+            raise ValueError("Training hours do not match the session rows")
+        improvement_total = sum(
+            (Decimal(str(session.improvement_pct or 0)) for session in self.sessions),
+            Decimal("0"),
+        )
+        expected_improvement = float(
+            round(improvement_total / Decimal(max(len(self.sessions), 1)), 2)
+        )
+        if self.avg_improvement_pct != expected_improvement:
+            raise ValueError("Training improvement does not match the session rows")
+        return self
+
+
+CapitalKey = Literal[
+    "natural", "financial", "social", "human", "material", "intellectual", "cultural", "health"
+]
+
+
+class ComprehensiveStatusCapitalForm(_ComprehensiveStatusModel):
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False, strict=True)
+
+    capital_key: CapitalKey
+    name: str | None
+    stock_estimate: ReportNumber | None
+    output_capacity_estimate: ReportNumber | None
+    mobilization_pct: ReportNumber | None
+    under_mobilized: bool
+
+
+class ComprehensiveStatusCapitalCapacity(_ComprehensiveStatusModel):
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False, strict=True)
+
+    location_id: ReportUuid
+    mobilization_threshold: ReportNumber
+    forms: list[ComprehensiveStatusCapitalForm] = Field(max_length=8)
+    under_mobilized_forms: list[CapitalKey] = Field(max_length=8)
+
+    @model_validator(mode="after")
+    def match_under_mobilized_forms(self):
+        keys = [form.capital_key for form in self.forms]
+        if len(keys) != len(set(keys)):
+            raise ValueError("Capital forms must be unique")
+        expected = [form.capital_key for form in self.forms if form.under_mobilized]
+        if self.under_mobilized_forms != expected:
+            raise ValueError("Under-mobilized forms do not match the form rows")
+        return self
+
+
+class ComprehensiveStatusCapitalDiversion(_ComprehensiveStatusModel):
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False, strict=True)
+
+    location_id: ReportUuid
+    period_start: ReportDate | None
+    period_end: ReportDate | None
+    consumption_value: ReportNumber
+    reinvestment_value: ReportNumber
+    diversion_index: ReportNumber | None
+    healthy: bool
+
+    @model_validator(mode="after")
+    def match_health_to_index(self):
+        expected = self.diversion_index is not None and self.diversion_index >= 0.5
+        if self.healthy is not expected:
+            raise ValueError("Diversion health flag does not match its index")
+        return self
+
+
+class ComprehensiveStatusCapitalCaptureForm(_ComprehensiveStatusModel):
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False, strict=True)
+
+    capital_key: CapitalKey
+    concentration_metric: ReportNumber | None
+    leakage_signal: ReportNumber | None
+    capture_risk_level: Literal["low", "medium", "high", "unknown"]
+
+
+class ComprehensiveStatusCapitalCapture(_ComprehensiveStatusModel):
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False, strict=True)
+
+    location_id: ReportUuid
+    financial_top_counterparty_share: ReportNumber
+    anti_capture_policies_in_effect: int = Field(ge=0, strict=True)
+    forms: list[ComprehensiveStatusCapitalCaptureForm] = Field(max_length=8)
+    at_risk_forms: list[CapitalKey] = Field(max_length=8)
+
+    @model_validator(mode="after")
+    def match_risk_forms(self):
+        keys = [form.capital_key for form in self.forms]
+        if len(keys) != len(set(keys)):
+            raise ValueError("Capital capture forms must be unique")
+        expected = [form.capital_key for form in self.forms if form.capture_risk_level == "high"]
+        if self.at_risk_forms != expected:
+            raise ValueError("At-risk forms do not match the capture-risk rows")
+        financial = next((form for form in self.forms if form.capital_key == "financial"), None)
+        if financial is not None and (
+            financial.concentration_metric != self.financial_top_counterparty_share
+            or financial.leakage_signal != self.financial_top_counterparty_share
+        ):
+            raise ValueError("Financial capture metrics do not match the top-counterparty share")
+        return self
+
+
+class ComprehensiveStatusDraftCredit(_ComprehensiveStatusModel):
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False, strict=True)
+
+    id: ReportUuid
+    location_id: ReportUuid
+    contributor_party_id: ReportUuid | None
+    source_type: Literal["carbon_credit_surplus", "cooperative_surplus", "federation_underwrite"]
+    source_ref_id: ReportUuid | None
+    withheld_amount: ReportNumber
+    unit: str
+    redeemable_against: Literal[
+        "regenerative_investment", "shared_dividend", "stewardship_grant"
+    ]
+    credit_status: Literal["draft"]
+    idempotency_key: str | None
+    created_by: ReportUuid | None
+    created_at: ReportDateTime | None
+    updated_at: ReportDateTime | None
+    metadata: JsonValue
+
+
+class ComprehensiveStatusCreditCapacity(_ComprehensiveStatusModel):
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False, strict=True)
+
+    location_id: ReportUuid
+    draft_credit_total: ReportNumber
+    draft_credit_count: int = Field(ge=0, strict=True)
+    note: Literal["read-only capacity; settlement requires human confirmation"]
+
+
+class ComprehensiveStatusCapitalCreditLedger(_ComprehensiveStatusModel):
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False, strict=True)
+
+    draft_credits: list[ComprehensiveStatusDraftCredit]
+    capacity: ComprehensiveStatusCreditCapacity
+
+
+class ComprehensiveStatusCapitalAccountingSections(_ComprehensiveStatusModel):
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False, strict=True)
+
+    capacity: ComprehensiveStatusCapitalCapacity | None = None
+    diversion: ComprehensiveStatusCapitalDiversion | None = None
+    capture_risk: ComprehensiveStatusCapitalCapture | None = None
+    credit_ledger: ComprehensiveStatusCapitalCreditLedger | None = None
+
+
+class ComprehensiveStatusCapitalAccounting(_ComprehensiveStatusModel):
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False, strict=True)
+
+    report_type: Literal["capital_accounting"]
+    location_id: ReportUuid
+    period_start: ReportDate | None
+    period_end: ReportDate | None
+    generated_at: ReportDateTime
+    advisory_only: Literal[True]
+    sections: ComprehensiveStatusCapitalAccountingSections
+    errors: list[str] = Field(max_length=4)
+
+    @model_validator(mode="after")
+    def validate_partial_sections_and_scope(self):
+        expected_errors = {
+            "capacity": "capacity failed",
+            "diversion": "diversion failed",
+            "capture_risk": "capture-risk analysis failed",
+            "credit_ledger": "credit-ledger analysis failed",
+        }
+        parsed_failures = []
+        for error in self.errors:
+            matching = next(
+                (name for name, prefix in expected_errors.items() if error.startswith(prefix + " (")),
+                None,
+            )
+            if matching is None or not error.endswith(")"):
+                raise ValueError("Capital accounting contains an unknown error projection")
+            exception_name = error[len(expected_errors[matching]) + 2 : -1]
+            if not exception_name.isascii() or not exception_name.isidentifier() or len(exception_name) > 64:
+                raise ValueError("Capital accounting contains an unsafe error projection")
+            parsed_failures.append(matching)
+        expected_failures = [
+            name for name in expected_errors if getattr(self.sections, name) is None
+        ]
+        if parsed_failures != expected_failures:
+            raise ValueError("Capital accounting partial sections do not match their errors")
+
+        for name in ("capacity", "diversion", "capture_risk"):
+            section = getattr(self.sections, name)
+            if section is not None and section.location_id != self.location_id:
+                raise ValueError("Capital accounting section is outside the composed location scope")
+        diversion = self.sections.diversion
+        if diversion is not None and (
+            diversion.period_start != self.period_start or diversion.period_end != self.period_end
+        ):
+            raise ValueError("Capital accounting diversion period does not match its report")
+        ledger = self.sections.credit_ledger
+        if ledger is not None:
+            if ledger.capacity.location_id != self.location_id:
+                raise ValueError("Capital credit capacity is outside the composed location scope")
+            if any(credit.location_id != self.location_id for credit in ledger.draft_credits):
+                raise ValueError("Draft capital credit is outside the composed location scope")
+        return self
+
+
+class ComprehensiveStatusSections(_ComprehensiveStatusModel):
+    farm_summary: ComprehensiveStatusFarmSummary | ComprehensiveStatusSectionError
+    crop_noi: ComprehensiveStatusCropNoiReport | ComprehensiveStatusSectionError
+    environmental: ComprehensiveStatusEnvironmental | ComprehensiveStatusSectionError
+    climate_impact: ComprehensiveStatusClimateImpact | ComprehensiveStatusSectionError
+    financial_sustainability: (
+        ComprehensiveStatusFinancialSustainability | ComprehensiveStatusSectionError
+    )
+    regenerative_outcomes: (
+        ComprehensiveStatusRegenerativeOutcomes | ComprehensiveStatusSectionError
+    )
+    gnh_alignment: ComprehensiveStatusGnhAlignment | ComprehensiveStatusSectionError
+    capital_efficiency: ComprehensiveStatusCapitalEfficiency | ComprehensiveStatusSectionError
+    community_governance: (
+        ComprehensiveStatusCommunityGovernance | ComprehensiveStatusSectionError
+    )
+    holistic_wellbeing: ComprehensiveStatusHolisticWellbeing | ComprehensiveStatusSectionError
+    training_impact: ComprehensiveStatusTrainingImpact | ComprehensiveStatusSectionError
+    foundational_wellbeing: (
+        ComprehensiveStatusFoundationalWellbeing | ComprehensiveStatusSectionError
+    )
+    stakeholder_outcomes: ComprehensiveStatusStakeholderOutcomes | ComprehensiveStatusSectionError
+    capital_accounting: ComprehensiveStatusCapitalAccounting | ComprehensiveStatusSectionError
+
+
+class ComprehensiveStatusLocation(_ComprehensiveStatusModel):
+    location_id: UUID
+    name: str | None
+    slug: str | None
+    country: str | None
+    region: str | None
+    sections: ComprehensiveStatusSections
+
+    @model_validator(mode="after")
+    def keep_location_sections_in_scope(self):
+        section = self.sections.crop_noi
+        if (
+            isinstance(section, ComprehensiveStatusCropNoiReport)
+            and section.location_id != self.location_id
+        ):
+            raise ValueError("Crop NOI section is outside the composed location scope")
+        farm_summary = self.sections.farm_summary
+        if isinstance(farm_summary, ComprehensiveStatusFarmSummary):
+            if farm_summary.location.id != self.location_id:
+                raise ValueError("Farm summary location is outside the composed location scope")
+            farm_ids = {farm.id for farm in farm_summary.farms}
+            if any(farm.location_id != self.location_id for farm in farm_summary.farms):
+                raise ValueError("Farm summary farm is outside the composed location scope")
+            plot_ids = {plot.id for plot in farm_summary.plots}
+            if any(plot.farm_id not in farm_ids for plot in farm_summary.plots):
+                raise ValueError("Farm summary plot is outside the composed farm scope")
+            if any(
+                cycle.location_id != self.location_id or cycle.plot_id not in plot_ids
+                for cycle in farm_summary.crop_cycles
+            ):
+                raise ValueError("Farm summary crop cycle is outside the composed location scope")
+        environmental = self.sections.environmental
+        if (
+            isinstance(environmental, ComprehensiveStatusEnvironmental)
+            and environmental.location_id != self.location_id
+        ):
+            raise ValueError("Environmental section is outside the composed location scope")
+        financial = self.sections.financial_sustainability
+        if (
+            isinstance(financial, ComprehensiveStatusFinancialSustainability)
+            and financial.location_id != self.location_id
+        ):
+            raise ValueError("Financial sustainability section is outside the composed location scope")
+        climate = self.sections.climate_impact
+        if (
+            isinstance(climate, ComprehensiveStatusClimateImpact)
+            and climate.location_id != self.location_id
+        ):
+            raise ValueError("Climate impact section is outside the composed location scope")
+        regenerative = self.sections.regenerative_outcomes
+        if (
+            isinstance(regenerative, ComprehensiveStatusRegenerativeOutcomes)
+            and regenerative.location_id != self.location_id
+        ):
+            raise ValueError("Regenerative outcomes section is outside the composed location scope")
+        gnh_alignment = self.sections.gnh_alignment
+        if (
+            isinstance(gnh_alignment, ComprehensiveStatusGnhAlignment)
+            and gnh_alignment.location_id != self.location_id
+        ):
+            raise ValueError("GNH alignment section is outside the composed location scope")
+        capital_efficiency = self.sections.capital_efficiency
+        if (
+            isinstance(capital_efficiency, ComprehensiveStatusCapitalEfficiency)
+            and capital_efficiency.location_id != self.location_id
+        ):
+            raise ValueError("Capital efficiency section is outside the composed location scope")
+        community_governance = self.sections.community_governance
+        if (
+            isinstance(community_governance, ComprehensiveStatusCommunityGovernance)
+            and community_governance.location_id != self.location_id
+        ):
+            raise ValueError("Community governance section is outside the composed location scope")
+        foundational_wellbeing = self.sections.foundational_wellbeing
+        if (
+            isinstance(foundational_wellbeing, ComprehensiveStatusFoundationalWellbeing)
+            and foundational_wellbeing.location_id != self.location_id
+        ):
+            raise ValueError("Foundational wellbeing section is outside the composed location scope")
+        holistic_wellbeing = self.sections.holistic_wellbeing
+        if (
+            isinstance(holistic_wellbeing, ComprehensiveStatusHolisticWellbeing)
+            and holistic_wellbeing.location_id != self.location_id
+        ):
+            raise ValueError("Holistic wellbeing section is outside the composed location scope")
+        stakeholder_outcomes = self.sections.stakeholder_outcomes
+        if (
+            isinstance(stakeholder_outcomes, ComprehensiveStatusStakeholderOutcomes)
+            and stakeholder_outcomes.location_id != self.location_id
+        ):
+            raise ValueError("Stakeholder outcomes section is outside the composed location scope")
+        if isinstance(stakeholder_outcomes, ComprehensiveStatusStakeholderOutcomes) and any(
+            outcome.location_id != self.location_id for outcome in stakeholder_outcomes.outcomes
+        ):
+            raise ValueError("Stakeholder outcome row is outside the composed location scope")
+        training_impact = self.sections.training_impact
+        if (
+            isinstance(training_impact, ComprehensiveStatusTrainingImpact)
+            and training_impact.location_id != self.location_id
+        ):
+            raise ValueError("Training impact section is outside the composed location scope")
+        if isinstance(training_impact, ComprehensiveStatusTrainingImpact) and any(
+            session.location_id != self.location_id for session in training_impact.sessions
+        ):
+            raise ValueError("Training session is outside the composed location scope")
+        capital_accounting = self.sections.capital_accounting
+        if (
+            isinstance(capital_accounting, ComprehensiveStatusCapitalAccounting)
+            and capital_accounting.location_id != self.location_id
+        ):
+            raise ValueError("Capital accounting section is outside the composed location scope")
+        return self
+
+
+class ComprehensiveStatusOverview(_ComprehensiveStatusModel):
+    total_locations: int = Field(ge=0, strict=True)
+    locations_with_financial_data: int = Field(ge=0, strict=True)
+    total_revenue_usd: float
+    total_expenses_usd: float
+    net_income_usd: float
+    total_harvest_quantity: float | None
+    total_harvest_quantity_unit: str | None
+    total_harvest_quantity_by_unit: dict[str, float]
+
+
+class ComprehensiveStatusResponse(_ComprehensiveStatusModel):
+    report_type: Literal["comprehensive_status"]
+    scope: Literal["selected_locations"]
+    selected_location_ids: list[UUID] = Field(min_length=1, max_length=1)
+    period_start: date | None
+    period_end: date | None
+    ecosystem_overview: ComprehensiveStatusOverview
+    locations: list[ComprehensiveStatusLocation] = Field(max_length=1)
+    limitations: list[str] = Field(max_length=16)
+    generated_at: datetime
+
+    @model_validator(mode="after")
+    def keep_composed_location_inside_selected_scope(self):
+        selected_location_id = self.selected_location_ids[0]
+        if any(location.location_id != selected_location_id for location in self.locations):
+            raise ValueError("Comprehensive Status location is outside the selected scope")
+        return self
+
 
 def register_comprehensive_status_routes(router, provider, run_in_threadpool, psycopg2):
     from fastapi.encoders import jsonable_encoder
@@ -16,7 +1494,10 @@ def register_comprehensive_status_routes(router, provider, run_in_threadpool, ps
 
     headers = {"Cache-Control": "no-store", "Vary": "Cookie"}
 
-    @router.get("/operator/api/comprehensive-status/{location_id}")
+    @router.get(
+        "/operator/api/comprehensive-status/{location_id}",
+        response_model=ComprehensiveStatusResponse,
+    )
     async def location_comprehensive_status(
         request: Request,
         location_id: str,
@@ -64,7 +1545,26 @@ def register_comprehensive_status_routes(router, provider, run_in_threadpool, ps
                 content={"error": "Comprehensive Status read unavailable"},
                 headers={**headers, "Retry-After": "30"},
             )
-        response = JSONResponse(jsonable_encoder(result), headers=headers)
+        try:
+            validated = ComprehensiveStatusResponse.model_validate(
+                jsonable_encoder(result)
+            )
+            if validated.selected_location_ids != [UUID(location_id)]:
+                raise ValueError("Comprehensive Status scope does not match request")
+        except (ValidationError, ValueError) as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.comprehensive_status").warning(
+                "Comprehensive Status response rejected (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=500,
+                content={"error": "Comprehensive Status read unavailable"},
+                headers=headers,
+            )
+        response = JSONResponse(
+            jsonable_encoder(validated.model_dump(mode="json")), headers=headers
+        )
         if len(response.body) > MAX_COMPREHENSIVE_STATUS_BYTES:
             return JSONResponse(
                 status_code=413,

@@ -1,0 +1,57 @@
+{
+  "date": "2026-10-29",
+  "batch": "location solution create response contract",
+  "source": {
+    "migration": "schemas/postgres/504_location_solution_create.sql",
+    "gateway": "services/gateway/solution_lifecycle_routes.py",
+    "tests": "tests/test_gateway_solution_lifecycle_create.py",
+    "route": "POST /operator/api/solution-lifecycle/{location_id}/solutions"
+  },
+  "contract": {
+    "request": "Strict migration-aligned request with UUID idempotency key, canonical key, bounded names/rationale/problem statement, finite JSON evidence limited to 64 KiB, explicit acknowledgement, risk and reversibility enums, and no undeclared fields.",
+    "response_fields": [
+      "solution_id",
+      "lifecycle_event_id",
+      "canonical_key",
+      "solution_name",
+      "solution_type",
+      "current_stage",
+      "solution_status",
+      "created_at",
+      "replayed"
+    ],
+    "validation": "Strict exact response fields; UUID and aware-timestamp types; canonical key, solution type, stage, and status validation; returned name/key/type binding to the request. Name binding mirrors PostgreSQL btrim() by trimming only U+0020.",
+    "status": "201 for first creation and 200 for idempotent replay.",
+    "authorization": "Existing private solution_lifecycle:create route policy and signed exact-location context are unchanged.",
+    "errors": "Malformed service output returns a generic no-store 500; request validation remains a no-store 400. OpenAPI documents Cache-Control: no-store and Vary: Cookie for both 200 replay and 201 creation responses."
+  },
+  "verification": {
+    "focused_command": "python3 -m pytest tests/test_gateway_solution_lifecycle_create.py tests/test_runtime_privilege_callsite_report.py tests/test_arm64_schema_replay.py -q",
+    "focused_tests": 61,
+    "focused_result": "passed",
+    "coverage": [
+      "exact request and migration response schemas",
+      "create and replay response status and headers",
+      "exact route authorization policy",
+      "location/path and service-result binding",
+      "PostgreSQL U+0020 trimming parity with non-breaking-space names",
+      "strict invalid-input preflight and sanitized malformed-result handling",
+      "runtime service_registry ACL probe parsing and reporting"
+    ],
+    "ruff": "passed on changed source and tests",
+    "python_compile": "passed on changed source and tests",
+    "capability_matrix": "passed: 67 rows; 24 baseline-retained, 7 deployed, 36 prepared",
+    "runtime_sql_inventory": "current; unresolved-write review ledger current",
+    "report_generator_helper_scope_inventory": "refreshed and current",
+    "provider_boundaries": "passed: 17 vendor import sites",
+    "dependency_groups": "passed: 14 groups, 33 requirements",
+    "git_diff_check": "passed"
+  },
+  "environment": {
+    "database": "not used for the Gateway contract tests",
+    "provider": "not used",
+    "candidate_or_legacy_state": "untouched",
+    "migration_applied": false
+  },
+  "rollback": "Revert the Gateway request/response model, route validation, tests, and evidence. No database rollback is needed."
+}

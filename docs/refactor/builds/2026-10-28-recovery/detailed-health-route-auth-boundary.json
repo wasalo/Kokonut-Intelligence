@@ -1,0 +1,27 @@
+{
+  "record_version": 1,
+  "date": "2026-10-28",
+  "slice": "detailed-health-route-auth-boundary",
+  "status": "focused route-policy and anonymous-access checks pass",
+  "route": "GET /api/health/services",
+  "change": {
+    "resource": "service_health",
+    "action": "read",
+    "public": false,
+    "reason": "The response probes and enumerates optional infrastructure (PostgreSQL, ClickHouse, Directus) and includes per-service status and latency."
+  },
+  "public_liveness_route": "/health",
+  "checks": {
+    "command": "python3 -m pytest -q tests/test_gateway_auth.py::test_anonymous_detailed_service_health_is_denied_without_probing tests/test_gateway_route_policy_inventory.py::test_registered_api_routes_have_exact_reviewed_policy_coverage",
+    "result": "passed",
+    "passed": 2,
+    "anonymous_detailed_health_status": 401,
+    "health_probe_called_for_anonymous_request": false,
+    "public_liveness_status": 200,
+    "database_or_provider_used": false
+  },
+  "limits_of_evidence": [
+    "This verifies the unauthenticated route boundary in-process; it does not test reverse-proxy or production ingress behavior.",
+    "Authorized operators still need the service_health:read capability to access detailed service health."
+  ]
+}

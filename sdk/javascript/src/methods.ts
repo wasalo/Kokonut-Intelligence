@@ -14,7 +14,6 @@ import type {
   AttestationRecord,
   ReportSnapshot,
   ExportLog,
-  ExportFormat,
   NoiSnapshot,
   ListOptions,
 } from './types.js';
@@ -315,62 +314,23 @@ export interface WalletProfileMethods extends GenericMethods {
   findByAddress(address: string): Promise<WalletProfile | null>;
 }
 
-export interface AttestationMethods extends GenericMethods {
+/** Read stored attestation records; publication is handled by governed EAS flows. */
+export interface AttestationMethods {
   list(options?: ListOptions): Promise<AttestationRecord[]>;
   get(id: string, fields?: string[]): Promise<AttestationRecord>;
-  create(data: Partial<AttestationRecord>): Promise<AttestationRecord>;
-  createMany(data: Partial<AttestationRecord>[]): Promise<AttestationRecord[]>;
-  update(id: string, data: Partial<AttestationRecord>): Promise<AttestationRecord>;
   listPending(options?: ListOptions): Promise<AttestationRecord[]>;
   listByEntity(entityType: string, entityId: string): Promise<AttestationRecord[]>;
 }
 
-export interface ReportMethods extends GenericMethods {
+export interface ReportMethods {
   list(options?: ListOptions): Promise<ReportSnapshot[]>;
   get(id: string, fields?: string[]): Promise<ReportSnapshot>;
-  create(data: Partial<ReportSnapshot>): Promise<ReportSnapshot>;
-  createMany(data: Partial<ReportSnapshot>[]): Promise<ReportSnapshot[]>;
-  update(id: string, data: Partial<ReportSnapshot>): Promise<ReportSnapshot>;
   listByType(reportType: string, options?: ListOptions): Promise<ReportSnapshot[]>;
 }
 
-export interface ExportCreateOptions {
-  format?: ExportFormat | null;
-  entity_type?: string;
-  entity_ids?: string[];
-  target_table?: string;
-  filters?: Record<string, any>;
-}
-
-export interface ExportCreateRequest extends ExportCreateOptions {
-  export_type: string;
-}
-
-export interface ExportMethods extends GenericMethods {
+export interface ExportMethods {
   list(options?: ListOptions): Promise<ExportLog[]>;
   get(id: string, fields?: string[]): Promise<ExportLog>;
-  createExport(data: ExportCreateRequest): Promise<ExportLog>;
-  createExport(exportType: string, options?: ExportCreateOptions): Promise<ExportLog>;
-  createExport(
-    exportType: string,
-    format?: ExportFormat | null,
-    entityType?: string,
-    entityIds?: string[],
-    targetTable?: string,
-    filters?: Record<string, any>,
-  ): Promise<ExportLog>;
-  /** Existing JavaScript creation method; use createExport() for Python parity. */
-  create(data: {
-    export_type: string;
-    format: ExportFormat;
-    entity_type?: string;
-    entity_ids?: string[];
-    target_table?: string;
-    filters?: Record<string, any>;
-  }): Promise<ExportLog>;
-  createMany(data: Partial<ExportLog>[]): Promise<ExportLog[]>;
-  update(id: string, data: Record<string, any>): Promise<ExportLog>;
-  delete(id: string): Promise<void>;
 }
 
 export function buildLocationMethods(client: any): LocationMethods {
@@ -600,14 +560,9 @@ export function buildWalletProfileMethods(client: any): WalletProfileMethods {
 }
 
 export function buildAttestationMethods(client: any): AttestationMethods {
-  const base = createGenericMethods(client, 'attestation_record');
   return {
-    ...base,
     list: (options?: ListOptions) => client.listItems('attestation_record', options) as Promise<AttestationRecord[]>,
     get: (id: string, fields?: string[]) => client.getItem('attestation_record', id, fields) as Promise<AttestationRecord>,
-    create: (data: Partial<AttestationRecord>) => client.createItem('attestation_record', data) as Promise<AttestationRecord>,
-    createMany: (data: Partial<AttestationRecord>[]) => client.createItems('attestation_record', data) as Promise<AttestationRecord[]>,
-    update: (id: string, data: Partial<AttestationRecord>) => client.updateItem('attestation_record', id, data) as Promise<AttestationRecord>,
     listPending: (options?: ListOptions) =>
       client.listItems('attestation_record', {
         ...options,
@@ -621,14 +576,9 @@ export function buildAttestationMethods(client: any): AttestationMethods {
 }
 
 export function buildReportMethods(client: any): ReportMethods {
-  const base = createGenericMethods(client, 'report_snapshot');
   return {
-    ...base,
     list: (options?: ListOptions) => client.listItems('report_snapshot', options) as Promise<ReportSnapshot[]>,
     get: (id: string, fields?: string[]) => client.getItem('report_snapshot', id, fields) as Promise<ReportSnapshot>,
-    create: (data: Partial<ReportSnapshot>) => client.createItem('report_snapshot', data) as Promise<ReportSnapshot>,
-    createMany: (data: Partial<ReportSnapshot>[]) => client.createItems('report_snapshot', data) as Promise<ReportSnapshot[]>,
-    update: (id: string, data: Partial<ReportSnapshot>) => client.updateItem('report_snapshot', id, data) as Promise<ReportSnapshot>,
     listByType: (reportType: string, options?: ListOptions) =>
       client.listItems('report_snapshot', {
         ...options,
@@ -638,84 +588,23 @@ export function buildReportMethods(client: any): ReportMethods {
 }
 
 export function buildExportMethods(client: any): ExportMethods {
-  const createExport = async (
-    requestOrType: ExportCreateRequest | string,
-    optionsOrFormat?: ExportCreateOptions | ExportFormat | null,
-    entityType?: string,
-    entityIds?: string[],
-    targetTable?: string,
-    filters?: Record<string, any>,
-  ): Promise<ExportLog> => {
-    let params: ExportCreateRequest;
-    if (typeof requestOrType === 'string') {
-      const options = typeof optionsOrFormat === 'object' && optionsOrFormat !== null
-        ? optionsOrFormat
-        : {
-            format: optionsOrFormat,
-            entity_type: entityType,
-            entity_ids: entityIds,
-            target_table: targetTable,
-            filters,
-          };
-      params = { ...options, export_type: requestOrType };
-    } else {
-      params = requestOrType;
-    }
-
-    return client.createItem('export_log', {
-      export_type: params.export_type,
-      format: params.format ?? null,
-      entity_type: params.entity_type ?? null,
-      entity_ids: params.entity_ids ?? null,
-      target_table: params.target_table ?? null,
-      filters: params.filters ?? null,
-      status: 'pending',
-      requested_by: 'sdk',
-    }) as Promise<ExportLog>;
-  };
-
-  const create = async (params: {
-    export_type: string;
-    format: ExportLog['format'];
-    entity_type?: string;
-    entity_ids?: string[];
-    target_table?: string;
-    filters?: Record<string, any>;
-  }): Promise<ExportLog> => client.createItem('export_log', {
-    ...params,
-    status: 'pending',
-    requested_by: 'sdk',
-  }) as Promise<ExportLog>;
-
   return {
     list: (options?: ListOptions) => client.listItems('export_log', options) as Promise<ExportLog[]>,
     get: (id: string, fields?: string[]) => client.getItem('export_log', id, fields) as Promise<ExportLog>,
-    createExport,
-    create,
-    createMany: (data: Partial<ExportLog>[]) => client.createItems('export_log', data) as Promise<ExportLog[]>,
-    update: (id: string, data: Record<string, any>) => client.updateItem('export_log', id, data) as Promise<ExportLog>,
-    delete: (id: string) => client.deleteItem('export_log', id),
   };
 }
 
-export interface NoiMethods extends GenericMethods {
+/** Read calculated NOI snapshots; reconciliation belongs to snapshot workers. */
+export interface NoiMethods {
   list(options?: ListOptions): Promise<NoiSnapshot[]>;
   get(id: string, fields?: string[]): Promise<NoiSnapshot>;
-  create(data: Partial<NoiSnapshot>): Promise<NoiSnapshot>;
-  createMany(data: Partial<NoiSnapshot>[]): Promise<NoiSnapshot[]>;
-  update(id: string, data: Partial<NoiSnapshot>): Promise<NoiSnapshot>;
   listByCropCycle(cropCycleId: string, options?: ListOptions): Promise<NoiSnapshot[]>;
 }
 
 export function buildNoiMethods(client: any): NoiMethods {
-  const base = createGenericMethods(client, 'noi_snapshot');
   return {
-    ...base,
     list: (options?: ListOptions) => client.listItems('noi_snapshot', options) as Promise<NoiSnapshot[]>,
     get: (id: string, fields?: string[]) => client.getItem('noi_snapshot', id, fields) as Promise<NoiSnapshot>,
-    create: (data: Partial<NoiSnapshot>) => client.createItem('noi_snapshot', data) as Promise<NoiSnapshot>,
-    createMany: (data: Partial<NoiSnapshot>[]) => client.createItems('noi_snapshot', data) as Promise<NoiSnapshot[]>,
-    update: (id: string, data: Partial<NoiSnapshot>) => client.updateItem('noi_snapshot', id, data) as Promise<NoiSnapshot>,
     listByCropCycle: (cropCycleId: string, options?: ListOptions) =>
       client.listItems('noi_snapshot', {
         ...options,

@@ -1347,10 +1347,10 @@ def test_database_backed_read_cli_output_matches_with_stubbed_query(
         (
             "stakeholder-trust",
             "services.analytics.cli_stakeholder_trust",
-            ["timeline", "synthetic-party"],
+            ["timeline", "a5b3e100-0b5d-4a66-9e90-35c9da193fe8"],
             "trust.evidence_timeline",
             "get_db",
-            ("<connection>", "synthetic-party"),
+            ("<connection>", "a5b3e100-0b5d-4a66-9e90-35c9da193fe8"),
             {},
         ),
     ],
@@ -1564,7 +1564,7 @@ def test_database_backed_threatcasting_list_output_matches_and_closes_resources(
     arguments = [
         "list-threats",
         "--location-id",
-        "synthetic-location",
+        "b0000000-0000-4000-8000-000000000001",
         "--type",
         "climate",
     ]
@@ -1592,7 +1592,7 @@ def test_database_backed_threatcasting_list_output_matches_and_closes_resources(
     assert all("location_id = %s" in connection.fake_cursor.query for connection in connections)
     assert all("threat_type = %s" in connection.fake_cursor.query for connection in connections)
     assert all(
-        connection.fake_cursor.parameters == ["synthetic-location", "climate"]
+        connection.fake_cursor.parameters == ["b0000000-0000-4000-8000-000000000001", "climate"]
         for connection in connections
     )
     assert unified.stderr == ""

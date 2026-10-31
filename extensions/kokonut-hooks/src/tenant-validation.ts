@@ -28,28 +28,75 @@ async function lookupStaffAtLocation(
 }
 
 const TENANT_REFERENCE_LOOKUPS: Record<string, TenantReferenceLookup> = {
-  farm_id: (database, referenceId) => database('farm')
-    .where('id', referenceId)
+  farm_id: (database, referenceId, locationId) => database('farm')
+    .where({ id: referenceId, location_id: locationId })
     .first('location_id'),
-  plot_id: (database, referenceId) => database('plot as plot_ref')
+  plot_id: (database, referenceId, locationId) => database('plot as plot_ref')
     .join('farm as farm_ref', 'plot_ref.farm_id', 'farm_ref.id')
-    .where('plot_ref.id', referenceId)
+    .where({ 'plot_ref.id': referenceId, 'farm_ref.location_id': locationId })
     .first('farm_ref.location_id as location_id'),
-  crop_cycle_id: (database, referenceId) => database('crop_cycle')
-    .where('id', referenceId)
+  crop_cycle_id: (database, referenceId, locationId) => database('crop_cycle')
+    .where({ id: referenceId, location_id: locationId })
     .first('location_id'),
-  harvest_id: (database, referenceId) => database('harvest_event')
-    .where('id', referenceId)
+  harvest_id: (database, referenceId, locationId) => database('harvest_event')
+    .where({ id: referenceId, location_id: locationId })
     .first('location_id'),
   staff_id: lookupStaffAtLocation,
   reviewed_by: lookupStaffAtLocation,
   reviewer_id: lookupStaffAtLocation,
-  parent_scenario_id: (database, referenceId) => database('forecast_scenario')
-    .where('id', referenceId)
+  parent_scenario_id: (database, referenceId, locationId) => database('forecast_scenario')
+    .where({ id: referenceId, location_id: locationId })
     .first('location_id'),
-  infrastructure_asset_id: (database, referenceId) => database('infrastructure_asset')
-    .where('id', referenceId)
+  infrastructure_asset_id: (database, referenceId, locationId) => database('infrastructure_asset')
+    .where({ id: referenceId, location_id: locationId })
     .first('location_id'),
+  sensor_device_id: (database, referenceId, locationId) => database('sensor_device')
+    .where({ id: referenceId, location_id: locationId })
+    .first('location_id'),
+  sensor_alert_id: (database, referenceId, locationId) => database('sensor_alert as alert_ref')
+    .join('sensor_device as device_ref', 'alert_ref.sensor_device_id', 'device_ref.id')
+    .where({
+      'alert_ref.id': referenceId,
+      'device_ref.location_id': locationId,
+    })
+    .first('device_ref.location_id as location_id'),
+};
+
+// Keep these lookups collection-scoped: the same field names can have
+// unrelated or network-wide meanings in other tenant collections.
+const TENANT_COLLECTION_REFERENCE_LOOKUPS: Record<string, Record<string, TenantReferenceLookup>> = {
+  farm_activity: {
+    farm_task_id: (database, referenceId, locationId) => database('farm_task')
+      .where({ id: referenceId, location_id: locationId })
+      .first('location_id'),
+  },
+  expense_event: {
+    farm_task_id: (database, referenceId, locationId) => database('farm_task')
+      .where({ id: referenceId, location_id: locationId })
+      .first('location_id'),
+    weekly_plan_id: (database, referenceId, locationId) => database('weekly_plan')
+      .where({ id: referenceId, location_id: locationId })
+      .first('location_id'),
+  },
+  revenue_event: {
+    sales_event_id: (database, referenceId, locationId) => database('sales_event')
+      .where({ id: referenceId, location_id: locationId })
+      .first('location_id'),
+    financial_transaction_id: (database, referenceId, locationId) => database('financial_transaction')
+      .where({ id: referenceId, location_id: locationId })
+      .first('location_id'),
+  },
+  retirement_certificate: {
+    retirement_id: (database, referenceId, locationId) => database('credit_retirement')
+      .where({ id: referenceId, location_id: locationId })
+      .first('location_id'),
+    credit_id: (database, referenceId, locationId) => database('carbon_credit')
+      .where({ id: referenceId, location_id: locationId })
+      .first('location_id'),
+    credit_batch_id: (database, referenceId, locationId) => database('credit_batch')
+      .where({ id: referenceId, location_id: locationId })
+      .first('location_id'),
+  },
 };
 
 const InvalidTenantPayloadError = createError<{ message: string }>(
@@ -69,18 +116,23 @@ function isUuid(value: unknown): value is string {
 
 async function validateReferencesAtLocation(
   database: any,
+  collection: string,
   locationId: string,
   payload: Record<string, any>,
 ): Promise<void> {
-  for (const [field, lookup] of Object.entries(TENANT_REFERENCE_LOOKUPS)) {
+  const lookups = {
+    ...TENANT_REFERENCE_LOOKUPS,
+    ...TENANT_COLLECTION_REFERENCE_LOOKUPS[collection],
+  };
+  for (const [field, lookup] of Object.entries(lookups)) {
     const referenceId = payload[field];
     if (referenceId === undefined || referenceId === null) continue;
     if (!isUuid(referenceId)) throw invalidTenantPayload(`Invalid ${field}`);
 
     const reference = await lookup(database, referenceId, locationId);
-    if (!reference) throw invalidTenantPayload(`Unknown ${field}`);
+    if (!reference) throw invalidTenantPayload(`${field} is unavailable for this location`);
     if (reference.location_id !== locationId) {
-      throw invalidTenantPayload(`${field} belongs to a different location`);
+      throw invalidTenantPayload(`${field} is unavailable for this location`);
     }
   }
 }
@@ -102,7 +154,7 @@ export async function validateTenantReferences(
   }
   if (locationId === undefined || locationId === null) return payload;
 
-  await validateReferencesAtLocation(database, locationId, payload);
+  await validateReferencesAtLocation(database, collection, locationId, payload);
 
   return payload;
 }
@@ -130,7 +182,7 @@ export async function validateTenantReferencesForRows(
   }
 
   for (const locationId of locationIds) {
-    await validateReferencesAtLocation(database, locationId, payload);
+    await validateReferencesAtLocation(database, collection, locationId, payload);
   }
 
   return payload;

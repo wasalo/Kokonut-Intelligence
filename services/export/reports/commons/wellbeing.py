@@ -5,18 +5,34 @@ from datetime import datetime, timezone
 import psycopg2
 import psycopg2.extras
 
-from ..common import _serialize_rows
+from ..common import _looks_like_uuid, _serialize_rows
 
 
 def generate_gnh_alignment(conn, location_id: str, period_start: str = None, period_end: str = None) -> dict:
     """Generate a public-safe GNH alignment report."""
+    if not _looks_like_uuid(location_id):
+        raise ValueError("gnh_alignment requires an explicit location_id")
+
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     try:
         cur.execute("SELECT name FROM location WHERE id = %s", (location_id,))
         location = cur.fetchone()
         cur.execute(
             """
-            SELECT *
+            SELECT id,
+                   location_id,
+                   farm_id,
+                   assessment_date,
+                   gnh_domain,
+                   principle_refs,
+                   alignment_score,
+                   strengths,
+                   gaps,
+                   safeguards,
+                   public_summary,
+                   evidence_maturity,
+                   evidence_maturity_label,
+                   metadata
             FROM v_public_gnh_alignment_summary
             WHERE location_id = %s
               AND (%s::date IS NULL OR assessment_date >= %s::date)
@@ -48,13 +64,31 @@ def generate_gnh_alignment(conn, location_id: str, period_start: str = None, per
 
 def generate_cultural_preservation(conn, location_id: str, period_start: str = None, period_end: str = None) -> dict:
     """Generate a public-safe cultural preservation report."""
+    if not _looks_like_uuid(location_id):
+        raise ValueError("cultural_preservation requires an explicit location_id")
+
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     try:
         cur.execute("SELECT name FROM location WHERE id = %s", (location_id,))
         location = cur.fetchone()
         cur.execute(
             """
-            SELECT *
+            SELECT id,
+                   location_id,
+                   farm_id,
+                   cultural_context_record_id,
+                   plan_date,
+                   cultural_element,
+                   preservation_type,
+                   local_language,
+                   digital_integration_strategy,
+                   consent_protocol,
+                   local_reviewer_role,
+                   implementation_status,
+                   public_summary,
+                   evidence_maturity,
+                   evidence_maturity_label,
+                   metadata
             FROM v_public_cultural_preservation_summary
             WHERE location_id = %s
               AND (%s::date IS NULL OR plan_date >= %s::date)
@@ -84,13 +118,33 @@ def generate_cultural_preservation(conn, location_id: str, period_start: str = N
 
 def generate_renewable_energy(conn, location_id: str, period_start: str = None, period_end: str = None) -> dict:
     """Generate a public-safe renewable energy report."""
+    if not _looks_like_uuid(location_id):
+        raise ValueError("renewable_energy requires an explicit location_id")
+
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     try:
         cur.execute("SELECT name FROM location WHERE id = %s", (location_id,))
         location = cur.fetchone()
         cur.execute(
             """
-            SELECT *
+            SELECT id,
+                   location_id,
+                   farm_id,
+                   plan_date,
+                   energy_use_case,
+                   renewable_source,
+                   implementation_status,
+                   current_energy_source,
+                   planned_capacity_kw,
+                   estimated_annual_kwh,
+                   renewable_share_pct,
+                   fossil_displacement_estimate_co2e_tonnes,
+                   infrastructure_dependencies,
+                   maintenance_owner_role,
+                   public_summary,
+                   evidence_maturity,
+                   evidence_maturity_label,
+                   metadata
             FROM v_public_renewable_energy_summary
             WHERE location_id = %s
               AND (%s::date IS NULL OR plan_date >= %s::date)
@@ -122,13 +176,31 @@ def generate_renewable_energy(conn, location_id: str, period_start: str = None, 
 
 def generate_vulnerable_access(conn, location_id: str, period_start: str = None, period_end: str = None) -> dict:
     """Generate a public-safe vulnerable group access report."""
+    if not _looks_like_uuid(location_id):
+        raise ValueError("vulnerable_access requires an explicit location_id")
+
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     try:
         cur.execute("SELECT name FROM location WHERE id = %s", (location_id,))
         location = cur.fetchone()
         cur.execute(
             """
-            SELECT *
+            SELECT id,
+                   location_id,
+                   farm_id,
+                   plan_date,
+                   access_scope,
+                   vulnerable_groups,
+                   access_barriers,
+                   accommodations,
+                   participation_pathways,
+                   accountable_role,
+                   implementation_status,
+                   access_coverage_pct,
+                   public_summary,
+                   evidence_maturity,
+                   evidence_maturity_label,
+                   metadata
             FROM v_public_vulnerable_access_summary
             WHERE location_id = %s
               AND (%s::date IS NULL OR plan_date >= %s::date)
@@ -158,13 +230,27 @@ def generate_vulnerable_access(conn, location_id: str, period_start: str = None,
 
 def generate_foundational_wellbeing(conn, location_id: str, period_start: str = None, period_end: str = None) -> dict:
     """Generate a public-safe foundational well-being report."""
+    if not _looks_like_uuid(location_id):
+        raise ValueError("foundational_wellbeing requires an explicit location_id")
+
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     try:
         cur.execute("SELECT name FROM location WHERE id = %s", (location_id,))
         location = cur.fetchone()
         cur.execute(
             """
-            SELECT *
+            SELECT id,
+                   location_id,
+                   farm_id,
+                   observation_date,
+                   wellbeing_domain,
+                   stakeholder_group,
+                   score_value,
+                   count_value,
+                   public_summary,
+                   evidence_maturity,
+                   evidence_maturity_label,
+                   metadata
             FROM v_public_foundational_wellbeing_summary
             WHERE location_id = %s
               AND (%s::date IS NULL OR observation_date >= %s::date)

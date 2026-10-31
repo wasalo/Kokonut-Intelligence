@@ -96,6 +96,86 @@ def test_schema_has_views():
     assert "v_pestel_high_impact" in text
 
 
+# --- Explicit read projections ---
+
+def test_list_analyses_uses_explicit_columns_and_preserves_location_filter():
+    from services.analytics import pestel
+
+    rows = [{"id": "analysis-1", "location_id": "location-1", "location_name": "Adelphi"}]
+    cursor = MagicMock()
+    cursor.__enter__.return_value = cursor
+    cursor.fetchall.return_value = rows
+    conn = MagicMock()
+    conn.cursor.return_value = cursor
+
+    result = pestel.list_analyses(conn, "location-1")
+
+    query, params = cursor.execute.call_args.args
+    normalized_query = " ".join(query.split())
+    assert normalized_query.startswith(
+        "SELECT a.id, a.location_id, a.title, a.period_start, a.period_end,"
+    )
+    assert "a.metadata, a.created_by, a.updated_by, a.created_at, a.updated_at, l.name AS location_name" in normalized_query
+    assert "WHERE a.location_id = %s ORDER BY a.created_at DESC" in normalized_query
+    assert "a.*" not in normalized_query and "SELECT *" not in normalized_query
+    assert params == ("location-1",)
+    assert result == rows
+
+
+def test_list_analyses_preserves_intentional_all_locations_branch():
+    from services.analytics import pestel
+
+    rows = [{"id": "analysis-1", "location_id": "location-1"}]
+    cursor = MagicMock()
+    cursor.__enter__.return_value = cursor
+    cursor.fetchall.return_value = rows
+    conn = MagicMock()
+    conn.cursor.return_value = cursor
+
+    result = pestel.list_analyses(conn)
+
+    query = cursor.execute.call_args.args[0]
+    normalized_query = " ".join(query.split())
+    assert "WHERE a.location_id" not in normalized_query
+    assert normalized_query.endswith("ORDER BY a.created_at DESC")
+    assert cursor.execute.call_args.args == (query,)
+    assert result == rows
+
+
+def test_get_analysis_uses_explicit_analysis_and_factor_columns():
+    from services.analytics import pestel
+
+    analysis = {"id": "analysis-1", "location_id": "location-1", "title": "Plan"}
+    factors = [{"id": "factor-1", "category": "political", "title": "Policy"}]
+    cursor = MagicMock()
+    cursor.__enter__.return_value = cursor
+    cursor.fetchone.return_value = analysis
+    cursor.fetchall.return_value = factors
+    conn = MagicMock()
+    conn.cursor.return_value = cursor
+
+    result = pestel.get_analysis(conn, "analysis-1")
+
+    assert cursor.execute.call_count == 2
+    analysis_query, analysis_params = cursor.execute.call_args_list[0].args
+    factor_query, factor_params = cursor.execute.call_args_list[1].args
+    normalized_analysis_query = " ".join(analysis_query.split())
+    normalized_factor_query = " ".join(factor_query.split())
+    assert normalized_analysis_query.startswith(
+        "SELECT a.id, a.location_id, a.title, a.period_start, a.period_end,"
+    )
+    assert "WHERE a.id = %s" in normalized_analysis_query
+    assert "a.*" not in normalized_analysis_query
+    assert normalized_factor_query.startswith(
+        "SELECT id, analysis_id, location_id, category, factor_type, title,"
+    )
+    assert "FROM pestel_factor WHERE analysis_id = %s ORDER BY category, factor_type" in normalized_factor_query
+    assert "SELECT *" not in normalized_factor_query
+    assert analysis_params == ("analysis-1",)
+    assert factor_params == ("analysis-1",)
+    assert result == {**analysis, "factors": factors}
+
+
 # --- Validation ---
 
 def test_add_factor_invalid_category():

@@ -1,0 +1,35 @@
+{
+  "date": "2026-10-29",
+  "pull_request": 71,
+  "head_revision": "16315d832fe3fa4424c87e1d860a9055f97a09aa",
+  "actions_run_id": 40949871199,
+  "checks": {
+    "ci": "failure",
+    "security_gitleaks": "success"
+  },
+  "failure_summary": [
+    {
+      "check": "Directus permission source inventory",
+      "saved_inventory": "docs/refactor/builds/2026-10-20-recovery/directus-permission-source-inventory.json",
+      "reason": "The generated inventory did not match the current curated permission seed."
+    },
+    {
+      "check": "Report generator helper-scope inventory",
+      "saved_inventory": "docs/refactor/report-generator-helper-scope-inventory.json",
+      "reason": "The generated helper query inventory did not match current report/helper source."
+    }
+  ],
+  "remediation": {
+    "regenerated": [
+      "docs/refactor/builds/2026-10-20-recovery/directus-permission-source-inventory.json",
+      "docs/refactor/report-generator-helper-scope-inventory.json",
+      "docs/refactor/runtime-sql-inventory.json"
+    ],
+    "directus_inventory_summary": {
+      "literal_permission_rows": 176,
+      "wildcard_field_rows": 122
+    },
+    "local_freshness_checks": "passed"
+  },
+  "acceptance": "The regenerated source inventories pass their local freshness gates. A new hosted CI run on the updated PR head is still required; no test suite, database, provider, candidate, or legacy service was used for this repair."
+}

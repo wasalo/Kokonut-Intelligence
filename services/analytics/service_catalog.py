@@ -1,16 +1,16 @@
 """BRM Service Component Reference Model (SCRM) service layer.
 
-Provides CRUD and query functions for the service_registry table
-introduced in migration 195_service_catalog.sql.
+Provides query functions for the deployment-managed service_registry table
+introduced in migration 195_service_catalog.sql. Runtime mutations are disabled;
+catalog changes belong in reviewed migrations or seeds.
 """
 
 from __future__ import annotations
 
-import json
 import uuid as uuid_mod
 from collections import defaultdict
-from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional
+from datetime import datetime
+from typing import Any, Dict, List, NoReturn, Optional
 
 import psycopg2
 import psycopg2.extras
@@ -20,6 +20,16 @@ from services.common.database import get_db
 
 def _conn():
     return get_db()
+
+
+class ServiceRegistryWriteDisabled(RuntimeError):
+    """Raised when runtime code attempts to mutate deployment-owned catalog data."""
+
+
+def _reject_runtime_write() -> NoReturn:
+    raise ServiceRegistryWriteDisabled(
+        "service_registry is deployment-managed; update it through a reviewed migration or seed"
+    )
 
 
 def _row_to_dict(row: psycopg2.extras.RealDictRow) -> Dict[str, Any]:
@@ -86,74 +96,15 @@ def register_service(
     dependencies: Optional[List[str]] = None,
     metadata: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
-    """Register or update a service (INSERT ON CONFLICT DO UPDATE)."""
-    sql = """
-        INSERT INTO service_registry
-            (name, version, category, description, health_endpoint,
-             owner, sla_target_ms, dependencies, metadata)
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
-        ON CONFLICT (name) DO UPDATE SET
-            version = EXCLUDED.version,
-            category = EXCLUDED.category,
-            description = EXCLUDED.description,
-            health_endpoint = EXCLUDED.health_endpoint,
-            owner = EXCLUDED.owner,
-            sla_target_ms = EXCLUDED.sla_target_ms,
-            dependencies = EXCLUDED.dependencies,
-            metadata = EXCLUDED.metadata,
-            updated_at = NOW()
-        RETURNING *
-    """
-    try:
-        with _conn() as conn:
-            with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
-                cur.execute(sql, (
-                    name, version, category, description, health_endpoint,
-                    owner, sla_target_ms,
-                    json.dumps(dependencies or []),
-                    json.dumps(metadata or {}),
-                ))
-                conn.commit()
-                return _row_to_dict(cur.fetchone())
-    except Exception:
-        return {}
+    """Reject runtime registration; reviewed migrations/seeds own this catalog."""
+    _reject_runtime_write()
 
 
 def update_service(name: str, **fields: Any) -> Optional[Dict[str, Any]]:
-    """Update a service_registry row.
-
-    Allowed fields: version, description, health_endpoint, owner,
-    sla_target_ms, dependencies, metadata, status.
-    """
+    """Read by name when called without changes; reject all runtime mutations."""
     if not fields:
         return get_service(name)
-    allowed = {
-        "version", "description", "health_endpoint", "owner",
-        "sla_target_ms", "dependencies", "metadata", "status",
-    }
-    sets: List[str] = []
-    params: List[Any] = []
-    for k, v in fields.items():
-        if k not in allowed:
-            continue
-        if k in ("dependencies", "metadata"):
-            v = json.dumps(v)
-        sets.append(f"{k} = %s")
-        params.append(v)
-    if not sets:
-        return get_service(name)
-    sets.append("updated_at = NOW()")
-    params.append(name)
-    sql = f"UPDATE service_registry SET {', '.join(sets)} WHERE name = %s RETURNING *"
-    try:
-        with _conn() as conn:
-            with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
-                cur.execute(sql, params)
-                conn.commit()
-                r = cur.fetchone()
-                return _row_to_dict(r) if r else None
-    except Exception:
-        return None
+    _reject_runtime_write()
 
 
 # --- Lifecycle ----------------------------------------------------------------

@@ -1,5 +1,6 @@
 """Location-scoped traceability reads expose bounded operational facts only."""
 
+from datetime import date, datetime, timezone
 from decimal import Decimal
 from types import SimpleNamespace
 from unittest.mock import patch
@@ -8,6 +9,7 @@ from uuid import uuid4
 import pytest
 
 pytest.importorskip("fastapi")
+from fastapi.encoders import jsonable_encoder  # noqa: E402
 from starlette.testclient import TestClient  # noqa: E402
 
 from services.common.tenant_context import TenantContextDenied
@@ -18,6 +20,7 @@ from services.gateway.traceability import (
     get_location_traceability_batch,
     list_location_traceability_batches,
 )
+from services.gateway.traceability_models import TraceabilityBatchDetail
 
 
 class _Cursor:
@@ -142,6 +145,136 @@ def test_traceability_routes_are_registered_on_the_operator_router(tmp_path, mon
     paths = app.openapi()["paths"]
     assert "/operator/api/traceability/{location_id}/batches" in paths
     assert "/operator/api/traceability/{location_id}/batches/{batch_id}" in paths
+    schemas = app.openapi()["components"]["schemas"]
+    page_response = paths["/operator/api/traceability/{location_id}/batches"]["get"]
+    detail_response = paths["/operator/api/traceability/{location_id}/batches/{batch_id}"]["get"]
+    assert page_response["responses"]["200"]["content"]["application/json"]["schema"]["$ref"] == (
+        "#/components/schemas/TraceabilityBatchPage"
+    )
+    assert detail_response["responses"]["200"]["content"]["application/json"]["schema"]["$ref"] == (
+        "#/components/schemas/TraceabilityBatchDetail"
+    )
+    assert schemas["TraceabilityBatchDetail"]["additionalProperties"] is False
+    assert "from_actor_name" not in str(schemas["TraceabilityBatchDetail"])
+    assert "gps_latitude" not in str(schemas["TraceabilityBatchDetail"])
+    page_quantity_schema = schemas["TraceabilityBatchPageItem"]["properties"]["quantity"]
+    assert {item["type"] for item in page_quantity_schema["anyOf"]} == {"integer", "number"}
+
+
+def test_traceability_detail_model_rejects_unreviewed_fields():
+    location_id, batch_id = str(uuid4()), str(uuid4())
+    detail = {
+        "location_id": location_id,
+        "batch": {
+            "id": batch_id,
+            "batch_number": "BATCH-1",
+            "crop_name": "Plantain",
+            "variety": None,
+            "quantity": "12.5000",
+            "unit": "kg",
+            "harvest_date": "2026-10-28",
+            "organic": True,
+            "status": "active",
+            "expiry_date": None,
+            "grade": None,
+        },
+        "custody_transfers": {
+            "items": [{
+                "sequence_num": 1,
+                "from_actor_type": "farm",
+                "to_actor_type": "processor",
+                "transfer_date": "2026-10-28T10:00:00Z",
+                "received_date": None,
+                "quantity": "12.5000",
+                "unit": "kg",
+                "transfer_method": "road",
+                "temperature_at_transfer_c": "4.00",
+                "status": "received",
+            }],
+            "truncated": False,
+        },
+        "quality_inspections": {
+            "items": [{
+                "inspection_date": "2026-10-28T11:00:00Z",
+                "inspection_point": "receiving",
+                "overall_grade": "A",
+                "score": "98.50",
+                "moisture_pct": None,
+                "foreign_material_pct": None,
+                "temperature_c": "4.00",
+                "appearance_score": None,
+                "freshness_score": None,
+                "size_uniformity": None,
+                "defect_count": 0,
+                "passed": True,
+                "status": "reviewed",
+            }],
+            "truncated": False,
+        },
+        "certifications": {"items": [], "truncated": False},
+        "food_safety_records": {
+            "items": [{
+                "record_type": "temperature_log",
+                "record_time": "2026-10-28T12:00:00Z",
+                "temperature_c": "5.25",
+                "temperature_min_c": None,
+                "temperature_max_c": None,
+                "within_range": True,
+                "humidity_pct": None,
+                "ph_level": None,
+                "hygiene_score": None,
+                "hand_wash_ok": None,
+                "protective_gear_ok": None,
+                "pest_detected": False,
+                "passed": True,
+                "status": "recorded",
+            }],
+            "truncated": False,
+        },
+        "provenance_events": {"items": [], "truncated": False},
+    }
+    parsed = TraceabilityBatchDetail.model_validate(detail)
+    assert str(parsed.location_id) == location_id
+    assert parsed.batch.quantity == Decimal("12.5000")
+    serialized = parsed.model_dump(mode="json")
+    assert serialized == jsonable_encoder(parsed.model_dump(mode="python"))
+    assert type(serialized["batch"]["quantity"]) is float
+    assert type(serialized["custody_transfers"]["items"][0]["quantity"]) is float
+    assert type(serialized["custody_transfers"]["items"][0]["temperature_at_transfer_c"]) is float
+    assert type(serialized["quality_inspections"]["items"][0]["score"]) is float
+    assert type(serialized["food_safety_records"]["items"][0]["temperature_c"]) is float
+    assert serialized["food_safety_records"]["items"][0]["record_time"] == (
+        "2026-10-28T12:00:00+00:00"
+    )
+    integer_precision = TraceabilityBatchDetail.model_validate(
+        {**detail, "batch": {**detail["batch"], "quantity": "12"}}
+    ).model_dump(mode="json")["batch"]["quantity"]
+    decimal_precision = TraceabilityBatchDetail.model_validate(
+        {**detail, "batch": {**detail["batch"], "quantity": "12.00"}}
+    ).model_dump(mode="json")["batch"]["quantity"]
+    assert type(integer_precision) is int
+    assert type(decimal_precision) is float
+
+    detail["custody_transfers"] = {
+        "items": [
+            {
+                "sequence_num": 1,
+                "from_actor_type": "farm",
+                "to_actor_type": "processor",
+                "transfer_date": "2026-10-28T10:00:00Z",
+                "received_date": None,
+                "quantity": "12.5000",
+                "unit": "kg",
+                "transfer_method": None,
+                "temperature_at_transfer_c": None,
+                "status": "pending",
+                "from_actor_name": "private actor name",
+            }
+        ],
+        "truncated": False,
+    }
+    with pytest.raises(ValueError, match="from_actor_name"):
+        TraceabilityBatchDetail.model_validate(detail)
 
 
 @pytest.fixture
@@ -184,7 +317,24 @@ def test_traceability_route_checks_grant_then_returns_no_store_data(monkeypatch,
                 and scoped_location == location_id
             )
 
-    result = {"location_id": location_id, "items": [], "limit": 25, "offset": 0, "has_more": False}
+    result = {
+        "location_id": location_id,
+        "items": [{
+            "id": str(uuid4()),
+            "batch_number": "BATCH-1",
+            "crop_name": "Plantain",
+            "variety": None,
+            "quantity": Decimal("12.5000"),
+            "unit": "kg",
+            "harvest_date": date(2026, 10, 28),
+            "organic": True,
+            "status": "active",
+            "created_at": datetime(2026, 10, 28, tzinfo=timezone.utc),
+        }],
+        "limit": 25,
+        "offset": 0,
+        "has_more": False,
+    }
     monkeypatch.setattr("services.gateway.operator_auth.create_provider", lambda: Provider())
     with patch(
         "services.gateway.traceability.list_location_traceability_batches", return_value=result
@@ -197,7 +347,8 @@ def test_traceability_route_checks_grant_then_returns_no_store_data(monkeypatch,
     assert response.status_code == 200
     assert response.headers["cache-control"] == "no-store"
     assert "cookie" in {value.strip().lower() for value in response.headers["vary"].split(",")}
-    assert response.json() == result
+    assert response.json() == jsonable_encoder(result)
+    assert type(response.json()["items"][0]["quantity"]) is float
     list_batches.assert_called_once_with(operator_id, location_id, status=None, limit=25, offset=0)
 
 
@@ -261,6 +412,34 @@ def test_batch_page_establishes_signed_scope_before_exact_location_query():
         ("SET LOCAL lock_timeout = '2s'", None),
     ]
     assert conn.rolled_back and conn.closed
+
+
+@pytest.mark.parametrize(
+    ("offset", "expected_has_more"),
+    [(9_998, True), (9_999, False), (10_000, False)],
+)
+def test_batch_page_suppresses_continuation_past_supported_offset(
+    monkeypatch, offset, expected_has_more
+):
+    operator_id, location_id = str(uuid4()), str(uuid4())
+    conn = _Connection()
+    monkeypatch.setattr(
+        "services.gateway.traceability.set_operator_tenant_context",
+        lambda *_args, **_kwargs: None,
+    )
+
+    result = list_location_traceability_batches(
+        operator_id,
+        location_id,
+        limit=2,
+        offset=offset,
+        connection_factory=lambda: conn,
+    )
+
+    assert len(result["items"]) == 2
+    assert result["has_more"] is expected_has_more
+    assert result["offset"] == offset
+    assert conn.closed and conn.rolled_back
 
 
 def test_invalid_scope_and_page_fail_before_opening_connection():

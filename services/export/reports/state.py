@@ -3,12 +3,14 @@
 from contextlib import contextmanager
 from datetime import datetime, timezone
 from decimal import Decimal, InvalidOperation
+from uuid import UUID
 
 import psycopg2
 import psycopg2.extras
 
 from ..kokonut_graphs import build_all
 from .common import (
+    _looks_like_uuid,
     _serialize_rows,
 )
 from .commons import (
@@ -38,6 +40,32 @@ def _report_error_summary(operation: str, exc: Exception) -> str:
     if not name.isascii() or not name.isidentifier() or len(name) > 64:
         name = "Exception"
     return f"{operation} failed ({name})"
+
+
+def _normalize_report_location_scope(report_type: str, location_id):
+    """Validate selected UUID scopes while preserving network sentinels."""
+    if location_id is None:
+        return None
+    if not isinstance(location_id, str):
+        raise ValueError(f"{report_type} location scope must be 'all' or valid UUIDs")
+
+    selection = location_id.strip()
+    if not selection:
+        raise ValueError(
+            f"{report_type} requires at least one location_id (valid UUIDs) or 'all' scope"
+        )
+    if selection.lower() == "all":
+        return "all"
+
+    tokens = [token.strip() for token in selection.split(",")]
+    if any(not token for token in tokens):
+        raise ValueError(
+            f"{report_type} requires at least one location_id and only valid UUIDs or 'all' scope"
+        )
+    try:
+        return [str(UUID(token)) for token in tokens]
+    except (TypeError, ValueError, AttributeError) as exc:
+        raise ValueError(f"{report_type} location scope must be 'all' or valid UUIDs") from exc
 
 
 @contextmanager
@@ -155,14 +183,32 @@ def _state_of_kokonut_locations(conn, location_ids, period_start, period_end):
     return locations, composed
 
 
-def _state_of_kokonut_actors(conn, period_start, period_end):
+def _state_of_kokonut_actors(conn, period_start, period_end, *, location_ids=None):
     """Ecosystem-actor view: funding raised + participation by actor type."""
+    if location_ids is not None and not location_ids:
+        raise ValueError("selected-location actor reports require at least one location")
+
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     period_filter = """
-        AND (%s::date IS NULL OR fr.period_start IS NULL OR fr.period_start >= %s::date)
-        AND (%s::date IS NULL OR fr.period_end IS NULL OR fr.period_end <= %s::date)
+        AND (%(period_start)s::date IS NULL OR fr.period_start IS NULL OR fr.period_start >= %(period_start)s::date)
+        AND (%(period_end)s::date IS NULL OR fr.period_end IS NULL OR fr.period_end <= %(period_end)s::date)
     """
-    params = [period_start, period_start, period_end, period_end]
+    # Keep the report SQL statically auditable. A NULL location array is the
+    # explicit network-rollup mode; selected-location calls always bind their
+    # array to the same predicate.
+    location_filter = """
+        AND (
+            %(location_ids)s::uuid[] IS NULL
+            OR fr.location_id = ANY(%(location_ids)s::uuid[])
+        )
+    """
+
+    def query_params():
+        return {
+            "period_start": period_start,
+            "period_end": period_end,
+            "location_ids": list(location_ids) if location_ids is not None else None,
+        }
 
     try:
         cur.execute(
@@ -172,11 +218,13 @@ def _state_of_kokonut_actors(conn, period_start, period_end):
                    COALESCE(SUM(fr.raised_amount), 0) AS total_raised,
                    fr.currency
             FROM funding_round fr
-            WHERE 1=1 {period_filter}
+            WHERE 1=1
+            {period_filter}
+            {location_filter}
             GROUP BY fr.actor_type, fr.actor_name, fr.currency
             ORDER BY fr.actor_type
             """,
-            params,
+            query_params(),
         )
         by_actor = [dict(r) for r in cur.fetchall()]
 
@@ -185,11 +233,13 @@ def _state_of_kokonut_actors(conn, period_start, period_end):
             SELECT fr.source_type, fr.currency,
                    COALESCE(SUM(fr.raised_amount), 0) AS total_raised
             FROM funding_round fr
-            WHERE 1=1 {period_filter}
+            WHERE 1=1
+            {period_filter}
+            {location_filter}
             GROUP BY fr.source_type, fr.currency
             ORDER BY total_raised DESC, fr.source_type, fr.currency
             """,
-            params,
+            query_params(),
         )
         by_source = [dict(r) for r in cur.fetchall()]
 
@@ -199,11 +249,13 @@ def _state_of_kokonut_actors(conn, period_start, period_end):
                    COUNT(*) AS count, COALESCE(SUM(pf.amount), 0) AS amount
             FROM project_funding pf
             JOIN funding_round fr ON fr.id = pf.funding_round_id
-            WHERE 1=1 {period_filter}
+            WHERE 1=1
+            {period_filter}
+            {location_filter}
             GROUP BY pf.actor_type, pf.decision_status, pf.token
             ORDER BY pf.actor_type, pf.decision_status, pf.token
             """,
-            params,
+            query_params(),
         )
         participation = [dict(r) for r in cur.fetchall()]
 
@@ -213,10 +265,12 @@ def _state_of_kokonut_actors(conn, period_start, period_end):
                    fr.raised_amount, fr.currency, fr.source_type, fr.period_start, fr.period_end,
                    fr.location_id
             FROM funding_round fr
-            WHERE 1=1 {period_filter}
+            WHERE 1=1
+            {period_filter}
+            {location_filter}
             ORDER BY fr.period_start, fr.actor_type
             """,
-            params,
+            query_params(),
         )
         rounds = [dict(r) for r in cur.fetchall()]
     finally:
@@ -263,13 +317,14 @@ def generate_state_of_kokonut(conn, location_id: str = None, period_start: str =
 
     Read-only; never modifies governed data.
     """
-    # Normalize location selection: comma-separated list or single id.
-    location_ids = None
-    if location_id and location_id.lower() != "all":
-        location_ids = [lid.strip() for lid in location_id.split(",") if lid.strip()]
+    # Normalize a selected UUID list while preserving the network-wide modes.
+    normalized_scope = _normalize_report_location_scope("state_of_kokonut", location_id)
+    location_ids = None if normalized_scope in (None, "all") else normalized_scope
 
     locations, composed = _state_of_kokonut_locations(conn, location_ids, period_start, period_end)
-    actors = _state_of_kokonut_actors(conn, period_start, period_end)
+    actors = _state_of_kokonut_actors(
+        conn, period_start, period_end, location_ids=location_ids
+    )
 
     # Lightweight ecosystem rollups from composed sections.
     total_revenue = 0.0
@@ -326,7 +381,14 @@ def generate_state_of_kokonut_graphs(
 
     Read-only; never modifies governed data.
     """
-    descriptors = build_all(conn, location_id=location_id, period_start=period_start, period_end=period_end)
+    normalized_scope = _normalize_report_location_scope("state_of_kokonut_graphs", location_id)
+    if isinstance(normalized_scope, list):
+        graph_location_scope = ",".join(normalized_scope)
+    else:
+        graph_location_scope = normalized_scope
+    descriptors = build_all(
+        conn, location_id=graph_location_scope, period_start=period_start, period_end=period_end
+    )
     graphs = []
     for desc in descriptors:
         try:
@@ -352,8 +414,8 @@ def generate_state_of_kokonut_graphs(
 
     return {
         "report_type": "state_of_kokonut_graphs",
-        "scope": "all_locations" if location_id in (None, "all") else "selected_locations",
-        "selected_location_ids": None if location_id in (None, "all") else location_id,
+        "scope": "all_locations" if normalized_scope in (None, "all") else "selected_locations",
+        "selected_location_ids": None if normalized_scope in (None, "all") else graph_location_scope,
         "period_start": period_start,
         "period_end": period_end,
         "graphs": graphs,
@@ -382,9 +444,8 @@ def generate_comprehensive_status(
 
     Read-only; never modifies governed data.
     """
-    location_ids = None
-    if location_id and location_id.lower() != "all":
-        location_ids = [lid.strip() for lid in location_id.split(",") if lid.strip()]
+    normalized_scope = _normalize_report_location_scope("comprehensive_status", location_id)
+    location_ids = None if normalized_scope in (None, "all") else normalized_scope
 
     # Reuse the per-location composition helper from state_of_kokonut, then
     # extend the section set with wellbeing/stakeholder outcomes.
@@ -469,9 +530,8 @@ def generate_strategic_reserve(conn, location_id: str = None, period_start: str 
     """
     from services.strategic_reserve import health as srh
 
-    location_ids = None
-    if location_id and location_id.lower() != "all":
-        location_ids = [lid.strip() for lid in location_id.split(",") if lid.strip()]
+    normalized_scope = _normalize_report_location_scope("strategic_reserve", location_id)
+    location_ids = None if normalized_scope in (None, "all") else normalized_scope
 
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     try:
@@ -547,13 +607,31 @@ def generate_strategic_reserve(conn, location_id: str = None, period_start: str 
 
 def generate_capital_provider_utility(conn, location_id: str, period_start: str = None, period_end: str = None) -> dict:
     """Generate a public-safe capital-provider utility scenario report."""
+    if not _looks_like_uuid(location_id):
+        raise ValueError("capital_provider_utility requires an explicit location_id")
+
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     try:
         cur.execute("SELECT name FROM location WHERE id = %s", (location_id,))
         location = cur.fetchone()
         cur.execute(
             """
-            SELECT *
+            SELECT id,
+                   location_id,
+                   farm_id,
+                   scenario_name,
+                   provider_type,
+                   capital_amount_usd,
+                   expected_financial_return_usd,
+                   expected_public_goods_value_usd,
+                   expected_verification_outputs,
+                   expected_payback_months,
+                   utility_score,
+                   public_summary,
+                   limitations,
+                   evidence_maturity,
+                   evidence_maturity_label,
+                   metadata
             FROM v_public_capital_provider_utility_summary
             WHERE location_id = %s
             ORDER BY utility_score DESC NULLS LAST, scenario_name

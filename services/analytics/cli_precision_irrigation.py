@@ -9,6 +9,7 @@ queries/business logic. Reachable via:
 import argparse
 import json
 from datetime import datetime
+from uuid import UUID
 
 from ..common.cli import print_json
 from .precision_irrigation import (
@@ -160,6 +161,30 @@ def main():
         parser.print_help()
         return
 
+    if getattr(args, "location_id", None) is not None:
+        try:
+            args.location_id = str(UUID(args.location_id))
+        except (AttributeError, TypeError, ValueError):
+            parser.error("--location-id must be a valid UUID")
+
+    if args.command == "create-rule" and not 0 <= args.priority <= 100:
+        parser.error("--priority must be between 0 and 100")
+
+    if args.command == "eval-rules":
+        try:
+            args.readings = json.loads(args.readings)
+        except (json.JSONDecodeError, RecursionError):
+            parser.error("--readings must be valid JSON object data")
+        if not isinstance(args.readings, dict):
+            parser.error("--readings must be a JSON object")
+
+    scheduled_start = None
+    if args.command == "schedule" and args.start:
+        try:
+            scheduled_start = datetime.fromisoformat(args.start)
+        except ValueError:
+            parser.error("--start must be a valid ISO timestamp")
+
     db = get_db()
     try:
         if args.command == "create-zone":
@@ -184,13 +209,12 @@ def main():
                 notes=args.notes,
             )
         elif args.command == "schedule":
-            start = datetime.fromisoformat(args.start) if args.start else None
             result = generate_schedule(
                 db, args.zone_id, args.etc,
                 rainfall_forecast_mm=args.rainfall,
                 current_moisture_pct=args.moisture,
                 target_soil_moisture_pct=args.target_moisture,
-                scheduled_start=start,
+                scheduled_start=scheduled_start,
                 triggered_by=args.triggered_by,
                 crop_cycle_id=args.crop_cycle_id,
             )
@@ -221,8 +245,7 @@ def main():
                 priority=args.priority,
             )
         elif args.command == "eval-rules":
-            readings = json.loads(args.readings)
-            result = evaluate_automation_rules(db, args.zone_id, readings)
+            result = evaluate_automation_rules(db, args.zone_id, args.readings)
         elif args.command == "zone-status":
             result = get_zone_status(db, args.zone_id)
         elif args.command == "irrigation-status":

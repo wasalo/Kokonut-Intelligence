@@ -9,7 +9,6 @@ from typing import Any, Dict, List, Optional
 
 import psycopg2.extras
 
-
 ACTIVITY_TYPES = ("engagement_plan", "touchpoint", "delphi_study", "decision", "cooperative_meeting", "feedback", "other")
 NEED_TYPES = ("language", "channel", "device", "mobility", "hearing", "vision", "literacy", "schedule", "privacy", "other")
 DISTRIBUTION_TYPES = ("benefit", "harm", "cost", "remedy")
@@ -172,9 +171,16 @@ def record_distribution(
 
 
 def representation_metrics(conn, activity_type: str, activity_id: str) -> Optional[Dict[str, Any]]:
+    projection = (
+        "activity_type, activity_id, invited_count, accepted_count, participated_count, "
+        "declined_count, absent_count, contributing_count, access_needs_count, "
+        "accessibility_request_count, minority_view_count, minority_view_preserved_count, "
+        "participation_rate_pct, contribution_rate_pct"
+    )
     with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
         cur.execute(
-            "SELECT * FROM v_stakeholder_representation_metrics WHERE activity_type = %s AND activity_id = %s::uuid",
+            f"SELECT {projection} FROM v_stakeholder_representation_metrics "
+            "WHERE activity_type = %s AND activity_id = %s::uuid",
             (activity_type, activity_id),
         )
         return _row(cur.fetchone())
@@ -190,6 +196,14 @@ def list_distribution_summary(conn, *, scope_type: Optional[str] = None, scope_i
         clauses.append("scope_id = %s::uuid")
         params.append(scope_id)
     where = " WHERE " + " AND ".join(clauses) if clauses else ""
+    projection = (
+        "scope_type, scope_id, distribution_type, metric_name, unit, record_count, "
+        "beneficiary_count, total_amount, earliest_period, latest_period"
+    )
     with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
-        cur.execute(f"SELECT * FROM v_stakeholder_equity_distribution{where} ORDER BY distribution_type, metric_name", params)
+        cur.execute(
+            f"SELECT {projection} FROM v_stakeholder_equity_distribution{where} "
+            "ORDER BY distribution_type, metric_name",
+            params,
+        )
         return [_row(row) for row in cur.fetchall()]

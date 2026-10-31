@@ -4,10 +4,24 @@ from __future__ import annotations
 
 import argparse
 import sys
+from datetime import date
+from uuid import UUID
 
+from services.common.cli import print_json
 from services.common.database import get_db
 from services.planning import budget, performance, portfolio, sandop
-from services.common.cli import print_json
+
+
+def _parse_date(value: str, option: str, parser) -> date:
+    """Require a canonical YYYY-MM-DD value before acquiring PostgreSQL."""
+    try:
+        parsed = date.fromisoformat(value)
+    except (AttributeError, TypeError, ValueError):
+        parser.error(f"{option} must be a valid YYYY-MM-DD date")
+    if parsed.isoformat() != value:
+        parser.error(f"{option} must use canonical YYYY-MM-DD format")
+    return parsed
+
 
 def _dump(rows):
     if rows is None:
@@ -405,6 +419,16 @@ def build_parser() -> argparse.ArgumentParser:
 def main(argv=None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
+    if args.group == "plan" and args.action == "add-line" and args.location_id is not None:
+        try:
+            args.location_id = str(UUID(args.location_id))
+        except (AttributeError, TypeError, ValueError):
+            parser.error("--location-id must be a valid UUID")
+    if args.group == "plan" and args.action == "create":
+        args.start = _parse_date(args.start, "--start", parser)
+        args.end = _parse_date(args.end, "--end", parser)
+        if args.end < args.start:
+            parser.error("--end must be on or after --start")
     args.func(args)
     return 0
 

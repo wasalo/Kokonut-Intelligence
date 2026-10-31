@@ -1,0 +1,23 @@
+{
+  "date": "2026-10-27",
+  "scope": "C2 Python and JavaScript SDK path-segment serialization",
+  "change": "Percent-encode collection and item identifiers before constructing Directus item routes; reject empty and dot-only segments before transport.",
+  "directus_sdk_source_check": {
+    "pinned_version": "17.x",
+    "read_item_descriptor_for_slash_id": "/items/location/a/b",
+    "read_items_descriptor_for_slash_collection": "/items/a/b",
+    "conclusion": "The pinned helper interpolates path values without encoding; Kokonut must encode caller-controlled segments."
+  },
+  "verification": {
+    "python": "python3 -m pytest tests/test_sdk.py -q: 98 passed",
+    "javascript": "npm test: 56 passed across 3 files",
+    "typescript": "npm run build: passed",
+    "ruff": "ruff check sdk/python/kokonut/client.py tests/test_sdk.py: passed",
+    "python_compile": "python3 -m py_compile sdk/python/kokonut/client.py tests/test_sdk.py: passed"
+  },
+  "limits": [
+    "The checks capture outgoing URL strings and do not contact Directus.",
+    "No database, provider, candidate, or legacy service was used.",
+    "This closes the path-serialization subgate only; C2 route authorization, pagination/error parity, live OIDC, and populated acceptance remain open."
+  ]
+}

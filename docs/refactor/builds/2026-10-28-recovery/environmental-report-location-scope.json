@@ -1,0 +1,18 @@
+{
+  "date": "2026-10-28",
+  "report_type": "environmental",
+  "finding": "The report registry requires a location, but a direct Python caller could pass None or an empty string and the environmental generator would open a cursor before applying location predicates to remote-sensing, soil-carbon, species, and loss-event sources.",
+  "change": "The generator now rejects missing location scope before opening the database cursor.",
+  "verification": {
+    "command": "python3 -m pytest -q tests/test_environmental_report_scope.py",
+    "result": "passed",
+    "tests": 2,
+    "ruff": "passed",
+    "py_compile": "passed"
+  },
+  "limitations": [
+    "The environmental report remains location-only; no explicit network-level report behavior changed.",
+    "Tests use a mock connection; no database, provider, candidate, legacy, or external network was used.",
+    "This closes only the direct-call missing-scope path; it does not establish tenant isolation or populated-data parity."
+  ]
+}

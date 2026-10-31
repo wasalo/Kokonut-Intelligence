@@ -1,6 +1,18 @@
 # ARM64 Kernel candidate profile
 
-## Current ARM64 schema replay — 25 October 2026
+## Current ARM64 schema replay — 29 October 2026
+
+A fresh network-disabled ARM64 PostgreSQL 16/PostGIS image replayed all 675
+ordered schemas through migration 684 under QEMU. The database ran with
+verified 1.5 GiB/two-CPU limits and reported `aarch64`; all migrations applied
+with zero pending or failed files, no OOM, no seeds or farm data, no network or
+host ports, and successful disposable cleanup. Candidate and legacy databases
+were not touched. The optional operator-scope probe was not run, so this is
+schema-portability evidence only. Raspberry Pi hardware, power-loss, thermal,
+storage endurance, performance, and 24-hour recovery acceptance remain open
+([ARM64/QEMU evidence](builds/2026-10-29-recovery/arm64-resource-limited-schema-684.json)).
+
+## Previous full ARM64 schema replay — 25 October 2026
 
 A fresh, network-disabled ARM64 PostgreSQL/PostGIS image ran the ordered
 schema-only migration runner under QEMU. All 630 current schema files applied

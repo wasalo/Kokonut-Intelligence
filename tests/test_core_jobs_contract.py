@@ -284,6 +284,8 @@ def test_nonzero_job_exit_retains_return_code_and_bounded_output():
     assert error.value.returncode == 7
     assert error.value.output == provider_error[-500:]
     assert len(error.value.output) == 500
+    assert str(error.value) == "Weather ingestion failed (exit code 7)"
+    assert provider_error not in str(error.value)
 
 
 def test_sensor_job_requires_a_location_and_driver_before_subprocess():

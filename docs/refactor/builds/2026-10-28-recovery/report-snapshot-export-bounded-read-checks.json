@@ -1,0 +1,43 @@
+{
+  "date": "2026-10-28",
+  "base_commit": "c17ec1f6",
+  "scope": "bounded private artifact-store reads for report snapshot downloads",
+  "test_command": [
+    "python3",
+    "-m",
+    "pytest",
+    "tests/test_export_artifact_storage.py",
+    "tests/test_report_exports_gateway.py",
+    "tests/test_report_exports_gateway_contract.py",
+    "tests/test_report_snapshot_export_worker.py",
+    "-q"
+  ],
+  "test_result": {
+    "passed": 65,
+    "failed": 0
+  },
+  "checks": {
+    "ruff": "passed",
+    "python_compile": "passed",
+    "worker_function_reachability_inventory": "regenerated and current"
+  },
+  "behavior": [
+    "Gateway supplies the database-authorized expected artifact size as the store read cap",
+    "local storage rejects files whose stat size exceeds the cap before reading content",
+    "bounded streaming detects a file that grows beyond the cap after stat",
+    "download still verifies exact size and SHA-256 before returning bytes"
+  ],
+  "database_or_provider_used": false,
+  "candidate_or_legacy_database_touched": false,
+  "inventory_test_command": [
+    "python3",
+    "-m",
+    "pytest",
+    "tests/test_worker_function_reachability.py",
+    "-q"
+  ],
+  "inventory_test_result": {
+    "passed": 13,
+    "failed": 0
+  }
+}

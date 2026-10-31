@@ -150,6 +150,26 @@ def test_intake_queue_sets_tenant_context_before_scoped_query(_tenant_context_sp
     assert connection.rolled_back and connection.closed
 
 
+@pytest.mark.parametrize("limit", [0, 101])
+def test_intake_queue_rejects_invalid_limit_before_connecting(limit):
+    connected = False
+
+    def connection_factory():
+        nonlocal connected
+        connected = True
+        raise AssertionError("invalid list bounds must fail before connecting")
+
+    with pytest.raises(ValueError, match="limit must be between 1 and 100"):
+        list_farm_activity_intake(
+            OPERATOR_ID,
+            LOCATION_ID,
+            limit,
+            connection_factory=connection_factory,
+        )
+
+    assert not connected
+
+
 def test_intake_detail_sets_both_grants_in_tenant_context_and_bounds_payload(_tenant_context_spy):
     connection = ReadConnection([_read_row()])
     result = get_farm_activity_intake(

@@ -1,0 +1,36 @@
+{
+  "date": "2026-10-28",
+  "pr": 71,
+  "failed_head": "6a90e0d4163551a39966c9dfdfea78be3d7337b0",
+  "hosted_ci_run": "https://github.com/wasalo/Kokonut-Intelligence/actions/runs/40629469801",
+  "root_cause": "The Kernel release-input gate rejected Dockerfile.kernel because commit 8da25cfd added requirements/http-client.txt to the optional OIDC image without refreshing config/kernel/release-input-lock.json.",
+  "repair": {
+    "updated_hashes": {
+      "Dockerfile.kernel": "a2ceafbf83df1d1674aa35abda8a99a1e2aaf3670c2a62926f3e969fd5a79db1",
+      "requirements/http-client.txt": "b261922c56b1b8f13dc45b03783db5b35f2d9fb99e26b093688a8f005e9edc4e",
+      "requirements/oidc.txt": "c346c96cf48fb62a18a85c2160fb1a4b9cc4e88a2be76f2d3bac3ab4d32cfcbe"
+    },
+    "notes": "The OIDC dependency manifests are now explicit release inputs alongside the Dockerfile that installs them. No dependency versions or runtime images were changed in this repair."
+  },
+  "validation": {
+    "release_input_gate": {
+      "command": "python3 scripts/check-kernel-release-inputs.py",
+      "result": "passed",
+      "notes": "Validated the locked inputs; no OCI archives were supplied, so image inventories were not inspected."
+    },
+    "focused_tests": {
+      "command": "python3 -m pytest tests/test_kernel_profile.py tests/test_kernel_ml_release_gate.py -q",
+      "result": "passed",
+      "passed": 36
+    },
+    "gitleaks": {
+      "head": "6a90e0d4163551a39966c9dfdfea78be3d7337b0",
+      "result": "passed"
+    },
+    "diff_check": "passed"
+  },
+  "scope_limits": [
+    "The hosted CI failure is not considered resolved until checks pass on a subsequent pushed head.",
+    "This repairs input-hash drift; it does not build or inspect an OCI image."
+  ]
+}

@@ -21,7 +21,6 @@ CREATE TABLE IF NOT EXISTS events_raw
 ENGINE = MergeTree()
 PARTITION BY toYYYYMM(timestamp)
 ORDER BY (event_type, source, timestamp)
-TTL toDateTime(timestamp) + INTERVAL 2 YEAR
 SETTINGS index_granularity = 8192;
 
 -- Wallet activity events
@@ -46,8 +45,7 @@ CREATE TABLE IF NOT EXISTS wallet_events
 )
 ENGINE = MergeTree()
 PARTITION BY toYYYYMM(timestamp)
-ORDER BY (chain, wallet_address, timestamp)
-TTL toDateTime(timestamp) + INTERVAL 2 YEAR;
+ORDER BY (chain, wallet_address, timestamp);
 
 -- Sensor readings (time-series)
 CREATE TABLE IF NOT EXISTS sensor_readings
@@ -65,8 +63,7 @@ CREATE TABLE IF NOT EXISTS sensor_readings
 )
 ENGINE = MergeTree()
 PARTITION BY toYYYYMM(timestamp)
-ORDER BY (sensor_id, timestamp)
-TTL toDateTime(timestamp) + INTERVAL 1 YEAR;
+ORDER BY (sensor_id, timestamp);
 
 -- Weather observations
 CREATE TABLE IF NOT EXISTS weather_events
@@ -85,8 +82,7 @@ CREATE TABLE IF NOT EXISTS weather_events
 )
 ENGINE = MergeTree()
 PARTITION BY toYYYYMM(timestamp)
-ORDER BY (location_id, timestamp)
-TTL toDateTime(timestamp) + INTERVAL 2 YEAR;
+ORDER BY (location_id, timestamp);
 
 -- Financial transactions (analytical mirror)
 CREATE TABLE IF NOT EXISTS financial_events
@@ -106,8 +102,7 @@ CREATE TABLE IF NOT EXISTS financial_events
 )
 ENGINE = MergeTree()
 PARTITION BY toYYYYMM(timestamp)
-ORDER BY (location_id, transaction_type, timestamp)
-TTL toDateTime(timestamp) + INTERVAL 2 YEAR;
+ORDER BY (location_id, transaction_type, timestamp);
 
 -- Digital Lego usage events
 CREATE TABLE IF NOT EXISTS dlego_events
@@ -126,5 +121,4 @@ CREATE TABLE IF NOT EXISTS dlego_events
 )
 ENGINE = MergeTree()
 PARTITION BY toYYYYMM(timestamp)
-ORDER BY (protocol_id, timestamp)
-TTL toDateTime(timestamp) + INTERVAL 2 YEAR;
+ORDER BY (protocol_id, timestamp);

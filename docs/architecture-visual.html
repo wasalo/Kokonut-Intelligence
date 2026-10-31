@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Kokonut Intelligence — Platform Architecture, Explained Visually</title>
+<title>Historical Kokonut Intelligence Architecture Snapshot</title>
 <style>
   :root {
     --bg: #0e1216;
@@ -80,6 +80,18 @@
     padding: 6px 11px; border-radius: 999px;
   }
   .meta .chip b { color: var(--ink); font-weight: 600; }
+  .snapshot-warning {
+    margin: 22px auto 0;
+    max-width: 1136px;
+    padding: 16px 20px;
+    border: 1px solid var(--amber);
+    border-left: 5px solid var(--amber);
+    border-radius: 10px;
+    background: rgba(255,196,107,.09);
+    color: var(--ink);
+  }
+  .snapshot-warning strong { color: var(--amber); }
+  .snapshot-warning a { font-weight: 700; }
 
   /* ---------- Nav ---------- */
   nav.toc {
@@ -254,21 +266,24 @@
 
 <header class="hero">
   <div class="wrap">
-    <div class="kicker">Kokonut Intelligence · Visual Explanation</div>
-    <h1>One platform, two worlds: <span class="accent">governed regenerative data</span> + <span class="accent">Web3 proofs</span></h1>
+    <div class="kicker">Historical architecture snapshot · not current deployment guidance</div>
+    <h1>Legacy platform map: <span class="accent">governed regenerative data</span> + <span class="accent">Web3 proofs</span></h1>
     <p class="sub">
-      Kokonut Intelligence is a governed, open-source <b>data operating system</b> for regenerative farm operations, financial
-      performance, ecological outcomes, and Web3 verification. This page explains how the platform is put together —
-      the layers, the flows, the two blockchains, and the governance that holds it all together.
+      This page preserves the earlier full-stack architecture as a historical reference. Its service topology and component versions predate the current Kokonut Kernel direction.
     </p>
     <div class="meta">
       <span class="chip">source: <b>docs/architecture.md</b></span>
       <span class="chip">commit: <b>a6861b3</b> "docs: bring architecture.md to parity"</span>
       <span class="chip">+364 / −37 lines</span>
-      <span class="chip">344+ migrations · 60+ services · 11 contracts · 7 EAS schemas</span>
+      <span class="chip">snapshot counts only: 344+ migrations · 60+ services · 11 contracts · 7 EAS schemas</span>
     </div>
   </div>
 </header>
+
+<aside class="wrap snapshot-warning" role="note" aria-label="Historical architecture warning">
+  <strong>Historical snapshot — do not use this page as the current architecture or deployment guide.</strong>
+  The diagram below shows an older, more tightly coupled stack, including legacy Directus, Metabase, Redis, gRPC, and transport paths. The current Kernel centers on PostgreSQL/PostGIS, the Kokonut Gateway, and Python services; ClickHouse, Directus, and the other adapters are optional or profile-specific. Read the current <a href="architecture.md">architecture guide</a> and <a href="refactor/current-state-and-implementation.md">refactor status and implementation guide</a> for the maintained design and acceptance state.
+</aside>
 
 <nav class="toc">
   <div class="wrap">

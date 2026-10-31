@@ -1,0 +1,46 @@
+{
+  "date": "2026-10-28",
+  "base_commit": "92f2138f3e7b72a4413b2fc411d258a171d68a5c",
+  "branch": "chore/kernel-next-sprint-plan",
+  "scope": "C2 durable private report snapshot export; isolated worker boundary inventories",
+  "test_command": [
+    "python3",
+    "-m",
+    "pytest",
+    "tests/test_migration.py",
+    "tests/test_report_exports_gateway.py",
+    "tests/test_report_exports_gateway_contract.py",
+    "tests/test_report_snapshot_export_worker.py",
+    "tests/test_report_snapshot_export_migration_contract.py",
+    "tests/test_operator_route_policy_inventory.py",
+    "tests/test_runtime_role_boundary.py",
+    "tests/test_worker_source_closure.py",
+    "tests/test_worker_function_reachability.py",
+    "tests/test_worker_sql_reachability.py",
+    "tests/test_worker_sql_inventory.py",
+    "tests/test_worker_boundary_preflight.py",
+    "tests/test_worker_operation_map.py",
+    "-q"
+  ],
+  "test_result": {
+    "passed": 238,
+    "failed": 0
+  },
+  "checks": {
+    "ruff": "passed",
+    "python_compile": "passed",
+    "capability_matrix": "passed; 67 rows (24 baseline-retained, 7 deployed, 36 prepared)",
+    "dependency_groups": "passed; 14 groups, 33 requirements",
+    "provider_boundaries": "passed; 17 vendor import sites",
+    "static_inventories": "passed; effect, source closure, function reachability, SQL reachability, worker preflight, worker SQL, runtime SQL",
+    "git_diff_check": "passed",
+    "worker_boundary_preflight_status": "review_required; broader repository worker-boundary debt remains"
+  },
+  "migration_acceptance": {
+    "native": "report-snapshot-export-migration-disposable.json",
+    "arm64_qemu": "report-snapshot-export-migration-arm64-disposable.json"
+  },
+  "candidate_or_legacy_database_touched": false,
+  "live_oidc_or_external_provider_used": false,
+  "physical_raspberry_pi_tested": false
+}

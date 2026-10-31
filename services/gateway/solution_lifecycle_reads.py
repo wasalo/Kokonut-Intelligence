@@ -536,7 +536,7 @@ def list_location_solution_funding_review_queue(
                 (location_id, page_size + 1, page_offset),
             )
             rows = [_mapping(cursor, row) for row in cursor.fetchall()]
-        has_more = len(rows) > page_size
+        has_more = len(rows) > page_size and page_offset + page_size <= 10000
         result = {
             "location_id": location_id,
             "offset": page_offset,

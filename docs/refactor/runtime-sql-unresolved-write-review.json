@@ -1,0 +1,428 @@
+{
+  "version": 1,
+  "scope": "Tracks direct SQL DML and conservative WITH candidates whose target relation is unresolved. Legacy entries are acknowledged inventory debt only; they do not grant or approve ACLs. New candidates require a reviewed_sites entry with reviewer, date, decision note, and reason.",
+  "legacy_fingerprint_sha256": "91b6c11f854ae4a0861b9f680df53ba5fe01784bd8f895ef6883de2c296e1b30",
+  "legacy_unreviewed": [
+    {
+      "fingerprint": "121bdc4b3054f807d73fdec63415c04a2cd0409e41cfd1a91fe3c8aa891e550f",
+      "source": "services/graph_projection/query.py",
+      "line": 23,
+      "scope": "query_graph",
+      "method": "execute",
+      "statement_kind": "WITH",
+      "expression_kind": "literal",
+      "review_status": "preexisting_unreviewed",
+      "reason": "Preexisting WITH statement cannot be classified as read-only by this gate; keep tracked for manual source review. This is not an ACL approval."
+    },
+    {
+      "fingerprint": "17285b250cc1776104efd1c43217009ecc393b55166720f54bb961616babf571",
+      "source": "services/analytics/value_stream.py",
+      "line": 210,
+      "scope": "first_time_through",
+      "method": "execute",
+      "statement_kind": "WITH",
+      "expression_kind": "fstring",
+      "review_status": "preexisting_unreviewed",
+      "reason": "Preexisting WITH statement cannot be classified as read-only by this gate; keep tracked for manual source review. This is not an ACL approval."
+    },
+    {
+      "fingerprint": "1904aa623d8a539594f8d159738b31c698473ea6cfd9dea18e482dbca667aec4",
+      "source": "services/revenue_multiplier/dimensions/regional_clusters.py",
+      "line": 17,
+      "scope": "analyze",
+      "method": "execute",
+      "statement_kind": "WITH",
+      "expression_kind": "literal",
+      "review_status": "preexisting_unreviewed",
+      "reason": "Preexisting WITH statement cannot be classified as read-only by this gate; keep tracked for manual source review. This is not an ACL approval."
+    },
+    {
+      "fingerprint": "1ea7aa26df02bc4b6ec954adcd3dd081ee89cfd01c836b905fee416f50784d50",
+      "source": "services/systems/velocity_tracker.py",
+      "line": 346,
+      "scope": "AdaptationVelocityTracker._compute_cycle_time_trend",
+      "method": "execute",
+      "statement_kind": "WITH",
+      "expression_kind": "literal",
+      "review_status": "preexisting_unreviewed",
+      "reason": "Preexisting WITH statement cannot be classified as read-only by this gate; keep tracked for manual source review. This is not an ACL approval."
+    },
+    {
+      "fingerprint": "23e9cc5c236e158e2f7224d6ebca0188d7d1f15c345cb1fddc7481db6ec4d0e4",
+      "source": "services/mobile/tenant_preflight.py",
+      "line": 715,
+      "scope": "_preflight_execution_identity",
+      "method": "execute",
+      "statement_kind": "WITH",
+      "expression_kind": "literal",
+      "review_status": "preexisting_unreviewed",
+      "reason": "Preexisting WITH statement cannot be classified as read-only by this gate; keep tracked for manual source review. This is not an ACL approval."
+    },
+    {
+      "fingerprint": "26b4327509233a27818432813a807adbf690b259b48d89f54b7167aa1019c3da",
+      "source": "services/systems/process_control.py",
+      "line": 78,
+      "scope": "_fty_pct",
+      "method": "execute",
+      "statement_kind": "WITH",
+      "expression_kind": "literal",
+      "review_status": "preexisting_unreviewed",
+      "reason": "Preexisting WITH statement cannot be classified as read-only by this gate; keep tracked for manual source review. This is not an ACL approval."
+    },
+    {
+      "fingerprint": "2db205c2c10c5f5ca6bdae8e897b079d1a5f51e0776f8d0cd0811e2d72e9a08f",
+      "source": "services/ingestion/clickhouse_outbox.py",
+      "line": 179,
+      "scope": "claim_batch",
+      "method": "execute",
+      "statement_kind": "WITH",
+      "expression_kind": "literal",
+      "review_status": "preexisting_unreviewed",
+      "reason": "Preexisting WITH statement cannot be classified as read-only by this gate; keep tracked for manual source review. This is not an ACL approval."
+    },
+    {
+      "fingerprint": "2e0ecd63f74b3a6805d42f83049ba78732f255b9adf813b64277a84b52ddb933",
+      "source": "services/events/bus.py",
+      "line": 315,
+      "scope": "EventBus.replay_dead_letter",
+      "method": "execute",
+      "statement_kind": "WITH",
+      "expression_kind": "literal",
+      "review_status": "preexisting_unreviewed",
+      "reason": "Preexisting WITH statement cannot be classified as read-only by this gate; keep tracked for manual source review. This is not an ACL approval."
+    },
+    {
+      "fingerprint": "33913f666595505c929366240b60feac3afc70fe5fc631bb258b69ea7db62c36",
+      "source": "services/metrics/calculators/first_time_through_yield.py",
+      "line": 39,
+      "scope": "compute_first_time_through_yield",
+      "method": "execute",
+      "statement_kind": "WITH",
+      "expression_kind": "fstring",
+      "review_status": "preexisting_unreviewed",
+      "reason": "Preexisting WITH statement cannot be classified as read-only by this gate; keep tracked for manual source review. This is not an ACL approval."
+    },
+    {
+      "fingerprint": "3df619d71786bfb81465beaf711e4e2d4fbbbe4023980211a0c9481f9277d692",
+      "source": "services/systems/process_control.py",
+      "line": 52,
+      "scope": "_cycle_time_mean",
+      "method": "execute",
+      "statement_kind": "WITH",
+      "expression_kind": "literal",
+      "review_status": "preexisting_unreviewed",
+      "reason": "Preexisting WITH statement cannot be classified as read-only by this gate; keep tracked for manual source review. This is not an ACL approval."
+    },
+    {
+      "fingerprint": "409a9b7682ebbf2119f49219b0052ddcd921058823fa3587cdb2b07c9f620d81",
+      "source": "services/analytics/coordination.py",
+      "line": 43,
+      "scope": "_insert",
+      "method": "execute",
+      "statement_kind": "INSERT",
+      "expression_kind": "fstring",
+      "review_status": "preexisting_unreviewed",
+      "reason": "Preexisting direct write with an unresolved target; track for source follow-up. This is not an ACL approval."
+    },
+    {
+      "fingerprint": "429f412c5292787945444ed1fcc1be01f0b2634440ccefcfe3795d067137a841",
+      "source": "services/analytics/portfolio.py",
+      "line": 26,
+      "scope": "portfolio_theme_summary",
+      "method": "execute",
+      "statement_kind": "WITH",
+      "expression_kind": "literal",
+      "review_status": "preexisting_unreviewed",
+      "reason": "Preexisting WITH statement cannot be classified as read-only by this gate; keep tracked for manual source review. This is not an ACL approval."
+    },
+    {
+      "fingerprint": "44cd11fb9fcf37f7d94bc1de1b9b843670f9050b8bddccbed3f12e00349e9f32",
+      "source": "services/ingestion/gis_import.py",
+      "line": 438,
+      "scope": "import_record",
+      "method": "execute",
+      "statement_kind": "UPDATE",
+      "expression_kind": "fstring",
+      "review_status": "preexisting_unreviewed",
+      "reason": "Preexisting direct write with an unresolved target; track for source follow-up. This is not an ACL approval."
+    },
+    {
+      "fingerprint": "466e6a1ee6419f822183d95ef51ecf2296939f6ec218a0c405ee7eeea956b759",
+      "source": "services/metrics/calculators/rework_rate.py",
+      "line": 50,
+      "scope": "compute_rework_rate",
+      "method": "execute",
+      "statement_kind": "WITH",
+      "expression_kind": "fstring",
+      "review_status": "preexisting_unreviewed",
+      "reason": "Preexisting WITH statement cannot be classified as read-only by this gate; keep tracked for manual source review. This is not an ACL approval."
+    },
+    {
+      "fingerprint": "4aca5b9e9e98337e9c9ba48c612a1b5e5d3bc5b39dec2c69a8f07e7feb0a2b3d",
+      "source": "services/analytics/data_governance.py",
+      "line": 1543,
+      "scope": "enforce_retention_policies",
+      "method": "execute",
+      "statement_kind": "UPDATE",
+      "expression_kind": "fstring",
+      "review_status": "preexisting_unreviewed",
+      "reason": "Preexisting direct write with an unresolved target; track for source follow-up. This is not an ACL approval."
+    },
+    {
+      "fingerprint": "4dc9e9893ef0feda8d0101b1008d38a363500faa360a01f945dfc579f2c4dd09",
+      "source": "services/systems/velocity_tracker.py",
+      "line": 425,
+      "scope": "AdaptationVelocityTracker._compute_time_to_action_trend",
+      "method": "execute",
+      "statement_kind": "WITH",
+      "expression_kind": "literal",
+      "review_status": "preexisting_unreviewed",
+      "reason": "Preexisting WITH statement cannot be classified as read-only by this gate; keep tracked for manual source review. This is not an ACL approval."
+    },
+    {
+      "fingerprint": "5139d4fc0db3c5e96292fb38e0b7b9845531f31eed920cc75b4712b8b63cec47",
+      "source": "services/mobile/tenant_preflight.py",
+      "line": 832,
+      "scope": "_runtime_role_preflight",
+      "method": "execute",
+      "statement_kind": "WITH",
+      "expression_kind": "literal",
+      "review_status": "preexisting_unreviewed",
+      "reason": "Preexisting WITH statement cannot be classified as read-only by this gate; keep tracked for manual source review. This is not an ACL approval."
+    },
+    {
+      "fingerprint": "56c31b6f2d61b5b03919e328b8bfff4e95ee193c37fa2a277cd91f6314bb0942",
+      "source": "services/gateway/ecocredits.py",
+      "line": 57,
+      "scope": "list_location_ecocredit_batches",
+      "method": "execute",
+      "statement_kind": "WITH",
+      "expression_kind": "literal",
+      "review_status": "preexisting_unreviewed",
+      "reason": "Preexisting WITH statement cannot be classified as read-only by this gate; keep tracked for manual source review. This is not an ACL approval."
+    },
+    {
+      "fingerprint": "67ef4a94b592638c3b6a18c79c9cb36fbbdc80381dfe801d4a301090dd9d1d7c",
+      "source": "services/metrics/calculators/governed_lead_time.py",
+      "line": 40,
+      "scope": "compute_governed_lead_time",
+      "method": "execute",
+      "statement_kind": "WITH",
+      "expression_kind": "fstring",
+      "review_status": "preexisting_unreviewed",
+      "reason": "Preexisting WITH statement cannot be classified as read-only by this gate; keep tracked for manual source review. This is not an ACL approval."
+    },
+    {
+      "fingerprint": "75c3d120dc4d4d4f5886b2057d33532465a22437a4ddfb353bc43f22cb6f46a1",
+      "source": "services/ingestion/clickhouse_outbox.py",
+      "line": 373,
+      "scope": "_operator_transition",
+      "method": "execute",
+      "statement_kind": "WITH",
+      "expression_kind": "literal",
+      "review_status": "preexisting_unreviewed",
+      "reason": "Preexisting WITH statement cannot be classified as read-only by this gate; keep tracked for manual source review. This is not an ACL approval."
+    },
+    {
+      "fingerprint": "777edb3568a412b07026905f4056dd4edcc9b468cb2181b80b5758a622329529",
+      "source": "services/events/bus.py",
+      "line": 107,
+      "scope": "EventBus._claim",
+      "method": "execute",
+      "statement_kind": "WITH",
+      "expression_kind": "literal",
+      "review_status": "preexisting_unreviewed",
+      "reason": "Preexisting WITH statement cannot be classified as read-only by this gate; keep tracked for manual source review. This is not an ACL approval."
+    },
+    {
+      "fingerprint": "83394d2d3bd3097525630bfa60d1e4248d72a913e76ffafb4614e06a46e64dc1",
+      "source": "services/ingestion/remote_sensing_fetcher.py",
+      "line": 118,
+      "scope": "_claim_due_jobs",
+      "method": "execute",
+      "statement_kind": "WITH",
+      "expression_kind": "literal",
+      "review_status": "preexisting_unreviewed",
+      "reason": "Preexisting WITH statement cannot be classified as read-only by this gate; keep tracked for manual source review. This is not an ACL approval."
+    },
+    {
+      "fingerprint": "84749f5cea463fe2be521cd05eff301a0a968573b6a95553e6bc6be9dc6f56e7",
+      "source": "services/events/notification_outbox.py",
+      "line": 395,
+      "scope": "claim_batch",
+      "method": "execute",
+      "statement_kind": "WITH",
+      "expression_kind": "literal",
+      "review_status": "preexisting_unreviewed",
+      "reason": "Preexisting WITH statement cannot be classified as read-only by this gate; keep tracked for manual source review. This is not an ACL approval."
+    },
+    {
+      "fingerprint": "9014e82ce4352e6b766576fb4805d1e27b53df5b43b94643b96ebd4570f0c0f6",
+      "source": "services/systems/velocity_tracker.py",
+      "line": 370,
+      "scope": "AdaptationVelocityTracker._compute_feedback_trend",
+      "method": "execute",
+      "statement_kind": "WITH",
+      "expression_kind": "literal",
+      "review_status": "preexisting_unreviewed",
+      "reason": "Preexisting WITH statement cannot be classified as read-only by this gate; keep tracked for manual source review. This is not an ACL approval."
+    },
+    {
+      "fingerprint": "9d6a40c15f638d8052124aedd21ddf502ae1d6d97823dbe352f0bd938808f200",
+      "source": "services/ingestion/gee_climate.py",
+      "line": 92,
+      "scope": "_persist_summary",
+      "method": "execute",
+      "statement_kind": "INSERT",
+      "expression_kind": "composed_or_variable",
+      "review_status": "preexisting_unreviewed",
+      "reason": "Preexisting direct write with an unresolved target; track for source follow-up. This is not an ACL approval."
+    },
+    {
+      "fingerprint": "a2a3a63b75d55f193da4452956496bed431ffd830e2a2e181c1937d108286b71",
+      "source": "services/scoring/trust_graph.py",
+      "line": 22,
+      "scope": "export_trust_graph",
+      "method": "execute",
+      "statement_kind": "WITH",
+      "expression_kind": "fstring",
+      "review_status": "preexisting_unreviewed",
+      "reason": "Preexisting WITH statement cannot be classified as read-only by this gate; keep tracked for manual source review. This is not an ACL approval."
+    },
+    {
+      "fingerprint": "a589f2bf1af30e94eda0ce37606a4dccf0b426a1f50e2878301de9bd25739f45",
+      "source": "services/analytics/value_stream.py",
+      "line": 162,
+      "scope": "stage_lead_times",
+      "method": "execute",
+      "statement_kind": "WITH",
+      "expression_kind": "fstring",
+      "review_status": "preexisting_unreviewed",
+      "reason": "Preexisting WITH statement cannot be classified as read-only by this gate; keep tracked for manual source review. This is not an ACL approval."
+    },
+    {
+      "fingerprint": "b22b1e23856ede834a94601ebc22dabe823472da39a7dcd3c3c880bc947bc746",
+      "source": "services/events/bus.py",
+      "line": 421,
+      "scope": "EventBus.cleanup_old_events",
+      "method": "execute",
+      "statement_kind": "WITH",
+      "expression_kind": "literal",
+      "review_status": "preexisting_unreviewed",
+      "reason": "Preexisting WITH statement cannot be classified as read-only by this gate; keep tracked for manual source review. This is not an ACL approval."
+    },
+    {
+      "fingerprint": "c2299d04d244082f02135b08fcbe6f75a8544cffdfcc8841cbed2bf68ddc3d55",
+      "source": "services/gateway/rate_limit_cli.py",
+      "line": 19,
+      "scope": "cleanup_idle_buckets",
+      "method": "execute",
+      "statement_kind": "WITH",
+      "expression_kind": "literal",
+      "review_status": "preexisting_unreviewed",
+      "reason": "Preexisting WITH statement cannot be classified as read-only by this gate; keep tracked for manual source review. This is not an ACL approval."
+    },
+    {
+      "fingerprint": "d6f690facbce75c16dd59a85608f0d672aecf76c0784b3f3849a80d467ef526b",
+      "source": "services/analytics/coordination.py",
+      "line": 219,
+      "scope": "_insert_idempotent",
+      "method": "execute",
+      "statement_kind": "INSERT",
+      "expression_kind": "fstring",
+      "review_status": "preexisting_unreviewed",
+      "reason": "Preexisting direct write with an unresolved target; track for source follow-up. This is not an ACL approval."
+    },
+    {
+      "fingerprint": "d893caf2eb1bd1c6da408e8e94cf41be34db2dc013b7210a11b7ff8f86cc47fc",
+      "source": "services/analytics/value_stream.py",
+      "line": 91,
+      "scope": "wip_by_stage",
+      "method": "execute",
+      "statement_kind": "WITH",
+      "expression_kind": "literal",
+      "review_status": "preexisting_unreviewed",
+      "reason": "Preexisting WITH statement cannot be classified as read-only by this gate; keep tracked for manual source review. This is not an ACL approval."
+    },
+    {
+      "fingerprint": "ddb325cc2115ac1e7b25d710fb60954328a21cc87868810bb71f178c597e86cb",
+      "source": "services/planning/model.py",
+      "line": 72,
+      "scope": "governed_transition",
+      "method": "execute",
+      "statement_kind": "UPDATE",
+      "expression_kind": "fstring",
+      "review_status": "preexisting_unreviewed",
+      "reason": "Preexisting direct write with an unresolved target; track for source follow-up. This is not an ACL approval."
+    },
+    {
+      "fingerprint": "e02dd33ed0270587eb45aeca63f4041d9bdc5cc324c5f6b5e9d3ba44eb0dd647",
+      "source": "services/ingestion/gis_import.py",
+      "line": 425,
+      "scope": "import_record",
+      "method": "execute",
+      "statement_kind": "UPDATE",
+      "expression_kind": "fstring",
+      "review_status": "preexisting_unreviewed",
+      "reason": "Preexisting direct write with an unresolved target; track for source follow-up. This is not an ACL approval."
+    }
+  ],
+  "reviewed_sites": [
+    {
+      "fingerprint": "4394d51bfcfc1572d8047e03b078748453442dbeb83bac6783b4eb1f5e2fc508",
+      "review_status": "reviewed_unresolved",
+      "reviewed_by": "Codex source review",
+      "reviewed_on": "2026-10-28",
+      "reason": "Reviewed list_location_kriging_summaries: its WITH clause selects the bounded, location-filtered kriging_prediction page and aggregates kriging_point rows; no DML or mutating SQL is present. This edit only clamps has_more at the supported offset ceiling. The inventory retains WITH for conservative manual review; this is not an ACL approval."
+    },
+    {
+      "fingerprint": "d78ae2503389732a99dd050750419582974f2bc4b9a7066d0ed38a545c8c338f",
+      "review_status": "reviewed_unresolved",
+      "reviewed_by": "Codex source review",
+      "reviewed_on": "2026-10-28",
+      "reason": "Reviewed list_location_realization_summaries: its WITH clause selects the bounded, location-filtered geostat_realization page and aggregates point values; no DML or mutating SQL is present. This edit only clamps has_more at the supported offset ceiling. The inventory retains WITH for conservative manual review; this is not an ACL approval."
+    },
+    {
+      "fingerprint": "8705afb579a45da74f0c773032da56cb70ded1c9d3d861777c376cefdca9e631",
+      "review_status": "reviewed_unresolved",
+      "reviewed_by": "Codex source review",
+      "reviewed_on": "2026-10-30",
+      "reason": "Reviewed generate_farm_summary at services/export/reports/core.py:105 after adding matching harvest/crop-cycle location and plot/farm location joins: both CTEs perform SELECT and aggregation, and the top-level statement selects the bounded summary; there is no DML or mutating function. The inventory conservatively retains WITH for manual review. This source review is not an ACL approval."
+    },
+    {
+      "fingerprint": "a869c3d618da2c536087d1ce01b2c11f8817dd57e1b29e3b1355830b25efb1c8",
+      "review_status": "reviewed_unresolved",
+      "reviewed_by": "Codex source review",
+      "reviewed_on": "2026-10-28",
+      "reason": "Reviewed the module-level _INVENTORY_SQL constant used by collect_inventory in services/mobile/tenant_preflight.py: all CTE bodies and the final statement are SELECT-only aggregates over the explicit preflight lineage sources; no DML or mutating function is present. The execution remains inside the dedicated repeatable-read, read-only preflight transaction. The inventory conservatively retains WITH; this source review is not an ACL approval."
+    },
+    {
+      "fingerprint": "8ec0246aea81d5bd070ea90bef44ea95226c3bcb426e2325198c70615af2a78b",
+      "review_status": "reviewed_unresolved",
+      "reviewed_by": "Codex source review",
+      "reviewed_on": "2026-10-28",
+      "reason": "Reviewed the module-level _CONFIRMED_OPERATING_TENANT_MAP_SQL constant used by collect_inventory in services/mobile/tenant_preflight.py: its CTE uses VALUES and SELECT/COUNT/EXISTS checks only, with a SELECT-only final projection and no DML or mutating function. The inventory conservatively retains WITH; this source review is not an ACL approval."
+    },
+    {
+      "fingerprint": "61a9801fd5f81646491577ecc4161007a78a2cd6e0214221e9bae8712865661e",
+      "review_status": "reviewed_unresolved",
+      "reviewed_by": "Codex source review",
+      "reviewed_on": "2026-10-29",
+      "reason": "Reviewed compute_labor_efficiency at services/analytics/resource_efficiency.py:15: its CTEs pre-aggregate verified harvest and labor rows by cycle and the final statement is a SELECT-only location-scoped projection; there is no DML or mutating function. The inventory conservatively retains WITH; this source review is not an ACL approval."
+    },
+    {
+      "fingerprint": "e1ecf40f407d6a861b1ca52cdf0cbd843599a0603c6c9cde4f0c4e1f391a56e9",
+      "review_status": "reviewed_unresolved",
+      "reviewed_by": "Codex source review",
+      "reviewed_on": "2026-10-29",
+      "reason": "Reviewed compute_weather_growth_correlation at services/analytics/gap_closures.py:321: CTEs aggregate verified harvests and distinct matched weather observations in separate read-only SELECTs, require harvest/crop-cycle location parity, and join results at the existing location/month/crop/unit grain. No DML or mutating function is present. The inventory conservatively retains WITH; this source review is not an ACL approval."
+    },
+    {
+      "fingerprint": "8ac0300b99a07b6b48181c8dfe95710341354ca22a7052c72a6ddc76501f2699",
+      "review_status": "reviewed_unresolved",
+      "reviewed_by": "Codex source review",
+      "reviewed_on": "2026-10-29",
+      "reason": "Reviewed compute_revenue_per_acre at services/analytics/economic_performance.py:15: its CTEs select eligible location-scoped cycles and independently aggregate verified revenue and expense events by cycle with matching event/cycle location IDs; the final statement is SELECT-only and no DML or mutating function is present. The inventory conservatively retains WITH; this source review is not an ACL approval."
+    }
+  ]
+}

@@ -1,6 +1,9 @@
 # grpc
 
-`services.grpc` — gRPC server for Kokonut Intelligence.
+`services.grpc` — optional gRPC server adapter for Kokonut Intelligence. It is
+not started by the Kernel base profile; use the explicit gRPC overlay when this
+transport is required. PostgreSQL/Gateway remain the canonical operational
+path.
 
 ## CLI Usage
 

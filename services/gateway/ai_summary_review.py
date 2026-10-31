@@ -115,9 +115,10 @@ def list_location_ai_summary_reviews(
             )
         return {
             "location_id": location_id,
+            "limit": page_size,
             "offset": page_offset,
             "summaries": reviews,
-            "has_more": len(rows) > page_size,
+            "has_more": len(rows) > page_size and page_offset + page_size <= 10000,
         }
     except Exception:
         connection.rollback()

@@ -1,0 +1,54 @@
+{
+  "result": "passed",
+  "migration": "688_governance_tension_health_created_at.sql",
+  "database_target": "new disposable PostgreSQL 16 container",
+  "candidate_or_legacy_modified": false,
+  "assertions": [
+    "migration 244's existing view lacks created_at and its list ordering fails before migration 688",
+    "migration 688 preserves all existing view fields and appends created_at",
+    "migration 688 applies and replays transactionally",
+    "the real list_tensions service query preserves circle/status filters and severity/urgency/time ordering",
+    "the real get_tension service query returns created_at with its existing link collection"
+  ],
+  "view_columns": [
+    "tension_id",
+    "tension_key",
+    "title",
+    "description",
+    "tension_type",
+    "severity",
+    "urgency",
+    "circle_id",
+    "circle_key",
+    "circle_name",
+    "scope_type",
+    "scope_id",
+    "status",
+    "reported_by_party_id",
+    "reported_by_name",
+    "affected_party_id",
+    "affected_party_name",
+    "owner_role_id",
+    "owner_role_key",
+    "owner_party_id",
+    "owner_party_name",
+    "work_item_id",
+    "decision_id",
+    "grievance_id",
+    "review_due_at",
+    "deferred_until",
+    "link_count",
+    "is_overdue",
+    "created_at"
+  ],
+  "service_order": [
+    "synthetic-older",
+    "synthetic-newer",
+    "synthetic-lower"
+  ],
+  "service_detail": {
+    "tension_key": "synthetic-older",
+    "link_count": 0
+  },
+  "assertions_passed": 5
+}

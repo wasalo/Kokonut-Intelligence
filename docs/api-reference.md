@@ -1,6 +1,6 @@
 # Directus API Reference
 
-This document and `openapi.yaml` describe the Directus REST/GraphQL surface. They do not describe the optional Kokonut FastAPI gateway.
+This document and `openapi.yaml` describe the Directus REST/GraphQL adapter. They do not describe the native Kokonut FastAPI Gateway; its routes and auth policies are documented separately.
 
 ## Directus REST API
 
@@ -10,7 +10,7 @@ If a local Compose override exposes Directus directly, `http://localhost:8055` c
 
 ### Authentication
 
-Directus endpoints use Directus access tokens and permissions. Gateway credentials (`x-api-key` and `x-capability-token`) are a separate security boundary and are not interchangeable with Directus bearer tokens. The gateway is started separately with `python3 -m services.gateway.cli --serve`; base Caddy does not route to it.
+Directus endpoints use Directus access tokens and permissions. Gateway credentials (`x-api-key` and `x-capability-token`) are a separate security boundary and are not interchangeable with Directus bearer tokens. The Gateway is available as a Compose service or can be run with `python3 -m services.gateway.cli --serve`. Base Caddy routes only configured paths; it does not proxy every Gateway API route.
 
 ```bash
 # Login
@@ -168,21 +168,10 @@ docker compose exec clickhouse \
   clickhouse-client --user kokonut --password YOUR_PASSWORD
 ```
 
-## Directus MCP (AI Agent Access)
+## Directus MCP
 
-Directus has native MCP support for AI agents. Configure via Directus settings or environment variables.
-
-```typescript
-// Example: Using Directus SDK with MCP
-import { createDirectus, rest } from '@directus/sdk';
-
-const client = createDirectus(process.env.DIRECTUS_URL ?? 'https://localhost/directus').with(rest());
-
-// Agent reads location data
-const locations = await client.request(
-  readItems('location', {
-    filter: { status: { _eq: 'active' } },
-    fields: ['id', 'name', 'slug'],
-  })
-);
-```
+The repository does not configure or implement a Directus MCP endpoint. The
+JavaScript example above the former MCP section is ordinary Directus REST SDK
+usage, not MCP. Do not rely on MCP as an available platform interface unless
+the selected Directus deployment has a separately verified MCP server and
+authentication configuration.

@@ -1,6 +1,7 @@
 """Exact-location configuration drafts and independent review contracts."""
 
 import json
+from datetime import datetime, timezone
 from types import SimpleNamespace
 from unittest.mock import patch
 from uuid import uuid4
@@ -43,8 +44,9 @@ DRAFT = {
     "version": 2,
     "comparability_class": "partially_comparable",
     "evidence_impact": BODY["evidence_impact"],
-    "proposed_at": "2026-10-20T12:00:00+00:00",
+    "proposed_at": datetime(2026, 10, 20, 12, tzinfo=timezone.utc),
 }
+DRAFT_JSON = {**DRAFT, "proposed_at": "2026-10-20T12:00:00+00:00"}
 SUBMITTED = {
     "configuration_id": CONFIGURATION_ID,
     "solution_id": SOLUTION_ID,
@@ -71,6 +73,14 @@ REVIEW_QUEUE_ROW = {
     "local_assumptions": BODY["local_assumptions"],
     "comparability_class": "partially_comparable",
     "evidence_impact": BODY["evidence_impact"],
+    "submitted_at": "2026-10-20T12:30:00+00:00",
+}
+REVIEW_QUEUE_RESPONSE_ROW = {
+    **REVIEW_QUEUE_ROW,
+    "submitted_at": datetime(2026, 10, 20, 12, 30, tzinfo=timezone.utc),
+}
+REVIEW_QUEUE_RESPONSE_JSON = {
+    **REVIEW_QUEUE_ROW,
     "submitted_at": "2026-10-20T12:30:00+00:00",
 }
 
@@ -235,6 +245,363 @@ def test_configuration_queue_actions_use_exact_context_and_bounded_paging(
     assert connection.operations[-1][1] == expected_params
     assert connection.committed and connection.closed and not connection.rolled_back
     assert result["has_more"] is False
+
+
+def _configuration_drafts_app(monkeypatch, result, calls=None):
+    from services.gateway.solution_lifecycle_routes import register_solution_lifecycle_routes
+
+    def list_drafts(*args, **kwargs):
+        if calls is not None:
+            calls.append((args, kwargs))
+        return result
+
+    monkeypatch.setattr(actions, "get_location_solution_configuration_drafts", list_drafts)
+    router = APIRouter()
+
+    async def run_in_threadpool(function, *args, **kwargs):
+        return function(*args, **kwargs)
+
+    register_solution_lifecycle_routes(
+        router, object(), run_in_threadpool, SimpleNamespace(Error=Exception)
+    )
+    app = FastAPI()
+    app.include_router(router)
+
+    @app.middleware("http")
+    async def add_operator(request, call_next):
+        request.state.operator_session = SimpleNamespace(
+            operator=SimpleNamespace(operator_id=OPERATOR_ID)
+        )
+        return await call_next(request)
+
+    return app
+
+
+def test_configuration_drafts_openapi_declares_exact_strict_page_and_item_fields():
+    from services.gateway.solution_lifecycle_routes import register_solution_lifecycle_routes
+
+    router = APIRouter()
+
+    async def run_in_threadpool(*_args, **_kwargs):
+        pytest.fail("OpenAPI inspection must not invoke the configuration queue")
+
+    register_solution_lifecycle_routes(
+        router, object(), run_in_threadpool, SimpleNamespace(Error=Exception)
+    )
+    app = FastAPI()
+    app.include_router(router)
+    openapi = app.openapi()
+    operation = openapi["paths"][
+        "/operator/api/solution-lifecycle/{location_id}/adoption/configurations/drafts"
+    ]["get"]
+    page_ref = operation["responses"]["200"]["content"]["application/json"]["schema"]["$ref"]
+    page_name = page_ref.rsplit("/", 1)[-1]
+    page = openapi["components"]["schemas"][page_name]
+    assert list(page["properties"]) == [
+        "location_id", "limit", "offset", "drafts", "has_more", "next_offset",
+        "offset_limited",
+    ]
+    assert page["additionalProperties"] is False
+    item_ref = page["properties"]["drafts"]["items"]["$ref"]
+    item_name = item_ref.rsplit("/", 1)[-1]
+    item = openapi["components"]["schemas"][item_name]
+    assert list(item["properties"]) == list(DRAFT)
+    assert item["additionalProperties"] is False
+
+
+def test_configuration_drafts_route_binds_location_page_and_terminal_cursor(monkeypatch):
+    calls = []
+    app = _configuration_drafts_app(monkeypatch, {
+        "drafts": [DRAFT], "has_more": False, "next_offset": None,
+    }, calls)
+    path = f"/operator/api/solution-lifecycle/{LOCATION_ID}/adoption/configurations/drafts"
+
+    with TestClient(app) as client:
+        response = client.get(path, params={"limit": 1, "offset": 7})
+
+    assert response.status_code == 200
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["vary"] == "Cookie"
+    assert response.json() == {
+        "location_id": LOCATION_ID,
+        "limit": 1,
+        "offset": 7,
+        "drafts": [DRAFT_JSON],
+        "has_more": False,
+        "next_offset": None,
+        "offset_limited": False,
+    }
+    assert calls == [((OPERATOR_ID, LOCATION_ID), {"limit": 1, "offset": 7})]
+
+
+@pytest.mark.parametrize("result", [
+    {
+        "drafts": [{**DRAFT, "unexpected": "private"}],
+        "has_more": False,
+        "next_offset": None,
+    },
+    {
+        "drafts": [{**DRAFT, "comparability_class": "unknown"}],
+        "has_more": False,
+        "next_offset": None,
+    },
+    {
+        "drafts": [DRAFT],
+        "has_more": False,
+        "next_offset": 1,
+    },
+])
+def test_configuration_drafts_reject_malformed_output_with_sanitized_no_store_error(
+    monkeypatch, result
+):
+    app = _configuration_drafts_app(monkeypatch, result)
+    path = f"/operator/api/solution-lifecycle/{LOCATION_ID}/adoption/configurations/drafts"
+
+    with TestClient(app) as client:
+        response = client.get(path, params={"limit": 1, "offset": 0})
+
+    assert response.status_code == 500
+    assert response.headers["cache-control"] == "no-store"
+    assert response.json() == {"error": "Solution configuration draft list unavailable"}
+    assert "unexpected" not in response.text and CONFIGURATION_ID not in response.text
+
+
+@pytest.mark.parametrize("drafts", [
+    [DRAFT, DRAFT],
+    [
+        {**DRAFT, "configuration_id": "00000000-0000-4000-8000-000000000001"},
+        {**DRAFT, "configuration_id": "00000000-0000-4000-8000-000000000002"},
+    ],
+])
+def test_configuration_drafts_reject_duplicate_or_out_of_order_items(monkeypatch, drafts):
+    app = _configuration_drafts_app(monkeypatch, {
+        "drafts": drafts, "has_more": False, "next_offset": None,
+    })
+    path = f"/operator/api/solution-lifecycle/{LOCATION_ID}/adoption/configurations/drafts"
+
+    with TestClient(app) as client:
+        response = client.get(path, params={"limit": 2, "offset": 0})
+
+    assert response.status_code == 500
+    assert response.headers["cache-control"] == "no-store"
+    assert response.json() == {"error": "Solution configuration draft list unavailable"}
+
+
+def test_configuration_drafts_stop_continuation_at_offset_cap(monkeypatch):
+    app = _configuration_drafts_app(monkeypatch, {
+        "drafts": [DRAFT], "has_more": True, "next_offset": 10001,
+    })
+    path = f"/operator/api/solution-lifecycle/{LOCATION_ID}/adoption/configurations/drafts"
+
+    with TestClient(app) as client:
+        response = client.get(path, params={"limit": 1, "offset": 10000})
+
+    assert response.status_code == 200
+    assert response.headers["cache-control"] == "no-store"
+    assert response.json() == {
+        "location_id": LOCATION_ID,
+        "limit": 1,
+        "offset": 10000,
+        "drafts": [DRAFT_JSON],
+        "has_more": False,
+        "next_offset": None,
+        "offset_limited": True,
+    }
+
+
+def _configuration_review_queue_app(monkeypatch, result, calls=None):
+    from services.gateway.solution_lifecycle_routes import register_solution_lifecycle_routes
+
+    def list_review_queue(*args, **kwargs):
+        if calls is not None:
+            calls.append((args, kwargs))
+        return result
+
+    monkeypatch.setattr(
+        actions, "get_location_solution_configuration_review_queue", list_review_queue
+    )
+    router = APIRouter()
+
+    async def run_in_threadpool(function, *args, **kwargs):
+        return function(*args, **kwargs)
+
+    register_solution_lifecycle_routes(
+        router, object(), run_in_threadpool, SimpleNamespace(Error=Exception)
+    )
+    app = FastAPI()
+    app.include_router(router)
+
+    @app.middleware("http")
+    async def add_operator(request, call_next):
+        request.state.operator_session = SimpleNamespace(
+            operator=SimpleNamespace(operator_id=OPERATOR_ID)
+        )
+        return await call_next(request)
+
+    return app
+
+
+def test_configuration_review_queue_openapi_declares_exact_strict_page_and_item_fields():
+    from services.gateway.solution_lifecycle_routes import register_solution_lifecycle_routes
+
+    router = APIRouter()
+
+    async def run_in_threadpool(*_args, **_kwargs):
+        pytest.fail("OpenAPI inspection must not invoke the configuration review queue")
+
+    register_solution_lifecycle_routes(
+        router, object(), run_in_threadpool, SimpleNamespace(Error=Exception)
+    )
+    app = FastAPI()
+    app.include_router(router)
+    openapi = app.openapi()
+    operation = openapi["paths"][
+        "/operator/api/solution-lifecycle/{location_id}/adoption/configurations/review-queue"
+    ]["get"]
+    page_ref = operation["responses"]["200"]["content"]["application/json"]["schema"]["$ref"]
+    page_name = page_ref.rsplit("/", 1)[-1]
+    page = openapi["components"]["schemas"][page_name]
+    assert list(page["properties"]) == [
+        "location_id", "limit", "offset", "configurations", "has_more",
+        "next_offset", "offset_limited",
+    ]
+    assert page["additionalProperties"] is False
+    item_ref = page["properties"]["configurations"]["items"]["$ref"]
+    item_name = item_ref.rsplit("/", 1)[-1]
+    item = openapi["components"]["schemas"][item_name]
+    assert list(item["properties"]) == list(REVIEW_QUEUE_ROW)
+    assert item["additionalProperties"] is False
+
+
+def test_configuration_review_queue_binds_location_page_and_terminal_cursor(monkeypatch):
+    calls = []
+    app = _configuration_review_queue_app(monkeypatch, {
+        "configurations": [REVIEW_QUEUE_RESPONSE_ROW],
+        "has_more": False,
+        "next_offset": None,
+    }, calls)
+    path = f"/operator/api/solution-lifecycle/{LOCATION_ID}/adoption/configurations/review-queue"
+
+    with TestClient(app) as client:
+        response = client.get(path, params={"limit": 1, "offset": 7})
+
+    assert response.status_code == 200
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["vary"] == "Cookie"
+    assert response.json() == {
+        "location_id": LOCATION_ID,
+        "limit": 1,
+        "offset": 7,
+        "configurations": [REVIEW_QUEUE_RESPONSE_JSON],
+        "has_more": False,
+        "next_offset": None,
+        "offset_limited": False,
+    }
+    assert calls == [((OPERATOR_ID, LOCATION_ID), {"limit": 1, "offset": 7})]
+
+
+@pytest.mark.parametrize("result", [
+    {
+        "configurations": [{**REVIEW_QUEUE_RESPONSE_ROW, "unexpected": "private"}],
+        "has_more": False,
+        "next_offset": None,
+    },
+    {
+        "configurations": [{**REVIEW_QUEUE_RESPONSE_ROW, "invariant_components": []}],
+        "has_more": False,
+        "next_offset": None,
+    },
+    {
+        "configurations": [{**REVIEW_QUEUE_RESPONSE_ROW, "comparability_class": "unknown"}],
+        "has_more": False,
+        "next_offset": None,
+    },
+    {
+        "configurations": [{
+            **REVIEW_QUEUE_RESPONSE_ROW,
+            "invariant_components": {"oversized": "x" * 65537},
+        }],
+        "has_more": False,
+        "next_offset": None,
+    },
+    {
+        "configurations": [REVIEW_QUEUE_RESPONSE_ROW],
+        "has_more": False,
+        "next_offset": 1,
+    },
+])
+def test_configuration_review_queue_rejects_malformed_output_with_sanitized_no_store_error(
+    monkeypatch, result
+):
+    app = _configuration_review_queue_app(monkeypatch, result)
+    path = f"/operator/api/solution-lifecycle/{LOCATION_ID}/adoption/configurations/review-queue"
+
+    with TestClient(app) as client:
+        response = client.get(path, params={"limit": 1, "offset": 0})
+
+    assert response.status_code == 500
+    assert response.headers["cache-control"] == "no-store"
+    assert response.json() == {
+        "error": "Solution configuration review queue unavailable"
+    }
+    assert "unexpected" not in response.text and CONFIGURATION_ID not in response.text
+
+
+@pytest.mark.parametrize("configurations", [
+    [REVIEW_QUEUE_RESPONSE_ROW, REVIEW_QUEUE_RESPONSE_ROW],
+    [
+        {
+            **REVIEW_QUEUE_RESPONSE_ROW,
+            "configuration_id": "00000000-0000-4000-8000-000000000001",
+        },
+        {
+            **REVIEW_QUEUE_RESPONSE_ROW,
+            "configuration_id": "00000000-0000-4000-8000-000000000002",
+        },
+    ],
+])
+def test_configuration_review_queue_rejects_duplicate_or_out_of_order_items(
+    monkeypatch, configurations
+):
+    app = _configuration_review_queue_app(monkeypatch, {
+        "configurations": configurations,
+        "has_more": False,
+        "next_offset": None,
+    })
+    path = f"/operator/api/solution-lifecycle/{LOCATION_ID}/adoption/configurations/review-queue"
+
+    with TestClient(app) as client:
+        response = client.get(path, params={"limit": 2, "offset": 0})
+
+    assert response.status_code == 500
+    assert response.headers["cache-control"] == "no-store"
+    assert response.json() == {
+        "error": "Solution configuration review queue unavailable"
+    }
+
+
+def test_configuration_review_queue_stops_continuation_at_offset_cap(monkeypatch):
+    app = _configuration_review_queue_app(monkeypatch, {
+        "configurations": [REVIEW_QUEUE_RESPONSE_ROW],
+        "has_more": True,
+        "next_offset": 10001,
+    })
+    path = f"/operator/api/solution-lifecycle/{LOCATION_ID}/adoption/configurations/review-queue"
+
+    with TestClient(app) as client:
+        response = client.get(path, params={"limit": 1, "offset": 10000})
+
+    assert response.status_code == 200
+    assert response.headers["cache-control"] == "no-store"
+    assert response.json() == {
+        "location_id": LOCATION_ID,
+        "limit": 1,
+        "offset": 10000,
+        "configurations": [REVIEW_QUEUE_RESPONSE_JSON],
+        "has_more": False,
+        "next_offset": None,
+        "offset_limited": True,
+    }
 
 
 def test_configuration_submission_and_review_actions_share_transaction_context():

@@ -9,7 +9,6 @@ from typing import Any, Dict, List, Optional
 
 import psycopg2.extras
 
-
 LINK_TYPES = ("lead_link", "representative_link", "liaison", "observer")
 
 
@@ -108,5 +107,13 @@ def list_links(conn, *, source_circle_id: Optional[str] = None, target_circle_id
         params.append(status)
     where = " WHERE " + " AND ".join(clauses) if clauses else ""
     with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
-        cur.execute(f"SELECT * FROM v_governance_circle_links{where} ORDER BY term_end NULLS LAST, source_circle_key", params)
+        cur.execute(
+            "SELECT link_id, source_circle_id, source_circle_key, target_circle_id, "
+            "target_circle_key, link_type, role_id, role_key, party_id, party_name, "
+            "mandate, scope_type, scope_id, term_start, term_end, status, "
+            "recusal_status, approved_by_party_id, approved_by_name "
+            f"FROM v_governance_circle_links{where} "
+            "ORDER BY term_end NULLS LAST, source_circle_key",
+            params,
+        )
         return [_row(row) for row in cur.fetchall()]

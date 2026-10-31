@@ -1,0 +1,53 @@
+{
+  "record_version": 1,
+  "date": "2026-10-28",
+  "slice": "public-driver-catalog-projection",
+  "status": "focused anonymous bounded-catalog checks passed",
+  "route": "GET /api/drivers",
+  "finding": {
+    "previous_fields_exposed": [
+      "module_path",
+      "class_name",
+      "author",
+      "description",
+      "created_at"
+    ],
+    "exposure": "The public route returned raw registry rows, revealing loader and registration metadata, including arbitrary operator-provided text."
+  },
+  "change": {
+    "public": true,
+    "returns_enabled_entries_only": true,
+    "response_fields": ["driver_name", "driver_version", "driver_type"],
+    "response_model_rejects_undeclared_fields": true,
+    "max_page_size": 50,
+    "max_offset": 5000,
+    "stable_order": ["driver_type", "driver_name"],
+    "database_query_fetches_one_extra_row_for_has_more": true,
+    "response_page_fields": ["limit", "offset", "has_more"]
+  },
+  "check": {
+    "command": "python3 -m pytest -q tests/test_gateway_public_driver_catalog.py",
+    "result": "passed",
+    "passed": 1,
+    "verifies": [
+      "anonymous access retains the reviewed public contract",
+      "enabled driver name/version/type remain available",
+      "disabled drivers are omitted",
+      "loader paths, class names, author, description, and creation timestamp are absent",
+      "requested limit and offset are forwarded to the bounded registry query",
+      "page metadata reports whether more catalog entries exist",
+      "a request over the maximum page size is rejected before the registry query",
+      "an over-limit query result returns no more than the requested page size",
+      "invalid direct registry bounds are rejected"
+    ]
+  },
+  "static_checks": {
+    "ruff": "passed",
+    "python_compilation": "passed"
+  },
+  "database_or_provider_used": false,
+  "limits": [
+    "This keeps a paginated public catalog of enabled driver identities, not a public registry administration API.",
+    "This source check does not prove production ingress exposure or third-party package isolation."
+  ]
+}

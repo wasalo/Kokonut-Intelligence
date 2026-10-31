@@ -2,10 +2,12 @@
 
 from __future__ import annotations
 
+import shlex
 import subprocess
 import sys
 from pathlib import Path
 
+import pytest
 import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -31,13 +33,210 @@ def test_default_profile_planner_does_not_select_optional_overlays() -> None:
     assert "--env-file /dev/null" in result.stdout
 
 
+def test_standard_profile_includes_loopback_caddy_by_default() -> None:
+    result = _run_planner("standard")
+    command = shlex.split(result.stdout)
+    manifests = [
+        command[index + 1]
+        for index, value in enumerate(command[:-1])
+        if value == "-f"
+    ]
+
+    assert result.returncode == 0, result.stderr
+    assert manifests.count(str(ROOT / "docker-compose.kernel-standard.yml")) == 1
+    assert manifests.count(str(ROOT / "docker-compose.kernel-proxy.yml")) == 1
+    assert manifests.index(str(ROOT / "docker-compose.kernel-standard.yml")) < manifests.index(
+        str(ROOT / "docker-compose.kernel-proxy.yml")
+    )
+
+    proxy = yaml.safe_load((ROOT / "docker-compose.kernel-proxy.yml").read_text())
+    assert proxy["services"]["proxy"]["ports"] == [
+        "${KOKONUT_KERNEL_PROXY_BIND:-127.0.0.1}:${KOKONUT_KERNEL_HTTP_PORT:-8088}:80",
+        "${KOKONUT_KERNEL_PROXY_BIND:-127.0.0.1}:${KOKONUT_KERNEL_HTTPS_PORT:-8448}:443",
+    ]
+
+
+def test_standard_profile_can_be_replaced_by_external_ingress() -> None:
+    result = _run_planner("standard", "--no-proxy")
+
+    assert result.returncode == 0, result.stderr
+    assert "docker-compose.kernel-standard.yml" in result.stdout
+    assert "docker-compose.kernel-proxy.yml" not in result.stdout
+
+
+def test_standard_oidc_can_use_an_external_https_ingress() -> None:
+    result = _run_planner("standard", "--no-proxy", "--oidc")
+
+    assert result.returncode == 0, result.stderr
+    assert "docker-compose.kernel-proxy.yml" not in result.stdout
+    assert result.stdout.count("docker-compose.kernel-oidc.yml") == 1
+
+
+def test_standard_oidc_uses_default_proxy_without_redundant_flag() -> None:
+    result = _run_planner("standard", "--oidc")
+
+    assert result.returncode == 0, result.stderr
+    assert result.stdout.count("docker-compose.kernel-proxy.yml") == 1
+    assert result.stdout.count("docker-compose.kernel-oidc.yml") == 1
+
+
+@pytest.mark.parametrize(
+    "options", [("--proxy", "--no-proxy"), ("--no-proxy", "--zitadel")]
+)
+def test_standard_no_proxy_rejects_conflicting_or_caddy_bundled_options(
+    options: tuple[str, ...],
+) -> None:
+    result = _run_planner("standard", *options)
+
+    assert result.returncode != 0
+    assert "--no-proxy" in result.stderr or "cannot be selected together" in result.stderr
+
+
+@pytest.mark.parametrize("action", ["config", "build", "up"])
+def test_standard_actions_include_caddy_exactly_once(action: str) -> None:
+    result = _run_planner("standard", "--action", action)
+
+    assert result.returncode == 0, result.stderr
+    assert result.stdout.count("docker-compose.kernel-proxy.yml") == 1
+
+
+def test_minimal_and_edge_keep_proxy_opt_in() -> None:
+    for profile in ("minimal", "edge"):
+        result = _run_planner(profile)
+
+        assert result.returncode == 0, result.stderr
+        assert "docker-compose.kernel-proxy.yml" not in result.stdout
+
+
+def test_explicit_project_is_used_for_an_isolated_zitadel_plan() -> None:
+    result = _run_planner("minimal", "--zitadel", "--project", "kokonut-sprint-123")
+
+    assert result.returncode == 0, result.stderr
+    command = shlex.split(result.stdout)
+    assert command[command.index("-p") + 1] == "kokonut-sprint-123"
+    assert "kokonut-kernel-candidate" not in command
+
+
+@pytest.mark.parametrize("project", ["UPPER", "-bad", "bad.name", "x" * 64])
+def test_invalid_project_name_is_rejected(project: str) -> None:
+    result = _run_planner("minimal", f"--project={project}")
+
+    assert result.returncode != 0
+    assert "--project must be" in result.stderr
+
+
+def test_default_projects_remain_unchanged_for_both_architectures() -> None:
+    amd64 = shlex.split(_run_planner("minimal").stdout)
+    arm64 = shlex.split(_run_planner("minimal", "--target-platform", "linux/arm64").stdout)
+
+    assert amd64[amd64.index("-p") + 1] == "kokonut-kernel-candidate"
+    assert arm64[arm64.index("-p") + 1] == "kokonut-kernel-candidate-arm64"
+
+
+def test_core_profile_is_opt_in_and_selects_the_separate_lean_image() -> None:
+    minimal = shlex.split(_run_planner("minimal").stdout)
+    core = _run_planner("core")
+
+    assert core.returncode == 0, core.stderr
+    assert "docker-compose.kernel-core.yml" not in minimal
+    assert "docker-compose.kernel-core.yml" in core.stdout
+    minimal_compose = yaml.safe_load((ROOT / "docker-compose.kernel-candidate.yml").read_text())
+    assert "target" not in minimal_compose["services"]["app"]["build"]
+    assert "FROM kernel-base AS kernel" in (ROOT / "Dockerfile.kernel").read_text()
+    overlay = yaml.safe_load((ROOT / "docker-compose.kernel-core.yml").read_text())
+    assert overlay["services"]["app"]["build"]["target"] == "kernel-core"
+    assert overlay["services"]["app"]["build"]["args"] == {
+        "KOKONUT_CORE_WEB3": "false",
+        "KOKONUT_CORE_EXPORTS": "false",
+        "KOKONUT_CORE_LOCAL_MEDIA": "false",
+    }
+
+
+def test_core_capabilities_are_explicit_build_overlays() -> None:
+    result = _run_planner("core", "--web3", "--exports", "--local-media")
+
+    assert result.returncode == 0, result.stderr
+    for overlay in (
+        "docker-compose.kernel-core.yml",
+        "docker-compose.kernel-core-web3.yml",
+        "docker-compose.kernel-core-exports.yml",
+        "docker-compose.kernel-core-local-media.yml",
+    ):
+        assert overlay in result.stdout
+    web3 = yaml.safe_load((ROOT / "docker-compose.kernel-core-web3.yml").read_text())
+    exports = yaml.safe_load((ROOT / "docker-compose.kernel-core-exports.yml").read_text())
+    media = yaml.safe_load((ROOT / "docker-compose.kernel-core-local-media.yml").read_text())
+    assert web3["services"]["app"]["build"]["args"]["KOKONUT_CORE_WEB3"] == "true"
+    assert exports["services"]["app"]["build"]["args"]["KOKONUT_CORE_EXPORTS"] == "true"
+    assert media["services"]["app"]["build"]["args"]["KOKONUT_CORE_LOCAL_MEDIA"] == "true"
+    assert "${MOBILE_MEDIA_LOCAL_KEY:?" in media["services"]["app"]["environment"]["MOBILE_MEDIA_LOCAL_KEY"]
+    assert "MOBILE_MEDIA_LOCAL_KEY" not in (ROOT / "Dockerfile.kernel").read_text()
+
+
+@pytest.mark.parametrize("overlay", ["--web3", "--exports", "--local-media"])
+@pytest.mark.parametrize("profile", ["minimal", "edge", "standard", "analytics"])
+def test_core_package_overlays_cannot_be_selected_on_existing_profiles(
+    profile: str, overlay: str,
+) -> None:
+    result = _run_planner(profile, overlay)
+
+    assert result.returncode != 0
+    assert "apply only to the core profile" in result.stderr
+
+
+@pytest.mark.parametrize("option", ["--oidc", "--zitadel"])
+def test_core_profile_rejects_full_oidc_application_target(option: str) -> None:
+    result = _run_planner("core", option)
+
+    assert result.returncode != 0
+    assert "select the full OIDC image" in result.stderr
+
+
+def test_core_profile_uses_the_arm64_candidate_project_and_overlay() -> None:
+    result = _run_planner("core", "--target-platform", "linux/arm64")
+
+    assert result.returncode == 0, result.stderr
+    assert "kokonut-kernel-candidate-arm64" in result.stdout
+    assert "docker-compose.kernel-arm64.yml" in result.stdout
+    assert "docker-compose.kernel-core.yml" in result.stdout
+
+
+def test_core_arm64_capability_overlays_select_the_multiarch_verified_composition() -> None:
+    result = _run_planner(
+        "core", "--target-platform", "linux/arm64", "--web3", "--exports", "--local-media"
+    )
+
+    assert result.returncode == 0, result.stderr
+    for filename in (
+        "docker-compose.kernel-core-web3.yml",
+        "docker-compose.kernel-core-exports.yml",
+        "docker-compose.kernel-core-local-media.yml",
+        "docker-compose.kernel-arm64.yml",
+    ):
+        assert filename in result.stdout
+
+
 def test_default_and_oidc_kernel_runtime_commands_require_schema_readiness() -> None:
     dockerfile = (ROOT / "Dockerfile.kernel").read_text()
     runtime_commands = [line for line in dockerfile.splitlines() if line.startswith("CMD ")
                        and "services.core.runtime" in line]
 
-    assert len(runtime_commands) == 2
+    assert len(runtime_commands) == 3
     assert all("--require-schema" in command for command in runtime_commands)
+
+
+def test_oidc_image_installs_authlibs_shared_http_client_dependency() -> None:
+    dockerfile = (ROOT / "Dockerfile.kernel").read_text()
+    oidc_target = dockerfile.split("FROM kernel-base AS oidc", maxsplit=1)[1].split(
+        "FROM --platform=$BUILDPLATFORM", maxsplit=1
+    )[0]
+    oidc_requirements = (ROOT / "requirements" / "oidc.txt").read_text()
+    http_client_requirements = (ROOT / "requirements" / "http-client.txt").read_text()
+
+    assert "authlib" in oidc_requirements
+    assert "httpx2" in http_client_requirements
+    assert "COPY requirements/oidc.txt requirements/http-client.txt" in oidc_target
+    assert "-r requirements/oidc.txt -r requirements/http-client.txt" in oidc_target
 
 
 def test_standard_api_and_worker_require_schema_readiness() -> None:
@@ -46,6 +245,41 @@ def test_standard_api_and_worker_require_schema_readiness() -> None:
     for service_name in ("app", "worker"):
         command = standard["services"][service_name]["command"]
         assert "--require-schema" in command
+
+
+def test_standard_worker_uses_durable_progress_healthcheck_without_merging_roles() -> None:
+    standard = yaml.safe_load((ROOT / "docker-compose.kernel-standard.yml").read_text())
+    app = standard["services"]["app"]
+    worker = standard["services"]["worker"]
+
+    assert worker["healthcheck"] == {
+        "test": ["CMD", "python3", "-m", "services.core.worker_progress", "--check"],
+        "interval": "30s",
+        "timeout": "5s",
+        "retries": 3,
+        "start_period": "60s",
+    }
+    assert worker["command"] == [
+        "python3", "-m", "services.core.runtime", "--workers-only", "--require-schema"
+    ]
+    assert worker["environment"]["KOKONUT_WORKER_PROGRESS_STALE_SECONDS"] == (
+        "${KOKONUT_WORKER_PROGRESS_STALE_SECONDS:-300}"
+    )
+    assert worker["environment"]["KOKONUT_WORKER_PROGRESS_BACKLOG_SECONDS"] == (
+        "${KOKONUT_WORKER_PROGRESS_BACKLOG_SECONDS:-900}"
+    )
+    assert worker["environment"]["KOKONUT_WORKER_PROGRESS_HEARTBEAT_SECONDS"] == (
+        "${KOKONUT_WORKER_PROGRESS_HEARTBEAT_SECONDS:-60}"
+    )
+    assert worker["environment"]["KOKONUT_WORKER_PROGRESS_HEARTBEAT_FILE"] == (
+        "/var/lib/kokonut/worker-progress/supervisor.json"
+    )
+    assert all(
+        "/tmp/kokonut-worker-progress" not in str(mount)
+        for mount in worker.get("volumes", [])
+    )
+    assert "KOKONUT_WORKER_PROGRESS_STALE_SECONDS" not in app.get("environment", {})
+    assert worker["environment"]["PG_USER"] == "${KOKONUT_RUNTIME_USER:-kokonut}"
 
 
 def test_clickhouse_outbox_isolation_is_wired_but_opt_in_across_kernel_profiles():
@@ -273,7 +507,7 @@ def test_directus_option_selects_only_the_optional_directus_overlay() -> None:
 def test_arm64_planner_rejects_scale_profile() -> None:
     scale = _run_planner("scale", "--target-platform", "linux/arm64")
     assert scale.returncode != 0
-    assert "only minimal, edge, standard, and analytics profiles" in scale.stderr
+    assert "only core, minimal, edge, standard, and analytics profiles" in scale.stderr
 
 
 def test_profile_planner_selects_isolated_arm64_images_for_edge() -> None:
@@ -283,6 +517,16 @@ def test_profile_planner_selects_isolated_arm64_images_for_edge() -> None:
     assert "docker-compose.kernel-arm64.yml" in result.stdout
     assert "kokonut-kernel-candidate-arm64" in result.stdout
     assert "docker-compose.kernel-edge.yml" in result.stdout
+
+
+def test_edge_profile_has_explicit_memory_and_cpu_caps_for_both_services() -> None:
+    """Keep the edge profile's declared resource envelope reviewable offline."""
+    edge = yaml.safe_load((ROOT / "docker-compose.kernel-edge.yml").read_text())
+
+    assert set(edge["services"]) == {"database", "app"}
+    for service in edge["services"].values():
+        assert service["mem_limit"] == "1g"
+        assert service["cpus"] == 2.0
 
 
 def test_standard_arm64_profile_selects_the_arm64_worker_override() -> None:
@@ -310,7 +554,9 @@ def test_arm64_identity_overlays_pin_each_supported_service_architecture() -> No
     provider = yaml.safe_load((ROOT / "docker-compose.kernel-zitadel.yml").read_text())
 
     assert proxy["services"]["proxy"]["platform"] == "linux/arm64"
-    assert set(zitadel["services"]) == {"zitadel-db", "zitadel-api", "zitadel-login"}
+    assert set(zitadel["services"]) == {
+        "zitadel-db", "zitadel-api", "zitadel-login", "zitadel-bootstrap-permissions"
+    }
     assert all(service["platform"] == "linux/arm64" for service in zitadel["services"].values())
     assert "postgres:17.10-alpine@sha256:742f40ea20b9ff2ff31db5458d127452988a2164df9e17441e191f3b72252193" in provider[
         "services"

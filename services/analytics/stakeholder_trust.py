@@ -2,10 +2,46 @@
 
 from __future__ import annotations
 
-import json
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 import psycopg2.extras
+
+_TRUST_PROFILE_PROJECTION = (
+    "party_id",
+    "display_name",
+    "party_type",
+    "evidence_count",
+    "supporting_evidence_count",
+    "contradicting_evidence_count",
+    "contested_evidence_count",
+    "open_risk_count",
+    "latest_evidence_at",
+    "earliest_evidence_at",
+    "latest_snapshot_at",
+    "latest_uncertainty",
+    "interpretation",
+)
+
+_TRUST_EVIDENCE_TIMELINE_PROJECTION = (
+    "id",
+    "subject_party_id",
+    "subject_name",
+    "relationship_party_id",
+    "relationship_name",
+    "dimension",
+    "direction",
+    "source_type",
+    "source_id",
+    "source_label",
+    "summary",
+    "observed_at",
+    "expires_at",
+    "confidence",
+    "uncertainty",
+    "status",
+    "correction_status",
+    "appeal_status",
+)
 
 
 def _row(row: Any):
@@ -19,7 +55,9 @@ def record_evidence(conn, subject_party_id: str, dimension: str, direction: str,
              source_label, summary, observed_at, expires_at, confidence, uncertainty, evidence_hash, evidence_cid, audience, created_by_party_id)
              VALUES (%s::uuid, %s::uuid, %s, %s, %s, %s::uuid, %s, %s, COALESCE(%s::timestamptz, NOW()), %s::timestamptz, %s, %s, %s, %s, %s, %s::uuid) RETURNING *""",
             (subject_party_id, relationship_party_id, dimension, direction, source_type, source_id, source_label, summary, observed_at, expires_at, confidence, uncertainty, evidence_hash, evidence_cid, audience, created_by_party_id))
-        result = _row(cur.fetchone()); conn.commit(); return result
+        result = _row(cur.fetchone())
+        conn.commit()
+        return result
 
 
 def verify_buyer(conn, buyer_id: str, verification_type: str, method: str, *, status: str = "verified", verified_by_party_id: Optional[str] = None, evidence_hash: Optional[str] = None, evidence_cid: Optional[str] = None, expires_at: Optional[str] = None):
@@ -33,7 +71,8 @@ def verify_buyer(conn, buyer_id: str, verification_type: str, method: str, *, st
         result = _row(cur.fetchone())
         if status == "verified":
             cur.execute("UPDATE buyer_profile SET verified = TRUE, verified_at = NOW(), updated_at = NOW() WHERE id = %s::uuid", (buyer_id,))
-        conn.commit(); return result
+        conn.commit()
+        return result
 
 
 def open_dispute(conn, order_id: str, dispute_type: str, summary: str, *, opened_by_party_id: Optional[str] = None, requested_remedy: Optional[str] = None):
@@ -42,23 +81,39 @@ def open_dispute(conn, order_id: str, dispute_type: str, summary: str, *, opened
             (order_id, opened_by_party_id, dispute_type, summary, requested_remedy)
             VALUES (%s::uuid, %s::uuid, %s, %s, %s) RETURNING *""",
             (order_id, opened_by_party_id, dispute_type, summary, requested_remedy))
-        result = _row(cur.fetchone()); conn.commit(); return result
+        result = _row(cur.fetchone())
+        conn.commit()
+        return result
 
 
 def profile(conn, party_id: str):
+    projection = ", ".join(_TRUST_PROFILE_PROJECTION)
     with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
-        cur.execute("SELECT * FROM v_party_trust_profile WHERE party_id = %s::uuid", (party_id,)); return _row(cur.fetchone())
+        cur.execute(
+            f"SELECT {projection} FROM v_party_trust_profile WHERE party_id = %s::uuid",
+            (party_id,),
+        )
+        return _row(cur.fetchone())
 
 
 def evidence_timeline(conn, party_id: str):
+    projection = ", ".join(_TRUST_EVIDENCE_TIMELINE_PROJECTION)
     with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
-        cur.execute("SELECT * FROM v_party_trust_evidence_timeline WHERE subject_party_id = %s::uuid ORDER BY observed_at DESC", (party_id,)); return [dict(row) for row in cur.fetchall()]
+        cur.execute(
+            f"SELECT {projection} FROM v_party_trust_evidence_timeline "
+            "WHERE subject_party_id = %s::uuid ORDER BY observed_at DESC",
+            (party_id,),
+        )
+        return [dict(row) for row in cur.fetchall()]
 
 
 def risk_indicators(conn, party_id: Optional[str] = None):
-    query = "SELECT * FROM relationship_risk_indicator"; params = []
+    query = "SELECT * FROM relationship_risk_indicator"
+    params = []
     if party_id:
-        query += " WHERE subject_party_id = %s::uuid"; params.append(party_id)
+        query += " WHERE subject_party_id = %s::uuid"
+        params.append(party_id)
     query += " ORDER BY CASE severity WHEN 'critical' THEN 1 WHEN 'high' THEN 2 WHEN 'medium' THEN 3 ELSE 4 END, created_at DESC"
     with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
-        cur.execute(query, params); return [dict(row) for row in cur.fetchall()]
+        cur.execute(query, params)
+        return [dict(row) for row in cur.fetchall()]

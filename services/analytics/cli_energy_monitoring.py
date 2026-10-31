@@ -6,8 +6,10 @@ queries/business logic. Reachable via:
     python -m services.analytics.cli_energy_monitoring --help
 """
 
+import argparse
 import json
 from datetime import date
+from uuid import UUID
 
 from ..common.commands import CommandLine
 from .energy_monitoring import (
@@ -26,7 +28,30 @@ from .energy_monitoring import (
 # CLI
 # ============================================================
 
+def _parse_location_id(value: str) -> str:
+    """Validate and canonicalize location scope during argument parsing."""
+    try:
+        return str(UUID(value))
+    except (AttributeError, TypeError, ValueError) as exc:
+        raise argparse.ArgumentTypeError("--location-id must be a valid UUID") from exc
+
+
 cli = CommandLine("energy_monitoring", "Energy monitoring")
+
+_LOCATION_SCOPED_COMMANDS = {
+    "add-source",
+    "add-renewable",
+    "consumption",
+    "efficiency",
+    "renewable-summary",
+    "dashboard",
+    "carbon-intensity",
+    "cost-analysis",
+}
+_DATE_ARGUMENTS = {
+    "add-source": ("installation_date", "--installation-date"),
+    "record": ("date", "--date"),
+}
 
 
 def _render(result, args, human):
@@ -60,7 +85,7 @@ def _cmd_add_renewable(db, a):
 
 
 cli.subcommand("add-source", "Add energy source") \
-    .add("--location-id", required=True) \
+    .add("--location-id", required=True, type=_parse_location_id) \
     .add("--name", required=True) \
     .add("--type", required=True, dest="source_type",
          choices=["grid", "diesel_generator", "solar", "wind", "biogas", "biomass", "battery"]) \
@@ -87,21 +112,21 @@ cli.subcommand("record", "Record energy reading") \
     .render_with(lambda r, a: _render(r, a, _format_reading))
 
 cli.subcommand("consumption", "Consumption summary") \
-    .add("--location-id", required=True) \
+    .add("--location-id", required=True, type=_parse_location_id) \
     .add("--days", type=int, default=30) \
     .add("--json", action="store_true") \
     .run(lambda db, a: get_consumption(db, a.location_id, a.days)) \
     .render_with(lambda r, a: _render(r, a, _format_consumption))
 
 cli.subcommand("efficiency", "Efficiency metrics") \
-    .add("--location-id", required=True) \
+    .add("--location-id", required=True, type=_parse_location_id) \
     .add("--period", default="daily", choices=["daily", "weekly", "monthly"]) \
     .add("--json", action="store_true") \
     .run(lambda db, a: get_efficiency(db, a.location_id, a.period)) \
     .render_with(lambda r, a: _render(r, a, _format_efficiency))
 
 cli.subcommand("add-renewable", "Register renewable source") \
-    .add("--location-id", required=True) \
+    .add("--location-id", required=True, type=_parse_location_id) \
     .add("--source-id", required=True) \
     .add("--renewable-type", required=True,
          choices=["solar_pv", "solar_thermal", "wind", "biogas", "micro_hydro"]) \
@@ -113,25 +138,25 @@ cli.subcommand("add-renewable", "Register renewable source") \
     .render_with(lambda r, a: _render(r, a, _format_renewable))
 
 cli.subcommand("renewable-summary", "Renewable energy summary") \
-    .add("--location-id", required=True) \
+    .add("--location-id", required=True, type=_parse_location_id) \
     .add("--json", action="store_true") \
     .run(lambda db, a: get_renewable_summary(db, a.location_id)) \
     .render_with(lambda r, a: _render(r, a, _format_renewable_summary))
 
 cli.subcommand("dashboard", "Energy dashboard") \
-    .add("--location-id", required=True) \
+    .add("--location-id", required=True, type=_parse_location_id) \
     .add("--json", action="store_true") \
     .run(lambda db, a: get_energy_dashboard(db, a.location_id)) \
     .render_with(lambda r, a: _render(r, a, _format_dashboard))
 
 cli.subcommand("carbon-intensity", "Compute carbon intensity") \
-    .add("--location-id", required=True) \
+    .add("--location-id", required=True, type=_parse_location_id) \
     .add("--json", action="store_true") \
     .run(lambda db, a: compute_carbon_intensity(db, a.location_id)) \
     .render_with(lambda r, a: _render(r, a, _format_carbon))
 
 cli.subcommand("cost-analysis", "Energy cost analysis") \
-    .add("--location-id", required=True) \
+    .add("--location-id", required=True, type=_parse_location_id) \
     .add("--days", type=int, default=30) \
     .add("--json", action="store_true") \
     .run(lambda db, a: get_cost_analysis(db, a.location_id, a.days)) \
@@ -139,7 +164,23 @@ cli.subcommand("cost-analysis", "Energy cost analysis") \
 
 
 def main(argv=None):
-    cli.run(argv)
+    parser = cli.build_parser()
+    args = parser.parse_args(argv)
+    date_argument = _DATE_ARGUMENTS.get(args.command)
+    if date_argument is not None:
+        attribute, option = date_argument
+        value = getattr(args, attribute)
+        if value:
+            try:
+                date.fromisoformat(value)
+            except ValueError as exc:
+                parser.error(f"{option} must be a valid ISO date: {exc}")
+    if args.command in _LOCATION_SCOPED_COMMANDS:
+        try:
+            args.location_id = str(UUID(args.location_id))
+        except (AttributeError, TypeError, ValueError):
+            parser.error(f"--location-id must be a valid UUID for {args.command}")
+    return cli.run(argv)
 
 
 # ============================================================

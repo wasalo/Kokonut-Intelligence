@@ -1,0 +1,54 @@
+{
+  "result": "passed",
+  "timestamp_utc": "2026-10-27T12:33:55.122379+00:00",
+  "source_revision": "9691128b",
+  "source_tree": "working-tree snapshot",
+  "platform": "linux/arm64",
+  "execution_host_architecture": "x86_64",
+  "target_architecture": "aarch64",
+  "runtime_contract": {
+    "memory_mib": 512,
+    "memory_swap_mib": 512,
+    "cpus": 1,
+    "pids_limit": 64,
+    "network": "none",
+    "root_filesystem": "read-only",
+    "tmpfs": {
+      "/tmp_mib": 64,
+      "/gateway_audit_mib": 16
+    },
+    "published_ports": 0
+  },
+  "database_or_provider_calls": false,
+  "candidate_or_legacy_touched": false,
+  "container_removed": true,
+  "temporary_image_removed": true,
+  "limitations": [
+    "The API is launched without PostgreSQL or external providers; this is process liveness, not schema readiness or data-path acceptance.",
+    "Docker software emulation does not establish Raspberry Pi hardware power-loss, thermal, sustained-performance, or endurance behavior.",
+    "The 512 MiB, one-CPU budget is a reproducible local profile sample, not a production sizing recommendation."
+  ],
+  "stage": "health",
+  "image": {
+    "platform": "linux/arm64",
+    "image_id": "sha256:dffd087af9d37b88143e716b881bbf9f19865720ad42df650706b1e143a51603",
+    "size_bytes": 117998445
+  },
+  "runtime": {
+    "memory_bytes": 536870912,
+    "memory_swap_bytes": 536870912,
+    "nano_cpus": 1000000000,
+    "pids_limit": 64,
+    "root_filesystem_read_only": true,
+    "network_mode": "none",
+    "image_user": "appuser",
+    "state": "running"
+  },
+  "health": {
+    "docker_health": "healthy",
+    "status": "ok",
+    "service": "gateway",
+    "version": "0.1.0",
+    "audit_capture": "ok"
+  }
+}

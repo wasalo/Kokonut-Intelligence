@@ -1,0 +1,30 @@
+{
+  "check": "kokonut-commons-report-location-scope",
+  "date": "2026-10-28",
+  "source": "services/export/reports/commons/kokonut.py",
+  "registry_and_cli_scope": {
+    "location_required": [
+      "anti_capture_governance",
+      "redistribution_policy",
+      "algorithmic_redistribution"
+    ],
+    "network_level": [
+      "federation_mutual_aid",
+      "participatory_signal"
+    ],
+    "classification_source": "services/export/report_generator.py: NETWORK_LEVEL_REPORTS, ALL_LOCATION_REPORTS, and validate_args"
+  },
+  "change": {
+    "location_required_reports": "Missing or empty location scope now raises ValueError before opening a database cursor. Queries retain only matching-location and global rows.",
+    "network_level_reports": "Network-wide reads require an explicit network_scope=True helper argument and retain their unfiltered public-view query after network-scope validation."
+  },
+  "checks": {
+    "command": "python3 -m pytest tests/test_kokonut_commons_governance.py tests/test_report_generator_cli.py -q",
+    "result": "132 passed",
+    "ruff": "python3 -m ruff check services/export/reports/commons/kokonut.py tests/test_kokonut_commons_governance.py: passed",
+    "py_compile": "services/export/reports/commons/kokonut.py and tests/test_kokonut_commons_governance.py: passed",
+    "diff_check": "git diff --check for the two changed Python files: passed"
+  },
+  "external_services_used": [],
+  "database_or_provider_access": false
+}

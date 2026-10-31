@@ -35,10 +35,22 @@ export interface GrpcPageResponse {
   total: number;
 }
 
+const MAX_ECOCREDIT_PAGE_SIZE = 500;
+
 function pageRequest(pagination?: GrpcPageRequest): {
   pagination?: { limit?: number; offset?: Uint8Array };
 } {
   if (!pagination) return {};
+  if (
+    pagination.limit !== undefined &&
+    (!Number.isSafeInteger(pagination.limit) ||
+      pagination.limit < 0 ||
+      pagination.limit > MAX_ECOCREDIT_PAGE_SIZE)
+  ) {
+    throw new RangeError(
+      `pagination limit must be an integer between 0 and ${MAX_ECOCREDIT_PAGE_SIZE}`,
+    );
+  }
   return {
     pagination: {
       ...(pagination.limit !== undefined ? { limit: pagination.limit } : {}),

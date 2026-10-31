@@ -1,0 +1,50 @@
+{
+  "result": "passed",
+  "date": "2026-10-31",
+  "source_revision": "fb4cc883",
+  "working_tree_dirty": true,
+  "runtime_architecture": "linux/amd64",
+  "execution": "native Docker host",
+  "database_image": {
+    "name": "postgis/postgis:16-3.4@sha256:44126d872ac91993766c341e369c539e8196614321765d36a6f1bab0419a5fa5",
+    "platform": "linux/amd64",
+    "image_id": "sha256:44126d872ac91993766c341e369c539e8196614321765d36a6f1bab0419a5fa5"
+  },
+  "isolated_compose_project": "kokonut-native-schema-20261031-b01a2a9e",
+  "schema_files_expected": 697,
+  "schema_files_applied": 697,
+  "schema_files_pending": 0,
+  "schema_files_failed": 0,
+  "latest_migration": "706_runtime_protocol_read_only",
+  "network_mode": "none",
+  "host_ports_published": false,
+  "seeds_applied": 0,
+  "farm_data_loaded": false,
+  "candidate_or_legacy_touched": false,
+  "resource_limits": {
+    "requested_memory_bytes": 1610612736,
+    "requested_cpu_count": 2.0,
+    "verified_database_limits": {
+      "memory_bytes": 1610612736,
+      "memory_swap_bytes": 1610612736,
+      "nano_cpus": 2000000000
+    }
+  },
+  "cleanup": {
+    "attempted": true,
+    "completed": true
+  },
+  "latest_applied_migration": "schema:706_runtime_protocol_read_only.sql",
+  "schema_status": {
+    "seeds": 0,
+    "failed": 0,
+    "latest": "706_runtime_protocol_read_only",
+    "applied": 697,
+    "pending": 0,
+    "pg_stat_public_select": false
+  },
+  "pg_stat_statements_public_select": false,
+  "container_architecture": "x86_64",
+  "database_oom_killed": false,
+  "elapsed_seconds": 538.5
+}

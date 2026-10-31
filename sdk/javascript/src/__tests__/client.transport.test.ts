@@ -23,11 +23,24 @@ describe('KokonutClient REST transport boundary', () => {
           headers: { 'Content-Type': 'application/json' },
         });
       }
+      if (url.pathname.startsWith('/items/malformed-')) {
+        const body = url.pathname.includes('/malformed-empty/')
+          ? JSON.stringify({ errors: [{ message: '' }] })
+          : 'not-json';
+        return new Response(body, {
+          status: 404,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }
 
       if (method === 'DELETE') return new Response(null, { status: 204 });
 
       let data: unknown;
-      if (url.pathname === '/items/harvest_event' && url.searchParams.has('groupBy')) {
+      if (
+        url.pathname === '/items/harvest_event' &&
+        url.searchParams.has('groupBy') &&
+        !url.searchParams.has('search')
+      ) {
         data = [{ location_id: 'location-1', count: { '*': 2 } }];
       } else if (url.pathname === '/items/harvest_event') {
         data = [{ id: 'event-1' }];
@@ -39,6 +52,8 @@ describe('KokonutClient REST transport boundary', () => {
         data = { id: 'location-2', name: 'Synthetic Location' };
       } else if (method === 'POST' && url.pathname === '/items/farm') {
         data = [{ id: 'farm-1', name: 'Synthetic Farm' }];
+      } else if (method === 'POST' && url.pathname.startsWith('/items/farm%2F')) {
+        data = [];
       } else {
         throw new Error(`Unexpected Directus request: ${method} ${url.pathname}`);
       }
@@ -51,12 +66,13 @@ describe('KokonutClient REST transport boundary', () => {
     vi.stubGlobal('fetch', fetchStub);
 
     const { KokonutClient } = await import('../client.js');
-    const { ForbiddenError } = await import('../errors.js');
+    const { ForbiddenError, NotFoundError } = await import('../errors.js');
     const client = new KokonutClient('https://directus.invalid');
     const rows = await client.listItems('harvest_event', {
       search: 'coconut',
       aggregate: { count: '*' },
       deep: { location_id: { _filter: { status: { _eq: 'published' } } } },
+      extraParams: { groupBy: ['location_id'] },
       fields: ['id', 'location_id'],
       limit: 25,
       offset: 10,
@@ -105,6 +121,7 @@ describe('KokonutClient REST transport boundary', () => {
     expect(listUrl.searchParams.get('deep')).toBe(
       JSON.stringify({ location_id: { _filter: { status: { _eq: 'published' } } } }),
     );
+    expect(listUrl.searchParams.get('groupBy')).toBe('location_id');
     expect(listUrl.searchParams.get('fields')).toBe('id,location_id');
     expect(listUrl.searchParams.get('limit')).toBe('25');
     expect(listUrl.searchParams.get('offset')).toBe('10');
@@ -127,5 +144,70 @@ describe('KokonutClient REST transport boundary', () => {
     expect(JSON.parse(requests[5]!.body ?? 'null')).toEqual({ country: 'DO' });
     expect(new URL(requests[6]!.url).pathname).toBe('/items/location/location-1');
     expect(requests[6]!.body).toBeNull();
+
+    const hostileCollection = 'farm/../../auth';
+    const hostileItemId = 'farm/../../auth?token=x#fragment%';
+    await client.listItems(hostileCollection);
+    await client.getItem('location', hostileItemId);
+    await client.createItem(hostileCollection, {});
+    await client.createItems(hostileCollection, []);
+    await client.updateItem('location', 'farm/../../auth', {});
+    await client.deleteItem('location', 'farm/../../auth');
+    await client.aggregate(hostileCollection, { aggregate: { count: '*' } });
+
+    expect(requests.slice(8).map((request) => new URL(request.url).pathname)).toEqual([
+      '/items/farm%2F..%2F..%2Fauth',
+      '/items/location/farm%2F..%2F..%2Fauth%3Ftoken%3Dx%23fragment%25',
+      '/items/farm%2F..%2F..%2Fauth',
+      '/items/farm%2F..%2F..%2Fauth',
+      '/items/location/farm%2F..%2F..%2Fauth',
+      '/items/location/farm%2F..%2F..%2Fauth',
+      '/items/farm%2F..%2F..%2Fauth',
+    ]);
+
+    const requestCount = fetchStub.mock.calls.length;
+    await expect(client.getItem('location', '..')).rejects.toThrow('path segment');
+    await expect(client.listItems('')).rejects.toThrow('path segment');
+    expect(fetchStub).toHaveBeenCalledTimes(requestCount);
+
+    for (const kind of ['empty', 'invalid']) {
+      const error = await client.getItem(`malformed-${kind}`, 'item').catch((caught) => caught);
+      expect(error).toBeInstanceOf(NotFoundError);
+      expect(error).toMatchObject({ message: 'HTTP 404', statusCode: 404 });
+    }
+  });
+
+  it('forwards extension query parameters through typed location reads without weakening scope', async () => {
+    vi.resetModules();
+    const { KokonutClient } = await import('../client.js');
+    const client = new KokonutClient('https://directus.invalid');
+    const listItems = vi.spyOn(client, 'listItems').mockResolvedValue([]);
+    await client.fieldNotes.listByLocation('location-1', {
+      filter: { status: { _eq: 'submitted' }, location_id: { _eq: 'other-location' } },
+      limit: 25,
+      extraParams: {
+        aggregate: { count: '*' },
+        groupBy: ['location_id'],
+        filter: { location_id: { _eq: 'another-location' } },
+        limit: 999,
+      },
+    });
+
+    expect(listItems).toHaveBeenCalledWith(
+      'field_note',
+      expect.objectContaining({
+        extraParams: {
+          aggregate: { count: '*' },
+          groupBy: ['location_id'],
+          filter: { location_id: { _eq: 'another-location' } },
+          limit: 999,
+        },
+        filter: {
+          status: { _eq: 'submitted' },
+          location_id: { _eq: 'location-1' },
+        },
+        limit: 25,
+      }),
+    );
   });
 });

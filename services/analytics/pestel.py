@@ -19,6 +19,14 @@ logger = get_logger(__name__)
 
 CATEGORIES = ("political", "economic", "social", "technological", "environmental", "legal")
 FACTOR_TYPES = ("strength", "opportunity", "risk", "neutral")
+_ANALYSIS_COLUMNS = """a.id, a.location_id, a.title, a.period_start, a.period_end,
+    a.status, a.political_score, a.economic_score, a.social_score,
+    a.technological_score, a.environmental_score, a.legal_score,
+    a.overall_score, a.factor_count, a.metadata, a.created_by, a.updated_by,
+    a.created_at, a.updated_at"""
+_FACTOR_COLUMNS = """id, analysis_id, location_id, category, factor_type, title,
+    description, impact_score, likelihood, evidence_source, status, created_by,
+    updated_by, created_at, updated_at"""
 
 
 def _validate_factor_score(name: str, value: Any, minimum: float, maximum: float) -> float:
@@ -121,7 +129,7 @@ def list_analyses(conn, location_id: Optional[str] = None) -> List[Dict[str, Any
     with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
         if location_id:
             cur.execute(
-                """SELECT a.*, l.name AS location_name
+                f"""SELECT {_ANALYSIS_COLUMNS}, l.name AS location_name
                    FROM pestel_analysis a
                    LEFT JOIN location l ON l.id = a.location_id
                    WHERE a.location_id = %s
@@ -130,7 +138,7 @@ def list_analyses(conn, location_id: Optional[str] = None) -> List[Dict[str, Any
             )
         else:
             cur.execute(
-                """SELECT a.*, l.name AS location_name
+                f"""SELECT {_ANALYSIS_COLUMNS}, l.name AS location_name
                    FROM pestel_analysis a
                    LEFT JOIN location l ON l.id = a.location_id
                    ORDER BY a.created_at DESC"""
@@ -141,7 +149,7 @@ def list_analyses(conn, location_id: Optional[str] = None) -> List[Dict[str, Any
 def get_analysis(conn, analysis_id: str) -> Optional[Dict[str, Any]]:
     with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
         cur.execute(
-            """SELECT a.*, l.name AS location_name
+            f"""SELECT {_ANALYSIS_COLUMNS}, l.name AS location_name
                FROM pestel_analysis a
                LEFT JOIN location l ON l.id = a.location_id
                WHERE a.id = %s""",
@@ -153,7 +161,8 @@ def get_analysis(conn, analysis_id: str) -> Optional[Dict[str, Any]]:
         analysis = dict(row)
 
         cur.execute(
-            """SELECT * FROM pestel_factor
+            f"""SELECT {_FACTOR_COLUMNS}
+               FROM pestel_factor
                WHERE analysis_id = %s
                ORDER BY category, factor_type""",
             (analysis_id,),

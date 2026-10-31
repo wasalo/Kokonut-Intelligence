@@ -377,9 +377,10 @@ def claim_batch(
     """Claim a bounded batch and commit durable leases before any network I/O."""
     if not isinstance(worker_id, str) or not worker_id.strip() or len(worker_id) > 150:
         raise ValueError("worker_id must contain 1 to 150 characters")
-    if not isinstance(limit, int) or not 1 <= limit <= MAX_BATCH_SIZE:
+    if isinstance(limit, bool) or not isinstance(limit, int) or not 1 <= limit <= MAX_BATCH_SIZE:
         raise ValueError(f"limit must be between 1 and {MAX_BATCH_SIZE}")
-    if not isinstance(lease_seconds, int) or not 30 <= lease_seconds <= 3600:
+    if (isinstance(lease_seconds, bool) or not isinstance(lease_seconds, int)
+            or not 30 <= lease_seconds <= 3600):
         raise ValueError("lease_seconds must be between 30 and 3600")
 
     channels = _configured_channels()

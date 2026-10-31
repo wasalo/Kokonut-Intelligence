@@ -2,6 +2,12 @@
 
 Chain ID: `100`
 
+This page preserves source-controlled deployment transactions, addresses, and
+authority state. It is a historical deployment record, not a fresh chain
+query. Verify contract bytecode, proxy/timelock configuration, and current role
+holders with a trusted Gnosis RPC/explorer before relying on these values or
+submitting transactions.
+
 ## Deployed Contracts
 
 | Component | Address | Deployment transaction |

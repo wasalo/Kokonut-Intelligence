@@ -1,0 +1,22 @@
+{
+  "candidate_legacy_production_touched": false,
+  "checked_at": "2026-10-31T15:34:31+00:00",
+  "command": "KOKONUT_ENV_SECRETS_NOT_REQUIRED=true KOKONUT_ENV=development python3 -m pytest tests/test_runtime_role_boundary.py tests/test_migration.py tests/test_worker_progress.py tests/test_kernel_profile.py -q",
+  "duration_seconds": 183.88,
+  "failed": 0,
+  "git_diff_check": "passed",
+  "kernel_release_input_lock": "passed",
+  "migration_706_disposable": "passed; see runtime-protocol-read-only-disposable.json",
+  "native_schema_replay": "passed: 697/697 schema files through migration 706; see full-schema-706-native.json",
+  "passed": 215,
+  "python_compile": "passed",
+  "ruff": "passed",
+  "runtime_sql_inventory": "passed",
+  "status": "passed",
+  "test_modules": [
+    "tests/test_runtime_role_boundary.py",
+    "tests/test_migration.py",
+    "tests/test_worker_progress.py",
+    "tests/test_kernel_profile.py"
+  ]
+}

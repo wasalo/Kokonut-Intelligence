@@ -93,13 +93,14 @@ def list_location_business_model_canvases(
             )
             rows = [_mapping(cursor, row) for row in cursor.fetchall()]
 
-        has_more = len(rows) > page_size
+        next_offset = page_offset + page_size
+        has_more = len(rows) > page_size and next_offset <= 10000
         return {
             "location_id": location_id,
             "offset": page_offset,
             "canvases": rows[:page_size],
             "has_more": has_more,
-            "next_offset": page_offset + page_size if has_more else None,
+            "next_offset": next_offset if has_more else None,
         }
     except Exception:
         connection.rollback()
@@ -149,7 +150,7 @@ def list_location_business_model_canvas_versions(
             )
             rows = [_mapping(cursor, row) for row in cursor.fetchall()]
 
-        has_more = len(rows) > page_size
+        has_more = len(rows) > page_size and page_offset + page_size <= 10000
         page = rows[:page_size]
         result = {
             "location_id": location_id,

@@ -4,8 +4,9 @@ Yield Forecasting Module
 Projects crop yields based on historical data and scenario assumptions.
 """
 
-from typing import Dict, Any, List
-from .models import YieldAssumptions, CropArea, GrowthAssumptions
+from typing import Any, Dict, List
+
+from .models import GrowthAssumptions, YieldAssumptions
 
 
 def get_crop_areas_for_location(location_id: str) -> List[Dict[str, Any]]:
@@ -117,19 +118,24 @@ def get_bed_areas_for_location(location_id: str) -> Dict[str, Any]:
     with db.cursor() as cur:
         cur.execute("""
             SELECT
+                p.id as plot_id,
                 p.name as plot_name,
                 p.bed_count,
                 p.bed_area_sqm,
-                cc.id as cycle_id,
-                c.name as crop_name
+                array_agg(DISTINCT cc.id ORDER BY cc.id) as cycle_ids,
+                array_agg(DISTINCT c.name ORDER BY c.name) as crops
             FROM plot p
             JOIN farm f ON f.id = p.farm_id
-            JOIN crop_cycle cc ON cc.plot_id = p.id
+            JOIN crop_cycle cc
+              ON cc.plot_id = p.id
+             AND cc.location_id = f.location_id
             JOIN crop c ON cc.crop_id = c.id
             WHERE f.location_id = %s
               AND p.bed_count IS NOT NULL
               AND p.bed_area_sqm IS NOT NULL
               AND cc.status = 'completed'
+            GROUP BY p.id, p.name, p.bed_count, p.bed_area_sqm
+            ORDER BY p.id
         """, (location_id,))
         rows = cur.fetchall()
     db.close()
@@ -137,20 +143,20 @@ def get_bed_areas_for_location(location_id: str) -> Dict[str, Any]:
     plots = {}
     total_bed_area_sqm = 0.0
     for row in rows:
-        plot_name = row[0]
-        bed_count = int(row[1] or 0)
-        bed_area_sqm = float(row[2] or 0)
+        plot_id = str(row[0])
+        plot_name = row[1]
+        bed_count = int(row[2] or 0)
+        bed_area_sqm = float(row[3] or 0)
         total_sqm = bed_count * bed_area_sqm
-        if plot_name not in plots:
-            plots[plot_name] = {
-                "bed_count": bed_count,
-                "bed_area_sqm": bed_area_sqm,
-                "total_bed_area_sqm": total_sqm,
-                "cycle_ids": [],
-                "crops": [],
-            }
-        plots[plot_name]["cycle_ids"].append(str(row[3]))
-        plots[plot_name]["crops"].append(row[4])
+        plots[plot_id] = {
+            "plot_id": plot_id,
+            "plot_name": plot_name,
+            "bed_count": bed_count,
+            "bed_area_sqm": bed_area_sqm,
+            "total_bed_area_sqm": total_sqm,
+            "cycle_ids": [str(cycle_id) for cycle_id in (row[4] or [])],
+            "crops": list(row[5] or []),
+        }
         total_bed_area_sqm += total_sqm
 
     return {

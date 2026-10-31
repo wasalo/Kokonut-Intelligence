@@ -1,0 +1,39 @@
+{
+  "date": "2026-10-30",
+  "branch": "chore/kernel-next-sprint-plan",
+  "scope": [
+    "Migration 505 solution-gate create route response contract",
+    "Migration 331 public project data-stream explicit projection"
+  ],
+  "solution_gate_create": {
+    "request": "Strict fields, exact promotion targets, acknowledged=true, bounded criterion/thresholds, and UUID validation before service access",
+    "response": "Exact 12-field migration result with stage-pair, solution/path, criterion, threshold, human-review, lifecycle, and timestamp validation",
+    "lifecycle": "New gates must be draft and return HTTP 201; valid idempotent replays may reflect the current gate state and return HTTP 200",
+    "authorization": "Existing exact-location solution_lifecycle:create grant and CSRF behavior are preserved",
+    "cache": "Success and error responses preserve no-store and Cookie variance"
+  },
+  "project_data_stream": {
+    "projection": "Explicit 20-column ordered projection from migration 331's v_project_data_stream",
+    "preserved_behavior": "Location filter, descending created_at order, requested limit, and serialized row payload are unchanged"
+  },
+  "verification": {
+    "focused_pytest": {
+      "command": "python3 -m pytest tests/test_gateway_solution_lifecycle_gate_create.py tests/test_data_stream.py -q",
+      "result": "78 passed"
+    },
+    "ruff": "Passed for implementation and focused tests",
+    "python_compile": "Passed for implementation and focused tests",
+    "diff_check": "Passed",
+    "capability_matrix": "Valid: 67 rows; 24 baseline-retained, 7 deployed, 36 prepared",
+    "runtime_sql_inventory": "Current; 42 unresolved write candidates remain review-only",
+    "provider_boundaries": "Passed: 17 vendor import sites",
+    "dependency_groups": "Aligned: 14 groups, 33 requirements"
+  },
+  "isolation": {
+    "database_access": false,
+    "provider_access": false,
+    "candidate_or_legacy_access": false,
+    "migration_applied": false
+  },
+  "rollback": "Revert the Gateway/stream source changes, focused tests, evidence, and progress records; no data rollback is needed."
+}

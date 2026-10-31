@@ -143,6 +143,31 @@ def test_list_invites_uses_signed_location_scope_and_safe_bounded_projection():
     assert connection.committed and connection.closed
 
 
+def test_list_invites_closes_unaddressable_continuation_at_offset_ceiling():
+    projection = {
+        "location_id": LOCATION_ID,
+        "study_id": STUDY_ID,
+        "invites": [],
+        "has_more": True,
+        "limit": 50,
+        "offset": 10000,
+    }
+    connection = _Connection(row=(projection,))
+    with patch.object(invites, "set_operator_tenant_context", _context):
+        result = invites.list_location_delphi_participant_invites(
+            OPERATOR_ID,
+            LOCATION_ID,
+            STUDY_ID,
+            limit=50,
+            offset=10000,
+            connection_factory=lambda: connection,
+        )
+
+    assert result["has_more"] is False
+    assert result["offset"] == 10000
+    assert connection.committed and connection.closed
+
+
 @pytest.mark.parametrize("field,value", [("limit", "51"), ("limit", True), ("offset", "10001"), ("offset", "-1")])
 def test_invalid_invite_page_fails_before_database(field, value):
     arguments = {field: value}
@@ -223,7 +248,7 @@ def test_issue_route_returns_token_once_with_no_store():
         "consent_notice_version": "v2",
         "consent_notice_digest": "ab" * 32,
         "invite_token": "a1" * 32,
-        "expires_at": "2026-10-26T12:00:00+00:00",
+        "expires_at": "2026-10-26T12:00:00Z",
         "status": "pending",
         "replayed": False,
     }
@@ -234,12 +259,86 @@ def test_issue_route_returns_token_once_with_no_store():
         assert kwargs == {"lifetime_seconds": 86400, "request_id": REQUEST_ID}
         return expected
 
-    response = TestClient(_app(object(), run_in_threadpool)).post(
+    app = _app(object(), run_in_threadpool)
+    operation = app.openapi()["paths"][
+        "/operator/api/delphi/{location_id}/studies/{study_id}/invites"
+    ]["post"]
+    assert operation["responses"]["201"]["content"]["application/json"]["schema"][
+        "$ref"
+    ].endswith("ParticipantInviteCreateResponse")
+    assert operation["responses"]["200"]["content"]["application/json"]["schema"][
+        "$ref"
+    ].endswith("ParticipantInviteCreateResponse")
+    response = TestClient(app).post(
         f"/operator/api/delphi/{LOCATION_ID}/studies/{STUDY_ID}/invites",
         json={"request_id": REQUEST_ID, "lifetime_seconds": 86400},
     )
     assert response.status_code == 201 and response.json() == expected
     assert response.headers["cache-control"] == "no-store"
+
+
+def test_issue_replay_is_bound_and_never_reveals_token_again():
+    expected = {
+        "invite_id": INVITE_ID,
+        "location_id": LOCATION_ID,
+        "study_id": STUDY_ID,
+        "consent_notice_id": NOTICE_ID,
+        "consent_notice_version": "v2",
+        "consent_notice_digest": "ab" * 32,
+        "invite_token": None,
+        "expires_at": "2026-10-26T12:00:00Z",
+        "status": "pending",
+        "replayed": True,
+    }
+
+    async def run_in_threadpool(*_args, **_kwargs):
+        return expected
+
+    response = TestClient(_app(object(), run_in_threadpool)).post(
+        f"/operator/api/delphi/{LOCATION_ID}/studies/{STUDY_ID}/invites",
+        json={"request_id": REQUEST_ID, "lifetime_seconds": 86400},
+    )
+    assert response.status_code == 200
+    assert response.json() == expected
+    assert response.headers["cache-control"] == "no-store"
+
+
+@pytest.mark.parametrize(
+    "result_update",
+    [
+        {"location_id": str(uuid4())},
+        {"study_id": str(uuid4())},
+        {"replayed": True},
+        {"extra_private_field": "must-not-leak"},
+    ],
+)
+def test_issue_route_sanitizes_malformed_or_mismatched_success(result_update):
+    result = {
+        "invite_id": INVITE_ID,
+        "location_id": LOCATION_ID,
+        "study_id": STUDY_ID,
+        "consent_notice_id": NOTICE_ID,
+        "consent_notice_version": "v2",
+        "consent_notice_digest": "ab" * 32,
+        "invite_token": "a1" * 32,
+        "expires_at": "2026-10-26T12:00:00+00:00",
+        "status": "pending",
+        "replayed": False,
+    }
+    result.update(result_update)
+
+    async def run_in_threadpool(*_args, **_kwargs):
+        return result
+
+    response = TestClient(_app(object(), run_in_threadpool)).post(
+        f"/operator/api/delphi/{LOCATION_ID}/studies/{STUDY_ID}/invites",
+        json={"request_id": REQUEST_ID, "lifetime_seconds": 86400},
+    )
+    assert response.status_code == 503
+    assert response.json() == {"error": "Delphi invite service unavailable"}
+    assert response.headers["cache-control"] == "no-store"
+    assert "must-not-leak" not in response.text
+    assert "a1" not in response.text
 
 
 @pytest.mark.parametrize(
@@ -265,7 +364,7 @@ def test_revoke_route_forwards_fixed_reason_and_request_id():
         "invite_id": INVITE_ID,
         "study_id": STUDY_ID,
         "status": "revoked",
-        "revoked_at": "2026-10-25T12:00:00+00:00",
+        "revoked_at": "2026-10-25T12:00:00Z",
         "replayed": False,
     }
 
@@ -275,12 +374,49 @@ def test_revoke_route_forwards_fixed_reason_and_request_id():
         assert kwargs == {"request_id": REQUEST_ID, "reason_code": "token_exposed"}
         return expected
 
-    response = TestClient(_app(object(), run_in_threadpool)).post(
+    app = _app(object(), run_in_threadpool)
+    schema = app.openapi()["paths"][
+        "/operator/api/delphi/{location_id}/invites/{invite_id}/revoke"
+    ]["post"]["responses"]["200"]["content"]["application/json"]["schema"]
+    assert schema["$ref"].endswith("ParticipantInviteRevokeResponse")
+    response = TestClient(app).post(
         f"/operator/api/delphi/{LOCATION_ID}/invites/{INVITE_ID}/revoke",
         json={"request_id": REQUEST_ID, "reason_code": "token_exposed"},
     )
     assert response.status_code == 200 and response.json() == expected
     assert response.headers["cache-control"] == "no-store"
+
+
+@pytest.mark.parametrize(
+    "result_update",
+    [
+        {"invite_id": str(uuid4())},
+        {"status": "pending"},
+        {"private_token": "must-not-leak"},
+    ],
+)
+def test_revoke_route_sanitizes_malformed_or_mismatched_success(result_update):
+    result = {
+        "invite_id": INVITE_ID,
+        "study_id": STUDY_ID,
+        "status": "revoked",
+        "revoked_at": "2026-10-25T12:00:00+00:00",
+        "replayed": False,
+    }
+    result.update(result_update)
+
+    async def run_in_threadpool(*_args, **_kwargs):
+        return result
+
+    response = TestClient(_app(object(), run_in_threadpool)).post(
+        f"/operator/api/delphi/{LOCATION_ID}/invites/{INVITE_ID}/revoke",
+        json={"request_id": REQUEST_ID, "reason_code": "token_exposed"},
+    )
+    assert response.status_code == 503
+    assert response.json() == {"error": "Delphi invite service unavailable"}
+    assert response.headers["cache-control"] == "no-store"
+    assert "must-not-leak" not in response.text
+    assert "private_token" not in response.text
 
 
 def test_list_route_forwards_location_study_and_page_without_caching():
@@ -296,7 +432,7 @@ def test_list_route_forwards_location_study_and_page_without_caching():
     async def run_in_threadpool(func, *args, **kwargs):
         assert func is invites.list_location_delphi_participant_invites
         assert args == (OPERATOR_ID, LOCATION_ID, STUDY_ID)
-        assert kwargs == {"limit": "25", "offset": "50"}
+        assert kwargs == {"limit": 25, "offset": 50}
         return expected
 
     response = TestClient(_app(object(), run_in_threadpool)).get(
@@ -304,6 +440,152 @@ def test_list_route_forwards_location_study_and_page_without_caching():
     )
     assert response.status_code == 200 and response.json() == expected
     assert response.headers["cache-control"] == "no-store"
+
+
+def test_list_route_publishes_service_pagination_bounds_in_openapi():
+    async def run_in_threadpool(*_args, **_kwargs):
+        return {
+            "location_id": LOCATION_ID,
+            "study_id": STUDY_ID,
+            "invites": [],
+            "has_more": False,
+            "limit": 50,
+            "offset": 0,
+        }
+
+    app = _app(object(), run_in_threadpool)
+    operation = app.openapi()["paths"][
+        "/operator/api/delphi/{location_id}/studies/{study_id}/invites"
+    ]["get"]
+    parameters = {parameter["name"]: parameter["schema"] for parameter in operation["parameters"]}
+
+    assert parameters["limit"] == {
+        "type": "integer",
+        "maximum": 50,
+        "minimum": 1,
+        "default": 50,
+        "title": "Limit",
+    }
+    assert parameters["offset"] == {
+        "type": "integer",
+        "maximum": 10000,
+        "minimum": 0,
+        "default": 0,
+        "title": "Offset",
+    }
+    response_schema = operation["responses"]["200"]["content"]["application/json"]["schema"]
+    assert response_schema["$ref"].endswith("ParticipantInviteListResponse")
+
+
+def test_list_route_validates_jsonb_wire_values_and_request_binding():
+    expected = {
+        "location_id": LOCATION_ID,
+        "study_id": STUDY_ID,
+        "invites": [{
+            "invite_id": INVITE_ID,
+            "study_id": STUDY_ID,
+            "notice_version": "v2",
+            "status": "pending",
+            "created_at": "2026-10-25T12:00:00+00:00",
+            "expires_at": "2026-10-26T12:00:00+00:00",
+        }],
+        "has_more": False,
+        "limit": 50,
+        "offset": 0,
+    }
+
+    async def run_in_threadpool(*_args, **_kwargs):
+        return expected
+
+    response = TestClient(_app(object(), run_in_threadpool)).get(
+        f"/operator/api/delphi/{LOCATION_ID}/studies/{STUDY_ID}/invites"
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["location_id"] == LOCATION_ID
+    assert payload["study_id"] == STUDY_ID
+    assert payload["invites"][0]["invite_id"] == INVITE_ID
+    assert payload["invites"][0]["created_at"].startswith("2026-10-25T12:00:00")
+    assert payload["invites"][0]["expires_at"].startswith("2026-10-26T12:00:00")
+    assert payload["has_more"] is False and payload["limit"] == 50 and payload["offset"] == 0
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["vary"] == "Cookie"
+
+
+@pytest.mark.parametrize(
+    "projection",
+    [
+        {"location_id": str(uuid4())},
+        {"study_id": str(uuid4())},
+        {"invites": [{
+            "invite_id": INVITE_ID,
+            "study_id": STUDY_ID,
+            "notice_version": "v2",
+            "status": "pending",
+            "created_at": "2026-10-25T12:00:00+00:00",
+            "expires_at": "2026-10-26T12:00:00+00:00",
+            "invite_token": "must-not-leak",
+        }]},
+        {"invites": [{
+            "invite_id": INVITE_ID,
+            "study_id": str(uuid4()),
+            "notice_version": "v2",
+            "status": "pending",
+            "created_at": "2026-10-25T12:00:00+00:00",
+            "expires_at": "2026-10-26T12:00:00+00:00",
+        }]},
+        {"invites": [{
+            "invite_id": INVITE_ID,
+            "study_id": STUDY_ID,
+            "notice_version": "v2",
+            "status": "pending",
+            "created_at": "2026-10-25T12:00:00",
+            "expires_at": "2026-10-26T12:00:00+00:00",
+        }]},
+        {"has_more": True, "invites": []},
+    ],
+)
+def test_list_route_rejects_mismatched_or_unbounded_projection(projection):
+    valid = {
+        "location_id": LOCATION_ID,
+        "study_id": STUDY_ID,
+        "invites": [],
+        "has_more": False,
+        "limit": 50,
+        "offset": 0,
+    }
+    valid.update(projection)
+
+    async def run_in_threadpool(*_args, **_kwargs):
+        return valid
+
+    response = TestClient(_app(object(), run_in_threadpool)).get(
+        f"/operator/api/delphi/{LOCATION_ID}/studies/{STUDY_ID}/invites"
+    )
+
+    assert response.status_code == 500
+    assert response.json() == {"error": "Delphi invite service unavailable"}
+    assert "must-not-leak" not in response.text
+    assert response.headers["cache-control"] == "no-store"
+
+
+@pytest.mark.parametrize(
+    ("parameter", "value"),
+    [("limit", 0), ("limit", 51), ("offset", -1), ("offset", 10001)],
+)
+def test_invalid_list_pagination_fails_before_service_access(parameter, value):
+    async def run_in_threadpool(*_args, **_kwargs):
+        pytest.fail("invalid pagination reached the invite service")
+
+    client = TestClient(_app(object(), run_in_threadpool))
+    response = client.get(
+        f"/operator/api/delphi/{LOCATION_ID}/studies/{STUDY_ID}/invites",
+        params={parameter: value},
+    )
+
+    assert response.status_code == 422
+    assert response.json()["detail"][0]["loc"] == ["query", parameter]
 
 
 def test_invite_routes_fail_closed_when_oidc_is_disabled():
