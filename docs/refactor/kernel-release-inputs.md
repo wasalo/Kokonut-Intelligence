@@ -4,9 +4,14 @@ The GitHub Actions `CI` job verifies a reviewed build-input lock and builds the
 default app, opt-in lean core app, ClickHouse-enabled app, optional sensor-anomaly ML worker, and
 PostGIS targets as multi-platform OCI archives for `linux/amd64` and
 `linux/arm64`. The gate runs on main updates and pull requests.
-It uses `--pull --no-cache` so paired builds resolve current locked inputs. It
-does not load images into the host daemon, start containers, alter Compose
-projects, publish images, or touch database volumes.
+It uses a fresh temporary Buildx builder with no imported cache and `--pull` to
+resolve the digest-pinned base images. Build layers may be reused between the
+sequential target builds during that single gate invocation, avoiding repeated
+ARM64 dependency installs under QEMU; the temporary builder and its cache are
+removed on exit. Lockfile changes invalidate their dependent layers, and pip
+installs remain hash-checked. The gate does not load images into the host
+daemon, start application containers, alter Compose projects, publish images,
+or touch database volumes.
 
 ## Locked inputs
 
@@ -53,8 +58,8 @@ and a regression checks this ordering. The post-fix AMD64/ARM64 OCI archive
 passed with 24 lock-matched packages and 27 matching total Python packages
 ([evidence](builds/2026-10-26-recovery/sensor-anomaly-ml-hash-locked-image-builds.json)).
 That targeted rebuild reused dependency layers from the preceding clean
-hash-enforced build; hosted full uncached release-gate acceptance remains
-pending. The gate permits only the exact Python base tools `pip==24.0`,
+hash-enforced build; hosted full multi-architecture release-gate acceptance
+remains pending. The gate permits only the exact Python base tools `pip==24.0`,
 `setuptools==79.0.1`, and `wheel==0.46.3` outside the ML lock; all other
 installed packages must be declared in the ML runtime lock.
 

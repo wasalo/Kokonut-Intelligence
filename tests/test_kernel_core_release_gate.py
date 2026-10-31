@@ -90,6 +90,18 @@ def test_multiarch_script_builds_all_core_capabilities_together() -> None:
         assert f"--build-arg {argument}" in script
 
 
+def test_multiarch_release_script_reuses_only_temporary_buildx_cache() -> None:
+    script = (ROOT / "scripts/build-kernel-multiarch.sh").read_text()
+
+    assert 'docker buildx create --name "$BUILDER_NAME" --driver docker-container' in script
+    assert 'docker buildx inspect "$BUILDER_NAME" --bootstrap' in script
+    assert script.count('    --builder "$BUILDER_NAME" \\\n') == 6
+    assert script.count("docker buildx build \\\n") == 6
+    assert 'docker buildx rm --force "$BUILDER_NAME"' in script
+    assert "--no-cache" not in script
+    assert "--cache-from" not in script
+
+
 def test_core_oci_gate_rejects_missing_architecture_inventory() -> None:
     with pytest.raises(release_gate.LockError, match="exactly linux/amd64 and linux/arm64"):
         release_gate._verify_core_package_inventories(
