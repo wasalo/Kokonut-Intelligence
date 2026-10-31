@@ -120,6 +120,7 @@ _SOURCE_REVOKE_POLICY_OVERRIDES = {
     "governance_framework": "runtime_mutations_denied",
     "impact_framework": "runtime_mutations_denied",
     "impact_dimension": "runtime_mutations_denied",
+    "schema_version": "runtime_mutations_denied",
     "expense_category": "runtime_mutations_denied",
     "crisp_risk_dimension": "runtime_mutations_denied",
     "data_access_log": "runtime_append_only_read_insert",

@@ -84,8 +84,9 @@ The earlier runtime-SQL inventory drift was fixed in `fb4cc883`.
   closed before database access for missing, stale, malformed, insecure, future,
   or dead-process records. It also detects missing or dead enabled child
   processes before PostgreSQL access and returns only aggregate child liveness,
-  never PIDs. The default moved to a private app-owned `/var/lib` path after
-  CI Ruff S108 rejected `/tmp`. Source acceptance is 118 focused tests plus the
+  never PIDs. Standard Compose uses the private app-owned `/var/lib` path after
+  CI Ruff S108 rejected `/tmp`; direct host runs default to user-owned
+  `~/.local/state`. Source acceptance is 119 focused tests plus the
   integrated pre-existing 238-test/10-subtest selection
   ([guide](standard-profile.md); [CI diagnosis](builds/2026-10-31-recovery/ci-1025-ruff-s108-fix.json)).
 - [x] Retire five unscoped landscape write helpers and CLI commands; migration
@@ -93,6 +94,13 @@ The earlier runtime-SQL inventory drift was fixed in `fb4cc883`.
   signed Gateway capture. Disposable PostgreSQL 16 apply/replay and capture
   checks pass. External importer use and candidate rollout remain open
   ([checker](../../scripts/check-landscape-runtime-boundary-disposable.py)).
+- [x] Add migration 709 to keep `schema_version` readable to the runtime login
+  while denying its table and column writes. The ordered migration runner is
+  the only repository writer found; focused network-disabled PostgreSQL 16
+  apply/replay and source/ACL tests pass. Directus and maintenance writes stay
+  available. External importer use remains a persistent-rollout gate
+  ([checker](../../scripts/check-schema-version-runtime-boundary-disposable.py);
+  [evidence](builds/2026-10-31-recovery/schema-version-runtime-read-only-709.json)).
 - [x] Fix the source/ACL regression fixture to derive its expected private
   relation count from the runtime-role declarations instead of a stale fixed
   value. The rerun passes with the full focused selection
@@ -146,8 +154,10 @@ The earlier runtime-SQL inventory drift was fixed in `fb4cc883`.
   linked run `41172853331` was cancelled, not failed; later CI #1025
   (`41222846441`) exposed a real Ruff S108 finding for the Standard worker
   heartbeat's `/tmp` path. The default now uses the private app-owned
-  `/var/lib` directory and the exact Ruff security scan passes locally; the
-  next hosted run must confirm the repair and complete the remaining gates
+  `/var/lib` directory and the exact Ruff security scan passes locally. CI
+  #1026 then reported stale runtime-SQL inventory; the current source inventory
+  has been regenerated and passes its local freshness check. The next hosted
+  run must confirm both repairs and complete the remaining gates
   ([diagnosis](builds/2026-10-31-recovery/ci-1025-ruff-s108-fix.json)).
 
 ## Current continuation — documentation and C1 integration checks

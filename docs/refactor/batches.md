@@ -9742,14 +9742,23 @@ provenance ([review](current-state-and-implementation.md#c1-runtime-acl-work-cur
   malformed, insecure, future, or dead-process records. It also checks that
   every enabled worker child process is alive before opening PostgreSQL and
   returns aggregate child liveness only, never PIDs. The default heartbeat
-  moved to private app-owned `/var/lib/kokonut/worker-progress` after hosted
-  Ruff S108 rejected the prior `/tmp` default. Focused Standard tests pass 118
+  uses user-owned `~/.local/state` for direct host runs; Standard Compose
+  overrides to private app-owned `/var/lib/kokonut/worker-progress` after hosted
+  Ruff S108 rejected the prior `/tmp` default. Focused Standard tests pass 119
   cases. The file is ephemeral; no migration or volume is introduced.
 - [x] Retire five unscoped landscape write helpers and CLI commands; migration
   708 denies only `kokonut_runtime` table/column writes while preserving
   SELECT, migration-702 signed Gateway capture, and separate Directus/maintenance
   grants. Network-disabled PostgreSQL 16 apply/replay and capture checks pass.
   External importer use remains a candidate-rollout gate.
+- [x] Add migration 709 to preserve runtime reads of `schema_version` while
+  denying table and column writes. The migration/bootstrap runner is the only
+  in-repository writer found; its network-disabled PostgreSQL acceptance passes
+  apply/replay and verifies Directus/maintenance writes remain available.
+  External importer use remains unconfirmed, so persistent rollout is gated
+  ([source regression](../../tests/test_runtime_role_boundary.py);
+  [checker](../../scripts/check-schema-version-runtime-boundary-disposable.py);
+  [evidence](builds/2026-10-31-recovery/schema-version-runtime-read-only-709.json)).
 - [x] Run a fresh, no-seed PostgreSQL 16 ordered replay through migration 708;
   the migration runner logged 699 applied and zero failed. A separate
   post-run ad hoc ledger query used a nonexistent column, so this records
@@ -9776,8 +9785,10 @@ provenance ([review](current-state-and-implementation.md#c1-runtime-acl-work-cur
   (`41222846441`) failed the Ruff security scan on two identical S108 findings
   for `/tmp/kokonut-worker-progress/supervisor.json`. The default and Standard
   Compose path now use private app-owned `/var/lib/kokonut/worker-progress`;
-  exact local Ruff and 118 focused tests pass. Await a complete hosted run on
-  the repair SHA ([evidence](builds/2026-10-31-recovery/ci-1025-ruff-s108-fix.json)).
+  exact local Ruff and 118 focused tests pass. CI #1026 then caught stale
+  runtime-SQL inventory; it has been regenerated and its local freshness check
+  passes. Await a complete hosted run with both repairs
+  ([evidence](builds/2026-10-31-recovery/ci-1025-ruff-s108-fix.json)).
 - [ ] Obtain a complete hosted CI run on the repair SHA and close the remaining
   release gate only after both required CI and Security checks pass.
 

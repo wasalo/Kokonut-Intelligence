@@ -155,7 +155,7 @@ sequence, function, ownership, and Directus safety. Migration 705 is a
 separate Directus reprovisioning policy; it does not certify Directus API or
 extension parity ([707 report](builds/2026-10-31-recovery/runtime-privilege-callsite-report-707.json)).
 
-This local batch records migrations 700–708 and scoped operations:
+This local batch records migrations 700–709 and scoped operations:
 
 | Migration | Added operation | Local acceptance recorded |
 | --- | --- | --- |
@@ -168,6 +168,7 @@ This local batch records migrations 700–708 and scoped operations:
 | 706 | Keep the shared `protocol` catalog readable to the general runtime while denying its table/column writes; preserve Directus and maintenance-role grants. | Network-isolated PostgreSQL 16 checks pass migration apply/replay, SELECT, DML/column denial, role-provisioner reapplication, and synthetic Directus/maintenance writes ([evidence](builds/2026-10-31-recovery/runtime-protocol-read-only-disposable.json)). External importer use through `kokonut_runtime` is not confirmed, so persistent rollout remains gated. |
 | 707 | Keep authorization-bearing `farmer_role` defaults readable to runtime while denying its table and residual column writes. | Source audit found one application SELECT and no in-repository service, extension, or Directus writer. Focused PostgreSQL 16 acceptance passes apply/replay, provisioner reapplication, runtime SELECT/write denial, and preservation of Directus/maintenance writes ([source audit](builds/2026-10-31-recovery/farmer-role-707-source-audit.json); [evidence](builds/2026-10-31-recovery/farmer-role-runtime-read-only-707-disposable.json)). External importer use through `kokonut_runtime` remains unconfirmed; persistent rollout is gated. |
 | 708 | Retire five unscoped legacy landscape writers and deny `kokonut_runtime` table/column DML on their records while preserving the signed migration-702 Gateway writer. | Focused network-disabled PostgreSQL 16 acceptance passes migration apply/replay, preserved SELECT and writer-owner grants, and authenticated capture/replay ([checker](../../scripts/check-landscape-runtime-boundary-disposable.py)). External importer use remains unconfirmed; candidate rollout stays gated. |
+| 709 | Preserve runtime SELECT on ordered schema metadata while denying `kokonut_runtime` table and column DML on `schema_version`; preserve maintenance and Directus grants. | Source audit and network-disabled PostgreSQL 16 apply/replay check pass; external importer use is unconfirmed and persistent rollout remains gated ([source regression](../../tests/test_runtime_role_boundary.py); [checker](../../scripts/check-schema-version-runtime-boundary-disposable.py); [evidence](builds/2026-10-31-recovery/schema-version-runtime-read-only-709.json)). |
 
 The complete native replay through migration 707 applies all 698 ordered
 schema files and passes 38 synthetic two-tenant operator-scope checks in a

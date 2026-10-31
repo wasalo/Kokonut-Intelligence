@@ -24,7 +24,7 @@ incomplete in the inventory.
 
 ## Current evidence and decisions
 
-### Current cohort — migrations 700–708, 31 October 2026
+### Current cohort — migrations 700–709, 31 October 2026
 
 The detailed source/function cohort below covers migrations 700–703. Migrations
 704, 705, 706, and 707 add, respectively, the runtime read-only boundary for
@@ -99,6 +99,20 @@ through 708 applied with zero migration failures. Its subsequent ad hoc ledger
 query used a nonexistent column, so the replay confirms migration application
 only; it does not create a post-708 ACL inventory or ledger verification
 ([recovery evidence](builds/2026-10-31-recovery/ci-1024-repair-local-checks.json)).
+
+Migration 709 preserves runtime SELECT on `public.schema_version` while
+revoking runtime table and residual column DML. The ordered schema runner is
+the only in-repository writer found; services, workers, extensions, and
+Directus permissions have no application write path. A network-disabled
+disposable PostgreSQL check applies and replays 709, confirms the runtime
+read-only boundary, and proves separate Directus/maintenance writes remain
+available ([source regression](../../tests/test_runtime_role_boundary.py);
+[checker](../../scripts/check-schema-version-runtime-boundary-disposable.py);
+[evidence](builds/2026-10-31-recovery/schema-version-runtime-read-only-709.json)).
+External importer use through `kokonut_runtime` remains unconfirmed, so do not
+apply the restriction to a persistent candidate or production target until
+that identity contract is checked. This focused test is not a full-schema
+replay or tenant-isolation acceptance.
 
 The location-scoped tension, extension-learning, landscape-capture, and metric
 value source contracts now have additive SQL functions, isolated function

@@ -26,7 +26,9 @@ from services.common.worker_environment import (
 logger = get_logger("core.runtime")
 
 SUPERVISOR_HEARTBEAT_FILE_ENV = "KOKONUT_WORKER_PROGRESS_HEARTBEAT_FILE"
-DEFAULT_SUPERVISOR_HEARTBEAT_FILE = "/var/lib/kokonut/worker-progress/supervisor.json"
+DEFAULT_SUPERVISOR_HEARTBEAT_FILE = str(
+    Path.home() / ".local" / "state" / "kokonut" / "worker-progress" / "supervisor.json"
+)
 SUPERVISOR_HEARTBEAT_INTERVAL_SECONDS = 5
 
 

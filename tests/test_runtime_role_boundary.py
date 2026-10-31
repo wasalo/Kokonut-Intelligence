@@ -1843,6 +1843,50 @@ def test_farmer_role_defaults_are_read_only_to_runtime_and_maintenance_owned():
     assert "does not establish tenant isolation" in migration
 
 
+def test_schema_version_writes_remain_on_the_ordered_migration_path():
+    root = Path(__file__).resolve().parents[1]
+    migration = (
+        root / "schemas/postgres/709_runtime_schema_version_read_only.sql"
+    ).read_text()
+    inventory = build_inventory()
+    service_sites = [
+        site
+        for site in inventory["execution_sites"]
+        if "schema_version" in site.get("candidate_relations", [])
+    ]
+    service_write_sites = [
+        site
+        for site in inventory["execution_sites"]
+        if "schema_version" in site.get("write_target_relations", [])
+    ]
+    application_runtime_sql = []
+    runtime_sql = re.compile(
+        r"\b(?:INSERT\s+INTO|UPDATE|DELETE\s+FROM|MERGE\s+INTO)\s+"
+        r"(?:public\.)?schema_version\b",
+        re.IGNORECASE,
+    )
+    for directory in (root / "services", root / "extensions"):
+        for path in directory.rglob("*"):
+            if path.is_file() and path.suffix in {".py", ".ts", ".js", ".sql"}:
+                if runtime_sql.search(path.read_text(errors="ignore")):
+                    application_runtime_sql.append(path.relative_to(root).as_posix())
+    directus_permissions = (root / "config/directus/permissions.sql").read_text()
+    policy_overrides = REPORTER["_SOURCE_REVOKE_POLICY_OVERRIDES"]
+
+    assert service_sites == []
+    assert service_write_sites == []
+    assert application_runtime_sql == []
+    assert "schema_version" not in directus_permissions
+    assert "schema_version" in runtime_role._RUNTIME_MUTATION_TABLES
+    assert policy_overrides["schema_version"] == "runtime_mutations_denied"
+    assert migration.count("BEGIN;") == 1 and migration.count("COMMIT;") == 1
+    assert "REVOKE INSERT, UPDATE, DELETE, TRUNCATE, REFERENCES, TRIGGER " in migration
+    assert "ON TABLE public.schema_version FROM kokonut_runtime" in migration
+    assert "GRANT SELECT ON TABLE public.schema_version TO kokonut_runtime" in migration
+    assert "external importer" in migration.lower()
+    assert "does not establish tenant isolation" in migration
+
+
 def test_mobile_credential_columns_are_excluded_from_runtime_reads():
     assert "device_token_hash" not in runtime_role._MOBILE_DEVICE_READ_COLUMNS
     assert "push_token" not in runtime_role._MOBILE_DEVICE_READ_COLUMNS

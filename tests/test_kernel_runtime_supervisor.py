@@ -14,7 +14,7 @@ from pathlib import Path
 import pytest
 
 from services.common.worker_environment import EVENT_HANDLER_WORKER_KEYS, SCHEDULED_WORKER_KEYS
-from services.core import runtime
+from services.core import runtime, worker_progress
 
 
 class _Process:
@@ -33,6 +33,14 @@ class _Process:
             self.timeout = False
             raise subprocess.TimeoutExpired("kernel-child", timeout)
         return self.exit_code
+
+
+def test_default_supervisor_heartbeat_uses_user_writable_state_path():
+    expected = Path.home() / ".local" / "state" / "kokonut" / "worker-progress" / "supervisor.json"
+
+    assert Path(runtime.DEFAULT_SUPERVISOR_HEARTBEAT_FILE) == expected
+    assert Path(worker_progress.DEFAULT_HEARTBEAT_FILE) == expected
+    assert not str(expected).startswith("/tmp/")
 
 
 def _install_signal_fakes(monkeypatch, *, stop_on_sleep: bool = False):

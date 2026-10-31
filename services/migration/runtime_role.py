@@ -1185,6 +1185,7 @@ _RUNTIME_MUTATION_TABLES = (
     "hedgerow_record",
     "buffer_zone_monitoring",
     "landscape_biodiversity_score",
+    "schema_version",
 )
 
 # Immutable audit evidence keeps SELECT/INSERT under the runtime login.

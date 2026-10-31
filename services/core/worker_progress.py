@@ -16,7 +16,9 @@ DEFAULT_STALE_SECONDS = 300
 DEFAULT_BACKLOG_SECONDS = 900
 DEFAULT_HEARTBEAT_SECONDS = 60
 HEARTBEAT_FILE_ENV = "KOKONUT_WORKER_PROGRESS_HEARTBEAT_FILE"
-DEFAULT_HEARTBEAT_FILE = "/var/lib/kokonut/worker-progress/supervisor.json"
+DEFAULT_HEARTBEAT_FILE = str(
+    Path.home() / ".local" / "state" / "kokonut" / "worker-progress" / "supervisor.json"
+)
 MAX_STALE_SECONDS = 2_678_400  # 31 days; protects interval conversion from bad configuration.
 WORKER_NAMES = ("scheduler", "events", "notifications")
 

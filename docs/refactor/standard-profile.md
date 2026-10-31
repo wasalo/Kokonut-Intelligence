@@ -100,18 +100,20 @@ result, and queues whose worker feature is disabled are omitted.
 
 Database errors fail health closed and expose only the exception class. The
 worker supervisor writes an atomic heartbeat to a mode-0600 file inside a
-mode-0700 container-local directory every five seconds. The default heartbeat
+mode-0700 private directory every five seconds. The default heartbeat
 age limit is 60 seconds and can be changed with
 `KOKONUT_WORKER_PROGRESS_HEARTBEAT_SECONDS`; the file path is
 `KOKONUT_WORKER_PROGRESS_HEARTBEAT_FILE`, defaulting to
-`/var/lib/kokonut/worker-progress/supervisor.json`. The image creates its
-parent directory as mode 0700, owned by the non-root application user. The
+`~/.local/state/kokonut/worker-progress/supervisor.json` for direct host runs.
+Standard Compose overrides it with
+`/var/lib/kokonut/worker-progress/supervisor.json`; the image creates that
+directory as mode 0700, owned by the non-root application user. The
 healthcheck rejects a missing, malformed, non-private, stale, or dead-process
 heartbeat, and missing/dead enabled worker children, before it opens
 PostgreSQL. Its `supervisor` field exposes only alive state, whole-second age,
 and aggregate `children_alive`; it never returns process IDs or the generation
-token. The file is ephemeral container state; the profile adds no volume or
-migration for liveness.
+token. In Standard Compose, the file is ephemeral container state; the profile
+adds no volume or migration for liveness.
 
 The default stale-work grace period is 300 seconds and can be changed with
 `KOKONUT_WORKER_PROGRESS_STALE_SECONDS`; the default maximum due-backlog age is

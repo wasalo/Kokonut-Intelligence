@@ -19,6 +19,7 @@
   },
   "repair": {
     "heartbeat_path": "/var/lib/kokonut/worker-progress/supervisor.json",
+    "standard_compose_path": "/var/lib/kokonut/worker-progress/supervisor.json",
     "directory_mode": "0700",
     "directory_owner": "appuser",
     "compose_path_matches_image": true,
@@ -36,5 +37,32 @@
     },
     "git_diff_check": "passed"
   },
-  "hosted_repair_run": "pending"
+  "repair_commit": "1c6643dee39ab43174e3ea54fd6cbb7120e10f09",
+  "pushed_to": "chore/kernel-next-sprint-plan",
+  "hosted_repair_run": {
+    "ci": {
+      "run_id": 41223534758,
+      "run_number": 1026,
+      "status": "failed",
+      "failure": "runtime SQL inventory was stale after the source changes on commit 1c6643de",
+      "repair": "regenerated docs/refactor/runtime-sql-inventory.json; its local freshness check passes"
+    },
+    "security": {
+      "run_id": 41223534795,
+      "run_number": 750,
+      "status": "passed"
+    }
+  },
+  "next_hosted_run": "pending push of the refreshed source inventory and migration 709 batch",
+  "follow_up_pre_push": {
+    "code_default_path": "~/.local/state/kokonut/worker-progress/supervisor.json",
+    "standard_compose_path": "/var/lib/kokonut/worker-progress/supervisor.json",
+    "focused_tests": {
+      "passed": 119,
+      "failed": 0
+    },
+    "runtime_sql_inventory": "regenerated and freshness check passed on source including migration 709",
+    "release_inputs": "passed",
+    "migration_source_validation": "822 files passed"
+  }
 }
