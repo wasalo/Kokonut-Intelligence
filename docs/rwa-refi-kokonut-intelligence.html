@@ -1,0 +1,888 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#09281b">
+  <meta name="description" content="Explore how Kokonut Intelligence connects land stewardship, farm operations, finance, evidence and governance to address RWA and ReFi challenges.">
+  <title>Real-Asset Project Intelligence — Kokonut</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --forest: #09281b;
+      --forest-deep: #061c13;
+      --forest-mid: #155438;
+      --green: #009f4d;
+      --logo-green: #159a50;
+      --lime: #bbef87;
+      --cream: #f7f8f1;
+      --paper: #fff;
+      --ink: #11251a;
+      --muted: #536a5c;
+      --line: #dce7dc;
+      --yellow: #ffcd00;
+      --shadow: 0 16px 44px rgba(9, 40, 27, .09);
+      --radius: 18px;
+      color-scheme: light;
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; scroll-padding-top: 96px; }
+    body {
+      margin: 0;
+      color: var(--ink);
+      background: var(--cream);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.55;
+    }
+    button, input { font: inherit; }
+    button, a { -webkit-tap-highlight-color: transparent; }
+    a { color: inherit; }
+    button:focus-visible, a:focus-visible, input:focus-visible, summary:focus-visible {
+      outline: 3px solid var(--yellow);
+      outline-offset: 4px;
+    }
+    .wrap { width: min(1180px, calc(100% - 48px)); margin: 0 auto; }
+
+    .topbar {
+      position: sticky;
+      z-index: 20;
+      top: 0;
+      color: #fff;
+      background: rgba(6, 28, 19, .94);
+      border-bottom: 1px solid rgba(255,255,255,.12);
+      backdrop-filter: blur(16px);
+    }
+    .topbar-inner { display: flex; align-items: center; justify-content: space-between; min-height: 72px; gap: 24px; }
+    .brand { display: inline-flex; align-items: center; min-width: 150px; }
+    .brand img { display: block; width: 146px; height: auto; }
+    .nav { display: flex; align-items: center; gap: 24px; }
+    .nav a { color: #d7e6dc; font-size: 12px; font-weight: 650; text-decoration: none; }
+    .nav a:hover { color: var(--lime); }
+    .nav .nav-cta { padding: 10px 14px; color: var(--forest); background: var(--lime); border-radius: 8px; }
+
+    .hero {
+      position: relative;
+      overflow: hidden;
+      padding: 72px 0 54px;
+      color: white;
+      background:
+        radial-gradient(ellipse at 84% 24%, rgba(21,84,56,.9) 0, rgba(21,84,56,0) 38%),
+        radial-gradient(ellipse at 10% 100%, rgba(0,159,77,.18) 0, rgba(0,159,77,0) 42%),
+        linear-gradient(128deg, var(--forest-deep), var(--forest) 70%);
+    }
+    .hero::after {
+      position: absolute;
+      right: -120px;
+      bottom: -260px;
+      width: 620px;
+      height: 620px;
+      border: 1px solid rgba(187,239,135,.14);
+      border-radius: 50%;
+      content: "";
+      box-shadow: 0 0 0 54px rgba(187,239,135,.025), 0 0 0 108px rgba(187,239,135,.025), 0 0 0 162px rgba(187,239,135,.025);
+      pointer-events: none;
+    }
+    .hero-grid { position: relative; z-index: 1; display: grid; grid-template-columns: 1fr .9fr; align-items: center; gap: 58px; }
+    .eyebrow { display: inline-flex; align-items: center; gap: 10px; color: #ccebd2; font-size: 10px; font-weight: 800; letter-spacing: .2em; text-transform: uppercase; }
+    .eyebrow::before { width: 8px; height: 8px; border-radius: 50%; background: var(--lime); box-shadow: 0 0 0 5px rgba(187,239,135,.13); content: ""; }
+    h1 { max-width: 720px; margin: 24px 0 18px; font-size: clamp(42px, 6vw, 72px); font-weight: 760; letter-spacing: -.065em; line-height: 1.04; }
+    h1 em { color: #8ce1a6; font-style: normal; }
+    .hero-copy { max-width: 620px; margin: 0; color: #d3e3da; font-size: 16px; line-height: 1.8; }
+    .hero-copy strong { color: white; font-weight: 700; }
+    .hero-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 28px; }
+    .button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      min-height: 44px;
+      padding: 11px 16px;
+      border: 1px solid transparent;
+      border-radius: 8px;
+      color: var(--forest);
+      background: var(--lime);
+      font-size: 12px;
+      font-weight: 800;
+      text-decoration: none;
+      cursor: pointer;
+      transition: transform .18s ease, background .18s ease;
+    }
+    .button:hover { transform: translateY(-2px); background: #c9f59a; }
+    .button.secondary { color: white; background: transparent; border-color: rgba(255,255,255,.42); }
+    .button.secondary:hover { background: rgba(255,255,255,.08); }
+    .hero-meta { display: flex; flex-wrap: wrap; gap: 11px 18px; margin-top: 28px; color: #a9c9b4; font-size: 10px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; }
+    .hero-meta span::before { margin-right: 8px; color: var(--yellow); content: "•"; }
+
+    .record-visual {
+      position: relative;
+      padding: 25px;
+      border: 1px solid rgba(255,255,255,.2);
+      border-radius: 22px;
+      background: linear-gradient(145deg, rgba(255,255,255,.08), rgba(255,255,255,.025));
+      box-shadow: 0 24px 60px rgba(0,0,0,.17);
+    }
+    .record-top { display: flex; align-items: center; justify-content: space-between; gap: 16px; color: #c6ddcc; font-size: 9px; font-weight: 800; letter-spacing: .16em; text-transform: uppercase; }
+    .record-top .live { color: var(--lime); }
+    .record-center { position: relative; margin: 21px 0 18px; padding: 19px; border: 1px solid rgba(187,239,135,.46); border-radius: 14px; background: rgba(9,40,27,.55); text-align: center; }
+    .record-center .record-icon { display: grid; width: 43px; height: 43px; margin: 0 auto 10px; place-items: center; border-radius: 50%; color: var(--forest); background: var(--lime); font-size: 20px; }
+    .record-center strong { display: block; font-size: 19px; letter-spacing: -.035em; }
+    .record-center span { color: #bbd6c4; font-size: 11px; }
+    .record-links { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .record-link {
+      display: flex;
+      min-height: 46px;
+      align-items: center;
+      gap: 9px;
+      padding: 10px 11px;
+      border: 1px solid rgba(255,255,255,.15);
+      border-radius: 9px;
+      color: #f2f8f3;
+      background: rgba(19,60,43,.72);
+      font-size: 10px;
+      font-weight: 700;
+      text-align: left;
+      cursor: pointer;
+      transition: border-color .15s ease, background .15s ease, transform .15s ease;
+    }
+    .record-link:hover { transform: translateY(-1px); border-color: var(--lime); background: rgba(28,83,57,.88); }
+    .record-link .mini-icon { display: grid; width: 23px; height: 23px; flex: 0 0 auto; place-items: center; border-radius: 7px; color: var(--lime); background: rgba(187,239,135,.1); font-size: 12px; }
+    .record-foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 16px; padding-top: 13px; border-top: 1px solid rgba(255,255,255,.14); color: #a8c6b2; font-size: 9px; }
+    .record-foot strong { color: white; }
+
+    .summary-strip { color: var(--forest); background: var(--lime); }
+    .summary-inner { display: flex; align-items: center; justify-content: space-between; gap: 20px; min-height: 58px; }
+    .summary-inner p { margin: 0; font-size: 10px; font-weight: 800; letter-spacing: .09em; text-transform: uppercase; }
+    .summary-inner span { color: #31563c; font-size: 10px; font-weight: 700; }
+
+    .section { padding: 76px 0; }
+    .section.light { background: var(--paper); }
+    .section-kicker { margin: 0 0 10px; color: var(--green); font-size: 10px; font-weight: 850; letter-spacing: .18em; text-transform: uppercase; }
+    .section-heading { display: flex; align-items: end; justify-content: space-between; gap: 40px; margin-bottom: 30px; }
+    .section-heading h2 { max-width: 670px; margin: 0; font-size: clamp(29px, 4vw, 46px); letter-spacing: -.055em; line-height: 1.1; }
+    .section-heading h2 em { color: var(--green); font-style: normal; }
+    .section-heading > p { max-width: 380px; margin: 0; color: var(--muted); font-size: 15px; line-height: 1.7; }
+
+    .loop-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; counter-reset: loop; }
+    .loop-card {
+      position: relative;
+      min-height: 186px;
+      padding: 20px;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: var(--cream);
+      counter-increment: loop;
+    }
+    .loop-card::before { display: grid; width: 28px; height: 28px; margin-bottom: 17px; place-items: center; border-radius: 50%; color: var(--forest); background: var(--lime); content: counter(loop, decimal-leading-zero); font-size: 9px; font-weight: 850; }
+    .loop-card:not(:last-child)::after { position: absolute; top: 33px; right: -17px; z-index: 2; width: 22px; height: 1px; background: var(--green); content: ""; }
+    .loop-card h3 { margin: 0 0 7px; font-size: 15px; letter-spacing: -.025em; }
+    .loop-card p { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.7; }
+    .loop-card span { display: inline-block; margin-top: 13px; color: #287246; font-size: 10px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; }
+
+    .systems { padding: 0 0 8px; background: var(--paper); }
+    .system-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 9px; }
+    .system-button {
+      min-height: 126px;
+      padding: 16px;
+      border: 1px solid #dce7dc;
+      border-radius: 12px;
+      background: #fff;
+      text-align: left;
+      cursor: pointer;
+      transition: transform .15s ease, border-color .15s ease, box-shadow .15s ease;
+    }
+    .system-button:hover { transform: translateY(-3px); border-color: var(--green); box-shadow: 0 9px 24px rgba(9,40,27,.08); }
+    .system-button .system-count { display: block; color: var(--green); font-size: 10px; font-weight: 850; letter-spacing: .08em; text-transform: uppercase; }
+    .system-button strong { display: block; margin-top: 8px; font-size: 13px; letter-spacing: -.02em; }
+    .system-button span:last-child { display: block; margin-top: 6px; color: #536a5c; font-size: 11px; line-height: 1.45; }
+
+    .challenge-section { background: var(--cream); }
+    .controls {
+      position: sticky;
+      z-index: 10;
+      top: 72px;
+      display: grid;
+      grid-template-columns: minmax(250px, 1fr) auto;
+      gap: 14px;
+      align-items: center;
+      margin: 0 -5px 23px;
+      padding: 9px 5px;
+      background: rgba(247,248,241,.94);
+      backdrop-filter: blur(12px);
+    }
+    .search-wrap { position: relative; }
+    .search-wrap::before { position: absolute; top: 50%; left: 14px; color: #738477; content: "⌕"; font-size: 20px; transform: translateY(-55%); pointer-events: none; }
+    .search {
+      width: 100%;
+      min-height: 50px;
+      padding: 11px 16px 11px 44px;
+      border: 1px solid var(--line);
+      border-radius: 9px;
+      color: var(--ink);
+      background: #fff;
+      font-size: 14px;
+    }
+    .control-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: end; gap: 8px; }
+    .tool-button { min-height: 44px; padding: 9px 14px; border: 1px solid var(--line); border-radius: 8px; color: #294235; background: white; font-size: 13px; font-weight: 750; cursor: pointer; }
+    .tool-button:hover { border-color: var(--green); }
+    .filter-list { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 19px; }
+    .filter-button { min-height: 40px; padding: 8px 14px; border: 1px solid #d6e1d6; border-radius: 99px; color: #294a36; background: white; font-size: 12px; font-weight: 800; cursor: pointer; transition: background .14s ease, color .14s ease, border-color .14s ease; }
+    .filter-button:hover { border-color: var(--green); }
+    .filter-button[aria-pressed="true"] { border-color: var(--forest); color: white; background: var(--forest); }
+    .filter-button .count { margin-left: 4px; color: inherit; opacity: .65; }
+    .result-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 0 0 14px; color: #536a5c; font-size: 13px; }
+    .result-bar strong { color: var(--ink); }
+    .explorer-grid { display: grid; grid-template-columns: minmax(275px, .76fr) minmax(0, 1.6fr); align-items: start; gap: 18px; }
+    .challenge-list { max-height: 690px; overflow: auto; padding: 8px; border: 1px solid #dce7dc; border-radius: 16px; background: #edf2e9; scrollbar-color: #9ab9a0 transparent; }
+    .challenge-item { display: grid; width: 100%; grid-template-columns: 34px 1fr; gap: 12px; align-items: start; padding: 13px 12px; border: 1px solid transparent; border-radius: 10px; color: var(--ink); background: transparent; text-align: left; cursor: pointer; }
+    .challenge-item + .challenge-item { margin-top: 3px; }
+    .challenge-item:hover { background: #f8faf5; }
+    .challenge-item[aria-current="true"] { border-color: #a8cfb0; background: white; box-shadow: 0 3px 10px rgba(9,40,27,.06); }
+    .challenge-item[hidden] { display: none; }
+    .challenge-number { display: grid; width: 34px; height: 34px; place-items: center; border-radius: 9px; color: var(--forest); background: #dcefd3; font-size: 12px; font-weight: 850; }
+    .challenge-title { display: block; margin: 1px 0 4px; color: var(--ink); font-size: 14px; font-weight: 800; letter-spacing: -.02em; line-height: 1.4; }
+    .challenge-one-line { display: -webkit-box; overflow: hidden; color: #4c6254; font-size: 12px; line-height: 1.5; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
+    .challenge-panel { min-height: 430px; padding: clamp(22px, 3.3vw, 42px); border: 1px solid #dce7dc; border-radius: 18px; background: white; box-shadow: var(--shadow); }
+    .panel-top { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 24px; }
+    .panel-system { color: var(--green); font-size: 11px; font-weight: 850; letter-spacing: .12em; text-transform: uppercase; }
+    .panel-number { color: #6d7e71; font-size: 13px; font-weight: 750; }
+    .panel-title { max-width: 760px; margin: 0 0 25px; font-size: clamp(24px, 3vw, 37px); letter-spacing: -.045em; line-height: 1.14; }
+    .panel-block { padding: 18px 20px; border-radius: 11px; }
+    .panel-block + .panel-block { margin-top: 14px; }
+    .panel-block.challenge-source { border-left: 3px solid var(--yellow); background: #fcfbf2; }
+    .panel-block.ki-response { border: 1px solid #dcebd9; background: #f2f8ee; }
+    .detail-label { margin: 0 0 7px; color: #287246; font-size: 11px; font-weight: 850; letter-spacing: .11em; text-transform: uppercase; }
+    .detail-copy { margin: 0; color: #263f30; font-size: 16px; line-height: 1.75; }
+    .challenge-source .detail-copy { color: #4d5e52; }
+    .capability-tags { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 17px; }
+    .capability-tag { padding: 7px 10px; border: 1px solid #d2e5cd; border-radius: 99px; color: #285b3b; background: #fff; font-size: 11px; font-weight: 750; }
+    .panel-nav { display: flex; justify-content: space-between; gap: 12px; margin-top: 24px; }
+    .panel-nav .tool-button { min-height: 46px; }
+    .panel-nav button:disabled { color: #89968c; background: #f6f7f3; cursor: not-allowed; }
+    .empty-state { display: none; padding: 36px; border: 1px dashed #b9cbb9; border-radius: 14px; color: var(--muted); text-align: center; font-size: 15px; }
+    .empty-state.visible { display: block; }
+    .print-challenges { display: none; }
+
+    .closing { padding: 62px 0; color: white; background: var(--forest); }
+    .closing-grid { display: grid; grid-template-columns: 1.3fr .7fr; align-items: center; gap: 45px; }
+    .closing h2 { margin: 0 0 12px; font-size: clamp(25px, 3vw, 37px); letter-spacing: -.05em; line-height: 1.12; }
+    .closing h2 em { color: var(--lime); font-style: normal; }
+    .closing p { max-width: 710px; margin: 0; color: #c6d8cc; font-size: 12px; line-height: 1.8; }
+    .closing-actions { display: flex; flex-direction: column; align-items: stretch; gap: 9px; }
+    .closing-actions a { text-align: center; }
+    .closing-actions .button.secondary { border-color: rgba(255,255,255,.35); }
+    footer { padding: 22px 0; background: #f0f4ec; }
+    .footer-inner { display: flex; align-items: center; justify-content: space-between; gap: 20px; }
+    .footer-brand { display: flex; align-items: center; gap: 12px; }
+    .footer-brand img { width: 110px; height: auto; }
+    .footer-brand span, .footer-source { color: #627567; font-size: 9px; }
+    .footer-source a { color: #286d43; font-weight: 750; text-decoration-thickness: 1px; text-underline-offset: 2px; }
+    .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+
+    @media (max-width: 960px) {
+      .hero-grid { grid-template-columns: 1fr; gap: 34px; }
+      .record-visual { max-width: 640px; }
+      .system-grid { grid-template-columns: repeat(3, 1fr); }
+      .explorer-grid { grid-template-columns: minmax(240px, .8fr) minmax(0, 1.4fr); gap: 12px; }
+      .challenge-list { max-height: 620px; }
+      .loop-grid { grid-template-columns: repeat(2, 1fr); }
+      .loop-card:nth-child(2)::after { display: none; }
+      .controls { grid-template-columns: 1fr; top: 72px; }
+      .control-actions { justify-content: start; }
+    }
+    @media (max-width: 640px) {
+      .wrap { width: min(100% - 30px, 1180px); }
+      .topbar-inner { min-height: 62px; }
+      .brand img { width: 119px; }
+      .nav { gap: 13px; }
+      .nav a { font-size: 10px; }
+      .nav a:first-child { display: none; }
+      .nav .nav-cta { padding: 8px 10px; }
+      .hero { padding: 53px 0 39px; }
+      h1 { font-size: 43px; }
+      .hero-copy { font-size: 14px; }
+      .record-visual { padding: 15px; border-radius: 15px; }
+      .record-link { min-height: 48px; padding: 8px; font-size: 9px; }
+      .record-foot { align-items: flex-start; flex-direction: column; }
+      .summary-inner { align-items: flex-start; flex-direction: column; justify-content: center; gap: 3px; padding: 10px 0; }
+      .section { padding: 55px 0; }
+      .section-heading { align-items: flex-start; flex-direction: column; gap: 12px; }
+      .section-heading > p { max-width: 500px; }
+      .loop-grid { gap: 8px; }
+      .loop-card { min-height: 178px; padding: 15px; }
+      .loop-card::after { display: none; }
+      .system-grid { grid-template-columns: repeat(2, 1fr); }
+      .system-button { min-height: 105px; }
+      .controls { top: 62px; margin: 0 -2px 15px; }
+      .filter-list { flex-wrap: nowrap; overflow-x: auto; padding: 2px 0 5px; scrollbar-width: thin; }
+      .filter-button { flex: 0 0 auto; }
+      .explorer-grid { grid-template-columns: 1fr; }
+      .challenge-panel { grid-row: 1; min-height: 0; padding: 22px 18px; }
+      .challenge-list { display: grid; max-height: 310px; grid-template-columns: 1fr; padding: 6px; }
+      .panel-title { font-size: 27px; }
+      .detail-copy { font-size: 15px; }
+      .result-bar span:last-child { display: none; }
+      .closing-grid { grid-template-columns: 1fr; gap: 24px; }
+      .closing-actions { flex-direction: row; flex-wrap: wrap; }
+      .closing-actions a { flex: 1 1 140px; }
+      .footer-inner { align-items: flex-start; flex-direction: column; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; animation-duration: .01ms !important; }
+    }
+    @media print {
+      :root { color-scheme: light; }
+      body { background: #fff; }
+      .topbar, .hero-actions, .controls, .filter-list, .system-grid, .closing-actions, footer, .explorer-grid, .result-bar, .empty-state { display: none !important; }
+      .hero { padding: 22px 0; color: var(--forest); background: #fff; }
+      .hero-copy, .hero-meta { color: #405648; }
+      .hero-grid { grid-template-columns: 1fr; }
+      .record-visual { display: none; }
+      .summary-strip { background: var(--lime); print-color-adjust: exact; }
+      .section { padding: 20px 0; }
+      .loop-grid { grid-template-columns: repeat(4, 1fr); }
+      .loop-card { min-height: auto; padding: 10px; }
+      .print-challenges { display: block; }
+      .print-challenge { break-inside: avoid; margin: 0 0 12px; padding: 11px 13px; border: 1px solid #dce7dc; border-radius: 8px; }
+      .print-challenge h3 { margin: 0 0 6px; font-size: 13px; }
+      .print-challenge p { margin: 4px 0; font-size: 10px; line-height: 1.5; }
+      .closing { padding: 22px 0; color: var(--forest); background: #fff; }
+      .closing p { color: #405648; }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="wrap topbar-inner">
+      <a class="brand" href="https://kokonut.network" aria-label="Kokonut Network home">
+        <img src="https://kokonut.network/logo/kkn_logo_white.svg" alt="Kokonut Network">
+      </a>
+      <nav class="nav" aria-label="Main navigation">
+        <a href="#model">Operating model</a>
+        <a href="#challenge-map">Challenge map</a>
+        <a class="nav-cta" href="https://github.com/wasalo/Kokonut-Intelligence">Explore KI ↗</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="wrap hero-grid">
+        <div>
+          <div class="eyebrow">Kokonut Intelligence · RWA × ReFi</div>
+          <h1>Real assets need a <em>real operating system.</em></h1>
+          <p class="hero-copy">Kokonut Intelligence connects the <strong>land, people, capital, field operations, evidence and governance</strong> behind a regenerative project. Start with one governed location record. Add on-chain proofs only where they improve coordination and trust.</p>
+          <div class="hero-actions">
+            <a class="button" href="#challenge-map">Explore the 29 challenges <span aria-hidden="true">↓</span></a>
+            <a class="button secondary" href="#model">See how KI connects them</a>
+          </div>
+          <div class="hero-meta"><span>Location first</span><span>Field to finance</span><span>Proof when useful</span></div>
+        </div>
+
+        <div class="record-visual" aria-label="Interactive map of Kokonut Intelligence systems connected to one project record">
+          <div class="record-top"><span>One governed project record</span><span class="live">● Integrated model</span></div>
+          <div class="record-center">
+            <div class="record-icon" aria-hidden="true">⌂</div>
+            <strong>Farm / Location</strong>
+            <span>Land · people · operations · evidence</span>
+          </div>
+          <div class="record-links">
+            <button class="record-link" data-jump-filter="place"><span class="mini-icon" aria-hidden="true">⌖</span><span>Land &amp; stewardship</span></button>
+            <button class="record-link" data-jump-filter="enterprise"><span class="mini-icon" aria-hidden="true">↗</span><span>Business &amp; finance</span></button>
+            <button class="record-link" data-jump-filter="evidence"><span class="mini-icon" aria-hidden="true">◉</span><span>Field data &amp; MRV</span></button>
+            <button class="record-link" data-jump-filter="capital"><span class="mini-icon" aria-hidden="true">◎</span><span>Capital &amp; rules</span></button>
+            <button class="record-link" data-jump-filter="governance"><span class="mini-icon" aria-hidden="true">♧</span><span>People &amp; governance</span></button>
+            <button class="record-link" data-jump-filter="ecosystem"><span class="mini-icon" aria-hidden="true">⌘</span><span>Technology &amp; partners</span></button>
+          </div>
+          <div class="record-foot"><span><strong>PostgreSQL + PostGIS</strong> · operational record</span><span>Optional EAS proofs · human-reviewed</span></div>
+        </div>
+      </div>
+    </section>
+
+    <div class="summary-strip">
+      <div class="wrap summary-inner">
+        <p>29 challenges → 6 integrated systems → 1 project record</p>
+        <span>Every challenge below opens onto a specific Kokonut workflow.</span>
+      </div>
+    </div>
+
+    <section class="section light" id="model">
+      <div class="wrap">
+        <div class="section-heading">
+          <div>
+            <p class="section-kicker">How KI connects the work</p>
+            <h2>From land rights to <em>credible outcomes.</em></h2>
+          </div>
+          <p>One operating loop links physical work, project economics, community authority and public evidence.</p>
+        </div>
+        <div class="loop-grid">
+          <article class="loop-card">
+            <h3>Ground the asset</h3>
+            <p>Map a location, stewardship model, affected parties, consent and land-use commitments.</p>
+            <span>Land Stewardship Trust · PostGIS</span>
+          </article>
+          <article class="loop-card">
+            <h3>Run a viable project</h3>
+            <p>Connect market, revenue, cost, budget, field activity, finance and risk into a working plan.</p>
+            <span>Business Plan · CRISP · Digital Finance</span>
+          </article>
+          <article class="loop-card">
+            <h3>Measure what changes</h3>
+            <p>Collect field observations, bind them to methods, and review evidence before making claims.</p>
+            <span>Field Collector · Metrics · MRV</span>
+          </article>
+          <article class="loop-card">
+            <h3>Govern and prove</h3>
+            <p>Record community decisions, safeguards, grievances and outcomes; publish approved summaries and optional proofs.</p>
+            <span>Governance · Reports · EAS</span>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="systems" aria-label="Browse by Kokonut system">
+      <div class="wrap">
+        <div class="system-grid">
+          <button class="system-button" data-jump-filter="place"><span class="system-count">04 challenges</span><strong>Place &amp; rights</strong><span>Tenure · stewardship · learning</span></button>
+          <button class="system-button" data-jump-filter="enterprise"><span class="system-count">05 challenges</span><strong>Enterprise &amp; finance</strong><span>Business model · liquidity</span></button>
+          <button class="system-button" data-jump-filter="evidence"><span class="system-count">03 challenges</span><strong>Evidence &amp; fieldwork</strong><span>Methods · measurement · reporting</span></button>
+          <button class="system-button" data-jump-filter="capital"><span class="system-count">04 challenges</span><strong>Capital &amp; regulation</strong><span>Token design · jurisdiction</span></button>
+          <button class="system-button" data-jump-filter="governance"><span class="system-count">06 challenges</span><strong>People &amp; governance</strong><span>Consent · DAO · remedies</span></button>
+          <button class="system-button" data-jump-filter="ecosystem"><span class="system-count">07 challenges</span><strong>Technology &amp; adoption</strong><span>Proof · tools · institutions</span></button>
+        </div>
+      </div>
+    </section>
+
+    <section class="section challenge-section" id="challenge-map">
+      <div class="wrap">
+        <div class="section-heading">
+          <div>
+            <p class="section-kicker">The challenge map</p>
+            <h2>29 challenges. <em>Concrete KI mechanisms.</em></h2>
+          </div>
+          <p>Filter by system or search a concern. Select a challenge to see the Kokonut workflows and controls that address it.</p>
+        </div>
+
+        <div class="controls">
+          <label class="search-wrap">
+            <span class="sr-only">Search challenges and KI capabilities</span>
+            <input id="search" class="search" type="search" placeholder="Search: land title, DAO, privacy, methodology…" autocomplete="off">
+          </label>
+          <div class="control-actions">
+            <button class="tool-button" id="print-page" type="button">Print / save PDF</button>
+          </div>
+        </div>
+
+        <div class="filter-list" role="group" aria-label="Filter challenge map by system" id="filters"></div>
+        <div class="result-bar"><span id="result-count" aria-live="polite"><strong>29</strong> challenges shown</span><span>Select a challenge to read its full KI workflow</span></div>
+        <div class="explorer-grid">
+          <nav class="challenge-list" id="challenge-list" aria-label="Challenges"></nav>
+          <article class="challenge-panel" id="challenge-panel" aria-live="polite"></article>
+        </div>
+        <div class="empty-state" id="empty-state">No challenges match that search. Try a broader term or choose “All 29”.</div>
+        <div class="print-challenges" id="print-challenges" aria-hidden="true"></div>
+      </div>
+    </section>
+
+    <section class="closing">
+      <div class="wrap closing-grid">
+        <div>
+          <p class="section-kicker" style="color:var(--lime)">The practical starting point</p>
+          <h2>Start with one location.<br><em>Connect the whole project.</em></h2>
+          <p>Use Kokonut Adelphi as the working example: link its stewardship commitments, farm operations, business model, CRISP risks, field evidence, stakeholder decisions and capital flows. The same record can then serve operators, community, funders, verifiers and institutions—with the right evidence visible to each.</p>
+        </div>
+        <div class="closing-actions">
+          <a class="button" href="https://docs.basin.global/dossier/other-projects/rwa-x-refi-report" target="_blank" rel="noreferrer">Read the RWA × ReFi report ↗</a>
+          <a class="button secondary" href="https://github.com/wasalo/Kokonut-Intelligence" target="_blank" rel="noreferrer">Explore Kokonut Intelligence ↗</a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="wrap footer-inner">
+      <div class="footer-brand">
+        <img src="https://kokonut.network/logo/kkn_logo.svg" alt="Kokonut Network">
+        <span>Open infrastructure for community-governed regenerative agriculture.</span>
+      </div>
+      <div class="footer-source">Palette and wordmark from <a href="https://github.com/wasalo/Kokonut-Public-Site/" target="_blank" rel="noreferrer">Kokonut Public Site</a> · challenge framing from <a href="https://docs.basin.global/dossier/other-projects/rwa-x-refi-report" target="_blank" rel="noreferrer">BASIN’s RWA × ReFi Report</a>.</div>
+    </div>
+  </footer>
+
+  <script>
+    const groups = [
+      { id: "all", label: "All 29" },
+      { id: "place", label: "Place & rights" },
+      { id: "enterprise", label: "Enterprise & finance" },
+      { id: "evidence", label: "Evidence & fieldwork" },
+      { id: "capital", label: "Capital & regulation" },
+      { id: "governance", label: "People & governance" },
+      { id: "ecosystem", label: "Technology & adoption" }
+    ];
+
+    const challenges = [
+      {
+        n: 1, group: "place", title: "Rename the frame: real-asset projects",
+        challenge: "“Real World Assets” implies everything else is unreal; even DeFi is increasingly connected to the physical economy.",
+        mechanism: "KI’s core record is a farm or location with stewardship, people, operations, finance and evidence. Position the platform around real-asset project intelligence; treat tokens as one possible representation.",
+        tags: ["Location + farm registry", "Project intelligence", "CIDS"]
+      },
+      {
+        n: 2, group: "place", title: "Make land and legal learning part of delivery",
+        challenge: "Projects often lack practical education and guidance on law and real estate.",
+        mechanism: "Use extension modules, peer groups, training records and assessment workflows to deliver land-tenure, permitting and real-estate learning alongside farm implementation. Partner-authored material can be tied to the people, location and actions it applies to.",
+        tags: ["Extension learning", "Peer groups", "Training records"]
+      },
+      {
+        n: 3, group: "place", title: "Turn tenure into a governed stewardship commitment",
+        challenge: "Climate and nature projects need land, permits and use agreements; unclear rights put projects and stakeholders at risk.",
+        mechanism: "KI’s Land Stewardship Trust records community/cooperative/customary/lease stewardship models, anti-speculation terms, commons-transition paths, reinvestment commitments, community control and veto rights. Link these to a mapped location, farm registry, evidence, outcomes and recurring adaptive reviews.",
+        tags: ["Land Stewardship Trust", "PostGIS", "Farm registry", "Adaptive review"]
+      },
+      {
+        n: 4, group: "enterprise", title: "Make the regenerative business investable",
+        challenge: "Many projects lack the business model and operating plan needed for investment and long-term growth.",
+        mechanism: "KI assembles location-level business plans from market analysis, farm NOI, reference-class forecasts, budgets and variance, value-stream bottlenecks, SWOT and strategy. The nine-block Business Model Canvas, revenue streams, pricing, cost structure and break-even analysis turn operating data into a financeable plan.",
+        tags: ["Business Plan", "Business Model Canvas", "Budget + variance", "Reference-class forecast"]
+      },
+      {
+        n: 5, group: "evidence", title: "Connect every claim to method and evidence",
+        challenge: "Projects may not understand methodologies or the scientific rigor required for high-quality impact and ecological assets.",
+        mechanism: "Field protocols and versioned metrics connect observations to methodologies, measurement protocols, registries and verifier references. Evidence maturity distinguishes narrative from externally verified results; public carbon claims require Level 6 evidence, a methodology reference and an external verifier.",
+        tags: ["Field data collection", "Versioned metrics", "Evidence maturity 0–6", "Credit methodology"]
+      },
+      {
+        n: 6, group: "capital", title: "Keep land, project finance and credit units distinct",
+        challenge: "Land-backed stablecoins can expose land and ecosystems to redemption runs and creditor claims.",
+        mechanism: "KI separates land-stewardship commitments, farm financial accounts and ecological credit classes/batches. Credit balances preserve tradable, escrowed and retired quantities. Its MiCA asset classifier flags a fungible credit basket as high risk and platform-issued EMTs as prohibited, routing those designs to a control gate.",
+        tags: ["Land Stewardship Trust", "Credit batch ledger", "MiCA perimeter", "Custody controls"]
+      },
+      {
+        n: 7, group: "ecosystem", title: "Choose on-chain use case by use case",
+        challenge: "Projects need to decide when to put an asset on-chain, keep it off-chain or remove it from a chain.",
+        mechanism: "PostgreSQL/PostGIS is KI’s canonical operational record. Private evidence stays off-chain; hash/CID references and resolver-gated EAS attestations can publish a reviewed proof on Celo, with indexing support for Base and Optimism. The project record remains useful without a token.",
+        tags: ["PostgreSQL + PostGIS", "Private evidence", "EAS attestations", "Celo / Base / Optimism"]
+      },
+      {
+        n: 8, group: "place", title: "Keep land title whole; govern stewardship and units",
+        challenge: "Fractionalizing title itself, instead of entity-level shares, can lock or “brick” a property.",
+        mechanism: "KI models the land relationship through community stewardship, cooperative use, leases, customary commons and transition terms; it models issued ecological claims as credit batches with account balances. Title and stewardship remain distinct records, with anti-speculation and community decision terms visible to reviewers.",
+        tags: ["Stewardship models", "Community control", "Credit batches", "Anti-speculation terms"]
+      },
+      {
+        n: 9, group: "capital", title: "Make jurisdiction differences visible per location",
+        challenge: "Cross-jurisdiction activity makes legal, tax and operational requirements complex.",
+        mechanism: "Regional PESTEL/readiness analysis, location-specific CRISP weights, currency/provider financial accounts and scoped stakeholder/consent records let teams compare each site on its own terms. Use the location business plan and risk register as the jurisdiction-specific review packet.",
+        tags: ["PESTEL", "Regional readiness", "CRISP overrides", "Scoped records"]
+      },
+      {
+        n: 10, group: "capital", title: "Put a regulatory gate before an offering",
+        challenge: "Securities and financial regulation apply when projects operate in the real world.",
+        mechanism: "KI’s MiCA inventory classifies instruments as outside scope, low, issuance review, CASP scope, high risk or prohibited. The assert-perimeter guard blocks restricted EU offer paths until human-approved controls are met; disclosure packs record rights, risks, supply, governance, complaints and environmental claims.",
+        tags: ["MiCA classify / assert-perimeter", "Disclosure pack", "Human approval", "Control checklist"]
+      },
+      {
+        n: 11, group: "ecosystem", title: "Reduce single-chain and privileged-key exposure",
+        challenge: "Chain maximalism, winner-take-all infrastructure, wallet loss and smart-contract bugs create technical risk.",
+        mechanism: "Keep business records in PostgreSQL, make Web3 an optional adapter, constrain attestation through an allowlisted resolver, scope Gateway permissions and put contract upgrades behind timelocks. Multiple supported chain interfaces and deployment profiles reduce dependence on one network or one platform operator.",
+        tags: ["Replaceable adapters", "Resolver allowlist", "Role-scoped Gateway", "Upgrade timelock"]
+      },
+      {
+        n: 12, group: "evidence", title: "Show operating evidence before crypto branding",
+        challenge: "Public perceptions of blockchain, crypto and Web3 can undermine project credibility.",
+        mechanism: "Generate public-safe reports from farm operations, financial resilience, governance and ecological metrics. Put plain-language summaries, evidence maturity, source lineage and verifiable attestations in front of audiences before introducing token mechanics.",
+        tags: ["Public-safe reports", "Evidence lineage", "CIDS / JSON-LD", "EAS"]
+      },
+      {
+        n: 13, group: "governance", title: "Represent commons and private rights in one model",
+        challenge: "Commons and private ownership both have a place and need to coexist.",
+        mechanism: "Land stewardship records support community stewardship, cooperative use, commons trust, leases and customary commons. Governance mechanisms store decision method and community veto rights; party privacy and scoped permissions distinguish private, limited and public information.",
+        tags: ["Land Stewardship Trust", "Governance mechanism", "Community veto", "Privacy scope"]
+      },
+      {
+        n: 14, group: "enterprise", title: "Reconcile money across payment rails",
+        challenge: "Projects need usable fiat-to-crypto-to-fiat on- and off-ramps.",
+        mechanism: "Farm financial accounts record provider, currency, balances and transaction references; digital-finance workflows track deposits, disbursements and mobile-money repayments. Credit marketplace and token records can be reconciled against the same location’s sales, expenses and finance history.",
+        tags: ["Provider-linked accounts", "Multi-currency", "Mobile-money records", "Transaction ledger"]
+      },
+      {
+        n: 15, group: "enterprise", title: "Build a stronger case for banking access",
+        challenge: "Crypto involvement can put an organization at risk of being de-banked.",
+        mechanism: "Give banks and cooperatives a clear operating profile: farm revenues, costs, account history, verified yields, insurance, existing debt and CRISP risk. Digital Finance uses these signals for loan-eligibility assessment and tracks lending, repayment and insurance activity.",
+        tags: ["Digital Finance", "CRISP", "Revenue + yield history", "Loan eligibility"]
+      },
+      {
+        n: 16, group: "enterprise", title: "Model volatility and liquidity before committing",
+        challenge: "Price swings and thin markets make asset values and cash flow uncertain.",
+        mechanism: "Use reference-class dampening, risk-adjusted NOI, price trends, capital scenarios and CRISP financial scoring to test assumptions. Savings, lending, weather-index insurance, produce markets and revenue-stream planning provide tools to diversify timing and sources of cash flow.",
+        tags: ["Risk-adjusted NOI", "Price trends", "Scenario planning", "Savings / credit / insurance"]
+      },
+      {
+        n: 17, group: "governance", title: "Protect identity while proving accountability",
+        challenge: "Crypto privacy must be balanced with KYC/AML, personal safety and organizational security.",
+        mechanism: "Farmer Identity records KYC providers, document hashes, reviewer decisions, credentials and scoped roles. Append-only consent records bind data use to purpose, recipient and location, support withdrawal, and keep identifying evidence out of public projections; MiCA controls identify AML and Travel Rule handoffs.",
+        tags: ["Farmer Identity", "KYC review", "Consent resolver", "Purpose-bound access"]
+      },
+      {
+        n: 18, group: "governance", title: "Put checks and balance around DAO power",
+        challenge: "DAOs offer new governance tools but can reproduce participation, power and execution problems.",
+        mechanism: "Read Baal proposals, votes and membership alongside KI’s governance circles, roles, tension queues, proposal reviews and decision lineage. Anti-capture policies support capped or quadratic voting, delegation limits, Sybil-resistance methods, worker/operator rework rights and community veto options.",
+        tags: ["Baal governance", "Governance circles", "Anti-capture policies", "Independent review"]
+      },
+      {
+        n: 19, group: "capital", title: "Give social and natural capital standing in decisions",
+        challenge: "Financial capital can overpower social capital and natural capital.",
+        mechanism: "Eight-forms-of-capital accounting and capital-alignment assessments track reinvestment commitments, extractive risk and community control. Wellbeing, commons, regenerative outcomes and evidence-backed interests for ecosystems and future generations sit beside financial forecasts and provider utility.",
+        tags: ["Eight forms of capital", "Capital alignment", "Commons reinvestment", "Nature / future-generation interests"]
+      },
+      {
+        n: 20, group: "enterprise", title: "Give accountants a traceable project ledger",
+        challenge: "Tax treatment and accounting can be difficult across assets, currencies and jurisdictions.",
+        mechanism: "Connect multi-currency accounts, transactions, payment states, sales, expenses, budgets, capital flows and revenue models to a location. Governed reports and structured exports give local accounting professionals a consistent, evidence-backed record to work from.",
+        tags: ["Financial accounts", "Payment status", "Budget variance", "Structured exports"]
+      },
+      {
+        n: 21, group: "evidence", title: "Make physical operations visible to digital teams",
+        challenge: "On-the-ground oversight is unfamiliar and difficult for web3 teams; real-world work involves people and nature.",
+        mechanism: "Farm Operations records activities, harvests, sales, expenses, labor, inventory and maintenance. Field Collector supports offline capture and reviewed sync; sensor and landscape workflows add soil, tree, water, habitat and pollinator observations to the same location record.",
+        tags: ["Farm Operations", "Offline Field Collector", "Sensors", "Landscape + biodiversity"]
+      },
+      {
+        n: 22, group: "governance", title: "Constrain misuse and preserve custody history",
+        challenge: "Bad actors and theft can undermine trust in any sector, including crypto.",
+        mechanism: "Identity and scoped roles pair with authorized issuer lists, batch/account custody, escrowed credit compartments, idempotent retirement reservations and independent human confirmation. Resolver controls, contract roles, timelocked upgrades and audit history make sensitive changes attributable and reviewable.",
+        tags: ["KYC + role controls", "Credit custody", "Issuer allowlist", "Audit + timelock"]
+      },
+      {
+        n: 23, group: "governance", title: "Give grievances a path to remedy",
+        challenge: "Projects need a credible way to resolve disputes between parties.",
+        mechanism: "KI’s grievance workflow carries a case from confidential intake through conflict-checked investigation, evidence review, owner and due dates, remedy proposal, appeal, affected-party confirmation and independent closure review.",
+        tags: ["Grievance cases", "Conflict check", "Remedies + appeals", "Independent closure"]
+      },
+      {
+        n: 24, group: "ecosystem", title: "Create one shared evidence and decision trail",
+        challenge: "Using Discord, Telegram, Snapshot and other disconnected tools creates overload and lost context.",
+        mechanism: "Data Stream gives each location a searchable chronology of posts, comments, files and monitoring updates. Attach reports and evidence to the project; pair the stream with report snapshots, work items and governance decision history for continuity.",
+        tags: ["Data Stream", "Full-text search", "Report snapshots", "Decision lineage"]
+      },
+      {
+        n: 25, group: "ecosystem", title: "Bring outside perspectives into the room",
+        challenge: "ReFi risks becoming an echo chamber that rarely reaches beyond Web3.",
+        mechanism: "Real-time Delphi panels can include experts, policymakers, citizens and affected groups, with weighted consensus, diversity assessment, calibrated forecasts and minority reports. Regional PESTEL, market analysis and competitive landscapes add evidence from outside the crypto sector.",
+        tags: ["Real-time Delphi", "Minority reports", "Regional PESTEL", "Market analysis"]
+      },
+      {
+        n: 26, group: "ecosystem", title: "Keep the infrastructure open and replaceable",
+        challenge: "Excessive platform investment can recreate middlemen and gatekeepers.",
+        mechanism: "Kokonut is open-source and PostgreSQL-first, with optional analytics, chain and edge adapters. Federation protocols record permissionless forking, local adaptation, mutual aid and shared infrastructure so communities can reuse the method without depending on one vendor.",
+        tags: ["Open source", "PostgreSQL-first", "Optional adapters", "Federation protocols"]
+      },
+      {
+        n: 27, group: "governance", title: "Make trust verifiable without forcing public doxxing",
+        challenge: "Anonymity can weaken trust; people need safe identity, escrow and recourse when assets are lost or stolen.",
+        mechanism: "Human-reviewed identity links establish accountable parties while privacy levels and pseudonymous Delphi tokens protect participation. Versioned IRIs, evidence hashes, revocable EAS attestations, credit custody/escrow states and grievance histories preserve provenance and support a reviewable recovery path.",
+        tags: ["Identity resolution", "Pseudonymous Delphi", "IRI + evidence hashes", "Custody + remedies"]
+      },
+      {
+        n: 28, group: "ecosystem", title: "Translate jargon into shared working language",
+        challenge: "Web3 slang and technical jargon slow adoption.",
+        mechanism: "Use familiar field forms, nine-block business canvases, named metric definitions, plain-language reports and standard CIDS/JSON-LD exports. Different audiences see the same project facts in a vocabulary suited to their work.",
+        tags: ["Field forms", "Business Canvas", "Plain reports", "CIDS / JSON-LD"]
+      },
+      {
+        n: 29, group: "ecosystem", title: "Give traditional institutions a useful entry point",
+        challenge: "Established institutions hold power and capacity, but web3 projects often do not know how to bring them in.",
+        mechanism: "KI’s stakeholder model includes public institutions, organizations and cooperatives. Partner lifecycle, business plans, farm registry evidence, standard exports and reviewable methodology references give banks, universities, agencies and verifiers a familiar diligence packet.",
+        tags: ["Stakeholder ecosystem", "Partner lifecycle", "Farm registry", "Reports + exports"]
+      }
+    ];
+
+    const challengeList = document.getElementById("challenge-list");
+    const challengePanel = document.getElementById("challenge-panel");
+    const printChallenges = document.getElementById("print-challenges");
+    const filterHost = document.getElementById("filters");
+    const search = document.getElementById("search");
+    const resultCount = document.getElementById("result-count");
+    const emptyState = document.getElementById("empty-state");
+    let activeFilter = "all";
+    let selectedNumber = challenges[0].n;
+
+    function matchingChallenges() {
+      const query = search.value.trim().toLowerCase();
+      return challenges.filter(function (item) {
+        const inGroup = activeFilter === "all" || item.group === activeFilter;
+        const text = [item.title, item.challenge, item.mechanism, item.tags.join(" ")].join(" ").toLowerCase();
+        return inGroup && (!query || text.includes(query));
+      });
+    }
+
+    function makeChallengeButton(item) {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "challenge-item";
+      button.dataset.number = String(item.n);
+      button.setAttribute("aria-current", String(item.n === selectedNumber));
+      const number = document.createElement("span");
+      number.className = "challenge-number";
+      number.textContent = String(item.n).padStart(2, "0");
+      const text = document.createElement("span");
+      const title = document.createElement("span");
+      title.className = "challenge-title";
+      title.textContent = item.title;
+      const summary = document.createElement("span");
+      summary.className = "challenge-one-line";
+      summary.textContent = item.challenge;
+      text.append(title, summary);
+      button.append(number, text);
+      button.addEventListener("click", function () {
+        selectedNumber = item.n;
+        render("item");
+      });
+      return button;
+    }
+
+    function makePanelBlock(labelText, copyText, extraClass) {
+      const block = document.createElement("section");
+      block.className = "panel-block " + extraClass;
+      const label = document.createElement("p");
+      label.className = "detail-label";
+      label.textContent = labelText;
+      const copy = document.createElement("p");
+      copy.className = "detail-copy";
+      copy.textContent = copyText;
+      block.append(label, copy);
+      return block;
+    }
+
+    function renderPanel(item, visibleItems) {
+      challengePanel.replaceChildren();
+      if (!item) return;
+      const system = groups.find(function (group) { return group.id === item.group; });
+      const itemIndex = visibleItems.findIndex(function (entry) { return entry.n === item.n; });
+      const top = document.createElement("div");
+      top.className = "panel-top";
+      const systemLabel = document.createElement("span");
+      systemLabel.className = "panel-system";
+      systemLabel.textContent = system ? system.label : "Kokonut Intelligence";
+      const numberLabel = document.createElement("span");
+      numberLabel.className = "panel-number";
+      numberLabel.textContent = "CHALLENGE " + String(item.n).padStart(2, "0");
+      top.append(systemLabel, numberLabel);
+
+      const title = document.createElement("h3");
+      title.className = "panel-title";
+      title.textContent = item.title;
+      const source = makePanelBlock("The challenge", item.challenge, "challenge-source");
+      const response = makePanelBlock("How Kokonut Intelligence addresses it", item.mechanism, "ki-response");
+      const tags = document.createElement("div");
+      tags.className = "capability-tags";
+      item.tags.forEach(function (tagText) {
+        const tag = document.createElement("span");
+        tag.className = "capability-tag";
+        tag.textContent = tagText;
+        tags.appendChild(tag);
+      });
+
+      const nav = document.createElement("div");
+      nav.className = "panel-nav";
+      const previous = document.createElement("button");
+      previous.type = "button";
+      previous.className = "tool-button";
+      previous.textContent = "← Previous";
+      previous.disabled = itemIndex <= 0;
+      previous.addEventListener("click", function () { selectedNumber = visibleItems[itemIndex - 1].n; render("previous"); });
+      const position = document.createElement("span");
+      position.className = "panel-number";
+      position.textContent = (itemIndex + 1) + " of " + visibleItems.length;
+      const next = document.createElement("button");
+      next.type = "button";
+      next.className = "tool-button";
+      next.textContent = "Next →";
+      next.disabled = itemIndex < 0 || itemIndex >= visibleItems.length - 1;
+      next.addEventListener("click", function () { selectedNumber = visibleItems[itemIndex + 1].n; render("next"); });
+      nav.append(previous, position, next);
+      challengePanel.append(top, title, source, response, tags, nav);
+    }
+
+    function createFilters() {
+      groups.forEach(function (group) {
+        const count = group.id === "all" ? challenges.length : challenges.filter(function (item) { return item.group === group.id; }).length;
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "filter-button";
+        button.dataset.filter = group.id;
+        button.setAttribute("aria-pressed", group.id === "all" ? "true" : "false");
+        button.textContent = group.label;
+        const countNode = document.createElement("span");
+        countNode.className = "count";
+        countNode.textContent = String(count);
+        button.appendChild(countNode);
+        button.addEventListener("click", function () { setFilter(group.id); });
+        filterHost.appendChild(button);
+      });
+    }
+
+    function setFilter(filter) {
+      activeFilter = filter;
+      Array.from(filterHost.querySelectorAll(".filter-button")).forEach(function (button) {
+        button.setAttribute("aria-pressed", String(button.dataset.filter === filter));
+      });
+      render();
+    }
+
+    function render(focusTarget) {
+      const visibleItems = matchingChallenges();
+      if (!visibleItems.some(function (item) { return item.n === selectedNumber; }) && visibleItems.length) {
+        selectedNumber = visibleItems[0].n;
+      }
+      challengeList.replaceChildren.apply(challengeList, visibleItems.map(makeChallengeButton));
+      const selected = visibleItems.find(function (item) { return item.n === selectedNumber; });
+      renderPanel(selected, visibleItems);
+      resultCount.innerHTML = "<strong>" + visibleItems.length + "</strong> of <strong>" + challenges.length + "</strong> challenges shown";
+      emptyState.classList.toggle("visible", visibleItems.length === 0);
+      if (focusTarget === "item" && selected) {
+        challengeList.querySelector('[data-number="' + selected.n + '"]').focus({ preventScroll: true });
+      } else if (focusTarget === "next" || focusTarget === "previous") {
+        const controls = challengePanel.querySelectorAll(".panel-nav button");
+        const preferred = focusTarget === "next" ? controls[1] : controls[0];
+        const fallback = focusTarget === "next" ? controls[0] : controls[1];
+        (preferred.disabled ? fallback : preferred).focus({ preventScroll: true });
+      }
+    }
+
+    function renderPrintChallenges() {
+      printChallenges.replaceChildren.apply(printChallenges, challenges.map(function (item) {
+        const article = document.createElement("article");
+        article.className = "print-challenge";
+        const title = document.createElement("h3");
+        title.textContent = String(item.n).padStart(2, "0") + " · " + item.title;
+        const source = document.createElement("p");
+        source.innerHTML = "<strong>Challenge:</strong> ";
+        source.append(document.createTextNode(item.challenge));
+        const mechanism = document.createElement("p");
+        mechanism.innerHTML = "<strong>KI:</strong> ";
+        mechanism.append(document.createTextNode(item.mechanism));
+        article.append(title, source, mechanism);
+        return article;
+      }));
+    }
+
+    createFilters();
+    render();
+    renderPrintChallenges();
+    search.addEventListener("input", render);
+    document.getElementById("print-page").addEventListener("click", function () {
+      window.print();
+    });
+    window.addEventListener("beforeprint", renderPrintChallenges);
+    document.querySelectorAll("[data-jump-filter]").forEach(function (button) {
+      button.addEventListener("click", function () {
+        setFilter(button.dataset.jumpFilter);
+        document.getElementById("challenge-map").scrollIntoView({ behavior: "smooth" });
+      });
+    });
+  </script>
+</body>
+</html>
