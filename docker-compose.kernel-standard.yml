@@ -2,7 +2,7 @@
 # Explicit environment duplication keeps both roles on the same provider policy.
 services:
   app:
-    command: ["python3", "-m", "services.core.runtime", "--port", "8099", "--require-schema"]
+    command: ["python3", "-m", "services.core.runtime", "--port", "8099", "--require-schema", "--require-runtime-role"]
     environment:
       KOKONUT_RATE_LIMIT_PROVIDER: ${KOKONUT_RATE_LIMIT_PROVIDER:-postgres}
       KOKONUT_FEATURE_DIRECTUS: ${KOKONUT_FEATURE_DIRECTUS:-false}
@@ -26,7 +26,7 @@ services:
       context: .
       dockerfile: Dockerfile.kernel
     restart: unless-stopped
-    command: ["python3", "-m", "services.core.runtime", "--workers-only", "--require-schema"]
+    command: ["python3", "-m", "services.core.runtime", "--workers-only", "--require-schema", "--require-runtime-role"]
     healthcheck:
       test: ["CMD", "python3", "-m", "services.core.worker_progress", "--check"]
       interval: 30s
@@ -40,9 +40,9 @@ services:
       PG_HOST: database
       PG_PORT: "5432"
       PG_DB: kokonut_intelligence
-      PG_USER: ${KOKONUT_RUNTIME_USER:-kokonut}
+      PG_USER: ${KOKONUT_RUNTIME_USER:?KOKONUT_RUNTIME_USER must be set}
       KOKONUT_ENV: production
-      PG_PASSWORD: ${KOKONUT_RUNTIME_PASSWORD:-${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}}
+      PG_PASSWORD: ${KOKONUT_RUNTIME_PASSWORD:?KOKONUT_RUNTIME_PASSWORD must be set}
       KOKONUT_SENSOR_ANOMALY_DATABASE_URL: ${KOKONUT_SENSOR_ANOMALY_DATABASE_URL:-}
       KOKONUT_SENSOR_ANOMALY_WORKER_CREDENTIAL: ${KOKONUT_SENSOR_ANOMALY_WORKER_CREDENTIAL:-}
       KOKONUT_CACHE_INVALIDATION_DATABASE_URL: ${KOKONUT_CACHE_INVALIDATION_DATABASE_URL:-}

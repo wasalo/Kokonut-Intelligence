@@ -20,6 +20,7 @@ TEST_ENV = {
     "ADMIN_EMAIL": "compose-test@example.invalid",
     "ADMIN_PASSWORD": "compose-test-only",
     "KOKONUT_OPERATOR_AUTH_PASSWORD": "compose-test-only-auth-password",
+    "KOKONUT_RUNTIME_USER": "kokonut_runtime",
     "KOKONUT_RUNTIME_PASSWORD": "compose-test-only-runtime-password",
     "CLICKHOUSE_PASSWORD": "compose-test-only",
     "CADDY_DOMAIN": "localhost",
@@ -141,13 +142,89 @@ def test_standard_kernel_profile_defaults_to_shared_postgres_limiter() -> None:
     assert config["services"]["app"]["environment"]["KOKONUT_RATE_LIMIT_PROVIDER"] == "postgres"
 
 
-def test_kernel_runtime_role_profile_has_no_orphan_agent_worker_service() -> None:
+def test_standard_runtime_api_and_worker_require_non_admin_role_without_auto_bootstrap() -> None:
+    files = (
+        "docker-compose.kernel-candidate.yml",
+        "docker-compose.kernel-standard.yml",
+        "docker-compose.kernel-runtime-role.yml",
+    )
+    admin_password = "compose-test-only-postgres-admin-password"
+    runtime_password = "compose-test-only-distinct-runtime-password"
     config = _compose_config(
-        "runtime-admin",
-        files=("docker-compose.kernel-candidate.yml", "docker-compose.kernel-runtime-role.yml")
+        files=files,
+        extra_env={
+            "POSTGRES_PASSWORD": admin_password,
+            "KOKONUT_DB_ADMIN_PASSWORD": admin_password,
+            "KOKONUT_RUNTIME_USER": "kokonut_runtime",
+            "KOKONUT_RUNTIME_PASSWORD": runtime_password,
+        },
     )
 
-    assert "runtime-role-bootstrap" in config["services"]
+    assert "runtime-role-bootstrap" not in config["services"]
+
+    for service_name in ("app", "worker"):
+        service = config["services"][service_name]
+        environment = service["environment"]
+        assert environment["PG_USER"] == "kokonut_runtime"
+        assert environment["PG_USER"] != "kokonut"
+        assert environment["PG_PASSWORD"] == runtime_password
+        assert environment["PG_PASSWORD"] != admin_password
+        assert "runtime-role-bootstrap" not in service.get("depends_on", {})
+        assert "KOKONUT_DB_ADMIN_PASSWORD" not in environment
+        assert "POSTGRES_PASSWORD" not in environment
+
+
+def test_standard_runtime_role_bootstrap_stays_explicit_and_admin_only() -> None:
+    config = _compose_config(
+        "runtime-admin",
+        files=(
+            "docker-compose.kernel-candidate.yml",
+            "docker-compose.kernel-standard.yml",
+            "docker-compose.kernel-runtime-role.yml",
+        ),
+    )
+
+    bootstrap = config["services"]["runtime-role-bootstrap"]
+    assert bootstrap["environment"]["KOKONUT_DB_ADMIN_USER"] == "kokonut"
+    assert bootstrap["environment"]["KOKONUT_DB_ADMIN_PASSWORD"] == TEST_ENV["POSTGRES_PASSWORD"]
+
+
+def test_standard_runtime_role_compose_requires_runtime_password() -> None:
+    command = ["docker", "compose", "--env-file", "/dev/null"]
+    for compose_file in (
+        "docker-compose.kernel-candidate.yml",
+        "docker-compose.kernel-standard.yml",
+        "docker-compose.kernel-runtime-role.yml",
+    ):
+        command.extend(["-f", compose_file])
+    command.extend(["config", "--quiet"])
+    environment = TEST_ENV | {"KOKONUT_RUNTIME_USER": "kokonut_runtime"}
+    environment.pop("KOKONUT_RUNTIME_PASSWORD", None)
+
+    result = subprocess.run(
+        command,
+        cwd=ROOT,
+        env=environment,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    assert result.returncode != 0
+    assert "KOKONUT_RUNTIME_PASSWORD must be set" in result.stderr
+
+
+def test_kernel_runtime_role_overlay_composes_app_and_worker_without_admin_bootstrap() -> None:
+    config = _compose_config(
+        files=(
+            "docker-compose.kernel-candidate.yml",
+            "docker-compose.kernel-standard.yml",
+            "docker-compose.kernel-runtime-role.yml",
+        ),
+    )
+
+    assert "runtime-role-bootstrap" not in config["services"]
+    assert "worker" in config["services"]
     assert "agent-summary-worker" not in config["services"]
 
 

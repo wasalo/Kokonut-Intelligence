@@ -1,6 +1,6 @@
-# Optional least-privilege app credentials. Combine after the candidate and any
-# selected Kernel overlays. The one-shot admin service is enabled only for the
-# explicit runtime-admin profile and is run with `docker compose run --rm`.
+# Least-privilege application credentials. Standard includes this overlay, but
+# runtime-role-bootstrap remains an explicit one-shot operation because its
+# compatibility grants must be reviewed after every schema change.
 services:
   runtime-role-bootstrap:
     profiles: [runtime-admin]
@@ -58,7 +58,12 @@ services:
 
   app:
     environment:
-      PG_USER: ${KOKONUT_RUNTIME_USER:-kokonut_runtime}
+      PG_USER: ${KOKONUT_RUNTIME_USER:?KOKONUT_RUNTIME_USER must be set}
       PG_PASSWORD: ${KOKONUT_RUNTIME_PASSWORD:?KOKONUT_RUNTIME_PASSWORD must be set}
       KOKONUT_OPERATOR_AUTH_USER: ${KOKONUT_OPERATOR_AUTH_USER:-kokonut_operator_auth}
       KOKONUT_OPERATOR_AUTH_PASSWORD: ${KOKONUT_OPERATOR_AUTH_PASSWORD:?KOKONUT_OPERATOR_AUTH_PASSWORD must be set}
+
+  worker:
+    environment:
+      PG_USER: ${KOKONUT_RUNTIME_USER:?KOKONUT_RUNTIME_USER must be set}
+      PG_PASSWORD: ${KOKONUT_RUNTIME_PASSWORD:?KOKONUT_RUNTIME_PASSWORD must be set}

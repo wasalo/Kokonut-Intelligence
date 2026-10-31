@@ -59,7 +59,11 @@ def main() -> None:
         action="store_true",
         help="omit the Standard profile's default Caddy ingress when using another ingress",
     )
-    parser.add_argument("--action", choices=["config", "build", "up", "ps"], default="config")
+    parser.add_argument(
+        "--action",
+        choices=["config", "build", "up", "ps", "database-up", "migrate", "bootstrap-runtime-role"],
+        default="config",
+    )
     args = parser.parse_args()
     if args.project is not None and not re.fullmatch(r"[a-z0-9][a-z0-9_-]{0,62}", args.project):
         parser.error("--project must be 1–63 lowercase letters, digits, hyphens, or underscores and start with a letter or digit")
@@ -94,6 +98,8 @@ def main() -> None:
         )
     if args.profile == "scale":
         parser.error("Scale is not implemented: shared rate limits and replica recovery acceptance are pending")
+    if args.action in {"database-up", "migrate", "bootstrap-runtime-role"} and args.profile != "standard":
+        parser.error(f"--action {args.action} applies only to standard")
     if args.separate_workers and args.profile != "analytics":
         parser.error("--separate-workers applies only to analytics; standard already separates roles")
     if args.oidc and "proxy" not in selected_optional and not args.zitadel and args.profile != "standard":
@@ -103,6 +109,10 @@ def main() -> None:
     if args.separate_workers:
         files.append("docker-compose.kernel-standard.yml")
     files.extend(PROFILES[args.profile])
+    if args.profile == "standard":
+        # Standard has separate app/worker logins. The overlay requires their
+        # credentials and supplies a separate post-migration bootstrap action.
+        files.append("docker-compose.kernel-runtime-role.yml")
     if args.separate_workers:
         files.append("docker-compose.kernel-standard-analytics.yml")
     if args.zitadel:
@@ -144,7 +154,25 @@ def main() -> None:
                "--env-file", "/dev/null", "-p", project_name]
     for filename in files:
         command.extend(["-f", str(ROOT / filename)])
-    if args.action == "config":
+    if args.action == "database-up":
+        command.extend(["up", "-d", "database"])
+    elif args.action == "migrate":
+        migration_command = [
+            "python3", "-m", "services.migration", "migrate", "--schemas-only",
+            "--compose-project", project_name,
+        ]
+        for filename in files:
+            migration_command.extend(["--compose-file", str(ROOT / filename)])
+        print(shlex.join(migration_command))
+        return
+    elif args.action == "bootstrap-runtime-role":
+        # This provisioner reapplies broad compatibility grants. Keep it an
+        # explicit one-shot after migrations, never part of routine `up`.
+        command.extend([
+            "--profile", "runtime-admin", "run", "--rm", "--build",
+            "runtime-role-bootstrap",
+        ])
+    elif args.action == "config":
         command.extend(["config", "--quiet"])
     elif args.action == "up":
         command.extend(["up", "-d", "--build"])

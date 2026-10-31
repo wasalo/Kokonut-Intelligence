@@ -1,0 +1,30 @@
+{
+  "date": "2026-10-31",
+  "workflow": "CI",
+  "pull_request": 71,
+  "run_id": 41229953619,
+  "run_number": 1028,
+  "head_sha": "0fa7444f345199a12cac8dd2944c03bda70f9024",
+  "jobs": {
+    "full-ci": {
+      "job_id": 124621910415,
+      "conclusion": "failure",
+      "cancelled_step": "Run the complete CI gate",
+      "last_gate": "Full Python suite (strict database mode)",
+      "runner_message": "The runner received a shutdown signal",
+      "assertion_failure_logged": false
+    },
+    "kernel-image": {
+      "job_id": 124621910310,
+      "status_at_inspection": "in_progress",
+      "step": "Build and verify Kernel images"
+    }
+  },
+  "security_run": {
+    "run_id": 41229953614,
+    "run_number": 752,
+    "conclusion": "success"
+  },
+  "interpretation": "The full CI gate did not complete. The hosted runner terminated the job after it entered the strict Python suite; available logs contain no test assertion failure. This is incomplete validation and must not be treated as a passing CI result.",
+  "source": "https://github.com/wasalo/Kokonut-Intelligence/actions/runs/41229953619"
+}

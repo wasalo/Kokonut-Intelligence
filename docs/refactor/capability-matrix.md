@@ -3,26 +3,29 @@
 **Current C1 source cohort — 31 October 2026:** Gateway contracts and additive
 migrations 700–703 provide location-scoped governance-tension actions,
 extension peer-network/progress writes, five record-only landscape captures,
-and metric draft/list/human-verification operations. Migrations 704–705 add a
-runtime read-only benchmark boundary and a migration-owned 147-relation
-Directus reprovisioning policy. Focused checks pass, including the grouped
-213-test migration/profile selection and disposable PostgreSQL acceptance
-([focused evidence](builds/2026-10-31-recovery/c1-704-705-standard-focused-tests.json),
-[Directus policy](builds/2026-10-31-recovery/directus-relation-policy-705-disposable.json),
-[living-wage ACL](builds/2026-10-31-recovery/living-wage-benchmark-704-disposable.json)).
-The latest runtime source/ACL report remains through migration 703: 148 declared
-runtime boundaries, now a historical snapshot after migration 704. Full native
-schema replay through 705 passes 696 migrations and 38 two-tenant operator
-checks. The attempted full ARM64/QEMU replay through 705 was stopped after
-583.6 seconds at migration 116 (111/696); it did not report a migration error
-and its disposable resources were cleaned up. The prior full QEMU replay
-through 703 and focused ARM64 checks for 704/705 remain available. QEMU is
-portability evidence, not physical Raspberry Pi acceptance. No candidate, legacy, or
-production migration was applied; legacy writers remain available. C1 is not closed:
-broader tenant/read boundaries, populated-data parity, remaining writers,
-external importer ownership, and reviewed rollout remain open. Capability
-classifications remain 24 baseline-retained, 7 deployed, and 36 prepared across
-67 rows until candidate and owner acceptance.
+and metric draft/list/human-verification operations. Migrations 704–710 add
+runtime read-only reference boundaries and a migration-owned Directus
+reprovisioning policy. The focused ACL/profile selection and PostgreSQL
+acceptance for these migrations pass. Standard now requires a dedicated
+unprivileged database login before its API or worker children start; the
+planner, Compose, and startup selection passes 105 focused tests. The
+network-disabled Standard bootstrap/recovery acceptance passes all 701 schema
+files through migration 710, unsafe-owner rejection, runtime identity checks,
+provisioner reapplication, outage recovery, and cleanup. No candidate or
+persistent role has been changed
+([evidence](builds/2026-10-31-recovery/standard-profile-recovery-710-runtime-role-disposable.json)).
+
+The latest runtime source/ACL aggregate remains through migration 707 and is
+stale relative to migrations 708–710. Its prior full native replay through 707
+passes 698 migrations and 38 two-tenant operator checks. The full ARM64/QEMU
+replay through 705 was stopped after 583.6 seconds at migration 116 (111/696)
+without a migration error; disposable cleanup passed. QEMU remains software
+portability evidence, not physical Raspberry Pi acceptance. Legacy writers
+remain available. C1 is not closed: broader tenant/read boundaries,
+populated-data parity, remaining writers, external importer ownership, and
+reviewed rollout remain open. Capability classifications remain
+24 baseline-retained, 7 deployed, and 36 prepared across 67 rows until candidate
+and owner acceptance.
 
 Migration 703's polymorphic `source_record_ids` are shape/bounds checked but
 not independently mapped to the requested location in SQL. The current Gateway

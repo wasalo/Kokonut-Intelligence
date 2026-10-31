@@ -10,13 +10,19 @@
 > references only.
 
 The profile planner combines `docker-compose.kernel-candidate.yml`,
-`docker-compose.kernel-standard.yml`, and `docker-compose.kernel-proxy.yml` by
-default. The app overrides its command to run only the API; the new worker
-service runs the same Dockerfile/package with
-`python3 -m services.core.runtime --workers-only --require-schema`. Both roles
-require schema readiness before spawning child processes, use the private
-candidate database, and explicitly disable vendor providers. No database port
-or worker port is published. The API retains its localhost binding. Caddy's
+`docker-compose.kernel-standard.yml`, `docker-compose.kernel-runtime-role.yml`,
+and `docker-compose.kernel-proxy.yml` by default. The app overrides its
+command to run only the API; the worker service runs the same
+Dockerfile/package with
+`python3 -m services.core.runtime --workers-only --require-schema
+--require-runtime-role`. Both roles require schema readiness and a dedicated
+unprivileged runtime login before spawning child processes. The role gate
+requires the same session/login role, LOGIN, NOINHERIT, and no role
+memberships; it rejects superuser, database/role creation, replication,
+RLS-bypass, database-owner, or database-owner-member logins. The services use
+the private candidate database and explicitly disable vendor providers. No
+database port or worker port is published. The API retains its localhost
+binding. Caddy's
 HTTP and HTTPS host ports default to loopback (`127.0.0.1:8088` and
 `127.0.0.1:8448`) with the local `localhost` domain; this is a development
 ingress, not public TLS or Internet exposure.
@@ -46,6 +52,15 @@ profile's shared rate limiter, and migration 372 the MQTT receipt path. For a
 fresh or existing target, apply the entire current ordered migration ledger,
 then confirm readiness before starting workers; do not select those historical
 IDs as a substitute for the full migration run.
+After migrations, run the Standard profile's explicit
+`bootstrap-runtime-role` action once with a database-owner credential, a
+separate `KOKONUT_RUNTIME_USER`/`KOKONUT_RUNTIME_PASSWORD`, and a separate
+operator-auth credential. The app and worker do not depend on this admin
+service and never receive its credentials. They fail closed before spawning
+children if the connected database login is privileged or owns the database.
+The bootstrap reapplies compatibility DML grants to current public tables, so
+run it only after reviewed migrations and ACL decisions; do not run it during
+routine `up` or merely to add a newly migrated table.
 Inspect existing schedules, handler registrations, leases, and Prefect/cron
 ownership before switching roles. Rebuild both roles from the same reviewed
 source and dependency resolution; the current build is not release-pinned.
@@ -57,11 +72,20 @@ After acceptance, use encrypted secrets and the explicit candidate project:
 export KOKONUT_ALLOW_PLAINTEXT_ENV=false
 source scripts/load-secrets.sh
 python3 scripts/kernel-profile.py standard --action config
+python3 scripts/kernel-profile.py standard --action database-up
+python3 scripts/kernel-profile.py standard --action migrate
+python3 scripts/kernel-profile.py standard --action bootstrap-runtime-role
 python3 scripts/kernel-profile.py standard --action up
 ```
 
-The planner prints a Compose command; `--action config` and `--action up` are
-documented here, not executed by this record. Standard selects Caddy without a
+`database-up` prints a command that starts only PostgreSQL. `migrate` prints the
+ordered, schema-only migration runner command, which uses the explicit Standard
+Compose project to execute `psql` inside the database container. Run that
+printed Python command from the repository root after loading secrets; keep
+`PG_USER=kokonut` and `PG_PASSWORD` unset so the migration runner uses the
+database-owner credential. The other actions print Compose commands. These
+commands are documented here, not executed by this record. Provisioning is
+deliberately a separate post-migration action. Standard selects Caddy without a
 redundant `--proxy` flag. Use `standard --oidc` to add the Gateway OIDC client
 while keeping the default loopback Caddy ingress. Caddy's local CA is not
 automatically trusted by browsers or clients, so local browser acceptance still
@@ -115,15 +139,19 @@ and aggregate `children_alive`; it never returns process IDs or the generation
 token. In Standard Compose, the file is ephemeral container state; the profile
 adds no volume or migration for liveness.
 
-The latest disposable Standard acceptance applies the schema-only migration
-chain through migration 709, starts the API, worker, and
-Caddy, verifies the missing-schema guard, stops PostgreSQL, observes worker
-health degrade, and restarts PostgreSQL. Database, API, and worker health
-recover without restarting the worker container; heartbeat privacy and
-graceful heartbeat removal are checked, and the empty synthetic database has
-no active leases after shutdown. It uses a unique internal Compose project,
-publishes no host ports, loads no seeds, and cleans up its containers, volumes,
-and network ([acceptance evidence](builds/2026-10-31-recovery/standard-profile-recovery-709-disposable.json);
+The latest disposable Standard acceptance applies all 701 ordered schema files
+through migration 710, explicitly runs the post-migration `runtime-admin`
+bootstrap, and confirms both app and worker connect as `kokonut_runtime`. The
+login has LOGIN and NOINHERIT, no role memberships, no ownership, and no
+superuser/database/role creation, replication, or RLS-bypass privileges. The
+check also proves an owner login is rejected before child startup and that
+`schema_version` writes remain denied after reapplying the bootstrap. API,
+worker, and proxy health pass; a PostgreSQL stop degrades worker health and a
+restart recovers the API and worker without restarting the worker container.
+Heartbeat privacy/removal, zero active leases after shutdown, and cleanup
+pass. The network-disabled run uses a unique internal Compose project, no host
+ports, no seeds, and synthetic data only
+([acceptance evidence](builds/2026-10-31-recovery/standard-profile-recovery-710-runtime-role-disposable.json);
 [runner](../../scripts/check-kernel-standard-recovery-disposable.py)). This
 does not prove long-running handler lease reclaim, provider recovery, 24-hour
 endurance, scale, or physical Raspberry Pi behavior.
@@ -161,22 +189,21 @@ Multiple worker replicas and API replicas remain scale acceptance work.
 
 ## Acceptance and rollback
 
-The Standard-profile planner change passes its focused planner and ZITADEL
-contract suites, plus Compose configuration parsing with synthetic placeholder
-values. These source checks do not start services or validate public ingress.
-Those planner checks do not change the candidate, legacy, or production
-deployment; the separate disposable recovery acceptance below applies only to
-its synthetic database and removes that project afterward.
+The Standard planner, Compose role selection, schema-startup gate, and
+unprivileged-runtime-role contract pass 105 focused tests, Ruff, and Python
+compilation with synthetic inputs. These source checks do not start services
+or validate public ingress. They do not change the candidate, legacy, or
+production deployment.
 
-Source and disposable acceptance now prove the API/worker role split, missing-
-schema fail-closed behavior, healthy startup, PostgreSQL outage detection and
-recovery, and graceful shutdown without active leases in the empty synthetic
-database. Remaining acceptance includes populated-data lease/retry recovery,
-provider outages and real delivery, disabled-worker behavior against an
-explicit deployment, replica identity/scale, public ingress and trusted proxy
-policy, operator alert routing, 24-hour endurance, and physical Raspberry Pi
-testing when hardware is available. The health probe is one signal; it does
-not establish provider recovery or multi-replica safety.
+The 26-test disposable harness contract and full migration/recovery acceptance
+above pass. Source-level planner, Compose, and startup checks pass 105 tests,
+with Ruff, Python compilation, and release-input validation. Remaining
+acceptance includes populated-data lease/retry recovery, provider outages and
+real delivery, disabled-worker behavior against an explicit deployment,
+replica identity/scale, public ingress and trusted proxy policy, operator
+alert routing, 24-hour endurance, and physical Raspberry Pi testing when
+hardware is available. The health probe is one signal; it does not establish
+provider recovery or multi-replica safety.
 
 Rollback: stop and remove only the separate candidate worker, allow in-flight
 leases to settle, then recreate the candidate app using the base manifest's

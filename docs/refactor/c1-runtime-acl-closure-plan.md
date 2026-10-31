@@ -24,7 +24,7 @@ incomplete in the inventory.
 
 ## Current evidence and decisions
 
-### Current cohort — migrations 700–709, 31 October 2026
+### Current cohort — migrations 700–710, 31 October 2026
 
 The detailed source/function cohort below covers migrations 700–703. Migrations
 704, 705, 706, and 707 add, respectively, the runtime read-only boundary for
@@ -123,16 +123,18 @@ Repository source review found no application, seed, or Directus writer, but
 custom/external use through the runtime login remains unconfirmed and blocks
 persistent rollout.
 
-The Standard recovery acceptance replayed the ordered schema through migration
-709 on a network-disabled, portless disposable PostgreSQL 16 project. The
-schema-only ledger was verified, followed by Standard API/worker/Caddy startup,
-fail-closed behavior without required schema, database-outage detection and
-recovery without worker restart, and graceful worker shutdown
-([evidence](builds/2026-10-31-recovery/standard-profile-recovery-709-disposable.json)).
-This confirms ordered migration integration and a Standard runtime recovery
-path; it does not rerun the two-tenant operator-scope probe or refresh the
-runtime privilege/source aggregate. The latest aggregate therefore remains
-the historical migration-707 snapshot, with 41 unresolved write candidates.
+The refreshed Standard recovery acceptance applies all 701 schema files
+through migration 710 on a network-disabled, portless disposable PostgreSQL 16
+project. It explicitly bootstraps the app/worker runtime login after migration,
+verifies both services use `kokonut_runtime`, rejects database-owner credentials
+before child startup, preserves the migration-owned `schema_version` write
+denial after bootstrap reapplication, and passes API/worker recovery after a
+database restart. Heartbeat privacy/removal, graceful shutdown, and cleanup
+also pass
+([evidence](builds/2026-10-31-recovery/standard-profile-recovery-710-runtime-role-disposable.json)).
+This does not rerun the two-tenant operator-scope probe or refresh the runtime
+privilege/source aggregate. The latest aggregate therefore remains the
+historical migration-707 snapshot, with 41 unresolved write candidates.
 
 The location-scoped tension, extension-learning, landscape-capture, and metric
 value source contracts now have additive SQL functions, isolated function

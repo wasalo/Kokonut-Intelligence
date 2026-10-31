@@ -56,11 +56,32 @@ def test_standard_profile_includes_loopback_caddy_by_default() -> None:
     ]
 
 
+def test_standard_profile_selects_runtime_role_after_app_and_worker_overlays() -> None:
+    result = _run_planner("standard")
+    command = shlex.split(result.stdout)
+    manifests = [
+        command[index + 1]
+        for index, value in enumerate(command[:-1])
+        if value == "-f"
+    ]
+
+    assert result.returncode == 0, result.stderr
+    candidate = str(ROOT / "docker-compose.kernel-candidate.yml")
+    standard = str(ROOT / "docker-compose.kernel-standard.yml")
+    runtime_role = str(ROOT / "docker-compose.kernel-runtime-role.yml")
+    proxy = str(ROOT / "docker-compose.kernel-proxy.yml")
+    assert manifests.count(runtime_role) == 1
+    assert manifests.index(candidate) < manifests.index(standard) < manifests.index(runtime_role)
+    assert manifests.index(runtime_role) < manifests.index(proxy)
+    assert "--profile" not in command
+
+
 def test_standard_profile_can_be_replaced_by_external_ingress() -> None:
     result = _run_planner("standard", "--no-proxy")
 
     assert result.returncode == 0, result.stderr
     assert "docker-compose.kernel-standard.yml" in result.stdout
+    assert result.stdout.count("docker-compose.kernel-runtime-role.yml") == 1
     assert "docker-compose.kernel-proxy.yml" not in result.stdout
 
 
@@ -98,6 +119,54 @@ def test_standard_actions_include_caddy_exactly_once(action: str) -> None:
 
     assert result.returncode == 0, result.stderr
     assert result.stdout.count("docker-compose.kernel-proxy.yml") == 1
+    assert result.stdout.count("docker-compose.kernel-runtime-role.yml") == 1
+
+
+def test_standard_runtime_role_bootstrap_is_an_explicit_one_shot_action() -> None:
+    result = _run_planner("standard", "--action", "bootstrap-runtime-role")
+
+    assert result.returncode == 0, result.stderr
+    command = shlex.split(result.stdout)
+    assert any(Path(value).name == "docker-compose.kernel-runtime-role.yml" for value in command)
+    assert command[command.index("--profile") + 1] == "runtime-admin"
+    assert command[-4:] == ["run", "--rm", "--build", "runtime-role-bootstrap"]
+
+
+def test_standard_database_up_action_starts_only_the_database() -> None:
+    result = _run_planner("standard", "--action", "database-up")
+
+    assert result.returncode == 0, result.stderr
+    assert shlex.split(result.stdout)[-3:] == ["up", "-d", "database"]
+
+
+def test_standard_migrate_action_prints_ordered_schema_only_runner() -> None:
+    result = _run_planner("standard", "--action", "migrate")
+
+    assert result.returncode == 0, result.stderr
+    command = shlex.split(result.stdout)
+    assert command[:5] == [
+        "python3", "-m", "services.migration", "migrate", "--schemas-only"
+    ]
+    assert command[command.index("--compose-project") + 1] == "kokonut-kernel-candidate"
+    compose_files = [
+        command[index + 1]
+        for index, value in enumerate(command[:-1])
+        if value == "--compose-file"
+    ]
+    assert [Path(value).name for value in compose_files] == [
+        "docker-compose.kernel-candidate.yml",
+        "docker-compose.kernel-standard.yml",
+        "docker-compose.kernel-runtime-role.yml",
+        "docker-compose.kernel-proxy.yml",
+    ]
+
+
+@pytest.mark.parametrize("action", ["database-up", "migrate", "bootstrap-runtime-role"])
+def test_standard_admin_actions_are_rejected_for_other_profiles(action: str) -> None:
+    result = _run_planner("minimal", "--action", action)
+
+    assert result.returncode != 0
+    assert f"--action {action} applies only to standard" in result.stderr
 
 
 def test_minimal_and_edge_keep_proxy_opt_in() -> None:
@@ -245,6 +314,7 @@ def test_standard_api_and_worker_require_schema_readiness() -> None:
     for service_name in ("app", "worker"):
         command = standard["services"][service_name]["command"]
         assert "--require-schema" in command
+        assert "--require-runtime-role" in command
 
 
 def test_standard_worker_uses_durable_progress_healthcheck_without_merging_roles() -> None:
@@ -260,7 +330,8 @@ def test_standard_worker_uses_durable_progress_healthcheck_without_merging_roles
         "start_period": "60s",
     }
     assert worker["command"] == [
-        "python3", "-m", "services.core.runtime", "--workers-only", "--require-schema"
+        "python3", "-m", "services.core.runtime", "--workers-only", "--require-schema",
+        "--require-runtime-role",
     ]
     assert worker["environment"]["KOKONUT_WORKER_PROGRESS_STALE_SECONDS"] == (
         "${KOKONUT_WORKER_PROGRESS_STALE_SECONDS:-300}"
@@ -279,7 +350,7 @@ def test_standard_worker_uses_durable_progress_healthcheck_without_merging_roles
         for mount in worker.get("volumes", [])
     )
     assert "KOKONUT_WORKER_PROGRESS_STALE_SECONDS" not in app.get("environment", {})
-    assert worker["environment"]["PG_USER"] == "${KOKONUT_RUNTIME_USER:-kokonut}"
+    assert worker["environment"]["PG_USER"] == "${KOKONUT_RUNTIME_USER:?KOKONUT_RUNTIME_USER must be set}"
 
 
 def test_clickhouse_outbox_isolation_is_wired_but_opt_in_across_kernel_profiles():
@@ -534,6 +605,7 @@ def test_standard_arm64_profile_selects_the_arm64_worker_override() -> None:
 
     assert result.returncode == 0
     assert "docker-compose.kernel-standard.yml" in result.stdout
+    assert "docker-compose.kernel-runtime-role.yml" in result.stdout
     assert "docker-compose.kernel-arm64.yml" in result.stdout
     assert "docker-compose.kernel-arm64-standard.yml" in result.stdout
 

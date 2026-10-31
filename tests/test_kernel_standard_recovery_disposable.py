@@ -20,19 +20,23 @@ def _resolved_compose_model() -> dict:
         "services": {
             "database": {"ports": ["127.0.0.1:5432:5432"], "networks": {"kernel": {}}},
             "app": {
-                "command": ["python3", "-m", "services.core.runtime", "--port", "8099", "--require-schema"],
+                "command": ["python3", "-m", "services.core.runtime", "--port", "8099", "--require-schema", "--require-runtime-role"],
                 "ports": ["127.0.0.1:8098:8099"],
-                "environment": {"KOKONUT_ENV": "production"},
+                "environment": {"KOKONUT_ENV": "production", "PG_USER": "kokonut_runtime"},
                 "networks": {"kernel": {}},
             },
             "worker": {
-                "command": ["python3", "-m", "services.core.runtime", "--workers-only", "--require-schema"],
-                "environment": {"KOKONUT_ENV": "production"},
+                "command": ["python3", "-m", "services.core.runtime", "--workers-only", "--require-schema", "--require-runtime-role"],
+                "environment": {"KOKONUT_ENV": "production", "PG_USER": "kokonut_runtime"},
                 "healthcheck": {"interval": "30s"},
                 "networks": {"kernel": {}},
             },
             "proxy": {
                 "ports": ["127.0.0.1:8448:443"],
+                "networks": {"kernel": {}},
+            },
+            "runtime-role-bootstrap": {
+                "profiles": ["runtime-admin"],
                 "networks": {"kernel": {}},
             },
             "unrelated": {"networks": {"kernel": {}}},
@@ -45,16 +49,18 @@ def _resolved_compose_model() -> dict:
 def test_isolated_model_preserves_split_standard_roles_without_published_ports() -> None:
     model = CHECK._isolated_compose_model(_resolved_compose_model())
 
-    assert set(model["services"]) == {"database", "app", "worker", "proxy"}
+    assert set(model["services"]) == {"database", "app", "worker", "proxy", "runtime-role-bootstrap"}
     assert all("ports" not in service for service in model["services"].values())
     assert model["networks"]["kernel"]["internal"] is True
     assert model["services"]["app"]["command"] == [
-        "python3", "-m", "services.core.runtime", "--port", "8099", "--require-schema"
+        "python3", "-m", "services.core.runtime", "--port", "8099", "--require-schema", "--require-runtime-role"
     ]
     assert model["services"]["worker"]["command"] == [
-        "python3", "-m", "services.core.runtime", "--workers-only", "--require-schema"
+        "python3", "-m", "services.core.runtime", "--workers-only", "--require-schema", "--require-runtime-role"
     ]
     assert model["services"]["app"]["environment"]["KOKONUT_ENV"] == "development"
+    assert model["services"]["app"]["environment"]["PG_USER"] == "kokonut_runtime"
+    assert model["services"]["runtime-role-bootstrap"]["profiles"] == ["runtime-admin"]
     assert model["services"]["worker"]["environment"]["KOKONUT_ENV_SECRETS_NOT_REQUIRED"] == "true"
     assert model["services"]["worker"]["healthcheck"]["interval"] == "2s"
 
@@ -62,9 +68,9 @@ def test_isolated_model_preserves_split_standard_roles_without_published_ports()
 @pytest.mark.parametrize(
     ("app_command", "worker_command"),
     [
-        (["python3", "-m", "services.core.runtime"], ["python3", "-m", "services.core.runtime", "--workers-only", "--require-schema"]),
-        (["python3", "-m", "services.core.runtime", "--with-workers", "--require-schema"], ["python3", "-m", "services.core.runtime", "--workers-only", "--require-schema"]),
-        (["python3", "-m", "services.core.runtime", "--require-schema"], ["python3", "-m", "services.core.runtime", "--require-schema"]),
+        (["python3", "-m", "services.core.runtime"], ["python3", "-m", "services.core.runtime", "--workers-only", "--require-schema", "--require-runtime-role"]),
+        (["python3", "-m", "services.core.runtime", "--with-workers", "--require-schema", "--require-runtime-role"], ["python3", "-m", "services.core.runtime", "--workers-only", "--require-schema", "--require-runtime-role"]),
+        (["python3", "-m", "services.core.runtime", "--require-schema", "--require-runtime-role"], ["python3", "-m", "services.core.runtime", "--require-schema", "--require-runtime-role"]),
     ],
 )
 def test_isolated_model_rejects_nonstandard_or_unready_command_pair(app_command, worker_command) -> None:
@@ -98,6 +104,7 @@ def test_compose_file_set_matches_default_standard_proxy_profile() -> None:
     assert CHECK.BASE_COMPOSE.name == "docker-compose.kernel-candidate.yml"
     assert CHECK.STANDARD_COMPOSE.name == "docker-compose.kernel-standard.yml"
     assert CHECK.PROXY_COMPOSE.name == "docker-compose.kernel-proxy.yml"
+    assert CHECK.RUNTIME_ROLE_COMPOSE.name == "docker-compose.kernel-runtime-role.yml"
 
 
 def test_disposable_environment_does_not_inherit_provider_credentials(monkeypatch, tmp_path) -> None:
@@ -106,6 +113,8 @@ def test_disposable_environment_does_not_inherit_provider_credentials(monkeypatc
 
     assert "KOKONUT_WEATHER_FORECAST_OPENWEATHERMAP_API_KEY" not in environment
     assert environment["POSTGRES_PASSWORD"] != "host-secret"
+    assert environment["POSTGRES_PASSWORD"] != environment["KOKONUT_RUNTIME_PASSWORD"]
+    assert environment["KOKONUT_RUNTIME_PASSWORD"] != environment["KOKONUT_OPERATOR_AUTH_PASSWORD"]
 
 
 def test_standard_heartbeat_path_matches_worker_profile() -> None:
@@ -139,9 +148,86 @@ def test_failure_diagnostics_redact_disposable_secrets(monkeypatch, tmp_path) ->
         manifest,
         {
             "POSTGRES_PASSWORD": "synthetic-secret",
+            "KOKONUT_DB_ADMIN_PASSWORD": "admin-secret",
             "KOKONUT_RUNTIME_PASSWORD": "synthetic-secret",
+            "KOKONUT_OPERATOR_AUTH_PASSWORD": "operator-secret",
         },
     )
 
     assert "synthetic-secret" not in diagnostics
+    assert "admin-secret" not in diagnostics
+    assert "operator-secret" not in diagnostics
     assert "[redacted]" in diagnostics
+
+
+def test_standard_bootstrap_is_explicit_and_not_an_app_or_worker_dependency() -> None:
+    model = _resolved_compose_model()
+    CHECK._validate_explicit_runtime_role_bootstrap(
+        model["services"]["app"],
+        model["services"]["worker"],
+        model["services"]["runtime-role-bootstrap"],
+    )
+
+
+@pytest.mark.parametrize("value", ["t|f|f|f|f|f|f|f|f|f"])
+def test_runtime_role_attributes_accept_least_privilege_login(value) -> None:
+    assert CHECK._runtime_role_attributes(value) == {
+        "login": True,
+        "inherit": False,
+        "superuser": False,
+        "create_database": False,
+        "create_role": False,
+        "replication": False,
+        "bypass_rls": False,
+        "owns_database": False,
+        "member_of_database_owner": False,
+        "has_role_memberships": False,
+    }
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        "t|f|t|f|f|f|f|f|f|f",
+        "t|f|f|f|t|f|f|f|f|f",
+        "t|t|f|f|f|f|f|f|f|f",
+        "t|f|f|f|f|f|f|f|f|t",
+        "f|f|f|f|f|f|f|f|f|f",
+        "malformed",
+    ],
+)
+def test_runtime_role_attributes_reject_privileged_or_invalid_roles(value) -> None:
+    with pytest.raises(CHECK.AcceptanceError):
+        CHECK._runtime_role_attributes(value)
+
+
+def test_unsafe_admin_login_is_rejected_before_children() -> None:
+    CHECK._assert_runtime_role_gate_rejected(
+        1,
+        "Kernel schema readiness failed (runtime_role_unsafe: expected=700); review status",
+    )
+
+
+@pytest.mark.parametrize(
+    ("returncode", "output"),
+    [
+        (0, ""),
+        (1, "Kernel schema readiness failed (runtime_role_unavailable)") ,
+        (1, "Started Kernel process scheduler"),
+    ],
+)
+def test_unsafe_admin_login_must_fail_with_expected_code_before_spawn(returncode, output) -> None:
+    with pytest.raises(CHECK.AcceptanceError):
+        CHECK._assert_runtime_role_gate_rejected(returncode, output)
+
+
+def test_standard_bootstrap_rejects_automatic_runtime_role_dependency() -> None:
+    model = _resolved_compose_model()
+    model["services"]["app"]["depends_on"] = {"runtime-role-bootstrap": {"condition": "service_completed_successfully"}}
+
+    with pytest.raises(CHECK.AcceptanceError, match="must not auto-run"):
+        CHECK._validate_explicit_runtime_role_bootstrap(
+            model["services"]["app"],
+            model["services"]["worker"],
+            model["services"]["runtime-role-bootstrap"],
+        )

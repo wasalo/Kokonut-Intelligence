@@ -135,18 +135,19 @@ def commands(port: int, with_workers: bool, workers_only: bool = False) -> list[
 
 
 def run(port: int = 8099, with_workers: bool = False, shutdown_seconds: float = 30,
-        workers_only: bool = False, require_schema: bool = False) -> int:
+        workers_only: bool = False, require_schema: bool = False,
+        require_runtime_role: bool = False) -> int:
     """Exit on any unexpected child exit; Compose owns restart policy."""
     stopping = False
     children: list[tuple[str, subprocess.Popen]] = []
     old_handlers = {}
     heartbeat: _SupervisorHeartbeat | None = None
 
-    if require_schema:
+    if require_schema or require_runtime_role:
         from services.core.schema_readiness import SchemaReadinessError, require_schema_ready
 
         try:
-            require_schema_ready()
+            require_schema_ready(require_runtime_role=require_runtime_role)
         except SchemaReadinessError as exc:
             logger.error("Kernel schema readiness failed (%s); review migration status before startup", exc)
             return 1
@@ -258,13 +259,15 @@ def main() -> None:
     parser.add_argument("--shutdown-seconds", type=float, default=30)
     parser.add_argument("--require-schema", action="store_true",
                         help="Require applied checksums for bundled schemas before spawning processes")
+    parser.add_argument("--require-runtime-role", action="store_true",
+                        help="Require a non-owner, non-privileged database login before schema readiness and child startup")
     args = parser.parse_args()
     if not 1 <= args.port <= 65535:
         parser.error("--port must be between 1 and 65535")
     if not math.isfinite(args.shutdown_seconds) or args.shutdown_seconds <= 0:
         parser.error("--shutdown-seconds must be positive")
     raise SystemExit(run(args.port, args.with_workers, args.shutdown_seconds,
-                        args.workers_only, args.require_schema))
+                        args.workers_only, args.require_schema, args.require_runtime_role))
 
 
 if __name__ == "__main__":

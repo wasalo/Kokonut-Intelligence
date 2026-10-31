@@ -41,7 +41,7 @@ certify Raspberry Pi hardware. See the
 | core | PostgreSQL + combined API/workers with only the selected kernel dependency set | Release CI, full capability parity, upgrade/restore recovery, and target resource acceptance |
 | minimal | PostgreSQL + combined API/workers | End-to-end governed workflow, populated-data parity, backup/restore, and operational recovery |
 | edge | Minimal + encrypted local media/resource limits | Media failure/recovery, offline/device acceptance, and physical-hardware behavior |
-| standard | PostgreSQL + separate API and worker + loopback Caddy ingress by default; PostgreSQL shared limiter by default | Current-target ordered migration/role rollout, worker progress monitoring, public ingress/TLS and trusted-proxy policy, backups, and recovery acceptance |
+| standard | PostgreSQL + separate API and worker + dedicated runtime-role overlay + loopback Caddy ingress by default; PostgreSQL shared limiter by default | Current-target ordered migration/role rollout, worker progress monitoring, public ingress/TLS and trusted-proxy policy, backups, and recovery acceptance |
 | analytics | Minimal + private ClickHouse | Schema bootstrap, projection parity, and outage/rebuild acceptance |
 | analytics --separate-workers | Standard + ClickHouse settings for both roles | Standard gates plus worker analytics parity and recovery |
 | scale | Rejected with an explanation | Shared rate limits, replica/failover behavior, recovery, and measured sizing |
@@ -53,6 +53,27 @@ externally managed ingress, select `standard --no-proxy`; preserve the HTTPS
 origin and callback behavior required by browser sessions. Public binding,
 public TLS, DNS, firewall, and multi-hop trusted-proxy policy still require
 acceptance. The Gateway ignores forwarded headers by default.
+
+Standard also selects the runtime-role Compose overlay. It requires distinct
+`KOKONUT_RUNTIME_USER` and `KOKONUT_RUNTIME_PASSWORD` values for both app and
+worker, and each supervisor checks that its database login is not privileged,
+does not own the database, and cannot become a database-owner member before
+starting children. Load the encrypted environment, then execute the planner
+actions and their printed commands in this order:
+
+1. `python3 scripts/kernel-profile.py standard --action database-up` starts
+   only PostgreSQL.
+2. `python3 scripts/kernel-profile.py standard --action migrate` prints the
+   Python command for the complete ordered schema migration. Run that command
+   as the database owner.
+3. `python3 scripts/kernel-profile.py standard --action bootstrap-runtime-role`
+   provisions the distinct runtime and operator-auth logins.
+4. `python3 scripts/kernel-profile.py standard --action up` starts the app,
+   worker, and selected ingress.
+
+The bootstrap reapplies compatibility DML grants before migration-owned
+denials, so it is not a routine restart action. The planner actions print
+commands and do not execute them.
 
 Migration numbers referenced below (including 371–373) identify when specific
 features were introduced. They are not a current target's migration status or
@@ -101,6 +122,7 @@ python3 scripts/kernel-profile.py minimal
 python3 scripts/kernel-profile.py core --action config
 python3 scripts/kernel-profile.py core --web3 --exports --local-media --action config
 python3 scripts/kernel-profile.py standard --action build
+python3 scripts/kernel-profile.py standard --action bootstrap-runtime-role
 python3 scripts/kernel-profile.py standard --no-proxy --action config
 python3 scripts/kernel-profile.py standard --oidc --action config
 python3 scripts/kernel-profile.py analytics --separate-workers --action config

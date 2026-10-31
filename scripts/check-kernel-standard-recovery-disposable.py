@@ -25,6 +25,7 @@ ROOT = Path(__file__).resolve().parents[1]
 BASE_COMPOSE = ROOT / "docker-compose.kernel-candidate.yml"
 STANDARD_COMPOSE = ROOT / "docker-compose.kernel-standard.yml"
 PROXY_COMPOSE = ROOT / "docker-compose.kernel-proxy.yml"
+RUNTIME_ROLE_COMPOSE = ROOT / "docker-compose.kernel-runtime-role.yml"
 DEFAULT_TIMEOUT_SECONDS = 180
 HEARTBEAT_PATH = "/var/lib/kokonut/worker-progress/supervisor.json"
 
@@ -52,15 +53,26 @@ def _run(
         check=False,
     )
     if check and result.returncode:
-        detail = (result.stderr or result.stdout).strip()
-        password = environment.get("POSTGRES_PASSWORD", "")
-        if password:
-            detail = detail.replace(password, "[redacted]")
+        detail = _redact_secrets((result.stderr or result.stdout).strip(), environment)
         raise AcceptanceError(
             f"{command[0]} {command[1] if len(command) > 1 else ''} failed "
             f"({result.returncode}): {detail[-2400:]}"
         )
     return result
+
+
+def _redact_secrets(value: str, environment: dict[str, str]) -> str:
+    for secret_name in (
+        "POSTGRES_PASSWORD",
+        "KOKONUT_DB_ADMIN_PASSWORD",
+        "KOKONUT_RUNTIME_PASSWORD",
+        "KOKONUT_OPERATOR_AUTH_PASSWORD",
+        "DIRECTUS_SECRET",
+    ):
+        secret = environment.get(secret_name, "")
+        if secret:
+            value = value.replace(secret, "[redacted]")
+    return value
 
 
 def _heartbeat_is_removed(worker_id: str, environment: dict[str, str]) -> bool:
@@ -112,11 +124,17 @@ def _compose_environment(sensor_root: Path) -> dict[str, str]:
         if os.environ.get(name)
     }
     password = secrets.token_urlsafe(32)
+    runtime_password = secrets.token_urlsafe(32)
+    operator_auth_password = secrets.token_urlsafe(32)
     environment.update(
         {
             "POSTGRES_PASSWORD": password,
-            "KOKONUT_RUNTIME_USER": "kokonut",
-            "KOKONUT_RUNTIME_PASSWORD": password,
+            "KOKONUT_DB_ADMIN_USER": "kokonut",
+            "KOKONUT_DB_ADMIN_PASSWORD": password,
+            "KOKONUT_RUNTIME_USER": "kokonut_runtime",
+            "KOKONUT_RUNTIME_PASSWORD": runtime_password,
+            "KOKONUT_OPERATOR_AUTH_USER": "kokonut_operator_auth",
+            "KOKONUT_OPERATOR_AUTH_PASSWORD": operator_auth_password,
             "KOKONUT_ENV": "development",
             "KOKONUT_ENV_SECRETS_NOT_REQUIRED": "true",
             "KOKONUT_ALLOW_PLAINTEXT_ENV": "true",
@@ -141,11 +159,11 @@ def _compose_environment(sensor_root: Path) -> dict[str, str]:
 def _isolated_compose_model(model: dict[str, Any]) -> dict[str, Any]:
     """Retain the real Standard merge while forcing portless internal runtime."""
     isolated = copy.deepcopy(model)
-    required = {"database", "app", "worker"}
+    required = {"database", "app", "worker", "runtime-role-bootstrap"}
     services = isolated.get("services")
     if not isinstance(services, dict) or not required <= set(services):
         raise AcceptanceError("merged Standard Compose model lacks database/app/worker")
-    selected = ["database", "app", "worker"]
+    selected = ["database", "app", "worker", "runtime-role-bootstrap"]
     if "proxy" in services:
         selected.append("proxy")
     isolated["services"] = {name: services[name] for name in selected}
@@ -161,6 +179,12 @@ def _isolated_compose_model(model: dict[str, Any]) -> dict[str, Any]:
     if len(networks) != 1:
         raise AcceptanceError("disposable acceptance expects one Standard runtime network")
     networks["kernel"]["internal"] = True
+
+    _validate_explicit_runtime_role_bootstrap(
+        isolated["services"]["app"],
+        isolated["services"]["worker"],
+        isolated["services"]["runtime-role-bootstrap"],
+    )
 
     app = isolated["services"]["app"]
     worker = isolated["services"]["worker"]
@@ -202,6 +226,24 @@ def _isolated_compose_model(model: dict[str, Any]) -> dict[str, Any]:
     return isolated
 
 
+def _validate_explicit_runtime_role_bootstrap(
+    app: dict[str, Any], worker: dict[str, Any], bootstrap: dict[str, Any]
+) -> None:
+    profiles = bootstrap.get("profiles")
+    if not isinstance(profiles, list) or "runtime-admin" not in profiles:
+        raise AcceptanceError("runtime-role bootstrap must remain behind the runtime-admin profile")
+    for name, service in (("app", app), ("worker", worker)):
+        dependencies = service.get("depends_on", {})
+        if isinstance(dependencies, dict) and "runtime-role-bootstrap" in dependencies:
+            raise AcceptanceError(
+                f"Standard {name} must not auto-run the privileged runtime-role bootstrap"
+            )
+        if isinstance(dependencies, list) and "runtime-role-bootstrap" in dependencies:
+            raise AcceptanceError(
+                f"Standard {name} must not auto-run the privileged runtime-role bootstrap"
+            )
+
+
 def _validate_split_commands(app: dict[str, Any], worker: dict[str, Any]) -> None:
     app_command = app.get("command")
     worker_command = worker.get("command")
@@ -209,6 +251,8 @@ def _validate_split_commands(app: dict[str, Any], worker: dict[str, Any]) -> Non
         raise AcceptanceError("API and worker commands must be explicit argument arrays")
     if "--require-schema" not in app_command or "--require-schema" not in worker_command:
         raise AcceptanceError("both Standard roles must require schema readiness")
+    if "--require-runtime-role" not in app_command or "--require-runtime-role" not in worker_command:
+        raise AcceptanceError("both Standard roles must require the non-admin runtime-role gate")
     if "--workers-only" in app_command or "--with-workers" in app_command:
         raise AcceptanceError("Standard API command unexpectedly starts worker children")
     if "--workers-only" not in worker_command or "--with-workers" in worker_command:
@@ -245,11 +289,7 @@ def _failure_diagnostics(
     ):
         result = _run(command, environment=environment, check=False, timeout=20)
         output = "\n".join(part for part in (result.stdout, result.stderr) if part).strip()
-        for secret_name in ("POSTGRES_PASSWORD", "KOKONUT_RUNTIME_PASSWORD", "DIRECTUS_SECRET"):
-            secret = environment.get(secret_name, "")
-            if secret:
-                output = output.replace(secret, "[redacted]")
-        outputs.append(output)
+        outputs.append(_redact_secrets(output, environment))
     return "\nDisposable Compose diagnostics:\n" + "\n".join(outputs)[-8000:]
 
 
@@ -301,6 +341,149 @@ def _wait_for_health(
 def _container_has_no_published_ports(container: dict[str, Any]) -> bool:
     bindings = container.get("NetworkSettings", {}).get("Ports", {})
     return not any(binding for binding in bindings.values() if binding)
+
+
+def _runtime_role_attributes(output: str) -> dict[str, bool]:
+    fields = output.strip().split("|")
+    if len(fields) != 10 or any(value not in {"t", "f"} for value in fields):
+        raise AcceptanceError("runtime role attribute query returned malformed output")
+    attributes = {
+        "login": fields[0] == "t",
+        "inherit": fields[1] == "t",
+        "superuser": fields[2] == "t",
+        "create_database": fields[3] == "t",
+        "create_role": fields[4] == "t",
+        "replication": fields[5] == "t",
+        "bypass_rls": fields[6] == "t",
+        "owns_database": fields[7] == "t",
+        "member_of_database_owner": fields[8] == "t",
+        "has_role_memberships": fields[9] == "t",
+    }
+    if attributes != {
+        "login": True,
+        "inherit": False,
+        "superuser": False,
+        "create_database": False,
+        "create_role": False,
+        "replication": False,
+        "bypass_rls": False,
+        "owns_database": False,
+        "member_of_database_owner": False,
+        "has_role_memberships": False,
+    }:
+        raise AcceptanceError("kokonut_runtime role attributes exceed the least-privilege login contract")
+    return attributes
+
+
+def _assert_runtime_role_gate_rejected(returncode: int, output: str) -> None:
+    if returncode == 0 or "runtime_role_unsafe" not in output:
+        raise AcceptanceError("unsafe admin database credentials passed the runtime-role readiness gate")
+    if "Started Kernel process" in output:
+        raise AcceptanceError("runtime supervisor spawned a worker before rejecting the unsafe database role")
+
+
+def _query_runtime_role_attributes(
+    project: str, manifest: Path, environment: dict[str, str]
+) -> dict[str, bool]:
+    result = _run(
+        [
+            *_compose_command(project, manifest),
+            "exec",
+            "-T",
+            "database",
+            "psql",
+            "-XAt",
+            "-F",
+            "|",
+            "-U",
+            "kokonut",
+            "-d",
+            "kokonut_intelligence",
+            "-v",
+            "ON_ERROR_STOP=1",
+            "-c",
+            "SELECT runtime_role.rolcanlogin, runtime_role.rolinherit, "
+            "runtime_role.rolsuper, runtime_role.rolcreatedb, "
+            "runtime_role.rolcreaterole, runtime_role.rolreplication, "
+            "runtime_role.rolbypassrls, database_row.datdba = runtime_role.oid, "
+            "(database_row.datdba <> runtime_role.oid AND "
+            "pg_catalog.pg_has_role(runtime_role.oid, database_row.datdba, 'MEMBER')), "
+            "EXISTS (SELECT 1 FROM pg_catalog.pg_auth_members AS membership "
+            "WHERE membership.member = runtime_role.oid) "
+            "FROM pg_catalog.pg_roles AS runtime_role "
+            "JOIN pg_catalog.pg_database AS database_row "
+            "ON database_row.datname = pg_catalog.current_database() "
+            "WHERE runtime_role.rolname='kokonut_runtime';",
+        ],
+        environment=environment,
+    )
+    return _runtime_role_attributes(result.stdout)
+
+
+def _runtime_identity(
+    project: str, manifest: Path, environment: dict[str, str], service: str
+) -> str:
+    query = """from services.common.database import get_db
+connection = get_db()
+try:
+    with connection.cursor() as cursor:
+        cursor.execute('SELECT current_user')
+        print(cursor.fetchone()[0])
+finally:
+    connection.close()
+"""
+    result = _run(
+        [
+            *_compose_command(project, manifest),
+            "exec",
+            "-T",
+            service,
+            "python3",
+            "-c",
+            query,
+        ],
+        environment=environment,
+    )
+    return result.stdout.strip()
+
+
+def _assert_runtime_write_denied(
+    project: str, manifest: Path, environment: dict[str, str]
+) -> None:
+    probe = """from services.common.database import get_db
+connection = get_db()
+try:
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute(
+                'INSERT INTO public.schema_version (version, description) VALUES (%s, %s)',
+                ('standard-recovery-denial-probe', 'rolled back privilege probe'),
+            )
+    except Exception as exc:
+        connection.rollback()
+        if type(exc).__name__ != 'InsufficientPrivilege':
+            raise
+        print('denied')
+    else:
+        connection.rollback()
+        raise SystemExit('runtime login unexpectedly wrote schema_version')
+finally:
+    connection.close()
+"""
+    result = _run(
+        [
+            *_compose_command(project, manifest),
+            "exec",
+            "-T",
+            "app",
+            "python3",
+            "-c",
+            probe,
+        ],
+        environment=environment,
+    )
+    if result.stdout.strip() != "denied":
+        raise AcceptanceError("kokonut_runtime could not prove schema_version DML remains denied")
 
 
 def _worker_probe(
@@ -395,7 +578,11 @@ def _main(timeout: float) -> dict[str, Any]:
                 "-f",
                 str(STANDARD_COMPOSE),
                 "-f",
+                str(RUNTIME_ROLE_COMPOSE),
+                "-f",
                 str(PROXY_COMPOSE),
+                "--profile",
+                "runtime-admin",
                 "config",
                 "--format",
                 "json",
@@ -426,6 +613,10 @@ def _main(timeout: float) -> dict[str, Any]:
                     "--rm",
                     "--no-deps",
                     "-T",
+                    "-e",
+                    "PG_USER=kokonut",
+                    "-e",
+                    f"PG_PASSWORD={environment['POSTGRES_PASSWORD']}",
                     "app",
                     "python3",
                     "-m",
@@ -517,9 +708,86 @@ def _main(timeout: float) -> dict[str, Any]:
                 "latest_schema_migration": expected_latest_migration,
             }
 
+            unsafe_runtime_role = _run(
+                [
+                    *compose,
+                    "run",
+                    "--rm",
+                    "--no-deps",
+                    "-T",
+                    "-e",
+                    "PG_USER=kokonut",
+                    "-e",
+                    f"PG_PASSWORD={environment['POSTGRES_PASSWORD']}",
+                    "app",
+                    "python3",
+                    "-m",
+                    "services.core.runtime",
+                    "--workers-only",
+                    "--require-runtime-role",
+                ],
+                environment=environment,
+                timeout=30,
+                check=False,
+            )
+            _assert_runtime_role_gate_rejected(
+                unsafe_runtime_role.returncode,
+                unsafe_runtime_role.stdout + unsafe_runtime_role.stderr,
+            )
+            result["unsafe_admin_runtime_role_fails_before_children"] = True
+
+            _run(
+                [
+                    *compose,
+                    "--profile",
+                    "runtime-admin",
+                    "run",
+                    "--rm",
+                    "-T",
+                    "runtime-role-bootstrap",
+                ],
+                environment=environment,
+                timeout=600,
+            )
+            role_attributes = _query_runtime_role_attributes(project, manifest, environment)
             _run([*compose, "up", "-d", "app", "worker", "proxy"], environment=environment, timeout=120)
             app = _wait_for_health(project, manifest, environment, "app", "healthy", timeout)
             worker = _wait_for_health(project, manifest, environment, "worker", "healthy", timeout)
+            app_identity = _runtime_identity(project, manifest, environment, "app")
+            worker_identity = _runtime_identity(project, manifest, environment, "worker")
+            if app_identity != "kokonut_runtime" or worker_identity != "kokonut_runtime":
+                raise AcceptanceError("Standard app and worker did not connect as kokonut_runtime")
+            _assert_runtime_write_denied(project, manifest, environment)
+
+            _run(
+                [
+                    *compose,
+                    "--profile",
+                    "runtime-admin",
+                    "run",
+                    "--rm",
+                    "-T",
+                    "runtime-role-bootstrap",
+                ],
+                environment=environment,
+                timeout=600,
+            )
+            role_attributes_after_reapply = _query_runtime_role_attributes(
+                project, manifest, environment
+            )
+            _assert_runtime_write_denied(project, manifest, environment)
+            result["runtime_role"] = {
+                "bootstrap_profile": "runtime-admin",
+                "bootstrap_ran_explicitly_after_migrations": True,
+                "role_attributes": role_attributes,
+                "app_database_user": app_identity,
+                "worker_database_user": worker_identity,
+                "schema_version_insert_denied_after_initial_provision": True,
+                "schema_version_insert_denied_after_provisioner_reapply": True,
+                "role_attributes_preserved_after_reapply": (
+                    role_attributes_after_reapply == role_attributes
+                ),
+            }
             containers = [("app", app), ("worker", worker), ("database", database)]
             try:
                 proxy = _inspect_container(

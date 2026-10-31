@@ -22,9 +22,9 @@ pending.
 
 Remaining work is ordered in [the code-first execution plan](code-first-execution-plan.md): finish repository-owned implementation and reproducible software checks before collecting owner decisions and production inputs. Raspberry Pi hardware is unavailable, so Batch 6 uses ARM64 emulation and constrained software checks; it does not claim physical-device acceptance.
 
-**Current snapshot (31 October 2026):** 2,159 checklist items complete and 30
-open (2,189 total), counting nested items. The cross-phase TODO queue has 753
-checked and 29 open items. The
+**Current snapshot (31 October 2026):** 2,161 checklist items complete and 31
+open (2,192 total), counting nested items. The cross-phase TODO queue has 769
+checked and 31 open items. The
 [capability matrix](capability-matrix.md) has 67 validated rows: 24
 baseline-retained, 7 deployed, and 36 prepared. Named MAN-CAP
 acceptance remains separate; none is marked accepted.
@@ -9837,3 +9837,27 @@ confirm external writers do not rely on `kokonut_runtime` for the reference
 tables changed by migrations 704, 706, 707, or 708. The current full-schema
 source/ACL aggregate remains the migration-707 snapshot; it does not record
 708's applied ACL and must not be represented as a post-708 count.
+
+- [x] Require Standard app and worker containers to use explicit dedicated
+  runtime credentials. The planner selects the role overlay, and both
+  supervisors check before spawning children that the session uses a LOGIN,
+  NOINHERIT role with no superuser/database/role creation/replication/RLS-bypass
+  flags, no role memberships, and no database-owner authority. The bootstrap
+  remains an explicit one-shot after the complete migration ledger because it
+  reapplies compatibility DML grants. Planner/Compose/startup/profile checks
+  pass 105 tests; no candidate or persistent role was changed.
+- [x] Pass refreshed Standard disposable acceptance with an explicit
+  post-migration role bootstrap, runtime API/worker startup as
+  `kokonut_runtime`, rejection of the database-owner login before child spawn,
+  preserved write denials after provisioner reapplication, outage recovery,
+  heartbeat checks, and cleanup. All 701 ordered schema files through
+  migration 710 applied; the project used no seeds, host ports, external
+  egress, candidate, legacy, or production target. Its 26 harness tests pass
+  ([evidence](builds/2026-10-31-recovery/standard-profile-recovery-710-runtime-role-disposable.json);
+  [runner](../../scripts/check-kernel-standard-recovery-disposable.py)).
+- [ ] Obtain a complete hosted CI run for the pushed repair head. The linked
+  #1014 attempt 1 failure has no retained logs; attempt 2 was superseded by
+  #1015 during ARM64 Buildx package resolution. On head `0fa7444f`, Security
+  #752 passed, while CI #1028 received a hosted-runner shutdown after entering
+  the full Python suite; no assertion failure appears in the available log.
+  The full gate remains open ([run evidence](builds/2026-10-31-recovery/ci-1028-hosted-runner-shutdown.json)).

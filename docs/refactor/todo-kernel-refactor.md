@@ -8,7 +8,7 @@ can proceed now and gates that need an owner, provider, populated source data,
 or production environment. Check an item only when its evidence is recorded in
 the batch log and the affected capability/progress records are updated.
 
-**Current queue snapshot (31 October 2026):** 764 checked / 30 open across the
+**Current queue snapshot (31 October 2026):** 769 checked / 31 open across the
 TODO's dated and active checklist sections. Historical snapshots below this
 active queue remain dated records and do not replace the current count.
 
@@ -43,7 +43,13 @@ attempt 1 is marked failed but GitHub no longer serves its job log; attempt 2
 was cancelled during ARM64 Buildx dependency installation when newer same-PR
 CI #1015 (`41204207505`) started. This was a superseded run, not a test
 assertion failure ([evidence](builds/2026-10-31-recovery/ci-1014-superseded-run.json)).
-The earlier runtime-SQL inventory drift was fixed in `fb4cc883`.
+On pushed head `0fa7444f`, Security #752 passed. CI #1028 (`41229953619`) ran
+through the release/fast-fail checks, schema/seed setup, service startup, and
+metric computation, then the full Python suite received a hosted-runner
+shutdown signal. Its logs show no assertion failure; the parallel Kernel image
+job was still running when inspected. This is incomplete validation, not a
+successful CI gate. The earlier runtime-SQL inventory drift was fixed in
+`fb4cc883`.
 
 ## Current continuation — Standard profile and C1 ACL guardrails
 
@@ -119,6 +125,21 @@ The earlier runtime-SQL inventory drift was fixed in `fb4cc883`.
   ([evidence](builds/2026-10-31-recovery/standard-profile-recovery-709-disposable.json)).
   This is not 24-hour, live-provider, populated-lease, replica, public-ingress,
   or physical Raspberry Pi acceptance.
+- [x] Make Standard select the dedicated runtime-role overlay, require explicit
+  runtime credentials for app and worker, and add a pre-spawn database check
+  that rejects privileged, inheriting, role-member, database-owner, and
+  owner-member logins. Planner/Compose, startup, and profile checks pass 105
+  tests; the 26-test disposable harness passes the migration, role-bootstrap,
+  identity, owner-rejection, write-denial, health/recovery, and cleanup checks
+  below ([guide](standard-profile.md); [policy](runtime-role-policy.md)).
+- [x] Complete refreshed network-disabled Standard recovery acceptance. All
+  701 ordered schema files through migration 710 applied; the explicit
+  post-migration bootstrap provisions `kokonut_runtime`, both app and worker
+  use it, database-owner login is rejected before child startup, and the
+  migration-owned write denial survives bootstrap reapplication. Startup,
+  database-outage recovery, heartbeat checks, zero active leases, and cleanup
+  pass. No candidate, legacy, or production target was touched
+  ([evidence](builds/2026-10-31-recovery/standard-profile-recovery-710-runtime-role-disposable.json)).
 - [ ] Complete hosted full CI for the latest pushed head. The S108 repair and
   refreshed runtime-SQL inventory are committed; Security #751 and the
   multi-architecture Kernel image job pass, but both attempts of CI #1027

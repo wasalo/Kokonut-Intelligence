@@ -84,7 +84,7 @@ command and applicable rollout procedure.
 | **minimal** | Private PostgreSQL/PostGIS plus the combined Kernel app/API and enabled worker processes. | Smallest candidate deployment shape. Capability parity, recovery, live identity, and operational acceptance remain open. |
 | **core** | Minimal app built from the reduced, hash-locked dependency set. Optional Web3, exports, and local-media packages are selected explicitly. | Packaging profile, not a different data model. The current OIDC app overlay is incompatible with this reduced image. |
 | **edge** | Minimal plus encrypted local media and edge-oriented resource settings; MQTT/HTTP sensors remain separately selectable overlays. | No physical Raspberry Pi test has been performed. QEMU and source-level ARM64 checks do not establish device performance or power-loss behavior. |
-| **standard** | PostgreSQL plus distinct API and durable-worker roles, with loopback-bound Caddy ingress by default. `--no-proxy` selects a separately managed ingress. The worker has a read-only PostgreSQL probe for stale leases, old eligible due backlog, and supervisor/child-process liveness. | A network-disabled disposable acceptance passes the schema-only replay through migration 709, missing-schema fail-closed check, startup, PostgreSQL outage detection/recovery without worker restart, heartbeat privacy/removal, and cleanup ([evidence](builds/2026-10-31-recovery/standard-profile-recovery-709-disposable.json)). Role rollout, live identity, provider/lease recovery, external alert routing, public ingress, backup/restore, scale, prolonged recovery, and physical-device acceptance remain open. The probe reports aggregate counts and ages without IDs or payloads; it detects exited children but not an alive-but-hung child. The default Caddy listener is local TLS, not public production ingress. |
+| **standard** | PostgreSQL plus distinct API and durable-worker roles, with loopback-bound Caddy ingress by default. `--no-proxy` selects a separately managed ingress. Both processes require a dedicated non-owner, non-privileged login before starting children; the worker also has a read-only PostgreSQL probe for stale leases, old eligible due backlog, and supervisor/child-process liveness. | A network-disabled disposable acceptance applies all 701 schema files through migration 710, explicitly provisions the runtime role, verifies app/worker identities and unsafe-owner rejection, and passes outage recovery and cleanup ([evidence](builds/2026-10-31-recovery/standard-profile-recovery-710-runtime-role-disposable.json)). Candidate rollout, live identity, populated lease/provider recovery, external alert routing, public ingress, backup/restore, scale, prolonged recovery, and physical-device acceptance remain open. The probe reports aggregate counts and ages without IDs or payloads; it detects exited children but not an alive-but-hung child. The default Caddy listener is local TLS, not public production ingress. |
 | **analytics** | Minimal plus private ClickHouse analytical projection. `--separate-workers` adds standard API/worker separation. | Requires projection parity, rebuild/outage behavior, and worker recovery acceptance. Metabase is not required. |
 | **scale** | Rejected by the planner. | Multi-host/replica behavior, shared budgets, failover, measured sizing, and concurrency/recovery gates are not accepted. |
 
@@ -155,7 +155,7 @@ sequence, function, ownership, and Directus safety. Migration 705 is a
 separate Directus reprovisioning policy; it does not certify Directus API or
 extension parity ([707 report](builds/2026-10-31-recovery/runtime-privilege-callsite-report-707.json)).
 
-This local batch records migrations 700–709 and scoped operations:
+This local batch records migrations 700–710 and scoped operations:
 
 | Migration | Added operation | Local acceptance recorded |
 | --- | --- | --- |
@@ -169,6 +169,7 @@ This local batch records migrations 700–709 and scoped operations:
 | 707 | Keep authorization-bearing `farmer_role` defaults readable to runtime while denying its table and residual column writes. | Source audit found one application SELECT and no in-repository service, extension, or Directus writer. Focused PostgreSQL 16 acceptance passes apply/replay, provisioner reapplication, runtime SELECT/write denial, and preservation of Directus/maintenance writes ([source audit](builds/2026-10-31-recovery/farmer-role-707-source-audit.json); [evidence](builds/2026-10-31-recovery/farmer-role-runtime-read-only-707-disposable.json)). External importer use through `kokonut_runtime` remains unconfirmed; persistent rollout is gated. |
 | 708 | Retire five unscoped legacy landscape writers and deny `kokonut_runtime` table/column DML on their records while preserving the signed migration-702 Gateway writer. | Focused network-disabled PostgreSQL 16 acceptance passes migration apply/replay, preserved SELECT and writer-owner grants, and authenticated capture/replay ([checker](../../scripts/check-landscape-runtime-boundary-disposable.py)). External importer use remains unconfirmed; candidate rollout stays gated. |
 | 709 | Preserve runtime SELECT on ordered schema metadata while denying `kokonut_runtime` table and column DML on `schema_version`; preserve maintenance and Directus grants. | Source audit and network-disabled PostgreSQL 16 apply/replay check pass; external importer use is unconfirmed and persistent rollout remains gated ([source regression](../../tests/test_runtime_role_boundary.py); [checker](../../scripts/check-schema-version-runtime-boundary-disposable.py); [evidence](builds/2026-10-31-recovery/schema-version-runtime-read-only-709.json)). |
+| 710 | Preserve runtime SELECT on schema-owned `cache_invalidation_rule` while denying runtime table and column DML; preserve Directus and maintenance writes. | Network-disabled PostgreSQL 16 apply/replay passes. External/custom runtime-login use remains unconfirmed, so persistent rollout is gated ([evidence](builds/2026-10-31-recovery/cache-invalidation-rule-710.json)). |
 
 The complete native replay through migration 707 applies all 698 ordered
 schema files and passes 38 synthetic two-tenant operator-scope checks in a
@@ -178,6 +179,15 @@ The probe reports 976 public tables with runtime DML while RLS is disabled.
 This is an ACL reach count, not a finding of confirmed data exposure, and does
 not close remaining C1 source, tenant, populated-data, or rollout gates. No
 candidate, legacy, or production target was accessed.
+
+Migrations 708–710 have focused disposable acceptance, but the native source/ACL
+aggregate remains the migration-707 snapshot and is stale relative to those
+ACL changes. The Standard runtime-role overlay now requires separate
+credentials and checks role attributes, memberships, and database ownership
+before spawning children. Its refreshed disposable replay through 710 and role
+acceptance pass, including bootstrap reapplication and outage recovery
+([evidence](builds/2026-10-31-recovery/standard-profile-recovery-710-runtime-role-disposable.json)).
+The candidate has not been rolled out.
 
 The complete full-schema report and two-tenant replay above stop at migration
 707; they do not certify the 708 ACL on the complete schema. Migration 708 has

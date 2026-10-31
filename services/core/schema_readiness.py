@@ -69,8 +69,57 @@ def required_extensions(directory: Path) -> frozenset[str]:
     return frozenset(match.group(1) or match.group(2).lower() for match in matches)
 
 
-def require_schema_ready() -> dict[str, int]:
-    """Require the bundled schemas' applied checksums without running migrations."""
+def _require_non_admin_runtime_role(cursor) -> None:
+    """Fail closed unless this connection uses a dedicated unprivileged login."""
+    cursor.execute(
+        """SELECT current_user, session_user, runtime_role.rolcanlogin,
+                  runtime_role.rolinherit, runtime_role.rolsuper, runtime_role.rolcreatedb,
+                  runtime_role.rolcreaterole, runtime_role.rolreplication,
+                  runtime_role.rolbypassrls, database_row.datdba = runtime_role.oid,
+                  (database_row.datdba <> runtime_role.oid AND
+                   pg_catalog.pg_has_role(runtime_role.oid, database_row.datdba, 'MEMBER')),
+                  EXISTS (SELECT 1 FROM pg_catalog.pg_auth_members AS membership
+                          WHERE membership.member = runtime_role.oid)
+           FROM pg_catalog.pg_roles AS runtime_role
+           JOIN pg_catalog.pg_database AS database_row
+             ON database_row.datname = pg_catalog.current_database()
+           WHERE runtime_role.rolname = current_user"""
+    )
+    row = cursor.fetchone()
+    if row is None:
+        raise SchemaReadinessError("runtime_role_unavailable")
+    (
+        current_user,
+        session_user,
+        can_login,
+        inherits_roles,
+        is_superuser,
+        can_create_database,
+        can_create_role,
+        can_replicate,
+        bypasses_rls,
+        owns_database,
+        member_of_database_owner,
+        has_role_memberships,
+    ) = row
+    if (
+        current_user != session_user
+        or not can_login
+        or inherits_roles
+        or is_superuser
+        or can_create_database
+        or can_create_role
+        or can_replicate
+        or bypasses_rls
+        or owns_database
+        or member_of_database_owner
+        or has_role_memberships
+    ):
+        raise SchemaReadinessError("runtime_role_unsafe")
+
+
+def require_schema_ready(*, require_runtime_role: bool = False) -> dict[str, int]:
+    """Require schema checksums and, optionally, a dedicated runtime login."""
     directory = Path(__file__).resolve().parents[2] / "schemas" / "postgres"
     files = sorted(directory.glob("[0-9]*.sql"))
     if not files:
@@ -86,6 +135,8 @@ def require_schema_ready() -> dict[str, int]:
             cursor.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY")
             cursor.execute("SET LOCAL statement_timeout = '5s'")
             cursor.execute("SET LOCAL lock_timeout = '2s'")
+            if require_runtime_role:
+                _require_non_admin_runtime_role(cursor)
             cursor.execute("SELECT to_regclass('public.schema_migration')")
             if cursor.fetchone()[0] is None:
                 raise SchemaReadinessError("tracking_unavailable", expected=len(expected),

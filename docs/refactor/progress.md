@@ -25593,3 +25593,37 @@ the capability classifications remain 24 baseline-retained, 7 deployed, and
 36 prepared across 67 rows. Public ingress acceptance, external importer
 ownership, refreshed post-704 ACL reporting, ARM64 full replay, populated-data
 parity, and broader tenant isolation remain open.
+
+### Progress addendum — Standard runtime-role startup guard and hosted CI diagnosis — 31 October 2026
+
+The Standard Compose profile now requires separate runtime credentials for
+both API and worker and checks the connected PostgreSQL role before either
+supervisor spawns children. The guard rejects owner, superuser, role-creation,
+database-creation, replication, RLS-bypass, inherited, and role-member logins.
+Planner actions now print an ordered Standard deployment sequence for starting
+PostgreSQL, applying the checksummed schema ledger, explicitly provisioning
+runtime roles, and starting the services. The broad compatibility-grant
+bootstrap stays separate from routine startup. The focused planner/Compose/
+startup selection passes 105 tests; Ruff, compilation, release-input locking,
+and diff checks pass. Fresh disposable
+acceptance applies all 701 schema files through migration 710, provisions the
+runtime login after migrations, verifies both service identities and pre-spawn
+owner rejection, and passes provisioner reapplication, outage recovery,
+heartbeat, shutdown, and cleanup checks. Its 26 harness tests pass. No
+candidate, legacy, or production database or role was changed
+([evidence](builds/2026-10-31-recovery/standard-profile-recovery-710-runtime-role-disposable.json)).
+
+For the user-linked CI #1014 (`41172853331`), attempt 1's failure logs have
+expired, so its cause cannot be determined. Attempt 2 was cancelled during
+ARM64 Buildx dependency resolution after the newer same-PR #1015 started; it
+does not show a source test failure. Replacement CI #1028 on `0fa7444f` also
+did not complete: the hosted runner shut down the `full-ci` job after it
+entered the full Python suite, while the Security check passed. No assertion
+failure appears in the available logs. The required hosted release gate remains
+open until a full run completes successfully on the pushed repair head
+([#1014 evidence](builds/2026-10-31-recovery/ci-1014-superseded-run.json);
+[#1028 evidence](builds/2026-10-31-recovery/ci-1028-hosted-runner-shutdown.json)).
+The current checklist snapshot is 2,161 complete / 31 open and the TODO queue
+is 769 checked / 31 open. Capability classifications remain 24 baseline-
+retained, 7 deployed, and 36 prepared across 67 rows; no named capability or
+MAN-CAP acceptance changed.
