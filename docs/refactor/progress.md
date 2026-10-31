@@ -25581,10 +25581,14 @@ The hosted CI attempt passed its multi-architecture image job but `full-ci`
 was interrupted by a runner shutdown. Log output also exposed an ordering
 defect: the ignored Directus hook bundle was built after Directus startup. The
 runner now builds hooks before starting Directus, and a source regression
-checks the ordering. The workflow tests, hook build/typecheck, and 143 hook
-tests pass locally. Hosted success remains pending a new run. Candidate,
+checks the ordering. The subsequent CI run #1017 found stale locked SHA-256
+values for the changed profile planner and guide. Both hashes are now
+refreshed; the release-input checker and 70 profile tests pass locally. Run
+#1017's `full-ci` was still running when this correction was prepared, and the
+next hosted run will validate the new head. The workflow tests, hook
+build/typecheck, and 143 hook tests also pass locally. Candidate,
 legacy, and production services/data were not changed. The active checklist
-records 2,158 complete / 30 open and the TODO queue 752 checked / 29 open;
+records 2,159 complete / 30 open and the TODO queue 753 checked / 29 open;
 the capability classifications remain 24 baseline-retained, 7 deployed, and
 36 prepared across 67 rows. Public ingress acceptance, external importer
 ownership, refreshed post-704 ACL reporting, ARM64 full replay, populated-data

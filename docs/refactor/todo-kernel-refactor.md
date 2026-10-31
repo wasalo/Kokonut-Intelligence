@@ -8,7 +8,7 @@ can proceed now and gates that need an owner, provider, populated source data,
 or production environment. Check an item only when its evidence is recorded in
 the batch log and the affected capability/progress records are updated.
 
-**Current queue snapshot (31 October 2026):** 752 checked / 29 open across the
+**Current queue snapshot (31 October 2026):** 753 checked / 29 open across the
 TODO's dated and active checklist sections. Historical snapshots below this
 active queue remain dated records and do not replace the current count.
 
@@ -34,6 +34,10 @@ active queue remain dated records and do not replace the current count.
 - [x] Fix CI startup ordering so `make hooks-build` creates the ignored
   Directus extension bundle before Directus starts; the workflow contract tests,
   build/type check, and all 143 hook tests pass
+  ([evidence](builds/2026-10-31-recovery/github-ci-directus-hook-order.json)).
+- [x] Refresh release-input hashes for the changed Standard profile planner
+  and guide after CI run #1017 rejected the previous values. The release-lock
+  checker and 70 profile tests pass locally; a new hosted run remains pending
   ([evidence](builds/2026-10-31-recovery/github-ci-directus-hook-order.json)).
 - [x] Complete native full ordered schema replay through migration 705 and the
   synthetic two-tenant operator-scope probe: 696/696 migrations and 38 checks

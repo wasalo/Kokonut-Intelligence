@@ -7,7 +7,9 @@
     "make_hooks_build": "passed; Directus extension bundle and TypeScript check completed",
     "make_hooks_test": "143 passed across 9 files",
     "pytest_tests_test_github_ci_workflow": "3 passed",
-    "ruff": "passed"
+    "ruff": "passed",
+    "kernel_profile_tests": "70 passed",
+    "kernel_release_input_lock": "passed after refreshing the SHA-256 entries for scripts/kernel-profile.py and docs/refactor/profile-selection.md"
   },
   "fix": "Build Directus hooks before starting the Directus Compose service; run the hook tests after the rest of CI.",
   "hosted_run": {
@@ -18,6 +20,14 @@
     ],
     "result": "full-ci cancelled by runner shutdown; kernel-image succeeded",
     "url": "https://github.com/wasalo/Kokonut-Intelligence/actions/runs/41207442004"
+  },
+  "subsequent_hosted_run": {
+    "url": "https://github.com/wasalo/Kokonut-Intelligence/actions/runs/41211518297",
+    "run_number": 1017,
+    "head_sha": "59eecf9d8308f3dd7728795c32fa89fac5579319",
+    "kernel_image_result": "failed because the release-input lock still contained the previous SHA-256 values for scripts/kernel-profile.py and docs/refactor/profile-selection.md",
+    "full_ci_result_at_inspection": "in_progress",
+    "fix": "Refresh both SHA-256 entries in config/kernel/release-input-lock.json; validate with scripts/check-kernel-release-inputs.py and focused profile tests before pushing."
   },
   "status": "passed"
 }

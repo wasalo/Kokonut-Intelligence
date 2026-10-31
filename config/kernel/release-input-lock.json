@@ -39,10 +39,10 @@
     "requirements/kernel-core-storage.in": "33ddfcfb920e4bb7b9b51591a575da43c8475b8475ad143e0496243d693df4d1",
     "requirements/kernel-core-storage.lock": "e34f4138c02279044f016ddda963ab442b691e0da42d906f2ca0a1c98c66f149",
     "services/core/image_manifest.py": "3d9f2d39463e7c3ba25c0d8673182df7255b5c69bc43d6c5e4633f7032abed39",
-    "scripts/kernel-profile.py": "a907f842f61485e37364caea4f5de0b33ebc1cb5fbd1e31a281b5cdaf6eb1c0b",
+    "scripts/kernel-profile.py": "544898f731d117dd63040e5ff98fe28c53eca3ffa692cf222ad22ed1d6c11375",
     "scripts/check-kernel-release-inputs.py": "4116116c380c2d407f8e315f0057cbf30fdbf64ba58a43f0172a8bcdaf989402",
     "scripts/build-kernel-multiarch.sh": "d4bfa9240f8f17686a9bfb3314ee39acb588f645dd9b4ca630b57d12fefc2339",
-    "docs/refactor/profile-selection.md": "c21fcf235181939bd83241695bc51d63611f3cfe189391908ee7f6c126be77fb",
+    "docs/refactor/profile-selection.md": "bf532935f81c5dbfa7ef2a17f8993fd603af329094d8b584ed8cb3dc74d4f232",
     "requirements/README.md": "699bfef971be138ca125640284a47ef7a3a73d67f1007ea85bc3d2217f2bed36"
   },
   "postgis_packages": {

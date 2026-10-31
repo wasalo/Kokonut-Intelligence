@@ -22,8 +22,8 @@ pending.
 
 Remaining work is ordered in [the code-first execution plan](code-first-execution-plan.md): finish repository-owned implementation and reproducible software checks before collecting owner decisions and production inputs. Raspberry Pi hardware is unavailable, so Batch 6 uses ARM64 emulation and constrained software checks; it does not claim physical-device acceptance.
 
-**Current snapshot (31 October 2026):** 2,158 checklist items complete and 30
-open (2,188 total), counting nested items. The cross-phase TODO queue has 752
+**Current snapshot (31 October 2026):** 2,159 checklist items complete and 30
+open (2,189 total), counting nested items. The cross-phase TODO queue has 753
 checked and 29 open items. The
 [capability matrix](capability-matrix.md) has 67 validated rows: 24
 baseline-retained, 7 deployed, and 36 prepared. Named MAN-CAP
@@ -9644,6 +9644,10 @@ provenance ([review](current-state-and-implementation.md#c1-runtime-acl-work-cur
   before Directus startup; the CI ordering contract, hook bundle/type build,
   and 143 hook tests pass. Run 412074's image gate passed; `full-ci` was
   interrupted by runner shutdown and logged the previously missing bundle
+  ([evidence](builds/2026-10-31-recovery/github-ci-directus-hook-order.json)).
+- [x] Refresh release-input hashes for the changed Standard profile planner
+  and guide after CI run #1017 rejected the stale values. The lock checker and
+  70 profile tests pass locally; hosted validation of this correction is pending
   ([evidence](builds/2026-10-31-recovery/github-ci-directus-hook-order.json)).
 - [x] Complete the native ordered replay through migration 705 with the
   two-tenant operator-scope probe: 696/696 migrations and 38 synthetic checks
