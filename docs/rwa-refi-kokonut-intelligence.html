@@ -163,7 +163,7 @@
     .section-heading { display: flex; align-items: end; justify-content: space-between; gap: 40px; margin-bottom: 30px; }
     .section-heading h2 { max-width: 670px; margin: 0; font-size: clamp(29px, 4vw, 46px); letter-spacing: -.055em; line-height: 1.1; }
     .section-heading h2 em { color: var(--green); font-style: normal; }
-    .section-heading > p { max-width: 330px; margin: 0; color: var(--muted); font-size: 12px; line-height: 1.7; }
+    .section-heading > p { max-width: 380px; margin: 0; color: var(--muted); font-size: 15px; line-height: 1.7; }
 
     .loop-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; counter-reset: loop; }
     .loop-card {
@@ -178,14 +178,14 @@
     .loop-card::before { display: grid; width: 28px; height: 28px; margin-bottom: 17px; place-items: center; border-radius: 50%; color: var(--forest); background: var(--lime); content: counter(loop, decimal-leading-zero); font-size: 9px; font-weight: 850; }
     .loop-card:not(:last-child)::after { position: absolute; top: 33px; right: -17px; z-index: 2; width: 22px; height: 1px; background: var(--green); content: ""; }
     .loop-card h3 { margin: 0 0 7px; font-size: 15px; letter-spacing: -.025em; }
-    .loop-card p { margin: 0; color: var(--muted); font-size: 11px; line-height: 1.65; }
-    .loop-card span { display: inline-block; margin-top: 13px; color: #287246; font-size: 9px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; }
+    .loop-card p { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.7; }
+    .loop-card span { display: inline-block; margin-top: 13px; color: #287246; font-size: 10px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; }
 
     .systems { padding: 0 0 8px; background: var(--paper); }
     .system-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 9px; }
     .system-button {
-      min-height: 105px;
-      padding: 13px;
+      min-height: 126px;
+      padding: 16px;
       border: 1px solid #dce7dc;
       border-radius: 12px;
       background: #fff;
@@ -194,9 +194,9 @@
       transition: transform .15s ease, border-color .15s ease, box-shadow .15s ease;
     }
     .system-button:hover { transform: translateY(-3px); border-color: var(--green); box-shadow: 0 9px 24px rgba(9,40,27,.08); }
-    .system-button .system-count { display: block; color: var(--green); font-size: 9px; font-weight: 850; letter-spacing: .1em; text-transform: uppercase; }
-    .system-button strong { display: block; margin-top: 7px; font-size: 11px; letter-spacing: -.02em; }
-    .system-button span:last-child { display: block; margin-top: 5px; color: #708174; font-size: 9px; }
+    .system-button .system-count { display: block; color: var(--green); font-size: 10px; font-weight: 850; letter-spacing: .08em; text-transform: uppercase; }
+    .system-button strong { display: block; margin-top: 8px; font-size: 13px; letter-spacing: -.02em; }
+    .system-button span:last-child { display: block; margin-top: 6px; color: #536a5c; font-size: 11px; line-height: 1.45; }
 
     .challenge-section { background: var(--cream); }
     .controls {
@@ -204,7 +204,7 @@
       z-index: 10;
       top: 72px;
       display: grid;
-      grid-template-columns: minmax(220px, 1fr) auto;
+      grid-template-columns: minmax(250px, 1fr) auto;
       gap: 14px;
       align-items: center;
       margin: 0 -5px 23px;
@@ -216,50 +216,54 @@
     .search-wrap::before { position: absolute; top: 50%; left: 14px; color: #738477; content: "⌕"; font-size: 20px; transform: translateY(-55%); pointer-events: none; }
     .search {
       width: 100%;
-      min-height: 43px;
-      padding: 10px 14px 10px 41px;
+      min-height: 50px;
+      padding: 11px 16px 11px 44px;
       border: 1px solid var(--line);
       border-radius: 9px;
       color: var(--ink);
       background: #fff;
-      font-size: 11px;
+      font-size: 14px;
     }
-    .control-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: end; gap: 7px; }
-    .tool-button { min-height: 39px; padding: 8px 11px; border: 1px solid var(--line); border-radius: 8px; color: #294235; background: white; font-size: 10px; font-weight: 750; cursor: pointer; }
+    .control-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: end; gap: 8px; }
+    .tool-button { min-height: 44px; padding: 9px 14px; border: 1px solid var(--line); border-radius: 8px; color: #294235; background: white; font-size: 13px; font-weight: 750; cursor: pointer; }
     .tool-button:hover { border-color: var(--green); }
-    .filter-list { display: flex; flex-wrap: wrap; gap: 7px; margin: 0 0 15px; }
-    .filter-button { min-height: 34px; padding: 7px 11px; border: 1px solid #d6e1d6; border-radius: 99px; color: #42604d; background: transparent; font-size: 9px; font-weight: 800; cursor: pointer; transition: background .14s ease, color .14s ease, border-color .14s ease; }
+    .filter-list { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 19px; }
+    .filter-button { min-height: 40px; padding: 8px 14px; border: 1px solid #d6e1d6; border-radius: 99px; color: #294a36; background: white; font-size: 12px; font-weight: 800; cursor: pointer; transition: background .14s ease, color .14s ease, border-color .14s ease; }
     .filter-button:hover { border-color: var(--green); }
     .filter-button[aria-pressed="true"] { border-color: var(--forest); color: white; background: var(--forest); }
     .filter-button .count { margin-left: 4px; color: inherit; opacity: .65; }
-    .result-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 0 0 13px; color: #718174; font-size: 10px; }
+    .result-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 0 0 14px; color: #536a5c; font-size: 13px; }
     .result-bar strong { color: var(--ink); }
-    .challenge-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); align-items: start; gap: 10px; }
-    .challenge-card {
-      overflow: hidden;
-      border: 1px solid #dfe8de;
-      border-radius: 12px;
-      background: white;
-      transition: border-color .15s ease, box-shadow .15s ease;
-    }
-    .challenge-card[open] { border-color: #a8cfb0; box-shadow: 0 10px 24px rgba(9,40,27,.065); }
-    .challenge-card[hidden] { display: none; }
-    .challenge-card summary { display: grid; grid-template-columns: 27px 1fr 18px; gap: 10px; align-items: start; padding: 15px 14px; list-style: none; cursor: pointer; }
-    .challenge-card summary::-webkit-details-marker { display: none; }
-    .challenge-card summary:hover { background: #fbfcf9; }
-    .challenge-number { display: grid; width: 27px; height: 27px; place-items: center; border-radius: 8px; color: var(--forest); background: #e6f4dc; font-size: 9px; font-weight: 850; }
-    .challenge-title { display: block; margin: 1px 0 5px; color: var(--ink); font-size: 12px; font-weight: 800; letter-spacing: -.02em; line-height: 1.35; }
-    .challenge-one-line { display: block; color: #536a5c; font-size: 10px; line-height: 1.55; }
-    .expand-mark { display: grid; width: 18px; height: 18px; place-items: center; border: 1px solid #cddbcf; border-radius: 50%; color: var(--green); font-size: 12px; font-weight: 700; transition: transform .15s ease; }
-    .challenge-card[open] .expand-mark { transform: rotate(45deg); }
-    .challenge-detail { padding: 0 15px 15px 51px; }
-    .challenge-detail .challenge-quote { margin: 0 0 12px; padding: 10px 11px; border-left: 2px solid var(--yellow); border-radius: 0 7px 7px 0; color: #647669; background: #fbfaf2; font-size: 9px; line-height: 1.55; }
-    .detail-label { margin: 0 0 5px; color: var(--green); font-size: 8px; font-weight: 850; letter-spacing: .13em; text-transform: uppercase; }
-    .detail-copy { margin: 0; color: #2f4638; font-size: 10px; line-height: 1.7; }
-    .capability-tags { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 11px; }
-    .capability-tag { padding: 4px 7px; border-radius: 99px; color: #34604a; background: #edf6ea; font-size: 8px; font-weight: 750; }
-    .empty-state { display: none; padding: 36px; border: 1px dashed #b9cbb9; border-radius: 14px; color: var(--muted); text-align: center; font-size: 12px; }
+    .explorer-grid { display: grid; grid-template-columns: minmax(275px, .76fr) minmax(0, 1.6fr); align-items: start; gap: 18px; }
+    .challenge-list { max-height: 690px; overflow: auto; padding: 8px; border: 1px solid #dce7dc; border-radius: 16px; background: #edf2e9; scrollbar-color: #9ab9a0 transparent; }
+    .challenge-item { display: grid; width: 100%; grid-template-columns: 34px 1fr; gap: 12px; align-items: start; padding: 13px 12px; border: 1px solid transparent; border-radius: 10px; color: var(--ink); background: transparent; text-align: left; cursor: pointer; }
+    .challenge-item + .challenge-item { margin-top: 3px; }
+    .challenge-item:hover { background: #f8faf5; }
+    .challenge-item[aria-current="true"] { border-color: #a8cfb0; background: white; box-shadow: 0 3px 10px rgba(9,40,27,.06); }
+    .challenge-item[hidden] { display: none; }
+    .challenge-number { display: grid; width: 34px; height: 34px; place-items: center; border-radius: 9px; color: var(--forest); background: #dcefd3; font-size: 12px; font-weight: 850; }
+    .challenge-title { display: block; margin: 1px 0 4px; color: var(--ink); font-size: 14px; font-weight: 800; letter-spacing: -.02em; line-height: 1.4; }
+    .challenge-one-line { display: -webkit-box; overflow: hidden; color: #4c6254; font-size: 12px; line-height: 1.5; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
+    .challenge-panel { min-height: 430px; padding: clamp(22px, 3.3vw, 42px); border: 1px solid #dce7dc; border-radius: 18px; background: white; box-shadow: var(--shadow); }
+    .panel-top { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 24px; }
+    .panel-system { color: var(--green); font-size: 11px; font-weight: 850; letter-spacing: .12em; text-transform: uppercase; }
+    .panel-number { color: #6d7e71; font-size: 13px; font-weight: 750; }
+    .panel-title { max-width: 760px; margin: 0 0 25px; font-size: clamp(24px, 3vw, 37px); letter-spacing: -.045em; line-height: 1.14; }
+    .panel-block { padding: 18px 20px; border-radius: 11px; }
+    .panel-block + .panel-block { margin-top: 14px; }
+    .panel-block.challenge-source { border-left: 3px solid var(--yellow); background: #fcfbf2; }
+    .panel-block.ki-response { border: 1px solid #dcebd9; background: #f2f8ee; }
+    .detail-label { margin: 0 0 7px; color: #287246; font-size: 11px; font-weight: 850; letter-spacing: .11em; text-transform: uppercase; }
+    .detail-copy { margin: 0; color: #263f30; font-size: 16px; line-height: 1.75; }
+    .challenge-source .detail-copy { color: #4d5e52; }
+    .capability-tags { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 17px; }
+    .capability-tag { padding: 7px 10px; border: 1px solid #d2e5cd; border-radius: 99px; color: #285b3b; background: #fff; font-size: 11px; font-weight: 750; }
+    .panel-nav { display: flex; justify-content: space-between; gap: 12px; margin-top: 24px; }
+    .panel-nav .tool-button { min-height: 46px; }
+    .panel-nav button:disabled { color: #89968c; background: #f6f7f3; cursor: not-allowed; }
+    .empty-state { display: none; padding: 36px; border: 1px dashed #b9cbb9; border-radius: 14px; color: var(--muted); text-align: center; font-size: 15px; }
     .empty-state.visible { display: block; }
+    .print-challenges { display: none; }
 
     .closing { padding: 62px 0; color: white; background: var(--forest); }
     .closing-grid { display: grid; grid-template-columns: 1.3fr .7fr; align-items: center; gap: 45px; }
@@ -281,7 +285,8 @@
       .hero-grid { grid-template-columns: 1fr; gap: 34px; }
       .record-visual { max-width: 640px; }
       .system-grid { grid-template-columns: repeat(3, 1fr); }
-      .challenge-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .explorer-grid { grid-template-columns: minmax(240px, .8fr) minmax(0, 1.4fr); gap: 12px; }
+      .challenge-list { max-height: 620px; }
       .loop-grid { grid-template-columns: repeat(2, 1fr); }
       .loop-card:nth-child(2)::after { display: none; }
       .controls { grid-template-columns: 1fr; top: 72px; }
@@ -309,13 +314,16 @@
       .loop-card { min-height: 178px; padding: 15px; }
       .loop-card::after { display: none; }
       .system-grid { grid-template-columns: repeat(2, 1fr); }
-      .system-button { min-height: 95px; }
+      .system-button { min-height: 105px; }
       .controls { top: 62px; margin: 0 -2px 15px; }
       .filter-list { flex-wrap: nowrap; overflow-x: auto; padding: 2px 0 5px; scrollbar-width: thin; }
       .filter-button { flex: 0 0 auto; }
-      .challenge-grid { grid-template-columns: 1fr; }
-      .challenge-card summary { padding: 14px 12px; }
-      .challenge-detail { padding-left: 49px; }
+      .explorer-grid { grid-template-columns: 1fr; }
+      .challenge-panel { grid-row: 1; min-height: 0; padding: 22px 18px; }
+      .challenge-list { display: grid; max-height: 310px; grid-template-columns: 1fr; padding: 6px; }
+      .panel-title { font-size: 27px; }
+      .detail-copy { font-size: 15px; }
+      .result-bar span:last-child { display: none; }
       .closing-grid { grid-template-columns: 1fr; gap: 24px; }
       .closing-actions { flex-direction: row; flex-wrap: wrap; }
       .closing-actions a { flex: 1 1 140px; }
@@ -327,7 +335,7 @@
     @media print {
       :root { color-scheme: light; }
       body { background: #fff; }
-      .topbar, .hero-actions, .controls, .filter-list, .system-grid, .closing-actions, footer { display: none !important; }
+      .topbar, .hero-actions, .controls, .filter-list, .system-grid, .closing-actions, footer, .explorer-grid, .result-bar, .empty-state { display: none !important; }
       .hero { padding: 22px 0; color: var(--forest); background: #fff; }
       .hero-copy, .hero-meta { color: #405648; }
       .hero-grid { grid-template-columns: 1fr; }
@@ -336,13 +344,10 @@
       .section { padding: 20px 0; }
       .loop-grid { grid-template-columns: repeat(4, 1fr); }
       .loop-card { min-height: auto; padding: 10px; }
-      .challenge-grid { grid-template-columns: repeat(2, 1fr); gap: 6px; }
-      .challenge-card, .challenge-card[open] { break-inside: avoid; box-shadow: none; }
-      .challenge-card:not([open]) > .challenge-detail { display: block; }
-      .challenge-card summary { padding: 8px; }
-      .challenge-detail { display: block !important; padding: 0 8px 8px 43px; }
-      .challenge-quote { display: none; }
-      .challenge-card summary .expand-mark { display: none; }
+      .print-challenges { display: block; }
+      .print-challenge { break-inside: avoid; margin: 0 0 12px; padding: 11px 13px; border: 1px solid #dce7dc; border-radius: 8px; }
+      .print-challenge h3 { margin: 0 0 6px; font-size: 13px; }
+      .print-challenge p { margin: 4px 0; font-size: 10px; line-height: 1.5; }
       .closing { padding: 22px 0; color: var(--forest); background: #fff; }
       .closing p { color: #405648; }
     }
@@ -457,7 +462,7 @@
             <p class="section-kicker">The challenge map</p>
             <h2>29 challenges. <em>Concrete KI mechanisms.</em></h2>
           </div>
-          <p>Filter by system or search a concern. Open any card to see the relevant Kokonut workflows and controls.</p>
+          <p>Filter by system or search a concern. Select a challenge to see the Kokonut workflows and controls that address it.</p>
         </div>
 
         <div class="controls">
@@ -466,15 +471,18 @@
             <input id="search" class="search" type="search" placeholder="Search: land title, DAO, privacy, methodology…" autocomplete="off">
           </label>
           <div class="control-actions">
-            <button class="tool-button" id="toggle-details" type="button">Expand all</button>
             <button class="tool-button" id="print-page" type="button">Print / save PDF</button>
           </div>
         </div>
 
         <div class="filter-list" role="group" aria-label="Filter challenge map by system" id="filters"></div>
-        <div class="result-bar"><span id="result-count" aria-live="polite"><strong>29</strong> challenges shown</span><span>Tap a card to open the mechanism</span></div>
-        <div class="challenge-grid" id="challenge-grid"></div>
+        <div class="result-bar"><span id="result-count" aria-live="polite"><strong>29</strong> challenges shown</span><span>Select a challenge to read its full KI workflow</span></div>
+        <div class="explorer-grid">
+          <nav class="challenge-list" id="challenge-list" aria-label="Challenges"></nav>
+          <article class="challenge-panel" id="challenge-panel" aria-live="polite"></article>
+        </div>
         <div class="empty-state" id="empty-state">No challenges match that search. Try a broader term or choose “All 29”.</div>
+        <div class="print-challenges" id="print-challenges" aria-hidden="true"></div>
       </div>
     </section>
 
@@ -691,22 +699,31 @@
       }
     ];
 
-    const grid = document.getElementById("challenge-grid");
+    const challengeList = document.getElementById("challenge-list");
+    const challengePanel = document.getElementById("challenge-panel");
+    const printChallenges = document.getElementById("print-challenges");
     const filterHost = document.getElementById("filters");
     const search = document.getElementById("search");
     const resultCount = document.getElementById("result-count");
     const emptyState = document.getElementById("empty-state");
-    const toggleDetails = document.getElementById("toggle-details");
     let activeFilter = "all";
+    let selectedNumber = challenges[0].n;
 
-    function makeCard(item) {
-      const card = document.createElement("details");
-      card.className = "challenge-card";
-      card.dataset.number = String(item.n);
-      card.dataset.group = item.group;
-      card.dataset.search = [item.title, item.challenge, item.mechanism, item.tags.join(" ")].join(" ").toLowerCase();
+    function matchingChallenges() {
+      const query = search.value.trim().toLowerCase();
+      return challenges.filter(function (item) {
+        const inGroup = activeFilter === "all" || item.group === activeFilter;
+        const text = [item.title, item.challenge, item.mechanism, item.tags.join(" ")].join(" ").toLowerCase();
+        return inGroup && (!query || text.includes(query));
+      });
+    }
 
-      const summary = document.createElement("summary");
+    function makeChallengeButton(item) {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "challenge-item";
+      button.dataset.number = String(item.n);
+      button.setAttribute("aria-current", String(item.n === selectedNumber));
       const number = document.createElement("span");
       number.className = "challenge-number";
       number.textContent = String(item.n).padStart(2, "0");
@@ -714,27 +731,51 @@
       const title = document.createElement("span");
       title.className = "challenge-title";
       title.textContent = item.title;
-      const oneLine = document.createElement("span");
-      oneLine.className = "challenge-one-line";
-      oneLine.textContent = item.mechanism.split(/[.!?]/)[0].trim() + ".";
-      text.append(title, oneLine);
-      const mark = document.createElement("span");
-      mark.className = "expand-mark";
-      mark.setAttribute("aria-hidden", "true");
-      mark.textContent = "+";
-      summary.append(number, text, mark);
+      const summary = document.createElement("span");
+      summary.className = "challenge-one-line";
+      summary.textContent = item.challenge;
+      text.append(title, summary);
+      button.append(number, text);
+      button.addEventListener("click", function () {
+        selectedNumber = item.n;
+        render();
+      });
+      return button;
+    }
 
-      const detail = document.createElement("div");
-      detail.className = "challenge-detail";
-      const quote = document.createElement("p");
-      quote.className = "challenge-quote";
-      quote.textContent = item.challenge;
+    function makePanelBlock(labelText, copyText, extraClass) {
+      const block = document.createElement("section");
+      block.className = "panel-block " + extraClass;
       const label = document.createElement("p");
       label.className = "detail-label";
-      label.textContent = "Kokonut mechanism";
+      label.textContent = labelText;
       const copy = document.createElement("p");
       copy.className = "detail-copy";
-      copy.textContent = item.mechanism;
+      copy.textContent = copyText;
+      block.append(label, copy);
+      return block;
+    }
+
+    function renderPanel(item, visibleItems) {
+      challengePanel.replaceChildren();
+      if (!item) return;
+      const system = groups.find(function (group) { return group.id === item.group; });
+      const itemIndex = visibleItems.findIndex(function (entry) { return entry.n === item.n; });
+      const top = document.createElement("div");
+      top.className = "panel-top";
+      const systemLabel = document.createElement("span");
+      systemLabel.className = "panel-system";
+      systemLabel.textContent = system ? system.label : "Kokonut Intelligence";
+      const numberLabel = document.createElement("span");
+      numberLabel.className = "panel-number";
+      numberLabel.textContent = "CHALLENGE " + String(item.n).padStart(2, "0");
+      top.append(systemLabel, numberLabel);
+
+      const title = document.createElement("h3");
+      title.className = "panel-title";
+      title.textContent = item.title;
+      const source = makePanelBlock("The challenge", item.challenge, "challenge-source");
+      const response = makePanelBlock("How Kokonut Intelligence addresses it", item.mechanism, "ki-response");
       const tags = document.createElement("div");
       tags.className = "capability-tags";
       item.tags.forEach(function (tagText) {
@@ -743,13 +784,27 @@
         tag.textContent = tagText;
         tags.appendChild(tag);
       });
-      detail.append(quote, label, copy, tags);
-      card.append(summary, detail);
-      return card;
-    }
 
-    challenges.forEach(function (item) { grid.appendChild(makeCard(item)); });
-    const cards = Array.from(grid.querySelectorAll(".challenge-card"));
+      const nav = document.createElement("div");
+      nav.className = "panel-nav";
+      const previous = document.createElement("button");
+      previous.type = "button";
+      previous.className = "tool-button";
+      previous.textContent = "← Previous";
+      previous.disabled = itemIndex <= 0;
+      previous.addEventListener("click", function () { selectedNumber = visibleItems[itemIndex - 1].n; render(); });
+      const position = document.createElement("span");
+      position.className = "panel-number";
+      position.textContent = (itemIndex + 1) + " of " + visibleItems.length;
+      const next = document.createElement("button");
+      next.type = "button";
+      next.className = "tool-button";
+      next.textContent = "Next →";
+      next.disabled = itemIndex < 0 || itemIndex >= visibleItems.length - 1;
+      next.addEventListener("click", function () { selectedNumber = visibleItems[itemIndex + 1].n; render(); });
+      nav.append(previous, position, next);
+      challengePanel.append(top, title, source, response, tags, nav);
+    }
 
     function createFilters() {
       groups.forEach(function (group) {
@@ -778,32 +833,36 @@
     }
 
     function render() {
-      const query = search.value.trim().toLowerCase();
-      let visible = 0;
-      cards.forEach(function (card) {
-        const matchesGroup = activeFilter === "all" || card.dataset.group === activeFilter;
-        const matchesSearch = !query || card.dataset.search.indexOf(query) !== -1;
-        card.hidden = !(matchesGroup && matchesSearch);
-        if (!card.hidden) visible += 1;
-      });
-      resultCount.innerHTML = "<strong>" + visible + "</strong> of <strong>" + challenges.length + "</strong> challenges shown";
-      emptyState.classList.toggle("visible", visible === 0);
-      toggleDetails.textContent = cards.some(function (card) { return !card.hidden && !card.open; }) ? "Expand all" : "Collapse all";
+      const visibleItems = matchingChallenges();
+      if (!visibleItems.some(function (item) { return item.n === selectedNumber; }) && visibleItems.length) {
+        selectedNumber = visibleItems[0].n;
+      }
+      challengeList.replaceChildren.apply(challengeList, visibleItems.map(makeChallengeButton));
+      const selected = visibleItems.find(function (item) { return item.n === selectedNumber; });
+      renderPanel(selected, visibleItems);
+      resultCount.innerHTML = "<strong>" + visibleItems.length + "</strong> of <strong>" + challenges.length + "</strong> challenges shown";
+      emptyState.classList.toggle("visible", visibleItems.length === 0);
     }
 
     createFilters();
     render();
     search.addEventListener("input", render);
-    toggleDetails.addEventListener("click", function () {
-      const shouldOpen = cards.some(function (card) { return !card.hidden && !card.open; });
-      cards.forEach(function (card) { if (!card.hidden) card.open = shouldOpen; });
-      toggleDetails.textContent = shouldOpen ? "Collapse all" : "Expand all";
-    });
     document.getElementById("print-page").addEventListener("click", function () {
-      const previousState = cards.map(function (card) { return card.open; });
-      cards.forEach(function (card) { if (!card.hidden) card.open = true; });
+      printChallenges.replaceChildren.apply(printChallenges, challenges.map(function (item) {
+        const article = document.createElement("article");
+        article.className = "print-challenge";
+        const title = document.createElement("h3");
+        title.textContent = String(item.n).padStart(2, "0") + " · " + item.title;
+        const source = document.createElement("p");
+        source.innerHTML = "<strong>Challenge:</strong> ";
+        source.append(document.createTextNode(item.challenge));
+        const mechanism = document.createElement("p");
+        mechanism.innerHTML = "<strong>KI:</strong> ";
+        mechanism.append(document.createTextNode(item.mechanism));
+        article.append(title, source, mechanism);
+        return article;
+      }));
       window.print();
-      window.setTimeout(function () { cards.forEach(function (card, index) { card.open = previousState[index]; }); }, 350);
     });
     document.querySelectorAll("[data-jump-filter]").forEach(function (button) {
       button.addEventListener("click", function () {
