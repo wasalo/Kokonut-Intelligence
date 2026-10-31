@@ -97,7 +97,12 @@ def test_supervisor_heartbeat_is_atomic_private_and_refreshes(tmp_path):
 
     heartbeat.pulse()
     first = json.loads(path.read_text())
-    assert first == {"generation": "a" * 32, "monotonic_ns": 1_000_000_000, "pid": os.getpid()}
+    assert first == {
+        "children": {},
+        "generation": "a" * 32,
+        "monotonic_ns": 1_000_000_000,
+        "pid": os.getpid(),
+    }
     assert stat.S_IMODE(path.stat().st_mode) == 0o600
     assert stat.S_IMODE(path.parent.stat().st_mode) == 0o700
     assert list(path.parent.glob(".supervisor.json.*")) == []
@@ -149,7 +154,11 @@ def test_worker_runtime_pulses_and_removes_heartbeat_on_shutdown(monkeypatch, tm
     assert not heartbeat_path.exists()
 
 
-def test_supervisor_scopes_each_worker_key_to_its_process(monkeypatch):
+def test_supervisor_scopes_each_worker_key_to_its_process(monkeypatch, tmp_path):
+    monkeypatch.setenv(
+        runtime.SUPERVISOR_HEARTBEAT_FILE_ENV,
+        str(tmp_path / "worker" / "supervisor.json"),
+    )
     processes = iter((_Process(111), _Process(112), _Process(113), _Process(114)))
     spawned = []
     allowlists = []
@@ -225,7 +234,13 @@ def test_commands_omit_both_workers_when_features_are_disabled(monkeypatch):
     ]
 
 
-def test_supervisor_marks_isolated_event_worker_and_keeps_exact_handler_secrets(monkeypatch):
+def test_supervisor_marks_isolated_event_worker_and_keeps_exact_handler_secrets(
+    monkeypatch, tmp_path
+):
+    monkeypatch.setenv(
+        runtime.SUPERVISOR_HEARTBEAT_FILE_ENV,
+        str(tmp_path / "worker" / "supervisor.json"),
+    )
     processes = iter((_Process(121), _Process(122)))
     spawned = []
     environment_options = []

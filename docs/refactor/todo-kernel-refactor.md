@@ -82,9 +82,12 @@ The earlier runtime-SQL inventory drift was fixed in `fb4cc883`.
   ([guide](standard-profile.md); [focused tests](builds/2026-10-31-recovery/standard-worker-backlog-focused-tests.json); [disposable check](builds/2026-10-31-recovery/standard-worker-backlog-disposable.json)).
 - [x] Add an atomic private Standard worker-supervisor heartbeat. Health fails
   closed before database access for missing, stale, malformed, insecure, future,
-  or dead-process records; output contains only alive/age. The combined focused
-  selection passes 238 tests plus 10 subtests
-  ([guide](standard-profile.md); [evidence](builds/2026-10-31-recovery/ci-1024-repair-local-checks.json)).
+  or dead-process records. It also detects missing or dead enabled child
+  processes before PostgreSQL access and returns only aggregate child liveness,
+  never PIDs. The default moved to a private app-owned `/var/lib` path after
+  CI Ruff S108 rejected `/tmp`. Source acceptance is 118 focused tests plus the
+  integrated pre-existing 238-test/10-subtest selection
+  ([guide](standard-profile.md); [CI diagnosis](builds/2026-10-31-recovery/ci-1025-ruff-s108-fix.json)).
 - [x] Retire five unscoped landscape write helpers and CLI commands; migration
   708 denies only `kokonut_runtime` table/column writes while preserving the
   signed Gateway capture. Disposable PostgreSQL 16 apply/replay and capture
@@ -140,10 +143,12 @@ The earlier runtime-SQL inventory drift was fixed in `fb4cc883`.
   ended at hosted-runner shutdown after starting the full suite, with no
   assertion failure logged ([diagnosis](builds/2026-10-31-recovery/ci-1019-hosted-runner-shutdown.json)).
 - [ ] Obtain passing CI and Security checks on the next pushed PR head. The
-  full-ci job in both #1022 and #1024 ended after a hosted-runner shutdown
-  signal shortly after the full Python suite began; no assertion failure was
-  logged. The next pushed head must pass both required checks before the release
-  gate closes ([#1022](builds/2026-10-31-recovery/ci-1022-hosted-runner-shutdown.json); [#1024](builds/2026-10-31-recovery/ci-1024-repair-local-checks.json)).
+  linked run `41172853331` was cancelled, not failed; later CI #1025
+  (`41222846441`) exposed a real Ruff S108 finding for the Standard worker
+  heartbeat's `/tmp` path. The default now uses the private app-owned
+  `/var/lib` directory and the exact Ruff security scan passes locally; the
+  next hosted run must confirm the repair and complete the remaining gates
+  ([diagnosis](builds/2026-10-31-recovery/ci-1025-ruff-s108-fix.json)).
 
 ## Current continuation — documentation and C1 integration checks
 

@@ -104,11 +104,14 @@ mode-0700 container-local directory every five seconds. The default heartbeat
 age limit is 60 seconds and can be changed with
 `KOKONUT_WORKER_PROGRESS_HEARTBEAT_SECONDS`; the file path is
 `KOKONUT_WORKER_PROGRESS_HEARTBEAT_FILE`, defaulting to
-`/tmp/kokonut-worker-progress/supervisor.json`. The healthcheck rejects a
-missing, malformed, non-private, stale, or dead-process heartbeat before it
-opens PostgreSQL. Its `supervisor` field exposes only the alive flag and
-whole-second age, never the PID or generation token. The file is ephemeral container state;
-the profile adds no volume or migration for liveness.
+`/var/lib/kokonut/worker-progress/supervisor.json`. The image creates its
+parent directory as mode 0700, owned by the non-root application user. The
+healthcheck rejects a missing, malformed, non-private, stale, or dead-process
+heartbeat, and missing/dead enabled worker children, before it opens
+PostgreSQL. Its `supervisor` field exposes only alive state, whole-second age,
+and aggregate `children_alive`; it never returns process IDs or the generation
+token. The file is ephemeral container state; the profile adds no volume or
+migration for liveness.
 
 The default stale-work grace period is 300 seconds and can be changed with
 `KOKONUT_WORKER_PROGRESS_STALE_SECONDS`; the default maximum due-backlog age is
@@ -120,9 +123,10 @@ checks every 30 seconds with a 5-second timeout and three retries. The heartbeat
 age limit exceeds multiple probe intervals; Docker may therefore need several
 checks to mark an unresponsive supervisor unhealthy. This is a health signal,
 not an alert route or automatic queue repair. It detects stale claimed work,
-old eligible backlog, and a supervisor that stops refreshing its heartbeat; it
-does not prove that every idle child process is responsive. Focused source tests and
-the network-disabled disposable PostgreSQL acceptance check cover due-time,
+old eligible backlog, a supervisor that stops refreshing its heartbeat, and
+enabled children whose processes have exited. It cannot detect a child that is
+alive but permanently hung. Focused source tests and the network-disabled
+disposable PostgreSQL acceptance check cover due-time,
 lease, dependency, overlap, and dead-letter behavior
 ([disposable evidence](builds/2026-10-31-recovery/standard-worker-backlog-disposable.json),
 [focused test record](builds/2026-10-31-recovery/standard-worker-backlog-focused-tests.json)). Live database-outage,

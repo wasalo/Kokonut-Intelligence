@@ -30,10 +30,12 @@ COPY pyproject.toml ./pyproject.toml
 COPY Dockerfile.kernel ./Dockerfile.kernel
 RUN python3 -m services.core.image_manifest --target kernel
 
-RUN mkdir -p /app/private-media /var/lib/kokonut/gateway-audit \
+RUN mkdir -p /app/private-media /var/lib/kokonut/gateway-audit /var/lib/kokonut/worker-progress \
     && chmod 0700 /app/private-media \
     && chmod 0700 /var/lib/kokonut/gateway-audit \
-    && chown -R appuser:appuser /app /var/lib/kokonut
+    && chmod 0700 /var/lib/kokonut/worker-progress \
+    && chown -R appuser:appuser /app /var/lib/kokonut \
+    && chown appuser:appuser /var/lib/kokonut/worker-progress
 USER appuser
 
 EXPOSE 8099
@@ -81,10 +83,12 @@ COPY VERSION ./VERSION
 COPY pyproject.toml ./pyproject.toml
 COPY Dockerfile.kernel ./Dockerfile.kernel
 RUN python3 -m services.core.image_manifest --target kernel-core \
-    && mkdir -p /app/private-media /var/lib/kokonut/gateway-audit \
+    && mkdir -p /app/private-media /var/lib/kokonut/gateway-audit /var/lib/kokonut/worker-progress \
     && chmod 0700 /app/private-media \
     && chmod 0700 /var/lib/kokonut/gateway-audit \
-    && chown -R appuser:appuser /app /var/lib/kokonut
+    && chmod 0700 /var/lib/kokonut/worker-progress \
+    && chown -R appuser:appuser /app /var/lib/kokonut \
+    && chown appuser:appuser /var/lib/kokonut/worker-progress
 USER appuser
 EXPOSE 8099
 HEALTHCHECK --interval=30s --timeout=10s --retries=3 --start-period=20s \

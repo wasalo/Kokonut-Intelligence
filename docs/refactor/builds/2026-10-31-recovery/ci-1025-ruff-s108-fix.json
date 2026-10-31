@@ -1,0 +1,40 @@
+{
+  "date": "2026-10-31",
+  "linked_run": {
+    "run_id": 41172853331,
+    "run_number": 1014,
+    "result": "cancelled",
+    "interpretation": "The linked job was cancelled during the complete CI gate and did not report a source assertion failure."
+  },
+  "actual_failed_run": {
+    "run_id": 41222846441,
+    "run_number": 1025,
+    "pr": 71,
+    "pr_head_sha": "19f7e65850515ed21910ce04509dfcba9bcd1b4f",
+    "merge_sha": "2f014067df7fdb4a19b5a5266d2071b363d1d743",
+    "job_id": 124600808367,
+    "job": "full-ci",
+    "failed_gate": "Ruff security scan",
+    "diagnosis": "Two S108 findings rejected the duplicated default path /tmp/kokonut-worker-progress/supervisor.json in services/core/runtime.py and services/core/worker_progress.py."
+  },
+  "repair": {
+    "heartbeat_path": "/var/lib/kokonut/worker-progress/supervisor.json",
+    "directory_mode": "0700",
+    "directory_owner": "appuser",
+    "compose_path_matches_image": true,
+    "child_liveness": "Supervisor heartbeat includes enabled child PIDs; health fails before PostgreSQL if an enabled child is missing or exited and returns no PID values."
+  },
+  "local_validation": {
+    "ruff_command": "ruff check --select S,BLE --ignore S101,S104,S105,S110,S112,S310,S311,S404,S603,S607,S608,RUF012,BLE001 services/",
+    "ruff": "passed",
+    "py_compile": "passed",
+    "kernel_release_inputs": "passed; Dockerfile.kernel SHA-256 lock refreshed",
+    "focused_tests": {
+      "command": "python3 -m pytest -q tests/test_worker_progress.py tests/test_kernel_runtime_supervisor.py tests/test_kernel_profile.py",
+      "passed": 118,
+      "failed": 0
+    },
+    "git_diff_check": "passed"
+  },
+  "hosted_repair_run": "pending"
+}

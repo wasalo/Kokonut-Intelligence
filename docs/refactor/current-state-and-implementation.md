@@ -84,7 +84,7 @@ command and applicable rollout procedure.
 | **minimal** | Private PostgreSQL/PostGIS plus the combined Kernel app/API and enabled worker processes. | Smallest candidate deployment shape. Capability parity, recovery, live identity, and operational acceptance remain open. |
 | **core** | Minimal app built from the reduced, hash-locked dependency set. Optional Web3, exports, and local-media packages are selected explicitly. | Packaging profile, not a different data model. The current OIDC app overlay is incompatible with this reduced image. |
 | **edge** | Minimal plus encrypted local media and edge-oriented resource settings; MQTT/HTTP sensors remain separately selectable overlays. | No physical Raspberry Pi test has been performed. QEMU and source-level ARM64 checks do not establish device performance or power-loss behavior. |
-| **standard** | PostgreSQL plus distinct API and durable-worker roles, with loopback-bound Caddy ingress by default. `--no-proxy` selects a separately managed ingress. The worker has a read-only PostgreSQL health probe for stale leases and old eligible due backlog. | This is the intended general-purpose starting point for an operational deployment; role provisioning, migrations, external alert routing, idle-supervisor liveness, live identity, backup/restore, and recovery acceptance still gate use. The probe reports aggregate counts and ages without IDs or payloads; it does not detect an idle hung supervisor. The default Caddy listener is local TLS, not public production ingress. |
+| **standard** | PostgreSQL plus distinct API and durable-worker roles, with loopback-bound Caddy ingress by default. `--no-proxy` selects a separately managed ingress. The worker has a read-only PostgreSQL probe for stale leases, old eligible due backlog, and supervisor/child-process liveness. | This is the intended general-purpose starting point for an operational deployment; role provisioning, migrations, external alert routing, live identity, backup/restore, and recovery acceptance still gate use. The probe reports aggregate counts and ages without IDs or payloads; it detects exited children but not an alive-but-hung child. The default Caddy listener is local TLS, not public production ingress. |
 | **analytics** | Minimal plus private ClickHouse analytical projection. `--separate-workers` adds standard API/worker separation. | Requires projection parity, rebuild/outage behavior, and worker recovery acceptance. Metabase is not required. |
 | **scale** | Rejected by the planner. | Multi-host/replica behavior, shared budgets, failover, measured sizing, and concurrency/recovery gates are not accepted. |
 
@@ -194,11 +194,13 @@ produce a post-708 ACL inventory or a second ledger verification
 
 The 700–703 functions use isolated owners. The runtime-role provisioner tracks
 those owners/functions, revokes public function execution, and refuses to use
-the owners as application logins. The Standard worker probe now rejects a
-missing, stale, malformed, or dead-supervisor heartbeat before opening
-PostgreSQL. The focused migration, runtime-boundary, profile, health, and
-landscape selection passes 238 tests plus 10 subtests; the hook build and 143
-hook tests pass ([local evidence](builds/2026-10-31-recovery/ci-1024-repair-local-checks.json)).
+the owners as application logins. The Standard worker probe rejects a missing,
+stale, malformed, or dead-supervisor heartbeat and missing/dead enabled worker
+children before opening PostgreSQL. Its private heartbeat is stored under
+`/var/lib/kokonut/worker-progress`; an alive-but-hung child remains outside the
+probe's guarantee. The focused migration, runtime-boundary, profile, health,
+and landscape selection passes 238 tests plus 10 subtests; the hook build and
+143 hook tests pass ([local evidence](builds/2026-10-31-recovery/ci-1024-repair-local-checks.json)).
 
 The focused checkers use synthetic records and disposable databases. They do
 not apply these migrations to the candidate, legacy, or production database.

@@ -9739,8 +9739,12 @@ provenance ([review](current-state-and-implementation.md#c1-runtime-acl-work-cur
   candidates ([report](builds/2026-10-31-recovery/runtime-privilege-callsite-report-707.json)).
 - [x] Add Standard worker-supervisor liveness using an atomic private heartbeat
   file. Health fails closed before database access for missing, stale,
-  malformed, insecure, future, or dead-process records; response fields expose
-  only alive/age. The file is ephemeral; no migration or volume is introduced.
+  malformed, insecure, future, or dead-process records. It also checks that
+  every enabled worker child process is alive before opening PostgreSQL and
+  returns aggregate child liveness only, never PIDs. The default heartbeat
+  moved to private app-owned `/var/lib/kokonut/worker-progress` after hosted
+  Ruff S108 rejected the prior `/tmp` default. Focused Standard tests pass 118
+  cases. The file is ephemeral; no migration or volume is introduced.
 - [x] Retire five unscoped landscape write helpers and CLI commands; migration
   708 denies only `kokonut_runtime` table/column writes while preserving
   SELECT, migration-702 signed Gateway capture, and separate Directus/maintenance
@@ -9767,10 +9771,15 @@ provenance ([review](current-state-and-implementation.md#c1-runtime-acl-work-cur
   unestablished; the same pinned image and bind-mount probe passed locally, so
   it is tracked separately from the runner shutdown
   ([evidence](builds/2026-10-31-recovery/ci-1024-repair-local-checks.json)).
-- [ ] Obtain a complete hosted CI run on the next pushed SHA. The previous
-  full-ci job was interrupted by runner shutdown during the Python suite; the
-  linked older run was cancelled by supersession. Neither result establishes
-  a product assertion failure.
+- [x] Investigate the linked CI run `41172853331`: GitHub reports its job as
+  cancelled during `Run the complete CI gate`. The actual later CI #1025
+  (`41222846441`) failed the Ruff security scan on two identical S108 findings
+  for `/tmp/kokonut-worker-progress/supervisor.json`. The default and Standard
+  Compose path now use private app-owned `/var/lib/kokonut/worker-progress`;
+  exact local Ruff and 118 focused tests pass. Await a complete hosted run on
+  the repair SHA ([evidence](builds/2026-10-31-recovery/ci-1025-ruff-s108-fix.json)).
+- [ ] Obtain a complete hosted CI run on the repair SHA and close the remaining
+  release gate only after both required CI and Security checks pass.
 
 Rollback: no persistent database or service was changed. Keep ordered
 migrations 704–708 in history; do not edit applied SQL. Reversing a persistent

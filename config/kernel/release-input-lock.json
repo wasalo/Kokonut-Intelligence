@@ -6,7 +6,7 @@
     "database": "postgres:16-bookworm@sha256:0ea6700a3b4f0ae6ce746519073558aed4d88a79d8d07622a9a644946c7319c4"
   },
   "sha256_inputs": {
-    "Dockerfile.kernel": "ee17e4fd0251416bab1b22922fb35a186b8e2d23119a939b5b1dace65d307ecd",
+    "Dockerfile.kernel": "8f5a7aea75dc6e761be8be20aa591d7a50919197a9d5cdbf4870aa480bf2273d",
     "Dockerfile.kernel-postgis": "180b813d48759c170cc36a78526c893dc71e51a78c18a75cd101c330a1958d8c",
     "requirements/kernel.txt": "bcafcb498d1d0551cc5a400e0b45ecd903fd996cafd974792f4e67f6cefb7e83",
     "requirements/web3.txt": "be91e5a4302c32cf7b3035cca8bc538eaeba5e85997348081632c2286fb4da33",

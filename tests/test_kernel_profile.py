@@ -272,7 +272,7 @@ def test_standard_worker_uses_durable_progress_healthcheck_without_merging_roles
         "${KOKONUT_WORKER_PROGRESS_HEARTBEAT_SECONDS:-60}"
     )
     assert worker["environment"]["KOKONUT_WORKER_PROGRESS_HEARTBEAT_FILE"] == (
-        "/tmp/kokonut-worker-progress/supervisor.json"
+        "/var/lib/kokonut/worker-progress/supervisor.json"
     )
     assert all(
         "/tmp/kokonut-worker-progress" not in str(mount)

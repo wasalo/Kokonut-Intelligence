@@ -16,9 +16,14 @@ from services.core import worker_progress
 def fresh_supervisor_heartbeat(monkeypatch, tmp_path):
     path = tmp_path / "worker-progress" / "supervisor.json"
     path.parent.mkdir(mode=0o700)
+    child_pids = {
+        worker: os.getpid() + index + 1
+        for index, worker in enumerate(worker_progress.WORKER_NAMES)
+    }
     path.write_text(
         json.dumps(
             {
+                "children": child_pids,
                 "generation": uuid.uuid4().hex,
                 "monotonic_ns": time.monotonic_ns(),
                 "pid": os.getpid(),
@@ -26,6 +31,7 @@ def fresh_supervisor_heartbeat(monkeypatch, tmp_path):
         )
     )
     path.chmod(0o600)
+    monkeypatch.setattr(worker_progress.os, "kill", lambda _pid, _signal: None)
     monkeypatch.setenv(worker_progress.HEARTBEAT_FILE_ENV, str(path))
     return path
 
@@ -70,6 +76,15 @@ def _worker_row(worker, values):
     return worker, active, stale, queued, oldest_due_seconds
 
 
+def _select_heartbeat_children(path, workers):
+    payload = json.loads(path.read_text())
+    payload["children"] = {
+        worker: payload["children"][worker] for worker in workers
+    }
+    path.write_text(json.dumps(payload))
+    path.chmod(0o600)
+
+
 def _rows(*, scheduler=(0, 0), events=(0, 0), notifications=(0, 0)):
     return [
         _worker_row("events", events),
@@ -93,7 +108,7 @@ def test_idle_workers_are_healthy_and_probe_is_read_only():
         "stale_after_seconds": 300,
         "backlog_after_seconds": 900,
         "backlog_workers": [],
-        "supervisor": {"alive": True, "age_seconds": 0},
+        "supervisor": {"alive": True, "age_seconds": 0, "children_alive": True},
         "workers": {
             "events": {"active": 0, "stale": 0, "queued": 0, "oldest_due_seconds": None},
             "notifications": {"active": 0, "stale": 0, "queued": 0, "oldest_due_seconds": None},
@@ -190,7 +205,8 @@ def test_due_backlog_younger_than_threshold_is_healthy():
     assert result["workers"]["events"]["queued"] == 5
 
 
-def test_future_dated_pending_event_has_zero_age():
+def test_future_dated_pending_event_has_zero_age(fresh_supervisor_heartbeat):
+    _select_heartbeat_children(fresh_supervisor_heartbeat, ("events",))
     connection = _Connection([_worker_row("events", (0, 0, 1, 0))])
 
     result = worker_progress.check_progress(
@@ -254,7 +270,7 @@ def test_database_failure_fails_closed_without_exposing_exception_message():
         "stale_after_seconds": 300,
         "backlog_after_seconds": 900,
         "backlog_workers": [],
-        "supervisor": {"alive": True, "age_seconds": 0},
+        "supervisor": {"alive": True, "age_seconds": 0, "children_alive": True},
         "workers": {},
         "error": "RuntimeError",
     }
@@ -283,6 +299,13 @@ def test_invalid_supervisor_heartbeat_fails_closed_before_database_access(
             payload["monotonic_ns"] = time.monotonic_ns() + 1_000_000_000
         else:
             payload["pid"] = 2_147_483_647
+            original_pid = payload["pid"]
+
+            def process_probe(pid, _signal):
+                if pid == original_pid:
+                    raise ProcessLookupError
+
+            monkeypatch.setattr(worker_progress.os, "kill", process_probe)
         path.write_text(json.dumps(payload))
         path.chmod(0o600)
     elif failure == "permissions":
@@ -304,7 +327,7 @@ def test_invalid_supervisor_heartbeat_fails_closed_before_database_access(
     assert result["status"] == "unhealthy"
     assert result["state"] == "supervisor_unresponsive"
     assert result["supervisor"]["alive"] is False
-    assert set(result["supervisor"]) == {"alive", "age_seconds"}
+    assert set(result["supervisor"]) == {"alive", "age_seconds", "children_alive"}
     assert factory_calls == []
 
 
@@ -313,7 +336,34 @@ def test_supervisor_liveness_reports_only_alive_and_aggregate_age(fresh_supervis
 
     assert result["alive"] is True
     assert result["age_seconds"] == 0
-    assert set(result) == {"alive", "age_seconds"}
+    assert result["children_alive"] is True
+    assert set(result) == {"alive", "age_seconds", "children_alive"}
+
+
+def test_dead_worker_child_fails_closed_before_database_access(
+    fresh_supervisor_heartbeat, monkeypatch
+):
+    payload = json.loads(fresh_supervisor_heartbeat.read_text())
+    dead_pid = payload["children"]["scheduler"]
+
+    def kill(pid, _signal):
+        if pid == dead_pid:
+            raise ProcessLookupError
+
+    monkeypatch.setattr(worker_progress.os, "kill", kill)
+    result = worker_progress.check_progress(
+        connection_factory=lambda **_kwargs: pytest.fail("database must not be opened"),
+        enabled_workers=worker_progress.WORKER_NAMES,
+    )
+
+    assert result["status"] == "unhealthy"
+    assert result["state"] == "worker_child_unresponsive"
+    assert result["supervisor"] == {
+        "alive": True,
+        "age_seconds": 0,
+        "children_alive": False,
+    }
+    assert str(dead_pid) not in repr(result)
 
 
 def test_probe_query_failure_closes_connection_and_hides_database_message():
@@ -333,6 +383,7 @@ def test_probe_query_failure_closes_connection_and_hides_database_message():
     assert result["error"] == "RuntimeError"
     assert result["backlog_after_seconds"] == 900
     assert result["supervisor"]["alive"] is True
+    assert result["supervisor"]["children_alive"] is True
     assert connection.cursor_instance.closed
     assert connection.closed
     assert "password-do-not-print" not in repr(result)
@@ -363,7 +414,8 @@ def test_query_reads_only_durable_aggregate_state():
     assert "worker_id" not in query
 
 
-def test_disabled_queues_are_not_queried_or_reported_as_stale():
+def test_disabled_queues_are_not_queried_or_reported_as_stale(fresh_supervisor_heartbeat):
+    _select_heartbeat_children(fresh_supervisor_heartbeat, ("scheduler",))
     connection = _Connection([_worker_row("scheduler", (0, 0))])
 
     result = worker_progress.check_progress(

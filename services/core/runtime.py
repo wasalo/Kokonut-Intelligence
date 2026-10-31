@@ -26,7 +26,7 @@ from services.common.worker_environment import (
 logger = get_logger("core.runtime")
 
 SUPERVISOR_HEARTBEAT_FILE_ENV = "KOKONUT_WORKER_PROGRESS_HEARTBEAT_FILE"
-DEFAULT_SUPERVISOR_HEARTBEAT_FILE = "/tmp/kokonut-worker-progress/supervisor.json"
+DEFAULT_SUPERVISOR_HEARTBEAT_FILE = "/var/lib/kokonut/worker-progress/supervisor.json"
 SUPERVISOR_HEARTBEAT_INTERVAL_SECONDS = 5
 
 
@@ -46,7 +46,7 @@ class _SupervisorHeartbeat:
         self.generation = uuid.uuid4().hex if generation is None else generation
         self._monotonic_ns = monotonic_ns
 
-    def pulse(self) -> None:
+    def pulse(self, children: dict[str, int] | None = None) -> None:
         parent = self.path.parent
         parent.mkdir(mode=0o700, parents=True, exist_ok=True)
         directory = parent.lstat()
@@ -58,6 +58,7 @@ class _SupervisorHeartbeat:
             raise OSError("worker heartbeat directory is not private")
 
         payload = {
+            "children": children or {},
             "generation": self.generation,
             "monotonic_ns": self._monotonic_ns(),
             "pid": self.pid,
@@ -205,6 +206,16 @@ def run(port: int = 8099, with_workers: bool = False, shutdown_seconds: float = 
             children.append((name, process))
             logger.info("Started Kernel process %s (pid=%s)", name, process.pid)
 
+        def worker_children() -> dict[str, int]:
+            return {
+                name: process.pid
+                for name, process in children
+                if name in {"scheduler", "events", "notifications"}
+            }
+
+        if heartbeat is not None:
+            heartbeat.pulse(worker_children())
+
         while not stopping:
             for name, process in children:
                 code = process.poll()
@@ -213,7 +224,7 @@ def run(port: int = 8099, with_workers: bool = False, shutdown_seconds: float = 
                     return 1
             now = time.monotonic()
             if heartbeat is not None and now >= next_heartbeat:
-                heartbeat.pulse()
+                heartbeat.pulse(worker_children())
                 next_heartbeat = now + SUPERVISOR_HEARTBEAT_INTERVAL_SECONDS
             time.sleep(0.25)
         return 0

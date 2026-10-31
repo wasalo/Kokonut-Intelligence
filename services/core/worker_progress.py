@@ -16,7 +16,7 @@ DEFAULT_STALE_SECONDS = 300
 DEFAULT_BACKLOG_SECONDS = 900
 DEFAULT_HEARTBEAT_SECONDS = 60
 HEARTBEAT_FILE_ENV = "KOKONUT_WORKER_PROGRESS_HEARTBEAT_FILE"
-DEFAULT_HEARTBEAT_FILE = "/tmp/kokonut-worker-progress/supervisor.json"
+DEFAULT_HEARTBEAT_FILE = "/var/lib/kokonut/worker-progress/supervisor.json"
 MAX_STALE_SECONDS = 2_678_400  # 31 days; protects interval conversion from bad configuration.
 WORKER_NAMES = ("scheduler", "events", "notifications")
 
@@ -198,10 +198,11 @@ def _supervisor_liveness(
     *,
     path: str | Path | None = None,
     stale_seconds: int | None = None,
+    expected_workers: tuple[str, ...] = WORKER_NAMES,
     monotonic_ns: Callable[[], int] = time.monotonic_ns,
     process_probe: Callable[[int], None] | None = None,
 ) -> dict[str, int | bool | None]:
-    """Read private heartbeat state and return only alive plus aggregate age."""
+    """Read private heartbeat state without returning process IDs."""
     threshold = heartbeat_threshold_seconds(stale_seconds)
     heartbeat_path = _heartbeat_file_path() if path is None else Path(path)
     try:
@@ -216,16 +217,19 @@ def _supervisor_liveness(
             or file_stat.st_mode & 0o077
             or file_stat.st_size > 1024
         ):
-            return {"alive": False, "age_seconds": None}
+            return {"alive": False, "age_seconds": None, "children_alive": False}
         payload = json.loads(heartbeat_path.read_text(encoding="utf-8"))
     except (OSError, ValueError, UnicodeError):
-        return {"alive": False, "age_seconds": None}
+        return {"alive": False, "age_seconds": None, "children_alive": False}
 
-    if not isinstance(payload, dict) or set(payload) != {"generation", "monotonic_ns", "pid"}:
-        return {"alive": False, "age_seconds": None}
+    if not isinstance(payload, dict) or set(payload) != {
+        "children", "generation", "monotonic_ns", "pid"
+    }:
+        return {"alive": False, "age_seconds": None, "children_alive": False}
     generation = payload["generation"]
     pid = payload["pid"]
     heartbeat_ns = payload["monotonic_ns"]
+    children = payload["children"]
     if (
         not isinstance(generation, str)
         or len(generation) != 32
@@ -236,19 +240,40 @@ def _supervisor_liveness(
         or isinstance(heartbeat_ns, bool)
         or not isinstance(heartbeat_ns, int)
         or heartbeat_ns <= 0
+        or not isinstance(children, dict)
+        or any(worker not in WORKER_NAMES for worker in children)
+        or set(children) != set(expected_workers)
+        or any(
+            isinstance(child_pid, bool)
+            or not isinstance(child_pid, int)
+            or not 1 <= child_pid <= 2_147_483_647
+            or child_pid == pid
+            for child_pid in children.values()
+        )
+        or len(set(children.values())) != len(children)
     ):
-        return {"alive": False, "age_seconds": None}
+        return {"alive": False, "age_seconds": None, "children_alive": False}
 
     age_ns = monotonic_ns() - heartbeat_ns
     if age_ns < 0:
-        return {"alive": False, "age_seconds": None}
+        return {"alive": False, "age_seconds": None, "children_alive": False}
     age_seconds = age_ns // 1_000_000_000
     probe = os.kill if process_probe is None else process_probe
     try:
         probe(pid, 0) if process_probe is None else probe(pid)
     except (ProcessLookupError, PermissionError, OSError):
-        return {"alive": False, "age_seconds": age_seconds}
-    return {"alive": age_seconds <= threshold, "age_seconds": age_seconds}
+        return {"alive": False, "age_seconds": age_seconds, "children_alive": False}
+    children_alive = True
+    try:
+        for child_pid in children.values():
+            probe(child_pid, 0) if process_probe is None else probe(child_pid)
+    except (ProcessLookupError, PermissionError, OSError):
+        children_alive = False
+    return {
+        "alive": age_seconds <= threshold,
+        "age_seconds": age_seconds,
+        "children_alive": children_alive,
+    }
 
 
 def inspect_progress(
@@ -336,11 +361,19 @@ def check_progress(
             "stale_after_seconds": None,
             "backlog_after_seconds": None,
             "backlog_workers": [],
-            "supervisor": {"alive": False, "age_seconds": None},
+            "supervisor": {
+                "alive": False,
+                "age_seconds": None,
+                "children_alive": False,
+            },
             "workers": {},
         }
 
-    supervisor: dict[str, int | bool | None] = {"alive": False, "age_seconds": None}
+    supervisor: dict[str, int | bool | None] = {
+        "alive": False,
+        "age_seconds": None,
+        "children_alive": False,
+    }
     try:
         selected_workers = _enabled_worker_names() if enabled_workers is None else enabled_workers
         if not selected_workers or any(worker not in WORKER_NAMES for worker in selected_workers):
@@ -350,17 +383,32 @@ def check_progress(
                 "stale_after_seconds": threshold,
                 "backlog_after_seconds": backlog_threshold,
                 "backlog_workers": [],
-                "supervisor": {"alive": False, "age_seconds": None},
+                "supervisor": {
+                    "alive": False,
+                    "age_seconds": None,
+                    "children_alive": False,
+                },
                 "workers": {},
             }
         supervisor = _supervisor_liveness(
             path=heartbeat_path,
             stale_seconds=heartbeat_threshold,
+            expected_workers=selected_workers,
         )
         if not supervisor["alive"]:
             return {
                 "status": "unhealthy",
                 "state": "supervisor_unresponsive",
+                "stale_after_seconds": threshold,
+                "backlog_after_seconds": backlog_threshold,
+                "backlog_workers": [],
+                "supervisor": supervisor,
+                "workers": {},
+            }
+        if not supervisor["children_alive"]:
+            return {
+                "status": "unhealthy",
+                "state": "worker_child_unresponsive",
                 "stale_after_seconds": threshold,
                 "backlog_after_seconds": backlog_threshold,
                 "backlog_workers": [],
