@@ -19,8 +19,8 @@ Migrations 690–697 remove runtime DML from twelve reviewed relations; migratio
 699 removes unnecessary grants from the inherently non-updatable
 `v_public_farm_summary` view. The native full-schema 699 probe reports 979
 tables still exposed. These figures are historical ACL-reach measurements, not
-confirmed tenant leaks. For current migration-724 counts, see the
-[current source/ACL report](builds/2026-11-01-recovery/runtime-privilege-callsite-report-724.json)
+confirmed tenant leaks. For current migration-725 counts, see the
+[current source/ACL report](builds/2026-11-01-recovery/runtime-privilege-callsite-report-725.json)
 and the C1 continuation dated 1 November 2026 below. Static SQL absence is not
 proof that a table is unused: helper-mediated writes, Directus permissions,
 dynamic SQL, ORM paths, external integrations, and populated production data
@@ -28,7 +28,51 @@ remain incomplete in the inventory.
 
 ## Current evidence and decisions
 
-### Latest C1 continuation — migration 724 freshness-delivery history — 1 November 2026
+### Latest C1 continuation — migration 725 framework reference catalogs — 1 November 2026
+
+Migration 725 keeps `form_of_capital`, `sdg`, `pillar_of_value`, and
+`regeneration_principle` readable while removing unused `kokonut_runtime`
+table and residual-column DML. The first three catalogs have read callsites;
+the fourth has no current query site. Repository writes are curated seed
+upserts run by the database-owner identity. The runtime-role provisioner
+reapplies the denials after compatibility setup. Focused network-disabled
+PostgreSQL 16 acceptance covers role-absent ordering, apply/replay, runtime
+SELECT and table/column write denial, owner seed upserts, and preservation of
+Directus SQL grants. Unknown external shared-login clients and live/custom
+Directus API permissions remain rollout gates; SQL grants do not prove API
+row/field policy parity.
+
+The latest native, network-disabled, portless replay applied 716/716 ordered
+schemas through migration 725 and passed 39 synthetic two-tenant/operator
+checks. The focused ARM64/QEMU ACL checker also passes migration 725, while the
+last complete ARM64/QEMU full-schema replay is through migration 724. A
+redundant full QEMU replay through 725 failed before applying any schema
+(0/716) and cleaned up; its failed record is not acceptance evidence. The current
+source/ACL report covers 1,522 public relations: 1,304 have effective runtime
+DML, 920 tables have runtime DML while RLS is disabled, and 183 migration
+denials match declared policy with zero mismatches. The report also identifies
+209 DML relations without candidate SQL sites and 367 without candidate write
+targets. These are overlapping privilege/source-inventory measures, not
+confirmed leaks or proof of tenant isolation. Standard first-install recovery
+remains accepted through migration 723 only. No candidate, legacy, or
+production database or role changed.
+
+Evidence: [migration](../../schemas/postgres/725_runtime_framework_reference_catalogs_read_only.sql),
+[focused native ACL check](builds/2026-11-01-recovery/framework-reference-catalog-runtime-boundary-725-disposable.json),
+[source regression checks](builds/2026-11-01-recovery/framework-reference-catalog-runtime-boundary-725-source-checks.json),
+[focused ARM64/QEMU ACL check](builds/2026-11-01-recovery/framework-reference-catalog-runtime-boundary-725-arm64-qemu-disposable.json),
+[native full replay and operator probe](builds/2026-11-01-recovery/native-current-schema-725-operator-probe.json),
+[full ARM64/QEMU replay through 724](builds/2026-11-01-recovery/arm64-qemu-current-schema-724-operator-probe.json),
+[interrupted redundant QEMU replay](builds/2026-11-01-recovery/arm64-qemu-current-schema-725-interrupted.json),
+[source/ACL report](builds/2026-11-01-recovery/runtime-privilege-callsite-report-725.json),
+[SQL review ledger](runtime-sql-unresolved-write-review.json).
+
+Rollback is forward-only after a migration reaches a persistent target. A
+grant restoration requires a separately reviewed forward migration and a
+confirmed caller/owner map. This change does not close C1, establish RLS, or
+advance a capability classification.
+
+### Previous C1 continuation — migration 724 freshness-delivery history — 1 November 2026
 
 Migration 724 keeps `data_freshness_alert_delivery_attempt` readable for
 historical review while revoking table and residual column mutation from

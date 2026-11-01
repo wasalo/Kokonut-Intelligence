@@ -8,29 +8,33 @@ pre-existing and fresh logins. This does not remove broad grants from existing
 relations or change capability classifications. C1, tenant/RLS, and persistent
 rollout remain open ([acceptance](builds/2026-10-31-recovery/runtime-role-reprovision-guard-disposable.json)).
 
-**Latest C1 aggregate refresh — migration 724, 1 November 2026:** Network-
-disabled native PostgreSQL 16 replay applied all 715 ordered schemas and
-passed 39 synthetic two-tenant/operator checks. Migration 724 preserves
-historical freshness-delivery attempt reads while denying direct runtime table
-and column writes; the provisioner reapplies the denial, and synthetic
-Directus/maintenance writes remain available. The source/ACL report records
-1,308/1,522 public relations with effective runtime DML, 924 tables with
-runtime DML while RLS is disabled, and 179 migration-revoked relations
+**Latest C1 aggregate refresh — migration 725, 1 November 2026:** Network-
+disabled native PostgreSQL 16 replay applied all 716 ordered schemas and
+passed 39 synthetic two-tenant/operator checks; the focused runtime-role and
+ACL-report regression selection passes 125 tests. Migration 725 preserves reads
+on four curated global framework catalogs while revoking runtime table and
+residual-column writes; the provisioner reapplies the denial, and synthetic
+seed-owner/Directus SQL writes remain available. The source/ACL report records
+1,304/1,522 public relations with effective runtime DML, 920 tables with
+runtime DML while RLS is disabled, and 183 migration-revoked relations
 matching declared policy with zero mismatches. These figures measure
 privilege reach and inventory coverage, not confirmed leaks or tenant
-isolation. ARM64/QEMU replay through 724 also applied all 715 schemas and
-passed 39 synthetic two-tenant/operator checks; this is software portability
-evidence, not physical Raspberry Pi acceptance. Migration 724 does not
-establish external-importer compatibility, candidate/production rollout, or
-tenant isolation. C1 remains open.
+isolation. A focused ARM64/QEMU disposable check replays migration 725 and
+verifies the same ACL behavior; the last complete ARM64/QEMU schema replay
+through 724 applied 715 schemas and passed all 39 synthetic two-tenant/operator
+checks. QEMU is software-portability evidence, not physical Raspberry Pi
+acceptance. External shared-login consumers, live Directus API permissions,
+candidate/production rollout, and tenant isolation remain open. C1 remains open.
 Capability classifications are unchanged at 24 baseline-retained, 7 deployed,
 and 36 prepared across 67 rows; this access-boundary work does not advance a
 capability. Standard first-install recovery remains separately accepted
 through migration 723
-([native replay/probe](builds/2026-11-01-recovery/native-current-schema-724-operator-probe.json);
-[ARM64/QEMU replay/probe](builds/2026-11-01-recovery/arm64-qemu-current-schema-724-operator-probe.json);
-[source/ACL report](builds/2026-11-01-recovery/runtime-privilege-callsite-report-724.json);
-[migration check](builds/2026-11-01-recovery/runtime-freshness-delivery-history-724-disposable.json);
+([native replay/probe](builds/2026-11-01-recovery/native-current-schema-725-operator-probe.json);
+[focused ARM64/QEMU ACL check](builds/2026-11-01-recovery/framework-reference-catalog-runtime-boundary-725-arm64-qemu-disposable.json);
+[full ARM64/QEMU replay through 724](builds/2026-11-01-recovery/arm64-qemu-current-schema-724-operator-probe.json);
+[source/ACL report](builds/2026-11-01-recovery/runtime-privilege-callsite-report-725.json);
+[migration check](builds/2026-11-01-recovery/framework-reference-catalog-runtime-boundary-725-disposable.json);
+[source regressions](builds/2026-11-01-recovery/framework-reference-catalog-runtime-boundary-725-source-checks.json);
 [SQL review ledger](runtime-sql-unresolved-write-review.json)).
 
 **Previous C1 aggregate refresh — 31 October 2026:** The network-disabled,

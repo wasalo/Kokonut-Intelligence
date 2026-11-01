@@ -8,7 +8,7 @@ can proceed now and gates that need an owner, provider, populated source data,
 or production environment. Check an item only when its evidence is recorded in
 the batch log and the affected capability/progress records are updated.
 
-**Current queue snapshot (1 November 2026):** 811 checked / 39 open across the
+**Current queue snapshot (1 November 2026):** 812 checked / 39 open across the
 TODO's dated and active checklist sections. Historical snapshots below this
 active queue remain dated records and do not replace the current count.
 
@@ -1343,8 +1343,9 @@ The 28 October ACL report observes the schema and source policy through
 migration 681, including the `metric_definition` read-only boundary. Its
 snapshot records 128 migration-backed controls and 992 relations retaining
 DML while RLS is disabled. The later migration-689 native and ARM64/QEMU
-replays each verify the current two-tenant operator boundary and report 991
-public tables retaining runtime DML with RLS disabled; external writers,
+replays at that checkpoint each verify the two-tenant operator boundary and
+report 991 public tables retaining runtime DML with RLS disabled. This
+historical ACL-reach count is superseded by migration 725's current 920; external writers,
 populated tenant isolation, and production state remain outside the report
   ([report](builds/2026-10-28-recovery/sprint-runtime-privilege-callsite-report.json)).
   After migrations 682–683, the documented disposable runtime-role check also
@@ -4015,7 +4016,7 @@ Checklist: 581 checked / 16 open; strict private Gateway response contracts tota
 - [x] Replay all 679 current schema files through migration 688 on native PostgreSQL 16/PostGIS with the synthetic operator-scope probe.
 - [x] Replay the same schema and probe on ARM64/QEMU with verified 1.5 GiB and 2-CPU limits; confirm no OOM kill.
 - [x] Record zero failed/pending migrations, disabled networking, unpublished ports, no seeds/farm data, cleanup, and candidate/legacy non-access.
-- [x] Refresh the source/ACL report and retain C1 as open because 991 public tables still have DML grants with RLS disabled.
+- [x] Refresh the source/ACL report and retain C1 as open because the migration-689 snapshot counted 991 public tables with DML grants while RLS was disabled. This historical ACL-reach figure is superseded by the migration-725 count of 920 and does not count confirmed leaks.
 - [x] Publish strict migration-504 solution-create request and response contracts in OpenAPI and runtime validation.
 - [x] Preserve exact-location create authorization, bind response fields, cover create/replay status and cache headers, and match PostgreSQL U+0020 `btrim()` behavior.
 - [x] Run the approved 61-test selection and required static/inventory checks; record evidence.
@@ -4567,9 +4568,10 @@ private Gateway response contracts total 226.
   35 operator-scope checks pass with 983 relations still retaining runtime
   DML while RLS is disabled; QEMU is not physical Raspberry Pi acceptance.
 
-Current ACL evidence reports 983 relations with effective runtime DML while
-RLS is disabled and 137 declared controls with no policy mismatch. The count
-measures privilege reach, not confirmed data leaks. Candidate, legacy, and
+At the migration-693 checkpoint, ACL evidence reported 983 relations with
+effective runtime DML while RLS was disabled and 137 declared controls with no
+policy mismatch. The current migration-725 count is 920; both counts measure
+privilege reach, not confirmed data leaks. Candidate, legacy, and
 production were not touched; C1 remains open for the remaining writer and
 tenant/RLS reviews.
 
@@ -4896,7 +4898,7 @@ database/role was changed.
   remaining `credit_chain_mint` schema mismatch; do not treat SQLite spool
   tables as PostgreSQL relations or the source report as a grant allowlist.
 
-### Current continuation — migration 724 freshness-delivery history ACL — 1 November 2026
+### Previous continuation — migration 724 freshness-delivery history ACL — 1 November 2026
 
 - [x] Preserve historical SELECT on `data_freshness_alert_delivery_attempt`
   while revoking direct runtime table/column DML and reapplied compatibility
@@ -4908,5 +4910,19 @@ database/role was changed.
   access callsite; external importer use remains unconfirmed. Candidate,
   legacy, and production databases/roles remain untouched.
 
-Cross-phase TODO: 811 checked / 39 open. Capability classifications remain
+### Current continuation — migration 725 framework reference-catalog ACL — 1 November 2026
+
+- [x] Preserve reads on the four curated global framework catalogs while
+  removing direct `kokonut_runtime` table and residual-column DML. Disposable
+  PostgreSQL 16 apply/replay proves migration-before-role ordering, runtime
+  SELECT, denied table/column writes, retained `kokonut` seed-owner upserts,
+  and unchanged Directus SQL grants. The focused runtime-role/report selection
+  passes 125 tests. Native full-schema replay passes through
+  725; focused ARM64/QEMU acceptance passes. The refreshed ACL report records
+  1,304/1,522 relations with runtime DML and 920 tables with DML while RLS is
+  disabled; these measure privilege reach, not confirmed leaks. External
+  shared-login clients and live Directus permissions remain rollout gates
+  ([batch](batches.md); [migration](../../schemas/postgres/725_runtime_framework_reference_catalogs_read_only.sql); [disposable acceptance](builds/2026-11-01-recovery/framework-reference-catalog-runtime-boundary-725-disposable.json); [source checks](builds/2026-11-01-recovery/framework-reference-catalog-runtime-boundary-725-source-checks.json)).
+
+Cross-phase TODO: 812 checked / 39 open. Capability classifications remain
 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows.

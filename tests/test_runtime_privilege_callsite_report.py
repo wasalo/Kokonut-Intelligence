@@ -37,6 +37,21 @@ def test_reporting_registry_dynamic_revokes_are_joined_to_runtime_policy():
     assert overrides["data_governance_category"] == "runtime_mutations_denied"
     assert overrides["data_governance_scope"] == "runtime_mutations_denied"
     assert {
+        "form_of_capital",
+        "sdg",
+        "pillar_of_value",
+        "regeneration_principle",
+    }.issubset(overrides)
+    assert all(
+        overrides[name] == "runtime_mutations_denied"
+        for name in (
+            "form_of_capital",
+            "sdg",
+            "pillar_of_value",
+            "regeneration_principle",
+        )
+    )
+    assert {
         "event_handler_delivery",
         "event_handler_log",
         "data_freshness_check",

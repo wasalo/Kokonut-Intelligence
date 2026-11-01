@@ -22,9 +22,9 @@ pending.
 
 Remaining work is ordered in [the code-first execution plan](code-first-execution-plan.md): finish repository-owned implementation and reproducible software checks before collecting owner decisions and production inputs. Raspberry Pi hardware is unavailable, so Batch 6 uses ARM64 emulation and constrained software checks; it does not claim physical-device acceptance.
 
-**Current aggregate snapshot (1 November 2026):** 2,234 checklist items complete
-and 43 open (2,277 total), counting nested items. The cross-phase TODO queue has
-811 checked and 39 open items. The
+**Current aggregate snapshot (1 November 2026):** 2,236 checklist items complete
+and 43 open (2,279 total), counting nested items. The cross-phase TODO queue has
+812 checked and 39 open items. The
 [capability matrix](capability-matrix.md) has 67 validated rows: 24
 baseline-retained, 7 deployed, and 36 prepared. Named MAN-CAP
 acceptance remains separate; none is marked accepted.
@@ -32,7 +32,49 @@ acceptance remains separate; none is marked accepted.
 The proposed next sprint and its bounded acceptance criteria are recorded in
 [authenticated farm workflow and recovery](sprint-kernel-workflow-acceptance.md).
 
-### Latest local C1 continuation — private solution-creation receipt ACL — 31 October 2026
+### Latest local C1 continuation — framework reference-catalog ACL — 1 November 2026
+
+- [x] Add migration 725 and runtime-role policy for the four remaining global
+  framework catalogs in `schemas/seeds/023_impact_frameworks.sql`:
+  `form_of_capital`, `sdg`, `pillar_of_value`, and `regeneration_principle`.
+  The shared application role retains SELECT and loses table/residual-column
+  DML; seed-owner and Directus SQL grants remain unchanged. Repository SQL
+  shows read-only use (or no query site) and no runtime write target. External
+  consumers using the shared login and live/custom Directus API permissions
+  remain rollout checks.
+- [x] Pass migration-725 disposable PostgreSQL 16 apply/replay, role-absent
+  ordering, table/column write denial, runtime SELECT, owner seed-upsert, and
+  unchanged Directus-grant checks; 125 runtime-role/report regressions pass.
+  Native replay applies all 716 ordered
+  migrations and passes 39 two-tenant/operator probes; ARM64/QEMU passes the
+  focused migration-725 ACL check. The redundant full QEMU replay failed
+  before applying any schema (0/716) and cleaned up; it is not acceptance.
+  The refreshed report records 1,304/1,522 relations with runtime DML,
+  920 tables with DML while RLS is disabled, and 183 declared denials matched
+  with zero policy mismatches. These are privilege-reach counts, not confirmed
+  leaks or tenant-isolation evidence. Standard first-install recovery remains
+  accepted only through migration 723. No candidate, legacy, or production
+  database or role changed.
+
+Evidence: [migration](../schemas/postgres/725_runtime_framework_reference_catalogs_read_only.sql),
+[disposable native check](builds/2026-11-01-recovery/framework-reference-catalog-runtime-boundary-725-disposable.json),
+[source regression checks](builds/2026-11-01-recovery/framework-reference-catalog-runtime-boundary-725-source-checks.json),
+[focused ARM64/QEMU check](builds/2026-11-01-recovery/framework-reference-catalog-runtime-boundary-725-arm64-qemu-disposable.json),
+[native replay/probe](builds/2026-11-01-recovery/native-current-schema-725-operator-probe.json),
+[current source/ACL report](builds/2026-11-01-recovery/runtime-privilege-callsite-report-725.json),
+[interrupted redundant QEMU replay and cleanup](builds/2026-11-01-recovery/arm64-qemu-current-schema-725-interrupted.json).
+
+Rollback is forward-only: before persistence, defer the new migration and
+runtime-policy change together. After application to a persistent database,
+restore writes only with a separately reviewed forward migration after caller
+and ownership review. Capability classifications and MAN-CAP acceptance do
+not change.
+
+Checklist: 2,236 complete / 43 open (2,279 total); cross-phase TODO: 812
+checked / 39 open. Capability classifications remain 24 baseline-retained,
+7 deployed, and 36 prepared across 67 rows.
+
+### Previous local C1 continuation — private solution-creation receipt ACL — 31 October 2026
 
 - [x] Revoke direct table and residual column access to
   `location_solution_creation_receipt` from `PUBLIC`, `kokonut_runtime`, and
@@ -8749,11 +8791,11 @@ Checklist: 1,960 complete / 25 open (1,985 total); TODO: 590 checked / 16 open. 
 - [x] Replay the current 679-file schema through migration 688 on native x86_64 PostgreSQL 16/PostGIS with the synthetic two-tenant operator-scope probe.
 - [x] Replay the same current schema through migration 688 on ARM64/QEMU under the same 1.5 GiB and 2-CPU database limit; run the same operator-scope probe.
 - [x] Record disabled network, unpublished host ports, no seeds/farm data, zero failed/pending migrations, resource limits, cleanup, and candidate/legacy non-access for both runs.
-- [x] Generate the source/ACL callsite report; preserve the open C1 caveat that 991 public tables still have DML grants with RLS disabled.
+- [x] Generate the source/ACL callsite report; preserve the open C1 caveat that the migration-689 snapshot counted 991 public tables with DML grants while RLS was disabled. This historical ACL-reach count is superseded by the current migration-725 count of 920 and is not a confirmed-leak count.
 - [x] Add strict migration-504 solution-create request/response OpenAPI and runtime validation, bind returned key/name/type to the request, preserve exact location authorization, and document 201 create/200 replay cache headers.
 - [x] Run the approved focused selection (61 passing tests), Ruff, Python compilation, capability validation, SQL/helper inventories, provider/dependency checks, and diff validation.
 
-Both disposable schema replays pass 679/679 files through `688_governance_tension_health_created_at`; each runtime-scope probe passes with 79 private relations verified, 47 mutation-denied relations verified, and zero direct table/column privilege violations. Native and ARM64/QEMU evidence uses synthetic data only and leaves candidate/legacy state untouched. QEMU is portability evidence, not physical Raspberry Pi acceptance. The scoped probe does not establish universal least privilege: 991 public tables still have DML while RLS is disabled, so C1 remains open. The 61-test focused selection, Ruff, Python compilation, capability matrix, runtime SQL inventory, provider boundaries, dependency groups, helper-scope inventory, and `git diff --check` pass. A review regression now covers PostgreSQL `btrim()` parity for Unicode whitespace and replay cache headers. No application migration was required. Disposable Compose containers/volumes were removed and the temporary ARM64 probe image was deleted. Rollback reverts source, focused tests, inventories, evidence, and progress documents; no persistent database rollback is needed ([native replay](builds/2026-10-29-recovery/runtime-role-full-schema-688-native-disposable.json); [ARM64/QEMU replay](builds/2026-10-29-recovery/runtime-role-full-schema-688-arm64-disposable.json); [ACL/callsite report](builds/2026-10-29-recovery/sprint-runtime-privilege-callsite-report-688.json); [solution-create contract](builds/2026-10-29-recovery/solution-create-response-contract.json); [combined acceptance](builds/2026-10-29-recovery/runtime-role-full-schema-688-native-arm64-disposable.json)).
+Both disposable schema replays pass 679/679 files through `688_governance_tension_health_created_at`; each runtime-scope probe passes with 79 private relations verified, 47 mutation-denied relations verified, and zero direct table/column privilege violations. Native and ARM64/QEMU evidence uses synthetic data only and leaves candidate/legacy state untouched. QEMU is portability evidence, not physical Raspberry Pi acceptance. At this migration-689 checkpoint, 991 public tables had DML while RLS was disabled; that historical ACL-reach count is superseded by the migration-725 count of 920 and is not a confirmed-leak count. C1 remains open. The 61-test focused selection, Ruff, Python compilation, capability matrix, runtime SQL inventory, provider boundaries, dependency groups, helper-scope inventory, and `git diff --check` pass. A review regression now covers PostgreSQL `btrim()` parity for Unicode whitespace and replay cache headers. No application migration was required. Disposable Compose containers/volumes were removed and the temporary ARM64 probe image was deleted. Rollback reverts source, focused tests, inventories, evidence, and progress documents; no persistent database rollback is needed ([native replay](builds/2026-10-29-recovery/runtime-role-full-schema-688-native-disposable.json); [ARM64/QEMU replay](builds/2026-10-29-recovery/runtime-role-full-schema-688-arm64-disposable.json); [ACL/callsite report](builds/2026-10-29-recovery/sprint-runtime-privilege-callsite-report-688.json); [solution-create contract](builds/2026-10-29-recovery/solution-create-response-contract.json); [combined acceptance](builds/2026-10-29-recovery/runtime-role-full-schema-688-native-arm64-disposable.json)).
 
 Checklist: 1,960 complete / 25 open (1,985 total); TODO: 590 checked / 16 open. Capability classifications remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows; strict private Gateway response contracts total 196. Physical Raspberry Pi, populated-data parity, live OIDC/browser, production recovery, and broad C1 ACL/RLS acceptance remain open.
 
@@ -9010,8 +9052,9 @@ The preserved cross-architecture ARM64/QEMU pass is
 The first ARM64 run did apply all migrations, but its raw report was overwritten
 by the retry. That first result is not counted as evidence; the preserved later
 pass closes the software-only ARM64 replay and operator-probe slice.
-The latest native probe's table inventory also reports 991 public tables with
-DML while RLS is disabled; this does not establish universal least privilege,
+The migration-689 native probe at this 30 October checkpoint reported 991
+public tables with DML while RLS was disabled; this historical ACL-reach count
+is superseded by the migration-725 count of 920; this does not establish universal least privilege,
 and broad C1 boundaries remain open. The temporary ARM64 client image was
 removed; the locked ARM64 PostGIS image remains available for another isolated
 replay. No persistent database, schema, seed, or application data was changed.
@@ -9239,7 +9282,7 @@ Pi, and production recovery acceptance remain open.
   is disabled, no seeds, no OOM, and cleanup under 1.5 GiB/two-CPU limits
   ([evidence](builds/2026-10-30-recovery/arm64-resource-limited-schema-693-operator-probe.json)). QEMU is portability evidence, not physical Raspberry Pi acceptance.
 
-Migration 693 reduces current runtime DML reach from 986 to 983 relations;
+At the migration-693 checkpoint, runtime DML reach fell from 986 to 983 relations;
 the historical 991 baseline and current counts are ACL reach, not confirmed
 tenant-data leaks. C1 remains open for the remaining writer classifications,
 tenant/RLS boundaries, populated-data parity, and reviewed rollout. No

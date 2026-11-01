@@ -1,0 +1,39 @@
+{
+  "date": "2026-11-01",
+  "result": "passed",
+  "commands": [
+    {
+      "command": "KOKONUT_ENV_SECRETS_NOT_REQUIRED=true KOKONUT_ENV=development python3 -m pytest tests/test_runtime_role_boundary.py tests/test_runtime_privilege_callsite_report.py -q",
+      "result": "passed",
+      "passed": 125,
+      "duration_seconds": 292.96
+    },
+    {
+      "command": "python3 -m services.migration validate",
+      "result": "passed",
+      "validated_migration_sources": 838
+    },
+    {
+      "command": "python3 scripts/check-capability-matrix.py",
+      "result": "passed",
+      "rows": 67,
+      "baseline_retained": 24,
+      "deployed": 7,
+      "prepared": 36
+    },
+    {
+      "command": "ruff check scripts/runtime-privilege-callsite-report.py scripts/check-framework-reference-catalog-runtime-boundary-disposable.py services/migration/runtime_role.py tests/test_runtime_privilege_callsite_report.py tests/test_runtime_role_boundary.py",
+      "result": "passed"
+    },
+    {
+      "command": "python3 -m py_compile scripts/runtime-privilege-callsite-report.py scripts/check-framework-reference-catalog-runtime-boundary-disposable.py services/migration/runtime_role.py",
+      "result": "passed"
+    },
+    {
+      "command": "git diff --check",
+      "result": "passed"
+    }
+  ],
+  "database_scope": "The disposable PostgreSQL acceptance is recorded separately; the regression selection used isolated tests and the development-only no-secrets environment.",
+  "candidate_legacy_production_touched": false
+}

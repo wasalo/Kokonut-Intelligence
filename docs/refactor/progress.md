@@ -25052,7 +25052,7 @@ Current totals: 1,954 complete / 26 open; TODO 581 checked / 16 open; 195
 strict private Gateway response contracts across 67 capability rows
 (24 baseline-retained, 7 deployed, 36 prepared).
 
-**Latest local batch — runtime-role ACL portability and solution-create contract (29 October 2026):** The ordered 679-file schema replays through migration 688 pass on native x86_64 and ARM64/QEMU under a 1.5 GiB/2-CPU database limit. The synthetic operator-scope probe passes on both targets, including readable-but-immutable `service_registry`, 79 private relations, 47 mutation-denied relations, append-only and API-key boundaries, and zero table/column grant violations. This remains isolated portability evidence, not physical Raspberry Pi acceptance or production approval; 991 public tables still have DML while RLS is disabled, so C1 remains open. The migration-504 location-solution create route now publishes and enforces strict request/response contracts, preserves exact-location authorization, validates response binding, returns 201 for creation and 200 for replay, documents no-store/cookie variance on both, and mirrors PostgreSQL's U+0020 `btrim()` for names. The 61-test focused selection, Ruff, compilation, capability validation, SQL/helper inventory checks, provider/dependency checks, and diff check pass. Candidate, legacy, and production databases were untouched; no migration was applied. Temporary replay resources and the probe image were removed ([native replay](builds/2026-10-29-recovery/runtime-role-full-schema-688-native-disposable.json); [ARM64/QEMU replay](builds/2026-10-29-recovery/runtime-role-full-schema-688-arm64-disposable.json); [runtime ACL report](builds/2026-10-29-recovery/sprint-runtime-privilege-callsite-report-688.json); [solution-create contract](builds/2026-10-29-recovery/solution-create-response-contract.json)).
+**Latest local batch — runtime-role ACL portability and solution-create contract (29 October 2026):** The ordered 679-file schema replays through migration 688 pass on native x86_64 and ARM64/QEMU under a 1.5 GiB/2-CPU database limit. The synthetic operator-scope probe passes on both targets, including readable-but-immutable `service_registry`, 79 private relations, 47 mutation-denied relations, append-only and API-key boundaries, and zero table/column grant violations. This remains isolated portability evidence, not physical Raspberry Pi acceptance or production approval; the migration-689 snapshot then reported 991 public tables with DML while RLS was disabled. That historical ACL-reach figure is superseded by migration 725's current 920 and is not a confirmed-leak count; C1 remains open. The migration-504 location-solution create route now publishes and enforces strict request/response contracts, preserves exact-location authorization, validates response binding, returns 201 for creation and 200 for replay, documents no-store/cookie variance on both, and mirrors PostgreSQL's U+0020 `btrim()` for names. The 61-test focused selection, Ruff, compilation, capability validation, SQL/helper inventory checks, provider/dependency checks, and diff check pass. Candidate, legacy, and production databases were untouched; no migration was applied. Temporary replay resources and the probe image were removed ([native replay](builds/2026-10-29-recovery/runtime-role-full-schema-688-native-disposable.json); [ARM64/QEMU replay](builds/2026-10-29-recovery/runtime-role-full-schema-688-arm64-disposable.json); [runtime ACL report](builds/2026-10-29-recovery/sprint-runtime-privilege-callsite-report-688.json); [solution-create contract](builds/2026-10-29-recovery/solution-create-response-contract.json)).
 
 **Latest source continuation — tactical-session create response contract (29 October 2026):** The migration-444 tactical-session create route now validates a strict request and exact internal action result, then returns an identity-minimized receipt that omits `actor_party_id`. It preserves the exact-location create grant, signed tenant scope, 201 behavior for creation and idempotent retries, and no-store/cookie variance. Twenty-one focused mock-only route checks and all 38 governance-operations tests pass, alongside Ruff, compilation, capability, SQL/helper-scope, provider-boundary, dependency-group, and diff checks. No database/provider, candidate, or legacy state was used; no migration was applied. Capability classifications and MAN-CAP acceptance are unchanged ([evidence](builds/2026-10-29-recovery/governance-tactical-session-create-contract.json)).
 
@@ -26194,3 +26194,51 @@ Evidence: [focused ACL acceptance](builds/2026-11-01-recovery/runtime-freshness-
 Checklist snapshot: 2,234 complete / 43 open (2,277 total); cross-phase TODO:
 811 checked / 39 open. This ACL boundary does not close C1, establish RLS or
 tenant isolation, or confirm external-consumer compatibility.
+
+### Progress addendum — C1 framework reference-catalog ACL, migration 725 — 1 November 2026
+
+Migration 725 retains runtime `SELECT` on `form_of_capital`, `sdg`,
+`pillar_of_value`, and `regeneration_principle`, while revoking runtime table
+and residual-column DML. The four catalogs are global reference data; the
+repository's curated upserts run under the database-owner identity. The
+runtime-role provisioner reapplies the declared denials, and the focused
+network-disabled PostgreSQL 16 checker verifies role-absent ordering,
+apply/replay, runtime reads and denied writes, owner upserts, and preservation
+of Directus SQL rights. Unknown external shared-login clients and live/custom
+Directus API permissions remain rollout gates.
+
+The native, network-disabled, portless full replay passes 716/716 ordered
+schemas through migration 725 and 39 synthetic two-tenant/operator checks. A
+focused ARM64/QEMU ACL check also passes migration 725; the last complete
+ARM64/QEMU full replay is through migration 724 (715 schemas, 39 checks). The
+redundant full QEMU replay through 725 failed before applying any schema
+(0/716) and cleaned up, so it is not acceptance evidence. The current source/ACL report
+records 1,304/1,522 public relations with effective runtime DML, 920 tables
+with DML while RLS is disabled, 183 declared migration denials with zero
+mismatches, 209 unprotected DML relations without candidate SQL sites, and
+367 without candidate write targets. Those are overlapping privilege-reach
+and source-inventory measures, not counts of confirmed leaks or proof of
+tenant isolation. The historical migration-689 count of 991 is likewise an
+older ACL-reach snapshot, not a confirmed leak count. No candidate, legacy, or
+production database or role changed; Standard first-install recovery remains
+separately accepted through migration 723 only.
+
+The focused runtime-role/report selection passes 125 tests. Ruff, Python
+compilation, validation of 838 migration sources, capability-matrix checks,
+and disposable ACL checks pass. The current batch docs now align
+README.md, AGENTS.md, the current-state guide, Standard profile, C1 plan,
+capability matrix, checklist, and TODO with the migration-725 evidence while
+retaining the distinct Standard 723 gate. Capability classifications remain
+24 baseline-retained, 7 deployed, and 36 prepared across 67 rows; no capability
+was promoted. Evidence: [migration](../schemas/postgres/725_runtime_framework_reference_catalogs_read_only.sql),
+[focused native check](builds/2026-11-01-recovery/framework-reference-catalog-runtime-boundary-725-disposable.json),
+[source regressions](builds/2026-11-01-recovery/framework-reference-catalog-runtime-boundary-725-source-checks.json),
+[focused ARM64/QEMU check](builds/2026-11-01-recovery/framework-reference-catalog-runtime-boundary-725-arm64-qemu-disposable.json),
+[native full replay](builds/2026-11-01-recovery/native-current-schema-725-operator-probe.json),
+[full ARM64/QEMU replay through 724](builds/2026-11-01-recovery/arm64-qemu-current-schema-724-operator-probe.json),
+[interrupted redundant replay](builds/2026-11-01-recovery/arm64-qemu-current-schema-725-interrupted.json),
+[source/ACL report](builds/2026-11-01-recovery/runtime-privilege-callsite-report-725.json).
+
+Checklist snapshot: 2,236 complete / 43 open (2,279 total); cross-phase TODO:
+812 checked / 39 open. C1, tenant/RLS isolation, external-consumer
+compatibility, candidate rollout, and production acceptance remain open.

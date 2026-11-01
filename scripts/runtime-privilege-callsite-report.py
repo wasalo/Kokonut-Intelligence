@@ -143,6 +143,12 @@ _SOURCE_REVOKE_POLICY_OVERRIDES = {
     "governance_framework": "runtime_mutations_denied",
     "impact_framework": "runtime_mutations_denied",
     "impact_dimension": "runtime_mutations_denied",
+    # Curated framework references are read-only to the application runtime;
+    # schemas/seeds/023_impact_frameworks.sql runs through the database owner.
+    "form_of_capital": "runtime_mutations_denied",
+    "sdg": "runtime_mutations_denied",
+    "pillar_of_value": "runtime_mutations_denied",
+    "regeneration_principle": "runtime_mutations_denied",
     "schema_version": "runtime_mutations_denied",
     "schema_migration": "runtime_mutations_denied",
     "cache_invalidation_rule": "runtime_mutations_denied",

@@ -106,7 +106,7 @@ the candidate defaults; it is not a production acceptance matrix.
 |---------|----------|-------|
 | Kernel app (minimal) | `http://127.0.0.1:8098` | FastAPI app plus enabled workers in the isolated candidate project |
 | PostgreSQL/PostGIS | Docker service `database:5432` | Private canonical store; no host port in the candidate base manifest |
-| API and worker (standard) | API uses candidate port; worker has no HTTP port | Separate services still share the `kokonut_runtime` database login; distinct API/general-worker identities remain an open C1 boundary. Event dispatch, notification enqueue/delivery, global freshness, and ClickHouse projection delivery use dedicated bounded worker paths when explicitly enabled. Their default-off/disabled paths do not fall back to shared-runtime writes. Migration 723 removes direct runtime writes to event-receipt, freshness-state, and notification-attempt tables while preserving reads; migration 724 makes legacy freshness-delivery history read-only to runtime while preserving historical reads and Directus/maintenance grants. Runtime-role setup reapplies the denial. Broad grants on existing tables remain under review. Inspect durable run/delivery state for worker progress |
+| API and worker (standard) | API uses candidate port; worker has no HTTP port | Separate services still share the `kokonut_runtime` database login; distinct API/general-worker identities remain an open C1 boundary. Event dispatch, notification enqueue/delivery, global freshness, and ClickHouse projection delivery use dedicated bounded worker paths when explicitly enabled. Their default-off/disabled paths do not fall back to shared-runtime writes. Migration 723 removes direct runtime writes to event-receipt, freshness-state, and notification-attempt tables; 724 makes historical freshness-delivery records read-only; and 725 makes the four curated framework reference catalogs read-only to the runtime role. Runtime-role setup reapplies the declared denials. Broad grants on existing tables remain under review. Inspect durable run/delivery state for worker progress |
 | Caddy (optional proxy overlay) | `https://127.0.0.1:8448` | Loopback default; public bind requires explicit configuration and review |
 | Directus (optional adapter) | `http://127.0.0.1:18055` | Compatibility/admin integration; not the canonical Kernel API |
 | ClickHouse (optional analytics overlay) | Docker service `clickhouse:8123` | Private analytics adapter |
@@ -114,14 +114,16 @@ the candidate defaults; it is not a production acceptance matrix.
 | gRPC (optional overlay) | Private Compose service | External API transport; opt in explicitly |
 | Metabase | Legacy `metabase` Compose profile | Not part of the candidate planner's standard defaults |
 
-The current runtime ACL batch (migrations 719–724) preserves required reads
+The current runtime ACL batch (migrations 719–725) preserves required reads
 while narrowing writes to selected non-updatable public aggregates, thesaurus
 reference operations, governance reference catalogs, and the application’s
 schema-migration ledger, and worker-owned event/freshness/notification state.
-Migration 724 also retires unused direct writes to historical freshness
-delivery-attempt rows; current external importers using the shared login have
-not been confirmed. These are individually scoped boundaries; they do not
-close the broader C1 review or establish tenant/RLS isolation. The latest
+Migration 724 retires unused direct writes to historical freshness
+delivery-attempt rows; migration 725 also restricts runtime DML on the four
+curated framework catalogs while preserving seed-owner and Directus SQL
+grants. External importers using the shared login and live/custom Directus API
+permissions remain unconfirmed. These are individually scoped boundaries;
+they do not close the broader C1 review or establish tenant/RLS isolation. The latest
 aggregate counts and acceptance links are maintained in the
 [current refactor status and evidence](docs/refactor/current-state-and-implementation.md).
 
@@ -132,11 +134,13 @@ other children. The API and general worker still use the same
 database identities. Full disposable Standard recovery currently passes
 through migration 723
 ([evidence](docs/refactor/builds/2026-11-01-recovery/standard-profile-recovery-723-disposable.json)).
-The separate network-disabled native and ARM64/QEMU schema replays cover
-migration 724; they do not replace the Standard first-install recovery or
-constitute candidate/production rollout
-([native](docs/refactor/builds/2026-11-01-recovery/native-current-schema-724-operator-probe.json);
-[ARM64/QEMU](docs/refactor/builds/2026-11-01-recovery/arm64-qemu-current-schema-724-operator-probe.json)).
+The separate network-disabled native schema replay and focused ARM64/QEMU ACL
+check cover migration 725; the last complete full ARM64/QEMU schema replay is
+through migration 724. These checks do not replace the Standard first-install
+recovery or constitute candidate/production rollout
+([native](docs/refactor/builds/2026-11-01-recovery/native-current-schema-725-operator-probe.json);
+[focused ARM64/QEMU ACL check](docs/refactor/builds/2026-11-01-recovery/framework-reference-catalog-runtime-boundary-725-arm64-qemu-disposable.json);
+[full ARM64/QEMU replay through 724](docs/refactor/builds/2026-11-01-recovery/arm64-qemu-current-schema-724-operator-probe.json)).
 
 To combine the Standard API/worker split with Edge's local encrypted media and
 resource settings, inspect the planner output before starting it:

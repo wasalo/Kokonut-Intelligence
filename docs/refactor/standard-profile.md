@@ -261,27 +261,30 @@ provider recovery, 24-hour endurance, scale, public ingress, backup/restore
 ownership, or physical Raspberry Pi behavior.
 
 This recovery confirms Standard's migration-723 default topology and bootstrap
-path; it is not candidate rollout or production acceptance. Separate native
-and ARM64/QEMU, network-disabled PostgreSQL replays and synthetic two-tenant
-operator-scope probes now cover migration 724. They apply 715/715 schemas,
-pass all 39 checks, load no seeds or farm data, and clean up their disposable
-resources. The report covers 1,522 public relations, with 1,308 having
-effective runtime DML and 924 tables having runtime DML while RLS is disabled;
-179 migration-revoked relations match the declared policy, with zero
-mismatches. It also records 210 unprotected DML relations without candidate
-SQL relations and 371 without candidate write sites. These overlapping counts
+path; it is not candidate rollout or production acceptance. The latest native,
+network-disabled replay and synthetic two-tenant/operator probe cover migration
+725, applying 716/716 ordered schemas and passing all 39 checks. The focused
+ARM64/QEMU migration-725 ACL check also passes. The last complete ARM64/QEMU
+full-schema replay is through migration 724, with 715 schemas and the same 39
+checks; a redundant migration-725 full replay failed before applying any schema
+(0/716) and cleaned up. The current source/ACL report covers 1,522 public relations:
+1,304 have effective runtime DML, 920 tables have runtime DML while RLS is
+disabled, and 183 migration-revoked relations match policy with zero
+mismatches. It also records 209 unprotected DML relations without candidate
+SQL sites and 367 without candidate write targets. These overlapping counts
 measure privilege reach and heuristic inventory coverage, not confirmed leaks
-or tenant isolation. The probe found zero direct table/column violations
-within its declared scoped-write checks. The ARM64/QEMU replay applies the same
-715 schemas and passes the same 39 operator-scope checks. This is software
-portability evidence only, not physical Raspberry Pi acceptance
-([native replay and probe](builds/2026-11-01-recovery/native-current-schema-724-operator-probe.json);
-[ARM64/QEMU replay and probe](builds/2026-11-01-recovery/arm64-qemu-current-schema-724-operator-probe.json);
-[ACL report](builds/2026-11-01-recovery/runtime-privilege-callsite-report-724.json)).
+or tenant isolation. Scoped probe checks found no direct table/column
+violations within their declared policy. QEMU is software portability evidence
+only, not physical Raspberry Pi acceptance
+([native replay and probe](builds/2026-11-01-recovery/native-current-schema-725-operator-probe.json);
+[focused ARM64/QEMU ACL check](builds/2026-11-01-recovery/framework-reference-catalog-runtime-boundary-725-arm64-qemu-disposable.json);
+[full ARM64/QEMU replay through 724](builds/2026-11-01-recovery/arm64-qemu-current-schema-724-operator-probe.json);
+[ACL report](builds/2026-11-01-recovery/runtime-privilege-callsite-report-725.json);
+[interrupted redundant replay](builds/2026-11-01-recovery/arm64-qemu-current-schema-725-interrupted.json)).
 Distinct API/worker identities, Directus/tenant reconciliation, candidate
-rollout, and production acceptance remain open
-([native replay and probe](builds/2026-11-01-recovery/native-current-schema-724-operator-probe.json);
-[ACL report](builds/2026-11-01-recovery/runtime-privilege-callsite-report-724.json)).
+rollout, and production acceptance remain open. Standard first-install
+recovery remains separately accepted through migration 723 only
+([recovery](builds/2026-11-01-recovery/standard-profile-recovery-723-disposable.json)).
 
 The 31 October recovery through migration 712 remains useful historical
 evidence for the bounded Gateway rate-limit contract and its consume, deny,

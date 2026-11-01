@@ -102,6 +102,49 @@ def test_governance_reference_catalogs_are_read_only_to_runtime():
     assert expected.isdisjoint(runtime_role._RUNTIME_PRIVATE_TABLES)
 
 
+def test_curated_impact_framework_reference_catalogs_are_read_only_to_runtime():
+    root = Path(__file__).resolve().parents[1]
+    expected = {
+        "form_of_capital",
+        "sdg",
+        "pillar_of_value",
+        "regeneration_principle",
+    }
+    migration = (
+        root
+        / "schemas/postgres/725_runtime_framework_reference_catalogs_read_only.sql"
+    ).read_text(encoding="utf-8")
+    seed = (root / "schemas/seeds/023_impact_frameworks.sql").read_text(
+        encoding="utf-8"
+    )
+    sql_inventory = json.loads(
+        (root / "docs/refactor/runtime-sql-inventory.json").read_text(
+            encoding="utf-8"
+        )
+    )
+
+    assert expected.issubset(runtime_role._RUNTIME_MUTATION_TABLES)
+    assert expected.isdisjoint(runtime_role._RUNTIME_PRIVATE_TABLES)
+    assert migration.count("BEGIN;") == 1 and migration.count("COMMIT;") == 1
+    assert "REVOKE ALL PRIVILEGES ON TABLE public.%I FROM kokonut_runtime" in migration
+    assert "REVOKE INSERT (%1$I), UPDATE (%1$I), REFERENCES (%1$I) " in migration
+    assert "GRANT SELECT ON TABLE public.%I TO kokonut_runtime" in migration
+    for relation in expected:
+        assert f"COMMENT ON TABLE public.{relation}" in migration
+        assert f"INSERT INTO {relation}" in seed
+    assert "DELETE FROM sdg" in seed
+    assert "DELETE FROM form_of_capital" in seed
+    assert "kokonut_directus_runtime" not in migration
+    for relation in expected:
+        relation_sites = [
+            site for site in sql_inventory["execution_sites"]
+            if relation in site["candidate_relations"]
+        ]
+        assert {site["statement_kind"] for site in relation_sites} <= {
+            "SELECT", "WITH"
+        }
+
+
 def test_historical_full_schema_acl_snapshot_matches_its_recorded_source_policy():
     root = Path(__file__).resolve().parents[1]
     probe = json.loads(
