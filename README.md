@@ -122,6 +122,14 @@ These are individually scoped boundaries; they do not close the broader C1
 review or establish tenant/RLS isolation. The latest aggregate counts and
 acceptance links are maintained in the [current refactor status and evidence](docs/refactor/current-state-and-implementation.md).
 
+The Standard supervisor preserves the configured runtime `PG_*` connection
+for its Gateway API child while filtering worker-specific credentials from
+other children. The API and general worker still use the same
+`kokonut_runtime` login; separate service containers do not imply separate
+database identities. Full disposable Standard recovery currently passes
+through migration 723
+([evidence](docs/refactor/builds/2026-11-01-recovery/standard-profile-recovery-723-disposable.json)).
+
 To combine the Standard API/worker split with Edge's local encrypted media and
 resource settings, inspect the planner output before starting it:
 

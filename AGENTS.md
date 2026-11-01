@@ -75,6 +75,10 @@ Commands:
   connect with the shared `kokonut_runtime` database login. Do not describe
   them as having distinct database identities; closing that C1 boundary is
   still open.
+- The Standard supervisor launches the Gateway API as a child process. Its
+  environment must preserve the API's configured `PG_*` runtime connection
+  while filtering unrelated worker DSNs and credentials; never apply the
+  default-off worker shared-database deny marker to the API child.
 - Standard's event dispatcher and notification-delivery child require their
   dedicated migration-backed logins and explicit isolation flags. Global
   freshness and ClickHouse outbox jobs also use dedicated worker paths when

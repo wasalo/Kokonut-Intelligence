@@ -26074,12 +26074,26 @@ two-tenant/operator checks. It used `linux/arm64` under QEMU with no seeds,
 host ports, OOM, or cleanup residue; this does not replace physical Raspberry
 Pi testing
 ([evidence](builds/2026-11-01-recovery/arm64-qemu-current-schema-723-operator-probe.json)).
-The separate Standard first-install recovery remains through migration 722. No
-candidate, legacy, or production database/role was changed. External runtime
-consumer reconciliation, broad DML retirement, API/worker identity separation,
-tenant/RLS validation, and rollout remain open.
+The separate Standard first-install recovery now passes through migration 723.
+Its first run exposed that the supervisor removed the API child's shared
+runtime `PG_*` connection while filtering worker credentials. The API child
+now preserves the configured runtime connection and still receives no
+unrelated worker DSNs or credentials. The focused supervisor suite passes 13
+tests and Ruff passes. The successful recovery applies all 714 schemas, verifies
+that the API and worker images use the captured migration snapshot, bootstraps
+and reapplies the runtime role, and passes API/worker/proxy health, database
+outage recovery, private heartbeat, shutdown, and cleanup. The initial run's
+`gateway_rate_bucket` and tenant-context permission denials were expected
+negative-probe results, not the recovery failure. API and general worker still
+use the same `kokonut_runtime` login. No candidate, legacy, or production
+database/role was changed; external runtime-consumer reconciliation, broad DML
+retirement, identity separation, tenant/RLS validation, and rollout remain
+open.
 
-Checklist snapshot: 2,229 complete / 43 open (2,272 total); cross-phase TODO:
-806 checked / 39 open. Capability classifications remain 24 baseline-retained,
+Evidence: [Standard recovery](builds/2026-11-01-recovery/standard-profile-recovery-723-disposable.json),
+[supervisor regression](../../tests/test_kernel_runtime_supervisor.py).
+
+Checklist snapshot: 2,230 complete / 43 open (2,273 total); cross-phase TODO:
+807 checked / 39 open. Capability classifications remain 24 baseline-retained,
 7 deployed, and 36 prepared across 67 rows; migration 723 does not advance a
 capability status by itself.

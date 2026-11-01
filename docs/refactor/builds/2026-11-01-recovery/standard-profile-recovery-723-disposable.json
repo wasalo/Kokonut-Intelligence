@@ -1,0 +1,82 @@
+{
+  "api_worker_split": true,
+  "candidate_legacy_production_touched": false,
+  "database_image": "postgis/postgis:16-3.4@sha256:44126d872ac91993766c341e369c539e8196614321765d36a6f1bab0419a5fa5",
+  "database_outage_recovery": {
+    "api_healthy_after_restart": true,
+    "database_healthy_after_restart": true,
+    "private_supervisor_heartbeat_after_restart": {
+      "directory_private": true,
+      "file_private": true,
+      "shape_valid": true
+    },
+    "worker_degraded_state_observed": "unhealthy",
+    "worker_healthy_after_restart": true,
+    "worker_restart_count": 0
+  },
+  "host_ports_published": false,
+  "limitations": [
+    "This is a short disposable restart/recovery check, not 24-hour endurance or scale acceptance.",
+    "The internal Compose network has no Internet egress; no real providers, seeds, candidate, legacy, or production data are used.",
+    "A healthy worker process and supervisor heartbeat do not prove every idle child is responsive or every business handler has output parity.",
+    "The seed-free run verifies that shutdown leaves no active leases; it does not claim to exercise lease recovery during a long-running handler."
+  ],
+  "migration_snapshot": {
+    "app_image_matches": true,
+    "latest_migration": "schema:723_isolated_worker_runtime_write_boundaries.sql",
+    "schema_count": 714,
+    "sha256": "79bf8739cc6bcf7ecc05180ca8a73b30ee80171c1a4776bfde22f65c34b17911",
+    "worker_image_matches": true
+  },
+  "migrations": {
+    "latest_schema_migration": "schema:723_isolated_worker_runtime_write_boundaries.sql",
+    "schemas_applied": 714,
+    "schemas_failed": 0,
+    "seed_rows": 0,
+    "source_snapshot_sha256": "79bf8739cc6bcf7ecc05180ca8a73b30ee80171c1a4776bfde22f65c34b17911"
+  },
+  "profile": "standard",
+  "project": "kokonut-standard-recovery-19de4096a3",
+  "required_schema_missing_fails_closed": true,
+  "result": "passed",
+  "runtime_network_internal": true,
+  "runtime_role": {
+    "app_database_user": "kokonut_runtime",
+    "bootstrap_profile": "runtime-admin",
+    "bootstrap_ran_explicitly_after_migrations": true,
+    "role_attributes": {
+      "bypass_rls": false,
+      "create_database": false,
+      "create_role": false,
+      "has_role_memberships": false,
+      "inherit": false,
+      "login": true,
+      "member_of_database_owner": false,
+      "owns_database": false,
+      "replication": false,
+      "superuser": false
+    },
+    "role_attributes_preserved_after_reapply": true,
+    "schema_version_insert_denied_after_initial_provision": true,
+    "schema_version_insert_denied_after_provisioner_reapply": true,
+    "worker_database_user": "kokonut_runtime"
+  },
+  "shutdown": {
+    "active_work_leases_after_shutdown": 0,
+    "supervisor_heartbeat_removed": true,
+    "worker_container_stopped": true
+  },
+  "startup": {
+    "api_healthy": true,
+    "private_supervisor_heartbeat": {
+      "directory_private": true,
+      "file_private": true,
+      "shape_valid": true
+    },
+    "proxy_running": true,
+    "worker_children_alive": true,
+    "worker_healthy": true,
+    "worker_probe": "healthy"
+  },
+  "unsafe_admin_runtime_role_fails_before_children": true
+}

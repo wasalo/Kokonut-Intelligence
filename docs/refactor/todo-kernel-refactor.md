@@ -8,7 +8,7 @@ can proceed now and gates that need an owner, provider, populated source data,
 or production environment. Check an item only when its evidence is recorded in
 the batch log and the affected capability/progress records are updated.
 
-**Current queue snapshot (1 November 2026):** 806 checked / 39 open across the
+**Current queue snapshot (1 November 2026):** 807 checked / 39 open across the
 TODO's dated and active checklist sections. Historical snapshots below this
 active queue remain dated records and do not replace the current count.
 
@@ -4878,3 +4878,11 @@ database/role was changed.
   candidate/production rollout, external runtime-client reconciliation,
   API/worker identity split, broad DML retirement, and tenant/RLS closure are
   separate gates ([evidence](builds/2026-11-01-recovery/arm64-qemu-current-schema-723-operator-probe.json)).
+- [x] Pass the full portless, network-disabled Standard recovery through
+  migration 723, including schema-snapshot parity, role bootstrap/reapplication,
+  API/worker/proxy health, outage recovery, heartbeat privacy, shutdown, and
+  cleanup. Fix the supervisor so the API child preserves its configured shared
+  runtime connection while worker-specific credentials remain filtered. The
+  API and general worker still share `kokonut_runtime`
+  ([recovery](builds/2026-11-01-recovery/standard-profile-recovery-723-disposable.json);
+  [supervisor regression](../../tests/test_kernel_runtime_supervisor.py)).

@@ -236,8 +236,8 @@ adds no volume or migration for liveness.
 
 ## Dated Standard acceptance snapshot
 
-The latest network-disabled disposable Standard recovery applied all 713
-ordered schema files through migration 722 with zero failures or seed rows.
+The latest network-disabled disposable Standard recovery applied all 714
+ordered schema files through migration 723 with zero failures or seed rows.
 The harness captured a stable schema snapshot before building the API and
 worker images and verified both image manifests against its SHA-256. It
 exercised fresh migration-created role placeholders, post-migration runtime
@@ -245,11 +245,13 @@ provisioning and reapplication, the read-only migration ledger, API/worker/proxy
 health, database outage degradation and recovery, private heartbeat behavior,
 zero active leases after shutdown, and disposable resource cleanup. No host
 ports, external network, seeds, candidate, legacy stack, or production service
-were used ([acceptance evidence](builds/2026-11-01-recovery/standard-profile-recovery-722-disposable.json);
-[runner](../../scripts/check-kernel-standard-recovery-disposable.py)). The
-focused source/contract selection passes 279 tests; Ruff, schema-only migration
-validation, runtime SQL inventory, dependency/provider boundaries, capability
-matrix, Python compilation, release-input validation, and diff checks pass.
+were used ([acceptance evidence](builds/2026-11-01-recovery/standard-profile-recovery-723-disposable.json);
+[runner](../../scripts/check-kernel-standard-recovery-disposable.py)). This
+follow-up also fixes the supervisor environment policy so the API child keeps
+its configured shared runtime `PG_*` connection while unrelated worker DSNs
+and credentials remain filtered. The 13-test supervisor selection and Ruff
+pass; the preceding migration-722 batch's 279-test selection remains recorded
+in its dated evidence.
 
 The API and worker are separate services but still connect as the same
 `kokonut_runtime` database login. Distinct API and worker identities remain an
@@ -258,11 +260,12 @@ not prove long-running handler lease reclaim, populated-data parity, live
 provider recovery, 24-hour endurance, scale, public ingress, backup/restore
 ownership, or physical Raspberry Pi behavior.
 
-This recovery confirms Standard's migration-722 default topology and bootstrap
-path; it is not candidate rollout or production acceptance. A separate native,
-network-disabled PostgreSQL replay and synthetic two-tenant operator-scope
-probe now cover migration 723. They apply 714/714 schemas, pass all 38 checks,
-load no seeds or farm data, and clean up their disposable resources. The report
+This recovery confirms Standard's migration-723 default topology and bootstrap
+path; it is not candidate rollout or production acceptance. Separate native
+and ARM64/QEMU, network-disabled PostgreSQL replays and synthetic two-tenant
+operator-scope probes also cover migration 723. They apply 714/714 schemas,
+pass all 38 checks, load no seeds or farm data, and clean up their disposable
+resources. The report
 covers 1,522 public relations, with 1,309 having effective runtime DML and 925
 tables having runtime DML while RLS is disabled; 178 migration-revoked relations
 match the declared policy, with zero mismatches. It also records 213

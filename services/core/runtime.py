@@ -202,6 +202,11 @@ def run(port: int = 8099, with_workers: bool = False, shutdown_seconds: float = 
                     "allowed_worker_keys": ("notification_delivery",),
                     "isolated_worker_key": "notification_delivery",
                 }
+            elif name == "api":
+                # The Gateway still uses the Standard application's shared
+                # runtime login. Preserve PG_* for this child while the
+                # environment helper removes unrelated worker DSNs/secrets.
+                environment_options = {"allowed_worker_keys": ()}
             elif name == "scheduler":
                 environment_options = {
                     "allowed_worker_keys": (
@@ -212,8 +217,8 @@ def run(port: int = 8099, with_workers: bool = False, shutdown_seconds: float = 
                 }
             else:
                 # Default-off event and notification workers remain supervised
-                # but carry no database credentials until their dedicated
-                # login and feature flag are configured.
+                # but carry no shared database credentials until their
+                # dedicated login and feature flag are configured.
                 environment_options = {
                     "allowed_worker_keys": (),
                     "strip_shared_database_credentials": True,

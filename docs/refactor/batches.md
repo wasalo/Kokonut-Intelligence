@@ -10248,6 +10248,14 @@ separation, and broader tenant/RLS closure remain separate gates.
   OOM, or cleanup residue. This is emulated portability evidence, not physical
   Raspberry Pi acceptance
   ([evidence](builds/2026-11-01-recovery/arm64-qemu-current-schema-723-operator-probe.json)).
+- [x] Pass the full portless, network-disabled Standard recovery through
+  migration 723, including schema-snapshot parity, role bootstrap/reapplication,
+  API/worker/proxy health, outage recovery, heartbeat privacy, shutdown, and
+  cleanup. Fix the supervisor so the API child preserves its configured shared
+  runtime connection while worker-specific credentials remain filtered. The
+  API and general worker still share `kokonut_runtime`
+  ([recovery](builds/2026-11-01-recovery/standard-profile-recovery-723-disposable.json);
+  [supervisor regression](../../tests/test_kernel_runtime_supervisor.py)).
   Candidate/production rollout, external runtime-consumer
   reconciliation, broad DML retirement, API/worker identity separation, and
   tenant/RLS closure remain open.

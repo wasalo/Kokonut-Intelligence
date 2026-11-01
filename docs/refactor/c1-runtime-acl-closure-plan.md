@@ -157,10 +157,11 @@ and the migration-647 disposable worker check is recorded at
 Migration 722 preserves `kokonut_runtime` SELECT on `schema_migration`, which
 the application uses for fail-closed startup readiness, and revokes table and
 residual column mutation. Migration and ledger writes remain with the ordered
-maintenance runner. The full Standard disposable recovery applies all 713
-ordered schema files through migration 722 and passes API/worker/proxy health,
-role reapplication, database outage/recovery, heartbeat privacy, graceful
-shutdown, and cleanup without ports, seeds, or external network
+maintenance runner. The dated migration-722 Standard recovery checkpoint
+applied all 713 ordered schema files through migration 722 and passed
+API/worker/proxy health, role reapplication, database outage/recovery,
+heartbeat privacy, graceful shutdown, and cleanup without ports, seeds, or
+external network
 ([migration](../../schemas/postgres/722_runtime_schema_migration_read_only.sql);
 [recovery](builds/2026-11-01-recovery/standard-profile-recovery-722-disposable.json)).
 
@@ -179,8 +180,10 @@ The focused selection passes 279 tests; Ruff, schema-only validation of 713
 migrations, runtime SQL inventory and review-ledger freshness, dependency and
 provider boundaries, capability matrix, release-input validation, Python
 compilation, and diff checks pass. A separate native, network-disabled C1
-replay and two-tenant operator-scope probe now cover migration 722; ARM64/QEMU
-full-schema acceptance through 722 remains open. Candidate rollout, external
+replay and two-tenant operator-scope probe now cover migration 722; at this
+dated checkpoint, ARM64/QEMU full-schema acceptance through 722 remained open.
+That portability gate was superseded by the completed migration-723 replay and
+probe recorded below. Candidate rollout, external
 runtime-client review, broad C1 writer retirement, API/worker identity
 separation, populated-data parity, tenant/RLS, and production acceptance remain
 open. The disposable checks touched no candidate, legacy, or production
@@ -245,6 +248,18 @@ through 723 applied all 714 schemas and passed 38 synthetic two-tenant/operator
 checks with no seeds, ports, OOM, or cleanup residue. This is software
 portability evidence, not physical Raspberry Pi acceptance
 ([QEMU replay/probe](builds/2026-11-01-recovery/arm64-qemu-current-schema-723-operator-probe.json)).
+
+The full network-disabled Standard recovery also applies all 714 schemas
+through migration 723 with role provisioning/reapplication, API/worker/proxy
+health, database outage recovery, heartbeat privacy, shutdown, and cleanup
+passing. The first attempt exposed the supervisor stripping the API child's
+shared runtime `PG_*` configuration; `services/core/runtime.py` now retains
+that connection only for the API child while filtering unrelated worker
+credentials. Thirteen supervisor tests and Ruff pass, and the full Standard
+recovery now passes
+([evidence](builds/2026-11-01-recovery/standard-profile-recovery-723-disposable.json)).
+This confirms Standard recovery behavior but does not separate the API and
+general-worker database identities.
 
 Evidence: [migration](../../schemas/postgres/723_isolated_worker_runtime_write_boundaries.sql),
 [focused ACL acceptance](builds/2026-11-01-recovery/isolated-worker-runtime-write-boundary-723.json),
@@ -920,6 +935,12 @@ The detailed entries below are dated historical checkpoints through migration
   verify RLS tenant isolation, and replay migrations/provisioning.
 - [ ] Repeat database portability checks on ARM64/QEMU; record clearly that
   this is not physical Raspberry Pi acceptance.
+- [x] Pass the portless, network-disabled Standard recovery through migration
+  723 with the same captured schema snapshot in the app and worker images,
+  fresh role bootstrap/reapplication, API/worker/proxy health, outage recovery,
+  heartbeat privacy, shutdown, and cleanup. API/general-worker login
+  separation remains open
+  ([evidence](builds/2026-11-01-recovery/standard-profile-recovery-723-disposable.json)).
 - [ ] Use synthetic data for cross-tenant denial and representative populated
   fixtures for each migrated capability; keep candidate/legacy/production
   state separate.

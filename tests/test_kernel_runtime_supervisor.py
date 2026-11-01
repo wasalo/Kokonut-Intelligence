@@ -203,7 +203,7 @@ def test_supervisor_scopes_each_worker_key_to_its_process(monkeypatch, tmp_path)
 
     scheduler_allowlist = ("scheduler", *SCHEDULED_WORKER_KEYS, *dispatch_keys)
     assert environment_options == [
-        {"allowed_worker_keys": (), "strip_shared_database_credentials": True},
+        {"allowed_worker_keys": ()},
         {"allowed_worker_keys": scheduler_allowlist},
         {"allowed_worker_keys": (), "strip_shared_database_credentials": True},
         {"allowed_worker_keys": (), "strip_shared_database_credentials": True},
@@ -211,6 +211,49 @@ def test_supervisor_scopes_each_worker_key_to_its_process(monkeypatch, tmp_path)
     assert [call[1]["env"]["VISIBLE_WORKER_KEYS"] for call in spawned] == [
         "", ",".join(scheduler_allowlist), "", ""
     ]
+
+
+def test_supervisor_preserves_shared_runtime_login_for_api_only(monkeypatch):
+    process = _Process(115)
+    spawned = []
+    source_environment = {
+        "PATH": "/synthetic/bin",
+        "PG_HOST": "database",
+        "PG_PORT": "5432",
+        "PG_DB": "kokonut_intelligence",
+        "PG_USER": "kokonut_runtime",
+        "PG_PASSWORD": "synthetic-runtime-password",
+        "KOKONUT_SENSOR_ANOMALY_DATABASE_URL": (
+            "postgresql://anomaly:synthetic@database/db"
+        ),
+        "KOKONUT_SENSOR_ANOMALY_WORKER_CREDENTIAL": "synthetic-anomaly-secret",
+        "KOKONUT_WEATHER_WORKER_CREDENTIAL": "synthetic-weather-secret",
+    }
+    _install_signal_fakes(monkeypatch, stop_on_sleep=True)
+    monkeypatch.setattr(runtime, "commands", lambda *_args, **_kwargs: [("api", ["api"])])
+
+    def filtered_environment(**kwargs):
+        return worker_subprocess_environment(**kwargs, environ=source_environment)
+
+    monkeypatch.setattr(runtime, "worker_subprocess_environment", filtered_environment)
+    monkeypatch.setattr(
+        runtime.subprocess,
+        "Popen",
+        lambda argv, **kwargs: spawned.append((argv, kwargs)) or process,
+    )
+    monkeypatch.setattr(runtime.os, "killpg", lambda *_args: None)
+
+    assert runtime.run() == 0
+
+    api_environment = spawned[0][1]["env"]
+    for name in ("PG_HOST", "PG_PORT", "PG_DB", "PG_USER", "PG_PASSWORD"):
+        assert api_environment[name] == source_environment[name]
+    for name in (
+        "KOKONUT_SENSOR_ANOMALY_DATABASE_URL",
+        "KOKONUT_SENSOR_ANOMALY_WORKER_CREDENTIAL",
+        "KOKONUT_WEATHER_WORKER_CREDENTIAL",
+    ):
+        assert name not in api_environment
 
 
 def test_commands_start_event_and_notification_workers_independently(monkeypatch):
