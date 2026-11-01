@@ -1185,7 +1185,7 @@
         {
           "source_file": "services/analytics/marketplace.py",
           "callable": "get_market_overview",
-          "line": 643,
+          "line": 625,
           "relations": [
             "market_listing"
           ],
@@ -1211,7 +1211,7 @@
         {
           "source_file": "services/analytics/marketplace.py",
           "callable": "get_market_overview",
-          "line": 656,
+          "line": 638,
           "relations": [
             "crop",
             "market_listing"
@@ -1238,7 +1238,7 @@
         {
           "source_file": "services/analytics/marketplace.py",
           "callable": "get_market_overview",
-          "line": 672,
+          "line": 654,
           "relations": [
             "crop",
             "price_observation"
@@ -1265,7 +1265,7 @@
         {
           "source_file": "services/analytics/marketplace.py",
           "callable": "get_market_overview",
-          "line": 689,
+          "line": 671,
           "relations": [
             "market_listing",
             "market_order"

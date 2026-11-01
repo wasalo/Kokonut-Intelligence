@@ -66,8 +66,47 @@ The bootstrap reapplies compatibility DML grants to current public tables, so
 run it only after reviewed migrations and ACL decisions; do not run it during
 routine `up` or merely to add a newly migrated table.
 Inspect existing schedules, handler registrations, leases, and Prefect/cron
-ownership before switching roles. Rebuild both roles from the same reviewed
-source and dependency resolution; the current build is not release-pinned.
+ownership before switching roles. For source acceptance, `--action build` builds
+the app and worker from the checkout. That path is useful during development,
+but it is not an immutable release deployment.
+
+For a release deployment, publish and review the application image first, then
+set `KOKONUT_KERNEL_APP_IMAGE` to its registry reference with a SHA-256 digest.
+The reference must identify a multi-platform OCI manifest index that contains
+the target architecture. The same image is used for the API and worker. If
+`--oidc` or `--zitadel` is selected, also set
+`KOKONUT_KERNEL_OIDC_IMAGE` to its own digest-pinned application image. The
+self-hosted ZITADEL Compose defaults are already digest-pinned; any explicit
+`KOKONUT_ZITADEL_POSTGRES_IMAGE`, `KOKONUT_ZITADEL_API_IMAGE`, or
+`KOKONUT_ZITADEL_LOGIN_IMAGE` override must also include a SHA-256 digest.
+
+The separate
+[`Publish Kernel images` workflow](../../.github/workflows/publish-kernel-images.yml)
+is manual only. It accepts publication only when dispatched from `main` with
+the `publish` confirmation, then publishes the `kernel` and `oidc` Dockerfile
+targets for `linux/amd64` and `linux/arm64` to GHCR. It verifies both pushed
+manifest indexes and writes the exact digest-pinned `KOKONUT_KERNEL_APP_IMAGE`
+and `KOKONUT_KERNEL_OIDC_IMAGE` values to the workflow run summary. BuildKit
+provenance and SBOM attestations are attached to each image. The registry tags
+are unique to the source SHA and workflow attempt; deploy the recorded digest
+references rather than a tag. The workflow does not deploy the images. Before
+first use, configure the `kernel-release` GitHub
+Environment with required reviewers, prohibit self-review, and restrict
+deployment branches to `main`; the workflow's environment gate cannot enforce
+review until those repository settings exist. No image has been published by
+adding this workflow.
+
+`--action release-up` accepts only Standard with the release image contract. It
+prints a `docker compose pull` followed by
+`docker compose up -d --no-build --wait --wait-timeout 300`; it does not run
+either command itself. It never builds on the deployment host. Before executing
+the printed command, verify the image digests and OCI index architecture against
+the release record, review the resolved Compose configuration without exposing
+it in logs, and complete the migration, role bootstrap, backup, and rollback
+gates above. The action currently rejects the `grpc`, `http-sensors`, `directus`,
+`mqtt`, and `sensor-anomaly-ml` overlays because they do not yet have a complete
+published immutable-image contract. Use source-build actions for those optional
+overlays until their images are built and reviewed separately.
 
 After acceptance, use encrypted secrets and the explicit candidate project:
 
@@ -94,6 +133,21 @@ redundant `--proxy` flag. Use `standard --oidc` to add the Gateway OIDC client
 while keeping the default loopback Caddy ingress. Caddy's local CA is not
 automatically trusted by browsers or clients, so local browser acceptance still
 requires trusting the development certificate.
+
+For an immutable release, export the reviewed application image references and
+ask the planner to print the pull-and-start command:
+
+```sh
+export KOKONUT_KERNEL_APP_IMAGE='registry/repository@sha256:64-lowercase-hex-digest'
+python3 scripts/kernel-profile.py standard --action release-up
+```
+
+For OIDC, add `--oidc` and export the reviewed digest for
+`KOKONUT_KERNEL_OIDC_IMAGE`. For self-hosted ZITADEL, add `--zitadel`; its
+digest-pinned defaults may be used, or explicit image overrides must also be
+digest-pinned. `release-up` rejects source-only optional overlays without a
+published immutable-image contract. Review and execute the printed command
+separately after release approval.
 
 A separately managed ingress can replace Caddy with
 `python3 scripts/kernel-profile.py standard --no-proxy`. For browser OIDC with
@@ -143,27 +197,33 @@ and aggregate `children_alive`; it never returns process IDs or the generation
 token. In Standard Compose, the file is ephemeral container state; the profile
 adds no volume or migration for liveness.
 
-The latest disposable Standard acceptance applies all 703 ordered schema files
-through migration 712, explicitly runs the post-migration `runtime-admin`
-bootstrap, and confirms both app and worker connect as `kokonut_runtime`. It
-also verifies the migration-712 limiter boundary: runtime and Directus cannot
-read or mutate the bucket table; runtime can invoke only the consume function;
-the optional maintenance login can invoke only the bounded cleanup function;
-and consume, deny, check-only, cleanup, API/worker health, and outage-recovery
-checks pass. The
-login has LOGIN and NOINHERIT, no role memberships, no ownership, and no
-superuser/database/role creation, replication, or RLS-bypass privileges. The
-check also proves an owner login is rejected before child startup and that
-`schema_version` writes remain denied after reapplying the bootstrap. API,
-worker, and proxy health pass; a PostgreSQL stop degrades worker health and a
-restart recovers the API and worker without restarting the worker container.
-Heartbeat privacy/removal, zero active leases after shutdown, and cleanup
-pass. The network-disabled run uses a unique internal Compose project, no host
-ports, no seeds, and synthetic data only
-([acceptance evidence](builds/2026-10-31-recovery/standard-profile-rate-limit-712-disposable.json);
-[runner](../../scripts/check-kernel-standard-recovery-disposable.py)). This
-does not prove long-running handler lease reclaim, provider recovery, 24-hour
-endurance, scale, or physical Raspberry Pi behavior.
+## Dated Standard acceptance snapshot
+
+The latest network-disabled disposable Standard recovery applied all 709
+ordered schema files through migration 718 with zero failures or seed rows.
+The harness captured a stable schema snapshot before building the API and
+worker images, verified both image manifests against its SHA-256, explicitly
+ran the post-migration `runtime-admin` bootstrap, and checked runtime-role
+reapplication, API/worker/proxy health, database outage degradation and
+recovery, private heartbeat behavior, zero active leases after shutdown, and
+disposable resource cleanup. No host ports, external network, seeds, candidate,
+legacy stack, or production service were used
+([acceptance evidence](builds/2026-11-01-recovery/standard-profile-recovery-718-disposable.json);
+[runner](../../scripts/check-kernel-standard-recovery-disposable.py)). The
+focused planner/harness suite passes 116 tests, and Ruff, Python compilation,
+and diff checks pass.
+
+The API and worker are separate services but still connect as the same
+`kokonut_runtime` database login. Distinct API and worker identities remain an
+open C1 boundary; this recovery check does not claim otherwise. It also does
+not prove long-running handler lease reclaim, populated-data parity, live
+provider recovery, 24-hour endurance, scale, public ingress, backup/restore
+ownership, or physical Raspberry Pi behavior.
+
+The 31 October recovery through migration 712 remains useful historical
+evidence for the bounded Gateway rate-limit contract and its consume, deny,
+check-only, and cleanup behavior
+([historical evidence](builds/2026-10-31-recovery/standard-profile-rate-limit-712-disposable.json)).
 
 The default stale-work grace period is 300 seconds and can be changed with
 `KOKONUT_WORKER_PROGRESS_STALE_SECONDS`; the default maximum due-backlog age is
@@ -198,21 +258,21 @@ Multiple worker replicas and API replicas remain scale acceptance work.
 
 ## Acceptance and rollback
 
-The Standard planner, Compose role selection, schema-startup gate, and
-unprivileged-runtime-role contract pass 105 focused tests, Ruff, and Python
-compilation with synthetic inputs. These source checks do not start services
-or validate public ingress. They do not change the candidate, legacy, or
-production deployment.
-
-The 26-test disposable harness contract and full migration/recovery acceptance
-above pass. Source-level planner, Compose, and startup checks pass 105 tests,
-with Ruff, Python compilation, and release-input validation. Remaining
-acceptance includes populated-data lease/retry recovery, provider outages and
-real delivery, disabled-worker behavior against an explicit deployment,
-replica identity/scale, public ingress and trusted proxy policy, operator
-alert routing, 24-hour endurance, and physical Raspberry Pi testing when
-hardware is available. The health probe is one signal; it does not establish
-provider recovery or multi-replica safety.
+The source-level planner and disposable-harness contract selection passes
+116 tests, plus Ruff, Python compilation, and release-input validation. The
+stable-snapshot replay now provides full current schema acceptance through
+migration 718; it does not start the local candidate or establish production
+readiness. The first replay attempt exposed a race between schema snapshot
+capture and image build. The harness now pins migration discovery and both
+images to the same private snapshot, records its digest, and preserves a
+redacted runner-output tail if the migration count changes or a migration
+fails. Remaining acceptance
+includes populated-data lease/retry recovery, provider outages and real
+delivery, disabled-worker behavior against an explicit deployment, replica
+identity/scale, public ingress and trusted proxy policy, operator alert
+routing, 24-hour endurance, and physical Raspberry Pi testing when hardware
+is available. The health probe is one signal; it does not establish provider
+recovery or multi-replica safety.
 
 Rollback: stop and remove only the separate candidate worker, allow in-flight
 leases to settle, then recreate the candidate app using the base manifest's

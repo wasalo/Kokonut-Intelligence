@@ -41,7 +41,7 @@ certify Raspberry Pi hardware. See the
 | core | PostgreSQL + combined API/workers with only the selected kernel dependency set | Release CI, full capability parity, upgrade/restore recovery, and target resource acceptance |
 | minimal | PostgreSQL + combined API/workers | End-to-end governed workflow, populated-data parity, backup/restore, and operational recovery |
 | edge | Minimal + encrypted local media/resource limits | Media failure/recovery, offline/device acceptance, and physical-hardware behavior |
-| standard | PostgreSQL + separate API and worker + dedicated runtime-role overlay + loopback Caddy ingress by default; PostgreSQL shared limiter by default | Current-target ordered migration/role rollout, worker progress monitoring, public ingress/TLS and trusted-proxy policy, backups, and recovery acceptance |
+| standard | PostgreSQL + separate API and worker sharing one app image + dedicated runtime-role overlay + loopback Caddy ingress by default; PostgreSQL shared limiter by default | Publish and verify immutable multi-architecture images, current-target ordered migration/role rollout, worker progress monitoring, public ingress/TLS and trusted-proxy policy, backups, and recovery acceptance |
 | analytics | Minimal + private ClickHouse | Schema bootstrap, projection parity, and outage/rebuild acceptance |
 | analytics --separate-workers | Standard + ClickHouse settings for both roles | Standard gates plus worker analytics parity and recovery |
 | scale | Rejected with an explanation | Shared rate limits, replica/failover behavior, recovery, and measured sizing |
@@ -74,6 +74,20 @@ actions and their printed commands in this order:
 The bootstrap reapplies compatibility DML grants before migration-owned
 denials, so it is not a routine restart action. The planner actions print
 commands and do not execute them.
+
+`standard --action release-up` is the immutable-image deployment path. It
+requires `KOKONUT_KERNEL_APP_IMAGE` to be a registry reference pinned to a
+SHA-256 digest; the API and worker use that same image. With `--oidc` or
+`--zitadel`, it also requires a digest-pinned `KOKONUT_KERNEL_OIDC_IMAGE`.
+ZITADEL defaults are digest-pinned, and any image override must also use a
+digest. The selected application reference must resolve to an OCI manifest
+index that includes the requested platform; verify that against the release
+record because the planner validates digest syntax, not registry contents or
+architecture. The action prints `pull && up -d --no-build --wait --wait-timeout
+300` and does not run it. It rejects `--grpc`, `--http-sensors`, `--directus`,
+`--mqtt`, and `--sensor-anomaly-ml`, whose source overlays still need their own
+published immutable-image contracts. The source-oriented `build` and `up`
+actions remain available for development and acceptance.
 
 Migration numbers referenced below (including 371–373) identify when specific
 features were introduced. They are not a current target's migration status or
@@ -115,7 +129,8 @@ certificates, persistent client identity, and migration 372. Standard/current
 scheduler source requires migration 371. Neither migration is applied by this
 planner. Read the individual overlay execution records before adoption.
 
-Examples that only print commands:
+Examples that only print commands (the release example assumes the required
+digest-pinned image variables have already been exported):
 
 ```sh
 python3 scripts/kernel-profile.py minimal
@@ -125,6 +140,7 @@ python3 scripts/kernel-profile.py standard --action build
 python3 scripts/kernel-profile.py standard --action bootstrap-runtime-role
 python3 scripts/kernel-profile.py standard --no-proxy --action config
 python3 scripts/kernel-profile.py standard --oidc --action config
+python3 scripts/kernel-profile.py standard --action release-up
 python3 scripts/kernel-profile.py analytics --separate-workers --action config
 python3 scripts/kernel-profile.py edge --mqtt --action up
 python3 scripts/kernel-profile.py minimal --proxy --oidc --action config

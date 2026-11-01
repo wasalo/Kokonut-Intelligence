@@ -25728,3 +25728,107 @@ currently running CI #1034 for `3854d818`; it will be batched after that result.
 The C1 aggregate ACL report remains through migration 711. Candidate, legacy,
 and production state was not accessed or changed
 ([acceptance](builds/2026-11-01-recovery/climate-worker-716-disposable.json)).
+
+### Progress addendum — migration 717 `chat_intent` runtime ACL — 1 November 2026
+
+Source review found one application runtime callsite for active intents and no
+application write target; migration 140 remains the schema-maintenance
+seed/upsert path. Migration 717 preserves runtime SELECT while denying its
+table and residual column mutation privileges. Runtime provisioning reapplies
+the denial after compatibility grants, while optional Directus writes and
+separate maintenance seed writes remain intact.
+
+The focused network-disabled disposable PostgreSQL 16 acceptance passes
+migration apply/replay, runtime read and write checks, Directus grant
+preservation, and maintenance upsert. The focused source regression passes
+(1 test), all 39 migration tests pass, and Ruff, Python compilation, runtime
+SQL inventory/unresolved-write-ledger freshness, and diff checks pass. The
+broader synthetic provisioner checker passes across 192 relations
+([evidence](builds/2026-11-01-recovery/chat-intent-runtime-acl-717.json)).
+
+External SQL writers using `kokonut_runtime` remain unconfirmed and must be
+checked before persistent rollout. No candidate, legacy, or production
+database/role changed. The aggregate ACL report remains through migration 711;
+this does not close broad C1 or establish tenant isolation/RLS. Hosted CI was
+not run for migration 717.
+
+### Progress addendum — migration 718 and Standard snapshot consistency — 1 November 2026
+
+Migration 718 extends the dedicated market-data identity from migration 430
+to the manual-price and curated reference-seed paths. The shared
+`kokonut_runtime` login retains reads but loses direct writes to
+`price_observation`; the old persisted task module remains available for
+compatibility, and new seed schedules use the isolated worker entrypoint.
+
+The Standard disposable recovery harness now snapshots all ordered SQL inputs
+before building the API and worker images, then checks both images against the
+snapshot digest. Network-disabled native PostgreSQL 16/PostGIS acceptance
+applied 709/709 schemas through migration 718 and passed role reapplication,
+health, database outage/recovery, heartbeat privacy, clean shutdown, zero
+leases, and cleanup. The planner/harness suite passes 116 tests
+([evidence](builds/2026-11-01-recovery/standard-profile-recovery-718-disposable.json)).
+API and worker still share the `kokonut_runtime` login, external callers are
+not reconciled, and the C1 aggregate plus two-tenant scope probe remain at
+migration 711.
+
+Hosted CI #1037 passed preflight and source checks and its ARM64 image gate.
+The integration job failed while the migration runner applied
+`542_agent_deterministic_summary_source_reader.sql`; the wrapper recorded
+psql exit status 3 without the underlying PostgreSQL diagnostic. The run
+predates migrations 717 and 718. The failure is recorded without guessing at
+its SQL cause. The migration-718 focused disposable checker and a green hosted
+CI/Security result remain open. No persistent database or role was changed.
+
+### CI workflow hardening — 31 October 2026
+
+I retrieved the available job logs for earlier PR runs. CI #1012 failed because
+the profile-selection document changed without updating its release-input lock;
+CI #1013 failed two fast-fail checks because the report-generator source and
+helper-scope inventories were stale. Those are source freshness failures, not
+GitHub workflow finalization failures. CI #1014's retained annotation reports
+that the hosted runner lost communication with GitHub; its underlying
+runner-side cause is still unproven. Current CI #1035 has passed the
+multi-architecture image job and remains active in `full-ci` after a cold
+PostGIS image pull.
+
+The local workflow update caches Python/npm packages, moves pinned CI security
+tools into a separate virtual environment (avoiding their downgrade of the
+application's OpenTelemetry dependency without shadowing the app virtualenv),
+retries apt/pip/npm fetches, pulls PostGIS concurrently with dependency
+installation, and keeps PostgreSQL running instead of tearing its volume down
+and starting it again. Source/import/CLI/TypeScript checks now have a
+`--source-only` mode that runs before CI waits for the PostGIS pull; the
+database bootstrap remains a separate `--database-only` gate. That source-only
+gate passed all 73 checks locally. The CI script emits a named phase summary
+and saves full console output plus bounded Compose diagnostics on failure for
+seven days. Nine focused workflow tests pass; Ruff, requirements-group checks,
+release-input checks, report inventory freshness checks, shell/YAML parsing,
+and `git diff --check` pass. These edits are local and have not been exercised
+on a hosted run; pushing before #1035 completes would cancel that PR run.
+
+### CI parallel-gate follow-up — 1 November 2026
+
+GitHub API status inspection confirms CI #1035 is still `in_progress`: its
+multi-architecture image job completed successfully, while the monolithic
+`full-ci` job is still inside its single runner step. The required `CI / ci`
+aggregate waits for both gates, so it cannot report a final result until that
+long step finishes. The active job's log-download endpoint currently returns
+`BlobNotFound` through the GitHub connector. That is specific to this
+in-progress archive request; it does not mean GitHub lacks run logs. The live
+Actions UI remains the source for viewing the current step output.
+
+The CI workflow now runs source/security/static/contract checks, database
+integration, and multi-architecture image builds in parallel jobs. The single
+required `CI / ci` aggregate reports which gate failed. The runner accepts
+`--source-only` and `--integration-only`; default local mode still executes
+both in sequence. The first post-edit source-only run found two stale generated
+inventories after the concurrent `price_observation` source change. Both were
+regenerated; the latest source-only gate passes 73/73. Fifteen workflow/helper
+regressions pass, as do YAML parsing, Bash syntax, and `git diff --check`. The
+full pytest runner now prints each test name while running, then retains its
+slow-test timings and strict skip detection. A read-only sharding audit found
+no reliable test classification and about 100 DB-touching modules with shared
+or fixed identifiers; parallel test shards would risk fixture/data races, so
+the suite remains sequential pending isolation work. The current hosted run
+predates the split. No workflow change has yet been pushed or exercised on
+GitHub.

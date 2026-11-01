@@ -24,7 +24,7 @@
 # 0 */6 * * * cd /app && python3 -m services.ingestion.weather --all-locations >> /var/log/cron.log 2>&1
 
 # Market data — daily at 06:00 UTC
-# 0 6 * * * cd /app && python3 -m services.ingestion.market_data --source world_bank >> /var/log/cron.log 2>&1
+# 0 6 * * * cd /app && python3 -m services.ingestion.market_data_worker >> /var/log/cron.log 2>&1
 
 # EAS indexer — every 15 minutes
 # */15 * * * * cd /app && python3 -m services.ingestion.eas_indexer >> /var/log/cron.log 2>&1

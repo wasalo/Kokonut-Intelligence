@@ -9685,9 +9685,10 @@ provenance ([review](current-state-and-implementation.md#c1-runtime-acl-work-cur
   ended at hosted-runner shutdown shortly after entering the full Python suite;
   696 schema migrations, 28 seeds, and metric checks passed, and both image
   jobs passed. No suite assertion failure was logged. The older user-linked
-  run #1014 attempt 1 is marked failed but its job log is unavailable; attempt
-  2 was cancelled during ARM64 Buildx dependency installation when newer
-  same-PR run #1015 started. It did not reach `ci-check.sh`
+  run #1014 attempt 1 is marked failed; its downloadable archive expired, but
+  the Actions UI retains a runner/server communication-loss annotation.
+  Attempt 2 was cancelled in the long CI script when newer same-PR run #1015
+  started; Buildx setup had already passed.
   ([diagnosis](builds/2026-10-31-recovery/ci-1014-superseded-run.json)).
 - [x] Retry CI #1019 `full-ci` after the image job completed. The retry again
   ended at hosted-runner shutdown after the suite started; no assertion failure
@@ -9738,10 +9739,12 @@ provenance ([review](current-state-and-implementation.md#c1-runtime-acl-work-cur
   mutation denial, provisioner reapplication, and preserved Directus and
   maintenance writes ([source audit](builds/2026-10-31-recovery/farmer-role-707-source-audit.json);
   [acceptance](builds/2026-10-31-recovery/farmer-role-runtime-read-only-707-disposable.json)).
-- [x] Diagnose the user-linked CI #1014 attempt 2 as superseded by the next
-  same-PR run before `ci-check.sh`; attempt 1 is marked failed but its log has
-  expired, so that failure's cause cannot be established. CI #1022 separately
-  received a runner shutdown after migration, seed, pilot, and metric gates
+- [x] Diagnose the user-linked CI #1014: attempt 1's downloadable log archive
+  expired, but the Actions page retained a runner/server communication-loss
+  annotation; it showed no failed assertion, so the underlying runner-side
+  cause remains unknown. Attempt 2 was superseded during `Run the complete CI
+  gate`, after Buildx setup had passed. CI #1022 separately received a runner
+  shutdown after migration, seed, pilot, and metric gates
   passed. The exact current PR head still needs a successful complete CI run
   ([#1014](builds/2026-10-31-recovery/ci-1014-superseded-run.json);
   [#1022](builds/2026-10-31-recovery/ci-1022-hosted-runner-shutdown.json)).
@@ -9800,10 +9803,11 @@ provenance ([review](current-state-and-implementation.md#c1-runtime-acl-work-cur
   238 tests plus 10 subtests; Ruff, compilation, the 821-file migration source
   validator, SQL inventory, capability matrix, hook build and all 143 hook
   tests pass ([local evidence](builds/2026-10-31-recovery/ci-1024-repair-local-checks.json)).
-- [x] Diagnose the user-linked CI #1014 (`41172853331`): attempt 1 is marked
-  failed but its job log expired; attempt 2 was cancelled during ARM64 Buildx
-  dependency installation when CI #1015 superseded it. The original failure
-  cause is unknown. On pushed head `4722fdd9`, full CI
+- [x] Diagnose the user-linked CI #1014 (`41172853331`): attempt 1's log
+  archive expired, but the Actions UI retains a runner/server communication-
+  loss annotation without a failed assertion. Attempt 2 was cancelled in the
+  long CI script when CI #1015 superseded it; Buildx setup had passed. The
+  underlying cause remains unconfirmed. On pushed head `4722fdd9`, full CI
   #1024 (`41219570724`) received a hosted-runner shutdown while the Python
   suite had just started; no assertion failure was logged. The ARM64 image job
   and Security passed. A separate Directus startup log warned that the built
@@ -9876,8 +9880,9 @@ source/ACL aggregate remains the migration-707 snapshot; it does not record
   ([evidence](builds/2026-10-31-recovery/standard-profile-recovery-710-runtime-role-disposable.json);
   [runner](../../scripts/check-kernel-standard-recovery-disposable.py)).
 - [ ] Obtain a complete hosted CI run for the pushed repair head. The linked
-  #1014 attempt 1 failure has no retained logs; attempt 2 was superseded by
-  #1015 during ARM64 Buildx package resolution. On head `0fa7444f`, Security
+  #1014 attempt 1 has a retained runner/server communication-loss annotation
+  but no failed assertion; attempt 2 was superseded by #1015 in the long CI
+  script after Buildx setup. On head `0fa7444f`, Security
   #752 passed, while CI #1028 received a hosted-runner shutdown after entering
   the full Python suite; no assertion failure appears in the available log.
   The full gate remains open ([run evidence](builds/2026-10-31-recovery/ci-1028-hosted-runner-shutdown.json)).
@@ -9913,10 +9918,13 @@ source/ACL aggregate remains the migration-707 snapshot; it does not record
   ([replay](builds/2026-10-31-recovery/native-schema-711-operator-probe.json);
   [report](builds/2026-10-31-recovery/runtime-privilege-callsite-report-711.json)).
 - [x] Diagnose user-linked CI #1014 (`41172853331`): attempt 1 failed on old
-  head `aa6a01a`, but its GitHub log expired; attempt 2 was cancelled during
-  Buildx setup when superseded. The exact original failure cause is unknown.
-  This branch later adds Buildx cache reuse and a parallel image job; those do
-  not prove the old cause.
+  head `aa6a01a` after 1h 13m. Although the downloadable log archive expired,
+  the Actions page retained a hosted-runner communication-loss annotation.
+  It contains no failed test assertion and does not identify the underlying
+  runner-side cause. Attempt 2 was cancelled while `Run the complete CI gate`
+  was running after supersession; Buildx setup had passed. The current
+  workflow runs the multi-architecture image job independently and configures
+  dependency caches; hosted results are needed to measure these changes.
 - [x] Fix the actionable later current-head CI #1029 failure: its fast-fail
   gate reported stale `runtime-sql-inventory.json`. The inventory and review
   ledger now match source and the local check passes
@@ -9931,7 +9939,7 @@ edit migration 711; a persistent rollback of its ACL requires a reviewed
 forward migration. Re-enabling legacy writes requires a separate reviewed code
 change and must not bypass signed location scope.
 
-### Standard profile and shared rate-limit boundary — 31 October 2026
+### Historical Standard profile and shared rate-limit boundary — 31 October 2026
 
 - [x] Add migration 712 to move PostgreSQL rate-limit consumption and idle
   cleanup behind bounded, owned functions. Revoke direct bucket-table access
@@ -9984,11 +9992,12 @@ unprovisioned by keeping its password unset.
   runtime-role/migration tests, Ruff, 706-file migration validation, and diff
   checks.
 - [ ] Obtain green hosted CI and Security on the pushed repair SHA. CI #1033
-  full CI failed before this inventory regeneration; the original CI #1014
-  attempt-1 cause remains unknown because its logs expired.
+  full CI failed before this inventory regeneration. CI #1014's retained UI
+  annotation reports runner/server communication loss but does not identify
+  its underlying cause or show a failed assertion.
 
 This closes the known #1033 freshness failure locally; it does not prove the
-unknown #1014 failure was repaired or close C1/RLS. The aggregate ACL report is
+CI #1014 runner communication issue was repaired or close C1/RLS. The aggregate ACL report is
 still through migration 711. No candidate, legacy, or production database or
 role was accessed or changed ([diagnosis](builds/2026-11-01-recovery/ci-1033-runtime-sql-inventory-repair.json)).
 
@@ -10005,6 +10014,29 @@ role was accessed or changed ([diagnosis](builds/2026-11-01-recovery/ci-1033-run
   runtime, Directus, and PUBLIC, and v2 still accepts signed writes for all
   five sources with existing audit/retry/location behavior
   ([acceptance](builds/2026-11-01-recovery/climate-worker-716-disposable.json)).
+
+### C1 continuation — `chat_intent` runtime ACL — 1 November 2026
+
+- [x] Review the sole application callsite (`services/analytics/llm_chat.py`)
+  as an active-intent SELECT; confirm there are no application write targets
+  and that migration 140 owns default-intent seed/upsert behavior.
+- [x] Add migration 717 and runtime-role policy so `kokonut_runtime` retains
+  SELECT but loses table and residual column writes. Preserve optional
+  Directus grants and the separate maintenance seed path. The focused
+  network-disabled PostgreSQL 16 check passes migration apply/replay, runtime
+  read/write assertions, Directus-write preservation, and maintenance upsert.
+  The focused source test passes; all 39 migration tests pass. Ruff, Python
+  compilation, SQL-inventory and unresolved-write-ledger freshness, and diff
+  checks pass. The synthetic runtime provisioner checker passes across 192
+  relations ([migration](../../schemas/postgres/717_runtime_chat_intent_read_only.sql);
+  [checker](../../scripts/check-chat-intent-runtime-boundary-disposable.py);
+  [evidence](builds/2026-11-01-recovery/chat-intent-runtime-acl-717.json)).
+- [ ] Confirm no external SQL caller depends on `kokonut_runtime` writes before
+  applying this change to a persistent candidate or production database.
+
+No candidate, legacy, or production role/database was changed. The aggregate
+ACL report remains through migration 711; broad C1 and tenant/RLS closure are
+open. This local batch has not run hosted CI.
 - [x] Pass 44 focused climate and worker-operation-map tests, Ruff, and Python
   compilation.
 - [ ] Check for external SQL callers and older deployed binaries before any
@@ -10015,3 +10047,35 @@ role was accessed or changed ([diagnosis](builds/2026-11-01-recovery/ci-1033-run
 The change is local and not part of CI #1034. No candidate, legacy, or
 production database or role was accessed or changed. It does not refresh the
 C1 aggregate ACL report or close broad C1/RLS.
+
+### Standard recovery snapshot and migration 718 — 1 November 2026
+
+- [x] Add migration 718 to route manual prices and curated reference-market
+  seed writes through the bounded market-data identity introduced in
+  migration 430. Runtime keeps read access but loses direct table/column DML;
+  existing persisted task records retain their compatibility entrypoint while
+  newly seeded schedules select the dedicated worker.
+- [x] Pin Standard recovery to one schema snapshot before image builds, then
+  verify the API and worker images were built from that same snapshot. The
+  network-disabled disposable PostgreSQL 16/PostGIS replay applied 709/709
+  schemas through migration 718 with no seeds or failures; post-migration
+  runtime-role bootstrap, API/worker/proxy health, DB outage/recovery,
+  heartbeat privacy, shutdown, zero leases, and cleanup passed. The focused
+  planner/harness selection passes 116 tests
+  ([evidence](builds/2026-11-01-recovery/standard-profile-recovery-718-disposable.json)).
+- [ ] Run the migration-718 focused price-writer disposable checker and obtain
+  a green hosted CI/Security result for this pending batch.
+- [ ] Reconcile external `kokonut_runtime` callers before any persistent
+  rollout; the API and worker still share that login.
+
+CI #1037 on pushed SHA `0386dcf` completed with preflight, source checks, and
+the multi-architecture image gate passing. Integration failed during the
+`Directus startup and data seed` phase while the migration runner applied
+`542_agent_deterministic_summary_source_reader.sql`; its wrapper logged only
+psql exit status 3 and omitted PostgreSQL's diagnostic. The precise SQL cause
+is unconfirmed. The 1037 run did not include migrations 717 or 718. Preserve
+this as an open CI gate rather than attributing it to migration 365.
+
+No candidate, legacy, or production database/role was changed by this local
+batch. Keep migration 718 immutable; a persistent ACL rollback requires a
+reviewed forward migration.

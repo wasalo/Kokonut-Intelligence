@@ -1,0 +1,46 @@
+{
+  "migration": "717_runtime_chat_intent_read_only.sql",
+  "relation": "public.chat_intent",
+  "date": "2026-11-01",
+  "source_review": {
+    "application_runtime_reads": "one active-intent SELECT in services/analytics/llm_chat.py",
+    "application_write_targets": 0,
+    "schema_maintenance_writer": "migration 140 seeds and upserts default intents",
+    "external_runtime_login_writers": "unconfirmed; verify before candidate or production rollout"
+  },
+  "migration_acceptance": {
+    "database": "disposable PostgreSQL 16",
+    "fixture": "minimal synthetic relation and roles",
+    "apply_and_replay": "passed",
+    "runtime_select": "preserved",
+    "runtime_table_and_column_mutations": "denied",
+    "directus_mutations": "preserved",
+    "maintenance_seed_upsert": "preserved",
+    "network": "none",
+    "host_ports_published": false,
+    "temporary_container_removed": true
+  },
+  "runtime_provisioner_acceptance": {
+    "checker": "scripts/check-runtime-scoped-write-boundary-disposable.py",
+    "result": "passed",
+    "engine": "PostgreSQL 16",
+    "synthetic_relations_exercised": 192,
+    "runtime_mutation_only_relations": 77
+  },
+  "focused_checks": {
+    "test_runtime_role_boundary_chat_intent": "1 passed",
+    "test_migration": "39 passed",
+    "ruff": "passed",
+    "python_compilation": "passed",
+    "runtime_sql_inventory": "current",
+    "unresolved_write_review_ledger": "current",
+    "git_diff_check": "passed"
+  },
+  "scope_limits": {
+    "candidate_legacy_production_changed": false,
+    "aggregate_acl_report_refreshed": false,
+    "latest_aggregate_acl_report_through_migration": 711,
+    "broad_c1_or_tenant_rls_closed": false,
+    "hosted_ci_run_for_migration_717": false
+  }
+}

@@ -1,0 +1,49 @@
+{
+  "acceptance": "passed",
+  "profile": "standard",
+  "database_image": "postgis/postgis:16-3.4@sha256:44126d872ac91993766c341e369c539e8196614321765d36a6f1bab0419a5fa5",
+  "schema_snapshot_sha256": "a12ffd50d661ae315d182c6be3948c70f936020b104d8e3b9ad917bc0c047691",
+  "migrations": {
+    "latest_schema_migration": "schema:718_isolated_market_data_global_writes.sql",
+    "schemas_applied": 709,
+    "schemas_failed": 0,
+    "seed_rows": 0
+  },
+  "image_snapshot_parity": {
+    "api_image_matches_schema_snapshot": true,
+    "worker_image_matches_schema_snapshot": true
+  },
+  "runtime_role": {
+    "bootstrap_profile": "runtime-admin",
+    "bootstrap_ran_explicitly_after_migrations": true,
+    "app_database_user": "kokonut_runtime",
+    "worker_database_user": "kokonut_runtime",
+    "role_reapplication_preserved_acl_boundaries": true
+  },
+  "deployment_checks": {
+    "api_healthy": true,
+    "worker_healthy": true,
+    "proxy_healthy": true,
+    "database_outage_degraded_health": true,
+    "database_restart_recovered_api_and_worker": true,
+    "worker_restarted_for_database_recovery": false,
+    "supervisor_heartbeat_private": true,
+    "active_work_leases_after_shutdown": 0,
+    "disposable_containers_volumes_networks_removed": true,
+    "host_ports_published": false,
+    "external_network_enabled": false,
+    "candidate_legacy_production_touched": false
+  },
+  "source_checks": {
+    "focused_tests_passed": 116,
+    "ruff": "passed",
+    "python_compilation": "passed",
+    "diff_check": "passed"
+  },
+  "limitations": [
+    "Network-disabled disposable PostgreSQL 16/PostGIS profile with synthetic data; no seeds were applied.",
+    "API and worker are separate services but still share the kokonut_runtime database login; distinct API/worker database identities remain an open C1 boundary.",
+    "No persistent candidate, legacy database, production service, or external provider was used.",
+    "Does not establish live identity/provider delivery, populated-data parity, external alert routing, public ingress, backup/restore ownership, scale, 24-hour endurance, or physical Raspberry Pi acceptance."
+  ]
+}

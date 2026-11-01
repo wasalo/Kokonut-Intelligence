@@ -2,6 +2,7 @@
 # and docker-compose.kernel-proxy.yml so Secure cookies travel over HTTPS.
 services:
   app:
+    image: ${KOKONUT_KERNEL_OIDC_IMAGE:-kokonut-kernel-oidc:local}
     build:
       target: oidc
     environment:

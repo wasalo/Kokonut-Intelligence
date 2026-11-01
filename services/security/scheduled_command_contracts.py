@@ -42,6 +42,8 @@ _OPTIONS: dict[str, dict[str, str | None]] = {
     # Legacy persisted rows stay operable until schedule owners reconcile them.
     "services.ingestion.weather_forecast_worker": {"--location-id": "uuid"},
     "services.ingestion.weather_forecast": {"--location-id": "uuid"},
+    # Existing persisted rows are accepted by the compatibility adapter, but
+    # that adapter now requires the isolated market-data login for every write.
     "services.ingestion.market_data": {
         "--commodity": "commodity",
         "--source": "market_source",

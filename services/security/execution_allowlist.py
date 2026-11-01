@@ -55,9 +55,9 @@ ALLOWED_SCHEDULED_MODULES = frozenset(
         # reconcile them; new Kernel plans use the signed worker module.
         "services.ingestion.weather",
         "services.ingestion.weather_worker",
-        # Keep the pre-isolation module available for persisted tasks until
-        # active schedules have been reconciled. New Kernel plans use the
-        # signed worker module below.
+        # Keep the compatibility wrapper available for persisted tasks. It
+        # forwards writes to the isolated market-data login; new Kernel plans
+        # use the worker module below.
         "services.ingestion.weather_forecast",
         "services.ingestion.weather_forecast_worker",
         "services.ingestion.market_data",

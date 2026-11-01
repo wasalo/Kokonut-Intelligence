@@ -2,8 +2,8 @@
 """
 Market Data Ingestion — Commodity Prices
 
-Fetches commodity price data from World Bank Pink Sheet (XLS downloads)
-and inserts into price_observation (PostgreSQL).
+Fetches commodity price data from the World Bank Pink Sheet (XLS downloads)
+and routes writes through the isolated market-data worker.
 
 The World Bank Commodity Price Data (Pink Sheet) covers 70+ commodities
 with monthly prices. This module downloads the XLS file and extracts
@@ -17,16 +17,16 @@ Usage:
 """
 
 import argparse
-import json
 import os
 import re
 import sys
 from io import BytesIO
 
+from services.common.cli import print_json
 from services.common.http import http
+from services.core.features import is_enabled
 
 from ..common.logging import get_logger
-from .base import get_db, hash_payload, log_ingestion
 
 logger = get_logger("ingestion.market")
 
@@ -407,191 +407,39 @@ def validate_world_bank_filters(
 
 
 def insert_price(db, record: dict) -> tuple[str | None, bool]:
-    """Insert a price observation and return its ID and whether it was new."""
-    with db.cursor() as cur:
-        cur.execute(
-            """
-            INSERT INTO price_observation
-                (crop_id, commodity_code, market_name, price_date,
-                 price_per_unit, unit, currency, source, source_url, metadata)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s::jsonb)
-            ON CONFLICT (source, commodity_code, market_name, price_date) DO NOTHING
-            RETURNING id
-            """,
-            (
-                record.get("crop_id"),
-                record["commodity_code"],
-                record.get("market_name", "World Bank Pink Sheet"),
-                record["price_date"],
-                record["price_per_unit"],
-                record["unit"],
-                record.get("currency", "USD"),
-                record["source"],
-                record.get("source_url", ""),
-                json.dumps(record.get("metadata", {})),
-            ),
-        )
-        row = cur.fetchone()
-        if row:
-            return str(row[0]), True
-        cur.execute(
-            """SELECT id FROM price_observation
-               WHERE source = %s AND commodity_code = %s
-                 AND market_name = %s AND price_date = %s""",
-            (record["source"], record["commodity_code"],
-             record.get("market_name", "World Bank Pink Sheet"), record["price_date"]),
-        )
-        existing = cur.fetchone()
-        return (str(existing[0]), False) if existing else (None, False)
+    """Reject legacy direct writes; use the isolated market-data operations."""
+    del db, record
+    raise RuntimeError(
+        "direct price_observation writes are retired; use the isolated market-data worker"
+    )
 
 
 def run_seed_data(commodity: str = None):
-    """Insert the explicit local reference dataset under its own source key."""
-    commodity = commodity.upper() if commodity else None
-    if commodity and commodity not in COMMODITY_SEED_DATA:
-        raise ValueError(f"Unknown commodity: {commodity}")
+    """Insert reference samples through the dedicated bounded writer."""
+    from services.ingestion.market_data_worker import seed_reference_data
 
-    db = get_db()
-
-    try:
-        with db.cursor() as cur:
-            cur.execute("SELECT id, name FROM crop")
-            crops = cur.fetchall()
-
-        commodities = [commodity] if commodity else list(COMMODITY_SEED_DATA.keys())
-
-        logger.info("Seeding prices for %d commodities...", len(commodities))
-        success = 0
-        total_inserted = 0
-
-        for code in commodities:
-            info = COMMODITY_SEED_DATA[code]
-            crop_id = find_crop_id(crops, code, info["name"])
-            inserted = 0
-
-            for price_point in info["prices"]:
-                record = {
-                    "crop_id": crop_id,
-                    "commodity_code": code,
-                    "market_name": "World Bank Pink Sheet",
-                    "price_date": price_point["date"],
-                    "price_per_unit": price_point["price"],
-                    "unit": info["unit"],
-                    "currency": "USD",
-                    "source": "world_bank_pink_sheet_seed",
-                    "source_url": "https://www.worldbank.org/en/research/commodity-markets",
-                    "metadata": {"source_type": "seed_data"},
-                }
-                _, was_inserted = insert_price(db, record)
-                inserted += int(was_inserted)
-                total_inserted += int(was_inserted)
-
-            success += 1
-            logger.info("  %s: %d price records seeded", info['name'], inserted)
-
-        seed_records = [
-            {
-                "commodity_code": code,
-                "price_date": point["date"],
-                "price_per_unit": point["price"],
-                "unit": COMMODITY_SEED_DATA[code]["unit"],
-                "source": "world_bank_pink_sheet_seed",
-            }
-            for code in commodities
-            for point in COMMODITY_SEED_DATA[code]["prices"]
-        ]
-        log_ingestion(
-            source_system="seed",
-            source_table="commodity_seed_data",
-            source_id="world_bank_pink_sheet_seed",
-            target_table="price_observation",
-            target_id=None,
-            operation="insert",
-            payload_hash=hash_payload(seed_records),
-            rows_affected=total_inserted,
-            db=db,
-        )
-        db.commit()
-        logger.info("Done: %d commodities seeded", success)
-    except Exception:
-        db.rollback()
-        raise
-    finally:
-        db.close()
+    inserted = seed_reference_data(commodity)
+    logger.info("Done: %d reference price observations inserted", inserted)
+    return inserted
 
 
 def run_world_bank(commodity: str = None, month: int = None, year: int = None):
-    """Download and parse World Bank Pink Sheet, then insert prices."""
-    commodity = validate_world_bank_filters(commodity, month, year)
+    """Compatibility entrypoint; writes go through the isolated worker."""
+    from services.ingestion.market_data_worker import ingest
 
-    try:
-        xls_bytes = download_pink_sheet()
-    except Exception as exc:
-        raise RuntimeError(
-            "World Bank Pink Sheet download failed; use explicit --source seed "
-            "for reference samples"
-        ) from exc
-
-    records = parse_pink_sheet(xls_bytes, target_month=month, target_year=year)
-    if not records:
-        raise RuntimeError("World Bank Pink Sheet returned no usable price records")
-
-    prepared_records = prepare_world_bank_records(
-        records,
-        commodity=commodity,
-        source_url=WORLD_BANK_FALLBACK_URL,
-    )
-
-    db = get_db()
-    try:
-        with db.cursor() as cur:
-            cur.execute("SELECT id, name FROM crop")
-            crops = cur.fetchall()
-
-        logger.info("Extracted %d price records from Pink Sheet", len(prepared_records))
-        persisted_records = []
-        for prepared in prepared_records:
-            record = {key: value for key, value in prepared.items() if key != "commodity_name"}
-            record["crop_id"] = find_crop_id(
-                crops,
-                prepared["commodity_code"],
-                prepared["commodity_name"],
-            )
-            persisted_records.append(record)
-
-        inserted = sum(
-            int(insert_price(db, record)[1]) for record in persisted_records
-        )
-        log_ingestion(
-            source_system="world_bank",
-            source_table="world_bank_pink_sheet",
-            source_id=WORLD_BANK_FALLBACK_URL,
-            target_table="price_observation",
-            target_id=None,
-            operation="insert",
-            payload_hash=hash_payload(persisted_records),
-            rows_affected=inserted,
-            db=db,
-        )
-
-        db.commit()
-        logger.info("Done: %d new price observations inserted", inserted)
-    except Exception:
-        db.rollback()
-        raise
-    finally:
-        db.close()
+    inserted = ingest(commodity, month, year)
+    logger.info("Done: %d new price observations inserted", inserted)
+    return inserted
 
 
 def run(commodity: str = None, source: str = "world_bank", month: int = None, year: int = None):
-    """Main ingestion entry point."""
-    if source == "seed":
-        run_seed_data(commodity=commodity)
-    elif source == "world_bank":
-        run_world_bank(commodity=commodity, month=month, year=year)
-    else:
+    """Keep the legacy command shape while requiring isolated write authority."""
+    from services.ingestion.market_data_worker import run_source
+
+    if source not in {"world_bank", "seed"}:
         logger.error("Unknown source: %s. Use 'world_bank' or 'seed'.", source)
         sys.exit(1)
+    return run_source(commodity, source, month, year)
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -614,7 +462,24 @@ def build_parser() -> argparse.ArgumentParser:
 
 def main(argv: list[str] | None = None) -> None:
     """Run market-data ingestion through a callable CLI entry point."""
-    args = build_parser().parse_args(argv)
+    parser = build_parser()
+    args = parser.parse_args(argv)
+    try:
+        validate_world_bank_filters(
+            args.commodity,
+            args.month if args.source == "world_bank" else None,
+            args.year if args.source == "world_bank" else None,
+        )
+    except ValueError as exc:
+        parser.error(str(exc))
+    if args.source == "seed" and (args.month is not None or args.year is not None):
+        parser.error("month and year filters are only valid for world_bank")
+    if not is_enabled("isolated_market_data_worker"):
+        print_json({
+            "status": "skipped",
+            "reason": "isolated_market_data_worker_disabled",
+        })
+        return
     run(commodity=args.commodity, source=args.source, month=args.month, year=args.year)
 
 

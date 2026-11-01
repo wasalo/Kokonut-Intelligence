@@ -195,6 +195,22 @@ def main(argv=None):
         except (AttributeError, TypeError, ValueError):
             parser.error(f"--location-id must be a valid UUID for {args.command}")
 
+    if args.command == "record-price":
+        # This global reference-price write uses only the named isolated
+        # market-data identity. Do not open the shared application DB first.
+        result = record_price(
+            None,
+            args.crop,
+            args.market,
+            args.price,
+            quality_grade=args.quality_grade,
+            unit=args.unit,
+            currency=args.currency,
+        )
+        output = json.dumps(result, indent=2, default=str) if args.json else _format_price(result)
+        print(output)
+        return
+
     from ..ingestion.base import get_db
 
     db = get_db()
@@ -242,15 +258,6 @@ def main(argv=None):
                 party_id=args.party_id,
             )
             output = json.dumps(result, indent=2, default=str) if args.json else _format_buyer(result)
-            print(output)
-
-        elif args.command == "record-price":
-            result = record_price(
-                db, args.crop, args.market, args.price,
-                quality_grade=args.quality_grade, unit=args.unit,
-                currency=args.currency,
-            )
-            output = json.dumps(result, indent=2, default=str) if args.json else _format_price(result)
             print(output)
 
         elif args.command == "price-trends":

@@ -1,6 +1,6 @@
 {
   "format_version": 1,
-  "lock_scope": "Kernel default and ClickHouse-enabled application, opt-in lean core app and capability overlays, optional sensor-anomaly ML worker, and PostGIS image build inputs",
+  "lock_scope": "Kernel default and ClickHouse-enabled application, opt-in lean core app and capability overlays, optional sensor-anomaly ML worker, PostGIS image build inputs, and Standard profile release image selection",
   "base_images": {
     "application": "python:3.11-slim@sha256:db3ff2e1800a8581e2c48a27c3995339d47bdf046da21c7627accd3d51053a93",
     "database": "postgres:16-bookworm@sha256:0ea6700a3b4f0ae6ce746519073558aed4d88a79d8d07622a9a644946c7319c4"
@@ -39,11 +39,16 @@
     "requirements/kernel-core-storage.in": "33ddfcfb920e4bb7b9b51591a575da43c8475b8475ad143e0496243d693df4d1",
     "requirements/kernel-core-storage.lock": "e34f4138c02279044f016ddda963ab442b691e0da42d906f2ca0a1c98c66f149",
     "services/core/image_manifest.py": "3d9f2d39463e7c3ba25c0d8673182df7255b5c69bc43d6c5e4633f7032abed39",
-    "scripts/kernel-profile.py": "29bd9df403da86c8d53e074f81d741728a7aece850d3ec4b17826d00b5ffed53",
+    "scripts/kernel-profile.py": "5ace2ab130037fb66c8514ddac3eeb132773a2fe3eac4a81a70c9599f0a43334",
     "scripts/check-kernel-release-inputs.py": "4116116c380c2d407f8e315f0057cbf30fdbf64ba58a43f0172a8bcdaf989402",
     "scripts/build-kernel-multiarch.sh": "d4bfa9240f8f17686a9bfb3314ee39acb588f645dd9b4ca630b57d12fefc2339",
-    "docs/refactor/profile-selection.md": "8e70fe6411991f1b4bf302eb536c1c8953d1be4e16a1c00adab12d8cccdc0846",
-    "requirements/README.md": "699bfef971be138ca125640284a47ef7a3a73d67f1007ea85bc3d2217f2bed36"
+    "docs/refactor/profile-selection.md": "9dc1baef6d9815abfd2c6acd951cf785d4e22e736c18dbcce1fe23672c8507d7",
+    "requirements/README.md": "699bfef971be138ca125640284a47ef7a3a73d67f1007ea85bc3d2217f2bed36",
+    "docker-compose.kernel-candidate.yml": "c404109f71e175649d1cd99a447990e8b9f177666f10c8dc8c071a2a9b1f99af",
+    "docker-compose.kernel-standard.yml": "c5043585cf0c2ec106cd52e950f6636a36edc992d993ce8f70516bd7aa52ab04",
+    "docker-compose.kernel-runtime-role.yml": "ca569d043e8966084fe0d6b8e0a304328a5b837234588159811d0b057a2ea6ce",
+    "docker-compose.kernel-oidc.yml": "7b89c906f47966e0ac8442d1c5fb8052566ba77df554137c1c89d7a49c9eb8df",
+    "docker-compose.kernel-proxy.yml": "4dcb0782d37e90a5caf378bf3258f7c1754512315100169749e8a5441f5a59e4"
   },
   "postgis_packages": {
     "POSTGIS_PACKAGE_VERSION": "3.6.4+dfsg-2.pgdg12+1",

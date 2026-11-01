@@ -10,6 +10,7 @@ removes the unique Compose project and volumes on every exit path.
 from __future__ import annotations
 
 import copy
+import hashlib
 import json
 import os
 import secrets
@@ -32,6 +33,136 @@ HEARTBEAT_PATH = "/var/lib/kokonut/worker-progress/supervisor.json"
 
 class AcceptanceError(RuntimeError):
     """A disposable Standard-profile acceptance assertion failed."""
+
+
+def _ordered_schema_migration_files(directory: Path) -> list[Path]:
+    """Return the numeric schema sources in migration-runner order."""
+    return sorted(
+        (
+            path
+            for path in directory.glob("*.sql")
+            if path.stem.split("_", 1)[0].isdigit()
+        ),
+        key=lambda path: (int(path.stem.split("_", 1)[0]), path.name),
+    )
+
+
+def _snapshot_schema_migrations(
+    source_directory: Path, snapshot_directory: Path
+) -> tuple[list[Path], str]:
+    """Copy an immutable, ordered schema set and reject source races.
+
+    The migration CLI discovers files at run time. Supplying its schema
+    directory with this private copy prevents a migration added or edited
+    during acceptance from changing which SQL bytes the disposable database
+    receives.
+    """
+    source_files = _ordered_schema_migration_files(source_directory)
+    if not source_files:
+        raise AcceptanceError("no ordered schema migrations were found")
+
+    snapshot_directory.mkdir(parents=True, mode=0o700)
+    captured: list[tuple[str, str]] = []
+    try:
+        for source in source_files:
+            content = source.read_bytes()
+            digest = hashlib.sha256(content).hexdigest()
+            (snapshot_directory / source.name).write_bytes(content)
+            captured.append((source.name, digest))
+
+        current = [
+            (path.name, hashlib.sha256(path.read_bytes()).hexdigest())
+            for path in _ordered_schema_migration_files(source_directory)
+        ]
+        if current != captured:
+            raise AcceptanceError(
+                "schema migration sources changed while the recovery snapshot was being captured"
+            )
+
+        copied = [
+            (path.name, hashlib.sha256(path.read_bytes()).hexdigest())
+            for path in _ordered_schema_migration_files(snapshot_directory)
+        ]
+        if copied != captured:
+            raise AcceptanceError("schema migration snapshot failed its content verification")
+    except OSError as exc:
+        raise AcceptanceError("could not capture a stable schema migration snapshot") from exc
+
+    manifest = "\n".join(f"{name}\t{digest}" for name, digest in captured)
+    snapshot_digest = hashlib.sha256(manifest.encode("utf-8")).hexdigest()
+    return _ordered_schema_migration_files(snapshot_directory), snapshot_digest
+
+
+def _migration_runner_command(
+    project: str, manifest: Path, schema_directory: Path
+) -> list[str]:
+    """Run the repository migration CLI against the captured schema directory."""
+    bootstrap = (
+        "import sys; from pathlib import Path; "
+        "from services.migration import cli; "
+        "cli.SCHEMA_DIR = Path(sys.argv.pop(1)); "
+        "sys.argv[0] = 'services.migration'; cli.main()"
+    )
+    return [
+        sys.executable,
+        "-c",
+        bootstrap,
+        str(schema_directory),
+        "--compose-project",
+        project,
+        "--compose-file",
+        str(manifest),
+        "migrate",
+        "--schemas-only",
+    ]
+
+
+def _image_schema_snapshot_probe() -> str:
+    """Return a container-side manifest probe for the schema tree in the image."""
+    return """
+import hashlib
+import json
+from pathlib import Path
+
+directory = Path('/app/schemas/postgres')
+files = sorted(
+    (path for path in directory.glob('*.sql') if path.stem.split('_', 1)[0].isdigit()),
+    key=lambda path: (int(path.stem.split('_', 1)[0]), path.name),
+)
+manifest = chr(10).join(
+    f"{path.name}\\t{hashlib.sha256(path.read_bytes()).hexdigest()}" for path in files
+)
+print(json.dumps({
+    'count': len(files),
+    'latest': f"schema:{files[-1].name}" if files else None,
+    'sha256': hashlib.sha256(manifest.encode('utf-8')).hexdigest(),
+}, sort_keys=True))
+""".strip()
+
+
+def _assert_image_schema_snapshot(
+    output: str, *, expected_count: int, expected_latest: str, expected_digest: str
+) -> dict[str, Any]:
+    """Require the built API image to contain the exact captured migration bytes."""
+    try:
+        payload = json.loads(output)
+    except json.JSONDecodeError as exc:
+        raise AcceptanceError("built app image returned a malformed schema snapshot probe") from exc
+    if not isinstance(payload, dict):
+        raise AcceptanceError("built app image returned a malformed schema snapshot probe")
+    expected = {
+        "count": expected_count,
+        "latest": expected_latest,
+        "sha256": expected_digest,
+    }
+    if payload != expected:
+        raise AcceptanceError(
+            "built app image schema inventory does not match the captured migration snapshot "
+            f"(expected count={expected_count}, latest={expected_latest}, sha256={expected_digest}; "
+            f"observed count={payload.get('count')}, latest={payload.get('latest')}, "
+            f"sha256={payload.get('sha256')})"
+        )
+    return payload
 
 
 def _run(
@@ -768,8 +899,47 @@ def _main(timeout: float) -> dict[str, Any]:
             manifest.write_text(json.dumps(model, sort_keys=True), encoding="utf-8")
             manifest.chmod(0o600)
 
+            # Freeze migration inputs before building the app/worker image.
+            # Readiness checks run from the image's schema tree, so migration
+            # replay and runtime readiness must consume the same bytes.
+            snapshot_directory = temp_root / "postgres-schema-snapshot"
+            schema_files, snapshot_digest = _snapshot_schema_migrations(
+                ROOT / "schemas" / "postgres", snapshot_directory
+            )
+            expected_schemas = len(schema_files)
+            expected_latest_migration = f"schema:{schema_files[-1].name}"
+
             compose = _compose_command(project, manifest)
             _run([*compose, "build", "app", "worker"], environment=environment, timeout=2400)
+            for service in ("app", "worker"):
+                image_schema_probe = _run(
+                    [
+                        *compose,
+                        "run",
+                        "--rm",
+                        "--no-deps",
+                        "-T",
+                        service,
+                        "python3",
+                        "-c",
+                        _image_schema_snapshot_probe(),
+                    ],
+                    environment=environment,
+                    timeout=30,
+                )
+                _assert_image_schema_snapshot(
+                    image_schema_probe.stdout,
+                    expected_count=expected_schemas,
+                    expected_latest=expected_latest_migration,
+                    expected_digest=snapshot_digest,
+                )
+            result["migration_snapshot"] = {
+                "schema_count": expected_schemas,
+                "latest_migration": expected_latest_migration,
+                "sha256": snapshot_digest,
+                "app_image_matches": True,
+                "worker_image_matches": True,
+            }
             _run([*compose, "up", "-d", "database"], environment=environment, timeout=120)
             database = _wait_for_health(
                 project, manifest, environment, "database", "healthy", timeout
@@ -815,34 +985,24 @@ def _main(timeout: float) -> dict[str, Any]:
                     "PG_PASSWORD": environment["POSTGRES_PASSWORD"],
                 }
             )
+            # Point the ordered migration CLI at the same content-verified
+            # schema snapshot that was checked into the built app image.
             migration = _run(
-                [
-                    sys.executable,
-                    "-m",
-                    "services.migration",
-                    "--compose-project",
-                    project,
-                    "--compose-file",
-                    str(manifest),
-                    "migrate",
-                    "--schemas-only",
-                ],
+                _migration_runner_command(project, manifest, snapshot_directory),
                 environment=migration_environment,
                 timeout=2400,
             )
-            schema_files = sorted(
-                (
-                    path
-                    for path in (ROOT / "schemas" / "postgres").glob("*.sql")
-                    if path.stem.split("_", 1)[0].isdigit()
-                ),
-                key=lambda path: int(path.stem.split("_", 1)[0]),
-            )
-            expected_schemas = len(schema_files)
-            expected_latest_migration = f"schema:{schema_files[-1].name}"
             expected_summary = f"Applied: {expected_schemas}, Failed: 0"
             if expected_summary not in migration.stdout:
-                raise AcceptanceError("ordered migration runner did not report all schema files applied")
+                runner_output = _redact_secrets(
+                    f"{migration.stdout}\n{migration.stderr}", environment
+                ).strip()
+                output_tail = runner_output[-2000:] if runner_output else "<no runner output>"
+                raise AcceptanceError(
+                    "ordered migration runner did not report all schema files from the "
+                    f"pre-run snapshot applied (expected {expected_summary}; "
+                    f"latest {expected_latest_migration}); runner output tail:\n{output_tail}"
+                )
             ledger = _run(
                 [
                     *compose,
@@ -876,6 +1036,7 @@ def _main(timeout: float) -> dict[str, Any]:
                 "schemas_failed": 0,
                 "seed_rows": 0,
                 "latest_schema_migration": expected_latest_migration,
+                "source_snapshot_sha256": snapshot_digest,
             }
 
             unsafe_runtime_role = _run(

@@ -513,7 +513,7 @@
     },
     {
       "module": "services.ingestion.market_data",
-      "scope": "Legacy shared-identity entrypoint retained for persisted tasks and explicit manual seed/source use. New native JobSpecs use the default-off isolated market_data_worker.",
+      "scope": "Compatibility entrypoint retained for persisted tasks and explicit manual seed/source use; all writes delegate to the isolated market_data worker identity and fail closed when its feature or bounded function contract is unavailable. New default schedules use market_data_worker.",
       "reads": [
         "public.crop"
       ],
@@ -525,7 +525,7 @@
         "World Bank Pink Sheet HTTP download; explicit local reference seed mode"
       ],
       "idempotency": "Live World Bank observations use source=world_bank_pink_sheet; explicit reference samples use source=world_bank_pink_sheet_seed. Both use ON CONFLICT (source, commodity_code, market_name, price_date) DO NOTHING; historical corrections remain a separate policy question.",
-      "retry_boundary": "Provider download, unusable/empty response, insert, and audit failures raise to the scheduler. Provider parsing completes before PostgreSQL opens, and each price batch plus its ingestion_log record commits atomically. The local seed source is never an implicit provider fallback.",
+      "retry_boundary": "Legacy source/seed commands delegate to bounded market-data worker operations; provider retrieval/parsing completes before PostgreSQL opens, and each price batch plus its ingestion_log record commits atomically. The local seed source is never an implicit provider fallback.",
       "sources": [
         "services/ingestion/market_data.py",
         "services/ingestion/base.py"
@@ -534,7 +534,7 @@
     {
       "module": "services.ingestion.market_data_worker",
       "worker_key": "market_data",
-      "scope": "The default-off global World Bank ingestion worker accepts only optional commodity and paired month/year filters. It downloads and parses before opening its dedicated database login, then invokes one bounded batch function. It does not use tenant scope because the source is global reference data.",
+      "scope": "The default-off global market-data worker accepts optional commodity and paired month/year filters for World Bank import, and exposes bounded global reference-seed/manual-price operations for the compatibility CLI. It downloads/parses before opening its dedicated database login and uses fixed operation-specific functions. It does not use tenant scope because these are global reference-price operations.",
       "reads": [
         "public.crop"
       ],
@@ -545,8 +545,8 @@
       "external_effects": [
         "World Bank Pink Sheet HTTP download"
       ],
-      "idempotency": "The function accepts only eight supported commodity codes and uses the source/commodity/market/month natural key. Conflicting observations are preserved; one audit row records the actual inserted count per successful invocation.",
-      "retry_boundary": "Provider retrieval and parsing complete before PostgreSQL opens. The bounded function validates the full payload and inserts prices plus audit in the caller transaction. The feature remains off until migration 430, the isolated login password, and the worker-only DSN are provisioned.",
+      "idempotency": "World Bank and reference-seed imports use separate fixed source keys and the source/commodity/market/date natural key. Conflicting observations are preserved; one audit row records the actual inserted count per successful import. Manual entry uses fixed source=manual and returns the inserted observation ID.",
+      "retry_boundary": "Provider retrieval and parsing complete before PostgreSQL opens. Each bounded function validates its exact payload; import prices and audit write atomically in the caller transaction. The feature remains off until migration 430 and the follow-up manual/seed function migration, isolated login password, and worker-only DSN are provisioned.",
       "sources": [
         "services/ingestion/market_data_worker.py",
         "services/ingestion/market_data.py",

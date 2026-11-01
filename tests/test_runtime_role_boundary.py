@@ -1269,6 +1269,51 @@ def test_service_registry_is_read_only_to_kernel_runtime():
     assert "does not establish tenant isolation" in migration
 
 
+def test_chat_intent_is_read_only_to_kernel_runtime():
+    root = Path(__file__).resolve().parents[1]
+    migration = (
+        root / "schemas/postgres/717_runtime_chat_intent_read_only.sql"
+    ).read_text()
+    schema = (root / "schemas/postgres/140_llm_chat.sql").read_text()
+    sql_inventory = build_inventory()
+    intent_sites = [
+        site for site in sql_inventory["execution_sites"]
+        if "chat_intent" in site.get("candidate_relations", [])
+    ]
+    application_sources = [
+        path for directory in (root / "services", root / "extensions")
+        for path in directory.rglob("*")
+        if path.is_file() and path.suffix in {".py", ".ts", ".js"}
+    ]
+
+    assert "chat_intent" in runtime_role._RUNTIME_MUTATION_TABLES
+    assert "CREATE TABLE IF NOT EXISTS chat_intent" in schema
+    assert intent_sites
+    assert all(site["statement_kind"] == "SELECT" for site in intent_sites)
+    assert not any(
+        "chat_intent" in site.get("write_target_relations", [])
+        for site in sql_inventory["execution_sites"]
+    )
+    assert not any(
+        re.search(
+            r"\b(?:INSERT\s+INTO|UPDATE|DELETE\s+FROM|MERGE\s+INTO)\s+"
+            r"(?:public\.)?chat_intent\b",
+            path.read_text(errors="replace"),
+            re.I,
+        )
+        for path in application_sources
+    )
+    assert "ON CONFLICT (name) DO UPDATE" in schema
+    assert migration.count("BEGIN;") == 1 and migration.count("COMMIT;") == 1
+    assert "REVOKE INSERT, UPDATE, DELETE, TRUNCATE, REFERENCES, TRIGGER" in migration
+    assert "ON TABLE public.chat_intent FROM kokonut_runtime" in migration
+    assert "GRANT SELECT ON TABLE public.chat_intent TO kokonut_runtime" in migration
+    assert "REVOKE INSERT (%1$I), UPDATE (%1$I), REFERENCES (%1$I)" in migration
+    assert "kokonut_directus_runtime" not in migration
+    assert "External SQL clients" in migration and "unconfirmed" in migration
+    assert "does not establish tenant isolation" in migration
+
+
 def test_capex_breakdown_is_read_only_to_kernel_runtime():
     root = Path(__file__).resolve().parents[1]
     migration = (

@@ -28,6 +28,7 @@ services:
   worker:
     init: true
     stop_grace_period: 40s
+    image: ${KOKONUT_KERNEL_APP_IMAGE:-kokonut-kernel-candidate:local}
     build:
       context: .
       dockerfile: Dockerfile.kernel

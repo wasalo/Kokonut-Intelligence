@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import hashlib
+import importlib.util
 import json
 import os
 import shlex
@@ -15,14 +17,27 @@ import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
 PLANNER = ROOT / "scripts" / "kernel-profile.py"
+RECOVERY_SCRIPT = ROOT / "scripts" / "check-kernel-standard-recovery-disposable.py"
+RECOVERY_SPEC = importlib.util.spec_from_file_location(
+    "kernel_standard_recovery_check", RECOVERY_SCRIPT
+)
+assert RECOVERY_SPEC is not None and RECOVERY_SPEC.loader is not None
+RECOVERY_CHECK = importlib.util.module_from_spec(RECOVERY_SPEC)
+RECOVERY_SPEC.loader.exec_module(RECOVERY_CHECK)
 
 
-def _run_planner(*arguments: str) -> subprocess.CompletedProcess[str]:
+def _run_planner(
+    *arguments: str, env: dict[str, str] | None = None
+) -> subprocess.CompletedProcess[str]:
+    child_env = os.environ.copy()
+    if env is not None:
+        child_env.update(env)
     return subprocess.run(
         [sys.executable, str(PLANNER), *arguments],
         cwd=ROOT,
         capture_output=True,
         text=True,
+        env=child_env,
         check=False,
     )
 
@@ -133,6 +148,152 @@ def test_standard_runtime_role_bootstrap_is_an_explicit_one_shot_action() -> Non
     assert any(Path(value).name == "docker-compose.kernel-runtime-role.yml" for value in command)
     assert command[command.index("--profile") + 1] == "runtime-admin"
     assert command[-4:] == ["run", "--rm", "--build", "runtime-role-bootstrap"]
+
+
+def test_standard_release_action_requires_digest_pinned_application_image() -> None:
+    result = _run_planner(
+        "standard", "--action", "release-up", env={"KOKONUT_KERNEL_APP_IMAGE": "kokonut/kernel:latest"}
+    )
+
+    assert result.returncode != 0
+    assert "immutable image reference" in result.stderr
+
+
+def test_standard_release_action_pulls_digest_images_and_never_builds() -> None:
+    image = "ghcr.io/wasalo/kokonut-kernel@sha256:" + ("a" * 64)
+    result = _run_planner(
+        "standard", "--action", "release-up", env={"KOKONUT_KERNEL_APP_IMAGE": image}
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert " pull && " in result.stdout
+    assert "up -d --no-build --wait --wait-timeout 300" in result.stdout
+    assert "--build" not in result.stdout
+    assert "docker-compose.kernel-standard.yml" in result.stdout
+    assert image not in result.stdout
+
+
+def test_standard_oidc_release_requires_its_separately_pinned_image() -> None:
+    image = "ghcr.io/wasalo/kokonut-kernel@sha256:" + ("b" * 64)
+    result = _run_planner(
+        "standard", "--oidc", "--action", "release-up", env={"KOKONUT_KERNEL_APP_IMAGE": image}
+    )
+
+    assert result.returncode != 0
+    assert "KOKONUT_KERNEL_OIDC_IMAGE" in result.stderr
+
+
+def test_standard_oidc_release_uses_both_digest_pinned_images() -> None:
+    image = "ghcr.io/wasalo/kokonut-kernel@sha256:" + ("b" * 64)
+    oidc_image = "ghcr.io/wasalo/kokonut-kernel-oidc@sha256:" + ("c" * 64)
+    result = _run_planner(
+        "standard",
+        "--oidc",
+        "--action",
+        "release-up",
+        env={
+            "KOKONUT_KERNEL_APP_IMAGE": image,
+            "KOKONUT_KERNEL_OIDC_IMAGE": oidc_image,
+        },
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert "docker-compose.kernel-standard.yml" in result.stdout
+    assert "docker-compose.kernel-oidc.yml" in result.stdout
+    assert image not in result.stdout
+    assert oidc_image not in result.stdout
+
+
+@pytest.mark.parametrize(
+    "overlay",
+    ["--grpc", "--http-sensors", "--directus", "--mqtt", "--sensor-anomaly-ml"],
+)
+def test_standard_release_rejects_overlays_without_release_image_contract(
+    overlay: str,
+) -> None:
+    image = "ghcr.io/wasalo/kokonut-kernel@sha256:" + ("e" * 64)
+    result = _run_planner(
+        "standard",
+        overlay,
+        "--action",
+        "release-up",
+        env={"KOKONUT_KERNEL_APP_IMAGE": image},
+    )
+
+    assert result.returncode != 0
+    assert "does not yet publish immutable images" in result.stderr
+
+
+def test_standard_zitadel_release_rejects_mutable_image_override() -> None:
+    image = "ghcr.io/wasalo/kokonut-kernel@sha256:" + ("f" * 64)
+    result = _run_planner(
+        "standard",
+        "--zitadel",
+        "--action",
+        "release-up",
+        env={
+            "KOKONUT_KERNEL_APP_IMAGE": image,
+            "KOKONUT_KERNEL_OIDC_IMAGE": image,
+            "KOKONUT_ZITADEL_API_IMAGE": "ghcr.io/zitadel/zitadel:latest",
+        },
+    )
+
+    assert result.returncode != 0
+    assert "KOKONUT_ZITADEL_API_IMAGE" in result.stderr
+
+
+def test_standard_zitadel_release_accepts_only_digest_pinned_image_overrides() -> None:
+    image = "ghcr.io/wasalo/kokonut-kernel@sha256:" + ("1" * 64)
+    postgres_image = "postgres:17.10-alpine@sha256:" + ("2" * 64)
+    api_image = "ghcr.io/zitadel/zitadel:v4.19.4@sha256:" + ("3" * 64)
+    login_image = "ghcr.io/zitadel/zitadel-login:v4.19.4@sha256:" + ("4" * 64)
+    result = _run_planner(
+        "standard",
+        "--zitadel",
+        "--action",
+        "release-up",
+        env={
+            "KOKONUT_KERNEL_APP_IMAGE": image,
+            "KOKONUT_KERNEL_OIDC_IMAGE": image,
+            "KOKONUT_ZITADEL_POSTGRES_IMAGE": postgres_image,
+            "KOKONUT_ZITADEL_API_IMAGE": api_image,
+            "KOKONUT_ZITADEL_LOGIN_IMAGE": login_image,
+        },
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert "zitadel" in result.stdout
+
+
+def test_standard_zitadel_default_images_are_digest_pinned() -> None:
+    compose = yaml.safe_load((ROOT / "docker-compose.kernel-zitadel.yml").read_text())
+
+    for service_name in ("zitadel-db", "zitadel-bootstrap-permissions", "zitadel-api", "zitadel-login"):
+        image = compose["services"][service_name]["image"]
+        assert "@sha256:" in image
+
+
+def test_standard_source_build_rejects_an_accidentally_selected_release_digest() -> None:
+    image = "ghcr.io/wasalo/kokonut-kernel@sha256:" + ("d" * 64)
+    result = _run_planner("standard", "--action", "up", env={"KOKONUT_KERNEL_APP_IMAGE": image})
+
+    assert result.returncode != 0
+    assert "source-built local images" in result.stderr
+
+
+def test_compose_profile_tags_application_and_worker_to_the_same_default_image() -> None:
+    candidate = yaml.safe_load((ROOT / "docker-compose.kernel-candidate.yml").read_text())
+    standard = yaml.safe_load((ROOT / "docker-compose.kernel-standard.yml").read_text())
+
+    expected = "${KOKONUT_KERNEL_APP_IMAGE:-kokonut-kernel-candidate:local}"
+    assert candidate["services"]["app"]["image"] == expected
+    assert standard["services"]["worker"]["image"] == expected
+
+
+def test_oidc_compose_profile_uses_a_distinct_release_image_from_the_base() -> None:
+    oidc = yaml.safe_load((ROOT / "docker-compose.kernel-oidc.yml").read_text())
+
+    assert oidc["services"]["app"]["image"] == "${KOKONUT_KERNEL_OIDC_IMAGE:-kokonut-kernel-oidc:local}"
 
 
 def test_standard_database_up_action_starts_only_the_database() -> None:
@@ -784,3 +945,106 @@ def test_arm64_overlay_pins_platform_package_versions_and_worker_profile() -> No
     standard = yaml.safe_load((ROOT / "docker-compose.kernel-arm64-standard.yml").read_text())
     assert standard["services"]["worker"]["platform"] == "linux/arm64"
     assert standard["services"]["worker"]["build"]["platforms"] == ["linux/arm64"]
+
+
+def test_standard_recovery_uses_content_verified_ordered_schema_snapshot(tmp_path) -> None:
+    source = tmp_path / "source"
+    snapshot = tmp_path / "snapshot"
+    source.mkdir()
+    (source / "717_last.sql").write_text("SELECT 717;", encoding="utf-8")
+    (source / "10_tenth.sql").write_text("SELECT 10;", encoding="utf-8")
+    (source / "2_second.sql").write_text("SELECT 2;", encoding="utf-8")
+    (source / "not-a-migration.sql").write_text("ignored", encoding="utf-8")
+
+    files, manifest_digest = RECOVERY_CHECK._snapshot_schema_migrations(source, snapshot)
+
+    assert [path.name for path in files] == ["2_second.sql", "10_tenth.sql", "717_last.sql"]
+    expected_manifest = "\n".join(
+        f"{name}\t{hashlib.sha256(content).hexdigest()}"
+        for name, content in (
+            ("2_second.sql", b"SELECT 2;"),
+            ("10_tenth.sql", b"SELECT 10;"),
+            ("717_last.sql", b"SELECT 717;"),
+        )
+    )
+    assert manifest_digest == hashlib.sha256(expected_manifest.encode("utf-8")).hexdigest()
+
+    (source / "717_last.sql").write_text("SELECT changed;", encoding="utf-8")
+    (source / "718_new.sql").write_text("SELECT 718;", encoding="utf-8")
+    assert [path.name for path in RECOVERY_CHECK._ordered_schema_migration_files(snapshot)] == [
+        "2_second.sql",
+        "10_tenth.sql",
+        "717_last.sql",
+    ]
+    assert files[-1].read_text(encoding="utf-8") == "SELECT 717;"
+
+
+def test_standard_recovery_rejects_source_changes_during_snapshot(tmp_path, monkeypatch) -> None:
+    source = tmp_path / "source"
+    snapshot = tmp_path / "snapshot"
+    source.mkdir()
+    (source / "717_last.sql").write_text("SELECT 717;", encoding="utf-8")
+    discover = RECOVERY_CHECK._ordered_schema_migration_files
+    calls = 0
+
+    def add_migration_between_inventory_reads(directory: Path) -> list[Path]:
+        nonlocal calls
+        calls += 1
+        if calls == 2:
+            (source / "718_new.sql").write_text("SELECT 718;", encoding="utf-8")
+        return discover(directory)
+
+    monkeypatch.setattr(
+        RECOVERY_CHECK, "_ordered_schema_migration_files", add_migration_between_inventory_reads
+    )
+
+    with pytest.raises(RECOVERY_CHECK.AcceptanceError, match="changed while.*captured"):
+        RECOVERY_CHECK._snapshot_schema_migrations(source, snapshot)
+
+
+def test_standard_recovery_migration_command_pins_cli_to_snapshot(tmp_path) -> None:
+    command = RECOVERY_CHECK._migration_runner_command(
+        "synthetic-project", tmp_path / "compose.json", tmp_path / "schema-snapshot"
+    )
+
+    assert command[1] == "-c"
+    assert command[3] == str(tmp_path / "schema-snapshot")
+    assert "cli.SCHEMA_DIR = Path(sys.argv.pop(1))" in command[2]
+    assert command.count("migrate") == 1
+    assert command[-2:] == ["migrate", "--schemas-only"]
+
+
+def test_standard_recovery_cli_can_validate_a_snapshot_without_database_access(tmp_path) -> None:
+    snapshot = tmp_path / "schema-snapshot"
+    snapshot.mkdir()
+    (snapshot / "717_snapshot_probe.sql").write_text("SELECT 717;", encoding="utf-8")
+    compose_manifest = tmp_path / "compose.json"
+    compose_manifest.write_text("{}", encoding="utf-8")
+    command = RECOVERY_CHECK._migration_runner_command(
+        "synthetic-project", compose_manifest, snapshot
+    )
+    command[-2] = "validate"
+
+    result = subprocess.run(command, cwd=ROOT, capture_output=True, text=True, check=False)
+
+    assert result.returncode == 0, result.stderr
+    assert "Validated 1 migration source files." in result.stdout
+
+
+def test_standard_recovery_built_image_probe_requires_exact_snapshot_manifest() -> None:
+    expected = {"count": 1, "latest": "schema:717_snapshot_probe.sql", "sha256": "a" * 64}
+
+    assert RECOVERY_CHECK._assert_image_schema_snapshot(
+        json.dumps(expected),
+        expected_count=1,
+        expected_latest="schema:717_snapshot_probe.sql",
+        expected_digest="a" * 64,
+    ) == expected
+
+    with pytest.raises(RECOVERY_CHECK.AcceptanceError, match="does not match the captured"):
+        RECOVERY_CHECK._assert_image_schema_snapshot(
+            json.dumps({**expected, "sha256": "b" * 64}),
+            expected_count=1,
+            expected_latest="schema:717_snapshot_probe.sql",
+            expected_digest="a" * 64,
+        )

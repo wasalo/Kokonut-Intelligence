@@ -1,6 +1,6 @@
 # Kokonut Kernel refactor TODO
 
-Updated: 31 October 2026. This is the active cross-phase work queue for the
+Updated: 1 November 2026. This is the active cross-phase work queue for the
 owner-provided [architecture implementation plan](implementation-plan-alignment.md).
 The detailed, historically preserved acceptance records remain in
 [batches.md](batches.md); this file groups their remaining gates into work that
@@ -8,7 +8,7 @@ can proceed now and gates that need an owner, provider, populated source data,
 or production environment. Check an item only when its evidence is recorded in
 the batch log and the affected capability/progress records are updated.
 
-**Current queue snapshot (31 October 2026):** 777 checked / 32 open across the TODO's dated and active checklist sections. Historical snapshots below this
+**Current queue snapshot (1 November 2026):** 784 checked / 36 open across the TODO's dated and active checklist sections. Historical snapshots below this
 active queue remain dated records and do not replace the current count.
 
 **Hosted validation (31 October 2026):** On the pre-batch PR head `fb4cc883`,
@@ -4736,3 +4736,42 @@ or production databases. See [batch evidence](batches.md) and
 No capability classification changes. The C1 aggregate remains through
 migration 711; candidate, legacy, and production databases/roles are untouched
 ([acceptance](builds/2026-11-01-recovery/climate-worker-716-disposable.json)).
+
+### C1 continuation — `chat_intent` runtime ACL — 1 November 2026
+
+- [x] Confirm the runtime reader is SELECT-only, the schema seed/upsert remains
+  maintenance-owned, and no application write target exists; add migration 717
+  and reapply the runtime-role DML denial while preserving runtime SELECT.
+- [x] Pass focused source and migration-order regressions plus disposable
+  PostgreSQL 16 migration replay, runtime table/column denial, Directus write
+  preservation, and maintenance seed-upsert checks. The broader synthetic
+  runtime provisioner check passes across 192 relations; Ruff, compilation,
+  inventory/ledger freshness, and diff checks pass
+  ([evidence](builds/2026-11-01-recovery/chat-intent-runtime-acl-717.json)).
+- [ ] Verify external SQL callers do not use `kokonut_runtime` to write
+  `chat_intent` before any persistent candidate or production rollout.
+
+This local migration does not refresh the aggregate ACL report (still through
+711), establish tenant isolation/RLS, or close broad C1. No candidate, legacy,
+or production database/role was changed; hosted CI was not run for migration
+717.
+
+### C1 continuation — market-data writer boundary and Standard recovery — 1 November 2026
+
+- [x] Add migration 718 and the isolated worker path for manual market-price
+  and curated reference-seed writes while preserving runtime reads and the
+  legacy persisted schedule entrypoint.
+- [x] Pass the network-disabled Standard disposable recovery through migration
+  718 using a single migration snapshot for both app images; 709/709 schema
+  files applied, with zero seeds/failures, and API/worker health, outage
+  recovery, heartbeat privacy, shutdown, and cleanup passed
+  ([evidence](builds/2026-11-01-recovery/standard-profile-recovery-718-disposable.json)).
+- [ ] Run the focused migration-718 price-writer checker and obtain hosted
+  green CI/Security for this batch. CI #1037 failed earlier while applying
+  migration 542, with psql exit status 3 but no PostgreSQL detail.
+- [ ] Confirm external `kokonut_runtime` consumers before persistent rollout;
+  API and worker still share this login.
+
+The C1 aggregate ACL report and two-tenant operator-scope probe remain through
+migration 711. No persistent candidate, legacy, or production database/role
+was changed.

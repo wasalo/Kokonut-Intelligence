@@ -24,7 +24,58 @@ incomplete in the inventory.
 
 ## Current evidence and decisions
 
-### Latest C1 continuation — migration 716 climate function boundary — 1 November 2026
+### Latest C1 continuation — migration 718 market-data write boundary — 1 November 2026
+
+Migration 718 keeps global reference-price writes out of the shared
+`kokonut_runtime` identity. The dedicated market-data function owner and login
+from migration 430 now cover the manual-price and curated reference-seed
+paths, alongside World Bank ingestion; application runtime retains its
+read-only market-price access. The dispatcher retains the old persisted task
+module for compatibility, while newly seeded schedules target
+`services.ingestion.market_data_worker`.
+
+The network-disabled disposable Standard recovery applied 709/709 ordered
+schema files through migration 718, with zero failures or seeds, from one
+captured SQL snapshot shared by the API and worker images. Role reapplication,
+health/recovery, heartbeat privacy, shutdown, and cleanup passed
+([Standard acceptance](builds/2026-11-01-recovery/standard-profile-recovery-718-disposable.json)).
+The focused market-data migration checker and hosted confirmation are tracked
+separately; current hosted CI #1037 failed earlier while applying migration
+542 and did not reach migration 718.
+
+The API and worker still share `kokonut_runtime`, and external consumers of
+the legacy shared identity have not been reconciled. The aggregate C1 report
+and two-tenant operator-scope probe remain through migration 711. No
+persistent candidate, legacy, or production database/role was changed.
+
+### Latest C1 continuation — migration 717 `chat_intent` runtime ACL — 1 November 2026
+
+Source review found one application runtime reader for active `chat_intent`
+rows in `services/analytics/llm_chat.py`, no application write target, and the
+schema-maintenance seed/upsert in migration 140. Migration 717 denies only
+`kokonut_runtime` table and residual column mutation privileges while
+preserving SELECT. The runtime-role provisioner now reapplies that relation's
+mutation denial after compatibility grants; the optional Directus role and
+separate maintenance/seed path are unchanged.
+
+The focused network-disabled disposable PostgreSQL 16 check applies and
+replays migration 717, verifies runtime reads and table/column write denial,
+and confirms Directus writes and the maintenance seed upsert remain available.
+The focused source regression passes (1 test); the migration test module passes
+39 tests. Ruff, Python compilation, runtime SQL inventory and unresolved-write
+ledger freshness, and diff checks pass. The broader synthetic runtime-role
+checker also passes its provisioner-reapplication probe across 192 relations
+([migration](../../schemas/postgres/717_runtime_chat_intent_read_only.sql);
+[focused checker](../../scripts/check-chat-intent-runtime-boundary-disposable.py);
+[acceptance](builds/2026-11-01-recovery/chat-intent-runtime-acl-717.json)).
+
+External SQL clients that write through `kokonut_runtime` remain unconfirmed;
+verify them before persistent candidate or production rollout. No candidate,
+legacy, or production database/role changed. This slice does not refresh the
+aggregate ACL report (still through migration 711), close broad C1, or
+establish tenant isolation/RLS.
+
+### Previous C1 continuation — migration 716 climate function boundary — 1 November 2026
 
 Migration 716 retains `kokonut_security.store_climate_summary` for historical
 compatibility but revokes its execution from `kokonut_worker_execution`,

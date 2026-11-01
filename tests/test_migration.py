@@ -157,6 +157,20 @@ def test_farmer_role_acl_migration_is_discovered_as_ordered_latest_schema():
     assert schema_files[schema_ids.index(current)]["version"] == "707"
 
 
+def test_chat_intent_runtime_acl_migration_follows_current_schema_head():
+    schema_ids = [
+        item["id"]
+        for item in cli._discover_files(include_seeds=False)
+        if item["kind"] == "schema"
+    ]
+    previous = "schema:716_retire_climate_summary_v1_worker_grant.sql"
+    current = "schema:717_runtime_chat_intent_read_only.sql"
+
+    assert previous in schema_ids
+    assert current in schema_ids
+    assert schema_ids.index(current) == schema_ids.index(previous) + 1
+
+
 def test_discovery_rejects_duplicate_ids(tmp_path, monkeypatch):
     directory = tmp_path / "sql"
     directory.mkdir()

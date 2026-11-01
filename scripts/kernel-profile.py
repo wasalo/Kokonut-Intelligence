@@ -4,11 +4,13 @@
 from __future__ import annotations
 
 import argparse
+import os
 import re
 import shlex
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
+IMAGE_DIGEST_RE = re.compile(r"^\S+@sha256:[0-9a-f]{64}$")
 BASE = "docker-compose.kernel-candidate.yml"
 ARM64 = "docker-compose.kernel-arm64.yml"
 ARM64_STANDARD = "docker-compose.kernel-arm64-standard.yml"
@@ -40,6 +42,25 @@ OPTIONAL = {
     "exports": "docker-compose.kernel-core-exports.yml",
     "local_media": "docker-compose.kernel-core-local-media.yml",
 }
+RELEASE_UNSUPPORTED_OPTIONALS = {
+    # These overlays add a locally-built service or mutable extension artifact.
+    # They remain available to source deployments but need their own published,
+    # digest-addressed image contract before `release-up` can select them.
+    "grpc",
+    "http_sensors",
+    "directus",
+    "mqtt",
+    "sensor_anomaly_ml",
+}
+ZITADEL_RELEASE_IMAGE_VARIABLES = (
+    "KOKONUT_ZITADEL_POSTGRES_IMAGE",
+    "KOKONUT_ZITADEL_API_IMAGE",
+    "KOKONUT_ZITADEL_LOGIN_IMAGE",
+)
+
+
+def _is_digest_pinned_image(value: str) -> bool:
+    return IMAGE_DIGEST_RE.fullmatch(value) is not None
 
 
 def main() -> None:
@@ -61,7 +82,7 @@ def main() -> None:
     )
     parser.add_argument(
         "--action",
-        choices=["config", "build", "up", "ps", "database-up", "migrate", "bootstrap-runtime-role"],
+        choices=["config", "build", "up", "release-up", "ps", "database-up", "migrate", "bootstrap-runtime-role"],
         default="config",
     )
     args = parser.parse_args()
@@ -120,6 +141,45 @@ def main() -> None:
         # OIDC client settings. One flag produces a complete, ordered stack;
         # Standard already includes the shared proxy overlay by default.
         selected_optional.update({"proxy", "oidc"})
+    if args.action == "release-up":
+        if args.profile != "standard":
+            parser.error("--action release-up applies only to standard")
+        unsupported = selected_optional & RELEASE_UNSUPPORTED_OPTIONALS
+        if unsupported:
+            parser.error(
+                "release-up does not yet publish immutable images for these optional overlays: "
+                + ", ".join(sorted(unsupported))
+                + "; use the source-build action or omit them from the release profile"
+            )
+        app_image = os.environ.get("KOKONUT_KERNEL_APP_IMAGE", "")
+        if not _is_digest_pinned_image(app_image):
+            parser.error(
+                "release-up requires KOKONUT_KERNEL_APP_IMAGE to be an immutable "
+                "image reference ending in @sha256:<64 lowercase hex digits>"
+            )
+        if "oidc" in selected_optional and not _is_digest_pinned_image(
+            os.environ.get("KOKONUT_KERNEL_OIDC_IMAGE", "")
+        ):
+            parser.error(
+                "release-up with --oidc/--zitadel requires KOKONUT_KERNEL_OIDC_IMAGE "
+                "to be an immutable image reference ending in @sha256:<64 lowercase hex digits>"
+            )
+        if args.zitadel:
+            for variable in ZITADEL_RELEASE_IMAGE_VARIABLES:
+                override = os.environ.get(variable)
+                if override and not _is_digest_pinned_image(override):
+                    parser.error(
+                        f"release-up with --zitadel requires {variable} overrides to be "
+                        "immutable image references ending in @sha256:<64 lowercase hex digits>"
+                    )
+    elif args.action in {"build", "up"} and (
+        _is_digest_pinned_image(os.environ.get("KOKONUT_KERNEL_APP_IMAGE", ""))
+        or _is_digest_pinned_image(os.environ.get("KOKONUT_KERNEL_OIDC_IMAGE", ""))
+    ):
+        parser.error(
+            "build/up use source-built local images; unset digest-pinned image variables "
+            "or use --action release-up"
+        )
     files.extend(path for name, path in OPTIONAL.items() if name in selected_optional)
     if is_arm64:
         files.append(ARM64)
@@ -174,6 +234,19 @@ def main() -> None:
         ])
     elif args.action == "config":
         command.extend(["config", "--quiet"])
+    elif args.action == "release-up":
+        pull_command = [*command, "pull"]
+        up_command = [
+            *command,
+            "up",
+            "-d",
+            "--no-build",
+            "--wait",
+            "--wait-timeout",
+            "300",
+        ]
+        print(f"{shlex.join(pull_command)} && {shlex.join(up_command)}")
+        return
     elif args.action == "up":
         command.extend(["up", "-d", "--build"])
     else:

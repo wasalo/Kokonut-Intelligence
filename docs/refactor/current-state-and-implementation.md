@@ -84,7 +84,7 @@ command and applicable rollout procedure.
 | **minimal** | Private PostgreSQL/PostGIS plus the combined Kernel app/API and enabled worker processes. | Smallest candidate deployment shape. Capability parity, recovery, live identity, and operational acceptance remain open. |
 | **core** | Minimal app built from the reduced, hash-locked dependency set. Optional Web3, exports, and local-media packages are selected explicitly. | Packaging profile, not a different data model. The current OIDC app overlay is incompatible with this reduced image. |
 | **edge** | Minimal plus encrypted local media and edge-oriented resource settings; MQTT/HTTP sensors remain separately selectable overlays. | No physical Raspberry Pi test has been performed. QEMU and source-level ARM64 checks do not establish device performance or power-loss behavior. |
-| **standard** | PostgreSQL plus distinct API and durable-worker roles, with loopback-bound Caddy ingress by default. `--no-proxy` selects a separately managed ingress. Both processes require a dedicated non-owner, non-privileged login before starting children; the worker also has a read-only PostgreSQL probe for stale leases, old eligible due backlog, and supervisor/child-process liveness. | The latest Standard recovery acceptance applies 703 schema files through migration 712, provisions the runtime role, verifies bounded gateway rate-limit ACLs and consume/cleanup behavior, confirms API/worker identities, and passes outage recovery and cleanup ([evidence](builds/2026-10-31-recovery/standard-profile-rate-limit-712-disposable.json)). Source now contains migration 713; its signed climate behavior passes a focused disposable replay, but it is not included in the full Standard replay. Candidate rollout, live identity, populated lease/provider recovery, external alert routing, public ingress, backup/restore, scale, prolonged recovery, and physical-device acceptance remain open. The probe reports aggregate counts and ages without IDs or payloads; it detects exited children but not an alive-but-hung child. The default Caddy listener is local TLS, not public production ingress. |
+| **standard** | PostgreSQL plus separate API and durable-worker services sharing one application image, with loopback-bound Caddy ingress by default. `--no-proxy` selects a separately managed ingress. Both services require a dedicated non-owner, non-privileged login before starting children; the worker also has a read-only PostgreSQL probe for stale leases, old eligible due backlog, and supervisor/child-process liveness. `--action release-up` prints a no-build pull/start command and requires digest-pinned application images. | The latest network-disabled Standard recovery applied 709/709 schema files through migration 718 against one captured SQL snapshot; both application images matched its digest. Runtime-role reapplication, API/worker/proxy health, database outage/recovery, heartbeat privacy, shutdown, and disposable cleanup passed ([evidence](builds/2026-11-01-recovery/standard-profile-recovery-718-disposable.json)). API and worker still share the `kokonut_runtime` database login, so distinct identities remain an open C1 boundary. Release image publication, current-target migration/role rollout, candidate rollout, live identity, populated lease/provider recovery, external alert routing, public ingress, backup/restore, scale, prolonged recovery, and physical-device acceptance remain open. The probe reports aggregate counts and ages without IDs or payloads; it detects exited children but not an alive-but-hung child. The default Caddy listener is local TLS, not public production ingress. |
 | **analytics** | Minimal plus private ClickHouse analytical projection. `--separate-workers` adds standard API/worker separation. | Requires projection parity, rebuild/outage behavior, and worker recovery acceptance. Metabase is not required. |
 | **scale** | Rejected by the planner. | Multi-host/replica behavior, shared budgets, failover, measured sizing, and concurrency/recovery gates are not accepted. |
 
@@ -103,7 +103,12 @@ an external ingress; `standard --oidc` uses the default Caddy layer, while
 `standard --no-proxy --oidc` requires an externally managed HTTPS origin.
 Public DNS/TLS, firewall, trusted-proxy, secure-cookie, and browser trust
 acceptance remain open. See the [Standard profile guide](standard-profile.md)
-for exact selection and operational constraints.
+for exact selection and operational constraints. The source-build `build` and
+`up` actions remain for development. The new `release-up` action requires a
+digest-pinned application image (and a separate digest-pinned OIDC image when
+selected), pulls before starting with `--no-build`, and currently rejects
+source-only optional service overlays without a published immutable-image
+contract. Registry publication and target acceptance have not been performed.
 
 ARM64 image and emulated schema/runtime checks are portability evidence. The
 owner has no Raspberry Pi available, so physical-device, thermal, storage,
@@ -145,16 +150,29 @@ older counts and deployment statements are snapshots from their dates.
 
 ## C1 runtime ACL work: current batch
 
-C1 remains **open**. The latest C1 source addition is migration 714, which
-keeps the location-solution creation retry receipt private from `PUBLIC`, the
-runtime role, and Directus while preserving its bounded function-owner column
-grants. Its focused role/migration tests and 11-group disposable PostgreSQL 16
-apply/replay pass ([evidence](builds/2026-10-31-recovery/runtime-solution-creation-receipt-714-disposable.json)).
+C1 remains **open**. Migrations 717 and 718 add two reviewed boundaries. Migration
+717 makes `chat_intent` read-only to `kokonut_runtime` while preserving runtime
+SELECT, Directus access, and migration/maintenance seed upserts. Migration 718
+removes direct runtime writes to `price_observation` and routes World Bank,
+reference-seed, and manual marketplace-price writes through bounded functions
+owned by the dedicated market-data identity. Focused runtime-role, migration,
+and Standard recovery checks pass through migration 718. The migration-717
+runtime-boundary reapplication check passed across 192 synthetic relations
+([717 evidence](builds/2026-11-01-recovery/chat-intent-runtime-acl-717.json);
+[Standard recovery evidence](builds/2026-11-01-recovery/standard-profile-recovery-718-disposable.json)).
+External `kokonut_runtime` SQL clients remain unconfirmed and must be reviewed
+before persistent rollout. Migration 714 keeps the location-solution creation
+retry receipt private from `PUBLIC`, the runtime role, and Directus while
+preserving its bounded function-owner column grants. Its focused role/migration
+tests and 11-group disposable PostgreSQL 16 apply/replay pass
+([evidence](builds/2026-10-31-recovery/runtime-solution-creation-receipt-714-disposable.json)).
 Migration 713's climate worker compatibility and plot-only geometry behavior
 also pass focused unit and disposable acceptance
 ([climate evidence](builds/2026-10-31-recovery/climate-worker-713-disposable.json)).
-Neither migration has been included in a fresh full-schema replay or applied
-to a persistent candidate. The latest aggregate C1 source/ACL evidence remains a
+Migrations through 718 now appear in the Standard profile's fresh full-schema
+replay, but the aggregate C1 report and two-tenant operator-scope probe have
+not been refreshed past migration 711, and no migration has been rolled onto a
+persistent candidate. The latest aggregate C1 source/ACL evidence remains a
 network-disabled, portless native PostgreSQL 16 replay
 through migration 711 applied all 702 ordered schema files and passed the
 synthetic two-tenant operator-scope probe. The refreshed source/ACL report
@@ -171,20 +189,28 @@ The latest code-first cohort includes:
 
 | Change | Result and boundary | Evidence |
 | --- | --- | --- |
+| Migration 718 — isolated global market-data writes | Retires direct runtime mutation of `price_observation`; the dedicated market-data worker uses bounded reference-seed, manual-price, and World Bank functions. Runtime SELECT remains. External runtime callers remain a persistent-rollout review gate. | [Full Standard replay through 718](builds/2026-11-01-recovery/standard-profile-recovery-718-disposable.json) |
+| Migration 717 — read-only chat-intent runtime access | Preserves runtime reads and migration/maintenance upserts while revoking table and column mutation from `kokonut_runtime`; Directus is intentionally unchanged. Runtime provisioner reapplication does not restore DML. External runtime-login clients remain unconfirmed. | [Disposable apply/replay and runtime-boundary checks](builds/2026-11-01-recovery/chat-intent-runtime-acl-717.json) |
 | Migration 716 — retire climate v1 worker grant | Keeps the legacy `store_climate_summary` definition for compatibility but removes execution from the worker, runtime, optional Directus, and `PUBLIC`; the active climate worker continues using signed `store_climate_summary_v2`. Disposable PostgreSQL acceptance applies/replays both migrations and exercises all five source writes, retries, failure audit, and location scope. External callers remain a persistent-rollout gate. | [Disposable apply/replay and climate worker checks](builds/2026-11-01-recovery/climate-worker-716-disposable.json) |
 | Migration 715 — private location-write receipts | Revokes `PUBLIC`, `kokonut_runtime`, and `kokonut_directus_runtime` table and residual column privileges on 23 audited idempotency receipts while preserving mapped function-owner column grants. Runtime provisioning keeps the relations private. The migration changes no business function or retry behavior; external receipt consumers still require review before persistent rollout. | [Disposable apply/replay and ACL checks](builds/2026-11-01-recovery/runtime-private-location-write-receipts-715-disposable.json) |
 | CI #1033 runtime inventory repair | Regenerated the source inventory after a receipt-list insertion shifted line-based SQL call-site IDs. The inventory and unresolved-write ledger now pass locally; this does not establish ACL coverage or close C1. | [CI diagnosis and repair evidence](builds/2026-11-01-recovery/ci-1033-runtime-sql-inventory-repair.json) |
+| CI workflow hardening | The hosted CI #1037 run passed preflight and source checks; integration failed during `seed.sh` while applying migration 365, while the ARM64 build was still running at last inspection. The migration runner reports only psql exit status, so the SQL error detail still needs investigation. Earlier CI #1036 exposed a workflow validation error from job-level `runner.temp`; commit `0386dcf` moved the context to step scope. This demonstrates the aggregate finalizes reported gate outcomes; it does not explain or resolve the migration-365 failure. | [Workflow](../../.github/workflows/ci.yml); [preflight](../../scripts/ci-preflight.sh); [runner](../../scripts/run-github-ci.sh); [fast-fail gate](../../scripts/ci-check.sh); [contract tests](../../tests/test_github_ci_workflow.py); [CI #1037](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/41264042173) |
 | Migration 711 — energy-reading capture | Adds a signed, exact-location Gateway capture with idempotent receipts and private audit reason; retains `recorded` lifecycle; revokes runtime table/column DML while preserving SELECT and the existing Directus/maintenance write boundary. The legacy direct writer now fails closed before DB access. | [Disposable apply/replay and authorization checks](builds/2026-10-31-recovery/energy-reading-capture-711-disposable.json) |
 | Remote-sensing due-runner retirement | Legacy `--run-jobs`, `run_due_jobs()`, and `_claim_due_jobs()` paths fail before DB/provider access and direct operators to the default-off signed worker. Create/list/manual-job paths remain; this is not a blanket `remote_sensing_job` ACL revocation. | Focused remote-sensing/scheduler tests recorded in the current batch below. |
 | Runtime SQL inventory reconciliation | Regenerated the tracked inventory and review ledger after the due-claim query was retired. The freshness check passes locally; the stale fingerprint was removed from the unresolved candidate set. | `python3 scripts/runtime_sql_inventory.py --check docs/refactor/runtime-sql-inventory.json` |
 
 The user-linked [CI #1014](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/41172853331)
-was on older head `aa6a01a`: attempt 1 failed, but GitHub has expired its job
-log; attempt 2 was cancelled during Buildx dependency installation when a newer
-run superseded it. Its original failure cause cannot be established. Later
-commits on this branch add an isolated multi-architecture Buildx cache and run
-the image gate in parallel with full CI, but those changes do not prove the
-cause of #1014. The later current-head [CI #1029](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/41233060705)
+was on older head `aa6a01a`: attempt 1 failed after 1h 13m. Its Actions
+annotation says “The hosted runner lost communication with the server”; that
+message does not identify whether network loss, resource pressure, or another
+runner-side condition caused it.
+The job-log endpoint does return logs for the later attempt: attempt 2 reached
+the BuildKit dependency download, then logged “The operation was canceled” as a
+newer PR revision superseded it. This is expected concurrency cancellation,
+not GitHub failing to finalize the job.
+Later commits on this branch isolate the multi-architecture image gate from
+full CI. This separation reduces shared runner contention but does not prove
+the cause of #1014. The later current-head [CI #1029](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/41233060705)
 failed at the fast-fail gate because `runtime-sql-inventory.json` was stale;
 that occurrence was repaired locally. The next [CI #1033](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/41255043315)
 again found a stale inventory after commit `042eebf` inserted a receipt name in
@@ -195,22 +221,47 @@ Security #757 passed, but its full-ci job failed at that inventory gate. Hosted
 confirmation on the repair commit is pending. The preceding pushed-head CI
 #1032 full-ci runner received a shutdown signal after 704 schema migrations
 and 28 seeds applied; no assertion failure was logged. These outcomes are
-incomplete hosted validation, not a complete passing run
+incomplete hosted validation, not a complete passing run. Current-head
+[CI #1035](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/41257476642)
+on commit `f7864c7` has passed its multi-architecture image gate and Security
+#759 passed. Its `full-ci` job remained active in the monolithic `Run the
+complete CI gate` step; the live Actions page showed 67 minutes in that step,
+with the last visible output at “Installing Python and system build
+dependencies.” The old script ran apt index/package commands without useful
+progress output for the duration. The Actions page provides step logs; the
+workflow-job log download endpoint returned 404 while this job was still
+running, whereas completed-run archives were available. The database image
+pull had completed before this point. The workflow changes under review here split
+source/security/static/contracts, database integration, and multi-architecture
+image verification into parallel jobs, skip the hosted-runner apt bootstrap,
+require Python wheels, move the release-input lock into preflight, and bound
+remaining installs and Compose cleanup. They remain local and have not been
+exercised on a hosted run. Run #1033's concrete stale
+inventory failure and run #1034's expected superseding-commit cancellation are
+separate from #1035's long dependency bootstrap. Another push would cancel
+#1035 under the configured PR concurrency group; the workflow changes therefore
+await a deliberate push after local validation.
+The GitHub workflow-job endpoint returned the logs for earlier completed
+attempts: CI #1012 failed its release-input lock check because
+`profile-selection.md` changed without a matching lock refresh; CI #1013
+failed two fast-fail checks because the report-generator source and helper
+scope inventories were stale. Those failures are distinct from #1014's runner
+communication annotation and the current #1035's long dependency bootstrap.
+The earlier outcomes are recorded here:
 ([#1029 evidence](builds/2026-10-31-recovery/ci-1029-runtime-sql-inventory-fix.json);
 [#1032 evidence](builds/2026-10-31-recovery/ci-1032-hosted-runner-shutdown.json);
 [#1033 diagnosis](builds/2026-11-01-recovery/ci-1033-runtime-sql-inventory-repair.json)).
 
-Standard-profile disposable recovery is accepted through migration 712 for the
-specific controls recorded above. This does not establish candidate or
-production rollout, provider recovery, scale, 24-hour endurance, or physical
-device acceptance. No candidate, legacy, or production database or role was
-changed. Broader caller reconciliation, external importer ownership, Directus
-API parity, tenant/RLS, populated-data parity, and reviewed persistent rollout
-remain open. Migration 712 did not rerun the two-tenant operator-scope probe or
-refresh the C1 source/ACL aggregate; that evidence remains at migration 711.
-Migrations 714 and 715's focused receipt checks and migration 716's climate
-function check do not extend Standard recovery profile evidence. The C1
-source/ACL aggregate remains at migration 711.
+Standard-profile disposable recovery is accepted through migration 718 for
+the specific controls recorded above. The current full replay used a captured
+SQL snapshot for both API and worker image builds and applied 709/709 schema
+files. This does not establish candidate or production rollout, provider
+recovery, scale, 24-hour endurance, or physical-device acceptance. No
+candidate, legacy, or production database or role was changed. Broader caller
+reconciliation, external importer ownership, Directus API parity, tenant/RLS,
+populated-data parity, and reviewed persistent rollout remain open. The
+two-tenant operator-scope probe and C1 source/ACL aggregate remain at migration
+711.
 
 ## Human and operational gates
 

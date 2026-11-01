@@ -1,15 +1,27 @@
 # Capability preservation matrix
 
-**Latest C1 continuation — 1 November 2026:** Migration 716 retains the legacy
-climate v1 function definition while revoking its application-role execution
-grants; the current worker remains on signed v2. Disposable PostgreSQL 16
-apply/replay and behavior checks pass, including all five source writes,
-retries, location scope, and audit parity; 44 focused climate/worker-map tests
-pass. No capability is promoted and the matrix remains 24 baseline-retained,
-7 deployed, and 36 prepared across 67 rows. External SQL callers and old
-binaries have not been inventoried, so persistent rollout remains gated. This
-local change is not part of the hosted run currently validating commit
-`3854d818` ([migration 716 acceptance](builds/2026-11-01-recovery/climate-worker-716-disposable.json)).
+**Latest C1 continuation — 1 November 2026:** Migration 717 preserves runtime
+SELECT on `chat_intent` while denying runtime table and residual column writes;
+the runtime-role provisioner reapplies the boundary after compatibility
+grants. The focused network-disabled PostgreSQL 16 check passes apply/replay,
+runtime read/write assertions, and preservation of Directus and maintenance
+seed-upsert paths. The source regression, 39 migration tests, Ruff,
+compilation, inventory freshness, and diff checks pass; the synthetic
+provisioner acceptance covers 192 relations. No capability is promoted and
+classifications remain 24 baseline-retained, 7 deployed, and 36 prepared
+across 67 rows. External SQL writers through `kokonut_runtime` are unconfirmed
+and must be checked before persistent rollout. No candidate/legacy/production
+state changed; broad C1/RLS remains open and the aggregate ACL report remains
+through migration 711 ([migration 717 acceptance](builds/2026-11-01-recovery/chat-intent-runtime-acl-717.json)).
+
+**Previous C1 continuation — 1 November 2026:** Migration 716 retains the
+legacy climate v1 function definition while revoking its application-role
+execution grants; the current worker remains on signed v2. Disposable
+PostgreSQL 16 apply/replay and behavior checks pass, including all five source
+writes, retries, location scope, and audit parity; 44 focused climate/worker-map
+tests pass. External SQL callers and old binaries have not been inventoried,
+so persistent rollout remains gated. This local change was not part of the
+hosted run validating commit `3854d818` ([migration 716 acceptance](builds/2026-11-01-recovery/climate-worker-716-disposable.json)).
 
 **Previous C1/CI continuation — migration 715 and inventory repair — 1 November 2026:** Migration 715 makes the 23
 audited location-write idempotency receipts private from `PUBLIC`, runtime,

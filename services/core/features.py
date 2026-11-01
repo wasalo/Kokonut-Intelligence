@@ -189,7 +189,7 @@ FEATURES: dict[str, dict[str, Any]] = {
         ).lower() == "true",
         "critical": False,
         "category": "security",
-        "description": "Use a dedicated database login and bounded function for global World Bank price ingestion",
+        "description": "Use a dedicated database login and bounded functions for global World Bank, reference-seed, and manual marketplace price writes",
     },
     "isolated_eas_indexer_worker": {
         "enabled": os.getenv("KOKONUT_FEATURE_ISOLATED_EAS_INDEXER_WORKER", "false").lower() == "true",

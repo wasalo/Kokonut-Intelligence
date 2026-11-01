@@ -49,6 +49,18 @@ _NOTIFICATION_ENQUEUE_FUNCTION = (
 _MARKET_DATA_FUNCTION = (
     "kokonut_security.store_world_bank_market_data(jsonb,text,text,integer)"
 )
+_MARKET_DATA_MANUAL_PRICE_FUNCTION = (
+    "kokonut_security.store_manual_market_price"
+    "(text,text,numeric,text,text,text,jsonb)"
+)
+_MARKET_DATA_REFERENCE_SEED_FUNCTION = (
+    "kokonut_security.store_world_bank_seed_market_data(jsonb,text,integer)"
+)
+_MARKET_DATA_FUNCTIONS = (
+    _MARKET_DATA_FUNCTION,
+    _MARKET_DATA_MANUAL_PRICE_FUNCTION,
+    _MARKET_DATA_REFERENCE_SEED_FUNCTION,
+)
 _EAS_INDEXER_FUNCTIONS = (
     "kokonut_security.acquire_eas_indexer_chain_lock(text)",
     "kokonut_security.release_eas_indexer_chain_lock(text)",
@@ -230,6 +242,8 @@ _SECURITY_DEFINER_OWNERS = (
     (_WORKER_SCOPE_FUNCTION, "kokonut_worker_context_owner"),
     (_NOTIFICATION_ENQUEUE_FUNCTION, "kokonut_notification_enqueue_owner"),
     (_MARKET_DATA_FUNCTION, "kokonut_market_data_owner"),
+    (_MARKET_DATA_MANUAL_PRICE_FUNCTION, "kokonut_market_data_owner"),
+    (_MARKET_DATA_REFERENCE_SEED_FUNCTION, "kokonut_market_data_owner"),
     *((function, "kokonut_eas_indexer_owner") for function in _EAS_INDEXER_FUNCTIONS),
     *((function, "kokonut_rpc_indexer_owner") for function in _RPC_INDEXER_FUNCTIONS),
     *((function, "kokonut_gnosis_indexer_owner") for function in _GNOSIS_INDEXER_FUNCTIONS),
@@ -272,7 +286,7 @@ _PRIVATE_RUNTIME_FUNCTIONS = (
     _WORKER_CONTEXT_FUNCTION,
     _WORKER_SCOPE_FUNCTION,
     _NOTIFICATION_ENQUEUE_FUNCTION,
-    _MARKET_DATA_FUNCTION,
+    *_MARKET_DATA_FUNCTIONS,
     *_EAS_INDEXER_FUNCTIONS,
     *_RPC_INDEXER_FUNCTIONS,
     *_GNOSIS_INDEXER_FUNCTIONS,
@@ -1219,7 +1233,7 @@ _RUNTIME_MUTATION_TABLES = (
     "agent_action_log",
     "advisory_rule",
     "service_registry",
-    "carbon_benchmark", "crop_gdd_config", "dfs_currency",
+    "carbon_benchmark", "crop_gdd_config", "dfs_currency", "chat_intent",
     "ghg_emission_factor",
     "operations_protocol", "revenue_multiplier_config",
     "reference_class",
@@ -1281,6 +1295,7 @@ _RUNTIME_MUTATION_TABLES = (
     "landscape_biodiversity_score",
     "schema_version",
     "cache_invalidation_rule",
+    "price_observation",
     "energy_reading",
     "worldclim_climate",
     "ncep_weather_summary",
@@ -1627,8 +1642,8 @@ def provision_runtime_role(
     the three bounded functions from migration 395. This is scoped to a
     dedicated Kernel PostgreSQL instance. When configured, the optional
     notification-enqueue login receives only its bounded intent function.
-    When configured, the market-data login receives only the bounded global
-    World Bank batch function. When configured, the sensor-ingestion login can
+    When configured, the market-data login receives only bounded global
+    World Bank, reference-seed, and manual-price functions. When configured, the sensor-ingestion login can
     switch to the worker execution role only to call the signed, bounded sensor
     driver functions from migration 431. When configured, the remote-sensing
     login can switch to that role only to call migration 432's signed bounded
@@ -1913,6 +1928,7 @@ def provision_runtime_role(
         raise ValueError("database name is required")
 
     market_data_database_access: dict[str, bool] = {}
+    market_data_functions: tuple[str, ...] = (_MARKET_DATA_FUNCTION,)
     eas_indexer_database_access: dict[str, bool] = {}
     rpc_indexer_database_access: dict[str, bool] = {}
     gnosis_indexer_database_access: dict[str, bool] = {}
@@ -1982,12 +1998,28 @@ def provision_runtime_role(
                     "provisioning its dedicated login"
                 )
         if market_data_user is not None:
-            cur.execute("SELECT to_regprocedure(%s)", (_MARKET_DATA_FUNCTION,))
-            if cur.fetchone()[0] is None:
+            cur.execute(
+                "SELECT " + ", ".join("to_regprocedure(%s)" for _ in _MARKET_DATA_FUNCTIONS),
+                _MARKET_DATA_FUNCTIONS,
+            )
+            installed_market_data_functions = cur.fetchone()
+            if installed_market_data_functions[0] is None:
                 raise RuntimeError(
                     "migration 430 market-data function must be applied before "
                     "provisioning its dedicated login"
                 )
+            optional_manual_and_seed = installed_market_data_functions[1:]
+            if any(optional_manual_and_seed) and not all(optional_manual_and_seed):
+                raise RuntimeError(
+                    "manual-price and reference-seed functions must be installed together"
+                )
+            market_data_functions = tuple(
+                function
+                for function, installed in zip(
+                    _MARKET_DATA_FUNCTIONS, installed_market_data_functions
+                )
+                if installed is not None
+            )
         if eas_indexer_user is not None:
             cur.execute(
                 "SELECT " + ", ".join("to_regprocedure(%s)" for _ in _EAS_INDEXER_FUNCTIONS),
@@ -2299,11 +2331,12 @@ def provision_runtime_role(
                     market_data_ident
                 )
             )
-            cur.execute(
-                sql.SQL("GRANT EXECUTE ON FUNCTION {} TO {}").format(
-                    sql.SQL(_MARKET_DATA_FUNCTION), market_data_ident
+            for function in market_data_functions:
+                cur.execute(
+                    sql.SQL("GRANT EXECUTE ON FUNCTION {} TO {}").format(
+                        sql.SQL(function), market_data_ident
+                    )
                 )
-            )
         if eas_indexer_user is not None:
             assert eas_indexer_ident is not None and eas_indexer_password is not None
             _ensure_login_role(
@@ -3573,12 +3606,18 @@ def provision_runtime_role(
 
         if market_data_user is not None:
             cur.execute(
-                "SELECT has_function_privilege(%s, %s, 'EXECUTE'), "
-                "has_schema_privilege(%s, 'kokonut_security', 'USAGE'), "
+                "SELECT " + ", ".join(
+                    "has_function_privilege(%s, %s, 'EXECUTE')"
+                    for _ in market_data_functions
+                ) + ", has_schema_privilege(%s, 'kokonut_security', 'USAGE'), "
                 "has_schema_privilege(%s, 'kokonut_security', 'CREATE')",
-                (market_data_user, _MARKET_DATA_FUNCTION, market_data_user, market_data_user),
+                tuple(
+                    value
+                    for function in market_data_functions
+                    for value in (market_data_user, function)
+                ) + (market_data_user, market_data_user),
             )
-            if cur.fetchone() != (True, True, False):
+            if cur.fetchone() != (True,) * len(market_data_functions) + (True, False):
                 raise RuntimeError(
                     "market-data login is missing its bounded function grant or has unsafe schema access"
                 )
@@ -3646,16 +3685,20 @@ def provision_runtime_role(
             )
             if cur.fetchone()[0]:
                 raise RuntimeError("market-data login retains application sequence privileges")
+            other_function_predicate = " AND ".join(
+                "procedure.oid IS DISTINCT FROM to_regprocedure(%s)"
+                for _ in market_data_functions
+            )
             cur.execute(
-                """SELECT procedure.oid::regprocedure::text
-                     FROM pg_proc AS procedure
-                     JOIN pg_namespace AS namespace ON namespace.oid = procedure.pronamespace
-                    WHERE namespace.nspname IN ('public', 'kokonut_security')
-                      AND procedure.prosecdef
-                      AND procedure.oid <> to_regprocedure(%s)
-                      AND has_function_privilege(%s, procedure.oid, 'EXECUTE')
-                    LIMIT 1""",
-                (_MARKET_DATA_FUNCTION, market_data_user),
+                f"""SELECT procedure.oid::regprocedure::text
+                      FROM pg_proc AS procedure
+                      JOIN pg_namespace AS namespace ON namespace.oid = procedure.pronamespace
+                     WHERE namespace.nspname IN ('public', 'kokonut_security')
+                       AND procedure.prosecdef
+                       AND {other_function_predicate}
+                       AND has_function_privilege(%s, procedure.oid, 'EXECUTE')
+                     LIMIT 1""",
+                tuple(market_data_functions) + (market_data_user,),
             )
             other_security_definer = cur.fetchone()
             if other_security_definer is not None:
@@ -3664,8 +3707,15 @@ def provision_runtime_role(
                     f"{other_security_definer[0]}"
                 )
             cur.execute(
-                "SELECT has_function_privilege(%s, %s, 'EXECUTE')",
-                (runtime_user, _MARKET_DATA_FUNCTION),
+                "SELECT " + " OR ".join(
+                    "has_function_privilege(%s, %s, 'EXECUTE')"
+                    for _ in market_data_functions
+                ),
+                tuple(
+                    value
+                    for function in market_data_functions
+                    for value in (runtime_user, function)
+                ),
             )
             if cur.fetchone()[0]:
                 raise RuntimeError("runtime role can execute market-data worker function")

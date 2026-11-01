@@ -9,7 +9,7 @@ INSERT INTO scheduled_task (name, module_path, command_args, cron_expression, pr
     ('weather_ingestion', 'services.ingestion.weather', '[]', '0 */6 * * *', 'normal', 600, 3, TRUE),
 
     -- Market data — daily at 06:00 UTC
-    ('market_data_world_bank', 'services.ingestion.market_data', '["--source", "world_bank"]', '0 6 * * *', 'normal', 900, 3, TRUE),
+    ('market_data_world_bank', 'services.ingestion.market_data_worker', '[]', '0 6 * * *', 'normal', 900, 3, TRUE),
 
     -- EAS indexer — every 15 minutes
     ('eas_indexer', 'services.ingestion.eas_indexer', '[]', '*/15 * * * *', 'high', 300, 5, TRUE),
