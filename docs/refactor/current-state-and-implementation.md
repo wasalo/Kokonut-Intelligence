@@ -169,27 +169,37 @@ tests and 11-group disposable PostgreSQL 16 apply/replay pass
 Migration 713's climate worker compatibility and plot-only geometry behavior
 also pass focused unit and disposable acceptance
 ([climate evidence](builds/2026-10-31-recovery/climate-worker-713-disposable.json)).
-Migrations through 718 now appear in the Standard profile's fresh full-schema
-replay, but the aggregate C1 report and two-tenant operator-scope probe have
-not been refreshed past migration 711, and no migration has been rolled onto a
-persistent candidate. The latest aggregate C1 source/ACL evidence remains a
-network-disabled, portless native PostgreSQL 16 replay
-through migration 711 applied all 702 ordered schema files and passed the
-synthetic two-tenant operator-scope probe. The refreshed source/ACL report
-records 161 migration-owned runtime boundaries, zero policy mismatches, zero
-direct table/column privilege violations, 1,356 relations with effective
-runtime DML, and 968 tables with runtime DML while RLS is disabled. It lists
-40 unresolved write candidates. These are privilege-reach and source-review
-counts, not confirmed leaks, tenant isolation, or universal sequence/function,
-ownership, column, Directus, or external-consumer safety
-([native replay and probe](builds/2026-10-31-recovery/native-schema-711-operator-probe.json);
-[source/ACL report](builds/2026-10-31-recovery/runtime-privilege-callsite-report-711.json)).
+The aggregate C1 report and two-tenant operator-scope probe are now refreshed
+through migration 718. A network-disabled, portless native PostgreSQL 16 replay
+applied all 709 ordered schema files, loaded no seeds or farm data, passed all
+38 synthetic tenant/operator checks, and cleaned up its disposable resources.
+The paired source/ACL report records 1,522 public relations, 1,324 with some
+effective runtime DML, 937 public tables with runtime DML while RLS is
+disabled, 163 migration-revoked relations with matching runtime policy and
+zero policy mismatches, zero direct table/column violations within the tested
+scoped policy, 214 unprotected DML relations without SQL relation candidates,
+and 377 without candidate write sites. These inventory categories overlap and
+are not confirmed leaks. A separate SQL review ledger has 38 unresolved
+fingerprints (30 legacy-unreviewed and eight reviewed-unresolved); its units
+are not directly comparable to relation counts. This is not a full sequence,
+function, ownership, column, Directus, worker, or external-consumer audit, and
+it does not establish populated-data isolation or persistent deployment
+([replay and two-tenant probe](builds/2026-10-31-recovery/native-resource-limited-schema-718-operator-probe-r2.json);
+[source/ACL report](builds/2026-10-31-recovery/runtime-privilege-callsite-report-718.json);
+[SQL review ledger](runtime-sql-unresolved-write-review.json)).
+
+The first native replay attempt stopped at image inspection before applying
+any schema because its requested platform did not match the available local
+image tag. It created no Compose resources and touched no candidate or legacy
+database; the corrected image reference is recorded in the successful `r2`
+evidence above ([failed preflight](builds/2026-10-31-recovery/native-resource-limited-schema-718-operator-probe.json)).
+No persistent candidate, legacy, or production database/role was changed.
 
 The latest code-first cohort includes:
 
 | Change | Result and boundary | Evidence |
 | --- | --- | --- |
-| Migration 718 — isolated global market-data writes | Retires direct runtime mutation of `price_observation`; the dedicated market-data worker uses bounded reference-seed, manual-price, and World Bank functions. Runtime SELECT remains. External runtime callers remain a persistent-rollout review gate. | [Full Standard replay through 718](builds/2026-11-01-recovery/standard-profile-recovery-718-disposable.json) |
+| Migration 718 — isolated global market-data writes | Retires direct runtime mutation of `price_observation`; the dedicated market-data worker uses bounded reference-seed, manual-price, and World Bank functions. Runtime SELECT remains. External runtime callers remain a persistent-rollout review gate. | [Full Standard replay](builds/2026-11-01-recovery/standard-profile-recovery-718-disposable.json); [fresh C1 replay and two-tenant probe](builds/2026-10-31-recovery/native-resource-limited-schema-718-operator-probe-r2.json); [refreshed source/ACL report](builds/2026-10-31-recovery/runtime-privilege-callsite-report-718.json) |
 | Migration 717 — read-only chat-intent runtime access | Preserves runtime reads and migration/maintenance upserts while revoking table and column mutation from `kokonut_runtime`; Directus is intentionally unchanged. Runtime provisioner reapplication does not restore DML. External runtime-login clients remain unconfirmed. | [Disposable apply/replay and runtime-boundary checks](builds/2026-11-01-recovery/chat-intent-runtime-acl-717.json) |
 | Migration 716 — retire climate v1 worker grant | Keeps the legacy `store_climate_summary` definition for compatibility but removes execution from the worker, runtime, optional Directus, and `PUBLIC`; the active climate worker continues using signed `store_climate_summary_v2`. Disposable PostgreSQL acceptance applies/replays both migrations and exercises all five source writes, retries, failure audit, and location scope. External callers remain a persistent-rollout gate. | [Disposable apply/replay and climate worker checks](builds/2026-11-01-recovery/climate-worker-716-disposable.json) |
 | Migration 715 — private location-write receipts | Revokes `PUBLIC`, `kokonut_runtime`, and `kokonut_directus_runtime` table and residual column privileges on 23 audited idempotency receipts while preserving mapped function-owner column grants. Runtime provisioning keeps the relations private. The migration changes no business function or retry behavior; external receipt consumers still require review before persistent rollout. | [Disposable apply/replay and ACL checks](builds/2026-11-01-recovery/runtime-private-location-write-receipts-715-disposable.json) |

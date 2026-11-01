@@ -10079,3 +10079,31 @@ this as an open CI gate rather than attributing it to migration 365.
 No candidate, legacy, or production database/role was changed by this local
 batch. Keep migration 718 immutable; a persistent ACL rollback requires a
 reviewed forward migration.
+
+### C1 aggregate refresh — migration 718 — 31 October 2026
+
+- [x] Retry the native full-schema replay with the locally available pinned
+  PostgreSQL/PostGIS image reference after the first attempt stopped at image
+  inspection. The first attempt applied zero schema files and created no
+  Compose resources; its evidence remains preserved
+  ([failed preflight](builds/2026-10-31-recovery/native-resource-limited-schema-718-operator-probe.json)).
+- [x] Apply all 709 ordered migrations through 718 in a network-disabled,
+  portless disposable native PostgreSQL 16 database. Pass all 38 synthetic
+  two-tenant/operator checks, verify zero seeds/farm data, and complete resource
+  cleanup ([replay and probe](builds/2026-10-31-recovery/native-resource-limited-schema-718-operator-probe-r2.json)).
+- [x] Regenerate the source/ACL join against the fresh probe. It records 1,522
+  public relations, 1,324 with effective runtime DML, 937 tables with runtime
+  DML while RLS is disabled, 163 matching migration-owned controls, zero
+  policy mismatches, and zero direct table/column violations within the tested
+  scoped policy. It also records 214 DML relations without SQL relation
+  candidates and 377 without candidate write sites. These overlapping counts
+  measure privilege reach and heuristic coverage, not confirmed leaks
+  ([report](builds/2026-10-31-recovery/runtime-privilege-callsite-report-718.json)).
+- [x] Reconcile report units with the separate runtime SQL review ledger: 30
+  legacy-unreviewed plus eight reviewed-unresolved fingerprints. Fingerprint
+  counts are not relation counts and do not authorize ACL changes
+  ([ledger](runtime-sql-unresolved-write-review.json)).
+- [ ] Continue per-relation source, Directus, ORM/dynamic SQL, external-consumer,
+  worker, column/sequence/function and ownership review. C1 and tenant/RLS
+  isolation remain open; no persistent candidate, legacy, or production
+  database/role was changed.

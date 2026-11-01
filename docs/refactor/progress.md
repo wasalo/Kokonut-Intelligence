@@ -25832,3 +25832,28 @@ or fixed identifiers; parallel test shards would risk fixture/data races, so
 the suite remains sequential pending isolation work. The current hosted run
 predates the split. No workflow change has yet been pushed or exercised on
 GitHub.
+
+### Standard+Edge composition and C1 aggregate refresh — 31 October 2026
+
+Added `standard --edge` to the Kernel planner and verified its Compose order
+preserves Standard's separate API/worker commands. Edge's encrypted local-media
+provider, key, and private-media volume attach only to the API; its CPU/memory
+limits apply to PostgreSQL and the API, not the worker. Planner and Compose
+checks pass, and README, AGENTS, profile-selection, current-state, and
+Standard-profile guidance describe the option without claiming physical
+Raspberry Pi or production acceptance. The feature and documentation were
+committed as `fa1ce8ad` and pushed on `chore/kernel-next-sprint-plan`.
+
+A fresh network-disabled, portless native PostgreSQL 16 replay applied all 709
+ordered schema files through migration 718, passed 38 synthetic two-tenant/
+operator checks, loaded no seed/farm data, and cleaned up. The source/ACL join
+now reflects the migration-718 snapshot: 1,324 of 1,522 public relations have
+effective runtime DML, 937 tables have runtime DML while RLS is disabled, and
+214 DML relations lack SQL relation candidates (377 lack candidate write
+sites). These are privilege-reach and inventory counts, not confirmed leaks.
+The source inventory/ACL report units are reconciled with the separate review
+ledger's 30 legacy-unreviewed and eight reviewed-unresolved fingerprints. C1,
+tenant/RLS isolation, external-consumer review, candidate rollout, and
+production acceptance remain open. Evidence: [successful replay](builds/2026-10-31-recovery/native-resource-limited-schema-718-operator-probe-r2.json),
+[source/ACL report](builds/2026-10-31-recovery/runtime-privilege-callsite-report-718.json),
+[failed preflight attempt](builds/2026-10-31-recovery/native-resource-limited-schema-718-operator-probe.json).

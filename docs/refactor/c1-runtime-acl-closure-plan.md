@@ -44,9 +44,28 @@ separately; current hosted CI #1037 failed earlier while applying migration
 542 and did not reach migration 718.
 
 The API and worker still share `kokonut_runtime`, and external consumers of
-the legacy shared identity have not been reconciled. The aggregate C1 report
-and two-tenant operator-scope probe remain through migration 711. No
-persistent candidate, legacy, or production database/role was changed.
+the legacy shared identity have not been reconciled. The aggregate C1 evidence
+is now refreshed through migration 718: 709 ordered files applied on a
+network-disabled, portless native PostgreSQL 16 database; all 38 synthetic
+two-tenant/operator checks passed and cleanup completed. The ACL report records
+1,324 of 1,522 public relations with effective runtime DML, including 937
+public tables with DML while RLS is disabled; 163 migration-revoked relations
+match runtime policy with zero policy mismatches, and the scoped probe found
+zero direct table/column privilege violations. It also records 214 DML
+relations without SQL relation candidates and 377 without candidate write
+sites. These counts measure privilege reach and heuristic inventory coverage,
+not confirmed leaks or complete consumer authorization. The separate SQL
+review ledger contains 30 legacy-unreviewed and eight reviewed-unresolved
+fingerprints; those fingerprints are a different unit from relations. See the
+[successful replay and probe](builds/2026-10-31-recovery/native-resource-limited-schema-718-operator-probe-r2.json),
+[refreshed source/ACL report](builds/2026-10-31-recovery/runtime-privilege-callsite-report-718.json),
+and [SQL review ledger](runtime-sql-unresolved-write-review.json).
+
+The first attempt failed at local image inspection before schema application
+because the requested platform did not match the available image tag. It
+created no Compose resources and touched no persistent target
+([failed preflight evidence](builds/2026-10-31-recovery/native-resource-limited-schema-718-operator-probe.json)).
+No persistent candidate, legacy, or production database/role was changed.
 
 ### Latest C1 continuation — migration 717 `chat_intent` runtime ACL — 1 November 2026
 
@@ -528,11 +547,13 @@ The detailed entries below are dated historical checkpoints through migration
   compare native with ARM64/QEMU.
 - [x] Separate analytics, credit-class, and other service candidates; preserve
   unresolved and no-callsite records as unresolved.
-- [ ] Reconcile the latest C1 inventories: the migration-711 ACL report lists
-  40 unresolved write-candidate relations, while the current runtime SQL review
-  ledger tracks 39 statement fingerprints (31 preexisting-unreviewed and eight
-  reviewed-unresolved `WITH` queries). These are different units; source review
-  is not ACL approval. Refresh both records as operations are migrated.
+- [x] Reconcile the latest C1 inventories through migration 718: the ACL report
+  records 214 unprotected DML relations without SQL relation candidates and
+  377 without candidate write sites. The separate runtime SQL review ledger
+  contains 30 legacy-unreviewed and eight reviewed-unresolved fingerprints.
+  These are different units; source review is not ACL approval. Refresh both
+  records as operations are migrated ([ACL report](builds/2026-10-31-recovery/runtime-privilege-callsite-report-718.json);
+  [SQL review ledger](runtime-sql-unresolved-write-review.json)).
 - [ ] Reconcile Directus field/row permissions, extension hooks, ORM/dynamic SQL,
   API keys, saved reports, and external consumers per candidate relation.
 - [x] Verify migration 690 and the `capex_breakdown` boundary on network-

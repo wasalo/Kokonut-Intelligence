@@ -1,6 +1,22 @@
 # Capability preservation matrix
 
-**Latest C1 continuation — 1 November 2026:** Migration 717 preserves runtime
+**Latest C1 aggregate refresh — 31 October 2026:** The network-disabled,
+portless native PostgreSQL 16 replay applied all 709 schema files through
+migration 718 and passed 38 synthetic two-tenant/operator checks. The source/
+ACL report records 937 public tables with runtime DML while RLS is disabled,
+214 DML relations without SQL relation candidates, and 377 without candidate
+write sites. These figures measure privilege reach and inventory coverage, not
+confirmed leaks. Thirty legacy-unreviewed and eight reviewed-unresolved SQL
+fingerprints remain in the separate source review ledger. C1 remains open;
+tenant isolation, broader source/consumer review, and persistent rollout are
+not established. Capability classifications remain 24 baseline-retained,
+7 deployed, and 36 prepared across 67 rows. Standard+Edge planner/Compose
+support is documented but does not promote a capability or claim device
+acceptance ([replay and probe](builds/2026-10-31-recovery/native-resource-limited-schema-718-operator-probe-r2.json);
+[source/ACL report](builds/2026-10-31-recovery/runtime-privilege-callsite-report-718.json);
+[SQL review ledger](runtime-sql-unresolved-write-review.json)).
+
+**Previous C1 continuation — 1 November 2026:** Migration 717 preserves runtime
 SELECT on `chat_intent` while denying runtime table and residual column writes;
 the runtime-role provisioner reapplies the boundary after compatibility
 grants. The focused network-disabled PostgreSQL 16 check passes apply/replay,
@@ -11,8 +27,7 @@ provisioner acceptance covers 192 relations. No capability is promoted and
 classifications remain 24 baseline-retained, 7 deployed, and 36 prepared
 across 67 rows. External SQL writers through `kokonut_runtime` are unconfirmed
 and must be checked before persistent rollout. No candidate/legacy/production
-state changed; broad C1/RLS remains open and the aggregate ACL report remains
-through migration 711 ([migration 717 acceptance](builds/2026-11-01-recovery/chat-intent-runtime-acl-717.json)).
+state changed; broad C1/RLS remains open ([migration 717 acceptance](builds/2026-11-01-recovery/chat-intent-runtime-acl-717.json)).
 
 **Previous C1 continuation — 1 November 2026:** Migration 716 retains the
 legacy climate v1 function definition while revoking its application-role

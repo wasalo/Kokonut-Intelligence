@@ -4766,12 +4766,21 @@ or production database/role was changed; hosted CI was not run for migration
   files applied, with zero seeds/failures, and API/worker health, outage
   recovery, heartbeat privacy, shutdown, and cleanup passed
   ([evidence](builds/2026-11-01-recovery/standard-profile-recovery-718-disposable.json)).
+- [x] Refresh the aggregate native C1 ACL report and synthetic two-tenant
+  operator-scope probe through migration 718: 709/709 ordered schema files,
+  38 checks passed, no seeds or farm rows, and disposable cleanup completed.
+  Record 937 public tables with runtime DML while RLS is disabled, 214 DML
+  relations without SQL relation candidates, and 377 without candidate write
+  sites; these are inventory/privilege-reach measures, not confirmed leaks
+  ([replay](builds/2026-10-31-recovery/native-resource-limited-schema-718-operator-probe-r2.json);
+  [report](builds/2026-10-31-recovery/runtime-privilege-callsite-report-718.json)).
 - [ ] Run the focused migration-718 price-writer checker and obtain hosted
   green CI/Security for this batch. CI #1037 failed earlier while applying
   migration 542, with psql exit status 3 but no PostgreSQL detail.
 - [ ] Confirm external `kokonut_runtime` consumers before persistent rollout;
   API and worker still share this login.
 
-The C1 aggregate ACL report and two-tenant operator-scope probe remain through
-migration 711. No persistent candidate, legacy, or production database/role
-was changed.
+The C1 aggregate ACL report and two-tenant operator-scope probe are now current
+through migration 718; broad C1, tenant/RLS, external-consumer, and persistent
+rollout gates remain open. No persistent candidate, legacy, or production
+database/role was changed.
