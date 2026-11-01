@@ -9,6 +9,15 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
+CHECK_MODE="${1:-all}"
+
+case "$CHECK_MODE" in
+    all|--source-only|--database-only) ;;
+    *)
+        echo "Usage: $0 [all|--source-only|--database-only]" >&2
+        exit 2
+        ;;
+esac
 
 echo "=== Kokonut Intelligence — CI Check (fast-fail gate) ==="
 echo ""
@@ -32,6 +41,11 @@ check() {
     fi
 }
 
+if [ "$CHECK_MODE" = --database-only ]; then
+    echo "[DB] Clean PostgreSQL bootstrap..."
+    check "Clean PostgreSQL bootstrap" "bash $SCRIPT_DIR/verify-clean-bootstrap.sh"
+    echo ""
+else
 # 1. Python runtime and imports
 echo "[1/3] Python import validation..."
 check "Supported Python runtime" "python3 $SCRIPT_DIR/check-python-runtime.py"
@@ -59,8 +73,6 @@ check "Import services.metrics.engine" "python3 -c 'import services.metrics.engi
 check "Import services.metrics.calculators" "python3 -c 'import services.metrics.calculators'"
 check "Import services.common.logging" "python3 -c 'import services.common.logging'"
 check "Import services.migration.cli" "python3 -c 'import services.migration.cli'"
-check "Migration source validation" "python3 -m services.migration validate"
-check "Clean PostgreSQL bootstrap" "bash $SCRIPT_DIR/verify-clean-bootstrap.sh"
 check "Import services.registry.cids_export" "python3 -c 'import services.registry.cids_export'"
 check "Import services.agents.safety" "python3 -c 'import services.agents.safety'"
 check "Import services.agents.tasks" "python3 -c 'import services.agents.tasks'"
@@ -80,6 +92,7 @@ check "Import services.analytics.portfolio" "python3 -c 'import services.analyti
 check "Import services.export.spreadsheet_bridge" "python3 -c 'import services.export.spreadsheet_bridge'"
 check "Import services.scoring" "python3 -c 'import services.scoring.export; import services.scoring.trust_graph; import services.scoring.confidence; import services.scoring.calculators; import services.scoring.rubric; import services.scoring.normalization; import services.scoring.gates; import services.scoring.equity; import services.scoring.implementation_quality; import services.scoring.equity_community'"
 check "Import workflow specifications" "python3 -c 'import services.workflow_specs'"
+check "Migration source validation" "python3 -m services.migration validate"
 echo ""
 
 # 2. CLI parsers
@@ -124,6 +137,13 @@ else
     cd "$PROJECT_DIR"
 fi
 echo ""
+fi
+
+if [ "$CHECK_MODE" = all ]; then
+    echo "[DB] Clean PostgreSQL bootstrap..."
+    check "Clean PostgreSQL bootstrap" "bash $SCRIPT_DIR/verify-clean-bootstrap.sh"
+    echo ""
+fi
 
 # Summary
 echo "=== Results ==="

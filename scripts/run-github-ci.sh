@@ -5,6 +5,15 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT_DIR"
 
+RUN_MODE="${1:-all}"
+case "$RUN_MODE" in
+    all|--source-only|--integration-only) ;;
+    *)
+        echo "Usage: $0 [--source-only|--integration-only]" >&2
+        exit 2
+        ;;
+esac
+
 export COMPOSE_PROJECT_NAME=ki-ci
 export CI_PG_HOST_PORT="${CI_PG_HOST_PORT:-127.0.0.1:15432}"
 export CI_CH_HOST_PORT="${CI_CH_HOST_PORT:-127.0.0.1:18123}"
@@ -27,15 +36,73 @@ export REDIS_PASSWORD=ci-placeholder
 export KOKONUT_ENV=ci
 export KOKONUT_ALLOW_PLAINTEXT_ENV=true
 export CI_STRICT_DB=1
+export PIP_DEFAULT_TIMEOUT=60
+export PIP_RETRIES=5
+export PIP_DISABLE_PIP_VERSION_CHECK=1
+export npm_config_fetch_retries=5
+export npm_config_fetch_retry_factor=2
+export npm_config_fetch_retry_mintimeout=10000
+export npm_config_fetch_retry_maxtimeout=120000
+
+CI_COMPOSE=(docker compose --progress plain -f docker-compose.yml -f docker-compose.ci.yml)
+CI_DIAGNOSTICS_DIR="${CI_DIAGNOSTICS_DIR:-${RUNNER_TEMP:-${TMPDIR:-/tmp}}/kokonut-ci-diagnostics-${GITHUB_RUN_ID:-$$}-${GITHUB_RUN_ATTEMPT:-1}}"
+CI_PHASE=
+CI_PHASE_STARTED=$SECONDS
+CI_GROUP_OPEN=false
+
+ci_finish_phase() {
+    local result="$1"
+    local duration=$((SECONDS - CI_PHASE_STARTED))
+    if [ "$CI_GROUP_OPEN" = true ]; then
+        echo '::endgroup::'
+        CI_GROUP_OPEN=false
+    fi
+    printf '[CI phase] %s: %ss (%s)\n' "$CI_PHASE" "$duration" "$result"
+    if [ -n "${GITHUB_STEP_SUMMARY:-}" ]; then
+        if [ ! -f "$GITHUB_STEP_SUMMARY" ] || ! grep -q '^## CI phase timings$' "$GITHUB_STEP_SUMMARY"; then
+            printf '## CI phase timings\n\n| Phase | Result | Duration |\n| --- | --- | ---: |\n' >> "$GITHUB_STEP_SUMMARY"
+        fi
+        printf '| %s | %s | %ss |\n' "$CI_PHASE" "$result" "$duration" >> "$GITHUB_STEP_SUMMARY"
+    fi
+}
+
+ci_phase_start() {
+    local next_phase="$1"
+    if [ -n "$CI_PHASE" ]; then
+        ci_finish_phase passed
+    fi
+    CI_PHASE="$next_phase"
+    CI_PHASE_STARTED=$SECONDS
+    echo "::group::CI phase: $CI_PHASE"
+    CI_GROUP_OPEN=true
+}
+
+run_ci_timeout() {
+    local duration="$1"
+    shift
+    local timeout_bin
+    if command -v timeout >/dev/null 2>&1; then
+        timeout_bin="$(command -v timeout)"
+    elif command -v gtimeout >/dev/null 2>&1; then
+        timeout_bin="$(command -v gtimeout)"
+    else
+        echo "Warning: no timeout utility found; running without the ${duration} outer bound." >&2
+        "$@"
+        return
+    fi
+    "$timeout_bin" --kill-after=30s "$duration" "$@"
+}
 
 # Refuse to share or tear down an existing Compose namespace. GitHub-hosted
 # runners start clean; this guard protects local use and persistent runners.
-CI_PROJECT_CONTAINERS="$(docker ps -aq --filter "label=com.docker.compose.project=$COMPOSE_PROJECT_NAME")"
-CI_PROJECT_VOLUMES="$(docker volume ls -q --filter "label=com.docker.compose.project=$COMPOSE_PROJECT_NAME")"
-CI_PROJECT_NETWORKS="$(docker network ls -q --filter "label=com.docker.compose.project=$COMPOSE_PROJECT_NAME")"
-if [ -n "$CI_PROJECT_CONTAINERS$CI_PROJECT_VOLUMES$CI_PROJECT_NETWORKS" ]; then
-    echo "Refusing to use existing Compose namespace '$COMPOSE_PROJECT_NAME'; inspect it before retrying." >&2
-    exit 1
+if [ "$RUN_MODE" != --source-only ]; then
+    CI_PROJECT_CONTAINERS="$(docker ps -aq --filter "label=com.docker.compose.project=$COMPOSE_PROJECT_NAME")"
+    CI_PROJECT_VOLUMES="$(docker volume ls -q --filter "label=com.docker.compose.project=$COMPOSE_PROJECT_NAME")"
+    CI_PROJECT_NETWORKS="$(docker network ls -q --filter "label=com.docker.compose.project=$COMPOSE_PROJECT_NAME")"
+    if [ -n "$CI_PROJECT_CONTAINERS$CI_PROJECT_VOLUMES$CI_PROJECT_NETWORKS" ]; then
+        echo "Refusing to use existing Compose namespace '$COMPOSE_PROJECT_NAME'; inspect it before retrying." >&2
+        exit 1
+    fi
 fi
 
 umask 077
@@ -54,11 +121,39 @@ fi
 cleanup() {
     local status=$?
     trap - EXIT INT TERM
-    if [ "$status" -ne 0 ]; then
-        docker compose -f docker-compose.yml -f docker-compose.ci.yml \
-            logs --no-color --tail=120 database clickhouse cache directus gateway grpc 2>/dev/null || true
+    if [ "$status" -eq 0 ]; then
+        if [ -n "$CI_PHASE" ]; then ci_finish_phase passed; fi
+    else
+        if [ -n "$CI_PHASE" ]; then ci_finish_phase failed; fi
+        printf '::error title=CI runner failed::Mode "%s", phase "%s", failed after %ss (exit %s). See the phase summary and uploaded diagnostics.\n' \
+            "$RUN_MODE" "$CI_PHASE" "$((SECONDS - CI_PHASE_STARTED))" "$status"
+        mkdir -p "$CI_DIAGNOSTICS_DIR" 2>/dev/null || true
+        if [ -n "${DB_PULL_PID:-}" ]; then
+            kill "$DB_PULL_PID" 2>/dev/null || true
+            wait "$DB_PULL_PID" 2>/dev/null || true
+        fi
+        if [ -s "${DB_PULL_LOG:-}" ]; then
+            cp "$DB_PULL_LOG" "$CI_DIAGNOSTICS_DIR/postgis-image-pull.log" 2>/dev/null || true
+        fi
+        if [ "$RUN_MODE" != --source-only ]; then
+            {
+                printf 'phase=%s\nexit_code=%s\n' "$CI_PHASE" "$status"
+                run_ci_timeout 30s "${CI_COMPOSE[@]}" ps --all || true
+            } > "$CI_DIAGNOSTICS_DIR/compose-state.txt" 2>&1
+            run_ci_timeout 2m "${CI_COMPOSE[@]}" logs --no-color --tail=500 database clickhouse cache directus gateway grpc \
+                > "$CI_DIAGNOSTICS_DIR/compose-logs.txt" 2>&1 || true
+            if [ -s "$CI_DIAGNOSTICS_DIR/compose-logs.txt" ]; then
+                tail -n 160 "$CI_DIAGNOSTICS_DIR/compose-logs.txt"
+            fi
+        fi
     fi
-    docker compose -f docker-compose.yml -f docker-compose.ci.yml down -v --remove-orphans 2>/dev/null || true
+    if [ "$status" -ne 0 ]; then
+        printf 'CI runner mode "%s" failed during phase "%s" after %ss (exit %s).\n' \
+            "$RUN_MODE" "$CI_PHASE" "$((SECONDS - CI_PHASE_STARTED))" "$status" >&2
+    fi
+    if [ "$RUN_MODE" != --source-only ]; then
+        run_ci_timeout 2m "${CI_COMPOSE[@]}" down -v --remove-orphans 2>/dev/null || true
+    fi
 
     rm -f .env .env.sops
     if [ "$ORIGINAL_ENV_PRESENT" = true ]; then
@@ -100,65 +195,146 @@ GATEWAY_HOST_PORT=127.0.0.1:18099
 GRPC_HOST_PORT=127.0.0.1:50052
 EOF
 
-echo '=== Compose namespace isolation ==='
-test "$COMPOSE_PROJECT_NAME" = ki-ci
+if [ "$RUN_MODE" != --source-only ]; then
+    echo '=== Compose namespace isolation ==='
+    test "$COMPOSE_PROJECT_NAME" = ki-ci
+fi
 
-echo '=== Supply-chain gates ==='
-./scripts/check-tracked-secrets.sh
-rm -f .env.sops
-./scripts/check-image-digests.sh
+if [ "$RUN_MODE" != --integration-only ]; then
+    ci_phase_start 'Supply-chain gates'
+    echo '=== Supply-chain gates ==='
+    ./scripts/check-tracked-secrets.sh
+    rm -f .env.sops
+    ./scripts/check-image-digests.sh
+fi
 
-echo '=== Clean bootstrap check ==='
-docker compose -f docker-compose.yml up -d database
-for _ in $(seq 1 30); do
-    docker compose -f docker-compose.yml exec -T database pg_isready -h 127.0.0.1 -U kokonut -d kokonut_intelligence -q && break
-    sleep 1
-done
-docker compose -f docker-compose.yml exec -T database pg_isready -h 127.0.0.1 -U kokonut -d kokonut_intelligence -q
-
+if [ "$RUN_MODE" != --source-only ]; then
+    ci_phase_start 'PostGIS image pull and dependencies'
+    DB_PULL_LOG="$CI_STATE_DIR/postgis-image-pull.log"
+    "${CI_COMPOSE[@]}" pull database > >(tee "$DB_PULL_LOG") 2>&1 &
+    DB_PULL_PID=$!
+else
+    ci_phase_start 'Source dependencies'
+fi
 echo '=== Installing Python and system build dependencies ==='
-sudo apt-get update -qq
-sudo apt-get install -y -qq ca-certificates gcc libpq-dev python3-dev python3-venv xz-utils >/dev/null
+if [ "${GITHUB_ACTIONS:-false}" != true ] && command -v apt-get >/dev/null 2>&1; then
+    APT_PREFIX=()
+    if [ "$(id -u)" -ne 0 ]; then APT_PREFIX=(sudo); fi
+    APT_OPTIONS=(
+        -o Acquire::Retries=2
+        -o Acquire::http::Timeout=30
+        -o Acquire::https::Timeout=30
+        -o Dpkg::Use-Pty=0
+    )
+    echo 'Installing optional host build tools (10-minute bound; apt output is visible)...'
+    if ! run_ci_timeout 10m "${APT_PREFIX[@]}" apt-get "${APT_OPTIONS[@]}" update; then
+        echo 'Host package index update failed or exceeded 10 minutes.' >&2
+        exit 1
+    fi
+    if ! run_ci_timeout 10m "${APT_PREFIX[@]}" apt-get "${APT_OPTIONS[@]}" install -y --no-install-recommends \
+        ca-certificates gcc libpq-dev python3-dev python3-venv xz-utils; then
+        echo 'Host build-tool installation failed or exceeded 10 minutes.' >&2
+        exit 1
+    fi
+else
+    echo 'Skipping apt bootstrap: hosted runners and non-apt hosts use Python wheels.'
+fi
 python3 -m venv .venv
 . .venv/bin/activate
-python -m pip install --upgrade pip
-python -m pip install -r requirements.txt
-python -m pip install slither-analyzer==0.11.5 semgrep==1.170.0 ruff pip-audit
-npm install --global --no-audit --no-fund @cyfrin/aderyn@0.6.8
-# GitHub Actions installs a pinned Foundry action/toolchain before this script.
-# Local runs must provide forge on PATH; the CI script never downloads a moving
-# installer or toolchain release itself.
-./scripts/verify-ci-toolchain.sh
+python -m pip --version
+if ! run_ci_timeout 25m python -m pip install --only-binary=:all: --retries 5 --timeout 60 -r requirements.txt; then
+    echo 'Application dependency installation failed or exceeded 25 minutes.' >&2
+    exit 1
+fi
+python -m pip check
+if [ "$RUN_MODE" != --integration-only ]; then
+    CI_TOOLS_VENV="$CI_STATE_DIR/ci-tools"
+    python3 -m venv "$CI_TOOLS_VENV"
+    if ! run_ci_timeout 20m "$CI_TOOLS_VENV/bin/python" -m pip install --only-binary=:all: --retries 5 --timeout 60 -r requirements/ci-tools.txt; then
+        echo 'CI tool installation failed or exceeded 20 minutes.' >&2
+        exit 1
+    fi
+    "$CI_TOOLS_VENV/bin/python" -m pip check
+    CI_TOOLS_BIN="$CI_TOOLS_VENV/bin"
+    if ! run_ci_timeout 15m npm install --global --no-audit --no-fund \
+        --fetch-retries=5 --fetch-retry-factor=2 @cyfrin/aderyn@0.6.8; then
+        echo 'Aderyn installation failed or exceeded 15 minutes.' >&2
+        exit 1
+    fi
+    # GitHub Actions installs a pinned Foundry action/toolchain before this script.
+    # Local runs must provide forge on PATH; the CI script never downloads a moving
+    # installer or toolchain release itself.
+    PATH="$CI_TOOLS_BIN:$PATH" ./scripts/verify-ci-toolchain.sh
+fi
 
-echo '=== Ruff security scan ==='
-ruff check --select S,BLE --ignore S101,S104,S105,S110,S112,S310,S311,S404,S603,S607,S608,RUF012,BLE001 services/
+if [ "$RUN_MODE" != --integration-only ]; then
+    ci_phase_start 'Python supply-chain and security checks'
+    echo '=== Ruff security scan ==='
+    "$CI_TOOLS_BIN/ruff" check --select S,BLE --ignore S101,S104,S105,S110,S112,S310,S311,S404,S603,S607,S608,RUF012,BLE001 services/
 
-echo '=== pip-audit ==='
-pip-audit -r requirements.txt
+    echo '=== pip-audit ==='
+    "$CI_TOOLS_BIN/pip-audit" -r requirements.txt
 
-echo '=== Fast-fail CI checks ==='
-./scripts/ci-check.sh
+    ci_phase_start 'Fast-fail source, import, CLI, and hook checks'
+    echo '=== Fast-fail source checks ==='
+    ./scripts/ci-check.sh --source-only
+fi
 
+if [ "$RUN_MODE" = --source-only ]; then
+    ci_phase_start 'Static analysis'
+    echo '=== Static analysis ==='
+    PATH="$CI_TOOLS_BIN:$PATH" ./scripts/static-analysis.sh
+
+    ci_phase_start 'Solidity checks'
+    echo '=== Solidity checks ==='
+    (cd contracts && forge fmt --check && forge build --sizes && forge test)
+
+    ci_phase_start 'Directus hook tests'
+    echo '=== Directus hook checks ==='
+    make hooks-test
+    echo 'All source and contract CI checks completed successfully.'
+    exit 0
+fi
+
+if [ "$RUN_MODE" = --integration-only ]; then
+    # Do not inherit a tracked encrypted developer environment in CI. The
+    # disposable plaintext file above is the only configuration this runner
+    # should load after the original has been preserved for cleanup.
+    rm -f .env.sops
+fi
+
+ci_phase_start 'Clean PostgreSQL bootstrap'
+if ! wait "$DB_PULL_PID"; then
+    exit 1
+fi
+DB_PULL_PID=
+echo '=== Starting PostgreSQL and running clean bootstrap ==='
+"${CI_COMPOSE[@]}" up -d database
+for _ in $(seq 1 90); do
+    "${CI_COMPOSE[@]}" exec -T database pg_isready -h 127.0.0.1 -U kokonut -d kokonut_intelligence -q && break
+    sleep 1
+done
+"${CI_COMPOSE[@]}" exec -T database pg_isready -h 127.0.0.1 -U kokonut -d kokonut_intelligence -q
+
+ci_phase_start 'Disposable PostgreSQL bootstrap checks'
+echo '=== Disposable PostgreSQL bootstrap check ==='
+./scripts/ci-check.sh --database-only
+
+ci_phase_start 'Disposable database authorization checks'
 echo '=== Agent lifecycle worker/admin boundary ==='
 python3 scripts/check-agent-safety-superuser-disposable.py
 
 echo '=== Signed credit-adjustment worker boundary ==='
 python3 scripts/check-credit-adjustment-worker-disposable.py
 
+ci_phase_start 'ClickHouse and Redis startup'
 echo '=== Starting isolated CI infrastructure ==='
 export KOKONUT_GIT_SHA="$(git rev-parse HEAD)"
-docker compose -f docker-compose.yml -f docker-compose.ci.yml down -v --remove-orphans 2>/dev/null || true
-docker compose -f docker-compose.yml -f docker-compose.ci.yml up -d database clickhouse cache
+"${CI_COMPOSE[@]}" up -d clickhouse cache
 
-echo '=== Waiting for PostgreSQL ==='
-for _ in $(seq 1 30); do
-    docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T database pg_isready -h 127.0.0.1 -U kokonut -d kokonut_intelligence -q && break
-    sleep 1
-done
-docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T database pg_isready -h 127.0.0.1 -U kokonut -d kokonut_intelligence -q
-
+ci_phase_start 'Database extensions and schema setup'
 echo '=== Applying required database extensions and schema ==='
-docker compose -f docker-compose.yml -f docker-compose.ci.yml \
+"${CI_COMPOSE[@]}" \
     exec -T database psql -U kokonut -d kokonut_intelligence \
     -c 'CREATE EXTENSION IF NOT EXISTS "uuid-ossp"' \
     -c 'CREATE EXTENSION IF NOT EXISTS "pgcrypto"' \
@@ -168,24 +344,28 @@ docker compose -f docker-compose.yml -f docker-compose.ci.yml \
     -c 'GRANT ALL ON SCHEMA public TO kokonut' \
     -c 'ALTER DATABASE kokonut_intelligence SET search_path TO public, kokonut'
 
+ci_phase_start 'Directus extension build'
 echo '=== Building Directus extension hooks ==='
 make hooks-build
 
+ci_phase_start 'Directus startup and data seed'
 echo '=== Starting Directus and seeding ==='
-docker compose -f docker-compose.yml -f docker-compose.ci.yml up -d --wait directus
+"${CI_COMPOSE[@]}" up -d --wait directus
 ./scripts/seed.sh
 ./scripts/seed-pilot.sh
 
+ci_phase_start 'Gateway and gRPC integration startup'
 echo '=== Starting application services ==='
-if ! docker compose -f docker-compose.yml -f docker-compose.ci.yml up -d --build --wait gateway grpc; then
-    docker compose -f docker-compose.yml -f docker-compose.ci.yml ps || true
-    docker compose -f docker-compose.yml -f docker-compose.ci.yml logs --no-color --tail=200 gateway grpc || true
+if ! "${CI_COMPOSE[@]}" up -d --build --wait gateway grpc; then
+    "${CI_COMPOSE[@]}" ps || true
+    "${CI_COMPOSE[@]}" logs --no-color --tail=200 gateway grpc || true
     exit 1
 fi
 
+ci_phase_start 'Application version and commit verification'
 echo '=== Verifying running application version and commit ==='
 EXPECTED_VERSION="$(cat VERSION)"
-docker compose -f docker-compose.yml -f docker-compose.ci.yml \
+"${CI_COMPOSE[@]}" \
     exec -T gateway python3 - "$EXPECTED_VERSION" "$KOKONUT_GIT_SHA" <<'PY'
 import sys
 import services
@@ -198,23 +378,31 @@ if services.__git_sha__ != expected_sha:
 print(f"Upgrade verification passed: {expected_version} ({expected_sha})")
 PY
 
+ci_phase_start 'Metrics computation smoke check'
 echo '=== Computing metrics ==='
 ./scripts/compute-metrics.sh
 
+ci_phase_start 'Full Python test suite'
 echo '=== Full Python suite (strict database mode) ==='
 ./scripts/verify-full-test-suite.sh
 
-echo '=== Static analysis ==='
-./scripts/static-analysis.sh
+if [ "$RUN_MODE" = all ]; then
+    ci_phase_start 'Static analysis'
+    echo '=== Static analysis ==='
+    PATH="$CI_TOOLS_BIN:$PATH" ./scripts/static-analysis.sh
 
-echo '=== Unified CLI smoke checks ==='
-python3 -m services.cli --help >/dev/null
-python3 -m services.cli metrics --help >/dev/null
+    ci_phase_start 'Unified CLI smoke checks'
+    echo '=== Unified CLI smoke checks ==='
+    python3 -m services.cli --help >/dev/null
+    python3 -m services.cli metrics --help >/dev/null
 
-echo '=== Solidity checks ==='
-(cd contracts && forge fmt --check && forge build --sizes && forge test)
+    ci_phase_start 'Solidity checks'
+    echo '=== Solidity checks ==='
+    (cd contracts && forge fmt --check && forge build --sizes && forge test)
 
-echo '=== Directus hook checks ==='
-make hooks-test
+    ci_phase_start 'Directus hook tests'
+    echo '=== Directus hook checks ==='
+    make hooks-test
+fi
 
 echo 'All CI checks completed successfully.'

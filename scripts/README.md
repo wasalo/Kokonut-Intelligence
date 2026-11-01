@@ -59,18 +59,31 @@ published loopback ports and does not require the production worker credential.
 | `check-cache-invalidation-worker-disposable.py` | Apply and replay migration 415 on network-isolated PostgreSQL 16; verify signed event/type/location matching, cache-type and location scoping, retry idempotency, forced-RLS policy behavior, and worker direct-table denial. Uses synthetic rows and removes its temporary container; never connects to candidate or legacy databases. | Isolated acceptance |
 | `check-ai-summary-review-disposable.py` | Apply/replay migration 521 on disposable PostgreSQL 16; verify exact-location review scope, approval blockers, verified-versus-published lifecycle separation, append-only decisions, request retries, and runtime/Directus privilege boundaries. Uses synthetic rows and removes its temporary container; never connects to candidate or legacy databases. | Isolated acceptance |
 | `check-ai-summary-draft-disposable.py` | Apply/replay migrations 521–524 on disposable PostgreSQL 16; verify authenticated requester attribution, bounded exact-location source references, location-linked crop and top-five expense-category references, retry/review manifest access, self-review denial, legacy creator blockers, independent verification lifecycle, append-only source records, and runtime/Directus privilege boundaries. Uses synthetic rows and a network-disabled temporary container; never connects to candidate or legacy databases. | Isolated acceptance |
-| `verify-full-test-suite.sh` | Run full pytest suite with unexpected-skip detection | CI |
+| `verify-full-test-suite.sh` | Run full pytest suite with per-test progress, slow-test timings, and unexpected-skip detection | CI |
 | `verify-local-test-suite.sh` | Start local Compose databases, wait for readiness, run full test suite | Manual |
 
 ## CI Pipeline
 
 | Script | Purpose | Context |
 |--------|---------|---------|
-| `ci-check.sh` | Fast-fail CI gate: Python imports, CLI parsers, TypeScript build, clean bootstrap | CI |
+| `ci-preflight.sh` | Run dependency-free Python-runtime, dependency-group, source-inventory, and capability checks before CI starts long Docker/database jobs | GitHub Actions |
+| `ci-check.sh [all|--source-only|--database-only]` | Fast-fail CI gates: source/import/CLI/TypeScript checks can run without a database; the isolated clean-bootstrap check can run after PostgreSQL is ready. No argument preserves the combined local behavior. | CI |
 | `static-analysis.sh` | Slither (Solidity), Aderyn (Solidity), Semgrep (Python + Solidity) | CI |
 | `check-tracked-secrets.sh` | Scan Git-tracked files for private keys and token patterns | CI |
 | `check-image-digests.sh` | Fail if Dockerfile `FROM` or Compose `image:` is not pinned by `@sha256` digest | CI |
 | `check-python-runtime.py` | Validate Python >= 3.11 and OpenSSL availability | CI (via `ci-check.sh`) |
+
+GitHub Actions first runs the dependency-free `ci-preflight.sh`, including the
+release-input lock and inventories that previously failed only after long
+jobs had started. When it passes, source/security/static/contract checks run
+separately and in parallel with the database-backed integration runner and multi-architecture image build. The
+`CI / ci` aggregate is the required branch-protection status.
+`scripts/run-github-ci.sh --source-only` and
+`scripts/run-github-ci.sh --integration-only` are the corresponding runner
+modes. Calling the runner without an argument retains the combined local gate.
+Hosted jobs skip the redundant apt bootstrap, use cached locked Python/Node
+dependencies, bound network installs, and bound Compose failure diagnostics and
+teardown. Each job uploads its log and relevant diagnostics on failure.
 
 ## Monitoring & Operations
 

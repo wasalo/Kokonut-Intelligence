@@ -15,8 +15,77 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
+  preflight:
+    name: preflight
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Run dependency-free source preflight
+        run: bash scripts/ci-preflight.sh
+
+  source-checks:
+    name: source-checks
+    needs: preflight
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    env:
+      CI_DIAGNOSTICS_DIR: ${{ runner.temp }}/kokonut-ci-source-${{ github.run_id }}-${{ github.run_attempt }}
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6
+        with:
+          node-version-file: .node-version
+          cache: npm
+          cache-dependency-path: extensions/kokonut-hooks/package-lock.json
+
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: |
+            requirements.txt
+            requirements/ci-tools.txt
+
+      - name: Install pinned Foundry toolchain
+        uses: foundry-rs/foundry-toolchain@908c540300062bd5a7e473851cdb4282204cee09 # v1.9.1
+        with:
+          version: v1.8.5
+          cache: false
+
+      - name: Run source, security, static-analysis, and contract checks
+        run: |
+          set +e
+          bash scripts/run-github-ci.sh --source-only 2>&1 | tee "$RUNNER_TEMP/kokonut-ci-source.log"
+          status=${PIPESTATUS[0]}
+          set -e
+          exit "$status"
+
+      - name: Upload source-check diagnostics
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: kokonut-ci-source-diagnostics
+          path: |
+            ${{ runner.temp }}/kokonut-ci-source-${{ github.run_id }}-${{ github.run_attempt }}/
+            ${{ runner.temp }}/kokonut-ci-source.log
+            artifacts/static-analysis/
+          if-no-files-found: ignore
+          retention-days: 7
+
   full-ci:
-    name: full-ci
+    name: integration-ci
+    needs: preflight
     runs-on: ubuntu-24.04
     timeout-minutes: 90
     env:
@@ -36,18 +105,40 @@ jobs:
         uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6
         with:
           node-version-file: .node-version
+          cache: npm
+          cache-dependency-path: extensions/kokonut-hooks/package-lock.json
 
-      - name: Install pinned Foundry toolchain
-        uses: foundry-rs/foundry-toolchain@908c540300062bd5a7e473851cdb4282204cee09 # v1.9.1
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
-          version: v1.8.5
-          cache: false
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements.txt
 
-      - name: Run the complete CI gate
-        run: bash scripts/run-github-ci.sh
+      - name: Run database-backed integration checks
+        env:
+          CI_DIAGNOSTICS_DIR: ${{ runner.temp }}/kokonut-ci-diagnostics-${{ github.run_id }}-${{ github.run_attempt }}
+        run: |
+          set +e
+          bash scripts/run-github-ci.sh --integration-only 2>&1 | tee "$RUNNER_TEMP/kokonut-ci-run.log"
+          status=${PIPESTATUS[0]}
+          set -e
+          exit "$status"
+
+      - name: Upload disposable Compose diagnostics
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: kokonut-ci-compose-diagnostics
+          path: |
+            ${{ runner.temp }}/kokonut-ci-diagnostics-${{ github.run_id }}-${{ github.run_attempt }}/
+            ${{ runner.temp }}/kokonut-ci-run.log
+          if-no-files-found: ignore
+          retention-days: 7
 
   kernel-image:
     name: kernel-image
+    needs: preflight
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     steps:
@@ -69,19 +160,22 @@ jobs:
 
   ci:
     name: ci
-    if: always()
-    needs: [full-ci, kernel-image]
+    if: ${{ always() && !cancelled() }}
+    needs: [preflight, source-checks, full-ci, kernel-image]
     runs-on: ubuntu-24.04
     timeout-minutes: 2
     steps:
       - name: Enforce all required CI gates
         env:
+          PREFLIGHT_RESULT: ${{ needs.preflight.result }}
           FULL_CI_RESULT: ${{ needs.full-ci.result }}
+          SOURCE_CHECKS_RESULT: ${{ needs.source-checks.result }}
           KERNEL_IMAGE_RESULT: ${{ needs.kernel-image.result }}
         run: |
-          if [[ "$FULL_CI_RESULT" != "success" || "$KERNEL_IMAGE_RESULT" != "success" ]]; then
-            printf 'Full CI result: %s\nKernel image result: %s\n' \
-              "$FULL_CI_RESULT" "$KERNEL_IMAGE_RESULT" >&2
+          if [[ "$PREFLIGHT_RESULT" != "success" || "$SOURCE_CHECKS_RESULT" != "success" || "$FULL_CI_RESULT" != "success" || "$KERNEL_IMAGE_RESULT" != "success" ]]; then
+            printf 'Preflight result: %s\nSource checks result: %s\nIntegration result: %s\nKernel image result: %s\n' \
+              "$PREFLIGHT_RESULT" \
+              "$SOURCE_CHECKS_RESULT" "$FULL_CI_RESULT" "$KERNEL_IMAGE_RESULT" >&2
             exit 1
           fi
-          echo 'Full CI and multi-architecture Kernel image gates passed.'
+          echo 'Source, integration, and multi-architecture Kernel image gates passed.'
