@@ -2329,6 +2329,7 @@ def test_c1_receipt_and_audit_tables_stay_private_after_runtime_reprovisioning()
         "metric_value_compute_receipt",
         "metric_value_verification_receipt",
         "metric_value_operator_audit",
+        "location_solution_creation_receipt",
     }
     private_tables = set(runtime_role._RUNTIME_PRIVATE_TABLES)
     boundaries, _ = REPORTER["_runtime_role_boundaries"]()

@@ -25660,3 +25660,20 @@ CI/Security result. Evidence: [energy capture](builds/2026-10-31-recovery/energy
 [native schema/probe](builds/2026-10-31-recovery/native-schema-711-operator-probe.json),
 [source/ACL report](builds/2026-10-31-recovery/runtime-privilege-callsite-report-711.json),
 [CI diagnosis](builds/2026-10-31-recovery/ci-1029-runtime-sql-inventory-fix.json).
+
+### Progress addendum — private solution-creation receipt ACL — 31 October 2026
+
+Migration 714 removes table and residual column access to
+`location_solution_creation_receipt` from `PUBLIC`, `kokonut_runtime`, and
+`kokonut_directus_runtime`, while retaining the bounded function owner's
+existing request-ID column grants. Runtime provisioning now classifies the
+relation as private. The disposable CAP-035 checker simulates compatibility
+table and column grants before applying migration 714, then verifies
+apply/replay, owner-grant preservation, role denial, and solution creation and
+retry behavior. All 11 acceptance groups pass on network-disabled disposable
+PostgreSQL 16; the focused migration/runtime-role selection passes 141 tests.
+Ruff, 705-file migration source validation, and diff checks pass. No candidate,
+legacy, or production database/role changed. This focused boundary does not
+refresh the aggregate C1 ACL report, close broad DML, establish RLS, or extend
+Standard recovery acceptance beyond migration 712
+([acceptance](builds/2026-10-31-recovery/runtime-solution-creation-receipt-714-disposable.json)).

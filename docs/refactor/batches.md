@@ -22,7 +22,7 @@ pending.
 
 Remaining work is ordered in [the code-first execution plan](code-first-execution-plan.md): finish repository-owned implementation and reproducible software checks before collecting owner decisions and production inputs. Raspberry Pi hardware is unavailable, so Batch 6 uses ARM64 emulation and constrained software checks; it does not claim physical-device acceptance.
 
-**Current snapshot (31 October 2026):** 2,187 checklist items complete and 34 open (2,221 total), counting nested items. The cross-phase TODO queue has 776
+**Current snapshot (31 October 2026):** 2,188 checklist items complete and 34 open (2,222 total), counting nested items. The cross-phase TODO queue has 777
 checked and 32 open items. The
 [capability matrix](capability-matrix.md) has 67 validated rows: 24
 baseline-retained, 7 deployed, and 36 prepared. Named MAN-CAP
@@ -30,6 +30,27 @@ acceptance remains separate; none is marked accepted.
 
 The proposed next sprint and its bounded acceptance criteria are recorded in
 [authenticated farm workflow and recovery](sprint-kernel-workflow-acceptance.md).
+
+### Latest local C1 continuation — private solution-creation receipt ACL — 31 October 2026
+
+- [x] Revoke direct table and residual column access to
+  `location_solution_creation_receipt` from `PUBLIC`, `kokonut_runtime`, and
+  `kokonut_directus_runtime`, while preserving the bounded creator function's
+  existing request-ID column grants. The runtime provisioner keeps this
+  relation private after broad compatibility grants; the disposable CAP-035
+  acceptance applies/replays migration 714 after simulating those grants and
+  verifies role denial plus owner-grant preservation.
+
+The runtime-role/migration regression selection passes 141 tests; network-
+disabled PostgreSQL 16 apply/replay of migrations 504 and 714 passes 11
+acceptance groups. Migration source validation (705 files), Ruff, and diff
+checks pass. This is a focused relation boundary, not a refreshed aggregate
+ACL report, full-schema Standard replay, tenant-isolation proof, or candidate/
+production rollout. Rollback keeps the append-only migration and private
+receipt; restore writes only through a reviewed forward migration. Evidence:
+[migration](../schemas/postgres/714_runtime_location_solution_creation_receipt_private.sql),
+[checker](../scripts/check-solution-create-disposable.py), and
+[acceptance](builds/2026-10-31-recovery/runtime-solution-creation-receipt-714-disposable.json).
 
 ### Latest local C2 continuation — Data Stream files and CRISP contracts — 29 October 2026
 

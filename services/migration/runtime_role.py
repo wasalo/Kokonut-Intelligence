@@ -1158,6 +1158,7 @@ _RUNTIME_PRIVATE_TABLES = (
     "solution_adoption_program_revision",
     "solution_adoption_program_revision_receipt",
     "solution_adoption_program_submission_receipt",
+    "location_solution_creation_receipt",
     "solution_configuration_draft_receipt",
     "solution_configuration_legacy_approval_archive",
     "solution_configuration_review_receipt",

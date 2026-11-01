@@ -145,12 +145,16 @@ older counts and deployment statements are snapshots from their dates.
 
 ## C1 runtime ACL work: current batch
 
-C1 remains **open**. The latest C1 source addition is migration 713, which
-preserves the signed climate worker's audit compatibility and supports active
-locations with plot geometry but no centroid; its focused unit and disposable
-PostgreSQL acceptance passes ([climate evidence](builds/2026-10-31-recovery/climate-worker-713-disposable.json)).
-It has not been included in a fresh full-schema replay or applied to a
-persistent candidate. The latest aggregate C1 source/ACL evidence remains a
+C1 remains **open**. The latest C1 source addition is migration 714, which
+keeps the location-solution creation retry receipt private from `PUBLIC`, the
+runtime role, and Directus while preserving its bounded function-owner column
+grants. Its focused role/migration tests and 11-group disposable PostgreSQL 16
+apply/replay pass ([evidence](builds/2026-10-31-recovery/runtime-solution-creation-receipt-714-disposable.json)).
+Migration 713's climate worker compatibility and plot-only geometry behavior
+also pass focused unit and disposable acceptance
+([climate evidence](builds/2026-10-31-recovery/climate-worker-713-disposable.json)).
+Neither migration has been included in a fresh full-schema replay or applied
+to a persistent candidate. The latest aggregate C1 source/ACL evidence remains a
 network-disabled, portless native PostgreSQL 16 replay
 through migration 711 applied all 702 ordered schema files and passed the
 synthetic two-tenant operator-scope probe. The refreshed source/ACL report
@@ -180,8 +184,12 @@ the image gate in parallel with full CI, but those changes do not prove the
 cause of #1014. The later current-head [CI #1029](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/41233060705)
 failed at the fast-fail gate because `runtime-sql-inventory.json` was stale.
 That specific failure is repaired in this worktree and the inventory check now
-passes; hosted verification on the next pushed head remains open
-([diagnosis](builds/2026-10-31-recovery/ci-1029-runtime-sql-inventory-fix.json)).
+passes. The pushed head's CI #1032 full-ci runner later received a shutdown
+signal after 704 schema migrations and 28 seeds applied; no assertion failure
+was logged. Security #756 passed, while the multi-architecture image job was
+still running at inspection. This is incomplete hosted validation, not a pass
+([inventory repair](builds/2026-10-31-recovery/ci-1029-runtime-sql-inventory-fix.json);
+[hosted-run evidence](builds/2026-10-31-recovery/ci-1032-hosted-runner-shutdown.json)).
 
 Standard-profile disposable recovery is accepted through migration 712 for the
 specific controls recorded above. This does not establish candidate or
@@ -191,6 +199,8 @@ changed. Broader caller reconciliation, external importer ownership, Directus
 API parity, tenant/RLS, populated-data parity, and reviewed persistent rollout
 remain open. Migration 712 did not rerun the two-tenant operator-scope probe or
 refresh the C1 source/ACL aggregate; that evidence remains at migration 711.
+Migration 714's focused receipt check does not extend Standard recovery profile
+evidence.
 
 ## Human and operational gates
 

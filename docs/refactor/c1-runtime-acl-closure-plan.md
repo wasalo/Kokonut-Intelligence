@@ -66,8 +66,13 @@ The original attempt-1 cause is unknown. This branch later added Buildx caching
 and a parallel image job. The later current-head [CI #1029](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/41233060705)
 failed for a separate, verified reason: the fast-fail gate found a stale runtime
 SQL inventory. This batch repairs that inventory and records local passing
-freshness validation; the next complete hosted run remains required
-([diagnosis](builds/2026-10-31-recovery/ci-1029-runtime-sql-inventory-fix.json)).
+freshness validation. On the pushed head, CI #1032's full-ci runner later
+received a shutdown signal after 704 schema migrations and 28 seeds applied;
+no assertion failure was logged. Security #756 passed, while the
+multi-architecture image job was still running at inspection. Hosted
+validation is incomplete, not a passing CI result
+([inventory repair](builds/2026-10-31-recovery/ci-1029-runtime-sql-inventory-fix.json);
+[CI #1032 evidence](builds/2026-10-31-recovery/ci-1032-hosted-runner-shutdown.json)).
 
 Migration 712 moves Standard PostgreSQL rate-limit bucket access behind bounded
 consume and cleanup functions. The Standard runtime and Directus roles have no
@@ -99,6 +104,23 @@ The migration has not been applied to the candidate or production, and no real
 provider credentials or external calls were used. The Standard recovery
 acceptance remains through migration 712; this focused climate check is not a
 full-schema replay or profile acceptance.
+
+Migration 714 closes direct access to the private
+`location_solution_creation_receipt` table after compatibility provisioning.
+It removes table and residual column privileges from `PUBLIC`,
+`kokonut_runtime`, and `kokonut_directus_runtime`; the bounded
+`kokonut_solution_creator_owner` retains only its existing request-ID column
+grants. Runtime provisioning now classifies this receipt as private. The
+focused runtime-role/migration regression set passes 141 tests, the ordered
+source validator accepts all 705 migration files, Ruff and `git diff --check`
+pass, and network-disabled PostgreSQL 16 applies/replays migrations 504 and
+714 with 11 grouped checks, including simulated broad compatibility grants
+followed by migration 714. This is one reviewed receipt boundary, not a
+refreshed aggregate ACL report or full-schema replay; it does not close broad
+runtime DML or tenant isolation. Candidate, legacy, and production databases
+were not changed ([migration](../../schemas/postgres/714_runtime_location_solution_creation_receipt_private.sql);
+[runner](../../scripts/check-solution-create-disposable.py);
+[evidence](builds/2026-10-31-recovery/runtime-solution-creation-receipt-714-disposable.json)).
 
 ### Historical detailed notes for migrations 700–710
 

@@ -8,7 +8,7 @@ can proceed now and gates that need an owner, provider, populated source data,
 or production environment. Check an item only when its evidence is recorded in
 the batch log and the affected capability/progress records are updated.
 
-**Current queue snapshot (31 October 2026):** 776 checked / 32 open across the TODO's dated and active checklist sections. Historical snapshots below this
+**Current queue snapshot (31 October 2026):** 777 checked / 32 open across the TODO's dated and active checklist sections. Historical snapshots below this
 active queue remain dated records and do not replace the current count.
 
 **Hosted validation (31 October 2026):** On the pre-batch PR head `fb4cc883`,
@@ -4689,3 +4689,14 @@ external-writer absence remains represented by migration 697; the separate
 
 No tests or migrations were run for this continuation. Metric routes remain
 non-deployable until their functions exist; the old CLI remains intact.
+
+### Completed C1 continuation — solution-creation receipt ACL — 31 October 2026
+
+- [x] Keep `location_solution_creation_receipt` inaccessible to `PUBLIC`,
+  runtime, and Directus after compatibility-role provisioning while retaining
+  the bounded creator owner's request-ID column grants. Migration 714 applies
+  and replays in the network-disabled PostgreSQL 16 acceptance; all 11 groups
+  pass. The focused migration/runtime-role selection passes 141 tests. This
+  does not refresh the aggregate C1 report, enable RLS, or extend full Standard
+  profile acceptance ([batch](batches.md);
+  [evidence](builds/2026-10-31-recovery/runtime-solution-creation-receipt-714-disposable.json)).

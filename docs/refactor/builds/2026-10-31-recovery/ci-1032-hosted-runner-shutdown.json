@@ -1,0 +1,34 @@
+{
+  "date": "2026-10-31",
+  "workflow": "CI",
+  "pull_request": 71,
+  "run_id": 41253454274,
+  "run_number": 1032,
+  "head_sha": "f4a675f4993ec121682a3cf3f1fd40c968618267",
+  "merge_sha": "c5632613c81ee1f19b0467d31cb46cd8a5c588b1",
+  "jobs": {
+    "full-ci": {
+      "job_id": 124691577265,
+      "conclusion": "cancelled",
+      "runner_message": "The runner has received a shutdown signal",
+      "observed_at": "2026-10-31T23:50:23Z",
+      "last_confirmed_gates": {
+        "schema_migrations": "704 applied, 0 failed",
+        "seeds": "28 applied, 0 failed"
+      },
+      "assertion_failure_logged": false
+    },
+    "kernel-image": {
+      "job_id": 124691577402,
+      "status_at_inspection": "in_progress",
+      "last_confirmed_step": "Build and verify Kernel images"
+    }
+  },
+  "security_run": {
+    "run_id": 41253454209,
+    "run_number": 756,
+    "conclusion": "success"
+  },
+  "interpretation": "Hosted validation did not complete because the full-ci runner received a shutdown signal. Available logs show no code or test assertion failure; the Kernel image job was still running at inspection. This does not count as a passing CI result.",
+  "source": "https://github.com/wasalo/Kokonut-Intelligence/actions/runs/41253454274"
+}

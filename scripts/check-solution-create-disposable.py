@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
-"""Exercise migration 504's exact-location solution creation contract."""
+"""Exercise exact-location solution creation and its private receipt ACL."""
 
 from __future__ import annotations
 
 import importlib.util
 import json
+import os
 import shutil
 import subprocess
 import sys
@@ -15,7 +16,11 @@ ROOT = Path(__file__).resolve().parents[1]
 PRIOR_CHECK = ROOT / "scripts/check-solution-retirement-execution-disposable.py"
 PREVIOUS_MIGRATION = ROOT / "schemas/postgres/503_location_solution_nonpromotion_stage_transition.sql"
 MIGRATION = ROOT / "schemas/postgres/504_location_solution_create.sql"
-OUTPUT = ROOT / "docs/refactor/builds/2026-10-20-recovery/cap-035-solution-create-disposable.json"
+PRIVATE_RECEIPT_MIGRATION = ROOT / "schemas/postgres/714_runtime_location_solution_creation_receipt_private.sql"
+OUTPUT = Path(os.environ.get(
+    "KOKONUT_SOLUTION_CREATE_EVIDENCE",
+    str(ROOT / "docs/refactor/builds/2026-10-20-recovery/cap-035-solution-create-disposable.json"),
+))
 spec = importlib.util.spec_from_file_location("solution_stage_transition_disposable", PRIOR_CHECK)
 if spec is None or spec.loader is None:
     raise RuntimeError("could not load the ordered CAP-035 disposable fixtures")
@@ -143,6 +148,23 @@ BEGIN
     BEGIN PERFORM 1 FROM public.location_solution_creation_receipt;
     EXCEPTION WHEN insufficient_privilege THEN denied := TRUE; END;
     IF NOT denied THEN RAISE EXCEPTION 'runtime can directly read private creation receipts'; END IF;
+    denied := FALSE;
+    BEGIN
+        INSERT INTO public.location_solution_creation_receipt (
+            operator_id, actor_party_id, location_id, solution_id,
+            lifecycle_event_id, canonical_key, solution_name, solution_type,
+            request_id, payload_digest, created_at
+        ) VALUES (
+            'a0000000-0000-4000-8000-000000000041',
+            'c1000000-0000-4000-8000-000000000041',
+            'b0000000-0000-4000-8000-000000000001',
+            'ab000000-0000-4000-8000-000000000099',
+            'ab000000-0000-4000-8000-000000000098',
+            'synthetic.direct.write', 'Must be denied', 'practice',
+            'ab000000-0000-4000-8000-000000000097', repeat('0', 32)::bytea, now()
+        );
+    EXCEPTION WHEN insufficient_privilege THEN denied := TRUE; END;
+    IF NOT denied THEN RAISE EXCEPTION 'runtime can directly insert private creation receipts'; END IF;
 END $$;
 COMMIT;
 RESET ROLE;
@@ -168,6 +190,54 @@ BEGIN
     IF initial_event_count <> 1 OR receipt_count <> 1 THEN
         RAISE EXCEPTION 'solution, opening event, or retry receipt was not atomic/exactly once';
     END IF;
+    IF has_table_privilege('kokonut_runtime', 'public.location_solution_creation_receipt', 'SELECT')
+       OR has_table_privilege('kokonut_runtime', 'public.location_solution_creation_receipt', 'INSERT')
+       OR has_table_privilege('kokonut_runtime', 'public.location_solution_creation_receipt', 'UPDATE')
+       OR has_table_privilege('kokonut_runtime', 'public.location_solution_creation_receipt', 'DELETE')
+       OR has_table_privilege('kokonut_runtime', 'public.location_solution_creation_receipt', 'TRUNCATE')
+       OR has_table_privilege('kokonut_runtime', 'public.location_solution_creation_receipt', 'REFERENCES')
+       OR has_table_privilege('kokonut_runtime', 'public.location_solution_creation_receipt', 'TRIGGER') THEN
+        RAISE EXCEPTION 'runtime has direct table privileges on private creation receipts';
+    END IF;
+    IF has_column_privilege('kokonut_runtime', 'public.location_solution_creation_receipt', 'request_id', 'SELECT')
+       OR has_column_privilege('kokonut_runtime', 'public.location_solution_creation_receipt', 'request_id', 'INSERT')
+       OR has_column_privilege('kokonut_runtime', 'public.location_solution_creation_receipt', 'request_id', 'UPDATE')
+       OR EXISTS (
+            SELECT 1
+              FROM pg_catalog.pg_attribute AS attribute
+             WHERE attribute.attrelid = 'public.location_solution_creation_receipt'::regclass
+               AND attribute.attnum > 0
+               AND NOT attribute.attisdropped
+               AND (
+                    has_column_privilege('kokonut_runtime', 'public.location_solution_creation_receipt', attribute.attname, 'SELECT')
+                 OR has_column_privilege('kokonut_runtime', 'public.location_solution_creation_receipt', attribute.attname, 'INSERT')
+                 OR has_column_privilege('kokonut_runtime', 'public.location_solution_creation_receipt', attribute.attname, 'UPDATE')
+                 OR has_column_privilege('kokonut_runtime', 'public.location_solution_creation_receipt', attribute.attname, 'REFERENCES')
+               )
+       )
+       OR has_table_privilege('kokonut_solution_creator_owner', 'public.location_solution_creation_receipt', 'SELECT')
+       OR has_table_privilege('kokonut_solution_creator_owner', 'public.location_solution_creation_receipt', 'INSERT')
+       OR NOT has_column_privilege('kokonut_solution_creator_owner', 'public.location_solution_creation_receipt', 'request_id', 'SELECT')
+       OR NOT has_column_privilege('kokonut_solution_creator_owner', 'public.location_solution_creation_receipt', 'request_id', 'INSERT') THEN
+        RAISE EXCEPTION 'receipt direct access or bounded owner column grants are incorrect';
+    END IF;
+    IF EXISTS (
+        SELECT 1
+          FROM pg_catalog.pg_class AS relation
+          CROSS JOIN LATERAL pg_catalog.aclexplode(relation.relacl) AS grant_entry
+         WHERE relation.oid = 'public.location_solution_creation_receipt'::regclass
+           AND grant_entry.grantee = 0
+    ) OR EXISTS (
+        SELECT 1
+          FROM pg_catalog.pg_attribute AS attribute
+          CROSS JOIN LATERAL pg_catalog.aclexplode(attribute.attacl) AS grant_entry
+         WHERE attribute.attrelid = 'public.location_solution_creation_receipt'::regclass
+           AND attribute.attnum > 0
+           AND NOT attribute.attisdropped
+           AND grant_entry.grantee = 0
+    ) THEN
+        RAISE EXCEPTION 'PUBLIC retains table or column access to private creation receipts';
+    END IF;
     IF NOT has_function_privilege(
         'kokonut_runtime',
         'kokonut_security.create_location_solution(uuid,uuid,text,text,text,text,text,text,text,text,text,jsonb,boolean)',
@@ -183,6 +253,28 @@ BEGIN
         'kokonut_directus_runtime', 'public.location_solution_creation_receipt', 'SELECT'
     ) OR has_table_privilege(
         'kokonut_directus_runtime', 'public.location_solution_creation_receipt', 'INSERT'
+    ) OR has_table_privilege(
+        'kokonut_directus_runtime', 'public.location_solution_creation_receipt', 'UPDATE'
+    ) OR has_table_privilege(
+        'kokonut_directus_runtime', 'public.location_solution_creation_receipt', 'DELETE'
+    ) OR has_table_privilege(
+        'kokonut_directus_runtime', 'public.location_solution_creation_receipt', 'TRUNCATE'
+    ) OR has_table_privilege(
+        'kokonut_directus_runtime', 'public.location_solution_creation_receipt', 'REFERENCES'
+    ) OR has_table_privilege(
+        'kokonut_directus_runtime', 'public.location_solution_creation_receipt', 'TRIGGER'
+    ) OR EXISTS (
+        SELECT 1
+          FROM pg_catalog.pg_attribute AS attribute
+         WHERE attribute.attrelid = 'public.location_solution_creation_receipt'::regclass
+           AND attribute.attnum > 0
+           AND NOT attribute.attisdropped
+           AND (
+                has_column_privilege('kokonut_directus_runtime', 'public.location_solution_creation_receipt', attribute.attname, 'SELECT')
+             OR has_column_privilege('kokonut_directus_runtime', 'public.location_solution_creation_receipt', attribute.attname, 'INSERT')
+             OR has_column_privilege('kokonut_directus_runtime', 'public.location_solution_creation_receipt', attribute.attname, 'UPDATE')
+             OR has_column_privilege('kokonut_directus_runtime', 'public.location_solution_creation_receipt', attribute.attname, 'REFERENCES')
+           )
     ) THEN
         RAISE EXCEPTION 'Directus can execute solution creation or access private receipts';
     END IF;
@@ -195,21 +287,24 @@ def main() -> int:
     container = f"kokonut-solution-create-{uuid.uuid4().hex[:8]}"
     evidence: dict[str, object] = {
         "result": "failed",
-        "migration": MIGRATION.name,
+        "migration": PRIVATE_RECEIPT_MIGRATION.name,
+        "base_capability_migration": MIGRATION.name,
         "database_target": "new disposable PostgreSQL 16 container",
         "candidate_or_legacy_modified": False,
         "checks": [
             "migration 504 applies and replays after the ordered CAP-035 lifecycle chain",
+            "migration 714 reapplies private receipt ACL after broad compatibility grants and replays",
             "solution creation requires a signed exact-location create grant and active human binding",
             "created solutions carry a location origin and attributed discovered lifecycle event",
             "exact retries replay; changed requests, cross-location requests, missing grants, and invalid keys fail",
-            "runtime can execute the bounded function but cannot read receipts; Directus cannot execute it or read receipts",
+            "runtime can execute the bounded function but has no receipt table/column access; bounded owner column grants and Directus denial persist",
             "solution, opening event, and private retry receipt are atomic and exact-once",
         ],
     }
     try:
         subprocess.run(
             [docker, "run", "--detach", "--rm", "--name", container,
+             "--network", "none",
              "-e", "POSTGRES_PASSWORD=local-only-disposable", "postgres:16"],
             text=True, capture_output=True, check=True,
         )
@@ -249,11 +344,22 @@ def main() -> int:
         migration_sql = MIGRATION.read_text(encoding="utf-8")
         psql(docker, container, migration_sql)
         psql(docker, container, migration_sql)
+        private_receipt_sql = PRIVATE_RECEIPT_MIGRATION.read_text(encoding="utf-8")
+        # Model the broad compatibility GRANT applied by runtime provisioning,
+        # including column-level grants, before checking migration 714's repair.
+        psql(docker, container, """
+        GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.location_solution_creation_receipt
+            TO kokonut_runtime;
+        GRANT SELECT (request_id), INSERT (request_id), UPDATE (request_id)
+            ON TABLE public.location_solution_creation_receipt TO kokonut_runtime;
+        """)
+        psql(docker, container, private_receipt_sql)
+        psql(docker, container, private_receipt_sql)
         psql(docker, container, ACTOR_FIXTURE)
         psql(docker, container, ACCEPTANCE)
         evidence["result"] = "passed"
-        evidence["acceptance_groups_passed"] = 9
-        print("PASS: migration 504 applies/replays; exact-location solution creation, opening event, retry, validation, and receipt-boundary checks passed")
+        evidence["acceptance_groups_passed"] = 11
+        print("PASS: migrations 504/714 apply and replay; exact-location creation, retry, owner-grant preservation, and private runtime/Directus receipt ACL checks passed")
         return 0
     except Exception as exc:
         evidence["error"] = f"{type(exc).__name__}: {exc}"
