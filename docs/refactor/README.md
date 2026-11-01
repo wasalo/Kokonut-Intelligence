@@ -25,6 +25,7 @@ The source architecture plan was supplied by the repository owner outside this c
 | Understand architecture, current phase, risks, profile readiness, and remaining gates | [Current-state guide](current-state-and-implementation.md) |
 | Map source-plan phases to current implementation | [Implementation-plan alignment](implementation-plan-alignment.md) |
 | Select a profile and review the exact planner behavior | [Profile selection](profile-selection.md) |
+| Review Standard services, immutable-image release action, and recovery limits | [Standard profile guide](standard-profile.md) |
 | Prepare the isolated local candidate and its rollout | [Kernel candidate](kernel-candidate.md) |
 | Review C1 least-privilege progress and closure criteria | [C1 runtime ACL closure](c1-runtime-acl-closure-plan.md) |
 | Track capability coverage | [Capability matrix](capability-matrix.md) |

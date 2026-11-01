@@ -71,6 +71,10 @@ Commands:
 - ClickHouse is an optional analytical projection. PostgreSQL remains the
   operational source of truth; Metabase is optional and not required by the
   Kernel base profile.
+- In the Standard profile, API and worker run as separate services but currently
+  connect with the shared `kokonut_runtime` database login. Do not describe
+  them as having distinct database identities; closing that C1 boundary is
+  still open.
 - Redis, Prefect, Mosquitto, gRPC, and Caddy are selectable or replaceable
   adapters/overlays. The native durable scheduler and worker state are the
   owned orchestration path; optionality must be demonstrated before an old
@@ -145,7 +149,8 @@ Commands:
 - Run attestation tests: `python3 -m tests.test_attestation`
 - Run Directus metadata tests: `python3 -m tests.test_directus_metadata`
 - Verify platform definition of done: `./scripts/verify-platform.sh`
-- Run CI checks: `./scripts/ci-check.sh` (also runs on push via `.github/workflows/ci.yml`). CI exposes PostgreSQL/ClickHouse to localhost via the `docker-compose.ci.yml` override so host-run DB checks execute; `ci-check.sh` fails loudly if the database cannot be brought up (no silent skip).
+- Run local fast-fail CI checks and the clean database bootstrap: `./scripts/ci-check.sh` or `make ci`. The GitHub workflow in `.github/workflows/ci.yml` runs dependency-free preflight first, then parallel source/security/static/contract, database integration, and multi-architecture image gates; required `CI / ci` is an aggregate over all of them. Integration uses the `docker-compose.ci.yml` override and loopback-only database ports, fails loudly if the database cannot start, and uploads failure diagnostics for seven days. See [`docs/ci.md`](docs/ci.md) for local/full workflow distinctions and log retrieval.
+- Print the Standard immutable-image pull/start command: `python3 scripts/kernel-profile.py standard --action release-up`. It requires reviewed digest-pinned image references and prints `docker compose pull` plus `up --no-build`; it does not execute them or migrate the database. See [`docs/refactor/standard-profile.md`](docs/refactor/standard-profile.md) before a release.
 - Build Solidity contracts: `cd contracts && forge build`
 - Run Solidity tests: `cd contracts && forge test`
 - Format Solidity: `cd contracts && forge fmt`

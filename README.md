@@ -106,7 +106,7 @@ the candidate defaults; it is not a production acceptance matrix.
 |---------|----------|-------|
 | Kernel app (minimal) | `http://127.0.0.1:8098` | FastAPI app plus enabled workers in the isolated candidate project |
 | PostgreSQL/PostGIS | Docker service `database:5432` | Private canonical store; no host port in the candidate base manifest |
-| API and worker (standard) | API uses candidate port; worker has no HTTP port | Separate runtime roles; inspect durable run/delivery state for worker progress |
+| API and worker (standard) | API uses candidate port; worker has no HTTP port | Separate services currently share the `kokonut_runtime` database login; distinct API/worker database identities remain an open C1 boundary. Inspect durable run/delivery state for worker progress |
 | Caddy (optional proxy overlay) | `https://127.0.0.1:8448` | Loopback default; public bind requires explicit configuration and review |
 | Directus (optional adapter) | `http://127.0.0.1:18055` | Compatibility/admin integration; not the canonical Kernel API |
 | ClickHouse (optional analytics overlay) | Docker service `clickhouse:8123` | Private analytics adapter |
@@ -405,13 +405,13 @@ See [AGENTS.md](AGENTS.md) for the full command catalogue and [CHANGELOG.md](CHA
 ## CI And Contributing
 
 The GitHub Actions CI workflow runs on pull requests and pushes targeting
-`develop` and `main`. Feature work is reviewed into `develop`; release batches
-are promoted to `main` by a separate reviewed PR. CI and Security jobs are
-defined in `.github/workflows/`; their current steps and required checks are
-documented in [GitHub Actions](docs/github-actions.md) and [CI Gates](docs/ci.md).
-The CI runner uses a pinned Compose project and loopback high ports for
-database-backed checks. A green CI run is a code gate, not a production
-deployment or migration approval.
+`develop` and `main`. After a fast preflight, source/security/static/contract,
+database-integration, and multi-architecture image gates run in parallel; the
+required `CI / ci` status aggregates their results. Feature work is reviewed
+into `develop`; release batches are promoted to `main` by a separate reviewed
+PR. See [GitHub Actions](docs/github-actions.md) and [CI Gates](docs/ci.md) for
+job limits and log/artifact retrieval. A green CI run is a code gate, not a
+production deployment or migration approval.
 
 The staging workflow is manually dispatched but currently hard-disabled. The
 production workflow is manual and protected by the GitHub `production`
@@ -435,6 +435,13 @@ separate migration selection described in [Deployment](docs/deployment.md) and
 [Migrations](docs/migrations.md). Legacy production Compose examples remain
 reference material only. Do not start public ingress or migrate live data from
 this README.
+
+For the Standard profile, `python3 scripts/kernel-profile.py standard --action
+release-up` prints a pull-and-start command for reviewed, digest-pinned images;
+it does not execute the command, build images on the host, or apply migrations.
+Review the release record and complete the migration, role, backup, and rollback
+gates before executing the printed command. See the [Standard profile guide](docs/refactor/standard-profile.md)
+for image inputs and the full rollout sequence.
 
 ---
 
@@ -516,6 +523,7 @@ Documentation lives under `docs/`. Key entry points:
 | [Architecture](docs/architecture.md) | System overview, data flow, security model |
 | [Platform Integrity](docs/platform-integrity.md) | Cross-cutting integrity boundaries and operational guarantees |
 | [Current refactor status](docs/refactor/current-state-and-implementation.md) | Consolidated architecture, implementation progress, and open gates |
+| [Standard profile](docs/refactor/standard-profile.md) | Separate API/worker deployment, digest-pinned release flow, and recovery limits |
 | [Migrations](docs/migrations.md) | Ordered migration execution, checksums, drift detection, and recovery |
 | [Gateway](docs/gateway.md) | Route policy, authentication, default-deny behavior, rate limits, and audit |
 | [Data Dictionary](docs/data-dictionary.md) | Collections, fields, governed metrics |
@@ -545,6 +553,7 @@ Documentation lives under `docs/`. Key entry points:
 | [Reviewer Guide](docs/reviewer-guide.md) | Metric verification, governed record review, and approval workflows |
 | [Secrets Management](docs/secrets-management.md) | Encrypted secrets, SOPS, and environment variable handling |
 | [CI Pipeline](docs/ci.md) | CI pipeline structure, fast-fail steps, and local reproduction |
+| [GitHub Actions](docs/github-actions.md) | Workflows, repository check settings, and deployment controls |
 | **Smart Contracts** | |
 | [Gnosis Mainnet Deployment](docs/gnosis-mainnet-deployment.md) | Deployed addresses, authority matrix, verification status |
 | [KGP Protocol](docs/kgp-protocol.md) | Kokonut Guild Points protocol specification |
