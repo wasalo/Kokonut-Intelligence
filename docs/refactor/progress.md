@@ -25857,3 +25857,32 @@ tenant/RLS isolation, external-consumer review, candidate rollout, and
 production acceptance remain open. Evidence: [successful replay](builds/2026-10-31-recovery/native-resource-limited-schema-718-operator-probe-r2.json),
 [source/ACL report](builds/2026-10-31-recovery/runtime-privilege-callsite-report-718.json),
 [failed preflight attempt](builds/2026-10-31-recovery/native-resource-limited-schema-718-operator-probe.json).
+
+### Runtime-role compatibility grant reprovision guard — 31 October 2026
+
+Changed `provision_runtime_role()` so the legacy compatibility grant across
+existing public tables and sequences is applied only when the runtime login is
+first created. Later provisions preserve existing grants and reapply explicit
+boundaries without extending access to relations created after the earlier
+provision. This is a bootstrap guard only; broad grants already held on
+existing relations remain and require reviewed, per-relation retirement.
+
+The network-disabled disposable PostgreSQL 16 acceptance passed for both a
+pre-existing role with synthetic legacy grants and a newly created role. In
+both paths, a table created after initial provisioning remained inaccessible
+after reprovision, while the synthetic pre-existing DML grants remained
+available. The fixture now applies/replays migrations 683–685 because the
+current provisioner grants report-export functions and fails on this stale
+dependency otherwise. The source suites reported 112 passed with one
+SOPS-decryption environment failure; that isolated case passed when rerun with
+the explicit development-only no-secrets setting. Compilation and diff checks
+pass. A multiline SQL row in migration 712 had also been missed by the
+Directus-policy source-regression parser; the parser now permits whitespace and
+line breaks between row fields.
+
+The fresh acceptance is recorded at
+[runtime-role reprovision guard](builds/2026-10-31-recovery/runtime-role-reprovision-guard-disposable.json).
+No migration was added, and no persistent candidate, legacy, or production
+database or role was changed. The API and worker still share `kokonut_runtime`;
+external callers, existing broad grants, tenant/RLS isolation, and persistent
+rollout remain open.

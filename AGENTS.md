@@ -75,6 +75,12 @@ Commands:
   connect with the shared `kokonut_runtime` database login. Do not describe
   them as having distinct database identities; closing that C1 boundary is
   still open.
+- Runtime-role bootstrap applies its broad legacy compatibility table/sequence
+  grant only when it first creates `kokonut_runtime`. Reprovisioning preserves
+  existing grants and reapplies reviewed boundaries, but does not widen access
+  to relations created afterward. This guard does not remove broad grants from
+  existing tables; C1 remains open until those writer cohorts are reviewed and
+  migrated.
 - Standard can select Edge settings with the planner's `standard --edge`
   option. This composes the encrypted local-media provider and
   private-media volume onto the API, plus Edge resource limits on PostgreSQL

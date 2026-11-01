@@ -102,13 +102,14 @@ def test_directus_policy_migration_reconciles_prior_denials_and_preserves_catalo
         policy_rows.extend(
             (relation, mode, source_migration)
             for relation, mode, source_migration in re.findall(
-                r"\('public', '([a-z_][a-z0-9_]*)', '(read_only|no_access)', "
+                r"\('public',\s*'([a-z_][a-z0-9_]*)',\s*'(read_only|no_access)',\s*"
                 r"'([0-9]{3}_[a-z0-9_]+\.sql)'\)",
                 source,
             )
         )
     rows = re.findall(
-        r"\('public', '([a-z_][a-z0-9_]*)', '(read_only|no_access)', '([0-9]{3}_[a-z0-9_]+\.sql)'\)",
+        r"\('public',\s*'([a-z_][a-z0-9_]*)',\s*'(read_only|no_access)',\s*"
+        r"'([0-9]{3}_[a-z0-9_]+\.sql)'\)",
         migration,
     )
     policies = {(relation, mode) for relation, mode, _source in policy_rows}

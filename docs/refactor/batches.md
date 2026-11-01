@@ -10107,3 +10107,25 @@ reviewed forward migration.
   worker, column/sequence/function and ownership review. C1 and tenant/RLS
   isolation remain open; no persistent candidate, legacy, or production
   database/role was changed.
+
+### C1 continuation — runtime-role reprovision guard — 31 October 2026
+
+- [x] Change the runtime-role bootstrap so the broad compatibility grant on
+  existing public tables and sequences runs only when the login is first
+  created. Later provisioning preserves established grants, reapplies explicit
+  boundaries, and does not sweep relations created since the previous run into
+  the shared login.
+- [x] Extend the network-disabled disposable PostgreSQL 16 acceptance to cover
+  both a pre-existing runtime role with synthetic legacy grants and a fresh
+  runtime role. Both preserve their existing access; a relation created after
+  each role's provisioning remains inaccessible after reprovisioning. The
+  acceptance also replays migrations 683–685, which current report-export
+  function grants require ([evidence](builds/2026-10-31-recovery/runtime-role-reprovision-guard-disposable.json)).
+- [x] Fix the Directus migration-policy regression parser to accept multiline
+  SQL policy rows such as migration 712's `gateway_rate_bucket` entry.
+- [ ] Keep first-creation compatibility DML removal, broad grants on existing
+  relations, API/worker identity split, external-consumer reconciliation,
+  tenant/RLS validation, and persistent rollout gates open.
+
+This bootstrap change is not a migration. No candidate, legacy, or production
+database/role was touched; C1 remains open.

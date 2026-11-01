@@ -1,5 +1,13 @@
 # Capability preservation matrix
 
+**Latest source-only C1 continuation — 31 October 2026:** Runtime-role
+provisioning now grants legacy compatibility DML only when the login is first
+created. Reprovisioning preserves existing grants and reviewed denials without
+granting newly created relations; disposable PostgreSQL 16 checks cover both
+pre-existing and fresh logins. This does not remove broad grants from existing
+relations or change capability classifications. C1, tenant/RLS, and persistent
+rollout remain open ([acceptance](builds/2026-10-31-recovery/runtime-role-reprovision-guard-disposable.json)).
+
 **Latest C1 aggregate refresh — 31 October 2026:** The network-disabled,
 portless native PostgreSQL 16 replay applied all 709 schema files through
 migration 718 and passed 38 synthetic two-tenant/operator checks. The source/

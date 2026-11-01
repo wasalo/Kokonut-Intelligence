@@ -35,6 +35,11 @@ MIGRATIONS = (
     ROOT / "schemas/postgres/419_private_worker_context_functions.sql",
     ROOT / "schemas/postgres/432_signed_remote_sensing_worker.sql",
 )
+REPORT_SNAPSHOT_MIGRATIONS = (
+    ROOT / "schemas/postgres/683_location_scoped_report_snapshot_exports.sql",
+    ROOT / "schemas/postgres/684_report_snapshot_export_candidates.sql",
+    ROOT / "schemas/postgres/685_report_snapshot_export_requester_isolation.sql",
+)
 DEFAULT_OUTPUT = (
     ROOT
     / "docs/refactor/builds/2026-10-16-recovery/runtime-notification-enqueue-role-disposable.json"
@@ -123,6 +128,8 @@ def provision_roles(
     notification_password: str,
     remote_sensing_password: str,
     admin_password: str,
+    *,
+    runtime_user: str = "kokonut_runtime",
 ) -> tuple[dict, int]:
     published = run(["docker", "port", container, "5432/tcp"]).strip().splitlines()
     if not published:
@@ -144,7 +151,7 @@ def provision_roles(
             database="postgres",
             admin_user="postgres",
             admin_password=admin_password,
-            runtime_user="kokonut_runtime",
+            runtime_user=runtime_user,
             runtime_password=runtime_password,
             operator_auth_user="kokonut_operator_auth",
             operator_auth_password=auth_password,
@@ -640,8 +647,41 @@ def main() -> int:
                 )
             docker_sql(container, sql_text)
             docker_sql(container, sql_text)
+        docker_sql(
+            container,
+            """CREATE TABLE public.report_snapshot (
+                   id UUID PRIMARY KEY,
+                   location_id UUID NOT NULL REFERENCES public.location(id),
+                   report_name TEXT NOT NULL,
+                   report_type TEXT NOT NULL,
+                   status TEXT NOT NULL,
+                   period_start DATE,
+                   period_end DATE,
+                   snapshot_hash TEXT,
+                   report_data JSONB NOT NULL DEFAULT '{}'::JSONB,
+                   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+               );
+               CREATE OR REPLACE FUNCTION public.operator_scope_grant_allows(
+                   UUID, TEXT, TEXT, UUID
+               ) RETURNS BOOLEAN LANGUAGE SQL STABLE AS 'SELECT FALSE';""",
+        )
+        for migration in REPORT_SNAPSHOT_MIGRATIONS:
+            sql_text = migration.read_text()
+            docker_sql(container, sql_text)
+            docker_sql(container, sql_text)
         assert_public_protected_function_acl(container)
         force_operator_rls(container)
+
+        # The fixture starts with a pre-existing runtime role. Model the
+        # grants from the earlier compatibility bootstrap so re-provisioning
+        # can prove it preserves established access without widening it.
+        docker_sql(
+            container,
+            """GRANT SELECT, INSERT, UPDATE, DELETE
+                   ON ALL TABLES IN SCHEMA public TO kokonut_runtime;
+               GRANT USAGE, SELECT, UPDATE
+                   ON ALL SEQUENCES IN SCHEMA public TO kokonut_runtime;""",
+        )
 
         runtime_password = secrets.token_urlsafe(32)
         auth_password = secrets.token_urlsafe(32)
@@ -661,7 +701,77 @@ def main() -> int:
                INSERT INTO public.runtime_future_default_probe (value)
                VALUES ('admin-seeded-after-provisioning');""",
         )
+        if role_result.get("legacy_compatibility_grants_applied") is not False:
+            raise AssertionError("pre-existing runtime role unexpectedly received compatibility grants")
+        reprovision_result, _ = provision_roles(
+            container,
+            runtime_password,
+            auth_password,
+            notification_password,
+            remote_sensing_password,
+            DOCKER_ADMIN_PASSWORD,
+        )
+        if reprovision_result.get("legacy_compatibility_grants_applied") is not False:
+            raise AssertionError("runtime-role reprovision reapplied compatibility grants")
+
+        new_runtime_user = "kokonut_runtime_fresh_probe"
+        new_runtime_password = secrets.token_urlsafe(32)
+        new_role_result, _ = provision_roles(
+            container,
+            new_runtime_password,
+            auth_password,
+            notification_password,
+            remote_sensing_password,
+            DOCKER_ADMIN_PASSWORD,
+            runtime_user=new_runtime_user,
+        )
+        if new_role_result.get("legacy_compatibility_grants_applied") is not True:
+            raise AssertionError("new runtime role did not receive the one-time compatibility grant")
+        docker_sql(
+            container,
+            """CREATE TABLE public.runtime_new_role_future_probe (
+                   id BIGSERIAL PRIMARY KEY,
+                   value TEXT NOT NULL
+               );""",
+        )
+        new_role_reprovision_result, _ = provision_roles(
+            container,
+            new_runtime_password,
+            auth_password,
+            notification_password,
+            remote_sensing_password,
+            DOCKER_ADMIN_PASSWORD,
+            runtime_user=new_runtime_user,
+        )
+        if new_role_reprovision_result.get("legacy_compatibility_grants_applied") is not False:
+            raise AssertionError("new runtime role reprovision reapplied compatibility grants")
+        new_runtime = psycopg2.connect(
+            host="127.0.0.1",
+            port=host_port,
+            dbname="postgres",
+            user=new_runtime_user,
+            password=new_runtime_password,
+            connect_timeout=5,
+        )
+        try:
+            for statement in (
+                "SELECT value FROM public.runtime_new_role_future_probe LIMIT 1",
+                "INSERT INTO public.runtime_new_role_future_probe (value) VALUES ('denied')",
+                "UPDATE public.runtime_new_role_future_probe SET value = 'denied'",
+                "DELETE FROM public.runtime_new_role_future_probe",
+            ):
+                expect_privilege_denial(new_runtime, statement)
+        finally:
+            new_runtime.close()
         checks = assert_roles(host_port, runtime_password, auth_password)
+        checks.extend(
+            [
+                "an existing runtime login retains previously granted legacy table and sequence access",
+                "runtime-role reprovision does not grant any access on relations created since the prior run",
+                "a newly created runtime login receives the one-time compatibility grant for existing relations",
+                "reprovisioning a newly created login does not widen access to later relations",
+            ]
+        )
         checks.extend(assert_notification_enqueue_role(host_port, notification_password))
         checks.extend(assert_remote_sensing_role(host_port, remote_sensing_password))
         worker_acl = docker_sql(
@@ -706,8 +816,25 @@ def main() -> int:
                 "419_private_worker_context_functions.sql (idempotency replay)",
                 "432_signed_remote_sensing_worker.sql",
                 "432_signed_remote_sensing_worker.sql (idempotency replay)",
+                "683_location_scoped_report_snapshot_exports.sql",
+                "684_report_snapshot_export_candidates.sql",
+                "685_report_snapshot_export_requester_isolation.sql",
             ],
             "provisioner_status": role_result["status"],
+            "legacy_compatibility_grants_applied": {
+                "initial": role_result["legacy_compatibility_grants_applied"],
+                "after_new_relation_reprovision": reprovision_result[
+                    "legacy_compatibility_grants_applied"
+                ],
+                "new_relation_access_after_reprovision": "denied",
+            },
+            "new_runtime_role_compatibility_grants": {
+                "initial": new_role_result["legacy_compatibility_grants_applied"],
+                "after_new_relation_reprovision": new_role_reprovision_result[
+                    "legacy_compatibility_grants_applied"
+                ],
+                "new_relation_access_after_reprovision": "denied",
+            },
             "runtime_user": role_result["runtime_user"],
             "operator_auth_user": role_result["operator_auth_user"],
             "notification_enqueue_user": role_result["notification_enqueue_user"],
@@ -720,7 +847,7 @@ def main() -> int:
             "candidate_application_table_rls_enabled": False,
             "disposable_operator_table_rls_forced": True,
             "synthetic_rows_remaining": 0,
-            "scope_limit": "Verifies the general runtime role cannot read browser credential material or manage API keys; mobile credential SECURITY DEFINER functions are no longer executable by PUBLIC and are explicitly granted to the runtime login. Dedicated notification and remote-sensing logins are provisioned through the runtime bootstrap. The notification login can execute only its bounded enqueue function. The remote-sensing login has no application-table or sequence access, can SET ROLE only to kokonut_worker_execution, and its claim remains signed-scope checked. Extension-owned metadata may retain extension-defined PUBLIC access and is excluded from application-relation checks. This is not the final application-table allowlist, Directus boundary, or candidate RLS acceptance.",
+            "scope_limit": "Verifies the general runtime role cannot read browser credential material or manage API keys; mobile credential SECURITY DEFINER functions are no longer executable by PUBLIC and are explicitly granted to the runtime login. The legacy table/sequence compatibility grant applies only when a runtime login is first created; reprovisioning preserves existing grants but does not sweep newly created relations into that login. Dedicated notification and remote-sensing logins are provisioned through the runtime bootstrap. The notification login can execute only its bounded enqueue function. The remote-sensing login has no application-table or sequence access, can SET ROLE only to kokonut_worker_execution, and its claim remains signed-scope checked. Extension-owned metadata may retain extension-defined PUBLIC access and is excluded from application-relation checks. This is not the final application-table allowlist, Directus boundary, or candidate RLS acceptance.",
         }
         args.output.parent.mkdir(parents=True, exist_ok=True)
         args.output.write_text(json.dumps(report, indent=2) + "\n")

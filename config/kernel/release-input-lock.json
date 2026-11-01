@@ -42,7 +42,7 @@
     "scripts/kernel-profile.py": "c6f70b72a180da9767d25307930e3d74d10e26557a7fbf94e2080a9d37bbd8aa",
     "scripts/check-kernel-release-inputs.py": "4116116c380c2d407f8e315f0057cbf30fdbf64ba58a43f0172a8bcdaf989402",
     "scripts/build-kernel-multiarch.sh": "d4bfa9240f8f17686a9bfb3314ee39acb588f645dd9b4ca630b57d12fefc2339",
-    "docs/refactor/profile-selection.md": "5bacdecf908705907b708975dd0184c076aa2100d5e807a3961ee690586a1d48",
+    "docs/refactor/profile-selection.md": "4c9ff708cd8d71112bb25b3137e3ffc4cb263722c2d2496a0d56cb39ac79f65a",
     "requirements/README.md": "699bfef971be138ca125640284a47ef7a3a73d67f1007ea85bc3d2217f2bed36",
     "docker-compose.kernel-candidate.yml": "c404109f71e175649d1cd99a447990e8b9f177666f10c8dc8c071a2a9b1f99af",
     "docker-compose.kernel-standard.yml": "c5043585cf0c2ec106cd52e950f6636a36edc992d993ce8f70516bd7aa52ab04",

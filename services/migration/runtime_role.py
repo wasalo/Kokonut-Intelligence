@@ -1633,12 +1633,15 @@ def provision_runtime_role(
 ) -> dict[str, object]:
     """Provision a general runtime role plus a session-only auth principal.
 
-    The runtime role keeps DML compatibility for legacy public tables, then
-    reapplies its declared private, mutation-denied, append-only, and
-    call-site-specific boundaries. ``operator_session``, mobile credentials,
-    ``api_key``, and ``solution_stage_gate`` use additional explicit
-    least-privilege grants. New public tables and sequences receive no
-    automatic runtime privileges. The dedicated auth role can only execute
+    A newly created runtime role receives a one-time DML compatibility grant
+    for existing legacy public tables, then the provisioner reapplies its
+    declared private, mutation-denied, append-only, and call-site-specific
+    boundaries. Reprovisioning preserves existing grants and explicit
+    boundaries but does not widen access to relations created since the prior
+    run. ``operator_session``, mobile credentials, ``api_key``, and
+    ``solution_stage_gate`` use additional explicit least-privilege grants.
+    New public tables and sequences receive no automatic runtime privileges.
+    The dedicated auth role can only execute
     the three bounded functions from migration 395. This is scoped to a
     dedicated Kernel PostgreSQL instance. When configured, the optional
     notification-enqueue login receives only its bounded intent function.
@@ -2208,6 +2211,8 @@ def provision_runtime_role(
         for function in _PRIVATE_RUNTIME_FUNCTIONS:
             _revoke_public_function_execute(cur, function)
 
+        cur.execute("SELECT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = %s)", (runtime_user,))
+        runtime_role_created = not cur.fetchone()[0]
         _ensure_login_role(cur, name=runtime_user, identifier=runtime_ident, password=runtime_password)
         for function in _REPORT_SNAPSHOT_EXPORT_RUNTIME_FUNCTIONS:
             cur.execute(
@@ -3008,16 +3013,17 @@ def provision_runtime_role(
 
         _revoke_runtime_default_privileges(cur, admin_ident, runtime_ident)
 
-        cur.execute(
-            sql.SQL("GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO {}").format(
-                runtime_ident
+        if runtime_role_created:
+            cur.execute(
+                sql.SQL("GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO {}").format(
+                    runtime_ident
+                )
             )
-        )
-        cur.execute(
-            sql.SQL("GRANT USAGE, SELECT, UPDATE ON ALL SEQUENCES IN SCHEMA public TO {}").format(
-                runtime_ident
+            cur.execute(
+                sql.SQL("GRANT USAGE, SELECT, UPDATE ON ALL SEQUENCES IN SCHEMA public TO {}").format(
+                    runtime_ident
+                )
             )
-        )
         farm_activity_event_owner_ready = _restore_farm_activity_event_owner(cur)
         mobile_credential_grants = _apply_mobile_credential_boundary(cur, runtime_ident)
         api_key_grants = _apply_api_key_boundary(cur, runtime_ident)
@@ -4349,6 +4355,7 @@ def provision_runtime_role(
         "status": "provisioned",
         "database": database,
         "runtime_user": runtime_user,
+        "legacy_compatibility_grants_applied": runtime_role_created,
         "operator_auth_user": operator_auth_user,
         "notification_enqueue_user": notification_enqueue_user,
         "market_data_user": market_data_user,

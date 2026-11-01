@@ -72,9 +72,11 @@ actions and their printed commands in this order:
 4. `python3 scripts/kernel-profile.py standard --action up` starts the app,
    worker, and selected ingress.
 
-The bootstrap reapplies compatibility DML grants before migration-owned
-denials, so it is not a routine restart action. The planner actions print
-commands and do not execute them.
+The bootstrap applies compatibility DML only when it creates the runtime
+login. Later bootstrap runs preserve existing relation grants and reapply
+migration-owned denials without widening access to newly created tables. It is
+not a routine restart action. The planner actions print commands and do not
+execute them.
 
 To retain the API/worker split while selecting Edge's local-media provider and
 resource limits, use `standard --edge`. The planner appends the Edge overlay

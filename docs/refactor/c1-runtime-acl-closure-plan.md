@@ -24,7 +24,28 @@ incomplete in the inventory.
 
 ## Current evidence and decisions
 
-### Latest C1 continuation — migration 718 market-data write boundary — 1 November 2026
+### Latest C1 continuation — runtime-role reprovision guard — 31 October 2026
+
+The runtime-role bootstrap now applies its broad legacy compatibility grant
+for existing public tables and sequences only when the runtime login is first
+created. Reprovisioning an existing login retains established grants and
+reapplies the explicit private, mutation-denied, append-only, and bounded
+function boundaries, but does not grant relations created since its previous
+run. PostgreSQL 16 disposable acceptance verifies that a pre-existing login
+retains its synthetic legacy grants, a newly created login receives the
+one-time grant for existing relations, and neither login gains access to a
+later-created relation after reprovisioning
+([acceptance](builds/2026-10-31-recovery/runtime-role-reprovision-guard-disposable.json)).
+
+This is a bootstrap-only guard, not a migration or a blanket ACL reduction.
+Broad grants already present on existing relations remain; the API and worker
+still share `kokonut_runtime`; and external consumers, tenant/RLS isolation,
+Directus, candidate rollout, and production acceptance remain open. The
+disposable checker was extended to include migrations 683–685, which the
+current provisioner now expects for report-export function grants. No
+persistent database or role was changed.
+
+### Previous C1 continuation — migration 718 market-data write boundary — 1 November 2026
 
 Migration 718 keeps global reference-price writes out of the shared
 `kokonut_runtime` identity. The dedicated market-data function owner and login
@@ -654,9 +675,14 @@ The detailed entries below are dated historical checkpoints through migration
 
 ### 5. Runtime role migration
 
-- [ ] Replace `services/migration/runtime_role.py`'s all-public-table DML grant
-  with reviewed least-privilege grants as writer cohorts migrate. New tables
-  must not inherit broad DML by default.
+- [x] Prevent runtime-role reprovisioning from applying the all-public-table
+  compatibility grant again. Network-disabled PostgreSQL 16 acceptance proves
+  an existing login retains old grants without gaining access to later tables,
+  and a new login's initial compatibility grant is not repeated on reapply
+  ([evidence](builds/2026-10-31-recovery/runtime-role-reprovision-guard-disposable.json)).
+- [ ] Remove the first-creation all-public-table compatibility grant as
+  reviewed writer cohorts migrate. Broad grants already present on existing
+  relations remain and require per-relation retirement.
 - [x] Keep `capex_breakdown`, `water_access`, `attestation_plan`,
   `event_handler`, `capital_source`, and `consent_data_type` in the
   runtime mutation-deny policy so compatibility role provisioning cannot

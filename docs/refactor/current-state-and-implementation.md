@@ -150,7 +150,17 @@ older counts and deployment statements are snapshots from their dates.
 
 ## C1 runtime ACL work: current batch
 
-C1 remains **open**. Migrations 717 and 718 add two reviewed boundaries. Migration
+C1 remains **open**. A source-only change now prevents runtime-role
+reprovisioning from widening table and sequence access: the legacy compatibility
+grant is applied only when the login is first created. Later provisioning
+preserves existing grants, reapplies explicit boundaries, and leaves relations
+created since the prior run inaccessible. Network-disabled disposable
+PostgreSQL 16 acceptance verifies both a pre-existing login and a newly
+created login across reprovisioning; it does not remove broad grants already
+held on existing relations or grant tenant isolation. The API and worker still
+share `kokonut_runtime`, and C1 remains open ([acceptance](builds/2026-10-31-recovery/runtime-role-reprovision-guard-disposable.json)).
+
+Migrations 717 and 718 add two reviewed boundaries. Migration
 717 makes `chat_intent` read-only to `kokonut_runtime` while preserving runtime
 SELECT, Directus access, and migration/maintenance seed upserts. Migration 718
 removes direct runtime writes to `price_observation` and routes World Bank,
@@ -199,6 +209,7 @@ The latest code-first cohort includes:
 
 | Change | Result and boundary | Evidence |
 | --- | --- | --- |
+| Runtime-role one-time compatibility grant | The all-public-table/sequence compatibility grant now runs only when the runtime login is first created. Reprovisioning preserves existing grants and reapplies explicit denials without granting newly created relations. This prevents one privilege-widening path; it does not remove existing broad grants or establish tenant isolation. | [Network-disabled PostgreSQL 16 acceptance](builds/2026-10-31-recovery/runtime-role-reprovision-guard-disposable.json) |
 | Migration 718 — isolated global market-data writes | Retires direct runtime mutation of `price_observation`; the dedicated market-data worker uses bounded reference-seed, manual-price, and World Bank functions. Runtime SELECT remains. External runtime callers remain a persistent-rollout review gate. | [Full Standard replay](builds/2026-11-01-recovery/standard-profile-recovery-718-disposable.json); [fresh C1 replay and two-tenant probe](builds/2026-10-31-recovery/native-resource-limited-schema-718-operator-probe-r2.json); [refreshed source/ACL report](builds/2026-10-31-recovery/runtime-privilege-callsite-report-718.json) |
 | Migration 717 — read-only chat-intent runtime access | Preserves runtime reads and migration/maintenance upserts while revoking table and column mutation from `kokonut_runtime`; Directus is intentionally unchanged. Runtime provisioner reapplication does not restore DML. External runtime-login clients remain unconfirmed. | [Disposable apply/replay and runtime-boundary checks](builds/2026-11-01-recovery/chat-intent-runtime-acl-717.json) |
 | Migration 716 — retire climate v1 worker grant | Keeps the legacy `store_climate_summary` definition for compatibility but removes execution from the worker, runtime, optional Directus, and `PUBLIC`; the active climate worker continues using signed `store_climate_summary_v2`. Disposable PostgreSQL acceptance applies/replays both migrations and exercises all five source writes, retries, failure audit, and location scope. External callers remain a persistent-rollout gate. | [Disposable apply/replay and climate worker checks](builds/2026-11-01-recovery/climate-worker-716-disposable.json) |

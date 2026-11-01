@@ -62,9 +62,11 @@ separate `KOKONUT_RUNTIME_USER`/`KOKONUT_RUNTIME_PASSWORD`, and a separate
 operator-auth credential. The app and worker do not depend on this admin
 service and never receive its credentials. They fail closed before spawning
 children if the connected database login is privileged or owns the database.
-The bootstrap reapplies compatibility DML grants to current public tables, so
-run it only after reviewed migrations and ACL decisions; do not run it during
-routine `up` or merely to add a newly migrated table.
+The compatibility DML grant runs only when the runtime login is first created.
+Later bootstrap runs preserve existing relation grants and reapply reviewed
+denials without granting newly created tables to the login. Existing broad
+grants remain until a reviewed migration retires them; do not run the bootstrap
+during routine `up` or simply to add a newly migrated table.
 Inspect existing schedules, handler registrations, leases, and Prefect/cron
 ownership before switching roles. For source acceptance, `--action build` builds
 the app and worker from the checkout. That path is useful during development,

@@ -106,7 +106,7 @@ the candidate defaults; it is not a production acceptance matrix.
 |---------|----------|-------|
 | Kernel app (minimal) | `http://127.0.0.1:8098` | FastAPI app plus enabled workers in the isolated candidate project |
 | PostgreSQL/PostGIS | Docker service `database:5432` | Private canonical store; no host port in the candidate base manifest |
-| API and worker (standard) | API uses candidate port; worker has no HTTP port | Separate services currently share the `kokonut_runtime` database login; distinct API/worker database identities remain an open C1 boundary. Inspect durable run/delivery state for worker progress |
+| API and worker (standard) | API uses candidate port; worker has no HTTP port | Separate services currently share the `kokonut_runtime` database login; distinct API/worker database identities remain an open C1 boundary. Runtime-role reprovisioning no longer grants new tables to this login, but broad grants on existing tables remain under review. Inspect durable run/delivery state for worker progress |
 | Caddy (optional proxy overlay) | `https://127.0.0.1:8448` | Loopback default; public bind requires explicit configuration and review |
 | Directus (optional adapter) | `http://127.0.0.1:18055` | Compatibility/admin integration; not the canonical Kernel API |
 | ClickHouse (optional analytics overlay) | Docker service `clickhouse:8123` | Private analytics adapter |

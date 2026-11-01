@@ -44,12 +44,15 @@ NOREPLICATION NOBYPASSRLS`, and refuses to reuse roles that own database
 objects. It removes their role memberships, revokes `PUBLIC CONNECT` on
 connectable databases and `CREATE` on the `public` schema, then grants both
 roles `CONNECT` only to the selected database. The runtime role receives
-`USAGE` on `public`, DML on public tables and sequence use that exist when the
-bootstrap runs. The bootstrap revokes global and `public`-schema default
-privileges for future tables and sequences, so newly created objects fail
-closed until a reviewed grant is added. Do not rerun the broad bootstrap simply
-to grant a new table: it re-grants DML to every public table present at that
-time. The two
+`USAGE` on `public`. Only when the runtime login is first created, it also
+receives compatibility DML on all public tables and sequence use on all public
+sequences that exist at that time. Reprovisioning an existing login preserves
+its current relation grants and reapplies explicit boundaries, but does not
+grant access to relations created since the prior provisioning. The bootstrap
+revokes global and `public`-schema default privileges for future tables and
+sequences, so newly created objects fail closed until a reviewed grant is
+added. This guard does not remove broad grants from existing relations;
+per-relation migrations and reviewed writer boundaries must retire them. The two
 mobile credential tables replace that broad table grant with explicit column
 grants: the app can read non-credential device and enrollment fields and
 perform only the writes used by current mobile handlers. It cannot read
@@ -121,10 +124,11 @@ python3 scripts/kernel-profile.py standard --action bootstrap-runtime-role
 python3 scripts/kernel-profile.py standard --action up
 ```
 
-The bootstrap action is a one-shot operation between migrations and startup.
-It reapplies compatibility DML grants to all current public tables before
-reviewed denials; do not run it during ordinary restarts or simply because a
-new table was added. New tables remain closed by default until their writer
+The bootstrap action runs between migrations and startup. The compatibility
+DML grant runs only when the runtime login is first created; later runs retain
+existing grants and reapply reviewed denials without sweeping newly added
+tables into the role. Do not run it during ordinary restarts or simply because
+a new table was added. New tables remain closed by default until their writer
 boundary is reviewed and explicitly granted. Both Standard processes refuse
 to spawn API/worker children if the connected role is privileged or owns the
 database.

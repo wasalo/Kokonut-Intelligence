@@ -8,7 +8,7 @@ can proceed now and gates that need an owner, provider, populated source data,
 or production environment. Check an item only when its evidence is recorded in
 the batch log and the affected capability/progress records are updated.
 
-**Current queue snapshot (1 November 2026):** 784 checked / 36 open across the TODO's dated and active checklist sections. Historical snapshots below this
+**Current queue snapshot (1 November 2026):** 790 checked / 39 open across the TODO's dated and active checklist sections. Historical snapshots below this
 active queue remain dated records and do not replace the current count.
 
 **Hosted validation (31 October 2026):** On the pre-batch PR head `fb4cc883`,
@@ -4784,3 +4784,18 @@ The C1 aggregate ACL report and two-tenant operator-scope probe are now current
 through migration 718; broad C1, tenant/RLS, external-consumer, and persistent
 rollout gates remain open. No persistent candidate, legacy, or production
 database/role was changed.
+
+### C1 continuation — runtime-role reprovision guard — 31 October 2026
+
+- [x] Apply the runtime-role compatibility table/sequence grant only when a
+  login is first created; reprovisioning preserves its existing grants but
+  cannot sweep newly created relations into the role.
+- [x] Pass network-disabled PostgreSQL 16 checks for both existing and newly
+  created runtime identities, including relation denial after reprovisioning;
+  refresh the evidence with migrations 683–685 present for report-export
+  grants ([acceptance](builds/2026-10-31-recovery/runtime-role-reprovision-guard-disposable.json)).
+- [x] Repair the Directus relation-policy source regression so multiline SQL
+  rows are included in the migration-policy inventory.
+- [ ] Continue retiring broad DML on existing relations; this guard does not
+  close C1, split the shared Standard API/worker login, or prove tenant/RLS
+  isolation. External callers and persistent rollout remain open.

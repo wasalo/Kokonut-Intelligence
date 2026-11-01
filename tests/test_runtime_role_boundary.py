@@ -134,19 +134,28 @@ def test_historical_full_schema_acl_snapshot_matches_its_recorded_source_policy(
     assert public_summary["runtime_boundary_policy_matches_source"] is True
 
 
-def test_runtime_scoped_denials_follow_compatibility_table_grant():
+def test_runtime_compatibility_grant_is_one_time_and_scoped_denials_are_reapplied():
     source = (
         Path(__file__).resolve().parents[1] / "services/migration/runtime_role.py"
     ).read_text()
+    role_existence_check = source.index(
+        "SELECT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = %s)"
+    )
+    role_creation = source.index(
+        "_ensure_login_role(cur, name=runtime_user, identifier=runtime_ident"
+    )
     broad_grant = source.index(
         "GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public"
     )
+    broad_grant_guard = source.rindex("if runtime_role_created:", 0, broad_grant)
     scoped_reapply = source.index(
         "scoped_write_grants = _apply_scoped_write_boundary("
     )
     scoped_verification = source.index("_verify_scoped_write_boundary(cur, runtime_user)")
 
-    assert broad_grant < scoped_reapply < scoped_verification
+    assert role_existence_check < role_creation < broad_grant_guard < broad_grant
+    assert broad_grant_guard < scoped_reapply < scoped_verification
+    assert '"legacy_compatibility_grants_applied": runtime_role_created' in source
 
 
 def test_append_only_data_access_log_is_reapplied_after_compatibility_grant():
