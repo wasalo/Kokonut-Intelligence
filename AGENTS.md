@@ -75,6 +75,13 @@ Commands:
   connect with the shared `kokonut_runtime` database login. Do not describe
   them as having distinct database identities; closing that C1 boundary is
   still open.
+- Standard can select Edge settings with the planner's `standard --edge`
+  option. This composes the encrypted local-media provider and
+  private-media volume onto the API, plus Edge resource limits on PostgreSQL
+  and the API; the worker receives no media key or volume and no copied resource
+  limits. This is source-level composition support, not physical Raspberry Pi
+  or production acceptance. See
+  [`docs/refactor/standard-profile.md`](docs/refactor/standard-profile.md).
 - Redis, Prefect, Mosquitto, gRPC, and Caddy are selectable or replaceable
   adapters/overlays. The native durable scheduler and worker state are the
   owned orchestration path; optionality must be demonstrated before an old
@@ -151,6 +158,7 @@ Commands:
 - Verify platform definition of done: `./scripts/verify-platform.sh`
 - Run local fast-fail CI checks and the clean database bootstrap: `./scripts/ci-check.sh` or `make ci`. The GitHub workflow in `.github/workflows/ci.yml` runs dependency-free preflight first, then parallel source/security/static/contract, database integration, and multi-architecture image gates; required `CI / ci` is an aggregate over all of them. Integration uses the `docker-compose.ci.yml` override and loopback-only database ports, fails loudly if the database cannot start, and uploads failure diagnostics for seven days. See [`docs/ci.md`](docs/ci.md) for local/full workflow distinctions and log retrieval.
 - Print the Standard immutable-image pull/start command: `python3 scripts/kernel-profile.py standard --action release-up`. It requires reviewed digest-pinned image references and prints `docker compose pull` plus `up --no-build`; it does not execute them or migrate the database. See [`docs/refactor/standard-profile.md`](docs/refactor/standard-profile.md) before a release.
+- Inspect Standard with Edge settings: `python3 scripts/kernel-profile.py standard --edge --action config`. Load the encrypted environment, including `MOBILE_MEDIA_LOCAL_KEY`, before executing the separately reviewed Compose command; the planner does not start services.
 - Build Solidity contracts: `cd contracts && forge build`
 - Run Solidity tests: `cd contracts && forge test`
 - Format Solidity: `cd contracts && forge fmt`

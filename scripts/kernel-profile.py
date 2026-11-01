@@ -71,6 +71,11 @@ def main() -> None:
     parser.add_argument("--separate-workers", action="store_true",
                         help="Select separate API/worker roles for analytics")
     parser.add_argument(
+        "--edge",
+        action="store_true",
+        help="add Edge local-media and resource settings to the Standard profile",
+    )
+    parser.add_argument(
         "--project", help="Explicit Compose project name (for example, a unique disposable test project)"
     )
     for name in OPTIONAL:
@@ -123,6 +128,8 @@ def main() -> None:
         parser.error(f"--action {args.action} applies only to standard")
     if args.separate_workers and args.profile != "analytics":
         parser.error("--separate-workers applies only to analytics; standard already separates roles")
+    if args.edge and args.profile != "standard":
+        parser.error("--edge applies only to standard; use the edge profile for a standalone Edge deployment")
     if args.oidc and "proxy" not in selected_optional and not args.zitadel and args.profile != "standard":
         parser.error("--oidc requires --proxy so operator session cookies use the HTTPS origin")
 
@@ -134,6 +141,11 @@ def main() -> None:
         # Standard has separate app/worker logins. The overlay requires their
         # credentials and supplies a separate post-migration bootstrap action.
         files.append("docker-compose.kernel-runtime-role.yml")
+    if args.edge:
+        # Add the Edge limits and local-media provider to the API app after
+        # Standard splits the app and worker. The worker has no local-media
+        # caller and must not inherit the app's key or private-media volume.
+        files.append("docker-compose.kernel-edge.yml")
     if args.separate_workers:
         files.append("docker-compose.kernel-standard-analytics.yml")
     if args.zitadel:

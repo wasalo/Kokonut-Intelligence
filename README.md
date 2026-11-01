@@ -114,6 +114,19 @@ the candidate defaults; it is not a production acceptance matrix.
 | gRPC (optional overlay) | Private Compose service | External API transport; opt in explicitly |
 | Metabase | Legacy `metabase` Compose profile | Not part of the candidate planner's standard defaults |
 
+To combine the Standard API/worker split with Edge's local encrypted media and
+resource settings, inspect the planner output before starting it:
+
+```bash
+python3 scripts/kernel-profile.py standard --edge --action config
+```
+
+Load `MOBILE_MEDIA_LOCAL_KEY` from the encrypted environment. The media key and
+private-media volume apply to the API only; the worker remains a separate
+service and receives neither. Edge's resource limits apply to PostgreSQL and
+the API, not the worker. This source composition does not establish Raspberry
+Pi or production acceptance; see the [Standard profile guide](docs/refactor/standard-profile.md).
+
 For the candidate planner, use an explicit project name and inspect `config`
 before `up`. Do not use the legacy default project name for candidate data.
 

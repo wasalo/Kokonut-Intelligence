@@ -94,6 +94,35 @@ def test_standard_profile_selects_runtime_role_after_app_and_worker_overlays() -
     assert "--profile" not in command
 
 
+def test_standard_edge_composition_orders_edge_after_the_split_role_overlays() -> None:
+    result = _run_planner("standard", "--edge")
+    command = shlex.split(result.stdout)
+    manifests = [
+        command[index + 1]
+        for index, value in enumerate(command[:-1])
+        if value == "-f"
+    ]
+
+    assert result.returncode == 0, result.stderr
+    candidate = str(ROOT / "docker-compose.kernel-candidate.yml")
+    standard = str(ROOT / "docker-compose.kernel-standard.yml")
+    runtime_role = str(ROOT / "docker-compose.kernel-runtime-role.yml")
+    edge = str(ROOT / "docker-compose.kernel-edge.yml")
+    proxy = str(ROOT / "docker-compose.kernel-proxy.yml")
+    assert manifests.index(candidate) < manifests.index(standard)
+    assert manifests.index(standard) < manifests.index(runtime_role) < manifests.index(edge)
+    assert manifests.index(edge) < manifests.index(proxy)
+    assert manifests.count(edge) == 1
+
+
+@pytest.mark.parametrize("profile", ["minimal", "core", "edge", "analytics"])
+def test_edge_composition_flag_is_standard_only(profile: str) -> None:
+    result = _run_planner(profile, "--edge")
+
+    assert result.returncode != 0
+    assert "--edge applies only to standard" in result.stderr
+
+
 def test_standard_profile_can_be_replaced_by_external_ingress() -> None:
     result = _run_planner("standard", "--no-proxy")
 

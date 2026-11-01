@@ -258,6 +258,57 @@ def test_edge_kernel_profile_selects_local_private_media_and_resource_limits() -
     assert "kernel-private-media" in config["volumes"]
 
 
+def test_standard_edge_keeps_media_settings_on_api_and_preserves_worker_split() -> None:
+    files = (
+        "docker-compose.kernel-candidate.yml",
+        "docker-compose.kernel-standard.yml",
+        "docker-compose.kernel-runtime-role.yml",
+        "docker-compose.kernel-edge.yml",
+    )
+    config = _compose_config(
+        files=files,
+        extra_env={
+            "MOBILE_MEDIA_LOCAL_KEY": "compose-test-only-standard-edge-key",
+            "KOKONUT_RUNTIME_USER": "kokonut_runtime",
+            "KOKONUT_RUNTIME_PASSWORD": "compose-test-only-runtime-password",
+            "KOKONUT_OPERATOR_AUTH_PASSWORD": "compose-test-only-operator-auth-password",
+        },
+    )
+
+    assert set(config["services"]) == {"database", "app", "worker"}
+    database = config["services"]["database"]
+    app = config["services"]["app"]
+    worker = config["services"]["worker"]
+
+    assert database["mem_limit"] == str(1024**3)
+    assert database["cpus"] == 2.0
+    assert app["mem_limit"] == str(1024**3)
+    assert app["cpus"] == 2.0
+    assert app["command"] == [
+        "python3", "-m", "services.core.runtime", "--port", "8099",
+        "--require-schema", "--require-runtime-role",
+    ]
+    assert worker["command"] == [
+        "python3", "-m", "services.core.runtime", "--workers-only",
+        "--require-schema", "--require-runtime-role",
+    ]
+    assert app["environment"]["MOBILE_MEDIA_PROVIDER"] == "local"
+    assert app["environment"]["MOBILE_MEDIA_LOCAL_KEY"] == "compose-test-only-standard-edge-key"
+    assert any(
+        volume.get("target") == "/app/private-media"
+        for volume in app["volumes"]
+    )
+    assert "MOBILE_MEDIA_PROVIDER" not in worker["environment"]
+    assert "MOBILE_MEDIA_LOCAL_DIRECTORY" not in worker["environment"]
+    assert "MOBILE_MEDIA_LOCAL_KEY" not in worker["environment"]
+    assert all(
+        volume.get("target") != "/app/private-media"
+        for volume in worker.get("volumes", [])
+    )
+    assert "mem_limit" not in worker
+    assert "cpus" not in worker
+
+
 def test_analytics_kernel_profile_adds_private_clickhouse() -> None:
     config = _compose_config(files=("docker-compose.kernel-candidate.yml", "docker-compose.kernel-analytics.yml"))
 

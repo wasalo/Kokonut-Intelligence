@@ -250,11 +250,25 @@ public-ingress limits. An external ingress can replace Caddy with `--no-proxy`
 while retaining the role-separated profile.
 
 The [analytics companion](analytics-overlay.md#separate-standard-worker) now
-explicitly supplies worker ClickHouse drivers and connection settings. Edge
-still configures the app only; combining it with this split role does not
-automatically give the worker encrypted media settings or equivalent resource
-limits. Define and review those worker settings before composing profiles.
-Multiple worker replicas and API replicas remain scale acceptance work.
+explicitly supplies worker ClickHouse drivers and connection settings. To add
+Edge's local encrypted media provider and app/database resource limits while
+keeping Standard's API/worker split, select `standard --edge`. The planner adds
+`docker-compose.kernel-edge.yml` after the Standard and runtime-role overlays,
+so the API command and independent worker command remain intact. Supply
+`MOBILE_MEDIA_LOCAL_KEY` through the encrypted environment before resolving or
+starting this composition. The Edge private-media volume, provider, directory,
+and key apply only to `app`; a source audit found no local-media storage caller
+in the worker, so the worker receives none of those settings. Edge sets limits
+on the database and API, not the worker; worker sizing remains a separate
+acceptance decision. Multiple worker replicas and API replicas remain scale
+acceptance work.
+
+Inspect this composition with
+`python3 scripts/kernel-profile.py standard --edge --action config` after
+loading the encrypted environment. The planner prints the resolved command;
+it does not execute it or supply `MOBILE_MEDIA_LOCAL_KEY` itself. Preserve the
+Edge private-media volume when changing profiles so stored private evidence is
+not lost.
 
 ## Acceptance and rollback
 
