@@ -145,6 +145,91 @@ def test_curated_impact_framework_reference_catalogs_are_read_only_to_runtime():
         }
 
 
+def test_time_delay_reference_is_read_only_to_runtime_and_seeded_by_owner():
+    root = Path(__file__).resolve().parents[1]
+    migration = (
+        root / "schemas/postgres/726_runtime_time_delay_reference_read_only.sql"
+    ).read_text(encoding="utf-8")
+    seed = (root / "schemas/seeds/083_time_delays.sql").read_text(
+        encoding="utf-8"
+    )
+    sql_inventory = json.loads(
+        (root / "docs/refactor/runtime-sql-inventory.json").read_text(
+            encoding="utf-8"
+        )
+    )
+
+    assert "time_delay" in runtime_role._RUNTIME_MUTATION_TABLES
+    assert "time_delay" not in runtime_role._RUNTIME_PRIVATE_TABLES
+    assert migration.count("BEGIN;") == 1 and migration.count("COMMIT;") == 1
+    assert "REVOKE ALL PRIVILEGES ON TABLE public.time_delay FROM kokonut_runtime" in migration
+    assert "REVOKE INSERT (%1$I), UPDATE (%1$I), REFERENCES (%1$I) " in migration
+    assert "GRANT SELECT ON TABLE public.time_delay TO kokonut_runtime" in migration
+    assert "kokonut_runtime" in migration
+    assert "kokonut_directus_runtime" not in migration
+    assert "ON CONFLICT (action_type, effect_type) DO NOTHING" in seed
+
+    relation_sites = [
+        site for site in sql_inventory["execution_sites"]
+        if "time_delay" in site["candidate_relations"]
+    ]
+    assert relation_sites
+    assert {site["statement_kind"] for site in relation_sites} == {"SELECT"}
+
+
+def test_solution_lifecycle_tables_keep_bounded_function_writes():
+    root = Path(__file__).resolve().parents[1]
+    migration = (
+        root / "schemas/postgres/727_runtime_solution_lifecycle_read_only.sql"
+    ).read_text(encoding="utf-8")
+    sources = {
+        name: (root / f"schemas/postgres/{name}").read_text(encoding="utf-8")
+        for name in (
+            "486_location_solution_gate_transition.sql",
+            "502_location_solution_retirement_execution.sql",
+            "503_location_solution_nonpromotion_stage_transition.sql",
+            "504_location_solution_create.sql",
+        )
+    }
+    gateway = (root / "services/gateway/solution_lifecycle_actions.py").read_text(
+        encoding="utf-8"
+    )
+    targets = {"solution", "solution_lifecycle_event"}
+
+    assert targets.issubset(runtime_role._RUNTIME_MUTATION_TABLES)
+    assert targets.isdisjoint(runtime_role._RUNTIME_PRIVATE_TABLES)
+    assert migration.count("BEGIN;") == 1 and migration.count("COMMIT;") == 1
+    assert "target_relations CONSTANT TEXT[]" in migration
+    assert "'solution'" in migration and "'solution_lifecycle_event'" in migration
+    assert "REVOKE ALL PRIVILEGES ON TABLE public.%I FROM kokonut_runtime" in migration
+    assert "REVOKE INSERT (%1$I), UPDATE (%1$I), REFERENCES (%1$I) " in migration
+    assert "GRANT SELECT ON TABLE public.%I TO kokonut_runtime" in migration
+    assert "kokonut_directus_runtime" not in migration
+    assert "GRANT EXECUTE" not in migration
+
+    owner_roles = {
+        "486_location_solution_gate_transition.sql": "kokonut_solution_gate_transitioner",
+        "502_location_solution_retirement_execution.sql": "kokonut_solution_retirement_execution_owner",
+        "503_location_solution_nonpromotion_stage_transition.sql": "kokonut_solution_nonpromotion_transition_owner",
+        "504_location_solution_create.sql": "kokonut_solution_creator_owner",
+    }
+    for name, owner in owner_roles.items():
+        source = sources[name]
+        assert "SECURITY DEFINER" in source
+        assert f"OWNER TO {owner}" in source
+        assert "public.solution_lifecycle_event" in source
+        assert "kokonut_runtime" in source
+
+    for function in (
+        "create_location_solution(",
+        "create_location_solution_gate(",
+        "transition_location_solution_gate(",
+        "transition_location_solution_retirement(",
+        "transition_location_solution_stage(",
+    ):
+        assert function in gateway
+
+
 def test_historical_full_schema_acl_snapshot_matches_its_recorded_source_policy():
     root = Path(__file__).resolve().parents[1]
     probe = json.loads(
@@ -273,6 +358,82 @@ def test_append_only_access_audit_log_is_reapplied_after_compatibility_grant():
     )
     assert '"access_audit_log": (' in source
     assert "retention cleanup requires separately authorized administration" in source
+
+
+def test_farm_activity_operator_event_boundary_clears_table_and_column_writes():
+    class Cursor:
+        def __init__(self):
+            self.calls = []
+            self.fetchone_calls = 0
+
+        def execute(self, statement, parameters=None):
+            self.calls.append((statement, parameters))
+
+        def fetchone(self):
+            self.fetchone_calls += 1
+            return ("farm_activity_operator_event",)
+
+        def fetchall(self):
+            return [("id",), ("reason",)]
+
+    cursor = Cursor()
+    result = runtime_role._apply_farm_activity_operator_event_boundary(
+        cursor,
+        runtime_role.sql.Identifier("kokonut_runtime"),
+    )
+
+    assert len(cursor.calls) == 1 + 1 + 1 + (3 * 2) + 1
+    assert result == {
+        "installed": True,
+        "select": True,
+        "insert": False,
+        "update": False,
+        "delete": False,
+        "truncate": False,
+        "references": False,
+        "trigger": False,
+        "column_privileges": "none; table-level SELECT only",
+    }
+
+
+def test_farm_activity_event_verifier_rejects_column_writes_and_provisioner_reapplies_it():
+    class Cursor:
+        def __init__(self, column_write: bool):
+            self.calls = []
+            self.rows = [
+                ("farm_activity_operator_event",),
+                (True, False, False, False, False, False, False),
+                (column_write,),
+            ]
+
+        def execute(self, statement, parameters=None):
+            self.calls.append((statement, parameters))
+
+        def fetchone(self):
+            return self.rows.pop(0)
+
+    verifier = Cursor(column_write=False)
+    runtime_role._verify_farm_activity_operator_event_boundary(
+        verifier, "kokonut_runtime"
+    )
+    assert len(verifier.calls) == 3
+
+    with pytest.raises(RuntimeError, match="column-level"):
+        runtime_role._verify_farm_activity_operator_event_boundary(
+            Cursor(column_write=True), "kokonut_runtime"
+        )
+
+    source = (Path(__file__).resolve().parents[1] / "services/migration/runtime_role.py").read_text()
+    compatibility_grant = source.index(
+        "GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public"
+    )
+    boundary_apply = source.index(
+        "farm_activity_event_grants = _apply_farm_activity_operator_event_boundary(cur, runtime_ident)"
+    )
+    boundary_verify = source.index(
+        "_verify_farm_activity_operator_event_boundary(cur, runtime_user)"
+    )
+    assert compatibility_grant < boundary_apply < boundary_verify
 
 
 def test_advisory_rule_is_read_only_in_migration_and_runtime_provisioner():

@@ -121,6 +121,63 @@ def test_standard_heartbeat_path_matches_worker_profile() -> None:
     assert CHECK.HEARTBEAT_PATH == "/var/lib/kokonut/worker-progress/supervisor.json"
 
 
+def test_runtime_reference_read_only_boundary_checks_reads_and_table_column_writes(
+    monkeypatch, tmp_path
+) -> None:
+    calls = []
+    output = "\n".join(
+        [
+            "t|t|t|t|t|t|t",
+            "form_of_capital|t|f|f|f|f|f|f|t",
+            "pillar_of_value|t|f|f|f|f|f|f|t",
+            "regeneration_principle|t|f|f|f|f|f|f|t",
+            "sdg|t|f|f|f|f|f|f|t",
+            "solution|t|f|f|f|f|f|f|t",
+            "solution_lifecycle_event|t|f|f|f|f|f|f|t",
+            "time_delay|t|f|f|f|f|f|f|t",
+        ]
+    )
+
+    def fake_run(command, **kwargs):
+        calls.append(command)
+        return subprocess.CompletedProcess(command, 0, output, "")
+
+    monkeypatch.setattr(CHECK, "_run", fake_run)
+    CHECK._assert_runtime_reference_read_only_boundary(
+        "synthetic-standard", tmp_path / "compose.json", {}
+    )
+
+    assert len(calls) == 1
+    assert calls[0][-8:-4] == ["-U", "kokonut", "-d", "kokonut_intelligence"]
+    assert "-XAtq" in calls[0]
+    query = calls[0][-1]
+    assert "SET ROLE kokonut_runtime" in query
+    assert "has_column_privilege" in query
+    assert all(name in query for name in CHECK.RUNTIME_REFERENCE_READ_ONLY_TABLES)
+
+
+@pytest.mark.parametrize(
+    "output",
+    [
+        "f|t|t|t|t|t|t\nform_of_capital|t|f|f|f|f|f|f|t",
+        "t|t|t|t|t|t|t\nform_of_capital|t|f|t|f|f|f|f|t",
+        "t|t|t|t|t|t|t\nform_of_capital|t|f|f|f|f|f|f|f",
+        "t|t|t|t|t|t|t\nform_of_capital|t|f|f|f|f|f|f|t\nsdg|t|f|f|f|f|f|f|t\ntime_delay|t|f|f|f|f|f|f|t",
+    ],
+)
+def test_runtime_reference_read_only_boundary_rejects_missing_or_mutable_acl(
+    monkeypatch, tmp_path, output
+) -> None:
+    def fake_run(command, **kwargs):
+        return subprocess.CompletedProcess(command, 0, output, "")
+
+    monkeypatch.setattr(CHECK, "_run", fake_run)
+    with pytest.raises(CHECK.AcceptanceError, match="curated reference tables"):
+        CHECK._assert_runtime_reference_read_only_boundary(
+            "synthetic-standard", tmp_path / "compose.json", {}
+        )
+
+
 def test_service_lookup_finds_exited_container_for_failure_diagnostics(monkeypatch, tmp_path) -> None:
     calls = []
 

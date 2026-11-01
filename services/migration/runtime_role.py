@@ -990,10 +990,17 @@ def _verify_api_key_boundary(cur, role_name: str) -> None:
 def _apply_farm_activity_operator_event_boundary(
     cur, runtime_ident: sql.Identifier
 ) -> dict[str, object]:
-    """Allow event reads/appends while denying mutation of the append-only ledger."""
+    """Allow event reads while denying direct mutation of the append-only ledger."""
     cur.execute("SELECT to_regclass('public.farm_activity_operator_event')")
     if cur.fetchone()[0] is None:
-        return {"installed": False, "select": False, "insert": False, "update": False, "delete": False}
+        return {
+            "installed": False,
+            "select": False,
+            "insert": False,
+            "update": False,
+            "delete": False,
+            "column_privileges": "none",
+        }
     table_ident = sql.Identifier("public", "farm_activity_operator_event")
     cur.execute(
         sql.SQL("REVOKE ALL PRIVILEGES ON TABLE {} FROM {}").format(
@@ -1001,11 +1008,37 @@ def _apply_farm_activity_operator_event_boundary(
         )
     )
     cur.execute(
+        "SELECT attname FROM pg_attribute "
+        "WHERE attrelid = %s::regclass AND attnum > 0 AND NOT attisdropped",
+        ("public.farm_activity_operator_event",),
+    )
+    columns = [row[0] for row in cur.fetchall()]
+    for column in columns:
+        for privilege in ("INSERT", "UPDATE", "REFERENCES"):
+            cur.execute(
+                sql.SQL("REVOKE {} ({}) ON TABLE {} FROM {}").format(
+                    sql.SQL(privilege),
+                    sql.Identifier(column),
+                    table_ident,
+                    runtime_ident,
+                )
+            )
+    cur.execute(
         sql.SQL("GRANT SELECT ON TABLE {} TO {}").format(
             table_ident, runtime_ident
         )
     )
-    return {"installed": True, "select": True, "insert": False, "update": False, "delete": False}
+    return {
+        "installed": True,
+        "select": True,
+        "insert": False,
+        "update": False,
+        "delete": False,
+        "truncate": False,
+        "references": False,
+        "trigger": False,
+        "column_privileges": "none; table-level SELECT only",
+    }
 
 
 def _apply_runtime_append_only_boundary(
@@ -1110,12 +1143,40 @@ def _verify_farm_activity_operator_event_boundary(cur, role_name: str) -> None:
         """SELECT has_table_privilege(%s, 'public.farm_activity_operator_event', 'SELECT'),
                   has_table_privilege(%s, 'public.farm_activity_operator_event', 'INSERT'),
                   has_table_privilege(%s, 'public.farm_activity_operator_event', 'UPDATE'),
-                  has_table_privilege(%s, 'public.farm_activity_operator_event', 'DELETE')""",
-        (role_name, role_name, role_name, role_name),
+                  has_table_privilege(%s, 'public.farm_activity_operator_event', 'DELETE'),
+                  has_table_privilege(%s, 'public.farm_activity_operator_event', 'TRUNCATE'),
+                  has_table_privilege(%s, 'public.farm_activity_operator_event', 'REFERENCES'),
+                  has_table_privilege(%s, 'public.farm_activity_operator_event', 'TRIGGER')""",
+        (role_name,) * 7,
     )
-    if cur.fetchone() != (True, False, False, False):
+    if cur.fetchone() != (True, False, False, False, False, False, False):
         raise RuntimeError(
             f"{role_name} does not have append-only farm activity operator event privileges"
+        )
+    cur.execute(
+        """SELECT EXISTS (
+               SELECT 1
+                 FROM pg_attribute AS attribute
+                WHERE attribute.attrelid = 'public.farm_activity_operator_event'::regclass
+                  AND attribute.attnum > 0
+                  AND NOT attribute.attisdropped
+                  AND (
+                    has_column_privilege(
+                        %s, 'public.farm_activity_operator_event', attribute.attname, 'INSERT'
+                    )
+                    OR has_column_privilege(
+                        %s, 'public.farm_activity_operator_event', attribute.attname, 'UPDATE'
+                    )
+                    OR has_column_privilege(
+                        %s, 'public.farm_activity_operator_event', attribute.attname, 'REFERENCES'
+                    )
+                  )
+           )""",
+        (role_name, role_name, role_name),
+    )
+    if cur.fetchone()[0]:
+        raise RuntimeError(
+            f"{role_name} retains column-level farm activity operator event write privileges"
         )
 
 
@@ -1269,6 +1330,9 @@ _RUNTIME_MUTATION_TABLES = (
     "sdg",
     "pillar_of_value",
     "regeneration_principle",
+    "time_delay",
+    "solution",
+    "solution_lifecycle_event",
     "expense_category",
     "crisp_risk_dimension",
     "crop_family",

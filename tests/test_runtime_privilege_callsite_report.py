@@ -14,11 +14,23 @@ REPORTER = runpy.run_path(
 
 def test_reporting_registry_dynamic_revokes_are_joined_to_runtime_policy():
     overrides = REPORTER["_SOURCE_REVOKE_POLICY_OVERRIDES"]
+    revokes = REPORTER["_source_revokes"]()
 
     assert overrides["gri_indicator"] == "runtime_mutations_denied"
     assert overrides["governance_framework"] == "runtime_mutations_denied"
     assert overrides["impact_framework"] == "runtime_mutations_denied"
     assert overrides["impact_dimension"] == "runtime_mutations_denied"
+    assert overrides["time_delay"] == "runtime_mutations_denied"
+    assert overrides["solution"] == "runtime_mutations_denied"
+    assert overrides["solution_lifecycle_event"] == "runtime_mutations_denied"
+    assert revokes["solution"][-1] == {
+        "migration": "727_runtime_solution_lifecycle_read_only.sql",
+        "privileges": "ALL PRIVILEGES",
+    }
+    assert revokes["solution_lifecycle_event"][-1] == {
+        "migration": "727_runtime_solution_lifecycle_read_only.sql",
+        "privileges": "ALL PRIVILEGES",
+    }
     assert overrides["expense_category"] == "runtime_mutations_denied"
     assert overrides["dfs_currency"] == "runtime_mutations_denied"
     assert overrides["crop_gdd_config"] == "runtime_mutations_denied"

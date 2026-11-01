@@ -149,6 +149,12 @@ _SOURCE_REVOKE_POLICY_OVERRIDES = {
     "sdg": "runtime_mutations_denied",
     "pillar_of_value": "runtime_mutations_denied",
     "regeneration_principle": "runtime_mutations_denied",
+    # Delay mappings are curated reference data; application code reads them
+    # while the database owner applies the idempotent seed.
+    "time_delay": "runtime_mutations_denied",
+    # Lifecycle writes remain behind exact-location SECURITY DEFINER paths.
+    "solution": "runtime_mutations_denied",
+    "solution_lifecycle_event": "runtime_mutations_denied",
     "schema_version": "runtime_mutations_denied",
     "schema_migration": "runtime_mutations_denied",
     "cache_invalidation_rule": "runtime_mutations_denied",
@@ -184,9 +190,12 @@ def _source_revokes() -> dict[str, list[dict[str, str]]]:
                 revokes[relation].append(
                     {"migration": path.name, "privileges": privileges}
                 )
-        if path.name == "723_isolated_worker_runtime_write_boundaries.sql":
-            # Migration 723 loops over a literal relation allowlist and uses
-            # format() to issue the runtime REVOKE. The generic SQL regex above
+        if path.name in {
+            "723_isolated_worker_runtime_write_boundaries.sql",
+            "727_runtime_solution_lifecycle_read_only.sql",
+        }:
+            # These migrations loop over literal relation allowlists and use
+            # format() to issue runtime REVOKEs. The generic SQL regex above
             # intentionally does not treat a dynamic `%I` template as a
             # relation name, so join only the explicitly declared identifiers.
             target_match = re.search(

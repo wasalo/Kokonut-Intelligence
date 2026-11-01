@@ -199,6 +199,39 @@ def test_freshness_delivery_history_acl_migration_follows_worker_boundary():
     assert schema_ids.index(current) == schema_ids.index(previous) + 1
 
 
+def test_time_delay_runtime_acl_migration_follows_framework_catalog_boundary():
+    schema_ids = [
+        item["id"]
+        for item in cli._discover_files(include_seeds=False)
+        if item["kind"] == "schema"
+    ]
+    previous = "schema:725_runtime_framework_reference_catalogs_read_only.sql"
+    current = "schema:726_runtime_time_delay_reference_read_only.sql"
+
+    assert previous in schema_ids
+    assert current in schema_ids
+    assert schema_ids.index(current) == schema_ids.index(previous) + 1
+
+
+def test_solution_lifecycle_runtime_acl_migration_follows_time_delay_boundary():
+    schema_ids = [
+        item["id"]
+        for item in cli._discover_files(include_seeds=False)
+        if item["kind"] == "schema"
+    ]
+    previous = "schema:726_runtime_time_delay_reference_read_only.sql"
+    current = "schema:727_runtime_solution_lifecycle_read_only.sql"
+
+    assert previous in schema_ids
+    assert current in schema_ids
+    assert schema_ids.index(current) == schema_ids.index(previous) + 1
+    assert next(
+        item["version"]
+        for item in cli._discover_files(include_seeds=False)
+        if item["id"] == current
+    ) == "727"
+
+
 def test_discovery_rejects_duplicate_ids(tmp_path, monkeypatch):
     directory = tmp_path / "sql"
     directory.mkdir()

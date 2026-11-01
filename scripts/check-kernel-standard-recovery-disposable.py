@@ -29,6 +29,15 @@ PROXY_COMPOSE = ROOT / "docker-compose.kernel-proxy.yml"
 RUNTIME_ROLE_COMPOSE = ROOT / "docker-compose.kernel-runtime-role.yml"
 DEFAULT_TIMEOUT_SECONDS = 180
 HEARTBEAT_PATH = "/var/lib/kokonut/worker-progress/supervisor.json"
+RUNTIME_REFERENCE_READ_ONLY_TABLES = (
+    "form_of_capital",
+    "pillar_of_value",
+    "regeneration_principle",
+    "sdg",
+    "solution",
+    "solution_lifecycle_event",
+    "time_delay",
+)
 
 
 class AcceptanceError(RuntimeError):
@@ -624,6 +633,81 @@ finally:
         raise AcceptanceError("kokonut_runtime could not prove schema_version DML remains denied")
 
 
+def _assert_runtime_reference_read_only_boundary(
+    project: str, manifest: Path, environment: dict[str, str]
+) -> None:
+    """Verify Standard's runtime role can read, but not mutate, curated references."""
+    catalog_values = ", ".join(
+        f"('{name}')" for name in RUNTIME_REFERENCE_READ_ONLY_TABLES
+    )
+    query = f"""SET ROLE kokonut_runtime;
+SELECT
+    (SELECT count(*) FROM public.form_of_capital) >= 0,
+    (SELECT count(*) FROM public.pillar_of_value) >= 0,
+    (SELECT count(*) FROM public.regeneration_principle) >= 0,
+    (SELECT count(*) FROM public.sdg) >= 0,
+    (SELECT count(*) FROM public.solution) >= 0,
+    (SELECT count(*) FROM public.solution_lifecycle_event) >= 0,
+    (SELECT count(*) FROM public.time_delay) >= 0;
+RESET ROLE;
+WITH targets(relation_name) AS (VALUES {catalog_values})
+SELECT
+    relation_name,
+    has_table_privilege('kokonut_runtime', format('public.%I', relation_name), 'SELECT'),
+    has_table_privilege('kokonut_runtime', format('public.%I', relation_name), 'INSERT'),
+    has_table_privilege('kokonut_runtime', format('public.%I', relation_name), 'UPDATE'),
+    has_table_privilege('kokonut_runtime', format('public.%I', relation_name), 'DELETE'),
+    has_table_privilege('kokonut_runtime', format('public.%I', relation_name), 'TRUNCATE'),
+    has_table_privilege('kokonut_runtime', format('public.%I', relation_name), 'REFERENCES'),
+    has_table_privilege('kokonut_runtime', format('public.%I', relation_name), 'TRIGGER'),
+    NOT EXISTS (
+        SELECT 1
+          FROM pg_catalog.pg_attribute AS attribute
+         WHERE attribute.attrelid = format('public.%I', relation_name)::regclass
+           AND attribute.attnum > 0
+           AND NOT attribute.attisdropped
+           AND (
+               has_column_privilege(
+                   'kokonut_runtime', attribute.attrelid, attribute.attname, 'INSERT'
+               )
+               OR has_column_privilege(
+                   'kokonut_runtime', attribute.attrelid, attribute.attname, 'UPDATE'
+               )
+               OR has_column_privilege(
+                   'kokonut_runtime', attribute.attrelid, attribute.attname, 'REFERENCES'
+               )
+           )
+    )
+FROM targets
+ORDER BY relation_name;"""
+    compose = _compose_command(project, manifest)
+    result = _run(
+        [
+            *compose,
+            "exec", "-T", "database", "psql", "-XAtq", "-F", "|",
+            "-U", "kokonut", "-d", "kokonut_intelligence",
+            "-v", "ON_ERROR_STOP=1", "-c", query,
+        ],
+        environment=environment,
+    )
+    expected = [
+        "t|t|t|t|t|t|t",
+        "form_of_capital|t|f|f|f|f|f|f|t",
+        "pillar_of_value|t|f|f|f|f|f|f|t",
+        "regeneration_principle|t|f|f|f|f|f|f|t",
+        "sdg|t|f|f|f|f|f|f|t",
+        "solution|t|f|f|f|f|f|f|t",
+        "solution_lifecycle_event|t|f|f|f|f|f|f|t",
+        "time_delay|t|f|f|f|f|f|f|t",
+    ]
+    observed = [line.strip() for line in result.stdout.splitlines() if line.strip()]
+    if observed != expected:
+        raise AcceptanceError(
+            "curated reference tables are not read-only to kokonut_runtime "
+            f"after provisioning; received {observed}"
+        )
+
+
 def _assert_gateway_rate_limit_boundary(
     project: str, manifest: Path, environment: dict[str, str]
 ) -> None:
@@ -1081,6 +1165,9 @@ def _main(timeout: float) -> dict[str, Any]:
                 timeout=600,
             )
             _assert_gateway_rate_limit_boundary(project, manifest, environment)
+            _assert_runtime_reference_read_only_boundary(
+                project, manifest, environment
+            )
             role_attributes = _query_runtime_role_attributes(project, manifest, environment)
             _run([*compose, "up", "-d", "app", "worker", "proxy"], environment=environment, timeout=120)
             app = _wait_for_health(project, manifest, environment, "app", "healthy", timeout)
@@ -1109,6 +1196,9 @@ def _main(timeout: float) -> dict[str, Any]:
                 project, manifest, environment
             )
             _assert_runtime_write_denied(project, manifest, environment)
+            _assert_runtime_reference_read_only_boundary(
+                project, manifest, environment
+            )
             result["runtime_role"] = {
                 "bootstrap_profile": "runtime-admin",
                 "bootstrap_ran_explicitly_after_migrations": True,
@@ -1117,6 +1207,8 @@ def _main(timeout: float) -> dict[str, Any]:
                 "worker_database_user": worker_identity,
                 "schema_version_insert_denied_after_initial_provision": True,
                 "schema_version_insert_denied_after_provisioner_reapply": True,
+                "runtime_reference_tables_read_only_after_initial_provision": True,
+                "runtime_reference_tables_read_only_after_provisioner_reapply": True,
                 "role_attributes_preserved_after_reapply": (
                     role_attributes_after_reapply == role_attributes
                 ),
