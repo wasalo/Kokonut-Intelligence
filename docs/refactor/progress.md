@@ -26000,3 +26000,30 @@ Checklist snapshot after this batch: 2,221 complete / 45 open (2,266 total);
 cross-phase TODO: 798 checked / 40 open. The capability matrix remains 67 rows
 (24 baseline-retained, 7 deployed, 36 prepared); no capability status is
 advanced by disposable recovery alone.
+
+### Progress addendum — native C1 aggregate refresh through migration 722 — 1 November 2026
+
+A fresh, network-disabled, portless native PostgreSQL 16 replay applied all
+713/713 ordered schemas through migration 722 with no seeds or farm data. The
+synthetic two-tenant/operator probe passed all 38 required checks, reported
+zero direct table/column privilege violations within the declared scoped-write
+policy, and completed disposable cleanup. The runtime ACL report now matches
+the same migration-722 snapshot: 1,522 public relations, 1,315 with effective
+runtime DML, 931 tables with runtime DML while RLS is disabled, 172 declared
+migration-revoked relations with zero policy mismatches, 212 unprotected DML
+relations without candidate SQL relations, and 374 without candidate write
+sites. These are overlapping privilege-reach and source-coverage measures,
+not confirmed leaks or universal tenant isolation. The source revision was
+`68e8b602` and the worktree was clean when the replay began.
+
+The separate Standard recovery through 722 remains accepted; this aggregate
+probe does not establish populated-data parity, split API/worker identities,
+Directus parity, candidate/production rollout, or physical-device behavior.
+ARM64/QEMU aggregate replay through 722 remains open. No persistent candidate,
+legacy, or production database or role was touched.
+
+Evidence: [native replay and two-tenant probe](builds/2026-11-01-recovery/native-resource-limited-schema-722-operator-probe.json),
+[current source/ACL report](builds/2026-11-01-recovery/runtime-privilege-callsite-report-722.json).
+Checklist snapshot: 2,222 complete / 44 open (2,266 total); cross-phase TODO:
+799 checked / 40 open. Capability classifications remain 24 baseline-retained,
+7 deployed, and 36 prepared across 67 rows.

@@ -178,13 +178,52 @@ only.
 The focused selection passes 279 tests; Ruff, schema-only validation of 713
 migrations, runtime SQL inventory and review-ledger freshness, dependency and
 provider boundaries, capability matrix, release-input validation, Python
-compilation, and diff checks pass. The aggregate source/ACL report and
-two-tenant operator-scope probe remain through migration 718 and need a fresh
-run before claiming a 722 aggregate snapshot. Candidate rollout, external
+compilation, and diff checks pass. A separate native, network-disabled C1
+replay and two-tenant operator-scope probe now cover migration 722; ARM64/QEMU
+full-schema acceptance through 722 remains open. Candidate rollout, external
 runtime-client review, broad C1 writer retirement, API/worker identity
 separation, populated-data parity, tenant/RLS, and production acceptance remain
-open. The disposable recovery touched no candidate, legacy, or production
+open. The disposable checks touched no candidate, legacy, or production
 database or role.
+
+### C1 aggregate refresh — migration 722 — 1 November 2026
+
+The native, network-disabled PostgreSQL 16 replay applied all 713 ordered
+schemas through migration 722, with no seeds or farm data, then passed all 38
+synthetic two-tenant/operator checks. The runtime scoped-write probe recorded
+zero direct table or column privilege violations within its declared policy;
+this is not a universal role, function, sequence, Directus, or external-client
+audit. The disposable Compose project and volume were removed successfully
+([replay and probe](builds/2026-11-01-recovery/native-resource-limited-schema-722-operator-probe.json)).
+
+The paired source/ACL report covers 1,522 public relations, of which 1,315
+have effective runtime DML and 931 tables have runtime DML while RLS is
+disabled. It records 172 migration-revoked relations matching the declared
+runtime policy with zero policy mismatches, 212 unprotected DML relations
+without candidate SQL relations, and 374 without candidate write sites. These
+categories overlap and measure privilege reach plus heuristic source coverage;
+they are not confirmed leaks or a tenant-isolation result. The report used the
+clean source revision `68e8b602` and the current runtime SQL inventory
+([report](builds/2026-11-01-recovery/runtime-privilege-callsite-report-722.json);
+[SQL review ledger](runtime-sql-unresolved-write-review.json)).
+
+The next code-first review should start with data freshness: its dedicated
+bounded worker/functions already exist, but the legacy `--check` and scheduler
+fallback still perform direct DML while isolated-worker selection is optional.
+Map the exact reads/writes, enable and parity-check the bounded path, preserve
+retry/alert output, and reconcile the legacy seed schedule and external callers
+before adding a runtime deny migration. This is a global/control-plane writer,
+so keep its broad/system scope distinct from location-tenant operations.
+
+The API/general-worker identity split also needs a capability map before a
+second login is introduced. Both Standard services still use
+`kokonut_runtime`; adding another login with the same compatibility DML grant
+would separate credentials without providing least privilege. Record separate
+API and worker SQL reachability, identify default-on jobs and handlers, then
+design role-specific provisioning, startup identity checks, and recovery
+acceptance. Directus effective permission counts also remain unreconciled across
+the parity document, source tests, and disposable snapshot; do not call that
+surface parity-certified until the counts and runtime effects agree.
 
 ### Earlier C1 continuation — migration 717 `chat_intent` runtime ACL — 1 November 2026
 
@@ -666,12 +705,12 @@ The detailed entries below are dated historical checkpoints through migration
   compare native with ARM64/QEMU.
 - [x] Separate analytics, credit-class, and other service candidates; preserve
   unresolved and no-callsite records as unresolved.
-- [x] Reconcile the latest C1 inventories through migration 718: the ACL report
-  records 214 unprotected DML relations without SQL relation candidates and
-  377 without candidate write sites. The separate runtime SQL review ledger
-  contains 30 legacy-unreviewed and eight reviewed-unresolved fingerprints.
-  These are different units; source review is not ACL approval. Refresh both
-  records as operations are migrated ([ACL report](builds/2026-10-31-recovery/runtime-privilege-callsite-report-718.json);
+- [x] Reconcile the latest native C1 inventories through migration 722: the
+  ACL report records 212 unprotected DML relations without candidate SQL
+  relations and 374 without candidate write sites. The separate runtime SQL
+  review ledger contains 30 legacy-unreviewed and eight reviewed-unresolved
+  fingerprints. These are different units; source review is not ACL approval.
+  Refresh both records as operations are migrated ([ACL report](builds/2026-11-01-recovery/runtime-privilege-callsite-report-722.json);
   [SQL review ledger](runtime-sql-unresolved-write-review.json)).
 - [ ] Reconcile Directus field/row permissions, extension hooks, ORM/dynamic SQL,
   API keys, saved reports, and external consumers per candidate relation.
@@ -730,6 +769,14 @@ The detailed entries below are dated historical checkpoints through migration
 - [x] Complete ARM64/QEMU full-schema replay through migration 696 and rerun
   the two-tenant operator-scope probe; completed 30 October 2026 with 687/687
   files and 38 checks. QEMU is not physical Raspberry Pi acceptance.
+- [x] Complete native full-schema replay and refresh the aggregate ACL/source
+  report plus the two-tenant operator-scope probe through migration 722: 713/713
+  files, 38 checks, no seeds, zero scoped-policy table/column violations, and
+  successful cleanup ([probe](builds/2026-11-01-recovery/native-resource-limited-schema-722-operator-probe.json);
+  [report](builds/2026-11-01-recovery/runtime-privilege-callsite-report-722.json)).
+- [ ] Complete ARM64/QEMU full-schema replay and refresh the aggregate ACL/source
+  report plus the two-tenant operator-scope probe through migration 722. This is
+  emulated portability evidence, not physical Raspberry Pi acceptance.
 
 ### 2. Credit-class gRPC and command surfaces
 

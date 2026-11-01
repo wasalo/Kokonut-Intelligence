@@ -22,9 +22,9 @@ pending.
 
 Remaining work is ordered in [the code-first execution plan](code-first-execution-plan.md): finish repository-owned implementation and reproducible software checks before collecting owner decisions and production inputs. Raspberry Pi hardware is unavailable, so Batch 6 uses ARM64 emulation and constrained software checks; it does not claim physical-device acceptance.
 
-**Current aggregate snapshot (1 November 2026):** 2,221 checklist items complete
-and 45 open (2,266 total), counting nested items. The cross-phase TODO queue has
-798 checked and 40 open items. The
+**Current aggregate snapshot (1 November 2026):** 2,222 checklist items complete
+and 44 open (2,266 total), counting nested items. The cross-phase TODO queue has
+799 checked and 40 open items. The
 [capability matrix](capability-matrix.md) has 67 validated rows: 24
 baseline-retained, 7 deployed, and 36 prepared. Named MAN-CAP
 acceptance remains separate; none is marked accepted.
@@ -10150,10 +10150,13 @@ database/role was touched; C1 remains open.
   tests. Ruff, Python compilation, schema-only migration validation (711
   migration source files), and runtime SQL inventory plus review-ledger checks
   pass ([source evidence](builds/2026-11-01-recovery/runtime-public-aggregate-views-719-source-checks.json)).
-- [ ] Run the full native and ARM64/QEMU ordered replay and refresh the
-  aggregate source/ACL report and two-tenant probe beyond migration 718. The
-  focused 719 check and the Standard integration recovery through 722 do not
-  constitute that aggregate refresh or physical Raspberry Pi testing.
+- [x] Refresh the native aggregate source/ACL report and two-tenant probe
+  through migration 722: 713/713 schemas, 38 checks, no seeds, and successful
+  cleanup ([probe](builds/2026-11-01-recovery/native-resource-limited-schema-722-operator-probe.json);
+  [report](builds/2026-11-01-recovery/runtime-privilege-callsite-report-722.json)).
+- [ ] Complete the equivalent ARM64/QEMU ordered replay and refresh its
+  aggregate source/ACL report and two-tenant probe through migration 722.
+  QEMU is not physical Raspberry Pi acceptance.
 
 The change removes unnecessary privileges from three read-only projections; it
 does not establish tenant isolation or close C1. No candidate, legacy, or
@@ -10202,9 +10205,8 @@ migration granting the intended privilege back.
   validation, runtime SQL inventory/review-ledger freshness, dependency and
   provider boundaries, capability-matrix validation, release-input validation,
   and diff checks.
-- [ ] Refresh the aggregate source/ACL report and two-tenant operator-scope
-  probe beyond migration 718. The current Standard integration replay is
-  through 722 but does not refresh those separate aggregate measurements.
-  Candidate rollout, external runtime-client reconciliation, remaining broad
-  DML retirement, API/worker identity separation, and broader tenant/RLS
-  closure remain separate gates.
+The native migration-722 aggregate report and two-tenant probe are recorded in
+the current C1 continuation above. The ARM64/QEMU full-schema aggregate replay,
+candidate rollout, external runtime-client reconciliation, remaining broad
+DML retirement, API/worker identity separation, and broader tenant/RLS closure
+remain separate gates.

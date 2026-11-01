@@ -8,7 +8,7 @@ can proceed now and gates that need an owner, provider, populated source data,
 or production environment. Check an item only when its evidence is recorded in
 the batch log and the affected capability/progress records are updated.
 
-**Current queue snapshot (1 November 2026):** 798 checked / 40 open across the TODO's dated and active checklist sections. Historical snapshots below this
+**Current queue snapshot (1 November 2026):** 799 checked / 40 open across the TODO's dated and active checklist sections. Historical snapshots below this
 active queue remain dated records and do not replace the current count.
 
 **Hosted validation (31 October 2026):** On the pre-batch PR head `fb4cc883`,
@@ -4830,7 +4830,15 @@ database/role was changed.
 - [x] Pass the 279-test focused regression selection, Ruff, migration
   validation, SQL inventory/ledger freshness, provider/dependency boundaries,
   capability matrix, release-input check, Python compilation, and diff checks.
-- [ ] Refresh the native/ARM64 aggregate source/ACL report and synthetic
-  two-tenant operator-scope probe beyond migration 718. Candidate rollout,
-  external runtime-client reconciliation, remaining broad DML, API/worker
-  identity separation, and tenant/RLS closure remain open.
+- [x] Refresh the native aggregate source/ACL report and two-tenant
+  operator-scope probe through migration 722: 713/713 schemas and 38 checks
+  passed; the report records 1,315/1,522 relations with effective runtime DML
+  and 931 tables with runtime DML while RLS is disabled. These are
+  privilege-reach measures, not confirmed leaks or proof of tenant isolation
+  ([probe](builds/2026-11-01-recovery/native-resource-limited-schema-722-operator-probe.json);
+  [report](builds/2026-11-01-recovery/runtime-privilege-callsite-report-722.json)).
+- [ ] Complete the equivalent ARM64/QEMU replay, aggregate report, and
+  two-tenant probe through migration 722. Candidate rollout, external
+  runtime-client reconciliation, remaining broad DML retirement, API/worker
+  identity separation, Directus reconciliation, and broader tenant/RLS closure
+  remain separate gates.

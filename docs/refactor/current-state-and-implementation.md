@@ -84,7 +84,7 @@ command and applicable rollout procedure.
 | **minimal** | Private PostgreSQL/PostGIS plus the combined Kernel app/API and enabled worker processes. | Smallest candidate deployment shape. Capability parity, recovery, live identity, and operational acceptance remain open. |
 | **core** | Minimal app built from the reduced, hash-locked dependency set. Optional Web3, exports, and local-media packages are selected explicitly. | Packaging profile, not a different data model. The current OIDC app overlay is incompatible with this reduced image. |
 | **edge** | Minimal plus encrypted local media and edge-oriented resource settings; MQTT/HTTP sensors remain separately selectable overlays. | No physical Raspberry Pi test has been performed. QEMU and source-level ARM64 checks do not establish device performance or power-loss behavior. |
-| **standard** | PostgreSQL plus separate API and durable-worker services sharing one application image, with loopback-bound Caddy ingress by default. `--no-proxy` selects a separately managed ingress. `standard --edge` composes Edge local-media and resource settings while preserving the API/worker split; the local-media key/volume apply only to the API, and Edge resource limits apply to PostgreSQL and the API, not the worker. Both services require a dedicated non-owner, non-privileged login before starting children; the worker also has a read-only PostgreSQL probe for stale leases, old eligible due backlog, and supervisor/child-process liveness. `--action release-up` prints a no-build pull/start command and requires digest-pinned application images. | The latest network-disabled Standard recovery applied all 713 schema files through migration 722 from one captured SQL snapshot; both app images matched its digest. Fresh placeholder provisioning, migration-ledger read access, runtime-role reapplication, API/worker/proxy health, database outage/recovery, heartbeat privacy, shutdown, and cleanup passed ([evidence](builds/2026-11-01-recovery/standard-profile-recovery-722-disposable.json)). The aggregate runtime ACL report and two-tenant probe remain through 718. API and worker still share the `kokonut_runtime` login, so distinct identities remain an open C1 boundary. Release image publication, current-target migration/role rollout, candidate rollout, live identity, populated lease/provider recovery, external alert routing, public ingress, backup/restore, scale, prolonged recovery, and physical-device acceptance remain open. Standard+Edge is planner/Compose-source support only; it does not establish physical Raspberry Pi suitability, power-loss behavior, or production readiness. The probe reports aggregate counts and ages without IDs or payloads; it detects exited children but not an alive-but-hung child. The default Caddy listener is local TLS, not public production ingress. |
+| **standard** | PostgreSQL plus separate API and durable-worker services sharing one application image, with loopback-bound Caddy ingress by default. `--no-proxy` selects a separately managed ingress. `standard --edge` composes Edge local-media and resource settings while preserving the API/worker split; the local-media key/volume apply only to the API, and Edge resource limits apply to PostgreSQL and the API, not the worker. Both services require a dedicated non-owner, non-privileged login before starting children; the worker also has a read-only PostgreSQL probe for stale leases, old eligible due backlog, and supervisor/child-process liveness. `--action release-up` prints a no-build pull/start command and requires digest-pinned application images. | The latest network-disabled Standard recovery applied all 713 schema files through migration 722 from one captured SQL snapshot; both app images matched its digest. Fresh placeholder provisioning, migration-ledger read access, runtime-role reapplication, API/worker/proxy health, database outage/recovery, heartbeat privacy, shutdown, and cleanup passed ([evidence](builds/2026-11-01-recovery/standard-profile-recovery-722-disposable.json)). A separate native, portless full-schema replay and 38-check two-tenant probe now refresh the aggregate C1 snapshot through 722: 1,315/1,522 relations have effective runtime DML and 931 tables have runtime DML while RLS is disabled. Those are privilege-reach measures, not confirmed leaks or proof of tenant isolation ([probe](builds/2026-11-01-recovery/native-resource-limited-schema-722-operator-probe.json); [report](builds/2026-11-01-recovery/runtime-privilege-callsite-report-722.json)). ARM64/QEMU aggregate replay through 722 remains open. API and worker still share the `kokonut_runtime` login, so distinct identities remain an open C1 boundary. Release image publication, current-target migration/role rollout, candidate rollout, live identity, populated lease/provider recovery, external alert routing, public ingress, backup/restore, scale, prolonged recovery, and physical-device acceptance remain open. Standard+Edge is planner/Compose-source support only; it does not establish physical Raspberry Pi suitability, power-loss behavior, or production readiness. The worker probe reports aggregate counts and ages without IDs or payloads; it detects exited children but not an alive-but-hung child. The default Caddy listener is local TLS, not public production ingress. |
 | **analytics** | Minimal plus private ClickHouse analytical projection. `--separate-workers` adds standard API/worker separation. | Requires projection parity, rebuild/outage behavior, and worker recovery acceptance. Metabase is not required. |
 | **scale** | Rejected by the planner. | Multi-host/replica behavior, shared budgets, failover, measured sizing, and concurrency/recovery gates are not accepted. |
 
@@ -210,9 +210,21 @@ network-disabled Standard recovery applies all 713 schemas through 722,
 provisions and reapplies the role, and passes the ledger-dependent API/worker
 health and outage-recovery checks ([migration](../../schemas/postgres/722_runtime_schema_migration_read_only.sql);
 [recovery](builds/2026-11-01-recovery/standard-profile-recovery-722-disposable.json)).
-The aggregate source/ACL report and two-tenant probe are still at migration
-718; C1 remains open for the remaining runtime writers, shared API/worker login,
-external callers, and tenant/RLS review.
+The fresh native, network-disabled C1 source/ACL report and two-tenant probe
+now cover migration 722. They applied 713/713 schemas and passed all 38
+synthetic tenant/operator checks with zero direct table/column privilege
+violations in the declared scoped-write policy. The report covers 1,522 public
+relations: 1,315 have effective runtime DML, 931 tables have runtime DML while
+RLS is disabled, and 172 migration-revoked relations match the declared runtime
+policy with zero policy mismatches. It also records 212 unprotected DML
+relations without candidate SQL relations and 374 without candidate write
+sites; these overlapping inventory categories do not prove exposure. This
+snapshot updates the previous migration-718 measurement but does not close
+C1, establish universal tenant isolation, or certify all runtime clients. The
+remaining runtime writers, shared API/worker login, external callers,
+Directus/tenant review, and ARM64/QEMU replay through 722 remain open
+([replay and probe](builds/2026-11-01-recovery/native-resource-limited-schema-722-operator-probe.json);
+[source/ACL report](builds/2026-11-01-recovery/runtime-privilege-callsite-report-722.json)).
 
 External `kokonut_runtime` SQL clients remain unconfirmed and must be reviewed
 before persistent rollout. Migration 714 keeps the location-solution creation
@@ -223,30 +235,22 @@ tests and 11-group disposable PostgreSQL 16 apply/replay pass
 Migration 713's climate worker compatibility and plot-only geometry behavior
 also pass focused unit and disposable acceptance
 ([climate evidence](builds/2026-10-31-recovery/climate-worker-713-disposable.json)).
-The aggregate C1 report and two-tenant operator-scope probe are now refreshed
-through migration 718. A network-disabled, portless native PostgreSQL 16 replay
-applied all 709 ordered schema files, loaded no seeds or farm data, passed all
-38 synthetic tenant/operator checks, and cleaned up its disposable resources.
-The paired source/ACL report records 1,522 public relations, 1,324 with some
-effective runtime DML, 937 public tables with runtime DML while RLS is
-disabled, 163 migration-revoked relations with matching runtime policy and
-zero policy mismatches, zero direct table/column violations within the tested
-scoped policy, 214 unprotected DML relations without SQL relation candidates,
-and 377 without candidate write sites. These inventory categories overlap and
-are not confirmed leaks. A separate SQL review ledger has 38 unresolved
-fingerprints (30 legacy-unreviewed and eight reviewed-unresolved); its units
-are not directly comparable to relation counts. This is not a full sequence,
-function, ownership, column, Directus, worker, or external-consumer audit, and
-it does not establish populated-data isolation or persistent deployment
-([replay and two-tenant probe](builds/2026-10-31-recovery/native-resource-limited-schema-718-operator-probe-r2.json);
-[source/ACL report](builds/2026-10-31-recovery/runtime-privilege-callsite-report-718.json);
+The migration-718 report and probe are retained as a dated historical baseline;
+their counts are superseded by the migration-722 snapshot above. The previous
+source/ACL report and the separate SQL review ledger use different inventory
+units and are not interchangeable. This remains an incomplete sequence,
+function, ownership, Directus, worker, and external-consumer audit; it does not
+establish populated-data isolation or persistent deployment. ARM64/QEMU
+full-schema acceptance through 722 remains open
+([historical migration-718 replay](builds/2026-10-31-recovery/native-resource-limited-schema-718-operator-probe-r2.json);
+[historical source/ACL report](builds/2026-10-31-recovery/runtime-privilege-callsite-report-718.json);
 [SQL review ledger](runtime-sql-unresolved-write-review.json)).
 
 The first native replay attempt stopped at image inspection before applying
 any schema because its requested platform did not match the available local
 image tag. It created no Compose resources and touched no candidate or legacy
 database; the corrected image reference is recorded in the successful `r2`
-evidence above ([failed preflight](builds/2026-10-31-recovery/native-resource-limited-schema-718-operator-probe.json)).
+historical evidence above ([failed preflight](builds/2026-10-31-recovery/native-resource-limited-schema-718-operator-probe.json)).
 No persistent candidate, legacy, or production database/role was changed.
 
 The latest code-first cohort includes:
@@ -256,7 +260,7 @@ The latest code-first cohort includes:
 | Migration 721 — governance reference-catalog ACL | Preserves runtime reads on `data_governance_category` and `data_governance_scope`, revokes table/column DML, leaves Directus unchanged, and stays closed after runtime provisioning. | [Disposable apply/replay and ACL acceptance](builds/2026-11-01-recovery/governance-reference-catalogs-721-disposable.json) |
 | Migration 720 — bounded thesaurus writers | Preserves the thesaurus service operations through four bounded functions; runtime and PUBLIC receive no direct table DML or PUBLIC function execution. Provisioning grants the full function set only after it exists. | [Disposable apply/replay and behavior acceptance](builds/2026-11-01-recovery/runtime-thesaurus-boundary-720-disposable.json) |
 | Standard notification-delivery child identity | Default-off worker child uses migration 647's dedicated login/functions; shared runtime DB credentials and unrelated worker DSNs are filtered from the child. API and general worker still share `kokonut_runtime`. | [Disposable worker acceptance](builds/2026-11-01-recovery/standard-notification-delivery-worker-isolation-647.json); [focused supervisor/profile checks](../../tests/test_kernel_runtime_supervisor.py) |
-| Migration 719 — public aggregate-view ACL | Preserves runtime SELECT and optional Directus grants while revoking runtime table/column DML from the three catalog-confirmed non-updatable public attestation/EBF summary views. A separate INSTEAD OF-trigger writable view remains writable as a scope control. This removes unused privileges only; no tenant boundary is established. The aggregate ACL report remains through 718; the Standard replay now passes through 722. | [Disposable ACL acceptance](builds/2026-11-01-recovery/runtime-public-aggregate-views-719-disposable.json); [source checks](builds/2026-11-01-recovery/runtime-public-aggregate-views-719-source-checks.json); [Standard replay](builds/2026-11-01-recovery/standard-profile-recovery-722-disposable.json) |
+| Migration 719 — public aggregate-view ACL | Preserves runtime SELECT and optional Directus grants while revoking runtime table/column DML from the three catalog-confirmed non-updatable public attestation/EBF summary views. A separate INSTEAD OF-trigger writable view remains writable as a scope control. This removes unused privileges only; no tenant boundary is established. The fresh native aggregate ACL report now covers migration 722; ARM64/QEMU replay through 722 remains open. | [Disposable ACL acceptance](builds/2026-11-01-recovery/runtime-public-aggregate-views-719-disposable.json); [source checks](builds/2026-11-01-recovery/runtime-public-aggregate-views-719-source-checks.json); [Standard replay](builds/2026-11-01-recovery/standard-profile-recovery-722-disposable.json); [native aggregate replay](builds/2026-11-01-recovery/native-resource-limited-schema-722-operator-probe.json); [report](builds/2026-11-01-recovery/runtime-privilege-callsite-report-722.json) |
 | Migration 722 — schema migration ledger | Preserves runtime SELECT needed for fail-closed schema readiness while removing runtime table/column mutation privileges. | [Standard ordered recovery and role reapplication](builds/2026-11-01-recovery/standard-profile-recovery-722-disposable.json) |
 | Runtime-role one-time compatibility grant | The compatibility grant runs for a newly created login or an explicitly marked fresh migration placeholder, then marks the one-time step complete. An existing unmarked role is not widened; reprovisioning preserves grants and reapplies explicit denials. This does not remove broad grants already held or establish tenant isolation. | [Prior role-reprovision acceptance](builds/2026-10-31-recovery/runtime-role-reprovision-guard-disposable.json); [Standard placeholder-first recovery](builds/2026-11-01-recovery/standard-profile-recovery-722-disposable.json) |
 | Migration 718 — isolated global market-data writes | Retires direct runtime mutation of `price_observation`; the dedicated market-data worker uses bounded reference-seed, manual-price, and World Bank functions. Runtime SELECT remains. External runtime callers remain a persistent-rollout review gate. | [Full Standard replay](builds/2026-11-01-recovery/standard-profile-recovery-718-disposable.json); [fresh C1 replay and two-tenant probe](builds/2026-10-31-recovery/native-resource-limited-schema-718-operator-probe-r2.json); [refreshed source/ACL report](builds/2026-10-31-recovery/runtime-privilege-callsite-report-718.json) |
@@ -330,7 +334,8 @@ scale, 24-hour endurance, or physical-device acceptance. No candidate, legacy,
 or production database or role was changed. Broader caller reconciliation,
 external importer ownership, Directus API parity, tenant/RLS, populated-data
 parity, and reviewed persistent rollout remain open. The two-tenant
-operator-scope probe and C1 source/ACL aggregate remain at migration 718.
+native operator-scope probe and C1 source/ACL aggregate now cover migration
+722; the ARM64/QEMU full-schema aggregate replay remains open.
 
 ## Human and operational gates
 

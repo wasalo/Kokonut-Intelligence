@@ -118,8 +118,14 @@ The current runtime ACL batch (migrations 719–722) preserves required reads
 while narrowing writes to selected non-updatable public aggregates, thesaurus
 reference operations, governance reference catalogs, and the application’s
 schema-migration ledger. These are individually scoped boundaries; they do not
-close the broader C1 review or establish tenant/RLS isolation. See the
-[refactor status guide](docs/refactor/current-state-and-implementation.md).
+close the broader C1 review or establish tenant/RLS isolation. A fresh native,
+network-disabled replay through migration 722 and its 38-check synthetic
+two-tenant probe report 1,315 of 1,522 public relations with effective runtime
+DML, including 931 tables where RLS is disabled. These are privilege-reach and
+inventory measures, not confirmed data leaks or proof of tenant isolation; see
+the [current refactor status and evidence](docs/refactor/current-state-and-implementation.md),
+[replay](docs/refactor/builds/2026-11-01-recovery/native-resource-limited-schema-722-operator-probe.json),
+and [ACL report](docs/refactor/builds/2026-11-01-recovery/runtime-privilege-callsite-report-722.json).
 
 To combine the Standard API/worker split with Edge's local encrypted media and
 resource settings, inspect the planner output before starting it:

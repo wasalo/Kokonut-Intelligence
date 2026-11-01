@@ -138,6 +138,10 @@ Commands:
   login. Keep each policy aligned across migration, runtime-role
   reprovisioning, source ACL reporting, and disposable acceptance; these
   changes do not establish tenant isolation.
+- Treat aggregate ACL and source-inventory counts as privilege reach and
+  review coverage, not counts of confirmed data leaks. Source absence alone is
+  not grounds to revoke a writer; use the current C1 evidence and reviewed
+  caller map before changing a grant.
 - Credit writes must preserve batch/account custody and supply invariants. Retirement reserves quantity atomically and requires an independent human confirmation before final balance mutation or certificate use.
 - Threatcasting/backcasting outputs and Delphi facilitator recommendations are advisory. Preserve governed lifecycle, evidence links, and human approval boundaries.
 - Focused platform-integrity tests: `python3 -m pytest tests/test_migration.py tests/test_gateway_auth.py tests/test_scheduler_durability.py tests/test_kgp_worker_durability.py tests/test_event_worker_recovery.py tests/test_event_bus_durability.py tests/test_directus_tenant_permissions.py tests/test_carbon_credits.py tests/test_threatcasting.py tests/test_backcasting_enhancements.py tests/test_delphi.py -v`

@@ -246,10 +246,22 @@ provider recovery, 24-hour endurance, scale, public ingress, backup/restore
 ownership, or physical Raspberry Pi behavior.
 
 This recovery confirms Standard's current default topology and bootstrap path;
-it is not candidate rollout or production acceptance. The separate aggregate
-runtime ACL report and synthetic two-tenant operator-scope probe remain at
-migration 718, so those measurements must be refreshed before claiming an
-aggregate C1 snapshot at 722.
+it is not candidate rollout or production acceptance. A separate native,
+network-disabled PostgreSQL replay now refreshes the aggregate runtime ACL
+report and synthetic two-tenant operator-scope probe through migration 722. It
+applies 713/713 schemas, passes all 38 checks, loads no seeds or farm data, and
+cleans up its disposable resources. The report covers 1,522 public relations,
+with 1,315 having effective runtime DML and 931 tables having runtime DML while
+RLS is disabled; 172 migration-revoked relations match the declared policy,
+with zero mismatches. It also records 212 unprotected DML relations without
+candidate SQL relations and 374 without candidate write sites. These overlapping
+counts measure privilege reach and heuristic inventory coverage, not confirmed
+leaks or tenant isolation. The probe found zero direct table/column violations
+within its declared scoped-write checks. ARM64/QEMU full replay through 722,
+distinct API/worker identities, Directus/tenant reconciliation, candidate
+rollout, and production acceptance remain open
+([native replay and probe](builds/2026-11-01-recovery/native-resource-limited-schema-722-operator-probe.json);
+[ACL report](builds/2026-11-01-recovery/runtime-privilege-callsite-report-722.json)).
 
 The 31 October recovery through migration 712 remains useful historical
 evidence for the bounded Gateway rate-limit contract and its consume, deny,
