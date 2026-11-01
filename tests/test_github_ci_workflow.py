@@ -37,6 +37,9 @@ def test_parallel_image_gate_keeps_the_required_ci_status_as_aggregate() -> None
     assert '"$KERNEL_IMAGE_RESULT" != "success"' in aggregate
 
     assert "scripts/run-github-ci.sh --source-only" in source_checks
+    source_job_settings = source_checks.split("steps:", 1)[0]
+    assert "runner.temp" not in source_job_settings
+    assert "CI_DIAGNOSTICS_DIR: ${{ runner.temp }}/kokonut-ci-source-" in source_checks
     assert "scripts/run-github-ci.sh --integration-only" in full_ci
     assert "scripts/build-kernel-multiarch.sh" not in full_ci
     assert "Set up ARM emulation" not in full_ci
