@@ -10,6 +10,7 @@ from scripts.worker_source_closure import build_inventory as build_source_closur
 from scripts.worker_sql_inventory import (
     ROOT,
     _candidate_relations,
+    _canonical_relation,
     _literal_caller_variants,
     _local_statement_kind,
     _operation_map_variants,
@@ -30,6 +31,21 @@ def _load_inventory() -> dict:
 def test_saved_worker_sql_inventory_matches_current_sources():
     saved = INVENTORY_PATH.read_text(encoding="utf-8")
     assert saved == _serialize(build_inventory())
+
+
+def test_relation_candidates_follow_postgresql_identifier_folding():
+    query = (
+        'SELECT * FROM public.api_key '
+        'JOIN towS_strategy ON TRUE '
+        'JOIN "MixedCase" ON TRUE'
+    )
+
+    assert _candidate_relations(query) == [
+        "MixedCase",
+        "public.api_key",
+        "tows_strategy",
+    ]
+    assert _canonical_relation('"Mixed""Name"') == 'Mixed"Name'
 
 
 def test_worker_sql_inventory_covers_source_closure_and_all_execution_sites():
@@ -113,9 +129,10 @@ def test_unclassified_sql_sites_are_explicitly_enumerated_for_follow_up():
         ("services/agents/base.py", 149),
         ("services/analytics/organic_certification.py", 295),
         ("services/analytics/reporting_reader.py", 256),
-        ("services/common/database.py", 77),
-        ("services/common/database.py", 80),
-        ("services/common/database.py", 142),
+        ("services/common/database.py", 79),
+        ("services/common/database.py", 82),
+        ("services/common/database.py", 144),
+        ("services/ingestion/market_data_worker.py", 54),
         ("services/registry/cids_export.py", 122),
     ]
 
@@ -256,7 +273,7 @@ def test_local_caller_sql_resolution_accounts_for_bound_and_static_methods():
 def test_isolated_worker_adapter_inventory_resolves_bounded_function_variants():
     inventory = _load_inventory()
     expected = {
-        ("services/events/dispatch_worker.py", 34): 7,
+        ("services/events/dispatch_worker.py", 36): 7,
         ("services/ingestion/baal_worker.py", 37): 6,
         ("services/ingestion/freshness_worker.py", 31): 3,
         ("services/ingestion/freshness_worker.py", 36): 6,
@@ -439,7 +456,8 @@ def test_dynamic_sql_review_categories_remain_explicit():
         "services/registry/cids_export.py": 1,
         "services/events/fork_detector.py": 1,
         "services/events/insight_transfer.py": 2,
-        "services/ingestion/data_freshness.py": 5,
+        "services/ingestion/data_freshness.py": 3,
+        "services/ingestion/market_data_worker.py": 1,
         "services/export/reports/context.py": 1,
         "services/ingestion/ml_anomaly_detector.py": 4,
         "services/ingestion/remote_sensing_fetcher.py": 1,
@@ -469,7 +487,7 @@ def test_dynamic_sql_review_categories_remain_explicit():
     ]
     assert reporting_reader_kinds.count("composed") == 0
     assert reporting_reader_kinds.count("composed_or_variable") == 1
-    assert sum(site["expression_kind"] == "fstring" for site in by_source["services/ingestion/data_freshness.py"]) == 4
+    assert sum(site["expression_kind"] == "fstring" for site in by_source["services/ingestion/data_freshness.py"]) == 3
 
 
 def test_generic_database_sql_wrappers_have_no_unreviewed_worker_callsite():

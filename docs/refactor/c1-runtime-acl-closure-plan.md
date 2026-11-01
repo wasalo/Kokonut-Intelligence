@@ -238,11 +238,11 @@ and settings.
 The paired source/ACL report covers 1,522 public relations: 1,309 have
 effective runtime DML, 925 tables have runtime DML while RLS is disabled, and
 178 migration-revoked relations match the declared policy with zero mismatches.
-It records 213 unprotected DML relations without candidate SQL relations and
-374 without candidate write sites. These are overlapping privilege-reach and
+It records 211 unprotected DML relations without candidate SQL relations and
+372 without candidate write sites. These are overlapping privilege-reach and
 source-coverage counts, not confirmed leaks or a universal tenant-isolation
-result. The refreshed static attribution map covers 4,958 SQL sites: 34
-API-only, 367 worker-only, one shared, and 4,556 unresolved. Static candidates
+result. The refreshed static attribution map covers 4,956 SQL sites: 34
+API-only, 367 worker-only, one shared, and 4,554 unresolved. Static candidates
 are not observed executions or a safe grant list. The ARM64/QEMU full replay
 through 723 applied all 714 schemas and passed 38 synthetic two-tenant/operator
 checks with no seeds, ports, OOM, or cleanup residue. This is software
@@ -278,9 +278,9 @@ operation graph to every direct SQL site. It keeps `api_candidate`,
 `worker_candidate`, `shared_candidate`, and `unresolved` explicit, records
 default-on supervisor children separately from whether a persisted schedule or
 event is actually active, and documents the shared `PG_*` and worker-secret
-environment paths. Its current source snapshot covers 4,958 SQL sites: 34
+environment paths. Its current source snapshot covers 4,956 SQL sites: 34
 API-only candidates, 367 worker-only candidates, one site reached by both
-graphs, and 4,556 unresolved sites. It discovers 349 API route roots and 478
+graphs, and 4,554 unresolved sites. It discovers 349 API route roots and 478
 statically reachable functions; four dynamic route factories remain unresolved.
 The worker graph has 50 roots, 368 reachable SQL sites, and 56 registered
 dynamic-dispatch edges. These are static candidates, not observed executions.
@@ -291,6 +291,37 @@ provisioning, startup identity checks, or migrations. Directus effective
 permission counts also remain unreconciled across the parity document, source
 tests, and disposable snapshot; do not call that surface parity-certified until
 the counts and runtime effects agree.
+
+### C1 source/ACL inventory reconciliation — 1 November 2026
+
+The source inventory now folds unquoted PostgreSQL identifiers to lower case,
+preserves quoted identifier case, and the ACL report joins explicit
+`public.*` candidates to catalog relations. The source/ACL report regenerated
+from the existing migration-723 probe now records 458 DML relations without
+candidate SQL sites, 211 unprotected DML relations without candidate sites,
+and 372 without candidate write targets. Its ACL snapshot remains the same
+1,522 relations with 1,309 effective runtime DML grants and 925 tables having
+DML while RLS is disabled; only source correlation changed. These are
+privilege-reach and source-coverage counts, not confirmed leaks or tenant
+isolation.
+
+The unused `services.analytics.pest_management.auto_link_pollinator_impact`
+writer is now a fail-closed compatibility stub. Repository-wide search found
+no callers, and its former `pollinator_pesticide_impact` target is absent from
+the schema; the supported replacement is the authenticated, location-scoped
+Gateway capture route. Removing its stale read/write SQL sites leaves 4,956
+execution sites, 1,063 write candidates, and 566 write-target relation names.
+The remaining `credit_chain_mint` write candidate also has no matching ordered
+schema object and needs a capability-preserving design before any ACL change;
+the two local audit-spool table names are SQLite state and are not PostgreSQL
+relations. No migration or database was applied in this source-only batch.
+
+Focused source, parser, report, and pest-management checks pass 179 tests.
+Ruff, Python compilation, generated SQL inventories, the runtime-role
+attribution map, and the analytics write-candidate inventory pass. The
+refreshed report uses the existing migration-723 disposable ACL probe; no new
+database replay, candidate rollout, or production change was performed
+([evidence](builds/2026-11-01-recovery/runtime-sql-candidate-normalization-and-pollinator-writer-retirement.json)).
 
 Refresh or validate the source map with
 `python3 scripts/runtime_role_attribution.py --output docs/refactor/runtime-role-attribution.json`

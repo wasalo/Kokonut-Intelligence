@@ -26097,3 +26097,36 @@ Checklist snapshot: 2,230 complete / 43 open (2,273 total); cross-phase TODO:
 807 checked / 39 open. Capability classifications remain 24 baseline-retained,
 7 deployed, and 36 prepared across 67 rows; migration 723 does not advance a
 capability status by itself.
+
+### Progress addendum — C1 SQL inventory reconciliation — 1 November 2026
+
+The PostgreSQL SQL scanner now normalizes unquoted identifiers to lower case,
+preserves quoted identifier case, and the source/ACL report maps explicit
+`public.*` references to their catalog names. The runtime inventory was
+regenerated after retiring the unused `auto_link_pollinator_impact` writer,
+which had no repository callers and targeted the nonexistent
+`pollinator_pesticide_impact` table. Its compatibility function now fails
+before touching the supplied connection; authenticated location-scoped
+pollinator capture remains available through the Gateway.
+
+The regenerated source inventory contains 4,956 SQL execution sites, 1,063
+write candidates, and 566 write-target relation names. Runtime attribution now
+labels 34 API candidates, 367 worker candidates, one shared site, and 4,554
+unresolved sites. The migration-723 ACL report was rebuilt from the existing
+disposable probe: 1,309/1,522 public relations retain runtime DML, 925 tables
+have DML while RLS is disabled, 458 DML relations lack candidate SQL sites,
+211 unprotected relations lack candidate sites, and 372 lack candidate write
+targets. Source correlation changed; no ACL, schema, candidate, legacy, or
+production database was changed. `credit_chain_mint` remains an unresolved
+source/schema mismatch, while the local audit-spool relation names are SQLite
+state and not PostgreSQL objects.
+
+The focused parser, report, inventory, and pest-management selection passes
+179 tests. Ruff and Python compilation pass, as do the generated SQL and
+runtime attribution freshness checks. The analytics candidate report was
+regenerated from the same 723 probe. No migration was needed. Evidence:
+[source/ACL reconciliation](builds/2026-11-01-recovery/runtime-sql-candidate-normalization-and-pollinator-writer-retirement.json).
+
+Checklist snapshot: 2,233 complete / 43 open (2,276 total); cross-phase TODO:
+810 checked / 39 open. Capability classifications remain 24 baseline-retained,
+7 deployed, and 36 prepared across 67 rows.

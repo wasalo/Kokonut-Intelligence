@@ -16,6 +16,7 @@ from services.analytics.pest_management import (
     add_pest_crop_interaction,
     add_pest_reference,
     add_trap,
+    auto_link_pollinator_impact,
     check_rotation,
     check_threshold,
     check_trap_threshold,
@@ -49,6 +50,16 @@ from services.analytics.pest_management import (
     schedule_re_scout,
     set_action_threshold,
 )
+
+
+class TestRetiredPollinatorAutoLink(unittest.TestCase):
+    def test_legacy_writer_fails_before_opening_connection(self):
+        connection = MagicMock()
+
+        with self.assertRaisesRegex(RuntimeError, "authenticated Kokonut Gateway"):
+            auto_link_pollinator_impact(connection, "synthetic-application")
+
+        connection.cursor.assert_not_called()
 
 PEST_TREND_COLUMNS = (
     "id",

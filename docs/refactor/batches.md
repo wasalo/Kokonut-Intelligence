@@ -10259,3 +10259,32 @@ separation, and broader tenant/RLS closure remain separate gates.
   Candidate/production rollout, external runtime-consumer
   reconciliation, broad DML retirement, API/worker identity separation, and
   tenant/RLS closure remain open.
+
+### C1 source inventory reconciliation — 1 November 2026
+
+- [x] Normalize relation candidates according to PostgreSQL identifier rules
+  and join schema-qualified `public.*` SQL sites to their catalog relations in
+  the ACL report. The rebuilt report now maps the API-key provisioning,
+  Gnosis receipt, and TOWS source paths instead of leaving their spellings
+  unmatched.
+- [x] Retire the uncalled legacy pollinator auto-link writer that targeted the
+  nonexistent `pollinator_pesticide_impact` table. The function now fails
+  before opening its supplied connection; signed location-scoped Gateway
+  capture remains the supported path.
+- [x] Run 179 focused parser, SQL-inventory, ACL-report, and pest-management
+  tests, Ruff, Python compilation, runtime/worker inventory checks, attribution
+  freshness, and rebuild the analytics write-candidate report. The latest
+  source inventory records 4,956 execution sites, 1,063 write candidates, and
+  566 target relation names. The report was rebuilt from the existing
+  migration-723 probe, so ACL counts remain 1,309/1,522 with effective DML and
+  925 tables with DML while RLS is disabled; source correlation now reports
+  458 DML relations without SQL candidates, 211 unprotected relations without
+  candidates, and 372 without candidate write targets. This is a source-only
+  reconciliation, not a new migration or ACL replay. `credit_chain_mint` still
+  lacks an ordered schema object and remains an unresolved capability issue;
+  audit-spool entries are local SQLite state, not PostgreSQL relations.
+  ([evidence](builds/2026-11-01-recovery/runtime-sql-candidate-normalization-and-pollinator-writer-retirement.json))
+
+Checklist snapshot: 2,233 complete / 43 open (2,276 total). Capability
+classifications remain 24 baseline-retained, 7 deployed, and 36 prepared
+across 67 rows.

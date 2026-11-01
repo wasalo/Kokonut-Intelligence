@@ -3,12 +3,12 @@
   "generated_by": "scripts/runtime_role_attribution.py",
   "scope": "Conservative static attribution of direct Python SQL execution sites to source-registered Gateway route handlers and the existing supervisor worker operation graphs. Gateway route roots are collected from the Gateway app's local import closure; this does not prove every dynamically registered route is mounted. Worker roots are allowlisted modules/handlers, not proof of a live schedule or event. A site without a static path may be dynamic, callback-driven, imported, CLI-driven, or otherwise unresolved; it is not evidence that a site is dead. Relation names remain heuristic candidates. This report contains no SQL text, parameter values, secrets, live role grants, tenant policy, or ACL authorization and must not be used by itself to revoke privileges.",
   "summary": {
-    "sql_execution_sites": 4958,
+    "sql_execution_sites": 4956,
     "attribution_counts": {
       "api_candidate": 34,
       "worker_candidate": 367,
       "shared_candidate": 1,
-      "unresolved": 4556
+      "unresolved": 4554
     },
     "api_route_root_count": 349,
     "api_static_function_count": 478,
@@ -19,9 +19,9 @@
     "worker_operation_root_count": 50,
     "worker_dynamic_dispatch_edge_count": 56,
     "worker_static_sql_site_count": 368,
-    "worker_sites_without_static_function_match": 4590,
+    "worker_sites_without_static_function_match": 4588,
     "sites_in_both_api_and_worker_graphs": 1,
-    "unresolved_site_count": 4556
+    "unresolved_site_count": 4554
   },
   "process_and_credential_policy": {
     "standard_api": {
@@ -4529,8 +4529,8 @@
       "statement_kind": "INSERT",
       "static_sql_sha256": "df86834c47084c4b91d8e5f5188446ff9ca9983871d53abfe3a11dd2a30ed3be",
       "candidate_relations": [
-        "SET",
-        "category_relatedness"
+        "category_relatedness",
+        "set"
       ],
       "write_target_relations": [
         "category_relatedness"
@@ -4879,8 +4879,8 @@
       "statement_kind": "INSERT",
       "static_sql_sha256": "1c775a13144b8c0fcbe7b9b7c063f2c85686aa83b256b95a5db0a708e80c08b1",
       "candidate_relations": [
-        "SET",
-        "relatedness_coefficient"
+        "relatedness_coefficient",
+        "set"
       ],
       "write_target_relations": [
         "relatedness_coefficient"
@@ -4904,8 +4904,8 @@
       "statement_kind": "INSERT",
       "static_sql_sha256": "be9eff4770ffd5f18d7f1393fdc86897f45b4a5f8b89653a98f9e76aadfa494e",
       "candidate_relations": [
-        "SET",
-        "ecosystem_registry"
+        "ecosystem_registry",
+        "set"
       ],
       "write_target_relations": [
         "ecosystem_registry"
@@ -5228,7 +5228,7 @@
       "statement_kind": "SELECT",
       "static_sql_sha256": "5ef24ffa3d3f7c30a000c7d75cf8a67ee0927e081dc169112f6927318a9153bc",
       "candidate_relations": [
-        "OF",
+        "of",
         "validation_round",
         "validator_selection"
       ],
@@ -7709,7 +7709,7 @@
       "statement_kind": "INSERT",
       "static_sql_sha256": "c45ce69f59e856560db87cd2d7b2b7c3895f5c11eb7290cbdb80b09d975d2afa",
       "candidate_relations": [
-        "SET",
+        "set",
         "strategy_advantage_link"
       ],
       "write_target_relations": [
@@ -9861,8 +9861,8 @@
       "statement_kind": "INSERT",
       "static_sql_sha256": "200148fa21ede67b6f224421c24b47015f8da76479c1b90b01a6123c0774d173",
       "candidate_relations": [
-        "SET",
-        "channel_config"
+        "channel_config",
+        "set"
       ],
       "write_target_relations": [
         "channel_config"
@@ -10112,8 +10112,8 @@
       "statement_kind": "INSERT",
       "static_sql_sha256": "a3471bf01868b93914053b1931d00d5c0e28eea34e3696029601a6328ee2519f",
       "candidate_relations": [
-        "SET",
-        "customer_health_score"
+        "customer_health_score",
+        "set"
       ],
       "write_target_relations": [
         "customer_health_score"
@@ -10205,8 +10205,8 @@
       "statement_kind": "INSERT",
       "static_sql_sha256": "e6b319dfc72055733737ababfd007e7109ecb5ee5ced4ae7c1fb13ca6f7f8362",
       "candidate_relations": [
-        "SET",
-        "competitive_actor"
+        "competitive_actor",
+        "set"
       ],
       "write_target_relations": [
         "competitive_actor"
@@ -11646,8 +11646,8 @@
       "statement_kind": "INSERT",
       "static_sql_sha256": "fc257d6b8a40df53ba41911b8119208d2f88c7fd7385300304f3ed1aa1a92ac4",
       "candidate_relations": [
-        "SET",
-        "cooperative_vote"
+        "cooperative_vote",
+        "set"
       ],
       "write_target_relations": [
         "cooperative_vote"
@@ -11671,8 +11671,8 @@
       "statement_kind": "INSERT",
       "static_sql_sha256": "af9e92f012afcff8a0619389e95c9409aedc0150e0b570765318ca96616134d9",
       "candidate_relations": [
-        "SET",
-        "cooperative_quorum"
+        "cooperative_quorum",
+        "set"
       ],
       "write_target_relations": [
         "cooperative_quorum"
@@ -11782,8 +11782,8 @@
       "statement_kind": "INSERT",
       "static_sql_sha256": "312d9c37223a109cee04379b37fbf6874050fb95853b7eac80c983ab4ee4dde5",
       "candidate_relations": [
-        "SET",
-        "coordination_approval"
+        "coordination_approval",
+        "set"
       ],
       "write_target_relations": [
         "coordination_approval"
@@ -12911,8 +12911,8 @@
       "statement_kind": "INSERT",
       "static_sql_sha256": "82dd02439ca66eeff0d19c8e6137eafabcfa64e7c5cecc3952eb6c222ee8468d",
       "candidate_relations": [
-        "SET",
-        "crop_growth_stage"
+        "crop_growth_stage",
+        "set"
       ],
       "write_target_relations": [
         "crop_growth_stage"
@@ -16196,7 +16196,7 @@
       "statement_kind": "INSERT",
       "static_sql_sha256": "50e31f06b9120930595a0717cea6be40cbd57c3685bf2de3d263f37d34e1060b",
       "candidate_relations": [
-        "SET",
+        "set",
         "simulation_config"
       ],
       "write_target_relations": [
@@ -18142,7 +18142,7 @@
       "statement_kind": "INSERT",
       "static_sql_sha256": "53a5324dd8808941ad7e25697247bac7a1ed0f06de45cc2e2b19d5a77210f6b1",
       "candidate_relations": [
-        "SET",
+        "set",
         "utilization_observation"
       ],
       "write_target_relations": [
@@ -19379,8 +19379,8 @@
       "statement_kind": "INSERT",
       "static_sql_sha256": "d7d73229ccb2528ebc17b399781c824ce2e456adc19f581651604469bb05c7ec",
       "candidate_relations": [
-        "SET",
-        "device_registration"
+        "device_registration",
+        "set"
       ],
       "write_target_relations": [
         "device_registration"
@@ -19580,8 +19580,8 @@
       "statement_kind": "INSERT",
       "static_sql_sha256": "86edf201e5ba290cda654f87a72fe786a705406fccf9e8447224a764518259f6",
       "candidate_relations": [
-        "SET",
-        "financial_sustainability_plan"
+        "financial_sustainability_plan",
+        "set"
       ],
       "write_target_relations": [
         "financial_sustainability_plan"
@@ -20261,8 +20261,8 @@
       "statement_kind": "INSERT",
       "static_sql_sha256": "1a08d835a1dc6fdee7616d5beac301302f0f27a07e26a3ffa892af73bc10ab9d",
       "candidate_relations": [
-        "SET",
-        "governance_role_accountability"
+        "governance_role_accountability",
+        "set"
       ],
       "write_target_relations": [
         "governance_role_accountability"
@@ -20308,8 +20308,8 @@
       "statement_kind": "INSERT",
       "static_sql_sha256": "ae40a4bb6fb3f21a00b74a5de1f2372c25b1484006cb4cff0cbb3b058a4648cf",
       "candidate_relations": [
-        "SET",
-        "governance_role_domain"
+        "governance_role_domain",
+        "set"
       ],
       "write_target_relations": [
         "governance_role_domain"
@@ -20355,8 +20355,8 @@
       "statement_kind": "INSERT",
       "static_sql_sha256": "badc02e421cdb54b515948a93b935cd342dcad432fe92999687bcfc158d3757d",
       "candidate_relations": [
-        "SET",
-        "governance_role_policy"
+        "governance_role_policy",
+        "set"
       ],
       "write_target_relations": [
         "governance_role_policy"
@@ -20823,8 +20823,8 @@
       "statement_kind": "INSERT",
       "static_sql_sha256": "7b37a71cebf891e0af1ba6687b7e77d40bf6961b27aa3b318bd2870c6b810777",
       "candidate_relations": [
-        "SET",
-        "governance_tension_link"
+        "governance_tension_link",
+        "set"
       ],
       "write_target_relations": [
         "governance_tension_link"
@@ -21026,8 +21026,8 @@
       "statement_kind": "INSERT",
       "static_sql_sha256": "283480b0c6f2ed0e1bdd6ce29745f48849d8fb54fd1c4e5b53c8c2e65fdcba4f",
       "candidate_relations": [
-        "SET",
-        "dao_vote"
+        "dao_vote",
+        "set"
       ],
       "write_target_relations": [
         "dao_vote"
@@ -21145,8 +21145,8 @@
       "statement_kind": "INSERT",
       "static_sql_sha256": "3619c5994b3390b348697349113c138fc9342a7ca7c163915ec72d4fdc952ff3",
       "candidate_relations": [
-        "SET",
-        "reputation_token"
+        "reputation_token",
+        "set"
       ],
       "write_target_relations": [
         "reputation_token"
@@ -22855,8 +22855,8 @@
       "statement_kind": "INSERT",
       "static_sql_sha256": "aa7b04435d51aed15d1b4cc1abc83dcfd05ed38680413c4f10b48d7a3d2682a6",
       "candidate_relations": [
-        "SET",
-        "mitigation_approach"
+        "mitigation_approach",
+        "set"
       ],
       "write_target_relations": [
         "mitigation_approach"
@@ -23953,8 +23953,8 @@
       "statement_kind": "INSERT",
       "static_sql_sha256": "33236831f311bef35de8ad48dfd10b9d9f731b99753881d53b00e709dde68dfa",
       "candidate_relations": [
-        "SET",
-        "partner_scorecard"
+        "partner_scorecard",
+        "set"
       ],
       "write_target_relations": [
         "partner_scorecard"
@@ -24679,8 +24679,8 @@
       "statement_kind": "INSERT",
       "static_sql_sha256": "f9f53ad308d66441090e46394abace3432fdaf19b722f302adc4fa3a47c0f936",
       "candidate_relations": [
-        "SET",
-        "pest_biology_reference"
+        "pest_biology_reference",
+        "set"
       ],
       "write_target_relations": [
         "pest_biology_reference"
@@ -25108,8 +25108,8 @@
       "statement_kind": "INSERT",
       "static_sql_sha256": "6fe704f40b6cb7ce600ce9b633d2178a150670d40c8544d0f6e83bb6d50b639f",
       "candidate_relations": [
-        "SET",
-        "pest_crop_interaction"
+        "pest_crop_interaction",
+        "set"
       ],
       "write_target_relations": [
         "pest_crop_interaction"
@@ -25323,8 +25323,8 @@
       "statement_kind": "INSERT",
       "static_sql_sha256": "edd708bbe75d4fd2fcfcab391027cb0ab204092778642578e1deb776bfe7e4f2",
       "candidate_relations": [
-        "SET",
-        "pest_mode_of_action"
+        "pest_mode_of_action",
+        "set"
       ],
       "write_target_relations": [
         "pest_mode_of_action"
@@ -25687,57 +25687,9 @@
       ]
     },
     {
-      "id": "services/analytics/pest_management.py:2362:4",
+      "id": "services/analytics/pest_management.py:2369:4",
       "source": "services/analytics/pest_management.py",
-      "line": 2362,
-      "scope": "auto_link_pollinator_impact",
-      "method": "execute",
-      "expression_kind": "literal",
-      "statement_kind": "SELECT",
-      "static_sql_sha256": "8043537cab59e14287063be677e67398f5462073101303593e91ce1223d30fe7",
-      "candidate_relations": [
-        "pesticide_application_log"
-      ],
-      "write_target_relations": [],
-      "api_static_reachability": "no_static_route_path",
-      "worker_static_operations": [],
-      "worker_static_review_status": "function_not_reached_by_any_static_worker_root",
-      "attribution": "unresolved",
-      "review_labels": [
-        "no_static_gateway_route_path_dynamic_or_non_api_possible",
-        "worker_sql_site_not_statically_reached_dynamic_or_unresolved_possible",
-        "gateway_import_closure_but_route_reachability_unresolved"
-      ]
-    },
-    {
-      "id": "services/analytics/pest_management.py:2388:8",
-      "source": "services/analytics/pest_management.py",
-      "line": 2388,
-      "scope": "auto_link_pollinator_impact",
-      "method": "execute",
-      "expression_kind": "literal",
-      "statement_kind": "INSERT",
-      "static_sql_sha256": "62235f522fca0a3bd3d0b621b15cc42b98bc2ec0d0089dde50d7edc7d68d18e6",
-      "candidate_relations": [
-        "pollinator_pesticide_impact"
-      ],
-      "write_target_relations": [
-        "pollinator_pesticide_impact"
-      ],
-      "api_static_reachability": "no_static_route_path",
-      "worker_static_operations": [],
-      "worker_static_review_status": "function_not_reached_by_any_static_worker_root",
-      "attribution": "unresolved",
-      "review_labels": [
-        "no_static_gateway_route_path_dynamic_or_non_api_possible",
-        "worker_sql_site_not_statically_reached_dynamic_or_unresolved_possible",
-        "gateway_import_closure_but_route_reachability_unresolved"
-      ]
-    },
-    {
-      "id": "services/analytics/pest_management.py:2430:4",
-      "source": "services/analytics/pest_management.py",
-      "line": 2430,
+      "line": 2369,
       "scope": "generate_ipm_audit",
       "method": "execute",
       "expression_kind": "literal",
@@ -25758,9 +25710,9 @@
       ]
     },
     {
-      "id": "services/analytics/pest_management.py:2443:4",
+      "id": "services/analytics/pest_management.py:2382:4",
       "source": "services/analytics/pest_management.py",
-      "line": 2443,
+      "line": 2382,
       "scope": "generate_ipm_audit",
       "method": "execute",
       "expression_kind": "literal",
@@ -25781,9 +25733,9 @@
       ]
     },
     {
-      "id": "services/analytics/pest_management.py:2458:4",
+      "id": "services/analytics/pest_management.py:2397:4",
       "source": "services/analytics/pest_management.py",
-      "line": 2458,
+      "line": 2397,
       "scope": "generate_ipm_audit",
       "method": "execute",
       "expression_kind": "literal",
@@ -25804,9 +25756,9 @@
       ]
     },
     {
-      "id": "services/analytics/pest_management.py:2472:4",
+      "id": "services/analytics/pest_management.py:2411:4",
       "source": "services/analytics/pest_management.py",
-      "line": 2472,
+      "line": 2411,
       "scope": "generate_ipm_audit",
       "method": "execute",
       "expression_kind": "literal",
@@ -25828,9 +25780,9 @@
       ]
     },
     {
-      "id": "services/analytics/pest_management.py:2488:4",
+      "id": "services/analytics/pest_management.py:2427:4",
       "source": "services/analytics/pest_management.py",
-      "line": 2488,
+      "line": 2427,
       "scope": "generate_ipm_audit",
       "method": "execute",
       "expression_kind": "literal",
@@ -26403,8 +26355,8 @@
       "statement_kind": "INSERT",
       "static_sql_sha256": "c44cbb81683e8c94481c6761787f8a9c09ac6aca7102185d9f1aec8b04fcad9e",
       "candidate_relations": [
-        "SET",
-        "pitch_template"
+        "pitch_template",
+        "set"
       ],
       "write_target_relations": [
         "pitch_template"
@@ -26724,8 +26676,8 @@
       "statement_kind": "SELECT",
       "static_sql_sha256": "ea1ea8352250ef45365d3e31564f43331c04c3fe9429613d19fb62c318d2d557",
       "candidate_relations": [
-        "LATERAL",
         "hive_record",
+        "lateral",
         "pollinator_hive_inspection",
         "pollinator_observation"
       ],
@@ -26845,7 +26797,7 @@
       "statement_kind": "INSERT",
       "static_sql_sha256": "8953731186b7dbc2446b246af34853b94480aa4ee28271571f8c42d02fbc1a94",
       "candidate_relations": [
-        "SET",
+        "set",
         "soil_moisture_target"
       ],
       "write_target_relations": [
@@ -27032,10 +26984,10 @@
       "statement_kind": "SELECT",
       "static_sql_sha256": "968becf02bddd73b1af3cd897a6439ad78408d25f8ebe4dd52d864b813966662",
       "candidate_relations": [
-        "LATERAL",
         "irrigation_event",
         "irrigation_schedule",
         "irrigation_zone",
+        "lateral",
         "sensor_reading",
         "soil_moisture_target"
       ],
@@ -29135,8 +29087,8 @@
       "statement_kind": "INSERT",
       "static_sql_sha256": "61e3caf5f4eba1199b490f56e60673d44d8de596ca0fa1710fdfbbe0f91bd159",
       "candidate_relations": [
-        "SET",
-        "process_variant"
+        "process_variant",
+        "set"
       ],
       "write_target_relations": [
         "process_variant"
@@ -29205,8 +29157,8 @@
       "statement_kind": "INSERT",
       "static_sql_sha256": "ae8a47767d7fe943d6be3fb681ff5860b0a7a45ca8c937dbc5d38d999bd76281",
       "candidate_relations": [
-        "SET",
-        "process_model"
+        "process_model",
+        "set"
       ],
       "write_target_relations": [
         "process_model"
@@ -29662,8 +29614,8 @@
       "statement_kind": "INSERT",
       "static_sql_sha256": "2c53966debdfcaf6f87652d62092cd4b274bcf02dc68bdf0c2c6033794dbaae5",
       "candidate_relations": [
-        "SET",
-        "group_buy_participation"
+        "group_buy_participation",
+        "set"
       ],
       "write_target_relations": [
         "group_buy_participation"
@@ -30673,8 +30625,8 @@
       "statement_kind": "INSERT",
       "static_sql_sha256": "367ac4c56fec6bf8a25c8c13578c63206c023d3ae7a21ce8118095261a4b35bc",
       "candidate_relations": [
-        "SET",
-        "regional_dimension_score"
+        "regional_dimension_score",
+        "set"
       ],
       "write_target_relations": [
         "regional_dimension_score"
@@ -30912,8 +30864,8 @@
       "statement_kind": "INSERT",
       "static_sql_sha256": "bf5f6a76d66c6bb4db9e76ee199282a83a3ba55392244e20c603c10a3e84305a",
       "candidate_relations": [
-        "SET",
-        "reporting_cadence"
+        "reporting_cadence",
+        "set"
       ],
       "write_target_relations": [
         "reporting_cadence"
@@ -31915,8 +31867,8 @@
       "statement_kind": "INSERT",
       "static_sql_sha256": "945357761d91a9d4bbeca01aaa061008051b7d2fb063c167d8e856275e2f2fc2",
       "candidate_relations": [
-        "SET",
-        "sampling_protocol"
+        "sampling_protocol",
+        "set"
       ],
       "write_target_relations": [
         "sampling_protocol"
@@ -32116,8 +32068,8 @@
       "statement_kind": "SELECT",
       "static_sql_sha256": null,
       "candidate_relations": [
-        "LATERAL",
         "farm",
+        "lateral",
         "plot",
         "remote_sensing_observation",
         "soil_carbon_measurement",
@@ -32488,7 +32440,7 @@
       "statement_kind": "INSERT",
       "static_sql_sha256": "8bf1e1a17c12925eb726fe4f8cb6f7ba1d4993132de2e52bfe05420490fdb7e5",
       "candidate_relations": [
-        "SET",
+        "set",
         "stakeholder_decision_participant"
       ],
       "write_target_relations": [
@@ -33334,8 +33286,8 @@
       "statement_kind": "INSERT",
       "static_sql_sha256": "4344d68ec188063024fda3d3e657b340111370af2857cc06f7f5e6ed5d4e5b7c",
       "candidate_relations": [
-        "SET",
-        "party_resolution_case"
+        "party_resolution_case",
+        "set"
       ],
       "write_target_relations": [
         "party_resolution_case"
@@ -33405,8 +33357,8 @@
       "statement_kind": "INSERT",
       "static_sql_sha256": "1b136b2e7b931b85df75b02f5a45beafb5ac3931fc38976d43bf549bec97b770",
       "candidate_relations": [
-        "SET",
-        "party_identifier"
+        "party_identifier",
+        "set"
       ],
       "write_target_relations": [
         "party_identifier"
@@ -33474,7 +33426,7 @@
       "statement_kind": "INSERT",
       "static_sql_sha256": "060f1320dbc1f8236d1eaf70e4830358086f1cec0439169721eb4d40c8a93dd4",
       "candidate_relations": [
-        "SET",
+        "set",
         "stakeholder_participation"
       ],
       "write_target_relations": [
@@ -33956,8 +33908,8 @@
       "statement_kind": "INSERT",
       "static_sql_sha256": "a008d4c89c025776c1eb889fa1da7530186e0d4ac668854cc392a93e51efd158",
       "candidate_relations": [
-        "SET",
-        "party_identifier"
+        "party_identifier",
+        "set"
       ],
       "write_target_relations": [
         "party_identifier"
@@ -34336,7 +34288,7 @@
       "statement_kind": "INSERT",
       "static_sql_sha256": "d9cc74b1f6334c6f3d18dcb2a884daad06a66f5200434c4d63a0ca53555884c4",
       "candidate_relations": [
-        "SET",
+        "set",
         "strategy_coherence_finding"
       ],
       "write_target_relations": [
@@ -35445,7 +35397,7 @@
       "statement_kind": "INSERT",
       "static_sql_sha256": "a28cd7e31bc20a35f66fe1d782766c62ae50f7e7ede42980ebfe11243a896d4c",
       "candidate_relations": [
-        "SET",
+        "set",
         "strategy_governance_link"
       ],
       "write_target_relations": [
@@ -35895,10 +35847,10 @@
       "statement_kind": "SELECT",
       "static_sql_sha256": "0acb012fbf914619ad2bcab9611432fa3670146d2b34673f57c18c68604be7e7",
       "candidate_relations": [
-        "OF",
         "metric_definition",
         "objective",
-        "objective_kpi"
+        "objective_kpi",
+        "of"
       ],
       "write_target_relations": [],
       "api_static_reachability": "no_static_route_path",
@@ -36155,7 +36107,7 @@
       "statement_kind": "INSERT",
       "static_sql_sha256": "46ba537ab90cf54363246c30bf57d69296de5bf5abef0a125827e66ece440b12",
       "candidate_relations": [
-        "SET",
+        "set",
         "strategy_capability_map"
       ],
       "write_target_relations": [
@@ -36745,11 +36697,11 @@
       "statement_kind": "INSERT",
       "static_sql_sha256": "15071797f3c2d48ecc25f66720a4808aa69e7ae88c63be767303288aba6d158d",
       "candidate_relations": [
-        "SET",
-        "towS_strategy"
+        "set",
+        "tows_strategy"
       ],
       "write_target_relations": [
-        "towS_strategy"
+        "tows_strategy"
       ],
       "api_static_reachability": "no_static_route_path",
       "worker_static_operations": [],
@@ -36771,7 +36723,7 @@
       "statement_kind": "SELECT",
       "static_sql_sha256": "571aab8fcad7382ca881db906791d91e27df7bf153bedf7977742a79b38470f3",
       "candidate_relations": [
-        "towS_strategy"
+        "tows_strategy"
       ],
       "write_target_relations": [],
       "api_static_reachability": "no_static_route_path",
@@ -36794,10 +36746,10 @@
       "statement_kind": "UPDATE",
       "static_sql_sha256": "c0026d67288754c75d52a4ca524deec6cafbd97a53779572c4ee0bd7a637ecd8",
       "candidate_relations": [
-        "towS_strategy"
+        "tows_strategy"
       ],
       "write_target_relations": [
-        "towS_strategy"
+        "tows_strategy"
       ],
       "api_static_reachability": "no_static_route_path",
       "worker_static_operations": [],
@@ -37567,7 +37519,7 @@
       "statement_kind": "INSERT",
       "static_sql_sha256": "952f4d181bb6592560b3648cc9b4cea32f7f3ac723e479dde0eab41da4539f44",
       "candidate_relations": [
-        "SET",
+        "set",
         "technology_area"
       ],
       "write_target_relations": [
@@ -37592,7 +37544,7 @@
       "statement_kind": "INSERT",
       "static_sql_sha256": "be6c5660e14389092ef5653f46485dfdcd8ac03451bf9b056d7f73a140ff2228",
       "candidate_relations": [
-        "SET",
+        "set",
         "technology_driver"
       ],
       "write_target_relations": [
@@ -37617,7 +37569,7 @@
       "statement_kind": "INSERT",
       "static_sql_sha256": "59d958d58ddc1ab5dff3e20dfaaff5af6e1de86c16586cbea769d695a75f67b8",
       "candidate_relations": [
-        "SET",
+        "set",
         "technology_alternative"
       ],
       "write_target_relations": [
@@ -37824,8 +37776,8 @@
       "statement_kind": "INSERT",
       "static_sql_sha256": "0a01390952e5567d7bf071cc775d5c0aa5e51ef1b71926a80b21b0ac5dd31695",
       "candidate_relations": [
-        "SET",
-        "governance_token"
+        "governance_token",
+        "set"
       ],
       "write_target_relations": [
         "governance_token"
@@ -40384,8 +40336,8 @@
       "statement_kind": "INSERT",
       "static_sql_sha256": "3aefde19c9beb24d42d7c861420f91d60d177d5b44ba0879e6eaf25a0ee861e4",
       "candidate_relations": [
-        "SET",
-        "cache_entry"
+        "cache_entry",
+        "set"
       ],
       "write_target_relations": [
         "cache_entry"
@@ -40531,9 +40483,9 @@
       "statement_kind": "SELECT",
       "static_sql_sha256": "00ee18cc844060611189bc19043344a9e56936c91d2d8f2d520210f5a45ac6b5",
       "candidate_relations": [
-        "LATERAL",
         "capital_capacity_assessment",
-        "form_of_capital"
+        "form_of_capital",
+        "lateral"
       ],
       "write_target_relations": [],
       "api_static_reachability": "no_static_route_path",
@@ -41766,8 +41718,8 @@
       "statement_kind": "INSERT",
       "static_sql_sha256": "212a70ad3d45366171f4b9f7a3913fb984e0bc6df6d5eb1b9668e99e91e5be53",
       "candidate_relations": [
-        "SET",
-        "credit_balance"
+        "credit_balance",
+        "set"
       ],
       "write_target_relations": [
         "credit_balance"
@@ -41973,8 +41925,8 @@
       "statement_kind": "INSERT",
       "static_sql_sha256": "70083c82e235096f8f7583675c5d5b44d365dcd89a2bcd50b10a904048f8a0f6",
       "candidate_relations": [
-        "SET",
-        "credit_basket_token"
+        "credit_basket_token",
+        "set"
       ],
       "write_target_relations": [
         "credit_basket_token"
@@ -44259,8 +44211,8 @@
       "statement_kind": "INSERT",
       "static_sql_sha256": "f9bbdbd62e33826013b2ece526ebf810a05129411559f01298268a9569b47b4c",
       "candidate_relations": [
-        "SET",
-        "credit_class_creator_allowlist"
+        "credit_class_creator_allowlist",
+        "set"
       ],
       "write_target_relations": [
         "credit_class_creator_allowlist"
@@ -45134,8 +45086,8 @@
       "statement_kind": "INSERT",
       "static_sql_sha256": "424bc9c8bf6836eeb8ac191047bbf95ed3fe4e8e4496df0b12516c37b5ac9c9d",
       "candidate_relations": [
-        "SET",
-        "ecocredit_params"
+        "ecocredit_params",
+        "set"
       ],
       "write_target_relations": [
         "ecocredit_params"
@@ -45159,8 +45111,8 @@
       "statement_kind": "INSERT",
       "static_sql_sha256": "21ca5d8224ec73829671f1963dba0d7579535284f22a7f23c6aca9f64607087d",
       "candidate_relations": [
-        "SET",
-        "ecocredit_params"
+        "ecocredit_params",
+        "set"
       ],
       "write_target_relations": [
         "ecocredit_params"
@@ -45206,8 +45158,8 @@
       "statement_kind": "INSERT",
       "static_sql_sha256": "8091f05dacf08ddec463f7d104d2dc238a5b25afdb5d54688c9a9a50d435c390",
       "candidate_relations": [
-        "SET",
-        "credit_allowed_denom"
+        "credit_allowed_denom",
+        "set"
       ],
       "write_target_relations": [
         "credit_allowed_denom"
@@ -45339,8 +45291,8 @@
       "statement_kind": "INSERT",
       "static_sql_sha256": "209ff3276b2ba24acc8373ec2604e064e036899868b74f66d86f885946e266ca",
       "candidate_relations": [
-        "SET",
-        "ecocredit_params"
+        "ecocredit_params",
+        "set"
       ],
       "write_target_relations": [
         "ecocredit_params"
@@ -46493,8 +46445,8 @@
       "statement_kind": "INSERT",
       "static_sql_sha256": "ff7faa01781a549287bb88b7feb6935416db22a7e53358a5698c5691b9d98821",
       "candidate_relations": [
-        "SET",
-        "data_resolver"
+        "data_resolver",
+        "set"
       ],
       "write_target_relations": [
         "data_resolver"
@@ -48039,8 +47991,8 @@
       "statement_kind": "INSERT",
       "static_sql_sha256": "bfe86051cd8335b42c7292e00f1f4f90e2e9562f17fd605acc9d6b2e9680eccf",
       "candidate_relations": [
-        "SET",
-        "driver_registry"
+        "driver_registry",
+        "set"
       ],
       "write_target_relations": [
         "driver_registry"
@@ -48362,8 +48314,8 @@
       "statement_kind": "WITH",
       "static_sql_sha256": "e504051d9a236f40808030d3261499b1c083f0c7b47fbda12a297b072ecc27de",
       "candidate_relations": [
-        "OF",
         "event_dead_letter",
+        "of",
         "platform_event",
         "replayable",
         "reset_event"
@@ -49114,8 +49066,8 @@
       "statement_kind": "SELECT",
       "static_sql_sha256": "5b76d71fafa0eabe43797a3e8a5f08a19faf987b42787e1ada32ba1df61e78f4",
       "candidate_relations": [
-        "NOW",
-        "notification_outbox"
+        "notification_outbox",
+        "now"
       ],
       "write_target_relations": [],
       "api_static_reachability": "no_static_route_path",
@@ -54771,8 +54723,8 @@
       "statement_kind": "INSERT",
       "static_sql_sha256": "18e738f7972f7208041574c5c2dee5214d56a3ad544b9dea493daf0e3c3782d7",
       "candidate_relations": [
-        "SET",
-        "ebf_scorecard"
+        "ebf_scorecard",
+        "set"
       ],
       "write_target_relations": [
         "ebf_scorecard"
@@ -54818,8 +54770,8 @@
       "statement_kind": "INSERT",
       "static_sql_sha256": "8b2549474e1600e1f37b4f4b25aa3065b3477a828409fc5bf23a91fb226ccac2",
       "candidate_relations": [
-        "SET",
-        "federation_node"
+        "federation_node",
+        "set"
       ],
       "write_target_relations": [
         "federation_node"
@@ -55386,8 +55338,8 @@
       "statement_kind": "INSERT",
       "static_sql_sha256": "eee590e61f643e721c7a6c6473779520ab0667279a385fe9d62f372b194691f0",
       "candidate_relations": [
-        "SET",
-        "feedback_automation_config"
+        "feedback_automation_config",
+        "set"
       ],
       "write_target_relations": [
         "feedback_automation_config"
@@ -56850,8 +56802,8 @@
       "statement_kind": "INSERT",
       "static_sql_sha256": "8331bc1037a03fdc130675d721e3b5280ea78ea80c5424786aebdad5f5fc8e27",
       "candidate_relations": [
-        "SET",
-        "dashboard_dataset"
+        "dashboard_dataset",
+        "set"
       ],
       "write_target_relations": [
         "dashboard_dataset"
@@ -62959,9 +62911,9 @@
       "statement_kind": "SELECT",
       "static_sql_sha256": "6a2498c0c38929073257074a3dbadd881da873fb50dcde43ff48a2be3b2e2864",
       "candidate_relations": [
-        "LATERAL",
         "farm_activity",
-        "farm_activity_operator_event"
+        "farm_activity_operator_event",
+        "lateral"
       ],
       "write_target_relations": [],
       "api_static_reachability": "no_static_route_path",
@@ -63371,8 +63323,8 @@
       "statement_kind": "SELECT",
       "static_sql_sha256": "11e103e06d595f6891313216001a6b5007d0c14c3a50b3615f7b178cd3a23661",
       "candidate_relations": [
-        "OF",
         "mobile_form_version",
+        "of",
         "offline_collection",
         "operator_scope_grant",
         "v_mobile_collection_use_eligibility"
@@ -65897,10 +65849,10 @@
       "statement_kind": "SELECT",
       "static_sql_sha256": "5f3f764402fb429a14b9eb6b593da6171baed3666ba6e2ecaabdb15ff6267b9f",
       "candidate_relations": [
-        "LATERAL",
         "irrigation_event",
         "irrigation_schedule",
         "irrigation_zone",
+        "lateral",
         "sensor_reading",
         "soil_moisture_target"
       ],
@@ -70505,8 +70457,8 @@
       "statement_kind": "INSERT",
       "static_sql_sha256": "37b0299c64adecabf15bfee5bcaf3ca1bf6fadd6e48f789ee2b86733743610b3",
       "candidate_relations": [
-        "SET",
-        "operator_identity"
+        "operator_identity",
+        "set"
       ],
       "write_target_relations": [
         "operator_identity"
@@ -71183,10 +71135,10 @@
       "statement_kind": "SELECT",
       "static_sql_sha256": "d45d20e97e9e7cf97953fb000107970d9f0f6d196495737e9803e1619cb760e6",
       "candidate_relations": [
-        "OF",
         "location",
         "location_organization_share",
-        "location_tenant_owner_verification"
+        "location_tenant_owner_verification",
+        "of"
       ],
       "write_target_relations": [],
       "api_static_reachability": "no_static_route_path",
@@ -82779,8 +82731,8 @@
       "statement_kind": "INSERT",
       "static_sql_sha256": "c4fb9c6dad8403461ddd27173a4e8fd38d62c733851f6644d0e72d4ef6dd9e15",
       "candidate_relations": [
-        "SET",
-        "kgp_chain_event"
+        "kgp_chain_event",
+        "set"
       ],
       "write_target_relations": [
         "kgp_chain_event"
@@ -83102,8 +83054,8 @@
       "statement_kind": "INSERT",
       "static_sql_sha256": "5713b77eb9e63a80702bc7de80191ea15f5db41fc1afd1025acf8807dd76fa24",
       "candidate_relations": [
-        "SET",
-        "kgp_governance_target_policy"
+        "kgp_governance_target_policy",
+        "set"
       ],
       "write_target_relations": [
         "kgp_governance_target_policy"
@@ -83247,8 +83199,8 @@
       "statement_kind": "INSERT",
       "static_sql_sha256": "fda17cda0b1d8a9b89144e76167e75a22c133b2cdf46ad13f64cccc22304c674",
       "candidate_relations": [
-        "SET",
-        "guild_evidence_review_event"
+        "guild_evidence_review_event",
+        "set"
       ],
       "write_target_relations": [
         "guild_evidence_review_event"
@@ -83366,9 +83318,9 @@
       "statement_kind": "INSERT",
       "static_sql_sha256": "a5710ca1f74acc697d9ceb11cf78c710c4eaa581e183304e7d440a61e753d9d7",
       "candidate_relations": [
-        "SET",
         "guild_evidence_review",
-        "guild_evidence_review_event"
+        "guild_evidence_review_event",
+        "set"
       ],
       "write_target_relations": [
         "guild_evidence_review_event"
@@ -83392,8 +83344,8 @@
       "statement_kind": "INSERT",
       "static_sql_sha256": "fd97d62cc3bd52823aeb4bfa194e55141233bca0e124bff37913166830966b70",
       "candidate_relations": [
-        "SET",
-        "guild_motion"
+        "guild_motion",
+        "set"
       ],
       "write_target_relations": [
         "guild_motion"
@@ -83777,8 +83729,8 @@
       "statement_kind": "INSERT",
       "static_sql_sha256": "cea667e3029776cbd0d5e9406c1ee4a4a478ef9e3069d0bd0fe314ff5487083e",
       "candidate_relations": [
-        "SET",
-        "guild_domain"
+        "guild_domain",
+        "set"
       ],
       "write_target_relations": [
         "guild_domain"
@@ -83802,8 +83754,8 @@
       "statement_kind": "INSERT",
       "static_sql_sha256": "05cfcddddecc89dab50d065d0870194c331358b43c57a5fd6e12cd8bb183f507",
       "candidate_relations": [
-        "SET",
-        "guild_task"
+        "guild_task",
+        "set"
       ],
       "write_target_relations": [
         "guild_task"
@@ -83827,8 +83779,8 @@
       "statement_kind": "INSERT",
       "static_sql_sha256": "74b0c543da353a68f7d5b8b11b865b7744c37929f0f0eb443ef6a6161382ef94",
       "candidate_relations": [
-        "SET",
-        "guild_evidence_review"
+        "guild_evidence_review",
+        "set"
       ],
       "write_target_relations": [
         "guild_evidence_review"
@@ -83990,8 +83942,8 @@
       "statement_kind": "INSERT",
       "static_sql_sha256": "973224a8baa2356ef43bb2534300dfed85e6abd11696ff2a10b480fbf26c83e6",
       "candidate_relations": [
-        "SET",
-        "sampling_config"
+        "sampling_config",
+        "set"
       ],
       "write_target_relations": [
         "sampling_config"
@@ -85051,8 +85003,8 @@
       "statement_kind": "INSERT",
       "static_sql_sha256": "f643045b66f2d86680f5b953f5c9cbfa4ce53ffce7a14eca619deaa726535756",
       "candidate_relations": [
-        "SET",
-        "chain_indexer_status"
+        "chain_indexer_status",
+        "set"
       ],
       "write_target_relations": [
         "chain_indexer_status"
@@ -85110,8 +85062,8 @@
       "statement_kind": "INSERT",
       "static_sql_sha256": "3177423aa157fcfb92b5d570c0d24f0dc36a66127c0069ee371a5cc306248744",
       "candidate_relations": [
-        "SET",
-        "clickhouse_outbox"
+        "clickhouse_outbox",
+        "set"
       ],
       "write_target_relations": [
         "clickhouse_outbox"
@@ -85478,8 +85430,8 @@
       "statement_kind": "INSERT",
       "static_sql_sha256": "3c4d3515c6534546deb763bfadf643375158f7f4277edfbfcfd3a08960525748",
       "candidate_relations": [
-        "SET",
-        "sensor_device"
+        "sensor_device",
+        "set"
       ],
       "write_target_relations": [
         "sensor_device"
@@ -85571,9 +85523,9 @@
       "statement_kind": "INSERT",
       "static_sql_sha256": "a1b29325182261ced40e3899aec0cdcdd8425281092d8653a8755cb9ee5d1998",
       "candidate_relations": [
-        "SET",
         "sensor_device",
-        "sensor_device_health"
+        "sensor_device_health",
+        "set"
       ],
       "write_target_relations": [
         "sensor_device_health"
@@ -86871,8 +86823,8 @@
       "statement_kind": "INSERT",
       "static_sql_sha256": "588828358a3038e8e2afd8339fa67d5e0a3160ae2961a031607306dbf99b17eb",
       "candidate_relations": [
-        "SET",
-        "sensor_device_health"
+        "sensor_device_health",
+        "set"
       ],
       "write_target_relations": [
         "sensor_device_health"
@@ -87587,8 +87539,8 @@
       "statement_kind": "INSERT",
       "static_sql_sha256": "588828358a3038e8e2afd8339fa67d5e0a3160ae2961a031607306dbf99b17eb",
       "candidate_relations": [
-        "SET",
-        "sensor_device_health"
+        "sensor_device_health",
+        "set"
       ],
       "write_target_relations": [
         "sensor_device_health"
@@ -89081,7 +89033,7 @@
       "statement_kind": "INSERT",
       "static_sql_sha256": "7279376fc79a198fd639c8dcd73e263b5def1c0466c910672338d38b437ad6f5",
       "candidate_relations": [
-        "SET",
+        "set",
         "weather_forecast"
       ],
       "write_target_relations": [
@@ -89580,8 +89532,8 @@
       "statement_kind": "INSERT",
       "static_sql_sha256": "fccf1216cd85f35ab08ae1e3d913688e58ac4ff89c5c1fe75813f1db32139bad",
       "candidate_relations": [
-        "SET",
-        "iri_registry"
+        "iri_registry",
+        "set"
       ],
       "write_target_relations": [
         "iri_registry"
@@ -89741,8 +89693,8 @@
       "statement_kind": "INSERT",
       "static_sql_sha256": "9c6efe8a49c7dd7b1972eede04a2f816580daf51514a4953560b01a79e871608",
       "candidate_relations": [
-        "SET",
-        "linkml_schema"
+        "linkml_schema",
+        "set"
       ],
       "write_target_relations": [
         "linkml_schema"
@@ -89834,8 +89786,8 @@
       "statement_kind": "INSERT",
       "static_sql_sha256": "6089ec345e4198e9abd4c896eafdbfca623cc8e9723ca847ac923d672484754d",
       "candidate_relations": [
-        "SET",
-        "operating_capacity_profile"
+        "operating_capacity_profile",
+        "set"
       ],
       "write_target_relations": [
         "operating_capacity_profile"
@@ -90067,8 +90019,8 @@
       "statement_kind": "INSERT",
       "static_sql_sha256": "1055c853057dd509bfb567769f266eeaa43782e8773aa29281757937bfd479b3",
       "candidate_relations": [
-        "SET",
-        "operating_competency_profile"
+        "operating_competency_profile",
+        "set"
       ],
       "write_target_relations": [
         "operating_competency_profile"
@@ -90160,8 +90112,8 @@
       "statement_kind": "INSERT",
       "static_sql_sha256": "471b008cdc20f24d8c8b9e3d020737a5f1b616537be8083e9ef59a631d3967d9",
       "candidate_relations": [
-        "SET",
-        "governance_circle"
+        "governance_circle",
+        "set"
       ],
       "write_target_relations": [
         "governance_circle"
@@ -90185,8 +90137,8 @@
       "statement_kind": "INSERT",
       "static_sql_sha256": "b3dccd5774d31bcd8486d41e4295c39ca63b5129d06a63ca26b6a7ad63fbc10d",
       "candidate_relations": [
-        "SET",
-        "governance_role"
+        "governance_role",
+        "set"
       ],
       "write_target_relations": [
         "governance_role"
@@ -90210,8 +90162,8 @@
       "statement_kind": "INSERT",
       "static_sql_sha256": "e6f83d6b48d643f37a673828c3a8f332fd5635a6b27ce6534bed85169f913d07",
       "candidate_relations": [
-        "SET",
-        "operating_pilot_scope"
+        "operating_pilot_scope",
+        "set"
       ],
       "write_target_relations": [
         "operating_pilot_scope"
@@ -91819,9 +91771,9 @@
       "statement_kind": "INSERT",
       "static_sql_sha256": null,
       "candidate_relations": [
-        "SET",
         "crop_cycle",
         "noi_snapshot",
+        "set",
         "v_crop_cycle_noi"
       ],
       "write_target_relations": [
@@ -92112,7 +92064,7 @@
       "statement_kind": "SELECT",
       "static_sql_sha256": "43346d46f055983622f1851c0522d9bcc98837258f986315a469e26e9113b11f",
       "candidate_relations": [
-        "LATERAL",
+        "lateral",
         "pg_default_acl"
       ],
       "write_target_relations": [],
@@ -92277,7 +92229,7 @@
       "statement_kind": "UNKNOWN",
       "static_sql_sha256": "194a3e0cfa305a6646e5ef69a5d80fbe624a08e6d47e0282c5c357b0a3244793",
       "candidate_relations": [
-        "PUBLIC"
+        "public"
       ],
       "write_target_relations": [],
       "api_static_reachability": "no_static_route_path",
@@ -92618,7 +92570,7 @@
       "statement_kind": "SELECT",
       "static_sql_sha256": "1b9afbc574fa2cc1ffd6d29cc21b15ac97579b280974d99969b1bb788c04194f",
       "candidate_relations": [
-        "LATERAL",
+        "lateral",
         "pg_class",
         "pg_depend",
         "pg_extension"
@@ -92643,7 +92595,7 @@
       "statement_kind": "SELECT",
       "static_sql_sha256": "7f754824b66867f45f1c7d78dc901b538a73603b17d34a1c0b9583e3a65b0f8e",
       "candidate_relations": [
-        "LATERAL",
+        "lateral",
         "pg_class",
         "pg_depend",
         "pg_extension",
@@ -92669,7 +92621,7 @@
       "statement_kind": "SELECT",
       "static_sql_sha256": "69d1f5985cf57e7d48929ce6f10d533d11aaec8f2d49bf468ff86d88080c5de5",
       "candidate_relations": [
-        "LATERAL",
+        "lateral",
         "pg_depend",
         "pg_extension",
         "pg_proc"
@@ -92694,7 +92646,7 @@
       "statement_kind": "SELECT",
       "static_sql_sha256": "a8b36df6eabbf7703b26c2d6e116ab4a295c67d0b08c67e5d1bc72ebec8c2b19",
       "candidate_relations": [
-        "LATERAL",
+        "lateral",
         "pg_depend",
         "pg_extension",
         "pg_proc"
@@ -92719,7 +92671,7 @@
       "statement_kind": "SELECT",
       "static_sql_sha256": "69de2232c94f58461535c4975caa56a2cb6eb0a3f35fa7293c6ca2ae95c0e633",
       "candidate_relations": [
-        "LATERAL",
+        "lateral",
         "pg_depend",
         "pg_extension",
         "pg_namespace",
@@ -93569,7 +93521,7 @@
       "statement_kind": "SELECT",
       "static_sql_sha256": "1a2bfaf5a703be3ce60ff77f3105842130235c724a5b4f3942698000ab9cd609",
       "candidate_relations": [
-        "LATERAL",
+        "lateral",
         "pg_database"
       ],
       "write_target_relations": [],
@@ -93886,7 +93838,7 @@
       "statement_kind": "UNKNOWN",
       "static_sql_sha256": "194a3e0cfa305a6646e5ef69a5d80fbe624a08e6d47e0282c5c357b0a3244793",
       "candidate_relations": [
-        "PUBLIC"
+        "public"
       ],
       "write_target_relations": [],
       "api_static_reachability": "no_static_route_path",
@@ -94382,7 +94334,7 @@
       "statement_kind": "SELECT",
       "static_sql_sha256": "9015f43092124bb5ab4087a5732a65822ec2684a2b9c463561f9174d63fc30fe",
       "candidate_relations": [
-        "LATERAL",
+        "lateral",
         "pg_default_acl",
         "pg_namespace",
         "pg_roles"
@@ -94447,7 +94399,7 @@
       "statement_kind": "SELECT",
       "static_sql_sha256": "b66329c142184e5fdc01ea94d90cf4a15476320d56aeb16b55db2c2078b967ca",
       "candidate_relations": [
-        "LATERAL",
+        "lateral",
         "pg_proc"
       ],
       "write_target_relations": [],
@@ -94839,7 +94791,7 @@
       "statement_kind": "UNKNOWN",
       "static_sql_sha256": "5da79cbc556dbf372d8ba9a044e59ca053dcc81d9251dbd122815b94aa39e309",
       "candidate_relations": [
-        "PUBLIC",
+        "public",
         "public.farm_activity_operator_event"
       ],
       "write_target_relations": [],
@@ -95352,7 +95304,7 @@
       "statement_kind": "SELECT",
       "static_sql_sha256": "cf18d6665d5a87bcfa7d97e89e0a7073cc8a2f1cada7e9e6cb250d8d6544342f",
       "candidate_relations": [
-        "LATERAL",
+        "lateral",
         "pg_attribute",
         "pg_roles"
       ],
@@ -96356,7 +96308,7 @@
       "statement_kind": "SELECT",
       "static_sql_sha256": "da4cf897a6f1623ab084b555b2b5b8399fce3e1cc5859ac999258456f0f97794",
       "candidate_relations": [
-        "LATERAL",
+        "lateral",
         "pg_catalog.pg_db_role_setting",
         "pg_catalog.pg_roles"
       ],
@@ -98384,7 +98336,7 @@
       "statement_kind": "UNKNOWN",
       "static_sql_sha256": "194a3e0cfa305a6646e5ef69a5d80fbe624a08e6d47e0282c5c357b0a3244793",
       "candidate_relations": [
-        "PUBLIC"
+        "public"
       ],
       "write_target_relations": [],
       "api_static_reachability": "no_static_route_path",
@@ -99006,7 +98958,7 @@
       "statement_kind": "UNKNOWN",
       "static_sql_sha256": "3052d457f434496f07f8d9857bdc407d87cfdd86b8f864454be09f50755fa8b4",
       "candidate_relations": [
-        "PUBLIC",
+        "public",
         "public.operator_session"
       ],
       "write_target_relations": [],
@@ -101323,8 +101275,8 @@
       "statement_kind": "SELECT",
       "static_sql_sha256": null,
       "candidate_relations": [
-        "SKIP",
-        "mobile_media_upload"
+        "mobile_media_upload",
+        "skip"
       ],
       "write_target_relations": [],
       "api_static_reachability": "no_static_route_path",
@@ -102973,7 +102925,7 @@
       "statement_kind": "INSERT",
       "static_sql_sha256": "d3a3684554685c3655464d136e26146057e66b0db30cfe21c38fc231f629354b",
       "candidate_relations": [
-        "SET",
+        "set",
         "strategy_allocation_policy"
       ],
       "write_target_relations": [
@@ -103442,8 +103394,8 @@
       "statement_kind": "INSERT",
       "static_sql_sha256": "0584b7398cf8c82f491f0a7ea0af8833556c8d25028b546c111ebbd535cddee1",
       "candidate_relations": [
-        "SET",
-        "prediction_ledger"
+        "prediction_ledger",
+        "set"
       ],
       "write_target_relations": [
         "prediction_ledger"
@@ -103705,8 +103657,8 @@
       "statement_kind": "INSERT",
       "static_sql_sha256": "f441a3777520ecd7977f970e72d5396e289955ede0cb14f9442d792735fcadaf",
       "candidate_relations": [
-        "SET",
-        "prediction_evaluation"
+        "prediction_evaluation",
+        "set"
       ],
       "write_target_relations": [
         "prediction_evaluation"
@@ -103851,8 +103803,8 @@
       "statement_kind": "INSERT",
       "static_sql_sha256": "d357ff910a22e4d80afde50c98f0c295826ed74804104926b1bbe3a41bf81881",
       "candidate_relations": [
-        "SET",
-        "outside_view_comparison"
+        "outside_view_comparison",
+        "set"
       ],
       "write_target_relations": [
         "outside_view_comparison"
@@ -104256,8 +104208,8 @@
       "statement_kind": "INSERT",
       "static_sql_sha256": "7a3c3cf4cc118dbbf2fbea04563374f8f85203647d258375cba750e43afbff9b",
       "candidate_relations": [
-        "SET",
-        "rdf_named_graph"
+        "rdf_named_graph",
+        "set"
       ],
       "write_target_relations": [
         "rdf_named_graph"
@@ -105999,7 +105951,7 @@
       "statement_kind": "SELECT",
       "static_sql_sha256": "60a4720c405d0f24668a766d2aa9d7e3fd95b7b3ef7f41aec7cdfafd2c364fdc",
       "candidate_relations": [
-        "OF",
+        "of",
         "scheduled_task",
         "task_run",
         "unnest"
@@ -106397,8 +106349,8 @@
       "statement_kind": "INSERT",
       "static_sql_sha256": "9685ba0f8675843eb16f627933760b8c74e837baf3337d246014feb6c6b51d2a",
       "candidate_relations": [
-        "SET",
-        "evaluator"
+        "evaluator",
+        "set"
       ],
       "write_target_relations": [
         "evaluator"
@@ -106721,8 +106673,8 @@
       "statement_kind": "INSERT",
       "static_sql_sha256": "51b9fca258818bd4f034fabbe0a5591ba7c4c42b057cb68c6e69805611b7db5c",
       "candidate_relations": [
-        "SET",
-        "attestation_reference"
+        "attestation_reference",
+        "set"
       ],
       "write_target_relations": [
         "attestation_reference"
@@ -107237,8 +107189,8 @@
       "statement_kind": "INSERT",
       "static_sql_sha256": "c6b62c9bdff4a6c84bce934cf27cc7d96f30b16be473f726ca2953c967cb6cee",
       "candidate_relations": [
-        "SET",
-        "ranking_algorithm"
+        "ranking_algorithm",
+        "set"
       ],
       "write_target_relations": [
         "ranking_algorithm"
@@ -107354,8 +107306,8 @@
       "statement_kind": "INSERT",
       "static_sql_sha256": "6dffe4a45b87211b871a6c730f4bdb9b228d27b47dddc9a2e4e4e95fe34054c9",
       "candidate_relations": [
-        "SET",
-        "ranking_result"
+        "ranking_result",
+        "set"
       ],
       "write_target_relations": [
         "ranking_result"
@@ -108238,7 +108190,7 @@
       "statement_kind": "SELECT",
       "static_sql_sha256": "c398657785b075f39bbc30fd837a49758a9f0d2eb0536b7443f737fd05f15572",
       "candidate_relations": [
-        "SKIP",
+        "skip",
         "stream_buffer"
       ],
       "write_target_relations": [],
@@ -110752,8 +110704,8 @@
       "statement_kind": "INSERT",
       "static_sql_sha256": "575eba71e5f8b4c29fd8ebe62a9b0f5e1695f6d74ad39de1f7dd0e5860c0164f",
       "candidate_relations": [
-        "SET",
-        "ml_retrain_schedule"
+        "ml_retrain_schedule",
+        "set"
       ],
       "write_target_relations": [
         "ml_retrain_schedule"
@@ -113937,8 +113889,8 @@
       "statement_kind": "INSERT",
       "static_sql_sha256": "5d98efaf4d99808b1f78cee72e7a750c5a7aec23ca17eedfa7dc29c8ffbab60c",
       "candidate_relations": [
-        "SET",
-        "backcast_path_premortem"
+        "backcast_path_premortem",
+        "set"
       ],
       "write_target_relations": [
         "backcast_path_premortem"
@@ -114422,8 +114374,8 @@
       "statement_kind": "INSERT",
       "static_sql_sha256": "db9388792f9635831c528b49ffa82eb0593fa30a4f17e7a2c680ea0c4361a021",
       "candidate_relations": [
-        "SET",
-        "backcast_principle_alignment"
+        "backcast_principle_alignment",
+        "set"
       ],
       "write_target_relations": [
         "backcast_principle_alignment"
@@ -114862,8 +114814,8 @@
       "statement_kind": "INSERT",
       "static_sql_sha256": "7cb314fd8e5ce47c208516c3a7e234ada40e00d531db10e08615f7e7f4f0adb6",
       "candidate_relations": [
-        "SET",
-        "delphi_expert_calibration"
+        "delphi_expert_calibration",
+        "set"
       ],
       "write_target_relations": [
         "delphi_expert_calibration"

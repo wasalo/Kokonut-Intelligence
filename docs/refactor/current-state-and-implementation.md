@@ -224,8 +224,8 @@ direct table/column privilege violations in the declared scoped-write policy.
 The refreshed report covers 1,522 public relations: 1,309 have effective
 runtime DML, 925 tables have runtime DML while RLS is disabled, and 178
 migration-revoked relations match the declared runtime policy with zero policy
-mismatches. It also records 213 unprotected DML relations without candidate
-SQL relations and 374 without candidate write sites; these overlapping
+mismatches. It also records 211 unprotected DML relations without candidate
+SQL relations and 372 without candidate write sites; these overlapping
 inventory categories measure privilege reach and source coverage, not proven
 exposure. The report updates the prior migration-722 snapshot; C1, universal
 tenant isolation, and API/general-worker identity separation remain open.
@@ -246,13 +246,28 @@ against Gateway route roots and the existing 50 worker operation roots, keeps
 unresolved/dynamic paths visible, and labels default-on supervisor processes
 without claiming that a persisted schedule or event is active. Standard API
 and general worker still share `kokonut_runtime`; the inventory is a review
-input and does not authorize ACL changes. Its current 4,958-site snapshot has
+input and does not authorize ACL changes. Its current 4,956-site snapshot has
 34 API-only candidates, 367 worker-only candidates, one shared candidate, and
-4,556 unresolved sites; the static Gateway graph has 349 route roots and four
+4,554 unresolved sites; the static Gateway graph has 349 route roots and four
 unresolved dynamic route factories. The inventory's own `--check` passes.
 Refresh/check it with
 `python3 scripts/runtime_role_attribution.py --output docs/refactor/runtime-role-attribution.json`
 and `python3 scripts/runtime_role_attribution.py --check docs/refactor/runtime-role-attribution.json`.
+
+The 1 November source/ACL reconciliation normalizes unquoted PostgreSQL
+identifiers and joins explicit `public.*` references to catalog relations. It
+also retires the uncalled legacy pollinator auto-link writer, which targeted a
+table absent from the ordered schema; authenticated, location-scoped capture
+continues through the Gateway. The inventory now records 4,956 execution
+sites, 1,063 write candidates, and 566 write-target relation names. Rebuilding
+the source/ACL report from the existing migration-723 probe reduced the
+unprotected-DML/no-source-candidate count from 213 to 211 and the
+no-write-candidate count from 374 to 372; the ACL snapshot itself did not
+change. Two local audit-spool tables are SQLite, not PostgreSQL relations, and
+`credit_chain_mint` remains an unresolved schema/source mismatch. This source
+reconciliation does not authorize grants or migrations
+([evidence](builds/2026-11-01-recovery/runtime-sql-candidate-normalization-and-pollinator-writer-retirement.json);
+[analytics write-candidate inventory](builds/2026-11-01-recovery/analytics-runtime-write-candidate-inventory-723.json)).
 
 External `kokonut_runtime` SQL clients remain unconfirmed and must be reviewed
 before persistent rollout. Migration 714 keeps the location-solution creation

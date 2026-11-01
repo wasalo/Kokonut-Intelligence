@@ -2874,8 +2874,8 @@
       "expression_kind": "literal",
       "statement_kind": "INSERT",
       "candidate_relations": [
-        "SET",
-        "cache_entry"
+        "cache_entry",
+        "set"
       ],
       "static_sql_sha256": "3aefde19c9beb24d42d7c861420f91d60d177d5b44ba0879e6eaf25a0ee861e4",
       "operation_refs": [
@@ -3830,8 +3830,8 @@
       "expression_kind": "literal",
       "statement_kind": "INSERT",
       "candidate_relations": [
-        "SET",
-        "driver_registry"
+        "driver_registry",
+        "set"
       ],
       "static_sql_sha256": "bfe86051cd8335b42c7292e00f1f4f90e2e9562f17fd605acc9d6b2e9680eccf",
       "operation_refs": [
@@ -4071,8 +4071,8 @@
       "expression_kind": "literal",
       "statement_kind": "WITH",
       "candidate_relations": [
-        "OF",
         "event_dead_letter",
+        "of",
         "platform_event",
         "replayable",
         "reset_event"
@@ -4713,8 +4713,8 @@
       "expression_kind": "literal",
       "statement_kind": "SELECT",
       "candidate_relations": [
-        "NOW",
-        "notification_outbox"
+        "notification_outbox",
+        "now"
       ],
       "static_sql_sha256": "5b76d71fafa0eabe43797a3e8a5f08a19faf987b42787e1ada32ba1df61e78f4",
       "operation_refs": [
@@ -5999,8 +5999,8 @@
       "expression_kind": "literal",
       "statement_kind": "INSERT",
       "candidate_relations": [
-        "SET",
-        "chain_indexer_status"
+        "chain_indexer_status",
+        "set"
       ],
       "static_sql_sha256": "f643045b66f2d86680f5b953f5c9cbfa4ce53ffce7a14eca619deaa726535756",
       "operation_refs": [
@@ -6078,8 +6078,8 @@
       "expression_kind": "literal",
       "statement_kind": "INSERT",
       "candidate_relations": [
-        "SET",
-        "clickhouse_outbox"
+        "clickhouse_outbox",
+        "set"
       ],
       "static_sql_sha256": "3177423aa157fcfb92b5d570c0d24f0dc36a66127c0069ee371a5cc306248744",
       "operation_refs": [
@@ -8216,7 +8216,7 @@
       "expression_kind": "literal",
       "statement_kind": "INSERT",
       "candidate_relations": [
-        "SET",
+        "set",
         "weather_forecast"
       ],
       "static_sql_sha256": "7279376fc79a198fd639c8dcd73e263b5def1c0466c910672338d38b437ad6f5",
@@ -8890,9 +8890,9 @@
       "expression_kind": "fstring",
       "statement_kind": "INSERT",
       "candidate_relations": [
-        "SET",
         "crop_cycle",
         "noi_snapshot",
+        "set",
         "v_crop_cycle_noi"
       ],
       "static_sql_sha256": null,

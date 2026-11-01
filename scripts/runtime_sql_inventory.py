@@ -26,6 +26,7 @@ from scripts.worker_source_closure import build_inventory as build_worker_closur
 from scripts.worker_sql_inventory import (  # noqa: E402
     EXECUTE_FUNCTIONS,
     EXECUTE_METHODS,
+    _canonical_relation,
     _query_template,
     _SQLCallVisitor,
     _statement_kind,
@@ -329,12 +330,13 @@ def _candidate_relations_from_template(query: str) -> list[str]:
         if re.match(r"\s*(?:\.\s*)?<dynamic>", suffix):
             continue
         raw_relation = match.group(1)
-        relation = re.sub(r"\s*\.\s*", ".", raw_relation).replace('"', "")
-        if '"' not in raw_relation and relation.upper() == "SET":
+        if '"' not in raw_relation and raw_relation.upper() == "SET":
             # `ON CONFLICT ... DO UPDATE SET` must not be mistaken for the
             # relation following the UPDATE keyword.
             continue
-        candidates.append(relation)
+        relation = _canonical_relation(raw_relation)
+        if relation is not None:
+            candidates.append(relation)
     return sorted(set(candidates))
 
 
@@ -724,8 +726,11 @@ def _build_inventory_with_review_candidates() -> tuple[dict, list[dict]]:
         "generated_by": "scripts/runtime_sql_inventory.py",
         "scope": (
             "Direct Python SQL execution calls in services/**/*.py, including API, worker, "
-            "and CLI modules. Relation names and simple leading DML targets are regex-derived "
-            "candidates, not a parsed SQL AST. A query held in a local variable is resolved only "
+            "and CLI modules. The scan is driver-neutral, so local non-PostgreSQL stores may "
+            "also appear; it is not a PostgreSQL-only inventory. Relation names and simple "
+            "leading DML targets are regex-derived candidates, not a parsed SQL AST. Unquoted "
+            "PostgreSQL identifiers are normalized to lower case and quoted identifiers preserve "
+            "case. A query held in a local variable is resolved only "
             "from one unambiguous local assignment; an unconditional same-module string or "
             "literal-only f-string constant is resolved only when no shadowing or reassignment is "
             "found. Dynamic table identifiers stay unresolved. "

@@ -293,6 +293,23 @@ def _expected_runtime_denial(revokes: list[dict[str, str]]) -> str | None:
     return None
 
 
+def _public_relation_candidate(candidate: str) -> str | None:
+    """Map a source relation candidate to a public catalog relation name.
+
+    Inventory names are canonicalized using PostgreSQL identifier rules. An
+    explicit non-public schema is never matched to a public object; unqualified
+    names retain the inventory's existing public-search-path assumption.
+    """
+    if not isinstance(candidate, str) or not candidate:
+        return None
+    if candidate.startswith("public."):
+        relation = candidate.removeprefix("public.")
+        return relation or None
+    if "." in candidate:
+        return None
+    return candidate
+
+
 def build_report(probe: dict[str, Any], inventory: dict[str, Any]) -> dict[str, Any]:
     """Cross-reference observed ACLs, static SQL candidates and explicit revokes."""
     schema_files = list((ROOT / "schemas/postgres").glob("*.sql"))
@@ -337,7 +354,7 @@ def build_report(probe: dict[str, Any], inventory: dict[str, Any]) -> dict[str, 
         if not isinstance(source, str):
             continue
         for relation in site.get("candidate_relations", []):
-            entry = relations.get(relation)
+            entry = relations.get(_public_relation_candidate(relation))
             if entry is None:
                 continue
             if isinstance(statement_kind, str):
@@ -345,7 +362,7 @@ def build_report(probe: dict[str, Any], inventory: dict[str, Any]) -> dict[str, 
                 entry["sources"][source][statement_kind] += 1
         if statement_kind in {"INSERT", "UPDATE", "DELETE", "MERGE", "TRUNCATE"}:
             for relation in site.get("write_target_relations", []):
-                entry = relations.get(relation)
+                entry = relations.get(_public_relation_candidate(relation))
                 if entry is None:
                     continue
                 entry["write_target_sites"][statement_kind] += 1
@@ -559,8 +576,12 @@ def build_report(probe: dict[str, Any], inventory: dict[str, Any]) -> dict[str, 
         "source_dirty": replay.get("working_tree_dirty"),
         "methodology": (
             "Effective table privileges are read from the isolated runtime-role probe. "
-            "SQL relation candidates come from runtime-sql-inventory.json and may be "
-            "heuristic; they are not proof of reachable execution. Explicit revokes "
+            "SQL relation candidates come from runtime-sql-inventory.json, where "
+            "unquoted PostgreSQL identifiers are lowercased and quoted identifiers "
+            "preserve case. Explicit public-schema names are joined to their catalog "
+            "relation; unqualified names retain the application's public-search-path "
+            "assumption. Candidates remain heuristic, not proof of reachable execution. "
+            "Explicit revokes "
             "are a static scan of ordered schema SQL and may omit dynamic SQL. The "
             "provisioning-policy comparison statically parses runtime_role.py lists; "
             "the runtime_role_acceptance record separately states whether this probe "

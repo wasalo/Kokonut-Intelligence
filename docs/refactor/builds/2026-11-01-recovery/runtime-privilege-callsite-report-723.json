@@ -95,7 +95,6 @@
     "geography_columns",
     "geometry_columns",
     "gnh_alignment_assessment",
-    "gnosis_event_log_receipt",
     "governance_throughput_observation",
     "green_paper_publication_review",
     "guild_contribution",
@@ -207,7 +206,6 @@
     "tenure_rights_assessment",
     "time_liberation_observation",
     "token_balance_snapshot",
-    "tows_strategy",
     "trend_monitor_config",
     "v_active_listings",
     "v_advisory_stats",
@@ -462,7 +460,7 @@
     "yield_distribution",
     "yield_prediction"
   ],
-  "methodology": "Effective table privileges are read from the isolated runtime-role probe. SQL relation candidates come from runtime-sql-inventory.json and may be heuristic; they are not proof of reachable execution. Explicit revokes are a static scan of ordered schema SQL and may omit dynamic SQL. The provisioning-policy comparison statically parses runtime_role.py lists; the runtime_role_acceptance record separately states whether this probe also exercised full-schema role provisioning and its scoped ACL checks. Review source and database behavior before changing grants.",
+  "methodology": "Effective table privileges are read from the isolated runtime-role probe. SQL relation candidates come from runtime-sql-inventory.json, where unquoted PostgreSQL identifiers are lowercased and quoted identifiers preserve case. Explicit public-schema names are joined to their catalog relation; unqualified names retain the application's public-search-path assumption. Candidates remain heuristic, not proof of reachable execution. Explicit revokes are a static scan of ordered schema SQL and may omit dynamic SQL. The provisioning-policy comparison statically parses runtime_role.py lists; the runtime_role_acceptance record separately states whether this probe also exercised full-schema role provisioning and its scoped ACL checks. Review source and database behavior before changing grants.",
   "migration_revoked_relations_missing_or_mismatched_runtime_policy": [],
   "relations": [
     {
@@ -1732,9 +1730,17 @@
     },
     {
       "candidate_execution_sites_by_statement": {
-        "SELECT": 1
+        "INSERT": 1,
+        "SELECT": 2
       },
       "candidate_source_files": [
+        {
+          "path": "services/gateway/api_key_provisioning.py",
+          "statement_counts": {
+            "INSERT": 1,
+            "SELECT": 1
+          }
+        },
         {
           "path": "services/grpc/auth.py",
           "statement_counts": {
@@ -1742,8 +1748,17 @@
           }
         }
       ],
-      "candidate_write_target_sites_by_statement": {},
-      "candidate_write_target_source_files": [],
+      "candidate_write_target_sites_by_statement": {
+        "INSERT": 1
+      },
+      "candidate_write_target_source_files": [
+        {
+          "path": "services/gateway/api_key_provisioning.py",
+          "statement_counts": {
+            "INSERT": 1
+          }
+        }
+      ],
       "configured_runtime_boundary": "read_only_column_allowlist",
       "dml_overlaps_explicit_revoke": false,
       "effective_dml_privileges": [],
@@ -2972,13 +2987,19 @@
       "candidate_execution_sites_by_statement": {
         "DELETE": 1,
         "INSERT": 1,
-        "SELECT": 7
+        "SELECT": 10
       },
       "candidate_source_files": [
         {
           "path": "services/export/reports/common.py",
           "statement_counts": {
             "SELECT": 1
+          }
+        },
+        {
+          "path": "services/gateway/threatcasting_reads.py",
+          "statement_counts": {
+            "SELECT": 3
           }
         },
         {
@@ -3630,11 +3651,17 @@
     },
     {
       "candidate_execution_sites_by_statement": {
-        "SELECT": 2
+        "SELECT": 3
       },
       "candidate_source_files": [
         {
           "path": "services/analytics/landscape_conservation.py",
+          "statement_counts": {
+            "SELECT": 1
+          }
+        },
+        {
+          "path": "services/analytics/landscape_reference_preflight.py",
           "statement_counts": {
             "SELECT": 1
           }
@@ -10445,7 +10472,7 @@
     {
       "candidate_execution_sites_by_statement": {
         "INSERT": 1,
-        "SELECT": 15
+        "SELECT": 16
       },
       "candidate_source_files": [
         {
@@ -10470,6 +10497,12 @@
           "path": "services/analytics/swot_enhanced.py",
           "statement_counts": {
             "SELECT": 2
+          }
+        },
+        {
+          "path": "services/crisp/public_api.py",
+          "statement_counts": {
+            "SELECT": 1
           }
         },
         {
@@ -17787,13 +17820,20 @@
     },
     {
       "candidate_execution_sites_by_statement": {
-        "SELECT": 4
+        "SELECT": 4,
+        "UNKNOWN": 1
       },
       "candidate_source_files": [
         {
           "path": "services/gateway/farm_activity_records.py",
           "statement_counts": {
             "SELECT": 4
+          }
+        },
+        {
+          "path": "services/migration/runtime_role.py",
+          "statement_counts": {
+            "UNKNOWN": 1
           }
         }
       ],
@@ -21140,10 +21180,30 @@
       "runtime_boundary_policy_matches_source": null
     },
     {
-      "candidate_execution_sites_by_statement": {},
-      "candidate_source_files": [],
-      "candidate_write_target_sites_by_statement": {},
-      "candidate_write_target_source_files": [],
+      "candidate_execution_sites_by_statement": {
+        "INSERT": 1,
+        "SELECT": 1
+      },
+      "candidate_source_files": [
+        {
+          "path": "services/ingestion/gnosis_indexer.py",
+          "statement_counts": {
+            "INSERT": 1,
+            "SELECT": 1
+          }
+        }
+      ],
+      "candidate_write_target_sites_by_statement": {
+        "INSERT": 1
+      },
+      "candidate_write_target_source_files": [
+        {
+          "path": "services/ingestion/gnosis_indexer.py",
+          "statement_counts": {
+            "INSERT": 1
+          }
+        }
+      ],
       "configured_runtime_boundary": null,
       "dml_overlaps_explicit_revoke": false,
       "effective_dml_privileges": [
@@ -21173,7 +21233,7 @@
     {
       "candidate_execution_sites_by_statement": {
         "INSERT": 2,
-        "SELECT": 3
+        "SELECT": 11
       },
       "candidate_source_files": [
         {
@@ -21181,6 +21241,12 @@
           "statement_counts": {
             "INSERT": 1,
             "SELECT": 1
+          }
+        },
+        {
+          "path": "services/gateway/governance_operations.py",
+          "statement_counts": {
+            "SELECT": 8
           }
         },
         {
@@ -21696,7 +21762,7 @@
     {
       "candidate_execution_sites_by_statement": {
         "INSERT": 2,
-        "SELECT": 2
+        "SELECT": 6
       },
       "candidate_source_files": [
         {
@@ -21704,6 +21770,12 @@
           "statement_counts": {
             "INSERT": 1,
             "SELECT": 1
+          }
+        },
+        {
+          "path": "services/gateway/governance_operations.py",
+          "statement_counts": {
+            "SELECT": 4
           }
         },
         {
@@ -21771,7 +21843,7 @@
     {
       "candidate_execution_sites_by_statement": {
         "INSERT": 1,
-        "SELECT": 1
+        "SELECT": 3
       },
       "candidate_source_files": [
         {
@@ -21779,6 +21851,12 @@
           "statement_counts": {
             "INSERT": 1,
             "SELECT": 1
+          }
+        },
+        {
+          "path": "services/gateway/governance_operations.py",
+          "statement_counts": {
+            "SELECT": 2
           }
         }
       ],
@@ -21822,7 +21900,7 @@
     {
       "candidate_execution_sites_by_statement": {
         "INSERT": 1,
-        "SELECT": 2,
+        "SELECT": 3,
         "UPDATE": 2
       },
       "candidate_source_files": [
@@ -21832,6 +21910,12 @@
             "INSERT": 1,
             "SELECT": 1,
             "UPDATE": 2
+          }
+        },
+        {
+          "path": "services/gateway/governance_operations.py",
+          "statement_counts": {
+            "SELECT": 1
           }
         },
         {
@@ -21963,13 +22047,19 @@
     {
       "candidate_execution_sites_by_statement": {
         "INSERT": 1,
-        "SELECT": 3
+        "SELECT": 5
       },
       "candidate_source_files": [
         {
           "path": "services/analytics/governance_roles.py",
           "statement_counts": {
             "INSERT": 1,
+            "SELECT": 2
+          }
+        },
+        {
+          "path": "services/gateway/governance_operations.py",
+          "statement_counts": {
             "SELECT": 2
           }
         },
@@ -22143,7 +22233,7 @@
     {
       "candidate_execution_sites_by_statement": {
         "INSERT": 1,
-        "SELECT": 2,
+        "SELECT": 5,
         "UPDATE": 1
       },
       "candidate_source_files": [
@@ -22153,6 +22243,12 @@
             "INSERT": 1,
             "SELECT": 1,
             "UPDATE": 1
+          }
+        },
+        {
+          "path": "services/gateway/governance_operations.py",
+          "statement_counts": {
+            "SELECT": 3
           }
         },
         {
@@ -22218,7 +22314,7 @@
     {
       "candidate_execution_sites_by_statement": {
         "INSERT": 1,
-        "SELECT": 1,
+        "SELECT": 5,
         "UPDATE": 1
       },
       "candidate_source_files": [
@@ -22227,6 +22323,12 @@
           "statement_counts": {
             "INSERT": 1,
             "UPDATE": 1
+          }
+        },
+        {
+          "path": "services/gateway/governance_operations.py",
+          "statement_counts": {
+            "SELECT": 4
           }
         },
         {
@@ -22329,7 +22431,7 @@
     {
       "candidate_execution_sites_by_statement": {
         "INSERT": 1,
-        "SELECT": 2,
+        "SELECT": 5,
         "UPDATE": 1
       },
       "candidate_source_files": [
@@ -22345,6 +22447,12 @@
           "path": "services/gateway/governance_roles.py",
           "statement_counts": {
             "SELECT": 1
+          }
+        },
+        {
+          "path": "services/gateway/governance_tension_review.py",
+          "statement_counts": {
+            "SELECT": 3
           }
         }
       ],
@@ -22426,13 +22534,20 @@
     },
     {
       "candidate_execution_sites_by_statement": {
-        "INSERT": 2
+        "INSERT": 2,
+        "SELECT": 1
       },
       "candidate_source_files": [
         {
           "path": "services/analytics/governance_tensions.py",
           "statement_counts": {
             "INSERT": 2
+          }
+        },
+        {
+          "path": "services/gateway/governance_tension_review.py",
+          "statement_counts": {
+            "SELECT": 1
           }
         }
       ],
@@ -23930,11 +24045,17 @@
     },
     {
       "candidate_execution_sites_by_statement": {
-        "SELECT": 2
+        "SELECT": 3
       },
       "candidate_source_files": [
         {
           "path": "services/analytics/landscape_conservation.py",
+          "statement_counts": {
+            "SELECT": 1
+          }
+        },
+        {
+          "path": "services/analytics/landscape_reference_preflight.py",
           "statement_counts": {
             "SELECT": 1
           }
@@ -24337,7 +24458,7 @@
     },
     {
       "candidate_execution_sites_by_statement": {
-        "SELECT": 3
+        "SELECT": 4
       },
       "candidate_source_files": [
         {
@@ -24349,7 +24470,7 @@
         {
           "path": "services/gateway/pollinator_health_reads.py",
           "statement_counts": {
-            "SELECT": 1
+            "SELECT": 2
           }
         }
       ],
@@ -32645,6 +32766,7 @@
     },
     {
       "candidate_execution_sites_by_statement": {
+        "UNKNOWN": 1,
         "UPDATE": 1
       },
       "candidate_source_files": [
@@ -32652,6 +32774,12 @@
           "path": "services/gateway/operator_cli.py",
           "statement_counts": {
             "UPDATE": 1
+          }
+        },
+        {
+          "path": "services/migration/runtime_role.py",
+          "statement_counts": {
+            "UNKNOWN": 1
           }
         }
       ],
@@ -35173,14 +35301,14 @@
     {
       "candidate_execution_sites_by_statement": {
         "INSERT": 1,
-        "SELECT": 10
+        "SELECT": 9
       },
       "candidate_source_files": [
         {
           "path": "services/analytics/pest_management.py",
           "statement_counts": {
             "INSERT": 1,
-            "SELECT": 10
+            "SELECT": 9
           }
         }
       ],
@@ -35727,7 +35855,7 @@
     },
     {
       "candidate_execution_sites_by_statement": {
-        "SELECT": 2
+        "SELECT": 3
       },
       "candidate_source_files": [
         {
@@ -35739,7 +35867,7 @@
         {
           "path": "services/gateway/pollinator_health_reads.py",
           "statement_counts": {
-            "SELECT": 1
+            "SELECT": 2
           }
         }
       ],
@@ -42281,9 +42409,15 @@
     },
     {
       "candidate_execution_sites_by_statement": {
-        "SELECT": 4
+        "SELECT": 5
       },
       "candidate_source_files": [
+        {
+          "path": "services/core/schema_readiness.py",
+          "statement_counts": {
+            "SELECT": 1
+          }
+        },
         {
           "path": "services/mobile/tenant_preflight.py",
           "statement_counts": {
@@ -52298,7 +52432,7 @@
     {
       "candidate_execution_sites_by_statement": {
         "INSERT": 1,
-        "SELECT": 48
+        "SELECT": 50
       },
       "candidate_source_files": [
         {
@@ -52329,6 +52463,12 @@
           "path": "services/analytics/swot_enhanced.py",
           "statement_counts": {
             "SELECT": 1
+          }
+        },
+        {
+          "path": "services/gateway/threatcasting_reads.py",
+          "statement_counts": {
+            "SELECT": 2
           }
         },
         {
@@ -52451,7 +52591,7 @@
     {
       "candidate_execution_sites_by_statement": {
         "INSERT": 1,
-        "SELECT": 15,
+        "SELECT": 17,
         "UPDATE": 1
       },
       "candidate_source_files": [
@@ -52459,6 +52599,12 @@
           "path": "services/export/reports/common.py",
           "statement_counts": {
             "SELECT": 1
+          }
+        },
+        {
+          "path": "services/gateway/threatcasting_reads.py",
+          "statement_counts": {
+            "SELECT": 2
           }
         },
         {
@@ -53133,7 +53279,7 @@
       "candidate_execution_sites_by_statement": {
         "DELETE": 1,
         "INSERT": 2,
-        "SELECT": 17,
+        "SELECT": 19,
         "UPDATE": 2
       },
       "candidate_source_files": [
@@ -53147,6 +53293,12 @@
           "path": "services/analytics/swot_enhanced.py",
           "statement_counts": {
             "SELECT": 1
+          }
+        },
+        {
+          "path": "services/gateway/threatcasting_reads.py",
+          "statement_counts": {
+            "SELECT": 2
           }
         },
         {
@@ -53643,10 +53795,34 @@
       "runtime_boundary_policy_matches_source": null
     },
     {
-      "candidate_execution_sites_by_statement": {},
-      "candidate_source_files": [],
-      "candidate_write_target_sites_by_statement": {},
-      "candidate_write_target_source_files": [],
+      "candidate_execution_sites_by_statement": {
+        "INSERT": 1,
+        "SELECT": 1,
+        "UPDATE": 1
+      },
+      "candidate_source_files": [
+        {
+          "path": "services/analytics/swot_enhanced.py",
+          "statement_counts": {
+            "INSERT": 1,
+            "SELECT": 1,
+            "UPDATE": 1
+          }
+        }
+      ],
+      "candidate_write_target_sites_by_statement": {
+        "INSERT": 1,
+        "UPDATE": 1
+      },
+      "candidate_write_target_source_files": [
+        {
+          "path": "services/analytics/swot_enhanced.py",
+          "statement_counts": {
+            "INSERT": 1,
+            "UPDATE": 1
+          }
+        }
+      ],
       "configured_runtime_boundary": null,
       "dml_overlaps_explicit_revoke": false,
       "effective_dml_privileges": [
@@ -59914,11 +60090,17 @@
     },
     {
       "candidate_execution_sites_by_statement": {
-        "SELECT": 1
+        "SELECT": 2
       },
       "candidate_source_files": [
         {
           "path": "services/analytics/pitch.py",
+          "statement_counts": {
+            "SELECT": 1
+          }
+        },
+        {
+          "path": "services/analytics/public_summary.py",
           "statement_counts": {
             "SELECT": 1
           }
@@ -61727,11 +61909,23 @@
     },
     {
       "candidate_execution_sites_by_statement": {
-        "SELECT": 3
+        "SELECT": 5
       },
       "candidate_source_files": [
         {
           "path": "services/analytics/pitch.py",
+          "statement_counts": {
+            "SELECT": 1
+          }
+        },
+        {
+          "path": "services/analytics/public_summary.py",
+          "statement_counts": {
+            "SELECT": 1
+          }
+        },
+        {
+          "path": "services/crisp/public_api.py",
           "statement_counts": {
             "SELECT": 1
           }
@@ -62692,9 +62886,15 @@
     },
     {
       "candidate_execution_sites_by_statement": {
-        "SELECT": 1
+        "SELECT": 2
       },
       "candidate_source_files": [
+        {
+          "path": "services/analytics/public_summary.py",
+          "statement_counts": {
+            "SELECT": 1
+          }
+        },
         {
           "path": "services/core/adapters/postgres_analytics.py",
           "statement_counts": {
@@ -69396,11 +69596,17 @@
     },
     {
       "candidate_execution_sites_by_statement": {
-        "SELECT": 2
+        "SELECT": 3
       },
       "candidate_source_files": [
         {
           "path": "services/analytics/landscape_conservation.py",
+          "statement_counts": {
+            "SELECT": 1
+          }
+        },
+        {
+          "path": "services/analytics/landscape_reference_preflight.py",
           "statement_counts": {
             "SELECT": 1
           }
@@ -69958,22 +70164,22 @@
   "source_revision": "99511976",
   "summary": {
     "dml_relations_matching_explicit_runtime_revoke": 0,
-    "dml_relations_without_candidate_sites": 460,
+    "dml_relations_without_candidate_sites": 458,
     "migration_revoked_relations_missing_or_mismatched_runtime_policy": 0,
     "migration_revoked_relations_with_runtime_policy": 178,
     "relations_with_any_dml": 1309,
-    "relations_with_candidate_execution_sites": 912,
+    "relations_with_candidate_execution_sites": 914,
     "relations_with_effective_truncate": 0,
     "relations_with_effective_truncate_and_rls_disabled": 0,
     "runtime_relations": 1522,
     "tables_with_dml_and_rls_disabled": 925,
     "unprotected_dml_relations_matching_explicit_runtime_revoke": 0,
-    "unprotected_dml_relations_without_candidate_sites": 213,
-    "unprotected_dml_relations_without_candidate_write_sites": 374
+    "unprotected_dml_relations_without_candidate_sites": 211,
+    "unprotected_dml_relations_without_candidate_write_sites": 372
   },
   "unprotected_candidate_write_relations_by_service": {
     "abundance": 30,
-    "analytics": 271,
+    "analytics": 272,
     "attestation": 2,
     "cache": 1,
     "capital": 1,
@@ -69994,7 +70200,7 @@
     "geostory": 2,
     "graph_projection": 3,
     "guilds": 12,
-    "ingestion": 30,
+    "ingestion": 31,
     "iri": 2,
     "linkml": 2,
     "management": 10,
@@ -70112,7 +70318,6 @@
     "funding_campaign",
     "future_generation_principle",
     "gnh_alignment_assessment",
-    "gnosis_event_log_receipt",
     "governance_throughput_observation",
     "green_paper_publication_review",
     "guild_contribution",
@@ -70218,7 +70423,6 @@
     "tenure_rights_assessment",
     "time_liberation_observation",
     "token_balance_snapshot",
-    "tows_strategy",
     "trend_monitor_config",
     "validator_compensation_detail",
     "value_stream_feedback_source",
@@ -70388,7 +70592,6 @@
     "gain_creator",
     "ghg_emissions_inventory",
     "gnh_alignment_assessment",
-    "gnosis_event_log_receipt",
     "governance_inclusion_observation",
     "governance_throughput_observation",
     "grant_application_history",
@@ -70577,7 +70780,6 @@
     "time_liberation_observation",
     "token_balance_snapshot",
     "token_reward_distribution",
-    "tows_strategy",
     "training_enrollment",
     "training_lesson",
     "training_module",

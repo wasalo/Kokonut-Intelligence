@@ -92,12 +92,39 @@ def _normalized_query(query: str) -> str:
     return re.sub(r"\s+", " ", query).strip()
 
 
+def _canonical_relation(relation: str) -> str | None:
+    """Return PostgreSQL's effective spelling for a one/two-part identifier.
+
+    Unquoted identifiers fold to lower case; quoted identifiers preserve case
+    and unescape doubled quotes. Keeping this distinction lets the ACL report
+    join source candidates to catalog names without inventing a mixed-case
+    relation from an unquoted token such as ``towS_strategy``.
+    """
+    component = r'(?:"((?:""|[^"\n])*)"|([A-Za-z_][\w$]*))'
+    match = re.fullmatch(
+        rf"\s*{component}(?:\s*\.\s*{component})?\s*", relation
+    )
+    if match is None:
+        return None
+
+    def identifier(quoted: str | None, bare: str | None) -> str:
+        return quoted.replace('""', '"') if quoted is not None else bare.lower()
+
+    first = identifier(match.group(1), match.group(2))
+    second = (
+        identifier(match.group(3), match.group(4))
+        if match.group(3) is not None or match.group(4) is not None
+        else None
+    )
+    return f"{first}.{second}" if second is not None else first
+
+
 def _candidate_relations(query: str) -> list[str]:
     found = set()
     for match in RELATION_PATTERN.finditer(query):
-        relation = re.sub(r"\s*\.\s*", ".", match.group(1))
-        relation = relation.replace('"', "")
-        found.add(relation)
+        relation = _canonical_relation(match.group(1))
+        if relation is not None:
+            found.add(relation)
     return sorted(found)
 
 
@@ -127,8 +154,10 @@ def _write_target_relations(query: str, statement_kind: str) -> list[str]:
             )
             if target_match is None:
                 return []
-            target = re.sub(r"\s*\.\s*", ".", target_match.group(1))
-            targets.append(target.replace('"', ""))
+            target = _canonical_relation(target_match.group(1))
+            if target is None:
+                return []
+            targets.append(target)
         return sorted(set(targets))
     pattern = _WRITE_TARGET_PATTERNS.get(statement_kind)
     if pattern is None:
@@ -136,8 +165,8 @@ def _write_target_relations(query: str, statement_kind: str) -> list[str]:
     match = pattern.match(query)
     if match is None:
         return []
-    relation = re.sub(r"\s*\.\s*", ".", match.group(1)).replace('"', "")
-    return [relation]
+    relation = _canonical_relation(match.group(1))
+    return [relation] if relation is not None else []
 
 
 def _statement_kind(query: str) -> str:

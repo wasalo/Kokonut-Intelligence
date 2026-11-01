@@ -8,7 +8,7 @@ can proceed now and gates that need an owner, provider, populated source data,
 or production environment. Check an item only when its evidence is recorded in
 the batch log and the affected capability/progress records are updated.
 
-**Current queue snapshot (1 November 2026):** 807 checked / 39 open across the
+**Current queue snapshot (1 November 2026):** 810 checked / 39 open across the
 TODO's dated and active checklist sections. Historical snapshots below this
 active queue remain dated records and do not replace the current count.
 
@@ -4886,3 +4886,15 @@ database/role was changed.
   API and general worker still share `kokonut_runtime`
   ([recovery](builds/2026-11-01-recovery/standard-profile-recovery-723-disposable.json);
   [supervisor regression](../../tests/test_kernel_runtime_supervisor.py)).
+- [x] Correct PostgreSQL relation-candidate normalization and the source/ACL
+  join for quoted, unquoted, and explicit `public.*` identifiers; refresh the
+  derived runtime attribution and analytics write-candidate inventories.
+- [x] Retire the uncalled pollinator auto-link SQL writer that targeted a
+  nonexistent relation, retaining the authenticated location-scoped Gateway
+  capture path and verifying fail-closed behavior before connection access.
+- [x] Record the refreshed migration-723 source/ACL correlation and the
+  remaining `credit_chain_mint` schema mismatch; do not treat SQLite spool
+  tables as PostgreSQL relations or the source report as a grant allowlist.
+
+Cross-phase TODO: 810 checked / 39 open. Capability classifications remain
+24 baseline-retained, 7 deployed, and 36 prepared across 67 rows.

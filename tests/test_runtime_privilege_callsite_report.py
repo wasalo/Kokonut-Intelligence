@@ -650,6 +650,69 @@ def test_insert_select_source_is_not_reported_as_a_dml_target():
     }]
 
 
+def test_report_joins_public_and_folded_relation_candidates_to_catalog_names():
+    inventory_sites = [
+        {
+            "source": "services/gateway/api_key_provisioning.py",
+            "statement_kind": "INSERT",
+            "candidate_relations": ["public.api_key"],
+            "write_target_relations": ["public.api_key"],
+        },
+        {
+            "source": "services/analytics/swot_enhanced.py",
+            "statement_kind": "UPDATE",
+            "candidate_relations": ["tows_strategy"],
+            "write_target_relations": ["tows_strategy"],
+        },
+        {
+            "source": "services/ingestion/gnosis_indexer.py",
+            "statement_kind": "INSERT",
+            "candidate_relations": ["public.gnosis_event_log_receipt"],
+            "write_target_relations": ["public.gnosis_event_log_receipt"],
+        },
+        {
+            "source": "services/example.py",
+            "statement_kind": "INSERT",
+            "candidate_relations": ["other_schema.api_key"],
+            "write_target_relations": ["other_schema.api_key"],
+        },
+    ]
+    probe = {
+        "result": "inventory",
+        "runtime_public_relation_acl": [
+            _acl_row("api_key", select=True, insert=False, update=False, delete=False),
+            _acl_row("tows_strategy", select=True, insert=True, update=True, delete=True),
+            _acl_row(
+                "gnosis_event_log_receipt",
+                select=True,
+                insert=True,
+                update=True,
+                delete=True,
+            ),
+        ],
+    }
+
+    report = REPORTER["build_report"](
+        probe, {"execution_sites": inventory_sites}
+    )
+
+    rows = {row["relation"]: row for row in report["relations"]}
+    assert rows["api_key"]["candidate_write_target_sites_by_statement"] == {
+        "INSERT": 1
+    }
+    assert rows["tows_strategy"]["candidate_write_target_sites_by_statement"] == {
+        "UPDATE": 1
+    }
+    assert rows["gnosis_event_log_receipt"][
+        "candidate_write_target_sites_by_statement"
+    ] == {"INSERT": 1}
+    assert rows["api_key"]["candidate_source_files"] == [{
+        "path": "services/gateway/api_key_provisioning.py",
+        "statement_counts": {"INSERT": 1},
+    }]
+    assert REPORTER["_public_relation_candidate"]("other_schema.api_key") is None
+
+
 def test_truncate_privileges_and_targets_are_reported_separately_from_dml():
     site = {
         "id": "services/analytics/cleanup.py:12:4",
