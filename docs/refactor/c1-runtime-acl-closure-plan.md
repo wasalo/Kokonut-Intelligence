@@ -10,17 +10,21 @@ database-enforced scope or an explicitly approved global/system boundary; no
 unreviewed direct table DML remains. The two existing append-only audit ledgers
 may retain INSERT only under their declared controls.
 
+### Historical ACL baseline — migrations 689–699
+
 Do not blanket-revoke the 991 relations measured at migration 689. That
-snapshot showed 989 ordinary/partitioned relations with
+historical snapshot showed 989 ordinary/partitioned relations with
 INSERT/UPDATE/DELETE and two append-only audit relations with INSERT only.
 Migrations 690–697 remove runtime DML from twelve reviewed relations; migration
 699 removes unnecessary grants from the inherently non-updatable
 `v_public_farm_summary` view. The native full-schema 699 probe reports 979
-tables still exposed. These counts
-measure ACL reach, not confirmed tenant leaks. Static SQL absence is not proof
-that a table is unused: helper-mediated writes, Directus permissions, dynamic
-SQL, ORM paths, external integrations, and populated production data remain
-incomplete in the inventory.
+tables still exposed. These figures are historical ACL-reach measurements, not
+confirmed tenant leaks. For current migration-723 counts, see the
+[current source/ACL report](builds/2026-11-01-recovery/runtime-privilege-callsite-report-723.json)
+and the C1 continuation dated 1 November 2026 below. Static SQL absence is not
+proof that a table is unused: helper-mediated writes, Directus permissions,
+dynamic SQL, ORM paths, external integrations, and populated production data
+remain incomplete in the inventory.
 
 ## Current evidence and decisions
 

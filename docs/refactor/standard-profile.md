@@ -268,8 +268,8 @@ pass all 38 checks, load no seeds or farm data, and clean up their disposable
 resources. The report
 covers 1,522 public relations, with 1,309 having effective runtime DML and 925
 tables having runtime DML while RLS is disabled; 178 migration-revoked relations
-match the declared policy, with zero mismatches. It also records 213
-unprotected DML relations without candidate SQL relations and 374 without
+match the declared policy, with zero mismatches. It also records 211
+unprotected DML relations without candidate SQL relations and 372 without
 candidate write sites. These overlapping counts measure privilege reach and
 heuristic inventory coverage, not confirmed leaks or tenant isolation. The
 probe found zero direct table/column violations within its declared scoped-write
@@ -334,21 +334,18 @@ not lost.
 
 ## Acceptance and rollback
 
-The source-level planner and disposable-harness contract selection passes
-116 tests, plus Ruff, Python compilation, and release-input validation. The
-stable-snapshot replay now provides full current schema acceptance through
-migration 718; it does not start the local candidate or establish production
-readiness. The first replay attempt exposed a race between schema snapshot
-capture and image build. The harness now pins migration discovery and both
-images to the same private snapshot, records its digest, and preserves a
-redacted runner-output tail if the migration count changes or a migration
-fails. Remaining acceptance
-includes populated-data lease/retry recovery, provider outages and real
-delivery, disabled-worker behavior against an explicit deployment, replica
-identity/scale, public ingress and trusted proxy policy, operator alert
-routing, 24-hour endurance, and physical Raspberry Pi testing when hardware
-is available. The health probe is one signal; it does not establish provider
-recovery or multi-replica safety.
+The latest stable-snapshot replay applies all 714 ordered schema files through
+migration 723 and is recorded in the [dated Standard acceptance snapshot
+above](#dated-standard-acceptance-snapshot). The replay does not start the
+local candidate or establish production readiness. The harness pins migration
+discovery and both app images to the same private snapshot, records its digest,
+and preserves a redacted runner-output tail if the migration count changes or
+a migration fails. Remaining acceptance includes populated-data lease/retry
+recovery, provider outages and real delivery, disabled-worker behavior against
+an explicit deployment, replica identity/scale, public ingress and trusted
+proxy policy, operator alert routing, 24-hour endurance, and physical
+Raspberry Pi testing when hardware is available. The health probe is one
+signal; it does not establish provider recovery or multi-replica safety.
 
 Rollback: stop and remove only the separate candidate worker, allow in-flight
 leases to settle, then recreate the candidate app using the base manifest's

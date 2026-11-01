@@ -26130,3 +26130,15 @@ regenerated from the same 723 probe. No migration was needed. Evidence:
 Checklist snapshot: 2,233 complete / 43 open (2,276 total); cross-phase TODO:
 810 checked / 39 open. Capability classifications remain 24 baseline-retained,
 7 deployed, and 36 prepared across 67 rows.
+
+### Documentation parity reconciliation — 1 November 2026
+
+The Standard profile guide now reports the current migration-723 schema replay,
+uses the refreshed 211/372 source-correlation counts, and removes an
+unsupported historical test total. The C1 plan labels its migration-689/699
+ACL figures as historical and links the current migration-723 report. The
+checklist header now matches its latest 2,233/43 snapshot and the TODO's
+810/39 count. README.md and AGENTS.md were reviewed against the current
+architecture, profile planner, and CI workflow; no edits were needed. This is
+a documentation-only reconciliation: no source code, schema, database,
+deployment, or capability classification changed.

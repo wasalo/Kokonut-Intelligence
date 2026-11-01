@@ -22,9 +22,9 @@ pending.
 
 Remaining work is ordered in [the code-first execution plan](code-first-execution-plan.md): finish repository-owned implementation and reproducible software checks before collecting owner decisions and production inputs. Raspberry Pi hardware is unavailable, so Batch 6 uses ARM64 emulation and constrained software checks; it does not claim physical-device acceptance.
 
-**Current aggregate snapshot (1 November 2026):** 2,222 checklist items complete
-and 44 open (2,266 total), counting nested items. The cross-phase TODO queue has
-799 checked and 40 open items. The
+**Current aggregate snapshot (1 November 2026):** 2,233 checklist items complete
+and 43 open (2,276 total), counting nested items. The cross-phase TODO queue has
+810 checked and 39 open items. The
 [capability matrix](capability-matrix.md) has 67 validated rows: 24
 baseline-retained, 7 deployed, and 36 prepared. Named MAN-CAP
 acceptance remains separate; none is marked accepted.
