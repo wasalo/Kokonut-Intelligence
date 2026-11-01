@@ -132,6 +132,7 @@ _SOURCE_REVOKE_POLICY_OVERRIDES = {
     "data_freshness_check": "runtime_mutations_denied",
     "data_freshness_alert_state": "runtime_mutations_denied",
     "data_freshness_alert_history": "runtime_mutations_denied",
+    "data_freshness_alert_delivery_attempt": "runtime_mutations_denied",
     "notification_outbox_attempt": "runtime_mutations_denied",
     "dfs_currency": "runtime_mutations_denied",
     "ghg_emission_factor": "runtime_mutations_denied",

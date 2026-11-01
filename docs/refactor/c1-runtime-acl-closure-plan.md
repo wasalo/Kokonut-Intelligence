@@ -19,14 +19,45 @@ Migrations 690–697 remove runtime DML from twelve reviewed relations; migratio
 699 removes unnecessary grants from the inherently non-updatable
 `v_public_farm_summary` view. The native full-schema 699 probe reports 979
 tables still exposed. These figures are historical ACL-reach measurements, not
-confirmed tenant leaks. For current migration-723 counts, see the
-[current source/ACL report](builds/2026-11-01-recovery/runtime-privilege-callsite-report-723.json)
+confirmed tenant leaks. For current migration-724 counts, see the
+[current source/ACL report](builds/2026-11-01-recovery/runtime-privilege-callsite-report-724.json)
 and the C1 continuation dated 1 November 2026 below. Static SQL absence is not
 proof that a table is unused: helper-mediated writes, Directus permissions,
 dynamic SQL, ORM paths, external integrations, and populated production data
 remain incomplete in the inventory.
 
 ## Current evidence and decisions
+
+### Latest C1 continuation — migration 724 freshness-delivery history — 1 November 2026
+
+Migration 724 keeps `data_freshness_alert_delivery_attempt` readable for
+historical review while revoking table and residual column mutation from
+`kokonut_runtime`. The current service, extension, and seed source has no
+writer or reader for this legacy table; new delivery attempts are handled by
+`notification_outbox`. The runtime-role provisioner reapplies the denial after
+compatibility grants. A synthetic row using the table's historical field shape
+remains readable, runtime INSERT/UPDATE/DELETE/TRUNCATE are denied, and the
+separate Directus and maintenance grants remain available. These checks do not
+confirm external importers; that remains a persistent-rollout gate.
+
+The focused network-disabled PostgreSQL 16 checker applies and replays the
+migration, tests runtime table/column rights and role reapplication, and
+preserves the historical row. Full native and ARM64/QEMU replays apply 715/715
+ordered schemas through migration 724 and pass 39 two-tenant/operator checks;
+the source/ACL report records 1,308/1,522 public relations with effective
+runtime DML, 924 tables with DML while RLS is disabled, 179 migration-revoked
+relations matching policy, and zero mismatches. These figures measure
+privilege reach, not confirmed leaks or tenant isolation. QEMU is software
+portability evidence only. No candidate, legacy, or production database or
+role was changed. Rollback is forward-only: a persistent grant restoration
+would require a separately reviewed migration.
+
+Evidence: [migration](../../schemas/postgres/724_runtime_freshness_delivery_history_read_only.sql),
+[disposable ACL check](builds/2026-11-01-recovery/runtime-freshness-delivery-history-724-disposable.json),
+[native replay and probe](builds/2026-11-01-recovery/native-current-schema-724-operator-probe.json),
+[ARM64/QEMU replay and probe](builds/2026-11-01-recovery/arm64-qemu-current-schema-724-operator-probe.json),
+[source/ACL report](builds/2026-11-01-recovery/runtime-privilege-callsite-report-724.json),
+[SQL review ledger](runtime-sql-unresolved-write-review.json).
 
 ### C1 continuation — runtime-role reprovision guard — 31 October 2026
 
@@ -186,8 +217,8 @@ provider boundaries, capability matrix, release-input validation, Python
 compilation, and diff checks pass. A separate native, network-disabled C1
 replay and two-tenant operator-scope probe now cover migration 722; at this
 dated checkpoint, ARM64/QEMU full-schema acceptance through 722 remained open.
-That portability gate was superseded by the completed migration-723 replay and
-probe recorded below. Candidate rollout, external
+That portability gate was superseded by the completed migration-724 replay and
+probe recorded above. Candidate rollout, external
 runtime-client review, broad C1 writer retirement, API/worker identity
 separation, populated-data parity, tenant/RLS, and production acceptance remain
 open. The disposable checks touched no candidate, legacy, or production
@@ -301,13 +332,14 @@ the counts and runtime effects agree.
 The source inventory now folds unquoted PostgreSQL identifiers to lower case,
 preserves quoted identifier case, and the ACL report joins explicit
 `public.*` candidates to catalog relations. The source/ACL report regenerated
-from the existing migration-723 probe now records 458 DML relations without
+from the migration-723 probe at the time recorded 458 DML relations without
 candidate SQL sites, 211 unprotected DML relations without candidate sites,
 and 372 without candidate write targets. Its ACL snapshot remains the same
 1,522 relations with 1,309 effective runtime DML grants and 925 tables having
 DML while RLS is disabled; only source correlation changed. These are
 privilege-reach and source-coverage counts, not confirmed leaks or tenant
-isolation.
+isolation. This report snapshot was superseded by migration 724; the current
+ACL counts and source correlation are recorded at the top of this plan.
 
 The unused `services.analytics.pest_management.auto_link_pollinator_impact`
 writer is now a fail-closed compatibility stub. Repository-wide search found
@@ -323,8 +355,10 @@ relations. No migration or database was applied in this source-only batch.
 Focused source, parser, report, and pest-management checks pass 179 tests.
 Ruff, Python compilation, generated SQL inventories, the runtime-role
 attribution map, and the analytics write-candidate inventory pass. The
-refreshed report uses the existing migration-723 disposable ACL probe; no new
-database replay, candidate rollout, or production change was performed
+historical report used the existing migration-723 disposable ACL probe; no new
+database replay was performed in that source-only reconciliation. Later
+migration-724 acceptance is recorded above; no candidate rollout or production
+change was performed
 ([evidence](builds/2026-11-01-recovery/runtime-sql-candidate-normalization-and-pollinator-writer-retirement.json)).
 
 Refresh or validate the source map with

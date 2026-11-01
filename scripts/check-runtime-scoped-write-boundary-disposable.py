@@ -28,8 +28,8 @@ POSTGRES_IMAGE = (
 ARM64_POSTGRES_IMAGE = "kokonut-kernel-postgis-arm64:local"
 DEFAULT_OUTPUT = (
     ROOT
-    / "docs/refactor/builds/2026-10-31-recovery/"
-    "farmer-role-runtime-read-only-707-disposable.json"
+    / "docs/refactor/builds/2026-11-01-recovery/"
+    "runtime-freshness-delivery-history-724-disposable.json"
 )
 APPEND_ONLY_MIGRATION = (
     ROOT / "schemas/postgres/652_runtime_append_only_data_access_log.sql"
@@ -150,6 +150,10 @@ PUBLIC_FARM_SUMMARY_MIGRATION = (
 )
 PUBLIC_AGGREGATE_VIEWS_MIGRATION = (
     ROOT / "schemas/postgres/719_runtime_public_aggregate_views_read_only.sql"
+)
+FRESHNESS_DELIVERY_HISTORY_MIGRATION = (
+    ROOT
+    / "schemas/postgres/724_runtime_freshness_delivery_history_read_only.sql"
 )
 LIVING_WAGE_BENCHMARK_MIGRATION = (
     ROOT / "schemas/postgres/704_runtime_living_wage_benchmark_read_only.sql"
@@ -463,12 +467,28 @@ def check_boundary(
                             "VALUES (%s, 'synthetic_farmer', '[\"farm:read\"]'::jsonb, 'synthetic-role')",
                             (str(uuid.uuid4()),),
                         )
+                    elif table == "data_freshness_alert_delivery_attempt":
+                        cursor.execute(
+                            "CREATE TABLE public.data_freshness_alert_delivery_attempt ("
+                            "id uuid PRIMARY KEY, alert_id uuid NOT NULL, "
+                            "channel varchar(50) NOT NULL, "
+                            "outcome varchar(20) NOT NULL "
+                            "CHECK (outcome IN ('delivered', 'failed')), "
+                            "error_message text, attempted_at timestamptz NOT NULL DEFAULT now())"
+                        )
                     else:
                         cursor.execute(
                             sql.SQL("CREATE TABLE {} (id uuid PRIMARY KEY, marker text)").format(
                                 sql.Identifier("public", table)
                             )
                         )
+                freshness_history_id = str(uuid.uuid4())
+                cursor.execute(
+                    "INSERT INTO public.data_freshness_alert_delivery_attempt "
+                    "(id, alert_id, channel, outcome, error_message) "
+                    "VALUES (%s, %s, 'webhook', 'failed', 'synthetic prior failure')",
+                    (freshness_history_id, str(uuid.uuid4())),
+                )
                 cursor.execute(
                     "CREATE TABLE public.triggered_public_view_probe_source ("
                     "id integer PRIMARY KEY, marker text NOT NULL)"
@@ -543,6 +563,11 @@ def check_boundary(
                 cursor.execute(
                     "GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES "
                     "IN SCHEMA public TO kokonut_runtime"
+                )
+                cursor.execute(
+                    "GRANT ALL PRIVILEGES ON "
+                    "public.data_freshness_alert_delivery_attempt "
+                    "TO kokonut_directus_runtime, kokonut_maintenance_probe"
                 )
                 cursor.execute(
                     "GRANT ALL PRIVILEGES ON public.farmer_role "
@@ -1018,6 +1043,11 @@ def check_boundary(
                 )
                 cursor.execute(public_aggregate_views_migration)
                 cursor.execute(public_aggregate_views_migration)
+                freshness_delivery_history_migration = (
+                    FRESHNESS_DELIVERY_HISTORY_MIGRATION.read_text(encoding="utf-8")
+                )
+                cursor.execute(freshness_delivery_history_migration)
+                cursor.execute(freshness_delivery_history_migration)
 
             with connection.cursor() as cursor:
                 runtime_role._verify_runtime_append_only_boundary(
@@ -1076,6 +1106,102 @@ def check_boundary(
                     "migration 707 or compatibility provisioning did not establish "
                     "read-only farmer-role rights"
                 )
+            if _relation_privileges(
+                connection, "data_freshness_alert_delivery_attempt"
+            ) != (True, False, False, False):
+                raise AssertionError(
+                    "migration 724 did not preserve history reads and deny runtime writes"
+                )
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    "SELECT has_table_privilege('kokonut_directus_runtime', "
+                    "'public.data_freshness_alert_delivery_attempt', 'SELECT'), "
+                    "has_table_privilege('kokonut_directus_runtime', "
+                    "'public.data_freshness_alert_delivery_attempt', 'INSERT'), "
+                    "has_table_privilege('kokonut_directus_runtime', "
+                    "'public.data_freshness_alert_delivery_attempt', 'UPDATE'), "
+                    "has_table_privilege('kokonut_directus_runtime', "
+                    "'public.data_freshness_alert_delivery_attempt', 'DELETE'), "
+                    "has_table_privilege('kokonut_maintenance_probe', "
+                    "'public.data_freshness_alert_delivery_attempt', 'SELECT'), "
+                    "has_table_privilege('kokonut_maintenance_probe', "
+                    "'public.data_freshness_alert_delivery_attempt', 'INSERT'), "
+                    "has_table_privilege('kokonut_maintenance_probe', "
+                    "'public.data_freshness_alert_delivery_attempt', 'UPDATE'), "
+                    "has_table_privilege('kokonut_maintenance_probe', "
+                    "'public.data_freshness_alert_delivery_attempt', 'DELETE'), "
+                    "has_column_privilege('kokonut_runtime', "
+                    "'public.data_freshness_alert_delivery_attempt', 'outcome', 'INSERT'), "
+                    "has_column_privilege('kokonut_runtime', "
+                    "'public.data_freshness_alert_delivery_attempt', 'outcome', 'UPDATE'), "
+                    "has_column_privilege('kokonut_runtime', "
+                    "'public.data_freshness_alert_delivery_attempt', 'id', 'REFERENCES')"
+                )
+                if cursor.fetchone() != (
+                    True, True, True, True, True, True, True, True,
+                    False, False, False,
+                ):
+                    raise AssertionError(
+                        "migration 724 changed Directus/maintenance grants or left "
+                        "runtime column-level mutation grants"
+                    )
+                cursor.execute("SET ROLE kokonut_runtime")
+                cursor.execute(
+                    "SELECT channel, outcome, error_message "
+                    "FROM public.data_freshness_alert_delivery_attempt "
+                    "WHERE id = %s",
+                    (freshness_history_id,),
+                )
+                if cursor.fetchone() != (
+                    "webhook", "failed", "synthetic prior failure"
+                ):
+                    raise AssertionError("migration 724 did not preserve historical attempts")
+                for statement, parameters in (
+                    (
+                        "INSERT INTO public.data_freshness_alert_delivery_attempt "
+                        "(id, alert_id, channel, outcome) "
+                        "VALUES (%s, %s, 'webhook', 'failed')",
+                        (str(uuid.uuid4()), str(uuid.uuid4())),
+                    ),
+                    (
+                        "UPDATE public.data_freshness_alert_delivery_attempt "
+                        "SET outcome = 'delivered'",
+                        None,
+                    ),
+                    ("DELETE FROM public.data_freshness_alert_delivery_attempt", None),
+                    ("TRUNCATE public.data_freshness_alert_delivery_attempt", None),
+                ):
+                    try:
+                        cursor.execute(statement, parameters)
+                    except psycopg2.Error as exc:
+                        if exc.pgcode != "42501":
+                            raise AssertionError(
+                                "expected migration 724 privilege denial; "
+                                f"got {exc.pgcode}"
+                            ) from exc
+                        connection.rollback()
+                        with connection.cursor() as retry_cursor:
+                            retry_cursor.execute("SET ROLE kokonut_runtime")
+                    else:
+                        connection.rollback()
+                        raise AssertionError(
+                            "runtime changed historical freshness delivery attempts"
+                        )
+                cursor.execute("RESET ROLE")
+                for role, marker in (
+                    ("kokonut_directus_runtime", "directus-compat-write"),
+                    ("kokonut_maintenance_probe", "maintenance-import-write"),
+                ):
+                    cursor.execute(
+                        sql.SQL("SET ROLE {}").format(sql.Identifier(role))
+                    )
+                    cursor.execute(
+                        "INSERT INTO public.data_freshness_alert_delivery_attempt "
+                        "(id, alert_id, channel, outcome, error_message) "
+                        "VALUES (%s, %s, 'webhook', 'delivered', %s)",
+                        (str(uuid.uuid4()), str(uuid.uuid4()), marker),
+                    )
+                    cursor.execute("RESET ROLE")
             if _relation_privileges(connection, "v_public_farm_summary") != (
                 True, False, False, False
             ):
@@ -3399,6 +3525,21 @@ def check_boundary(
                     "directus_view_grants_unchanged": True,
                     "aggregate_projection_outputs_preserved": True,
                     "trigger_backed_unlisted_view_remains_writable": True,
+                    "tenant_isolation_established": False,
+                },
+                "read_only_freshness_delivery_history": {
+                    "migration": FRESHNESS_DELIVERY_HISTORY_MIGRATION.name,
+                    "migration_sha256": hashlib.sha256(
+                        freshness_delivery_history_migration.encode("utf-8")
+                    ).hexdigest(),
+                    "migration_applied_and_replayed": True,
+                    "runtime_provisioner_reapplied_after_compatibility_grants": True,
+                    "historical_rows_preserved_and_runtime_readable": True,
+                    "runtime_table_and_column_writes_denied": True,
+                    "directus_and_maintenance_grants_preserved": True,
+                    "new_attempts_owned_by": "notification_outbox",
+                    "repository_runtime_write_call_sites": 0,
+                    "external_runtime_importer_status": "not_confirmed",
                     "tenant_isolation_established": False,
                 },
                 "column_level_privilege_regression_detected": True,

@@ -113,6 +113,12 @@ def _assert_scoped_runtime_acl(cur) -> dict[str, int]:
 
     if not has_table_privilege("farm_activity_operator_event", "SELECT"):
         raise AssertionError("runtime login lost read access to the farm-activity audit ledger")
+    if not relation_exists("data_freshness_alert_delivery_attempt") or not has_table_privilege(
+        "data_freshness_alert_delivery_attempt", "SELECT"
+    ):
+        raise AssertionError("runtime login lost read access to freshness delivery history")
+    cur.execute("SELECT count(*) FROM public.data_freshness_alert_delivery_attempt")
+    cur.fetchone()
     if not relation_exists("advisory_rule") or not has_table_privilege(
         "advisory_rule", "SELECT"
     ):
@@ -532,6 +538,7 @@ def run_probe() -> dict[str, object]:
                 "runtime can read governed expense categories",
                 "runtime can query shared CRISP risk dimension definitions",
                 "runtime can query shared currency references",
+                "runtime can read retained freshness delivery history without direct mutation rights",
                 "runtime can read crop GDD configuration",
     "runtime can read seeded pest degree-day configuration",
                 "runtime can query revenue multiplier configuration",

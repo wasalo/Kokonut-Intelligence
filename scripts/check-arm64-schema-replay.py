@@ -48,6 +48,7 @@ OPERATOR_PROBE_CHECKS = frozenset({
     "runtime can read governed expense categories",
     "runtime can query shared CRISP risk dimension definitions",
     "runtime can query shared currency references",
+    "runtime can read retained freshness delivery history without direct mutation rights",
     "runtime can read crop GDD configuration",
     "runtime can read seeded pest degree-day configuration",
     "runtime can query revenue multiplier configuration",

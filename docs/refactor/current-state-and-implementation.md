@@ -84,7 +84,7 @@ command and applicable rollout procedure.
 | **minimal** | Private PostgreSQL/PostGIS plus the combined Kernel app/API and enabled worker processes. | Smallest candidate deployment shape. Capability parity, recovery, live identity, and operational acceptance remain open. |
 | **core** | Minimal app built from the reduced, hash-locked dependency set. Optional Web3, exports, and local-media packages are selected explicitly. | Packaging profile, not a different data model. The current OIDC app overlay is incompatible with this reduced image. |
 | **edge** | Minimal plus encrypted local media and edge-oriented resource settings; MQTT/HTTP sensors remain separately selectable overlays. | No physical Raspberry Pi test has been performed. QEMU and source-level ARM64 checks do not establish device performance or power-loss behavior. |
-| **standard** | PostgreSQL plus separate API and durable-worker services sharing one application image, with loopback-bound Caddy ingress by default. `--no-proxy` selects a separately managed ingress. `standard --edge` composes Edge local-media and resource settings while preserving the API/worker split; the local-media key/volume apply only to the API, and Edge resource limits apply to PostgreSQL and the API, not the worker. Both services require a dedicated non-owner, non-privileged login before starting children; the worker also has a read-only PostgreSQL probe for stale leases, old eligible due backlog, and supervisor/child-process liveness. `--action release-up` prints a no-build pull/start command and requires digest-pinned application images. | The latest network-disabled Standard recovery applied all 714 schema files through migration 723 from one captured SQL snapshot; both app images matched its digest. Fresh placeholder provisioning, migration-ledger read access, runtime-role reapplication, API/worker/proxy health, database outage/recovery, heartbeat privacy, shutdown, and cleanup passed ([evidence](builds/2026-11-01-recovery/standard-profile-recovery-723-disposable.json)). A supervisor regression now preserves the configured `PG_*` runtime connection for the Gateway API subprocess while filtering worker-specific credentials. Separate native and ARM64/QEMU portless full-schema replays also pass 38-check two-tenant/operator probes through migration 723 ([native probe](builds/2026-11-01-recovery/native-current-schema-723-operator-probe.json); [ARM64/QEMU probe](builds/2026-11-01-recovery/arm64-qemu-current-schema-723-operator-probe.json)). The refreshed report records 1,309/1,522 relations with effective runtime DML and 925 tables with runtime DML while RLS is disabled; these are privilege-reach measures, not confirmed leaks or proof of tenant isolation ([report](builds/2026-11-01-recovery/runtime-privilege-callsite-report-723.json)). QEMU provides software-portability evidence only, not physical Raspberry Pi acceptance. API and worker still share the `kokonut_runtime` login, so distinct identities remain an open C1 boundary. Release image publication, current-target migration/role rollout, candidate rollout, live identity, populated lease/provider recovery, external alert routing, public ingress, backup/restore, scale, prolonged recovery, and physical-device acceptance remain open. Standard+Edge is planner/Compose-source support only; it does not establish physical Raspberry Pi suitability, power-loss behavior, or production readiness. The worker probe reports aggregate counts and ages without IDs or payloads; it detects exited children but not an alive-but-hung child. The default Caddy listener is local TLS, not public production ingress. |
+| **standard** | PostgreSQL plus separate API and durable-worker services sharing one application image, with loopback-bound Caddy ingress by default. `--no-proxy` selects a separately managed ingress. `standard --edge` composes Edge local-media and resource settings while preserving the API/worker split; the local-media key/volume apply only to the API, and Edge resource limits apply to PostgreSQL and the API, not the worker. Both services require a dedicated non-owner, non-privileged login before starting children; the worker also has a read-only PostgreSQL probe for stale leases, old eligible due backlog, and supervisor/child-process liveness. `--action release-up` prints a no-build pull/start command and requires digest-pinned application images. | The latest network-disabled Standard recovery applied all 714 schema files through migration 723 from one captured SQL snapshot; both app images matched its digest. Fresh placeholder provisioning, migration-ledger read access, runtime-role reapplication, API/worker/proxy health, database outage/recovery, heartbeat privacy, shutdown, and cleanup passed ([evidence](builds/2026-11-01-recovery/standard-profile-recovery-723-disposable.json)). A supervisor regression now preserves the configured `PG_*` runtime connection for the Gateway API subprocess while filtering worker-specific credentials. Separate native and ARM64/QEMU portless full-schema replays pass 39-check two-tenant/operator probes through migration 724 across all 715 ordered schema files ([native probe](builds/2026-11-01-recovery/native-current-schema-724-operator-probe.json); [ARM64/QEMU probe](builds/2026-11-01-recovery/arm64-qemu-current-schema-724-operator-probe.json)). The refreshed report records 1,308/1,522 relations with effective runtime DML and 924 tables with runtime DML while RLS is disabled; these are privilege-reach measures, not confirmed leaks or proof of tenant isolation ([report](builds/2026-11-01-recovery/runtime-privilege-callsite-report-724.json)). QEMU provides software-portability evidence only, not physical Raspberry Pi acceptance. API and worker still share the `kokonut_runtime` login, so distinct identities remain an open C1 boundary. Release image publication, current-target migration/role rollout, candidate rollout, live identity, populated lease/provider recovery, external alert routing, public ingress, backup/restore, scale, prolonged recovery, and physical-device acceptance remain open. Standard+Edge is planner/Compose-source support only; it does not establish physical Raspberry Pi suitability, power-loss behavior, or production readiness. The worker probe reports aggregate counts and ages without IDs or payloads; it detects exited children but not an alive-but-hung child. The default Caddy listener is local TLS, not public production ingress. |
 | **analytics** | Minimal plus private ClickHouse analytical projection. `--separate-workers` adds standard API/worker separation. | Requires projection parity, rebuild/outage behavior, and worker recovery acceptance. Metabase is not required. |
 | **scale** | Rejected by the planner. | Multi-host/replica behavior, shared budgets, failover, measured sizing, and concurrency/recovery gates are not accepted. |
 
@@ -219,25 +219,40 @@ from six isolated-worker state tables while preserving SELECT, Directus, and
 maintenance grants. It also moves only the exact legacy `data_freshness_check`
 schedule (`--check`) to the isolated worker and preserves its cadence and
 settings. The native network-disabled replay applied 714/714 ordered schemas
-through 723 and passed all 38 synthetic tenant/operator checks with zero
-direct table/column privilege violations in the declared scoped-write policy.
-The refreshed report covers 1,522 public relations: 1,309 have effective
-runtime DML, 925 tables have runtime DML while RLS is disabled, and 178
-migration-revoked relations match the declared runtime policy with zero policy
-mismatches. It also records 211 unprotected DML relations without candidate
-SQL relations and 372 without candidate write sites; these overlapping
+through 723 and passed all 38 synthetic tenant/operator checks; that evidence
+is superseded by the current migration-724 aggregate below.
+
+Migration 724 preserves historical reads of
+`data_freshness_alert_delivery_attempt` while denying direct table and residual
+column writes to `kokonut_runtime`. Repository service, extension, and seed
+sources contain no current callsite for the legacy relation; new freshness
+delivery attempts belong to `notification_outbox`. The runtime-role provisioner
+reapplies the denial after compatibility grants. Network-disabled PostgreSQL
+16 acceptance applies and replays the migration, preserves a synthetic
+historical attempt using the table's field shape, denies runtime mutations, and
+keeps separate Directus/maintenance grants available. External importer use
+through `kokonut_runtime` remains unconfirmed and blocks persistent rollout of
+this boundary.
+
+The latest native and ARM64/QEMU, network-disabled, portless replay applied
+715/715 ordered schemas through migration 724 and passed 39 synthetic
+two-tenant/operator checks with zero direct table/column privilege violations
+within the declared scoped-write policy. The refreshed report covers 1,522
+public relations: 1,308 have effective runtime DML, 924 tables have runtime
+DML while RLS is disabled, and 179 migration-revoked relations match policy
+with zero mismatches. It records 210 unprotected DML relations without
+candidate SQL sites and 371 without candidate write sites. These overlapping
 inventory categories measure privilege reach and source coverage, not proven
-exposure. The report updates the prior migration-722 snapshot; C1, universal
-tenant isolation, and API/general-worker identity separation remain open.
-The ARM64/QEMU replay also applied 714/714 schemas and passed 38 synthetic
-two-tenant/operator checks, with no seeds, host ports, OOM, or cleanup residue.
-This is software portability evidence only; physical Raspberry Pi acceptance
-is not available. The Standard first-install recovery remains separately
-accepted through 723
-([native replay and probe](builds/2026-11-01-recovery/native-current-schema-723-operator-probe.json);
-[ARM64/QEMU replay and probe](builds/2026-11-01-recovery/arm64-qemu-current-schema-723-operator-probe.json);
-[source/ACL report](builds/2026-11-01-recovery/runtime-privilege-callsite-report-723.json);
-[migration 723 check](builds/2026-11-01-recovery/isolated-worker-runtime-write-boundary-723.json)).
+exposure or tenant isolation. ARM64/QEMU is software portability evidence
+only, not physical Raspberry Pi acceptance. The Standard first-install
+recovery remains separately accepted through migration 723
+([focused migration-724 check](builds/2026-11-01-recovery/runtime-freshness-delivery-history-724-disposable.json);
+[native replay and probe](builds/2026-11-01-recovery/native-current-schema-724-operator-probe.json);
+[ARM64/QEMU replay and probe](builds/2026-11-01-recovery/arm64-qemu-current-schema-724-operator-probe.json);
+[source/ACL report](builds/2026-11-01-recovery/runtime-privilege-callsite-report-724.json);
+[Standard first-install recovery](builds/2026-11-01-recovery/standard-profile-recovery-723-disposable.json)).
+C1, universal tenant isolation, and API/general-worker identity separation
+remain open.
 
 The API/general-worker split now has a deterministic source-attribution
 inventory at [runtime-role-attribution.json](runtime-role-attribution.json),
@@ -259,15 +274,15 @@ identifiers and joins explicit `public.*` references to catalog relations. It
 also retires the uncalled legacy pollinator auto-link writer, which targeted a
 table absent from the ordered schema; authenticated, location-scoped capture
 continues through the Gateway. The inventory now records 4,956 execution
-sites, 1,063 write candidates, and 566 write-target relation names. Rebuilding
-the source/ACL report from the existing migration-723 probe reduced the
-unprotected-DML/no-source-candidate count from 213 to 211 and the
-no-write-candidate count from 374 to 372; the ACL snapshot itself did not
-change. Two local audit-spool tables are SQLite, not PostgreSQL relations, and
-`credit_chain_mint` remains an unresolved schema/source mismatch. This source
+sites, 1,063 write candidates, and 566 write-target relation names. The
+current migration-724 report records 210 unprotected DML relations without
+candidate SQL sites and 371 without candidate write targets; the full ACL
+counts are summarized above. Two local audit-spool tables are SQLite, not
+PostgreSQL relations, and `credit_chain_mint` remains an unresolved
+schema/source mismatch. This source
 reconciliation does not authorize grants or migrations
 ([evidence](builds/2026-11-01-recovery/runtime-sql-candidate-normalization-and-pollinator-writer-retirement.json);
-[analytics write-candidate inventory](builds/2026-11-01-recovery/analytics-runtime-write-candidate-inventory-723.json)).
+[analytics write-candidate inventory](builds/2026-11-01-recovery/analytics-runtime-write-candidate-inventory-724.json)).
 
 External `kokonut_runtime` SQL clients remain unconfirmed and must be reviewed
 before persistent rollout. Migration 714 keeps the location-solution creation
@@ -279,17 +294,17 @@ Migration 713's climate worker compatibility and plot-only geometry behavior
 also pass focused unit and disposable acceptance
 ([climate evidence](builds/2026-10-31-recovery/climate-worker-713-disposable.json)).
 The migration-718 report and probe are retained as a dated historical baseline;
-their counts are superseded by the migration-723 snapshot above. The previous
+their counts are superseded by the migration-724 snapshot above. The previous
 source/ACL report and the separate SQL review ledger use different inventory
 units and are not interchangeable. This remains an incomplete sequence,
 function, ownership, Directus, worker, and external-consumer audit; it does not
 establish populated-data isolation or persistent deployment. Native and
-ARM64/QEMU full-schema replay and operator-scope probes now pass through 723;
+ARM64/QEMU full-schema replay and operator-scope probes now pass through 724;
 QEMU remains software-portability evidence, not physical Raspberry Pi
 acceptance
 ([historical migration-718 replay](builds/2026-10-31-recovery/native-resource-limited-schema-718-operator-probe-r2.json);
-[native migration-723 replay](builds/2026-11-01-recovery/native-current-schema-723-operator-probe.json);
-[ARM64/QEMU migration-723 replay](builds/2026-11-01-recovery/arm64-qemu-current-schema-723-operator-probe.json);
+[native migration-724 replay](builds/2026-11-01-recovery/native-current-schema-724-operator-probe.json);
+[ARM64/QEMU migration-724 replay](builds/2026-11-01-recovery/arm64-qemu-current-schema-724-operator-probe.json);
 [historical source/ACL report](builds/2026-10-31-recovery/runtime-privilege-callsite-report-718.json);
 [SQL review ledger](runtime-sql-unresolved-write-review.json)).
 
@@ -307,7 +322,7 @@ The latest code-first cohort includes:
 | Migration 721 — governance reference-catalog ACL | Preserves runtime reads on `data_governance_category` and `data_governance_scope`, revokes table/column DML, leaves Directus unchanged, and stays closed after runtime provisioning. | [Disposable apply/replay and ACL acceptance](builds/2026-11-01-recovery/governance-reference-catalogs-721-disposable.json) |
 | Migration 720 — bounded thesaurus writers | Preserves the thesaurus service operations through four bounded functions; runtime and PUBLIC receive no direct table DML or PUBLIC function execution. Provisioning grants the full function set only after it exists. | [Disposable apply/replay and behavior acceptance](builds/2026-11-01-recovery/runtime-thesaurus-boundary-720-disposable.json) |
 | Standard notification-delivery child identity | Default-off worker child uses migration 647's dedicated login/functions; shared runtime DB credentials and unrelated worker DSNs are filtered from the child. API and general worker still share `kokonut_runtime`. | [Disposable worker acceptance](builds/2026-11-01-recovery/standard-notification-delivery-worker-isolation-647.json); [focused supervisor/profile checks](../../tests/test_kernel_runtime_supervisor.py) |
-| Migration 719 — public aggregate-view ACL | Preserves runtime SELECT and optional Directus grants while revoking runtime table/column DML from the three catalog-confirmed non-updatable public attestation/EBF summary views. A separate INSTEAD OF-trigger writable view remains writable as a scope control. This removes unused privileges only; no tenant boundary is established. Native and ARM64/QEMU full-schema probes now cover migration 723. | [Disposable ACL acceptance](builds/2026-11-01-recovery/runtime-public-aggregate-views-719-disposable.json); [source checks](builds/2026-11-01-recovery/runtime-public-aggregate-views-719-source-checks.json); [Standard replay](builds/2026-11-01-recovery/standard-profile-recovery-723-disposable.json); [native aggregate replay](builds/2026-11-01-recovery/native-current-schema-723-operator-probe.json); [ARM64/QEMU replay](builds/2026-11-01-recovery/arm64-qemu-current-schema-723-operator-probe.json); [report](builds/2026-11-01-recovery/runtime-privilege-callsite-report-723.json) |
+| Migration 719 — public aggregate-view ACL | Preserves runtime SELECT and optional Directus grants while revoking runtime table/column DML from the three catalog-confirmed non-updatable public attestation/EBF summary views. A separate INSTEAD OF-trigger writable view remains writable as a scope control. This removes unused privileges only; no tenant boundary is established. Current native and ARM64/QEMU full-schema probes cover migration 724. | [Disposable ACL acceptance](builds/2026-11-01-recovery/runtime-public-aggregate-views-719-disposable.json); [source checks](builds/2026-11-01-recovery/runtime-public-aggregate-views-719-source-checks.json); [Standard replay](builds/2026-11-01-recovery/standard-profile-recovery-723-disposable.json); [native aggregate replay](builds/2026-11-01-recovery/native-current-schema-724-operator-probe.json); [ARM64/QEMU replay](builds/2026-11-01-recovery/arm64-qemu-current-schema-724-operator-probe.json); [report](builds/2026-11-01-recovery/runtime-privilege-callsite-report-724.json) |
 | Migration 722 — schema migration ledger | Preserves runtime SELECT needed for fail-closed schema readiness while removing runtime table/column mutation privileges. | [Standard ordered recovery and role reapplication](builds/2026-11-01-recovery/standard-profile-recovery-723-disposable.json) |
 | Migration 723 — isolated worker-owned state | Preserves runtime SELECT while removing table and residual column DML on event-handler receipts, freshness state, and notification attempts; retains Directus/maintenance grants and re-applies the denial during runtime-role provisioning. Retargets only the exact legacy freshness `--check` schedule to the default-off worker. This is a write boundary, not tenant isolation. | [Migration 723 disposable ACL check](builds/2026-11-01-recovery/isolated-worker-runtime-write-boundary-723.json); [native full-schema replay and two-tenant probe](builds/2026-11-01-recovery/native-current-schema-723-operator-probe.json); [ARM64/QEMU full-schema replay and two-tenant probe](builds/2026-11-01-recovery/arm64-qemu-current-schema-723-operator-probe.json); [native source/ACL report](builds/2026-11-01-recovery/runtime-privilege-callsite-report-723.json) |
 | Runtime-role one-time compatibility grant | The compatibility grant runs for a newly created login or an explicitly marked fresh migration placeholder, then marks the one-time step complete. An existing unmarked role is not widened; reprovisioning preserves grants and reapplies explicit denials. This does not remove broad grants already held or establish tenant isolation. | [Prior role-reprovision acceptance](builds/2026-10-31-recovery/runtime-role-reprovision-guard-disposable.json); [Standard placeholder-first recovery](builds/2026-11-01-recovery/standard-profile-recovery-723-disposable.json) |
@@ -382,12 +397,12 @@ scale, 24-hour endurance, or physical-device acceptance. No candidate, legacy,
 or production database or role was changed. Broader caller reconciliation,
 external importer ownership, Directus API parity, tenant/RLS, populated-data
 parity, and reviewed persistent rollout remain open. The two-tenant
-native and ARM64/QEMU operator-scope probes now cover migration 723. The
-native source/ACL aggregate is refreshed through 723; these privilege counts
+native and ARM64/QEMU operator-scope probes now cover migration 724. The
+native source/ACL aggregate is refreshed through 724; these privilege counts
 are inventory measures, not tenant-isolation proof
-([native](builds/2026-11-01-recovery/native-current-schema-723-operator-probe.json);
-[ARM64/QEMU](builds/2026-11-01-recovery/arm64-qemu-current-schema-723-operator-probe.json);
-[source/ACL report](builds/2026-11-01-recovery/runtime-privilege-callsite-report-723.json)).
+([native](builds/2026-11-01-recovery/native-current-schema-724-operator-probe.json);
+[ARM64/QEMU](builds/2026-11-01-recovery/arm64-qemu-current-schema-724-operator-probe.json);
+[source/ACL report](builds/2026-11-01-recovery/runtime-privilege-callsite-report-724.json)).
 
 ## Human and operational gates
 

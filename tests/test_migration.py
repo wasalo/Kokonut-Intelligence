@@ -185,6 +185,20 @@ def test_isolated_worker_runtime_write_migration_follows_schema_ledger_boundary(
     assert schema_ids.index(current) == schema_ids.index(previous) + 1
 
 
+def test_freshness_delivery_history_acl_migration_follows_worker_boundary():
+    schema_ids = [
+        item["id"]
+        for item in cli._discover_files(include_seeds=False)
+        if item["kind"] == "schema"
+    ]
+    previous = "schema:723_isolated_worker_runtime_write_boundaries.sql"
+    current = "schema:724_runtime_freshness_delivery_history_read_only.sql"
+
+    assert previous in schema_ids
+    assert current in schema_ids
+    assert schema_ids.index(current) == schema_ids.index(previous) + 1
+
+
 def test_discovery_rejects_duplicate_ids(tmp_path, monkeypatch):
     directory = tmp_path / "sql"
     directory.mkdir()

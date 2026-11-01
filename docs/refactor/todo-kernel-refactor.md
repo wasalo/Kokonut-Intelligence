@@ -8,7 +8,7 @@ can proceed now and gates that need an owner, provider, populated source data,
 or production environment. Check an item only when its evidence is recorded in
 the batch log and the affected capability/progress records are updated.
 
-**Current queue snapshot (1 November 2026):** 810 checked / 39 open across the
+**Current queue snapshot (1 November 2026):** 811 checked / 39 open across the
 TODO's dated and active checklist sections. Historical snapshots below this
 active queue remain dated records and do not replace the current count.
 
@@ -4896,5 +4896,17 @@ database/role was changed.
   remaining `credit_chain_mint` schema mismatch; do not treat SQLite spool
   tables as PostgreSQL relations or the source report as a grant allowlist.
 
-Cross-phase TODO: 810 checked / 39 open. Capability classifications remain
+### Current continuation — migration 724 freshness-delivery history ACL — 1 November 2026
+
+- [x] Preserve historical SELECT on `data_freshness_alert_delivery_attempt`
+  while revoking direct runtime table/column DML and reapplied compatibility
+  grants. Focused PostgreSQL 16 acceptance, native and ARM64/QEMU full-schema
+  replays through 724, 39 operator/two-tenant probes, refreshed source/ACL
+  evidence, and documentation parity are recorded in the
+  [batch ledger](batches.md).
+  Repository-owned service, extension, and seed sources contain no current
+  access callsite; external importer use remains unconfirmed. Candidate,
+  legacy, and production databases/roles remain untouched.
+
+Cross-phase TODO: 811 checked / 39 open. Capability classifications remain
 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows.

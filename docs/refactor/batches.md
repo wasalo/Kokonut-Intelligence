@@ -22,9 +22,9 @@ pending.
 
 Remaining work is ordered in [the code-first execution plan](code-first-execution-plan.md): finish repository-owned implementation and reproducible software checks before collecting owner decisions and production inputs. Raspberry Pi hardware is unavailable, so Batch 6 uses ARM64 emulation and constrained software checks; it does not claim physical-device acceptance.
 
-**Current aggregate snapshot (1 November 2026):** 2,233 checklist items complete
-and 43 open (2,276 total), counting nested items. The cross-phase TODO queue has
-810 checked and 39 open items. The
+**Current aggregate snapshot (1 November 2026):** 2,234 checklist items complete
+and 43 open (2,277 total), counting nested items. The cross-phase TODO queue has
+811 checked and 39 open items. The
 [capability matrix](capability-matrix.md) has 67 validated rows: 24
 baseline-retained, 7 deployed, and 36 prepared. Named MAN-CAP
 acceptance remains separate; none is marked accepted.
@@ -10259,6 +10259,30 @@ separation, and broader tenant/RLS closure remain separate gates.
   Candidate/production rollout, external runtime-consumer
   reconciliation, broad DML retirement, API/worker identity separation, and
   tenant/RLS closure remain open.
+
+### C1 continuation — migration 724 freshness-delivery history ACL — 1 November 2026
+
+- [x] Preserve historical reads of `data_freshness_alert_delivery_attempt`
+  while revoking `kokonut_runtime` table and residual column DML, reapplying
+  the denial during runtime-role provisioning, and preserving the separate
+  Directus/maintenance grants. The native focused PostgreSQL 16 checker applies
+  and replays migration 724, verifies historical-row readability and all
+  mutation denials, and passes with the realistic legacy attempt-row shape
+  ([migration](../../schemas/postgres/724_runtime_freshness_delivery_history_read_only.sql);
+  [focused acceptance](builds/2026-11-01-recovery/runtime-freshness-delivery-history-724-disposable.json)).
+  Native and ARM64/QEMU full-schema replays apply 715/715 schemas and pass all
+  39 synthetic operator/two-tenant checks; the current source/ACL report has
+  1,308/1,522 relations with runtime DML, 924 tables with DML while RLS is
+  disabled, and 179 migration-denied relations matching policy with no
+  mismatches ([native](builds/2026-11-01-recovery/native-current-schema-724-operator-probe.json);
+  [ARM64/QEMU](builds/2026-11-01-recovery/arm64-qemu-current-schema-724-operator-probe.json);
+  [report](builds/2026-11-01-recovery/runtime-privilege-callsite-report-724.json)).
+  These counts measure privilege reach, not confirmed leaks or tenant isolation.
+  Repository services, extensions, and seeds have no current callsite for the
+  legacy relation; external importer use through the shared runtime login is
+  unconfirmed and remains a persistent-rollout gate. The separate Standard
+  first-install recovery remains accepted through 723. No candidate, legacy,
+  or production database or role was changed.
 
 ### C1 source inventory reconciliation — 1 November 2026
 

@@ -26142,3 +26142,55 @@ checklist header now matches its latest 2,233/43 snapshot and the TODO's
 architecture, profile planner, and CI workflow; no edits were needed. This is
 a documentation-only reconciliation: no source code, schema, database,
 deployment, or capability classification changed.
+
+### Progress addendum — C1 freshness-delivery history ACL, migration 724 — 1 November 2026
+
+Migration 724 preserves `SELECT` on the legacy
+`data_freshness_alert_delivery_attempt` history while removing table and
+residual column mutation privileges from `kokonut_runtime`. The runtime-role
+provisioner reapplies the denial after compatibility grants. The focused,
+network-disabled PostgreSQL 16 acceptance now models the historical table's
+actual columns; it applies and replays migration 724, reads a retained
+synthetic failure row as runtime, denies runtime INSERT/UPDATE/DELETE/TRUNCATE
+and column writes, preserves synthetic Directus and maintenance writes, and
+cleans up. Repository search found no current service, extension, or seed
+callsite beyond the runtime-role policy. External importers using the shared
+login remain unconfirmed and must be reconciled before persistent rollout.
+
+The separate native and ARM64/QEMU network-disabled PostgreSQL 16 replays each
+applied all 715 ordered schema files through migration 724 and passed all 39
+synthetic operator/two-tenant checks, with zero seeds, no published ports, and
+disposable cleanup. QEMU is software portability evidence, not physical
+Raspberry Pi acceptance. The refreshed 1,522-relation ACL report records 1,308
+relations with effective runtime DML, 924 tables with DML while RLS is
+disabled, 179 migration-revoked relations matching declared policy, and zero
+policy mismatches. It also records 210 unprotected DML relations without
+candidate SQL sites and 371 without candidate write targets. These values
+measure privilege reach and inventory coverage, not confirmed leaks or tenant
+isolation. The separate Standard first-install recovery remains accepted only
+through migration 723. No candidate, legacy, or production database or role
+was changed.
+
+The runtime-role boundary suite passes 110 tests, the migration suite passes
+41, and the schema-replay/ACL-report subset passes 49. The boundary suite was
+rerun with the repository-supported development-only no-secrets environment:
+its first default-environment invocation reached a pre-existing test import
+that attempted workstation SOPS decryption and failed because this process
+could not decrypt `.env.sops`; the rerun passed without reading or printing
+secrets. Ruff, Python compilation, validation of 837 migration sources,
+runtime SQL inventory and attribution freshness, the 67-row capability-matrix
+validator, and diff checks pass. README.md, AGENTS.md, current-state and
+Standard profile guides, the C1 plan, capability matrix, batch checklist, and
+TODO now point to migration-724 evidence while keeping the 723 Standard gate
+distinct. Capability classifications remain 24 baseline-retained, 7 deployed,
+and 36 prepared across 67 rows.
+
+Evidence: [focused ACL acceptance](builds/2026-11-01-recovery/runtime-freshness-delivery-history-724-disposable.json),
+[native full-schema probe](builds/2026-11-01-recovery/native-current-schema-724-operator-probe.json),
+[ARM64/QEMU full-schema probe](builds/2026-11-01-recovery/arm64-qemu-current-schema-724-operator-probe.json),
+[current source/ACL report](builds/2026-11-01-recovery/runtime-privilege-callsite-report-724.json),
+[analytics write-candidate inventory](builds/2026-11-01-recovery/analytics-runtime-write-candidate-inventory-724.json).
+
+Checklist snapshot: 2,234 complete / 43 open (2,277 total); cross-phase TODO:
+811 checked / 39 open. This ACL boundary does not close C1, establish RLS or
+tenant isolation, or confirm external-consumer compatibility.

@@ -8,28 +8,29 @@ pre-existing and fresh logins. This does not remove broad grants from existing
 relations or change capability classifications. C1, tenant/RLS, and persistent
 rollout remain open ([acceptance](builds/2026-10-31-recovery/runtime-role-reprovision-guard-disposable.json)).
 
-**Latest C1 aggregate refresh — migration 723, 1 November 2026:** The
-network-disabled native PostgreSQL 16 replay applied all 714 ordered schemas
-and passed 38 synthetic two-tenant/operator checks. Migration 723 revokes
-shared-runtime table and residual column writes on six worker-owned event,
-freshness, and notification relations while preserving reads and separate
-Directus/maintenance grants. The source/ACL report records 1,309/1,522 public
-relations with effective runtime DML, 925 tables with runtime DML while RLS is
-disabled, and 178 migration-revoked relations matching declared policy with
-zero mismatches. These figures measure privilege reach and inventory coverage,
-not confirmed leaks or tenant isolation. ARM64/QEMU replay through 723 also
-applied all 714 schemas and passed 38 synthetic two-tenant/operator checks;
-this is software portability evidence, not physical Raspberry Pi acceptance
-([evidence](builds/2026-11-01-recovery/arm64-qemu-current-schema-723-operator-probe.json)).
-C1 remains open.
+**Latest C1 aggregate refresh — migration 724, 1 November 2026:** Network-
+disabled native PostgreSQL 16 replay applied all 715 ordered schemas and
+passed 39 synthetic two-tenant/operator checks. Migration 724 preserves
+historical freshness-delivery attempt reads while denying direct runtime table
+and column writes; the provisioner reapplies the denial, and synthetic
+Directus/maintenance writes remain available. The source/ACL report records
+1,308/1,522 public relations with effective runtime DML, 924 tables with
+runtime DML while RLS is disabled, and 179 migration-revoked relations
+matching declared policy with zero mismatches. These figures measure
+privilege reach and inventory coverage, not confirmed leaks or tenant
+isolation. ARM64/QEMU replay through 724 also applied all 715 schemas and
+passed 39 synthetic two-tenant/operator checks; this is software portability
+evidence, not physical Raspberry Pi acceptance. Migration 724 does not
+establish external-importer compatibility, candidate/production rollout, or
+tenant isolation. C1 remains open.
 Capability classifications are unchanged at 24 baseline-retained, 7 deployed,
 and 36 prepared across 67 rows; this access-boundary work does not advance a
-capability. The runtime SQL review ledger now tracks 35 unresolved candidates
-after three retired direct-write sites disappeared from the source. Standard
-first-install recovery remains separately accepted through 722
-([native replay/probe](builds/2026-11-01-recovery/native-current-schema-723-operator-probe.json);
-[source/ACL report](builds/2026-11-01-recovery/runtime-privilege-callsite-report-723.json);
-[migration check](builds/2026-11-01-recovery/isolated-worker-runtime-write-boundary-723.json);
+capability. Standard first-install recovery remains separately accepted
+through migration 723
+([native replay/probe](builds/2026-11-01-recovery/native-current-schema-724-operator-probe.json);
+[ARM64/QEMU replay/probe](builds/2026-11-01-recovery/arm64-qemu-current-schema-724-operator-probe.json);
+[source/ACL report](builds/2026-11-01-recovery/runtime-privilege-callsite-report-724.json);
+[migration check](builds/2026-11-01-recovery/runtime-freshness-delivery-history-724-disposable.json);
 [SQL review ledger](runtime-sql-unresolved-write-review.json)).
 
 **Previous C1 aggregate refresh — 31 October 2026:** The network-disabled,
@@ -40,7 +41,7 @@ relations without SQL relation candidates, and 377 without candidate write
 sites. These figures measure privilege reach and inventory coverage, not
 confirmed leaks. Thirty legacy-unreviewed and eight reviewed-unresolved SQL
 fingerprints remained in the separate source review ledger. That checkpoint
-was superseded by the migration-723 snapshot above
+was superseded by the migration-724 snapshot above
 ([replay/probe](builds/2026-10-31-recovery/native-resource-limited-schema-718-operator-probe-r2.json);
 [report](builds/2026-10-31-recovery/runtime-privilege-callsite-report-718.json)).
 

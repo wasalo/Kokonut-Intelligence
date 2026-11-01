@@ -25,8 +25,8 @@ def test_runtime_acl_policy_matches_all_recorded_migration_revokes():
     probe = json.loads(
         (
             root
-                / "docs/refactor/builds/2026-10-31-recovery/"
-                "native-schema-711-operator-probe.json"
+                / "docs/refactor/builds/2026-11-01-recovery/"
+                "native-current-schema-724-operator-probe.json"
         ).read_text()
     )
     inventory = build_inventory()
@@ -2554,6 +2554,45 @@ def test_migration_723_covers_worker_owned_tables_and_exact_freshness_schedule()
     assert "command_args = '[\"--check\"]'::jsonb" in migration
     assert "services.ingestion.freshness_worker" in migration
     assert "SET cadence_minutes" not in migration
+
+
+def test_migration_724_keeps_freshness_delivery_history_read_only_for_runtime():
+    root = Path(__file__).resolve().parents[1]
+    migration_path = (
+        root
+        / "schemas/postgres/724_runtime_freshness_delivery_history_read_only.sql"
+    )
+    migration = migration_path.read_text()
+    initial_schema = (
+        root / "schemas/postgres/341_freshness_alert_durability.sql"
+    ).read_text()
+
+    assert "CREATE TABLE IF NOT EXISTS data_freshness_alert_delivery_attempt" in initial_schema
+    assert "data_freshness_alert_delivery_attempt" in runtime_role._RUNTIME_MUTATION_TABLES
+    assert "data_freshness_alert_delivery_attempt" not in runtime_role._RUNTIME_PRIVATE_TABLES
+    assert migration.count("BEGIN;") == 1 and migration.count("COMMIT;") == 1
+    assert "REVOKE ALL PRIVILEGES ON TABLE" in migration
+    assert "FROM kokonut_runtime" in migration
+    assert "GRANT SELECT ON TABLE" in migration
+    assert "Directus, maintenance, and migration-owner grants remain unchanged" in migration
+    assert "historical reads" in migration
+    assert "notification_outbox" in migration
+    assert "kokonut_directus_runtime" not in migration
+    assert "kokonut_maintenance_probe" not in migration
+
+    source_roots = (root / "services", root / "extensions", root / "schemas/seeds")
+    source_references = [
+        path
+        for source_root in source_roots
+        for path in source_root.rglob("*")
+        if path.is_file()
+        and path.suffix in {".py", ".js", ".ts", ".sql"}
+        and path != root / "services/migration/runtime_role.py"
+        and "data_freshness_alert_delivery_attempt" in path.read_text(
+            encoding="utf-8", errors="replace"
+        )
+    ]
+    assert source_references == []
 
 
 def test_freshness_worker_matches_canonical_date_only_source_columns():

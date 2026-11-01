@@ -1287,6 +1287,7 @@ _RUNTIME_MUTATION_TABLES = (
     "data_freshness_check",
     "data_freshness_alert_state",
     "data_freshness_alert_history",
+    "data_freshness_alert_delivery_attempt",
     "notification_outbox_attempt",
     "graph_node_type",
     "graph_edge_type",

@@ -168,6 +168,7 @@ Commands:
 - Check the migration-720 thesaurus function boundary in disposable PostgreSQL: `python3 scripts/check-thesaurus-runtime-boundary-disposable.py`
 - Check the migration-721 governance reference-catalog boundary in disposable PostgreSQL: `python3 scripts/check-governance-reference-catalog-runtime-boundary-disposable.py`
 - Check migration 723's isolated event/freshness/notification write boundary in disposable PostgreSQL: `python3 scripts/check-isolated-worker-runtime-write-boundary-disposable.py`
+- Check migration 724's historical freshness-delivery read boundary, migration replay, and runtime-provisioner reapplication in disposable PostgreSQL: `python3 scripts/check-runtime-scoped-write-boundary-disposable.py`
 - Check the migration-647 notification-delivery worker boundary in disposable PostgreSQL: `python3 scripts/check-notification-delivery-worker-disposable.py`
 - Check the complete Standard profile migration, health, outage/recovery, and cleanup path in a portless disposable deployment: `KOKONUT_STANDARD_RECOVERY_TIMEOUT=900 python3 scripts/check-kernel-standard-recovery-disposable.py`
 - Check worker source import closure: `python3 scripts/worker_source_closure.py --check docs/refactor/worker-source-closure.json`
