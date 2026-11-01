@@ -171,6 +171,7 @@ The latest code-first cohort includes:
 
 | Change | Result and boundary | Evidence |
 | --- | --- | --- |
+| Migration 716 — retire climate v1 worker grant | Keeps the legacy `store_climate_summary` definition for compatibility but removes execution from the worker, runtime, optional Directus, and `PUBLIC`; the active climate worker continues using signed `store_climate_summary_v2`. Disposable PostgreSQL acceptance applies/replays both migrations and exercises all five source writes, retries, failure audit, and location scope. External callers remain a persistent-rollout gate. | [Disposable apply/replay and climate worker checks](builds/2026-11-01-recovery/climate-worker-716-disposable.json) |
 | Migration 715 — private location-write receipts | Revokes `PUBLIC`, `kokonut_runtime`, and `kokonut_directus_runtime` table and residual column privileges on 23 audited idempotency receipts while preserving mapped function-owner column grants. Runtime provisioning keeps the relations private. The migration changes no business function or retry behavior; external receipt consumers still require review before persistent rollout. | [Disposable apply/replay and ACL checks](builds/2026-11-01-recovery/runtime-private-location-write-receipts-715-disposable.json) |
 | CI #1033 runtime inventory repair | Regenerated the source inventory after a receipt-list insertion shifted line-based SQL call-site IDs. The inventory and unresolved-write ledger now pass locally; this does not establish ACL coverage or close C1. | [CI diagnosis and repair evidence](builds/2026-11-01-recovery/ci-1033-runtime-sql-inventory-repair.json) |
 | Migration 711 — energy-reading capture | Adds a signed, exact-location Gateway capture with idempotent receipts and private audit reason; retains `recorded` lifecycle; revokes runtime table/column DML while preserving SELECT and the existing Directus/maintenance write boundary. The legacy direct writer now fails closed before DB access. | [Disposable apply/replay and authorization checks](builds/2026-10-31-recovery/energy-reading-capture-711-disposable.json) |
@@ -207,8 +208,9 @@ changed. Broader caller reconciliation, external importer ownership, Directus
 API parity, tenant/RLS, populated-data parity, and reviewed persistent rollout
 remain open. Migration 712 did not rerun the two-tenant operator-scope probe or
 refresh the C1 source/ACL aggregate; that evidence remains at migration 711.
-Migrations 714 and 715's focused receipt checks do not extend Standard recovery
-profile evidence. The C1 source/ACL aggregate remains at migration 711.
+Migrations 714 and 715's focused receipt checks and migration 716's climate
+function check do not extend Standard recovery profile evidence. The C1
+source/ACL aggregate remains at migration 711.
 
 ## Human and operational gates
 

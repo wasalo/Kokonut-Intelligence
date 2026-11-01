@@ -4719,3 +4719,20 @@ The separate source/ACL aggregate remains through migration 711, broad C1 and
 RLS remain open, and the migration has not been applied to candidate, legacy,
 or production databases. See [batch evidence](batches.md) and
 [CI/acceptance evidence](builds/2026-11-01-recovery/ci-1033-runtime-sql-inventory-repair.json).
+
+### C1 continuation — retire legacy climate v1 execution grant — 1 November 2026
+
+- [x] Add migration 716 to revoke application-role execution of the unused
+  climate v1 writer while keeping its historical function definition and the
+  signed v2 worker path.
+- [x] Pass 44 climate/worker-map tests and disposable PostgreSQL 16 apply,
+  replay, role/ACL, all-five-source write, retry, audit-parity, failure, and
+  tenant-scope checks.
+- [ ] Confirm external SQL callers and older deployed binaries do not invoke
+  v1 before persistent rollout; repository search alone cannot answer this.
+- [ ] Include this migration in the next reviewed commit/push after CI #1034
+  finishes validating the preceding pushed inventory repair.
+
+No capability classification changes. The C1 aggregate remains through
+migration 711; candidate, legacy, and production databases/roles are untouched
+([acceptance](builds/2026-11-01-recovery/climate-worker-716-disposable.json)).

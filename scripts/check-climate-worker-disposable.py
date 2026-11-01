@@ -25,7 +25,8 @@ MIGRATION_ACL = ROOT / "schemas/postgres/419_private_worker_context_functions.sq
 MIGRATION_IDEMPOTENCY = ROOT / "schemas/postgres/428_climate_summary_idempotency.sql"
 MIGRATION_CLIMATE = ROOT / "schemas/postgres/429_signed_climate_worker.sql"
 MIGRATION_AUDIT_PARITY = ROOT / "schemas/postgres/713_signed_climate_summary_audit_parity.sql"
-DEFAULT_OUTPUT = ROOT / "docs/refactor/builds/2026-10-31-recovery/climate-worker-713-disposable.json"
+MIGRATION_V1_RETIREMENT = ROOT / "schemas/postgres/716_retire_climate_summary_v1_worker_grant.sql"
+DEFAULT_OUTPUT = ROOT / "docs/refactor/builds/2026-11-01-recovery/climate-worker-716-disposable.json"
 
 WORKER_ID = "a0000000-0000-0000-0000-000000000951"
 TENANT_ID = "a0000000-0000-0000-0000-000000000801"
@@ -233,7 +234,40 @@ def main() -> int:
         audit_migration = MIGRATION_AUDIT_PARITY.read_text(encoding="utf-8")
         docker_sql(docker, container, audit_migration)
         docker_sql(docker, container, audit_migration)
-        checks.append("migrations 405, 419, 428, 429, and 713 apply in order; migrations 429 and 713 replay cleanly")
+        docker_sql(
+            docker,
+            container,
+            """
+            CREATE ROLE kokonut_directus_runtime NOLOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE;
+            GRANT EXECUTE ON FUNCTION kokonut_security.store_climate_summary(
+                UUID, TEXT, JSONB, INTEGER, TEXT
+            ) TO kokonut_directus_runtime;
+            DO $$
+            BEGIN
+                IF NOT has_function_privilege(
+                    'kokonut_worker_execution',
+                    'kokonut_security.store_climate_summary(uuid,text,jsonb,integer,text)',
+                    'EXECUTE'
+                ) OR NOT has_function_privilege(
+                    'kokonut_directus_runtime',
+                    'kokonut_security.store_climate_summary(uuid,text,jsonb,integer,text)',
+                    'EXECUTE'
+                ) THEN
+                    RAISE EXCEPTION 'legacy climate execute grants were not present before retirement';
+                END IF;
+            END;
+            $$;
+            """,
+        )
+        retirement_migration = MIGRATION_V1_RETIREMENT.read_text(encoding="utf-8")
+        docker_sql(docker, container, retirement_migration)
+        docker_sql(docker, container, retirement_migration)
+        checks.append(
+            "migrations 405, 419, 428, 429, 713, and 716 apply in order; legacy and retirement migrations replay cleanly"
+        )
+        checks.append(
+            "migration 716 revokes the old v1 writer grant from worker, runtime, Directus, and PUBLIC while preserving v2"
+        )
 
         stage = "synthetic worker grants"
         docker_sql(
@@ -267,6 +301,20 @@ def main() -> int:
         port = int(port_rows[0].rsplit(":", 1)[1])
         admin = connect(port, "postgres", admin_password)
         worker = worker_connection(port)
+
+        stage = "legacy v1 function denial"
+        set_scope(worker)
+        with worker.cursor() as cursor:
+            try:
+                cursor.execute(
+                    "SELECT kokonut_security.store_climate_summary(%s::uuid, 'modis_lst', "
+                    "%s::jsonb, 1, NULL)",
+                    (LOCATION_A, json.dumps({"source_key": "modis_lst", "values": {}})),
+                )
+                raise AssertionError("worker execution role still called the retired v1 climate writer")
+            except errors.InsufficientPrivilege:
+                worker.rollback()
+        checks.append("worker login cannot call legacy v1 writer after selecting its execution role")
 
         stage = "signed location read"
         set_scope(worker)
@@ -426,6 +474,10 @@ def main() -> int:
                            'kokonut_security.store_climate_summary_v2(uuid,text,jsonb,text,integer,text)', 'EXECUTE'),
                        has_function_privilege('kokonut_worker_execution',
                            'kokonut_security.store_climate_summary_v2(uuid,text,jsonb,text,integer,text)', 'EXECUTE'),
+                       has_function_privilege('kokonut_worker_execution',
+                           'kokonut_security.store_climate_summary(uuid,text,jsonb,integer,text)', 'EXECUTE'),
+                       has_function_privilege('kokonut_directus_runtime',
+                           'kokonut_security.store_climate_summary(uuid,text,jsonb,integer,text)', 'EXECUTE'),
                        has_table_privilege('kokonut_runtime', 'public.worldclim_climate', 'INSERT'),
                        has_table_privilege('kokonut_runtime', 'public.ncep_weather_summary', 'UPDATE'),
                        has_table_privilege('kokonut_runtime', 'public.modis_lst_summary', 'DELETE'),
@@ -434,13 +486,44 @@ def main() -> int:
             """)
             privileges = cursor.fetchone()
         admin.commit()
-        if privileges != (False, False, False, True, False, False, False, False, False):
+        if privileges != (False, False, False, True, False, False, False, False, False, False, False):
             raise AssertionError(f"climate worker privilege boundary is unexpected: {privileges}")
-        checks.append("only the non-login worker execution role can call v2; runtime climate DML stays denied")
+        checks.append(
+            "v2 remains executable by worker execution while v1 is denied to worker and Directus; runtime climate DML stays denied"
+        )
+        with admin.cursor() as cursor:
+            cursor.execute("""
+                SELECT EXISTS (
+                    SELECT 1
+                      FROM pg_catalog.pg_proc AS procedure
+                      CROSS JOIN LATERAL pg_catalog.aclexplode(
+                          COALESCE(
+                              procedure.proacl,
+                              pg_catalog.acldefault('f', procedure.proowner)
+                          )
+                      ) AS privilege
+                     WHERE procedure.oid =
+                           'kokonut_security.store_climate_summary(uuid,text,jsonb,integer,text)'::regprocedure
+                       AND privilege.grantee = 0
+                       AND privilege.privilege_type = 'EXECUTE'
+                ),
+                has_function_privilege(
+                    'kokonut_climate_owner',
+                    'kokonut_security.store_climate_summary(uuid,text,jsonb,integer,text)',
+                    'EXECUTE'
+                )
+            """)
+            public_and_owner = cursor.fetchone()
+        admin.commit()
+        if public_and_owner != (False, True):
+            raise AssertionError(
+                f"legacy function PUBLIC/owner privileges are unexpected: {public_and_owner}"
+            )
+        checks.append("PUBLIC cannot execute legacy v1 while its bounded NOLOGIN owner retains ownership execution")
 
         output.parent.mkdir(parents=True, exist_ok=True)
         output.write_text(
-            json.dumps({"migration": MIGRATION_AUDIT_PARITY.name, "checks": checks}, indent=2) + "\n",
+            json.dumps({"migration": MIGRATION_V1_RETIREMENT.name, "checks": checks}, indent=2) + "\n",
             encoding="utf-8",
         )
         print(json.dumps({"status": "passed", "checks": checks, "evidence": str(output)}, indent=2))

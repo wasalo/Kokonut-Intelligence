@@ -7,6 +7,7 @@ WORLDCLIM_SCHEMA = Path("schemas/postgres/074_dsm_soc_prediction.sql")
 WORLDCLIM_KEY_MIGRATION = Path("schemas/postgres/397_worldclim_location_baseline_key.sql")
 CLIMATE_KEY_MIGRATION = Path("schemas/postgres/428_climate_summary_idempotency.sql")
 SIGNED_CLIMATE_MIGRATION = Path("schemas/postgres/713_signed_climate_summary_audit_parity.sql")
+CLIMATE_V1_RETIREMENT_MIGRATION = Path("schemas/postgres/716_retire_climate_summary_v1_worker_grant.sql")
 
 
 def test_schema_file_exists() -> None:
@@ -162,6 +163,19 @@ def test_signed_climate_migration_preserves_audit_hash_and_runtime_read_boundary
     ):
         assert table in migration
     assert "GRANT EXECUTE ON FUNCTION kokonut_security.store_climate_summary_v2" in migration
+
+
+def test_legacy_climate_writer_is_unavailable_to_application_roles() -> None:
+    migration = CLIMATE_V1_RETIREMENT_MIGRATION.read_text()
+
+    assert migration.count("BEGIN;") == 1
+    assert migration.count("COMMIT;") == 1
+    assert "store_climate_summary_v2" in migration
+    assert "REVOKE ALL ON FUNCTION kokonut_security.store_climate_summary(" in migration
+    assert "FROM PUBLIC, kokonut_worker_execution, kokonut_runtime" in migration
+    assert "kokonut_directus_runtime" in migration
+    assert "FROM kokonut_directus_runtime" in migration
+    assert "REVOKE ALL ON FUNCTION kokonut_security.store_climate_summary_v2" not in migration
 
 
 def test_worldclim_baseline_migration_refuses_unreviewed_duplicate_rows() -> None:

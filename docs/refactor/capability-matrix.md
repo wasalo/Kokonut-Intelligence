@@ -1,6 +1,17 @@
 # Capability preservation matrix
 
-**Latest C1/CI continuation — 1 November 2026:** Migration 715 makes the 23
+**Latest C1 continuation — 1 November 2026:** Migration 716 retains the legacy
+climate v1 function definition while revoking its application-role execution
+grants; the current worker remains on signed v2. Disposable PostgreSQL 16
+apply/replay and behavior checks pass, including all five source writes,
+retries, location scope, and audit parity; 44 focused climate/worker-map tests
+pass. No capability is promoted and the matrix remains 24 baseline-retained,
+7 deployed, and 36 prepared across 67 rows. External SQL callers and old
+binaries have not been inventoried, so persistent rollout remains gated. This
+local change is not part of the hosted run currently validating commit
+`3854d818` ([migration 716 acceptance](builds/2026-11-01-recovery/climate-worker-716-disposable.json)).
+
+**Previous C1/CI continuation — migration 715 and inventory repair — 1 November 2026:** Migration 715 makes the 23
 audited location-write idempotency receipts private from `PUBLIC`, runtime,
 and Directus table/column access while preserving the mapped bounded function
 owners. Its disposable PostgreSQL 16 apply/replay and provisioner-reapplication

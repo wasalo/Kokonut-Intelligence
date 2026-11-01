@@ -25706,3 +25706,25 @@ repair nor #1029 establishes its cause. The C1 ACL aggregate remains through
 migration 711, and no candidate, legacy, or production database/role was
 changed ([CI diagnosis](builds/2026-11-01-recovery/ci-1033-runtime-sql-inventory-repair.json);
 [migration 715 acceptance](builds/2026-11-01-recovery/runtime-private-location-write-receipts-715-disposable.json)).
+
+### Progress addendum — climate v1 grant retirement — 1 November 2026
+
+Migration 716 preserves the historical
+`kokonut_security.store_climate_summary` function but revokes execution from
+`PUBLIC`, `kokonut_runtime`, `kokonut_worker_execution`, and
+`kokonut_directus_runtime` when that optional role exists. The active signed
+climate worker continues through the v2 function from migration 713. Disposable
+PostgreSQL 16 apply/replay verifies the former worker and synthetic Directus
+grants existed before revocation, the v1 function is unavailable after the
+migration, the NOLOGIN function owner retains execution, and v2 remains
+available. It exercises all five source payloads, same-date retries, legacy
+audit hash/timing parity, failure audit, and cross-location denial. The 44
+focused climate/worker-map tests, Ruff, and Python compilation pass.
+
+No application callsite for v1 remains in this repository, but external SQL
+callers and older deployed binaries are not inventoried. Persistent rollout is
+gated on reviewing those consumers. This local change is not included in the
+currently running CI #1034 for `3854d818`; it will be batched after that result.
+The C1 aggregate ACL report remains through migration 711. Candidate, legacy,
+and production state was not accessed or changed
+([acceptance](builds/2026-11-01-recovery/climate-worker-716-disposable.json)).

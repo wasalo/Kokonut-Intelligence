@@ -297,6 +297,7 @@
         "schemas/postgres/428_climate_summary_idempotency.sql",
         "schemas/postgres/429_signed_climate_worker.sql",
         "schemas/postgres/713_signed_climate_summary_audit_parity.sql",
+      "schemas/postgres/716_retire_climate_summary_v1_worker_grant.sql",
         "scripts/check-climate-worker-disposable.py",
         "tests/fixtures/climate_worker_disposable.sql",
         "tests/test_climate_worker.py"

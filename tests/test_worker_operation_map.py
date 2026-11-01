@@ -455,6 +455,7 @@ def test_climate_worker_map_names_current_schema_and_provider_effects():
     assert "schemas/postgres/397_worldclim_location_baseline_key.sql" in climate["sources"]
     assert "schemas/postgres/428_climate_summary_idempotency.sql" in climate["sources"]
     assert "schemas/postgres/713_signed_climate_summary_audit_parity.sql" in worker["sources"]
+    assert "schemas/postgres/716_retire_climate_summary_v1_worker_grant.sql" in worker["sources"]
     assert "same-day provider retries upsert" in worker["idempotency"]
     assert "processing_time_ms" in worker["idempotency"]
     assert "aggregate result keys remain" in climate["retry_boundary"]

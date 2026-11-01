@@ -24,6 +24,29 @@ incomplete in the inventory.
 
 ## Current evidence and decisions
 
+### Latest C1 continuation — migration 716 climate function boundary — 1 November 2026
+
+Migration 716 retains `kokonut_security.store_climate_summary` for historical
+compatibility but revokes its execution from `kokonut_worker_execution`,
+`kokonut_runtime`, `PUBLIC`, and the optional Directus role when present. The
+current climate worker calls only the signed, audit-compatible v2 function
+introduced in migration 713. Disposable PostgreSQL 16 applies/replays 405,
+419, 428, 429, 713, and 716; it verifies v1 denial after selecting the worker
+role, v2 operation for all five climate sources, legacy audit-hash/timing
+parity, retries, failure audits, and location scope. The 44 focused climate
+and worker-map tests pass; Ruff and Python compilation pass
+([migration](../../schemas/postgres/716_retire_climate_summary_v1_worker_grant.sql);
+[checker](../../scripts/check-climate-worker-disposable.py);
+[evidence](builds/2026-11-01-recovery/climate-worker-716-disposable.json)).
+
+This is source/disposable acceptance only. Repository search found no v1
+application callsite, but external SQL callers and older deployed binaries are
+not inventoried. Keep persistent rollout gated until those callers are checked.
+CI #1034 is still validating pushed commit `3854d818` (the preceding inventory
+repair and migration 715); migration 716 is local work not included in that
+run. The C1 ACL aggregate remains through migration 711, and no candidate,
+legacy, or production database/role was changed.
+
 ### Latest C1/CI continuation — migration 715 and inventory repair — 1 November 2026
 
 Migration 715 revokes `PUBLIC`, `kokonut_runtime`, and

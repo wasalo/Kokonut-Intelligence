@@ -9991,3 +9991,27 @@ This closes the known #1033 freshness failure locally; it does not prove the
 unknown #1014 failure was repaired or close C1/RLS. The aggregate ACL report is
 still through migration 711. No candidate, legacy, or production database or
 role was accessed or changed ([diagnosis](builds/2026-11-01-recovery/ci-1033-runtime-sql-inventory-repair.json)).
+
+### C1 continuation — retire the unused climate v1 grant — 1 November 2026
+
+- [x] Confirm repository callers use `store_climate_summary_v2`; preserve the
+  legacy v1 function definition while removing execution from application
+  roles with forward migration 716.
+- [x] Keep the Directus revoke conditional because Directus is optional, and
+  preserve the NOLOGIN climate function owner's ability to execute its owned
+  function.
+- [x] Extend the disposable climate worker acceptance to prove the old worker
+  grant existed before migration 716, migration replay revokes it from worker,
+  runtime, Directus, and PUBLIC, and v2 still accepts signed writes for all
+  five sources with existing audit/retry/location behavior
+  ([acceptance](builds/2026-11-01-recovery/climate-worker-716-disposable.json)).
+- [x] Pass 44 focused climate and worker-operation-map tests, Ruff, and Python
+  compilation.
+- [ ] Check for external SQL callers and older deployed binaries before any
+  persistent rollout. The repository audit cannot establish their absence.
+- [ ] Wait for CI #1034 on pushed commit `3854d818` to finish before pushing
+  this follow-up batch.
+
+The change is local and not part of CI #1034. No candidate, legacy, or
+production database or role was accessed or changed. It does not refresh the
+C1 aggregate ACL report or close broad C1/RLS.

@@ -1,0 +1,18 @@
+{
+  "migration": "716_retire_climate_summary_v1_worker_grant.sql",
+  "checks": [
+    "migrations 405, 419, 428, 429, 713, and 716 apply in order; legacy and retirement migrations replay cleanly",
+    "migration 716 revokes the old v1 writer grant from worker, runtime, Directus, and PUBLIC while preserving v2",
+    "worker login cannot call legacy v1 writer after selecting its execution role",
+    "signed location lookup supports plot-only, coordinate-fallback, and empty geometry scopes",
+    "worker login has no direct climate-table access despite forced RLS",
+    "all five whitelisted source summaries and ingestion audit rows commit through the v2 bounded function",
+    "v2 audit hashes match the legacy serialized payload; legacy success timing remains zero and elapsed duration is separate",
+    "same-date/source retries upsert one location-level climate record",
+    "source payload field allowlists reject unapproved data columns",
+    "bounded climate writes reject cross-location IDs",
+    "provider failures create scoped audit rows without writing summaries",
+    "v2 remains executable by worker execution while v1 is denied to worker and Directus; runtime climate DML stays denied",
+    "PUBLIC cannot execute legacy v1 while its bounded NOLOGIN owner retains ownership execution"
+  ]
+}
