@@ -18,8 +18,8 @@ from typing import Callable
 
 from services.common.logging import get_logger
 from services.common.worker_environment import (
-    EVENT_HANDLER_WORKER_KEYS,
     SCHEDULED_WORKER_KEYS,
+    event_dispatch_worker_keys,
     worker_subprocess_environment,
 )
 
@@ -186,18 +186,6 @@ def run(port: int = 8099, with_workers: bool = False, shutdown_seconds: float = 
         for name, argv in child_commands:
             if stopping:
                 break
-            worker_key = {
-                "scheduler": "scheduler",
-                "events": "event_bus",
-                "notifications": "notification_enqueue",
-            }.get(name)
-            allowed_worker_keys = (
-                ("scheduler", *SCHEDULED_WORKER_KEYS)
-                if name == "scheduler"
-                else ("event_bus", *EVENT_HANDLER_WORKER_KEYS)
-                if name == "events"
-                else (worker_key,) if worker_key is not None else ()
-            )
             isolated_event_dispatch = (
                 name == "events" and "--isolated-event-worker" in argv
             )
@@ -205,14 +193,31 @@ def run(port: int = 8099, with_workers: bool = False, shutdown_seconds: float = 
                 name == "notifications" and "--isolated-notification-worker" in argv
             )
             if isolated_event_dispatch:
-                allowed_worker_keys = ("event_dispatch", *EVENT_HANDLER_WORKER_KEYS)
+                environment_options = {
+                    "allowed_worker_keys": event_dispatch_worker_keys(),
+                    "isolated_worker_key": "event_dispatch",
+                }
             elif isolated_notification_delivery:
-                allowed_worker_keys = ("notification_delivery",)
-            environment_options = {"allowed_worker_keys": allowed_worker_keys}
-            if isolated_event_dispatch:
-                environment_options["isolated_worker_key"] = "event_dispatch"
-            elif isolated_notification_delivery:
-                environment_options["isolated_worker_key"] = "notification_delivery"
+                environment_options = {
+                    "allowed_worker_keys": ("notification_delivery",),
+                    "isolated_worker_key": "notification_delivery",
+                }
+            elif name == "scheduler":
+                environment_options = {
+                    "allowed_worker_keys": (
+                        "scheduler",
+                        *SCHEDULED_WORKER_KEYS,
+                        *event_dispatch_worker_keys(),
+                    ),
+                }
+            else:
+                # Default-off event and notification workers remain supervised
+                # but carry no database credentials until their dedicated
+                # login and feature flag are configured.
+                environment_options = {
+                    "allowed_worker_keys": (),
+                    "strip_shared_database_credentials": True,
+                }
             process = subprocess.Popen(
                 argv,
                 start_new_session=True,

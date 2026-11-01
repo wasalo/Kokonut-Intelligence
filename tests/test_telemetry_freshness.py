@@ -2,7 +2,7 @@
 
 from datetime import datetime, timezone
 from pathlib import Path
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, Mock
 
 import pytest
 
@@ -47,9 +47,9 @@ def test_freshness_alert_durability_migration() -> None:
 
 
 def test_freshness_uses_durable_event_notifications() -> None:
-    content = Path("services/ingestion/data_freshness.py").read_text()
-    assert "_publish_alert_event" in content
-    assert "_send_alert" not in content
+    content = Path("services/ingestion/freshness_worker.py").read_text()
+    assert "enqueue_freshness_event" in content
+    assert "INSERT INTO public.data_freshness" not in content
     migration = Path("schemas/postgres/297_event_handler_registration_fix.sql").read_text()
     assert "services.events.handlers" in migration
     assert "handle_stale_data" in migration
@@ -157,21 +157,17 @@ def test_failed_freshness_read_preserves_prior_alert_state(monkeypatch) -> None:
         "last_event_at": datetime.now(timezone.utc),
     }
     connection = Connection()
-    monkeypatch.setattr(
-        "services.ingestion.data_freshness._query_freshness_configs", lambda _conn, _source=None: [config]
+    persistence = Mock()
+    persistence.list_configs.return_value = [config]
+    persistence.latest_data_at.side_effect = RuntimeError(
+        "database URL contained token=freshness-secret"
     )
+    persistence.insert_check.return_value = "check-id"
+    persistence.lock_alert_state.return_value = prior_state
     logger = MagicMock()
-    monkeypatch.setattr(
-        "services.ingestion.data_freshness._query_latest_data_at",
-        lambda *_args: (_ for _ in ()).throw(
-            RuntimeError("database URL contained token=freshness-secret")
-        ),
-    )
-    monkeypatch.setattr("services.ingestion.data_freshness._insert_check_result", lambda *_args: "check-id")
-    monkeypatch.setattr("services.ingestion.data_freshness._alert_state", lambda *_args: prior_state)
     monkeypatch.setattr("services.ingestion.data_freshness.logger", logger)
 
-    result = check_freshness(connection)
+    result = check_freshness(connection, persistence=persistence)
 
     assert result["error"] == 1
     assert result["results"][0]["status"] == "error"
@@ -179,7 +175,7 @@ def test_failed_freshness_read_preserves_prior_alert_state(monkeypatch) -> None:
     assert "freshness-secret" not in str(result)
     assert "freshness-secret" not in str(logger.error.call_args)
     assert prior_state["current_status"] == "stale"
-    assert not any("UPDATE data_freshness_alert_state SET current_status" in sql for sql in connection.statements)
+    persistence.update_alert_state.assert_not_called()
     assert "ROLLBACK TO SAVEPOINT freshness_scope" in connection.statements
     assert connection.commits == 1
 
@@ -265,80 +261,48 @@ def test_freshness_threshold_validation() -> None:
             raise AssertionError("invalid freshness thresholds were accepted")
 
 
-def test_scoped_freshness_query_requires_location() -> None:
-    from services.ingestion.data_freshness import _query_latest_data_at
+def test_freshness_worker_adapter_binds_source_scope_through_migration_function():
+    from services.ingestion.freshness_worker import FreshnessPersistence
 
-    try:
-        _query_latest_data_at(None, "remote_sensing", True)
-    except ValueError:
-        pass
-    else:
-        raise AssertionError("scoped freshness query did not require a location")
+    class Cursor:
+        def __init__(self):
+            self.statement = None
+            self.parameters = None
+            self.closed = False
 
+        def __enter__(self):
+            return self
 
-class _FreshnessQueryCursor:
-    def __init__(self) -> None:
-        self.statement = None
-        self.parameters = None
+        def __exit__(self, *_args):
+            self.close()
 
-    def execute(self, statement, parameters=None) -> None:
-        self.statement = statement
-        self.parameters = parameters
+        def execute(self, statement, parameters=None):
+            self.statement = statement
+            self.parameters = parameters
 
-    def fetchone(self):
-        return {"last_at": None}
+        def fetchone(self):
+            return (None,)
 
-    def close(self) -> None:
-        pass
+        def close(self):
+            self.closed = True
 
+    class Connection:
+        def __init__(self):
+            self.query_cursor = Cursor()
 
-class _FreshnessQueryConnection:
-    def __init__(self) -> None:
-        self.query_cursor = _FreshnessQueryCursor()
+        def cursor(self, **_kwargs):
+            return self.query_cursor
 
-    def cursor(self, **_kwargs):
-        return self.query_cursor
-
-
-def test_freshness_query_uses_fixed_table_and_column_identifiers() -> None:
-    from services.ingestion.data_freshness import (
-        FRESHNESS_SOURCE_TABLES,
-        FRESHNESS_TABLE_TIMESTAMP_COLUMNS,
-        _query_latest_data_at,
-    )
-
-    assert set(FRESHNESS_SOURCE_TABLES.values()) == set(FRESHNESS_TABLE_TIMESTAMP_COLUMNS)
-    connection = _FreshnessQueryConnection()
-    _query_latest_data_at(connection, "weather", True, "location-id")
+    connection = Connection()
+    assert FreshnessPersistence(connection).latest_data_at(
+        "weather", True, "location-id"
+    ) is None
 
     assert connection.query_cursor.statement == (
-        "SELECT MAX(observation_date) AS last_at FROM weather_observation WHERE location_id = %s"
+        "SELECT kokonut_security.read_freshness_data_at(%s, %s, %s)"
     )
-    assert connection.query_cursor.parameters == ["location-id"]
-
-
-def test_sensor_freshness_query_binds_location_value() -> None:
-    from services.ingestion.data_freshness import _query_latest_data_at
-
-    connection = _FreshnessQueryConnection()
-    _query_latest_data_at(connection, "sensors", True, "location-id")
-
-    assert connection.query_cursor.statement == (
-        "SELECT MAX(sr.created_at) AS last_at FROM sensor_reading sr "
-        "JOIN sensor_device sd ON sd.id = sr.sensor_id WHERE sd.location_id = %s"
-    )
-    assert connection.query_cursor.parameters == ["location-id"]
-
-
-def test_unsupported_freshness_source_fails_as_configuration_error() -> None:
-    from services.ingestion.data_freshness import _query_latest_data_at
-
-    try:
-        _query_latest_data_at(None, "unconfigured_source", False)
-    except ValueError as exc:
-        assert str(exc) == "unsupported freshness source: unconfigured_source"
-    else:
-        raise AssertionError("unsupported freshness source was reported as no data")
+    assert connection.query_cursor.parameters == ("weather", True, "location-id")
+    assert connection.query_cursor.closed
 
 
 def test_freshness_config_defaults() -> None:

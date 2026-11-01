@@ -304,22 +304,28 @@ def test_projection_job_is_scheduler_allowed_but_restricted_to_one_delivery_batc
     )
 
 
-def test_legacy_projection_schedules_remain_allowlisted_and_isolated_path_is_default_off():
-    from services.core.jobs import _LEGACY_PROJECTIONS
-
-    assert _LEGACY_PROJECTIONS.module == "services.ingestion.clickhouse_outbox"
-    assert _LEGACY_PROJECTIONS.scheduler_allowed
-    assert validate_scheduled_command(
-        _LEGACY_PROJECTIONS.module, list(_LEGACY_PROJECTIONS.arguments)
-    ) == ("--run-once", "--limit", "100")
-
-    with patch("services.core.jobs.is_enabled", return_value=False), patch(
-        "services.core.jobs.subprocess.run",
-        return_value=subprocess.CompletedProcess(args=[], returncode=0, stdout="ok", stderr=""),
-    ) as run:
+def test_projection_job_never_falls_back_to_legacy_shared_identity():
+    environment = {"KOKONUT_DENY_SHARED_DATABASE": "true"}
+    with (
+        patch(
+            "services.core.jobs.scheduled_module_worker_environment",
+            return_value=environment,
+        ) as env_builder,
+        patch(
+            "services.core.jobs.subprocess.run",
+            return_value=subprocess.CompletedProcess(
+                args=[], returncode=0, stdout='{"status":"paused"}', stderr=""
+            ),
+        ) as run,
+    ):
         run_job("projections")
 
-    assert run.call_args.args[0][2] == "services.ingestion.clickhouse_outbox"
+    assert run.call_args.args[0][2] == "services.ingestion.clickhouse_outbox_worker"
+    assert run.call_args.kwargs["env"] is environment
+    env_builder.assert_called_once_with(
+        "services.ingestion.clickhouse_outbox_worker",
+        ["--run-once", "--worker-id", "kernel-projections", "--limit", "100"],
+    )
 
 
 @pytest.mark.parametrize(
@@ -376,7 +382,7 @@ def test_weather_forecast_dispatch_forwards_only_its_exact_worker_credentials():
     }
     with (
         patch("services.core.jobs.subprocess.run", return_value=completed) as run,
-        patch("services.core.jobs.worker_subprocess_environment", return_value=environment) as child_environment,
+        patch("services.core.jobs.scheduled_module_worker_environment", return_value=environment) as child_environment,
     ):
         result = run_job("weather_forecast", location_id=location_id)
 
@@ -390,8 +396,8 @@ def test_weather_forecast_dispatch_forwards_only_its_exact_worker_credentials():
     ]
     assert run.call_args.kwargs["env"] is environment
     child_environment.assert_called_once_with(
-        allowed_worker_keys=("weather_forecast",),
-        isolated_database_credentials=True,
+        "services.ingestion.weather_forecast_worker",
+        ["--location-id", location_id],
     )
 
 
@@ -583,7 +589,7 @@ def test_run_now_passes_filtered_environment_to_task_child():
     with (
         patch("services.common.database.get_db", return_value=connection),
         patch("subprocess.run", return_value=completed) as run,
-        patch("services.scheduler.cli.worker_subprocess_environment", return_value=child_env),
+        patch("services.scheduler.cli.scheduled_module_worker_environment", return_value=child_env),
     ):
         result = cmd_run_now(Namespace(task_name="metrics"))
 
@@ -615,13 +621,13 @@ def test_run_now_forwards_noi_worker_secrets_only_to_signed_module():
     with (
         patch("services.common.database.get_db", return_value=connection),
         patch("subprocess.run", return_value=completed) as run,
-        patch("services.scheduler.cli.worker_subprocess_environment", return_value=child_env) as env_builder,
+        patch("services.scheduler.cli.scheduled_module_worker_environment", return_value=child_env) as env_builder,
     ):
         result = cmd_run_now(Namespace(task_name="noi_snapshots"))
 
     assert result == 0
     env_builder.assert_called_once_with(
-        allowed_worker_keys=("noi_snapshot",), isolated_database_credentials=True
+        "services.metrics.noi_snapshot_worker", ("--location-id", location_id)
     )
     assert run.call_args.kwargs["env"] is child_env
     connection.close.assert_called_once()
@@ -670,7 +676,7 @@ def test_noi_snapshot_job_requires_location_before_dispatch():
     assert job.required_inputs == ("location_id",)
     with (
         patch("services.core.jobs.subprocess.run") as run,
-        patch("services.core.jobs.worker_subprocess_environment") as child_environment,
+        patch("services.core.jobs.scheduled_module_worker_environment") as child_environment,
     ):
         with pytest.raises(ValueError, match="requires a location"):
             run_job("noi_snapshots")
@@ -682,7 +688,7 @@ def test_noi_snapshot_job_requires_location_before_dispatch():
     environment = {"KOKONUT_NOI_SNAPSHOT_WORKER_CREDENTIAL": "synthetic"}
     with (
         patch("services.core.jobs.subprocess.run", return_value=completed) as run,
-        patch("services.core.jobs.worker_subprocess_environment", return_value=environment) as child_environment,
+        patch("services.core.jobs.scheduled_module_worker_environment", return_value=environment) as child_environment,
     ):
         result = run_job("noi_snapshots", location_id=location_id)
 
@@ -696,7 +702,7 @@ def test_noi_snapshot_job_requires_location_before_dispatch():
     ]
     assert run.call_args.kwargs["env"] is environment
     child_environment.assert_called_once_with(
-        allowed_worker_keys=("noi_snapshot",), isolated_database_credentials=True
+        "services.metrics.noi_snapshot_worker", ["--location-id", location_id]
     )
 
 
@@ -707,7 +713,7 @@ def test_sensor_job_dispatch_passes_only_registered_instance_and_location():
     completed = MagicMock(returncode=0, stdout='{"records_written": 1}')
     with (
         patch("services.core.jobs.subprocess.run", return_value=completed) as run,
-        patch("services.core.jobs.worker_subprocess_environment", return_value=environment) as child_environment,
+        patch("services.core.jobs.scheduled_module_worker_environment", return_value=environment) as child_environment,
     ):
         result = run_job(
             "sensors",
@@ -727,6 +733,6 @@ def test_sensor_job_dispatch_passes_only_registered_instance_and_location():
     ]
     assert run.call_args.kwargs["env"] is environment
     child_environment.assert_called_once_with(
-        allowed_worker_keys=("sensor_ingestion",),
-        isolated_database_credentials=True,
+        "services.ingestion.sensor_worker",
+        ["--location-id", location_id, "--driver-instance-id", driver_instance_id],
     )

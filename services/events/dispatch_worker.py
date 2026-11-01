@@ -2,10 +2,12 @@
 
 from __future__ import annotations
 
+import argparse
 import json
 import re
 from typing import Any
 
+from services.common.cli import print_json
 from services.common.worker_database import get_worker_db
 from services.common.worker_environment import isolated_worker_key
 from services.core.features import require_feature
@@ -165,3 +167,21 @@ def run_once(
         return bus.process_pending(batch_size, worker_id)
     finally:
         connection.close()
+
+
+def main(argv: list[str] | None = None) -> None:
+    """Run one bounded dispatch batch from a filtered CLI child process."""
+    parser = argparse.ArgumentParser(description="Isolated durable EventBus dispatcher")
+    parser.add_argument("--run-once", action="store_true", required=True)
+    parser.add_argument("--worker-id", default="event-kernel-worker")
+    parser.add_argument("--batch-size", type=int, default=100)
+    parser.add_argument("--lease-seconds", type=int, default=300)
+    args = parser.parse_args(argv)
+    result = run_once(args.worker_id, args.batch_size, args.lease_seconds)
+    print_json(result)
+    if result["failed"] or result["lease_lost"]:
+        raise SystemExit(1)
+
+
+if __name__ == "__main__":
+    main()

@@ -1217,7 +1217,7 @@ def _dynamic_registry_source_files(operation: dict) -> list[str]:
     return sorted(files)
 
 
-def _operation_graph(operation: dict) -> dict:
+def _operation_graph(operation: dict, *, entry_functions: list[dict] | None = None) -> dict:
     source_files = sorted(set(operation["source_files"]) | set(_dynamic_registry_source_files(operation)))
     trees, modules_by_source = _collect_modules(source_files)
     known_modules = set(trees)
@@ -1235,7 +1235,11 @@ def _operation_graph(operation: dict) -> dict:
         visitor.visit(trees[module])
         contexts[module] = visitor
 
-    roots = _operation_roots(operation, modules_by_source, trees, contexts, definitions)
+    roots = (
+        entry_functions
+        if entry_functions is not None
+        else _operation_roots(operation, modules_by_source, trees, contexts, definitions)
+    )
     registered_edges = _registered_metric_calculators(modules_by_source, trees, contexts, definitions)
     registered_edges.extend(
         _scheduled_sensor_driver_dispatches(operation, definitions, classes, contexts)

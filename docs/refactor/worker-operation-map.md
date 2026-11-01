@@ -1,13 +1,18 @@
 # Kernel worker operation map
 
-**Reviewed:** 28 October 2026 (source-contract counts refreshed)
+**Reviewed:** 1 November 2026 (isolated event/freshness/outbox source paths)
 
 **Status:** entrypoint inventory, scheduler argument contracts, static
 local-import closure, signed worker identity primitive, and transaction-bound
 Python adapter are implemented. Source integration now exists for the sensor
 anomaly handler, all four registered cache invalidation handlers, and the two
-global notification enqueue handlers. Signed cache invalidation, isolated notification enqueue, and isolated delivery
-remain opt-in. Migrations 418–419 and the runtime-role
+global notification enqueue handlers. Signed cache invalidation, isolated
+notification enqueue, event dispatch, notification delivery, freshness, and
+ClickHouse outbox delivery remain opt-in. Isolated event and notification
+workers now fail closed without shared-runtime fallbacks; migration 723 removes
+shared-role DML from their reviewed receipt/state tables while preserving read
+access. Disposable migration and worker checks remain required before the
+source batch is accepted. Migrations 418–419 and the runtime-role
 bootstrap enforce the mobile/worker ACL boundary. Default-off dedicated worker
 paths cover sensor anomaly, cache invalidation, notification enqueue and
 delivery, NOI snapshots, current weather, forecasts, climate, CSV sensor ingestion, remote
@@ -20,12 +25,13 @@ default-off global freshness worker with a dedicated identity and bounded
 functions; its disposable PostgreSQL acceptance passes, but it is not rolled
 out to the candidate. The legacy manual CLI remains available. Credentials
 and grants for live isolated workers remain unprovisioned. Candidate migration
-state is recorded in per-rollout evidence; earlier documentation that cited
-migration 433 is a historical checkpoint, not the current schema ledger. See the
+state is recorded in per-rollout evidence; use the [current state guide](current-state-and-implementation.md)
+for the latest ledger and distinguish source/disposable evidence from candidate
+rollout. See the
 [worker context contract](worker-tenant-context-contract.md).
 
 The machine-readable [operation inventory](worker-operation-map.json) covers
-the exact 32 modules in `ALLOWED_SCHEDULED_MODULES`, three isolated worker
+the exact 32 modules in `ALLOWED_SCHEDULED_MODULES`, four isolated worker
 entrypoints, seven in-process signed source-reader functions, and all seven
 pairs in `ALLOWED_EVENT_HANDLERS`. The signed source-reader functions are
 function-level roots, not new OS processes or scheduler entries. Notification
@@ -44,20 +50,24 @@ application-wide RLS or proof for other workers.
 
 ## What this establishes
 
-- Event dispatch and notification outbox sending now have separate CLI modes
-  and Kernel supervisor children; the legacy combined `--worker` mode remains
-  available. The handler child keeps service logs on stderr so its JSON result
-  stays isolated on stdout. This is process separation only, not a distinct
-  database identity.
-- Scheduler tasks and EventBus queue/receipt control still use the shared
-  runtime PostgreSQL identity. The anomaly handler and all four registered
+- Event dispatch and notification outbox sending have separate CLI modes and
+  Kernel supervisor children; the legacy combined `--worker` mode remains
+  available but uses isolated operation identities. Migration 648 bounds event
+  claims/receipts; migration 647 bounds notification delivery; migration 723
+  removes direct runtime DML from their reviewed receipt/state tables. Handler
+  logs stay on stderr while JSON remains on stdout.
+- The scheduler control plane still uses the shared runtime PostgreSQL identity.
+  Scheduled child environments receive only source-allowlisted worker
+  credentials. Event dispatch and notification delivery pause without their
+  dedicated identity and never fall back to shared DML. The anomaly handler and all four registered
   cache invalidators have exact source-controlled worker credential routing
   and dedicated connection paths; the cache path remains disabled by default.
-  The `data_stale` and `threshold_breached` handlers can opt into a distinct
-  notification-enqueue login and bounded function. That path also remains off
-  by default, with no shared-DSN fallback when enabled. No actual worker
-  credential or location grant is provisioned. Migrations through 433 have
-  been rolled out to the candidate, but the worker features remain disabled.
+  The `data_stale` and `threshold_breached` handlers require a distinct
+  notification-enqueue login and bounded function when destinations are
+  configured; missing/disabled enqueue fails closed so event delivery retries.
+  Isolated freshness and ClickHouse delivery also use dedicated bounded
+  functions. No actual worker credential or location grant is provisioned.
+  See current-state evidence before making candidate rollout claims.
 - Module-specific command schemas validate persisted `command_args` before
   schedule activation, `run-now`, generated plans, scheduler-allowlisted
   code-owned job runs, and subprocess creation.

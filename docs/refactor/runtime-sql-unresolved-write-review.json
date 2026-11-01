@@ -1,7 +1,7 @@
 {
   "version": 1,
   "scope": "Tracks direct SQL DML and conservative WITH candidates whose target relation is unresolved. Legacy entries are acknowledged inventory debt only; they do not grant or approve ACLs. New candidates require a reviewed_sites entry with reviewer, date, decision note, and reason.",
-  "legacy_fingerprint_sha256": "a3fb6759d3f4e3e580748ed2e8b07c31a04c8d8cfbf2b53a82bfb18d81621616",
+  "legacy_fingerprint_sha256": "6a008bb860b38e3ce8d8fb8b797bdf540b2851a2a255a9e3acb1af96004b2589",
   "legacy_unreviewed": [
     {
       "fingerprint": "121bdc4b3054f807d73fdec63415c04a2cd0409e41cfd1a91fe3c8aa891e550f",
@@ -63,17 +63,6 @@
       "source": "services/systems/process_control.py",
       "line": 78,
       "scope": "_fty_pct",
-      "method": "execute",
-      "statement_kind": "WITH",
-      "expression_kind": "literal",
-      "review_status": "preexisting_unreviewed",
-      "reason": "Preexisting WITH statement cannot be classified as read-only by this gate; keep tracked for manual source review. This is not an ACL approval."
-    },
-    {
-      "fingerprint": "2db205c2c10c5f5ca6bdae8e897b079d1a5f51e0776f8d0cd0811e2d72e9a08f",
-      "source": "services/ingestion/clickhouse_outbox.py",
-      "line": 179,
-      "scope": "claim_batch",
       "method": "execute",
       "statement_kind": "WITH",
       "expression_kind": "literal",
@@ -217,28 +206,6 @@
       "source": "services/ingestion/clickhouse_outbox.py",
       "line": 373,
       "scope": "_operator_transition",
-      "method": "execute",
-      "statement_kind": "WITH",
-      "expression_kind": "literal",
-      "review_status": "preexisting_unreviewed",
-      "reason": "Preexisting WITH statement cannot be classified as read-only by this gate; keep tracked for manual source review. This is not an ACL approval."
-    },
-    {
-      "fingerprint": "777edb3568a412b07026905f4056dd4edcc9b468cb2181b80b5758a622329529",
-      "source": "services/events/bus.py",
-      "line": 107,
-      "scope": "EventBus._claim",
-      "method": "execute",
-      "statement_kind": "WITH",
-      "expression_kind": "literal",
-      "review_status": "preexisting_unreviewed",
-      "reason": "Preexisting WITH statement cannot be classified as read-only by this gate; keep tracked for manual source review. This is not an ACL approval."
-    },
-    {
-      "fingerprint": "84749f5cea463fe2be521cd05eff301a0a968573b6a95553e6bc6be9dc6f56e7",
-      "source": "services/events/notification_outbox.py",
-      "line": 395,
-      "scope": "claim_batch",
       "method": "execute",
       "statement_kind": "WITH",
       "expression_kind": "literal",

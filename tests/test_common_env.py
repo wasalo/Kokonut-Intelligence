@@ -5,7 +5,10 @@ import subprocess
 import pytest
 
 from services.common import env
-from services.common.worker_environment import ISOLATED_WORKER_KEY_ENV
+from services.common.worker_environment import (
+    DENY_SHARED_DATABASE_ENV,
+    ISOLATED_WORKER_KEY_ENV,
+)
 
 
 def _reset_loader(monkeypatch, tmp_path):
@@ -15,6 +18,7 @@ def _reset_loader(monkeypatch, tmp_path):
     monkeypatch.delenv("KOKONUT_ENV_SECRETS_LOADED_BY_SCRIPT", raising=False)
     monkeypatch.delenv("KOKONUT_ENV_SECRETS_NOT_REQUIRED", raising=False)
     monkeypatch.delenv(ISOLATED_WORKER_KEY_ENV, raising=False)
+    monkeypatch.delenv(DENY_SHARED_DATABASE_ENV, raising=False)
     monkeypatch.delenv("KOKONUT_ENV", raising=False)
     monkeypatch.delenv("FALLBACK_SECRET", raising=False)
     monkeypatch.delenv("LOADED_SECRET", raising=False)
@@ -208,6 +212,43 @@ def test_isolated_worker_skips_shared_dotenv_and_production_validation(monkeypat
     assert "DATABASE_URL" not in env.os.environ
     assert "POSTGRES_PASSWORD" not in env.os.environ
     assert env._LOADED is True
+
+
+def test_keyless_deny_marker_clears_existing_and_skips_dotenv_credentials(
+    monkeypatch, tmp_path
+):
+    _reset_loader(monkeypatch, tmp_path)
+    monkeypatch.setenv(DENY_SHARED_DATABASE_ENV, "TrUe")
+    monkeypatch.setenv("PG_USER", "kokonut_runtime")
+    monkeypatch.setenv("PG_PASSWORD", "inherited-runtime-secret")
+    monkeypatch.setenv("POSTGRES_PASSWORD", "inherited-admin-secret")
+    (tmp_path / ".env").write_text(
+        "PG_HOST=database\nPG_DB=kokonut_intelligence\n"
+        "PG_USER=dotenv-runtime\nPOSTGRES_PASSWORD=dotenv-admin-secret\n"
+        "DATABASE_URL=postgresql://dotenv-runtime-secret\n"
+    )
+    monkeypatch.setattr(
+        env,
+        "_sops_decrypt",
+        lambda *_args: pytest.fail("keyless isolated child must not decrypt .env.sops"),
+    )
+
+    env.load_dotenv()
+
+    for name in ("PG_USER", "PG_PASSWORD", "POSTGRES_PASSWORD", "DATABASE_URL"):
+        assert name not in env.os.environ
+    assert env._LOADED is True
+
+
+@pytest.mark.parametrize("marker", ["true", "TrUe", " true "])
+def test_shared_secret_helper_refuses_present_secret_under_deny_marker(monkeypatch, marker):
+    from services.common import db
+
+    monkeypatch.setattr(db, "_HELP_REQUESTED", False)
+    monkeypatch.setenv(DENY_SHARED_DATABASE_ENV, marker)
+    monkeypatch.setenv("POSTGRES_PASSWORD", "synthetic-shared-secret")
+
+    assert db._require_secret("POSTGRES_PASSWORD") == ""
 
 
 @pytest.mark.parametrize("marker", ["", "Weather", "bad-key", "a" * 42])

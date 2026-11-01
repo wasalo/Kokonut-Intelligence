@@ -14,7 +14,6 @@ from pathlib import Path
 import pytest
 
 from services.common.worker_environment import (
-    EVENT_HANDLER_WORKER_KEYS,
     SCHEDULED_WORKER_KEYS,
     worker_subprocess_environment,
 )
@@ -173,7 +172,9 @@ def test_supervisor_scopes_each_worker_key_to_its_process(monkeypatch, tmp_path)
     )
     processes = iter((_Process(111), _Process(112), _Process(113), _Process(114)))
     spawned = []
-    allowlists = []
+    environment_options = []
+    dispatch_keys = ("event_dispatch", "sensor_anomaly")
+    monkeypatch.setattr(runtime, "event_dispatch_worker_keys", lambda: dispatch_keys)
     _install_signal_fakes(monkeypatch, stop_on_sleep=True)
     monkeypatch.setattr(
         runtime,
@@ -186,9 +187,9 @@ def test_supervisor_scopes_each_worker_key_to_its_process(monkeypatch, tmp_path)
         ],
     )
 
-    def filtered_environment(*, allowed_worker_keys):
-        allowlists.append(tuple(allowed_worker_keys))
-        return {"VISIBLE_WORKER_KEYS": ",".join(allowed_worker_keys)}
+    def filtered_environment(**kwargs):
+        environment_options.append(kwargs)
+        return {"VISIBLE_WORKER_KEYS": ",".join(kwargs.get("allowed_worker_keys", ())) }
 
     monkeypatch.setattr(runtime, "worker_subprocess_environment", filtered_environment)
     monkeypatch.setattr(
@@ -200,11 +201,15 @@ def test_supervisor_scopes_each_worker_key_to_its_process(monkeypatch, tmp_path)
 
     assert runtime.run(with_workers=True) == 0
 
-    scheduler_allowlist = ("scheduler", *SCHEDULED_WORKER_KEYS)
-    event_allowlist = ("event_bus", *EVENT_HANDLER_WORKER_KEYS)
-    assert allowlists == [(), scheduler_allowlist, event_allowlist, ("notification_enqueue",)]
+    scheduler_allowlist = ("scheduler", *SCHEDULED_WORKER_KEYS, *dispatch_keys)
+    assert environment_options == [
+        {"allowed_worker_keys": (), "strip_shared_database_credentials": True},
+        {"allowed_worker_keys": scheduler_allowlist},
+        {"allowed_worker_keys": (), "strip_shared_database_credentials": True},
+        {"allowed_worker_keys": (), "strip_shared_database_credentials": True},
+    ]
     assert [call[1]["env"]["VISIBLE_WORKER_KEYS"] for call in spawned] == [
-        "", ",".join(scheduler_allowlist), ",".join(event_allowlist), "notification_enqueue"
+        "", ",".join(scheduler_allowlist), "", ""
     ]
 
 
@@ -265,6 +270,9 @@ def test_supervisor_marks_isolated_event_worker_and_keeps_exact_handler_secrets(
     processes = iter((_Process(121), _Process(122)))
     spawned = []
     environment_options = []
+    monkeypatch.setattr(
+        runtime, "event_dispatch_worker_keys", lambda: ("event_dispatch", "sensor_anomaly")
+    )
     _install_signal_fakes(monkeypatch, stop_on_sleep=True)
     monkeypatch.setattr(
         runtime,
@@ -287,9 +295,7 @@ def test_supervisor_marks_isolated_event_worker_and_keeps_exact_handler_secrets(
 
     event_kwargs = environment_options[1]
     assert event_kwargs["isolated_worker_key"] == "event_dispatch"
-    assert event_kwargs["allowed_worker_keys"] == (
-        "event_dispatch", *EVENT_HANDLER_WORKER_KEYS
-    )
+    assert event_kwargs["allowed_worker_keys"] == ("event_dispatch", "sensor_anomaly")
     assert spawned[1][1]["env"] == {"ISOLATED": "event_dispatch"}
 
 

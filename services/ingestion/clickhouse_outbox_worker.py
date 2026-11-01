@@ -62,9 +62,9 @@ def run_once(worker_id: str = "clickhouse-outbox-worker", limit: int = 100) -> d
         r"[A-Za-z0-9][A-Za-z0-9_.:-]{0,99}", worker_id
     ):
         raise ValueError("ClickHouse outbox worker ID has an invalid format")
-    require_feature("isolated_clickhouse_outbox_worker")
     if not ProviderSettings.from_environment().clickhouse:
         return {"claimed": 0, "delivered": 0, "failed": 0}
+    require_feature("isolated_clickhouse_outbox_worker")
 
     connection = get_worker_db("clickhouse_outbox")
     try:

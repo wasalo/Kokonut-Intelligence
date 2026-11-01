@@ -30,8 +30,8 @@
     "status": "not_tenant_bound"
   },
   "sql_reachability": {
-    "execution_site_count": 489,
-    "sites_with_static_operation_path": 402,
+    "execution_site_count": 455,
+    "sites_with_static_operation_path": 368,
     "sites_without_static_function_match": 87,
     "site_refs_for_review": [
       {
@@ -185,19 +185,19 @@
         "import_closure_operation_count": 4
       },
       {
-        "site": "services/common/database.py:142:12",
+        "site": "services/common/database.py:144:12",
         "review_status": "function_not_reached_by_any_static_worker_root",
-        "import_closure_operation_count": 49
+        "import_closure_operation_count": 50
       },
       {
-        "site": "services/common/database.py:77:15",
+        "site": "services/common/database.py:79:15",
         "review_status": "function_not_reached_by_any_static_worker_root",
-        "import_closure_operation_count": 49
+        "import_closure_operation_count": 50
       },
       {
-        "site": "services/common/database.py:80:8",
+        "site": "services/common/database.py:82:8",
         "review_status": "function_not_reached_by_any_static_worker_root",
-        "import_closure_operation_count": 49
+        "import_closure_operation_count": 50
       },
       {
         "site": "services/common/tenant_context.py:309:8",

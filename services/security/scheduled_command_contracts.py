@@ -159,7 +159,7 @@ _OPTIONS: dict[str, dict[str, str | None]] = {
     },
     "services.ingestion.clickhouse_outbox": {
         "--run-once": None,
-        "--limit": "batch_size",
+        "--limit": "outbox_batch_size",
     },
     "services.ingestion.clickhouse_outbox_worker": {
         "--run-once": None,
@@ -368,7 +368,10 @@ def _validate_operation(module_path: str, values: dict[str, str | bool]) -> None
         if options != {"--location-id"}:
             raise _reject("scheduled NOI snapshot reconciliation requires one explicit location")
 
-    elif module_path == "services.ingestion.data_freshness":
+    elif module_path in {
+        "services.ingestion.data_freshness",
+        "services.ingestion.freshness_worker",
+    }:
         if "--check" not in options:
             raise _reject("scheduled freshness operation requires --check")
 
@@ -391,6 +394,11 @@ def _validate_operation(module_path: str, values: dict[str, str | bool]) -> None
         operations = options & {"--process", "--notification-process"}
         if len(operations) != 1:
             raise _reject("scheduled event command must select --process or --notification-process")
+        limit = int(values.get("--batch-size", "100"))
+        if "--process" in operations and limit > 100:
+            raise _reject("event dispatch batch limit must not exceed 100")
+        if "--notification-process" in operations and limit > 500:
+            raise _reject("notification delivery batch limit must not exceed 500")
 
     elif module_path == "services.analytics.carbon_credit_adjustment_check":
         if "--location-id" not in options:
@@ -407,6 +415,10 @@ def _validate_operation(module_path: str, values: dict[str, str | bool]) -> None
         )
 
     elif module_path == "services.ingestion.clickhouse_outbox":
+        if "--run-once" not in options:
+            raise _reject("scheduled projection operation must use one bounded delivery batch")
+
+    elif module_path == "services.ingestion.clickhouse_outbox_worker":
         if "--run-once" not in options:
             raise _reject("scheduled projection operation must use one bounded delivery batch")
 

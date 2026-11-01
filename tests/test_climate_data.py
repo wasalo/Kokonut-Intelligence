@@ -227,19 +227,22 @@ def test_climate_data_uses_logging() -> None:
 
 
 def test_freshness_queries_config_table() -> None:
-    content = Path("services/ingestion/data_freshness.py").read_text()
-    assert "data_freshness_config" in content
+    content = Path("services/ingestion/freshness_worker.py").read_text()
+    assert "kokonut_security.list_freshness_configs" in content
+    assert "FROM public.data_freshness_config" not in content
 
 
 def test_freshness_inserts_check_results() -> None:
-    content = Path("services/ingestion/data_freshness.py").read_text()
-    assert "data_freshness_check" in content
+    content = Path("services/ingestion/freshness_worker.py").read_text()
+    assert "kokonut_security.create_freshness_check" in content
+    assert "INSERT INTO public.data_freshness_check" not in content
 
 
 def test_freshness_has_alert_channels() -> None:
-    content = Path("services/ingestion/data_freshness.py").read_text()
-    assert "_publish_alert_event" in content
-    assert '"data_stale"' in content
+    content = Path("services/ingestion/freshness_worker.py").read_text()
+    assert "kokonut_security.enqueue_freshness_event" in content
+    migration = Path("schemas/postgres/645_isolated_data_freshness_worker.sql").read_text()
+    assert "data_stale" in migration
 
 
 def test_climate_data_pipeline_targets_all_tables() -> None:

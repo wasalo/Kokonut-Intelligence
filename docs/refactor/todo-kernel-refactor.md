@@ -8,7 +8,8 @@ can proceed now and gates that need an owner, provider, populated source data,
 or production environment. Check an item only when its evidence is recorded in
 the batch log and the affected capability/progress records are updated.
 
-**Current queue snapshot (1 November 2026):** 799 checked / 40 open across the TODO's dated and active checklist sections. Historical snapshots below this
+**Current queue snapshot (1 November 2026):** 804 checked / 41 open across the
+TODO's dated and active checklist sections. Historical snapshots below this
 active queue remain dated records and do not replace the current count.
 
 **Hosted validation (31 October 2026):** On the pre-batch PR head `fb4cc883`,
@@ -4842,3 +4843,36 @@ database/role was changed.
   runtime-client reconciliation, remaining broad DML retirement, API/worker
   identity separation, Directus reconciliation, and broader tenant/RLS closure
   remain separate gates.
+
+### Current continuation — migration 723 worker write boundary — 1 November 2026
+
+- [x] Move event dispatch, notification enqueue/delivery, freshness checks,
+  and ClickHouse projection writes to the explicit worker paths; prevent those
+  children from inheriting shared runtime credentials.
+- [x] Revoke runtime table and residual column DML on the six worker-owned
+  relations in migration 723 while preserving SELECT, Directus/maintenance
+  grants, runtime-role reprovisioning, and exact freshness schedule settings
+  ([migration](../../schemas/postgres/723_isolated_worker_runtime_write_boundaries.sql)).
+- [x] Pass 516 focused tests plus 43 adjacent architecture/CLI tests,
+  changed-file Ruff/security and compilation checks, migration validation,
+  generated inventory parity, and the isolated
+  PostgreSQL ACL acceptance for migration apply/replay, write denial, preserved grants,
+  provisioner reapplication, and schedule migration
+  ([acceptance](builds/2026-11-01-recovery/isolated-worker-runtime-write-boundary-723.json)).
+- [x] Pass separate isolated PostgreSQL acceptance for migration-648
+  EventBus dispatch, migration-647 notification delivery, and migration-649
+  signed sensor-anomaly replay/crash recovery with synthetic data only
+  ([dispatch](builds/2026-11-01-recovery/event-dispatch-worker-648-disposable.json);
+  [notification](builds/2026-11-01-recovery/notification-delivery-worker-647-disposable.json);
+  [sensor anomaly](builds/2026-11-01-recovery/sensor-anomaly-worker-delivery-414-disposable.json)).
+- [x] Refresh the native full-schema replay and two-tenant probe through 723:
+  714/714 schemas and 38 checks passed; the ACL report shows 1,309/1,522
+  relations with effective runtime DML and 925 tables with runtime DML while
+  RLS is disabled. These are privilege-reach measures, not confirmed leaks or
+  tenant-isolation proof
+  ([probe](builds/2026-11-01-recovery/native-current-schema-723-operator-probe.json);
+  [report](builds/2026-11-01-recovery/runtime-privilege-callsite-report-723.json)).
+- [ ] Finish the ARM64/QEMU full-schema replay and two-tenant probe through
+  723. Physical Raspberry Pi behavior remains untested; candidate/production
+  rollout, external runtime-client reconciliation, API/worker identity split,
+  broad DML retirement, and tenant/RLS closure are separate gates.

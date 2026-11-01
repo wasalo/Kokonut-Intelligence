@@ -125,6 +125,14 @@ _SOURCE_REVOKE_POLICY_OVERRIDES = {
     # Event definitions are read-only to the general runtime. The separate
     # dispatch owner and Directus grants are intentionally left unchanged.
     "event_handler": "runtime_mutations_denied",
+    # Migration 723's dynamic loop revokes direct mutation rights from
+    # worker-owned delivery/freshness state while preserving read access.
+    "event_handler_delivery": "runtime_mutations_denied",
+    "event_handler_log": "runtime_mutations_denied",
+    "data_freshness_check": "runtime_mutations_denied",
+    "data_freshness_alert_state": "runtime_mutations_denied",
+    "data_freshness_alert_history": "runtime_mutations_denied",
+    "notification_outbox_attempt": "runtime_mutations_denied",
     "dfs_currency": "runtime_mutations_denied",
     "ghg_emission_factor": "runtime_mutations_denied",
     "operations_protocol": "runtime_mutations_denied",
@@ -169,6 +177,27 @@ def _source_revokes() -> dict[str, list[dict[str, str]]]:
                 revokes[relation].append(
                     {"migration": path.name, "privileges": privileges}
                 )
+        if path.name == "723_isolated_worker_runtime_write_boundaries.sql":
+            # Migration 723 loops over a literal relation allowlist and uses
+            # format() to issue the runtime REVOKE. The generic SQL regex above
+            # intentionally does not treat a dynamic `%I` template as a
+            # relation name, so join only the explicitly declared identifiers.
+            target_match = re.search(
+                r"target_relations\s+CONSTANT\s+TEXT\[\]\s*:=\s*ARRAY\[(.*?)\]",
+                source,
+                re.IGNORECASE | re.DOTALL,
+            )
+            dynamic_runtime_revoke = (
+                "REVOKE ALL PRIVILEGES ON TABLE public.%I FROM kokonut_runtime"
+                in source
+            )
+            if target_match and dynamic_runtime_revoke:
+                relations = re.findall(r"'([a-z_][a-z0-9_]*)'", target_match.group(1))
+                for relation in relations:
+                    revokes[relation].append({
+                        "migration": path.name,
+                        "privileges": "ALL PRIVILEGES",
+                    })
     return {
         relation: [
             {"migration": migration, "privileges": privileges}

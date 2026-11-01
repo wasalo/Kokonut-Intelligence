@@ -15,8 +15,7 @@ from datetime import datetime, timedelta, timezone
 from services.common.errors import safe_exception_class
 from services.common.logging import get_logger
 from services.common.worker_environment import (
-    scheduled_module_worker_key,
-    worker_subprocess_environment,
+    scheduled_module_worker_environment,
 )
 from services.scheduler.parser import next_run_time
 from services.scheduler.resources import ResourcePool
@@ -233,16 +232,12 @@ class SchedulerEngine:
         start_time = time.monotonic()
         try:
             validated_args = validate_scheduled_command(module_path, command_args)
-            worker_key = scheduled_module_worker_key(module_path)
             result = subprocess.run(
                 [sys.executable, "-m", module_path, *validated_args],
                 capture_output=True,
                 text=True,
                 timeout=timeout,
-                env=worker_subprocess_environment(
-                    allowed_worker_keys=(worker_key,) if worker_key is not None else (),
-                    isolated_database_credentials=worker_key is not None,
-                ),
+                env=scheduled_module_worker_environment(module_path, validated_args),
             )
             duration_ms = int((time.monotonic() - start_time) * 1000)
 

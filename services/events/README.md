@@ -58,16 +58,14 @@ controls notification delivery and defaults to the event-bus feature setting,
 preserving existing deployments while allowing delivery to be disabled or run
 independently. Each CLI worker mode checks its own feature before opening a
 database connection; combined `--worker` runs whichever loops are enabled.
-By default, event handlers still use the shared runtime database identity to
-enqueue intents. An opt-in path for `data_stale` and `threshold_breached` uses
-a separate notification-enqueue login and a bounded source-event-validated
-database function. Migration 417 grants that login no direct table access;
-runtime-role provisioning also removes sequence access, grants only the bounded
-function, and rejects other executable `SECURITY DEFINER` functions. The
-function cannot send notifications or alter delivery attempts. Enable it
-only after the migration and distinct login/DSN are provisioned; missing
-credentials fail closed without a shared-DSN fallback. The outbox
-uses stable `(source event, channel, destination)` identities and a bounded
+Notification enqueue uses a separate login and the migration-417 bounded,
+source-event-validated database function. Migration 417 grants that login no
+direct table access; runtime-role provisioning also removes sequence access,
+grants only the bounded function, and rejects other executable `SECURITY
+DEFINER` functions. The function cannot send notifications or alter delivery
+attempts. Enable it only after the migration and distinct login/DSN are
+provisioned; configured destinations fail closed without a shared-DSN fallback.
+The outbox uses stable `(source event, channel, destination)` identities and a bounded
 retry budget, expiring leases, and operator-audited replay/disposal. Delivery is
 at-least-once: an external send can succeed just before a worker loses its lease
 or exits, so receivers that support `Idempotency-Key` should honor it.
@@ -92,6 +90,13 @@ notification handlers. Migration 417 validates event ID/type and any supplied
 location lineage, accepts only webhook, Directus, or email payloads for the
 `primary` destination, bounds each payload to 16 KiB, and makes retries
 idempotent. Notification sending and operator disposition remain separate.
+
+The event dispatcher and notification delivery use dedicated migration-backed
+identities. Their isolation flags default off; disabled paths pause without a
+database connection. There is no shared-runtime compatibility writer. The
+dispatcher may forward only exact handler credentials selected by its
+source-controlled handler map. If notification enqueue is unavailable, the
+event is retried rather than silently dropping the intent.
 
 When a `data_stale` or `threshold_breached` event payload includes a valid
 `location_id`, its handler records that value in `notification_outbox` as

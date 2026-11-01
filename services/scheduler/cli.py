@@ -17,8 +17,7 @@ import sys
 
 from services.common.cli import print_json
 from services.common.worker_environment import (
-    scheduled_module_worker_key,
-    worker_subprocess_environment,
+    scheduled_module_worker_environment,
 )
 
 
@@ -129,15 +128,11 @@ def cmd_run_now(args):
 
             module_path, command_args, timeout = row
             validated_args = validate_scheduled_command(module_path, [] if command_args is None else command_args)
-            worker_key = scheduled_module_worker_key(module_path)
             print(f"Running {args.task_name} ({module_path})...")
             result = subprocess.run(
                 [_sys.executable, "-m", module_path, *validated_args],
                 timeout=timeout,
-                env=worker_subprocess_environment(
-                    allowed_worker_keys=(worker_key,) if worker_key is not None else (),
-                    isolated_database_credentials=worker_key is not None,
-                ),
+                env=scheduled_module_worker_environment(module_path, validated_args),
             )
             return result.returncode
     finally:

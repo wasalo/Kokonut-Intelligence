@@ -6,7 +6,8 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from services.common import worker_database
+from services.common import database, worker_database
+from services.common.worker_environment import DENY_SHARED_DATABASE_ENV
 
 
 def _connection(login: str, *, autocommit: bool = False):
@@ -139,6 +140,31 @@ def test_worker_dsn_is_required_even_when_shared_database_secrets_exist(monkeypa
                 "POSTGRES_PASSWORD": "admin-password-is-not-a-worker-dsn",
             },
         )
+
+    connect.assert_not_called()
+
+
+def test_shared_database_factory_fails_closed_for_keyless_isolated_child(monkeypatch):
+    connect = MagicMock()
+    monkeypatch.setattr(database.psycopg2, "connect", connect)
+    monkeypatch.delenv("KOKONUT_ISOLATED_WORKER_KEY", raising=False)
+    monkeypatch.setenv(DENY_SHARED_DATABASE_ENV, "true")
+
+    with pytest.raises(RuntimeError, match="shared database access is unavailable"):
+        database.get_db()
+
+    connect.assert_not_called()
+
+
+@pytest.mark.parametrize("marker", ["true", "TrUe", " true "])
+def test_shared_database_factory_normalizes_keyless_deny_marker(monkeypatch, marker):
+    connect = MagicMock()
+    monkeypatch.setattr(database.psycopg2, "connect", connect)
+    monkeypatch.delenv("KOKONUT_ISOLATED_WORKER_KEY", raising=False)
+    monkeypatch.setenv(DENY_SHARED_DATABASE_ENV, marker)
+
+    with pytest.raises(RuntimeError, match="shared database access is unavailable"):
+        database.get_db()
 
     connect.assert_not_called()
 

@@ -10205,8 +10205,45 @@ migration granting the intended privilege back.
   validation, runtime SQL inventory/review-ledger freshness, dependency and
   provider boundaries, capability-matrix validation, release-input validation,
   and diff checks.
-The native migration-722 aggregate report and two-tenant probe are recorded in
-the current C1 continuation above. The ARM64/QEMU full-schema aggregate replay,
-candidate rollout, external runtime-client reconciliation, remaining broad
-DML retirement, API/worker identity separation, and broader tenant/RLS closure
-remain separate gates.
+The latest aggregate report and two-tenant probe are recorded in the
+migration-723 continuation below. Candidate rollout, external runtime-client
+reconciliation, remaining broad DML retirement, API/worker identity
+separation, and broader tenant/RLS closure remain separate gates.
+
+### C1 continuation — migration 723 worker write boundary — 1 November 2026
+
+- [x] Route event dispatch, notification enqueue/delivery, freshness checks,
+  and ClickHouse projection writes through their explicit worker paths. Shared
+  runtime credentials are denied to these children, and their isolated
+  features remain default-off where the corresponding dedicated worker
+  acceptance is incomplete. Retire the old shared-identity reconnect harness
+  as a refusing compatibility stub.
+- [x] Add migration 723 to preserve `kokonut_runtime` SELECT while revoking
+  table and residual column DML on the six worker-owned event, freshness, and
+  notification relations. Preserve Directus/maintenance grants, reapply the
+  boundary during runtime-role provisioning, and move only the exact existing
+  freshness `--check` schedule while retaining its cadence/settings
+  ([migration](../../schemas/postgres/723_isolated_worker_runtime_write_boundaries.sql)).
+- [x] Pass the 516-test focused selection plus 43 adjacent architecture/CLI
+  tests; Ruff on changed Python files and the scoped security subset, Python
+  compilation, ordered migration validation,
+  generated inventory parity, and isolated migration apply/replay,
+  runtime table/column denial, provisioner reapplication, preserved optional
+  Directus/maintenance access, exact schedule migration, and disposable cleanup
+  ([acceptance](builds/2026-11-01-recovery/isolated-worker-runtime-write-boundary-723.json)).
+- [x] Pass separate isolated PostgreSQL acceptance for migration-648 EventBus
+  dispatch, migration-647 notification delivery, and migration-649 signed
+  sensor-anomaly replay/crash recovery using synthetic data only
+  ([dispatch](builds/2026-11-01-recovery/event-dispatch-worker-648-disposable.json);
+  [notification](builds/2026-11-01-recovery/notification-delivery-worker-647-disposable.json);
+  [sensor anomaly](builds/2026-11-01-recovery/sensor-anomaly-worker-delivery-414-disposable.json)).
+- [x] Pass native, network-disabled PostgreSQL 16 replay of all 714 ordered
+  schemas through 723 and all 38 synthetic operator/two-tenant scope checks;
+  refresh the paired ACL report and remove the disposable project
+  ([probe](builds/2026-11-01-recovery/native-current-schema-723-operator-probe.json);
+  [report](builds/2026-11-01-recovery/runtime-privilege-callsite-report-723.json)).
+- [ ] Complete the equivalent ARM64/QEMU replay and two-tenant probe through
+  723. This is emulated portability evidence, not physical Raspberry Pi
+  acceptance. Candidate/production rollout, external runtime-consumer
+  reconciliation, broad DML retirement, API/worker identity separation, and
+  tenant/RLS closure remain open.

@@ -36,6 +36,14 @@ def test_reporting_registry_dynamic_revokes_are_joined_to_runtime_policy():
     assert overrides["thesaurus_keyword_label"] == "runtime_mutations_denied"
     assert overrides["data_governance_category"] == "runtime_mutations_denied"
     assert overrides["data_governance_scope"] == "runtime_mutations_denied"
+    assert {
+        "event_handler_delivery",
+        "event_handler_log",
+        "data_freshness_check",
+        "data_freshness_alert_state",
+        "data_freshness_alert_history",
+        "notification_outbox_attempt",
+    }.issubset(overrides)
     assert "v_public_farm_summary" in runtime_role._RUNTIME_MUTATION_TABLES
     assert {
         "v_public_attestation_summary",
@@ -45,6 +53,14 @@ def test_reporting_registry_dynamic_revokes_are_joined_to_runtime_policy():
     assert {
         "data_governance_category",
         "data_governance_scope",
+    }.issubset(runtime_role._RUNTIME_MUTATION_TABLES)
+    assert {
+        "event_handler_delivery",
+        "event_handler_log",
+        "data_freshness_check",
+        "data_freshness_alert_state",
+        "data_freshness_alert_history",
+        "notification_outbox_attempt",
     }.issubset(runtime_role._RUNTIME_MUTATION_TABLES)
     assert {
         "thesaurus",

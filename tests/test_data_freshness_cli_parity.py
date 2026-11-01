@@ -6,7 +6,7 @@ import pytest
 from typer.testing import CliRunner
 
 import services.cli as unified_cli
-from services.ingestion import data_freshness
+from services.ingestion import data_freshness, freshness_worker
 
 
 class _Cursor:
@@ -102,20 +102,18 @@ def test_freshness_check_dispatch_and_output_match(monkeypatch, capsys):
         "error": 0,
         "results": [{"source_system": "weather", "status": "fresh"}],
     }
-    connections = []
     check_calls = []
 
-    def make_connection():
-        connection = _Connection([])
-        connections.append(connection)
-        return connection
-
-    def check(connection, *, source=None):
-        check_calls.append((connection, source))
+    def check(*, source=None):
+        check_calls.append(source)
         return result
 
-    monkeypatch.setattr(data_freshness, "get_db", make_connection)
-    monkeypatch.setattr(data_freshness, "check_freshness", check)
+    monkeypatch.setattr(
+        data_freshness,
+        "get_db",
+        lambda: pytest.fail("--check must not use the shared database connector"),
+    )
+    monkeypatch.setattr(freshness_worker, "run", check)
 
     data_freshness.main(["--check", "--source", "weather"])
     standalone_output = capsys.readouterr().out
@@ -127,8 +125,7 @@ def test_freshness_check_dispatch_and_output_match(monkeypatch, capsys):
     assert unified.exit_code == 0, unified.output
     assert unified.output == standalone_output
     assert json.loads(unified.output) == result
-    assert check_calls == [(connections[0], "weather"), (connections[1], "weather")]
-    assert all(connection.closed for connection in connections)
+    assert check_calls == ["weather", "weather"]
     assert unified.stderr == ""
 
 

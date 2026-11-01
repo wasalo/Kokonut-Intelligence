@@ -174,6 +174,14 @@ def main(argv: list[str] | None = None) -> None:
     actions.add_argument("--check", action="store_true", help="Run a bounded freshness sweep")
     parser.add_argument("--source", help="Limit to one configured source")
     args = parser.parse_args(argv)
+    from services.core.features import is_enabled
+
+    if not is_enabled("isolated_freshness_worker"):
+        print_json({
+            "status": "paused",
+            "reason": "isolated freshness worker is not enabled",
+        })
+        return
     print_json(run(source=args.source))
 
 

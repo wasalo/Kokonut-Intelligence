@@ -8,6 +8,7 @@ from unittest.mock import MagicMock
 import pytest
 
 from services.common.worker_environment import (
+    DENY_SHARED_DATABASE_ENV,
     ISOLATED_WORKER_KEY_ENV,
     scheduled_module_worker_key,
     worker_subprocess_environment,
@@ -77,6 +78,7 @@ def test_worker_child_receives_only_gnosis_secrets_and_no_shared_or_global_rpc()
         "KOKONUT_GNOSIS_INDEXER_DATABASE_URL": "postgresql://isolated",
         gnosis_worker.RPC_ENV: '{"gnosis":"https://rpc.invalid"}',
         ISOLATED_WORKER_KEY_ENV: "gnosis_indexer",
+        DENY_SHARED_DATABASE_ENV: "true",
     }
 
 

@@ -186,6 +186,85 @@ def test_finish_rolls_back_unknown_result():
     connection.commit.assert_not_called()
 
 
+def test_finish_rolls_back_database_error():
+    connection = MagicMock()
+    connection.cursor.return_value.__enter__.return_value.fetchone.side_effect = OSError(
+        "synthetic completion failure"
+    )
+    row = {
+        "id": "00000000-0000-0000-0000-000000000001",
+        "attempt_count": 1,
+        "lease_token": "00000000-0000-0000-0000-000000000003",
+    }
+
+    with pytest.raises(OSError, match="synthetic completion failure"):
+        worker._finish(connection, "worker-one", row, success=True, error_class=None)
+
+    connection.rollback.assert_called_once_with()
+    connection.commit.assert_not_called()
+
+
+def test_run_batches_splits_the_cli_limit_into_bounded_function_calls(monkeypatch):
+    calls = []
+
+    def run_once(worker_id, limit, lease_seconds):
+        calls.append((worker_id, limit, lease_seconds))
+        return {
+            "claimed": limit,
+            "delivered": limit,
+            "failed": 0,
+            "lease_lost": 0,
+        }
+
+    monkeypatch.setattr(worker, "run_once", run_once)
+
+    result = worker.run_batches("worker-many", 500, 600)
+
+    assert result == {
+        "claimed": 500,
+        "delivered": 500,
+        "failed": 0,
+        "lease_lost": 0,
+    }
+    assert calls == [("worker-many", 100, 600)] * 5
+
+
+def test_run_batches_stops_when_a_function_claim_is_partial(monkeypatch):
+    calls = []
+
+    def run_once(worker_id, limit, lease_seconds):
+        calls.append((worker_id, limit, lease_seconds))
+        return {
+            "claimed": 7,
+            "delivered": 6,
+            "failed": 0,
+            "lease_lost": 1,
+        }
+
+    monkeypatch.setattr(worker, "run_once", run_once)
+
+    result = worker.run_batches("worker-partial", 500, 300)
+
+    assert result == {
+        "claimed": 7,
+        "delivered": 6,
+        "failed": 0,
+        "lease_lost": 1,
+    }
+    assert calls == [("worker-partial", 100, 300)]
+
+
+@pytest.mark.parametrize("limit", [0, 501, True, "10"])
+def test_run_batches_rejects_invalid_cli_limit_before_worker_calls(limit, monkeypatch):
+    run_once = MagicMock()
+    monkeypatch.setattr(worker, "run_once", run_once)
+
+    with pytest.raises(ValueError):
+        worker.run_batches("worker-invalid", limit)
+
+    run_once.assert_not_called()
+
+
 def test_isolated_cli_mode_routes_to_dedicated_worker(monkeypatch):
     from services.events import cli
 

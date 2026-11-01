@@ -30,7 +30,7 @@ INSERT INTO scheduled_task (name, module_path, command_args, cron_expression, pr
     ('metrics_computation', 'services.metrics', '["--compute", "--all-locations"]', '0 */4 * * *', 'normal', 1800, 3, TRUE),
 
     -- Data freshness check — every hour
-    ('data_freshness_check', 'services.ingestion.data_freshness', '["--check"]', '0 * * * *', 'normal', 300, 2, TRUE),
+    ('data_freshness_check', 'services.ingestion.freshness_worker', '["--check"]', '0 * * * *', 'normal', 300, 2, TRUE),
 
     -- Dashboard dataset refresh — every 6 hours
     ('dashboard_dataset_refresh', 'services.export.dataset_refresh', '["--all"]', '0 */6 * * *', 'normal', 900, 3, TRUE),

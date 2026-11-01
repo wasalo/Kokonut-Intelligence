@@ -5,7 +5,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from services.common import smtp
-from services.events import handlers, notification_outbox
+from services.events import handlers, notification_delivery_worker, notification_outbox
 
 
 def _row(row_id: str, channel: str = "webhook") -> dict:
@@ -22,45 +22,20 @@ def _row(row_id: str, channel: str = "webhook") -> dict:
     }
 
 
-@pytest.mark.parametrize(
-    ("limit", "lease_seconds"),
-    [
-        (True, 300),
-        (1, True),
-    ],
-)
-def test_claim_batch_rejects_boolean_bounds_before_database_access(limit, lease_seconds):
-    conn = MagicMock()
-
-    with pytest.raises(ValueError):
-        notification_outbox.claim_batch(
-            conn,
-            "worker-test",
-            limit,
-            lease_seconds=lease_seconds,
-        )
-
-    conn.cursor.assert_not_called()
-    conn.commit.assert_not_called()
-
-
 def test_delivery_failure_records_only_exception_class_and_continues(monkeypatch):
     rows = [_row("failed"), _row("delivered")]
     finishes = []
     warning = MagicMock()
     monkeypatch.setattr(notification_outbox.logger, "warning", warning)
-    monkeypatch.setattr(notification_outbox, "claim_batch", lambda *_args: rows)
     deliver = MagicMock(side_effect=[TimeoutError("secret URL and token"), None])
     monkeypatch.setattr(notification_outbox, "_deliver", deliver)
-    monkeypatch.setattr(
-        notification_outbox,
-        "_finish_attempt",
-        lambda _conn, row, *, success, error_class: finishes.append(
+
+    result = notification_outbox.deliver_claimed_batch(
+        rows,
+        lambda row, *, success, error_class: finishes.append(
             (row["id"], success, error_class)
         ) or ("failed" if not success else "succeeded"),
     )
-
-    result = notification_outbox.deliver_batch(object(), "worker-test")
 
     assert result == {"claimed": 2, "delivered": 1, "failed": 1, "lease_lost": 0}
     assert finishes == [
@@ -72,20 +47,32 @@ def test_delivery_failure_records_only_exception_class_and_continues(monkeypatch
 
 def test_completion_database_failure_propagates_without_processing_next_row(monkeypatch):
     rows = [_row("first"), _row("second")]
-    conn = object()
-    monkeypatch.setattr(notification_outbox, "claim_batch", lambda *_args: rows)
     deliver = MagicMock()
     monkeypatch.setattr(notification_outbox, "_deliver", deliver)
     finish = MagicMock(side_effect=RuntimeError("database completion failed"))
-    monkeypatch.setattr(notification_outbox, "_finish_attempt", finish)
 
     with pytest.raises(RuntimeError, match="database completion failed"):
-        notification_outbox.deliver_batch(conn, "worker-test")
+        notification_outbox.deliver_claimed_batch(rows, finish)
 
     deliver.assert_called_once_with(rows[0])
-    finish.assert_called_once_with(
-        conn, rows[0], success=True, error_class=None
+    finish.assert_called_once_with(rows[0], success=True, error_class=None)
+
+
+def test_compatibility_delivery_wrapper_ignores_shared_connection_and_routes_to_worker(
+    monkeypatch,
+):
+    connection = MagicMock()
+    result = {"claimed": 3, "delivered": 2, "failed": 1, "lease_lost": 0}
+    run_batches = MagicMock(return_value=result)
+    monkeypatch.setattr(notification_delivery_worker, "run_batches", run_batches)
+
+    assert notification_outbox.deliver_batch(connection, "compat-worker", 13) == result
+
+    run_batches.assert_called_once_with(
+        "compat-worker", 13, notification_outbox.LEASE_SECONDS
     )
+    connection.cursor.assert_not_called()
+    connection.commit.assert_not_called()
 
 
 def test_notification_intent_persists_optional_location_lineage():
@@ -247,15 +234,18 @@ def test_alert_handler_uses_exact_isolated_login_when_feature_is_enabled(monkeyp
 
 def test_alert_handler_forwards_payload_location_to_outbox(monkeypatch):
     conn = MagicMock()
-    conn.cursor.return_value.__enter__.return_value.fetchone.return_value = ("outbox-row",)
-    connection = MagicMock()
-    connection.__enter__.return_value = conn
+    worker_db = MagicMock(return_value=conn)
+    enqueue = MagicMock(return_value=1)
     monkeypatch.setattr(
         notification_outbox,
         "_notification_payloads",
         lambda *_args, **_kwargs: [("webhook", "primary", {"message": "Synthetic alert"})],
     )
-    monkeypatch.setattr("services.common.database.get_connection", lambda: connection)
+    monkeypatch.setattr("services.core.features.require_feature", lambda _name: None)
+    monkeypatch.setattr("services.common.worker_database.get_worker_db", worker_db)
+    monkeypatch.setattr(
+        notification_outbox, "enqueue_event_notification_isolated", enqueue
+    )
     event_id = "a0000000-0000-0000-0000-000000000002"
     location_id = "A0000000-0000-0000-0000-000000000001"
 
@@ -265,25 +255,26 @@ def test_alert_handler_forwards_payload_location_to_outbox(monkeypatch):
         event_id=event_id,
     )
 
-    statement, parameters = conn.cursor.return_value.__enter__.return_value.execute.call_args.args
-    assert "payload, location_id)" in statement
-    assert parameters[0] == event_id
-    assert parameters[-1] == location_id.lower()
-    connection.__enter__.assert_called_once()
-    connection.__exit__.assert_called_once()
+    worker_db.assert_called_once_with("notification_enqueue")
+    enqueue.assert_called_once_with(
+        conn,
+        event_id=event_id,
+        event_type="threshold_breached",
+        payload={"message": "Synthetic alert", "location_id": location_id},
+        location_id=location_id.lower(),
+    )
+    conn.commit.assert_called_once_with()
+    conn.close.assert_called_once_with()
 
 
 def test_alert_handler_rejects_malformed_location_before_database_write(monkeypatch):
-    conn = MagicMock()
-    connection = MagicMock()
-    connection.__enter__.return_value = conn
     monkeypatch.setattr(
         notification_outbox,
         "_notification_payloads",
         lambda *_args, **_kwargs: [("webhook", "primary", {"message": "Synthetic alert"})],
     )
-    get_connection = MagicMock(return_value=connection)
-    monkeypatch.setattr("services.common.database.get_connection", get_connection)
+    get_worker_db = MagicMock()
+    monkeypatch.setattr("services.common.worker_database.get_worker_db", get_worker_db)
 
     with pytest.raises(ValueError, match="location_id must be a valid UUID"):
         handlers.handle_alert_notification(
@@ -292,9 +283,7 @@ def test_alert_handler_rejects_malformed_location_before_database_write(monkeypa
             event_id="a0000000-0000-0000-0000-000000000002",
         )
 
-    get_connection.assert_called_once()
-    conn.cursor.assert_not_called()
-    connection.__exit__.assert_called_once()
+    get_worker_db.assert_not_called()
 
 
 def test_alert_handler_without_destination_and_event_id_does_not_connect(monkeypatch):
@@ -392,18 +381,16 @@ def test_notification_retry_fills_missing_location_lineage_and_rejects_conflict(
 
 def test_lost_completion_lease_is_counted_separately_and_continues(monkeypatch):
     rows = [_row("stale"), _row("owned")]
-    monkeypatch.setattr(notification_outbox, "claim_batch", lambda *_args: rows)
-    monkeypatch.setattr(notification_outbox, "_deliver", MagicMock())
+    deliver = MagicMock()
+    monkeypatch.setattr(notification_outbox, "_deliver", deliver)
     statuses = iter(("lease_lost", "succeeded"))
-    monkeypatch.setattr(
-        notification_outbox,
-        "_finish_attempt",
-        lambda *_args, **_kwargs: next(statuses),
+
+    result = notification_outbox.deliver_claimed_batch(
+        rows, lambda *_args, **_kwargs: next(statuses)
     )
 
-    result = notification_outbox.deliver_batch(object(), "worker-test")
-
     assert result == {"claimed": 2, "delivered": 1, "failed": 0, "lease_lost": 1}
+    assert deliver.call_count == 2
 
 
 def test_email_delivery_uses_stable_idempotency_headers_and_closes_smtp(monkeypatch):
@@ -442,14 +429,17 @@ def test_email_provider_exception_is_recorded_by_class_only(monkeypatch):
     )
     row = _row("email-failure", channel="email")
     row["payload"] = {"subject": "Synthetic alert", "body": "Test message"}
-    monkeypatch.setattr(notification_outbox, "claim_batch", lambda *_args: [row])
-    finish = MagicMock(return_value="failed")
-    monkeypatch.setattr(notification_outbox, "_finish_attempt", finish)
+    finished = []
 
-    result = notification_outbox.deliver_batch(object(), "worker-test")
+    result = notification_outbox.deliver_claimed_batch(
+        [row],
+        lambda got_row, *, success, error_class: finished.append(
+            (got_row, success, error_class)
+        ) or "failed",
+    )
 
     assert result == {"claimed": 1, "delivered": 0, "failed": 1, "lease_lost": 0}
-    assert finish.call_args.kwargs == {"success": False, "error_class": "OSError"}
+    assert finished == [(row, False, "OSError")]
 
 
 @pytest.mark.parametrize(
@@ -496,24 +486,18 @@ def test_invalid_smtp_settings_keep_email_rows_unclaimed_and_other_channels_acti
 def test_notification_process_cli_exit_code_tracks_failures_and_lease_loss(
     result, expected_exit, monkeypatch, capsys
 ):
-    from services.common import database
     from services.events import cli
 
-    conn = object()
-    database_context = MagicMock()
-    database_context.__enter__.return_value = conn
+    run_batches = MagicMock(return_value=result)
     monkeypatch.setattr(
         sys,
         "argv",
         ["services.events", "--notification-process", "--worker-id", "worker-cli", "--batch-size", "10"],
     )
-    with (
-        patch.object(database, "get_connection", return_value=database_context),
-        patch.object(notification_outbox, "deliver_batch", return_value=result),
-    ):
+    with patch.object(notification_delivery_worker, "run_batches", run_batches):
         with pytest.raises(SystemExit) as exc_info:
             cli.main()
 
     assert exc_info.value.code == expected_exit
     assert '"claimed"' in capsys.readouterr().out
-    database_context.__exit__.assert_called_once()
+    run_batches.assert_called_once_with("worker-cli", 10, 300)

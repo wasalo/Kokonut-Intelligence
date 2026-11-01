@@ -75,11 +75,19 @@ Commands:
   connect with the shared `kokonut_runtime` database login. Do not describe
   them as having distinct database identities; closing that C1 boundary is
   still open.
-- Standard can opt only the notification-delivery child into migration 647's
-  dedicated login with `KOKONUT_FEATURE_ISOLATED_NOTIFICATION_DELIVERY=true`
-  and `KOKONUT_NOTIFICATION_DELIVERY_DATABASE_URL`. It is off by default;
-  Compose supplies its DSN to the worker, not the API. This does not isolate
-  the API or other worker children from `kokonut_runtime`.
+- Standard's event dispatcher and notification-delivery child require their
+  dedicated migration-backed logins and explicit isolation flags. Global
+  freshness and ClickHouse outbox jobs also use dedicated worker paths when
+  enabled. Until those paths are configured, these operations pause or fail
+  closed; they must not fall back to shared-runtime writes. Notification
+  enqueue handlers run in filtered children and use the migration-417
+  bounded function when enabled. These operation identities do not separate
+  the API from the general worker, which still share `kokonut_runtime`.
+- Isolated subprocesses carry `KOKONUT_DENY_SHARED_DATABASE=true`; dotenv
+  loading and the canonical shared connector must honor that marker even when
+  no worker-specific identity is enabled. Never weaken it by changing Docker
+  socket permissions or passing the shared database login to an isolated
+  child.
 - Runtime-role bootstrap applies its broad legacy compatibility table/sequence
   grant only to a newly created login or a fresh migration-created placeholder
   explicitly marked for its first provisioning. It marks that one-time
@@ -131,11 +139,12 @@ Commands:
 - Migrations are ordered and checksummed. Do not edit an applied migration or bypass drift detection; add a new migration and preserve transactional failure behavior.
 - Gateway public access is explicit opt-in. Unknown routes remain protected, and new routes require deliberate resource/action/public policy plus authorization tests.
 - Scheduler claims, run state, event delivery, notification delivery, retries, and dead-letter disposition are durable database state. Preserve leases, idempotency, bounded retries, and explicit operator replay/disposal.
-- Migrations 719–722 retain runtime reads while narrowing writes on three
+- Migrations 719–723 retain runtime reads while narrowing writes on three
   non-updatable public aggregate views, moving thesaurus mutations behind
   bounded security-definer functions, making governance reference catalogs
-  read-only, and making the migration ledger read-only to the application
-  login. Keep each policy aligned across migration, runtime-role
+  read-only, making the migration ledger read-only to the application login,
+  and removing direct runtime writes from isolated worker-owned event,
+  freshness, and notification tables. Keep each policy aligned across migration, runtime-role
   reprovisioning, source ACL reporting, and disposable acceptance; these
   changes do not establish tenant isolation.
 - Treat aggregate ACL and source-inventory counts as privilege reach and
@@ -154,6 +163,7 @@ Commands:
 - Check migration-declared runtime table/column denials in disposable PostgreSQL: `python3 scripts/check-runtime-scoped-write-boundary-disposable.py`
 - Check the migration-720 thesaurus function boundary in disposable PostgreSQL: `python3 scripts/check-thesaurus-runtime-boundary-disposable.py`
 - Check the migration-721 governance reference-catalog boundary in disposable PostgreSQL: `python3 scripts/check-governance-reference-catalog-runtime-boundary-disposable.py`
+- Check migration 723's isolated event/freshness/notification write boundary in disposable PostgreSQL: `python3 scripts/check-isolated-worker-runtime-write-boundary-disposable.py`
 - Check the migration-647 notification-delivery worker boundary in disposable PostgreSQL: `python3 scripts/check-notification-delivery-worker-disposable.py`
 - Check the complete Standard profile migration, health, outage/recovery, and cleanup path in a portless disposable deployment: `KOKONUT_STANDARD_RECOVERY_TIMEOUT=900 python3 scripts/check-kernel-standard-recovery-disposable.py`
 - Check worker source import closure: `python3 scripts/worker_source_closure.py --check docs/refactor/worker-source-closure.json`

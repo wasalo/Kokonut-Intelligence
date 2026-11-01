@@ -1568,13 +1568,10 @@ def test_event_handler_registry_is_runtime_read_only():
         for site in inventory["execution_sites"]
         if "event_handler" in site.get("candidate_relations", [])
     ]
-    assert len(sites) == 2
+    assert len(sites) == 1
     assert {site["statement_kind"] for site in sites} == {"SELECT"}
     assert not any(site.get("write_target_relations") for site in sites)
-    assert {site["source"] for site in sites} == {
-        "services/events/bus.py",
-        "services/events/cli.py",
-    }
+    assert {site["source"] for site in sites} == {"services/events/cli.py"}
     assert "event_handler" in runtime_role._RUNTIME_MUTATION_TABLES
     assert migration.count("BEGIN;") == 1 and migration.count("COMMIT;") == 1
     assert "REVOKE ALL PRIVILEGES ON TABLE public.event_handler FROM kokonut_runtime" in migration
@@ -2522,6 +2519,41 @@ def test_freshness_worker_has_an_execute_only_role_contract():
     assert "TO kokonut_freshness_login" in migration
     assert "migration 645 freshness-worker functions" in runtime_source
     assert "freshness-worker login must connect only to its configured database" in runtime_source
+
+
+def test_migration_723_covers_worker_owned_tables_and_exact_freshness_schedule():
+    root = Path(__file__).resolve().parents[1]
+    migration = (
+        root / "schemas/postgres/723_isolated_worker_runtime_write_boundaries.sql"
+    ).read_text()
+    expected = {
+        "event_handler_delivery",
+        "event_handler_log",
+        "data_freshness_check",
+        "data_freshness_alert_state",
+        "data_freshness_alert_history",
+        "notification_outbox_attempt",
+    }
+    target_block = re.search(
+        r"target_relations CONSTANT TEXT\[\] := ARRAY\[(.*?)\];",
+        migration,
+        re.DOTALL,
+    )
+    assert target_block is not None
+    migration_targets = set(re.findall(r"'([a-z][a-z0-9_]*)'", target_block.group(1)))
+
+    assert migration_targets == expected
+    assert expected <= set(runtime_role._RUNTIME_MUTATION_TABLES)
+    assert expected.isdisjoint(runtime_role._RUNTIME_PRIVATE_TABLES)
+    assert migration.count("BEGIN;") == 1 and migration.count("COMMIT;") == 1
+    assert "REVOKE ALL PRIVILEGES ON TABLE public.%I FROM kokonut_runtime" in migration
+    assert "REVOKE SELECT (%1$I), INSERT (%1$I), UPDATE (%1$I), " in migration
+    assert "REFERENCES (%1$I) ON TABLE public.%2$I FROM kokonut_runtime" in migration
+    assert "GRANT SELECT ON TABLE public.%I TO kokonut_runtime" in migration
+    assert "name = 'data_freshness_check'" in migration
+    assert "command_args = '[\"--check\"]'::jsonb" in migration
+    assert "services.ingestion.freshness_worker" in migration
+    assert "SET cadence_minutes" not in migration
 
 
 def test_freshness_worker_matches_canonical_date_only_source_columns():

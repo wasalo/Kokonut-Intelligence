@@ -27,14 +27,20 @@ HTTP and HTTPS host ports default to loopback (`127.0.0.1:8088` and
 `127.0.0.1:8448`) with the local `localhost` domain; this is a development
 ingress, not public TLS or Internet exposure.
 
-The supervisor starts enabled scheduler, event-dispatch, and notification
-delivery workers, generates distinct UUID-based identities for each supervisor
-lifetime, and refuses an empty worker role. Notification delivery defaults to
-the event-bus feature setting and can be independently disabled or enabled.
-When `isolated_notification_delivery` is enabled, it selects the dedicated
-notification child mode and filters that child's environment; otherwise it
-retains the shared-runtime compatibility mode. CLI worker modes are mutually
-exclusive. When migrations or required read
+The supervisor starts the scheduler and the event-dispatch and notification
+delivery child processes, generates distinct UUID-based identities for each
+supervisor lifetime, and refuses an empty worker role. The event-bus and
+notification feature switches may default on, but their isolated database
+worker switches default off. In that state they remain paused without opening
+a shared database connection. Enabling either operation requires its dedicated
+DSN, login, and migration-backed bounded functions. CLI worker modes are
+mutually exclusive. The scheduler retains the shared control-plane login, but
+filters scheduled commands to only the dedicated worker credentials selected
+by the source allowlist. Freshness and ClickHouse outbox delivery follow the
+same explicit-worker model; disabled paths do not use shared-runtime writes.
+Notification enqueue also uses its separate migration-417 identity when
+configured destinations exist, and fails closed if that path is unavailable.
+When migrations or required read
 relations are missing, the supervisor exits before starting API or worker
 children; Compose retries after the external migration runner completes.
 Existing process-group shutdown,
@@ -51,24 +57,31 @@ credential/context functions; the maintenance login inherits only the shared
 An explicit provider override is available for a reviewed deployment topology;
 multi-replica APIs must retain a shared limiter.
 
-### Optional notification-delivery database identity
+### Isolated event and notification worker identities
 
-Notification delivery can run as an isolated child with the dedicated login
-introduced by migration 647. It is opt-in and off by default. Set
-`KOKONUT_FEATURE_ISOLATED_NOTIFICATION_DELIVERY=true` and provide
-`KOKONUT_NOTIFICATION_DELIVERY_DATABASE_URL` to the Standard worker. Compose
-does not pass either setting to the API. The supervisor strips the shared
-PostgreSQL login and unrelated worker credentials from this child while
-preserving the SMTP, webhook, and Directus delivery settings it needs. The
-login receives only the bounded claim/completion functions; it gets no direct
-table or sequence access. Provision it with the explicit runtime-role bootstrap
-using `KOKONUT_NOTIFICATION_DELIVERY_PASSWORD` (and, if needed,
-`KOKONUT_NOTIFICATION_DELIVERY_USER`) after the ordered migrations. This
-isolates notification delivery only: the API and general worker still share
-`kokonut_runtime`, and other worker children still use their configured
-identities. See the
-[migration-647 disposable acceptance](builds/2026-10-25-recovery/notification-delivery-worker-disposable.json)
-and the [focused supervisor/profile checks](../../tests/test_kernel_runtime_supervisor.py).
+Event dispatch uses migration 648's dedicated identity and bounded queue/receipt
+functions. Notification delivery uses migration 647's dedicated identity and
+bounded claim/completion functions. Both isolation flags are off by default.
+Before enabling, provision the matching password through the runtime-role
+bootstrap after the ordered migration run, provide the worker-only DSN, and
+select the flag. Compose does not pass those DSNs to the API. The supervisor
+removes shared PostgreSQL credentials and unrelated worker secrets from each
+child. Delivery receives only the SMTP, webhook, and Directus settings needed
+to send; the dispatcher receives no provider destination secrets. An isolated
+deny marker also prevents a legacy module from restoring shared credentials
+from a mounted `.env` file.
+
+Notification enqueue is a separate operation using migration 417's dedicated
+identity and source-validated function. When destinations are configured but
+this path is disabled or unprovisioned, the handler fails and the event follows
+its retry/dead-letter policy; it does not silently acknowledge a missing
+notification. Migration 723 removes direct shared-runtime DML from event
+receipts, freshness output state, and notification attempts while preserving
+reads. The API and general worker still share `kokonut_runtime`, so these
+operation identities do not complete C1. See the
+[migration-647 disposable acceptance](builds/2026-10-25-recovery/notification-delivery-worker-disposable.json),
+the [focused supervisor/profile checks](../../tests/test_kernel_runtime_supervisor.py),
+and the current [C1 status](current-state-and-implementation.md#c1-runtime-acl-work-current-batch).
 
 ## Deployment prerequisites
 
@@ -245,23 +258,23 @@ not prove long-running handler lease reclaim, populated-data parity, live
 provider recovery, 24-hour endurance, scale, public ingress, backup/restore
 ownership, or physical Raspberry Pi behavior.
 
-This recovery confirms Standard's current default topology and bootstrap path;
-it is not candidate rollout or production acceptance. A separate native,
-network-disabled PostgreSQL replay now refreshes the aggregate runtime ACL
-report and synthetic two-tenant operator-scope probe through migration 722. It
-applies 713/713 schemas, passes all 38 checks, loads no seeds or farm data, and
-cleans up its disposable resources. The report covers 1,522 public relations,
-with 1,315 having effective runtime DML and 931 tables having runtime DML while
-RLS is disabled; 172 migration-revoked relations match the declared policy,
-with zero mismatches. It also records 212 unprotected DML relations without
-candidate SQL relations and 374 without candidate write sites. These overlapping
-counts measure privilege reach and heuristic inventory coverage, not confirmed
-leaks or tenant isolation. The probe found zero direct table/column violations
-within its declared scoped-write checks. ARM64/QEMU full replay through 722,
-distinct API/worker identities, Directus/tenant reconciliation, candidate
-rollout, and production acceptance remain open
-([native replay and probe](builds/2026-11-01-recovery/native-resource-limited-schema-722-operator-probe.json);
-[ACL report](builds/2026-11-01-recovery/runtime-privilege-callsite-report-722.json)).
+This recovery confirms Standard's migration-722 default topology and bootstrap
+path; it is not candidate rollout or production acceptance. A separate native,
+network-disabled PostgreSQL replay and synthetic two-tenant operator-scope
+probe now cover migration 723. They apply 714/714 schemas, pass all 38 checks,
+load no seeds or farm data, and clean up their disposable resources. The report
+covers 1,522 public relations, with 1,309 having effective runtime DML and 925
+tables having runtime DML while RLS is disabled; 178 migration-revoked relations
+match the declared policy, with zero mismatches. It also records 213
+unprotected DML relations without candidate SQL relations and 374 without
+candidate write sites. These overlapping counts measure privilege reach and
+heuristic inventory coverage, not confirmed leaks or tenant isolation. The
+probe found zero direct table/column violations within its declared scoped-write
+checks. ARM64/QEMU replay through 723 is in progress. Distinct API/worker
+identities, Directus/tenant reconciliation, candidate rollout, and production
+acceptance remain open
+([native replay and probe](builds/2026-11-01-recovery/native-current-schema-723-operator-probe.json);
+[ACL report](builds/2026-11-01-recovery/runtime-privilege-callsite-report-723.json)).
 
 The 31 October recovery through migration 712 remains useful historical
 evidence for the bounded Gateway rate-limit contract and its consume, deny,

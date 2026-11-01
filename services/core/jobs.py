@@ -10,8 +10,7 @@ from dataclasses import dataclass
 from types import MappingProxyType
 
 from services.common.worker_environment import (
-    scheduled_module_worker_key,
-    worker_subprocess_environment,
+    scheduled_module_worker_environment,
 )
 from services.core.features import is_enabled
 from services.security.execution_allowlist import ALLOWED_SCHEDULED_MODULES
@@ -144,10 +143,6 @@ JOBS = MappingProxyType(
             "services.ingestion.freshness_worker", ("--check",), 120, 2, 120,
             "Freshness check",
         ),
-        "freshness_legacy": JobSpec(
-            "services.ingestion.data_freshness", ("--check",), 120, 2, 120,
-            "Freshness check (legacy compatibility)",
-        ),
         "metrics": JobSpec(
             "services.metrics",
             ("--compute", "--all"),
@@ -203,15 +198,6 @@ JOBS = MappingProxyType(
             "Sensor and ingestion projection delivery",
         ),
     }
-)
-
-_LEGACY_PROJECTIONS = JobSpec(
-    "services.ingestion.clickhouse_outbox",
-    ("--run-once", "--limit", "100"),
-    300,
-    0,
-    60,
-    "Sensor and ingestion projection delivery (legacy compatibility)",
 )
 
 _LEGACY_CREDIT_ADJUSTMENT = JobSpec(
@@ -294,16 +280,12 @@ def _run_job_spec(
         arguments.extend(("--chain", chain))
     if spec.scheduler_allowed:
         validate_scheduled_command(spec.module, arguments)
-    worker_key = scheduled_module_worker_key(spec.module)
     result = subprocess.run(
         [sys.executable, "-m", spec.module, *arguments],
         capture_output=True,
         text=True,
         timeout=spec.timeout_seconds,
-        env=worker_subprocess_environment(
-            allowed_worker_keys=(worker_key,) if worker_key is not None else (),
-            isolated_database_credentials=worker_key is not None,
-        ),
+        env=scheduled_module_worker_environment(spec.module, arguments),
     )
     if result.returncode != 0:
         raise JobFailed(spec.label, result)
@@ -333,16 +315,9 @@ def run_job(
     if job_id == "baal" and not is_enabled("isolated_baal_indexer_worker"):
         job_id = "baal_legacy"
         spec = JOBS[job_id]
-    if job_id == "freshness" and not is_enabled("isolated_freshness_worker"):
-        job_id = "freshness_legacy"
-        spec = JOBS[job_id]
     if job_id == "anomaly" and not is_enabled("isolated_sensor_anomaly_scan_worker"):
         job_id = "anomaly_legacy"
         spec = JOBS[job_id]
-    if job_id == "projections" and not is_enabled("isolated_clickhouse_outbox_worker"):
-        # Preserve deployed schedules while the dedicated login is not provisioned.
-        job_id = "projections_legacy"
-        spec = _LEGACY_PROJECTIONS
     return _run_job_spec(
         job_id,
         spec,

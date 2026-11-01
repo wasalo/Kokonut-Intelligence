@@ -22,6 +22,7 @@ from __future__ import annotations
 import argparse
 import math
 import os
+import subprocess
 import sys
 import time
 from uuid import UUID
@@ -57,18 +58,50 @@ def _preflight_fork_location(parser: argparse.ArgumentParser, args) -> None:
 
 def cmd_process(args):
     _validate_batch_size(args.batch_size, maximum=MAX_EVENT_BATCH_SIZE)
-    from services.events.backend import get_event_store
+    from services.common.worker_environment import (
+        isolated_worker_key,
+        scheduled_module_worker_environment,
+    )
+    from services.core.features import is_enabled
+    from services.events.dispatch_worker import run_once
 
-    bus = get_event_store()
-    try:
-        result = bus.process_pending(
-            batch_size=args.batch_size,
-            worker_id=args.worker_id,
-        )
+    if not is_enabled("event_bus") or not is_enabled("isolated_event_dispatch"):
+        print_json({
+            "status": "paused",
+            "reason": "event dispatch requires the isolated worker to be enabled",
+        })
+        return 0
+
+    worker_key = isolated_worker_key()
+    if worker_key == "event_dispatch":
+        result = run_once(args.worker_id, args.batch_size, args.lease_seconds)
         print_json(result)
-        return 0 if result["failed"] == 0 else 1
-    finally:
-        bus.close()
+        return 0 if result["failed"] == 0 and result["lease_lost"] == 0 else 1
+    if worker_key is not None:
+        raise RuntimeError("event processing requires the dedicated event-dispatch identity")
+
+    # Direct operator invocation starts the same isolated worker under a
+    # filtered child environment. Scheduler invocations already carry the
+    # marker and call the worker directly above.
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "services.events.dispatch_worker",
+            "--run-once",
+            "--worker-id",
+            args.worker_id,
+            "--batch-size",
+            str(args.batch_size),
+            "--lease-seconds",
+            str(args.lease_seconds),
+        ],
+        env=scheduled_module_worker_environment(
+            "services.events",
+            ("--process", "--batch-size", str(args.batch_size)),
+        ),
+    )
+    return result.returncode
 
 
 def _run_worker(args, *, process_events: bool, deliver_notifications: bool,
@@ -88,76 +121,71 @@ def _run_worker(args, *, process_events: bool, deliver_notifications: bool,
 
     from services.core.features import is_enabled
 
-    isolated_event_dispatch_requested = isolated_event_dispatch
-    process_events = process_events and is_enabled("event_bus")
+    event_dispatch_requested = process_events and is_enabled("event_bus")
     isolated_event_dispatch = (
         isolated_event_dispatch
-        and process_events
+        and event_dispatch_requested
         and is_enabled("isolated_event_dispatch")
     )
-    if isolated_event_dispatch_requested and not isolated_event_dispatch:
-        logger.info("Isolated EventBus worker is disabled by feature configuration")
-        return 0
-    deliver_notifications = deliver_notifications and is_enabled("notification_delivery")
+    event_dispatch_waiting_for_isolation = (
+        event_dispatch_requested and not isolated_event_dispatch
+    )
+    process_events = isolated_event_dispatch
+    notification_delivery_requested = deliver_notifications or isolated_notification_delivery
     isolated_notification_delivery = (
-        isolated_notification_delivery
+        notification_delivery_requested
         and is_enabled("notification_delivery")
         and is_enabled("isolated_notification_delivery")
     )
-    deliver_notifications = deliver_notifications or isolated_notification_delivery
+    # Never fall back to direct shared-runtime outbox mutations. Delivery stays
+    # paused until the bounded worker and its dedicated login are configured.
+    notification_waiting_for_isolation = (
+        notification_delivery_requested
+        and is_enabled("notification_delivery")
+        and not isolated_notification_delivery
+    )
+    deliver_notifications = isolated_notification_delivery
+    if notification_waiting_for_isolation:
+        logger.warning(
+            "Notification delivery is paused until the isolated worker is enabled and configured"
+        )
     if not process_events and not deliver_notifications:
+        if event_dispatch_waiting_for_isolation or notification_waiting_for_isolation:
+            # Keep the supervised child alive without touching a database so
+            # the parent does not enter a restart loop while isolation is off.
+            try:
+                while True:
+                    time.sleep(args.poll_interval)
+            except KeyboardInterrupt:
+                return 0
         logger.info("Event and notification workers are disabled by feature configuration")
         return 0
 
     try:
         while True:
-            bus = None
             iteration_failed = False
             result = {"processed": 0, "failed": 0}
             notifications = {"claimed": 0}
             try:
                 if process_events:
-                    if isolated_event_dispatch:
-                        from services.events.dispatch_worker import run_once
+                    from services.events.dispatch_worker import run_once
 
-                        result = run_once(
-                            args.worker_id, args.batch_size, args.lease_seconds
-                        )
-                    else:
-                        from services.events.backend import get_event_store
-
-                        bus = get_event_store(lease_seconds=args.lease_seconds, connect_timeout=5)
-                        result = bus.process_pending(args.batch_size, args.worker_id)
+                    result = run_once(args.worker_id, args.batch_size, args.lease_seconds)
                 if deliver_notifications:
-                    if isolated_notification_delivery:
-                        from services.events.notification_delivery_worker import run_once
+                    from services.events.notification_delivery_worker import run_batches
 
-                        notifications = run_once(
-                            args.worker_id, args.batch_size, args.lease_seconds
-                        )
-                    else:
-                        from services.common.database import get_connection
-                        from services.events.notification_outbox import deliver_batch
-
-                        with get_connection(connect_timeout=5) as conn:
-                            notifications = deliver_batch(conn, args.worker_id, args.batch_size)
+                    notifications = run_batches(
+                        args.worker_id, args.batch_size, args.lease_seconds
+                    )
             except KeyboardInterrupt:
                 return 0
             except Exception as exc:
-                # A dead connection is discarded with this iteration's bus;
-                # the next poll gets a fresh event and notification connection.
+                # Each isolated batch owns and closes its worker connection;
+                # the next poll gets fresh connections for both operations.
                 logger.error(
                     "Event worker iteration failed (%s)", safe_exception_class(exc)
                 )
                 iteration_failed = True
-            finally:
-                if bus is not None:
-                    try:
-                        bus.close()
-                    except Exception as exc:
-                        logger.warning(
-                            "Failed to close event worker bus (%s)", safe_exception_class(exc)
-                        )
 
             if iteration_failed:
                 time.sleep(args.poll_interval)
@@ -174,13 +202,24 @@ def _run_worker(args, *, process_events: bool, deliver_notifications: bool,
 
 
 def cmd_worker(args):
-    """Compatibility worker that dispatches events and sends notifications."""
-    return _run_worker(args, process_events=True, deliver_notifications=True)
+    """Compatibility worker with isolated event and notification delivery."""
+    return _run_worker(
+        args,
+        process_events=True,
+        deliver_notifications=True,
+        isolated_notification_delivery=True,
+        isolated_event_dispatch=True,
+    )
 
 
 def cmd_event_worker(args):
     """Continuously dispatch durable domain events without sending notifications."""
-    return _run_worker(args, process_events=True, deliver_notifications=False)
+    return _run_worker(
+        args,
+        process_events=True,
+        deliver_notifications=False,
+        isolated_event_dispatch=True,
+    )
 
 
 def cmd_isolated_event_worker(args):
@@ -194,8 +233,13 @@ def cmd_isolated_event_worker(args):
 
 
 def cmd_notification_worker(args):
-    """Continuously deliver durable notification intents without dispatching events."""
-    return _run_worker(args, process_events=False, deliver_notifications=True)
+    """Deliver durable notifications through the dedicated worker when enabled."""
+    return _run_worker(
+        args,
+        process_events=False,
+        deliver_notifications=True,
+        isolated_notification_delivery=True,
+    )
 
 
 def cmd_isolated_notification_worker(args):
@@ -334,11 +378,9 @@ def cmd_dispose_dead_letter(args):
 
 def cmd_notification_process(args):
     _validate_batch_size(args.batch_size, maximum=MAX_NOTIFICATION_BATCH_SIZE)
-    from services.common.database import get_connection
-    from services.events.notification_outbox import deliver_batch
+    from services.events.notification_delivery_worker import run_batches
 
-    with get_connection() as conn:
-        result = deliver_batch(conn, args.worker_id, args.batch_size)
+    result = run_batches(args.worker_id, args.batch_size, args.lease_seconds)
     print_json(result)
     return 0 if result["failed"] == 0 and result["lease_lost"] == 0 else 1
 
@@ -397,13 +439,13 @@ def main():
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument("--process", action="store_true", help="Process pending events")
     group.add_argument("--worker", action="store_true",
-                       help="Compatibility mode: dispatch events and deliver notifications")
+                       help="Compatibility mode: dispatch events and use isolated notification delivery")
     group.add_argument("--event-worker", action="store_true",
                        help="Continuously dispatch events without delivering notifications")
     group.add_argument("--isolated-event-worker", action="store_true",
                        help="Dispatch events using the dedicated bounded database identity")
     group.add_argument("--notification-worker", action="store_true",
-                       help="Continuously deliver notifications without dispatching events")
+                       help="Continuously deliver notifications through the isolated worker when enabled")
     group.add_argument("--isolated-notification-worker", action="store_true",
                        help="Deliver notifications using the dedicated bounded database identity")
     group.add_argument("--stats", action="store_true", help="Show event statistics")

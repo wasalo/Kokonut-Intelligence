@@ -207,23 +207,79 @@ clean source revision `68e8b602` and the current runtime SQL inventory
 ([report](builds/2026-11-01-recovery/runtime-privilege-callsite-report-722.json);
 [SQL review ledger](runtime-sql-unresolved-write-review.json)).
 
-The next code-first review should start with data freshness: its dedicated
-bounded worker/functions already exist, but the legacy `--check` and scheduler
-fallback still perform direct DML while isolated-worker selection is optional.
-Map the exact reads/writes, enable and parity-check the bounded path, preserve
-retry/alert output, and reconcile the legacy seed schedule and external callers
-before adding a runtime deny migration. This is a global/control-plane writer,
-so keep its broad/system scope distinct from location-tenant operations.
+The data-freshness writer review is now implemented in the migration-723
+batch. The legacy CLI keeps its view-backed `--summary`; `--check` delegates to
+the default-off isolated worker and fails closed when its dedicated identity
+is not configured. Migration 723 retargets only the exact legacy schedule
+entry while preserving cadence/settings, revokes direct shared-runtime writes
+on six worker-owned event, freshness, and notification tables, and preserves
+runtime reads plus Directus/maintenance access. The disposable test verifies
+replay, residual column-grant removal, provisioner reapplication, and the
+exact schedule predicate. This global/control-plane worker remains distinct
+from location-tenant operations; configured-schedule and populated-source
+parity still need deployment acceptance.
 
-The API/general-worker identity split also needs a capability map before a
-second login is introduced. Both Standard services still use
-`kokonut_runtime`; adding another login with the same compatibility DML grant
-would separate credentials without providing least privilege. Record separate
-API and worker SQL reachability, identify default-on jobs and handlers, then
-design role-specific provisioning, startup identity checks, and recovery
-acceptance. Directus effective permission counts also remain unreconciled across
-the parity document, source tests, and disposable snapshot; do not call that
-surface parity-certified until the counts and runtime effects agree.
+### C1 current continuation — migration 723 isolated worker writes — 1 November 2026
+
+The native, network-disabled PostgreSQL 16 replay applies all 714 ordered
+schemas through migration 723, passes 38 synthetic two-tenant/operator checks,
+reports zero direct table/column privilege violations within the declared
+scoped-write policy, and removes its disposable project. Migration 723
+preserves runtime SELECT on six worker-owned relations while removing runtime
+table and residual column DML; it leaves Directus and maintenance grants intact
+and its policy is re-applied by runtime-role provisioning. The exact known
+freshness schedule moves to `services.ingestion.freshness_worker` only when
+its name, legacy module, and `--check` arguments match, preserving task cadence
+and settings.
+
+The paired source/ACL report covers 1,522 public relations: 1,309 have
+effective runtime DML, 925 tables have runtime DML while RLS is disabled, and
+178 migration-revoked relations match the declared policy with zero mismatches.
+It records 213 unprotected DML relations without candidate SQL relations and
+374 without candidate write sites. These are overlapping privilege-reach and
+source-coverage counts, not confirmed leaks or a universal tenant-isolation
+result. The refreshed static attribution map covers 4,958 SQL sites: 34
+API-only, 367 worker-only, one shared, and 4,556 unresolved. Static candidates
+are not observed executions or a safe grant list. ARM64/QEMU replay and the
+two-tenant probe through 723 are still pending; physical Raspberry Pi
+acceptance remains unavailable.
+
+Evidence: [migration](../../schemas/postgres/723_isolated_worker_runtime_write_boundaries.sql),
+[focused ACL acceptance](builds/2026-11-01-recovery/isolated-worker-runtime-write-boundary-723.json),
+[native replay/probe](builds/2026-11-01-recovery/native-current-schema-723-operator-probe.json),
+[source/ACL report](builds/2026-11-01-recovery/runtime-privilege-callsite-report-723.json),
+[runtime role attribution](runtime-role-attribution.json).
+
+The API/general-worker identity split still needs a reviewed capability map
+before a second login is introduced. Both Standard services use
+`kokonut_runtime`; another login with the same compatibility DML grant would
+separate credentials without providing least privilege. The source-only
+[`runtime-role attribution inventory`](runtime-role-attribution.json), generated
+by [`scripts/runtime_role_attribution.py`](../../scripts/runtime_role_attribution.py),
+joins static Gateway route-handler reachability and the existing worker
+operation graph to every direct SQL site. It keeps `api_candidate`,
+`worker_candidate`, `shared_candidate`, and `unresolved` explicit, records
+default-on supervisor children separately from whether a persisted schedule or
+event is actually active, and documents the shared `PG_*` and worker-secret
+environment paths. Its current source snapshot covers 4,958 SQL sites: 34
+API-only candidates, 367 worker-only candidates, one site reached by both
+graphs, and 4,556 unresolved sites. It discovers 349 API route roots and 478
+statically reachable functions; four dynamic route factories remain unresolved.
+The worker graph has 50 roots, 368 reachable SQL sites, and 56 registered
+dynamic-dispatch edges. These are static candidates, not observed executions.
+The map does not establish mounted dynamic routes, live schedule state, complete
+effects, ACLs, tenant isolation, or a safe grant list; unresolved sites remain
+unresolved. Review that map and its dynamic gaps before designing role-specific
+provisioning, startup identity checks, or migrations. Directus effective
+permission counts also remain unreconciled across the parity document, source
+tests, and disposable snapshot; do not call that surface parity-certified until
+the counts and runtime effects agree.
+
+Refresh or validate the source map with
+`python3 scripts/runtime_role_attribution.py --output docs/refactor/runtime-role-attribution.json`
+or `python3 scripts/runtime_role_attribution.py --check docs/refactor/runtime-role-attribution.json`.
+These commands inspect repository source only; they do not connect to a
+database, run tests, inspect live schedules, or change runtime behavior.
 
 ### Earlier C1 continuation — migration 717 `chat_intent` runtime ACL — 1 November 2026
 
@@ -712,6 +768,16 @@ The detailed entries below are dated historical checkpoints through migration
   fingerprints. These are different units; source review is not ACL approval.
   Refresh both records as operations are migrated ([ACL report](builds/2026-11-01-recovery/runtime-privilege-callsite-report-722.json);
   [SQL review ledger](runtime-sql-unresolved-write-review.json)).
+- [x] Add and refresh the deterministic API/general-worker attribution map.
+  The current snapshot covers 4,958 SQL sites; the original baseline covered
+  4,967 before later source retirements. It includes Standard
+  credential/default-child policy and explicit unresolved labels
+  ([inventory](runtime-role-attribution.json);
+  [generator](../../scripts/runtime_role_attribution.py)). The inventory
+  checker passes; this is static source evidence only.
+- [ ] Review the 4,556 unresolved SQL sites, four dynamic Gateway route
+  factories, 56 worker dynamic-dispatch edges, persisted schedule activation,
+  and external callers before defining any API/general-worker grants.
 - [ ] Reconcile Directus field/row permissions, extension hooks, ORM/dynamic SQL,
   API keys, saved reports, and external consumers per candidate relation.
 - [x] Verify migration 690 and the `capex_breakdown` boundary on network-

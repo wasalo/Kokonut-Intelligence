@@ -115,3 +115,50 @@ def test_claim_and_finish_use_bounded_functions_and_commit_each_lease_transition
     )
     assert connection.commit.call_count == 2
     connection.close.assert_called_once_with()
+
+
+def test_claim_and_finish_roll_back_database_errors():
+    connection = MagicMock()
+    cursor = connection.cursor.return_value.__enter__.return_value
+    cursor.fetchall.side_effect = OSError("synthetic claim failure")
+
+    with pytest.raises(OSError, match="synthetic claim failure"):
+        worker._claim(connection, "worker-a", 1)
+
+    connection.rollback.assert_called_once_with()
+    connection.commit.assert_not_called()
+
+    connection.reset_mock()
+    cursor = connection.cursor.return_value.__enter__.return_value
+    cursor.fetchone.side_effect = OSError("synthetic completion failure")
+
+    with pytest.raises(OSError, match="synthetic completion failure"):
+        worker._finish(
+            connection,
+            "worker-a",
+            {"id": uuid4(), "lease_token": uuid4()},
+            success=True,
+        )
+
+    connection.rollback.assert_called_once_with()
+    connection.commit.assert_not_called()
+
+
+def test_run_once_closes_worker_connection_when_claim_fails(monkeypatch):
+    connection = MagicMock()
+    connection.cursor.return_value.__enter__.return_value.fetchall.side_effect = OSError(
+        "synthetic claim failure"
+    )
+    monkeypatch.setattr(worker, "require_feature", MagicMock())
+    monkeypatch.setattr(
+        worker.ProviderSettings,
+        "from_environment",
+        MagicMock(return_value=SimpleNamespace(clickhouse=True)),
+    )
+    monkeypatch.setattr(worker, "get_worker_db", MagicMock(return_value=connection))
+
+    with pytest.raises(OSError, match="synthetic claim failure"):
+        worker.run_once("worker-a", 1)
+
+    connection.rollback.assert_called_once_with()
+    connection.close.assert_called_once_with()

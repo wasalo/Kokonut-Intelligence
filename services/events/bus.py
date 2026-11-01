@@ -7,18 +7,13 @@ import json
 import subprocess
 import sys
 import uuid
-from datetime import datetime, timezone
 from typing import Any
 
-from services.common.errors import safe_exception_class
-from services.common.logging import get_logger
 from services.common.worker_environment import (
     event_handler_worker_policy,
     worker_subprocess_environment,
 )
 from services.security.execution_allowlist import validate_event_handler
-
-logger = get_logger("events.bus")
 
 
 def _validate_lease_seconds(lease_seconds: int) -> None:
@@ -28,15 +23,6 @@ def _validate_lease_seconds(lease_seconds: int) -> None:
         or not 30 <= lease_seconds <= 3600
     ):
         raise ValueError("event worker lease must be between 30 and 3600 seconds")
-
-
-def _valid_handler_timeout(timeout_seconds: Any) -> bool:
-    return (
-        not isinstance(timeout_seconds, bool)
-        and isinstance(timeout_seconds, int)
-        and 1 <= timeout_seconds <= 3570
-    )
-
 
 def _handler_child_environment(module_path, function_name, environ=None):
     """Copy the environment with only an exact handler's worker identity.
@@ -52,7 +38,8 @@ def _handler_child_environment(module_path, function_name, environ=None):
     )
     return worker_subprocess_environment(
         allowed_worker_keys=allowed_worker_keys,
-        isolated_database_credentials=isolated,
+        isolated_database_credentials=bool(allowed_worker_keys),
+        strip_shared_database_credentials=isolated,
         environ=environ,
     )
 
@@ -118,130 +105,6 @@ class EventBus:
                 conn.rollback()
             raise
 
-    def _claim(self, batch_size: int, worker_id: str):
-        """Atomically claim eligible events; caller commits before any handler runs."""
-        conn = self._get_conn()
-        with conn.cursor() as cur:
-            cur.execute("""
-                WITH claimable AS (
-                    SELECT id FROM platform_event
-                    WHERE status = 'pending'
-                       OR (status = 'processing' AND lease_expires_at < NOW())
-                    ORDER BY CASE priority WHEN 'critical' THEN 0 WHEN 'high' THEN 1
-                             WHEN 'normal' THEN 2 ELSE 3 END, created_at
-                    LIMIT %s FOR UPDATE SKIP LOCKED
-                )
-                UPDATE platform_event e
-                SET status = 'processing', claimed_at = NOW(), worker_id = %s,
-                    lease_owner = %s,
-                    lease_expires_at = NOW() + (%s * INTERVAL '1 second')
-                FROM claimable c WHERE e.id = c.id
-                RETURNING e.id, e.event_type, e.payload, e.retry_count, e.max_retries
-            """, (batch_size, worker_id, worker_id, self.lease_seconds))
-            events = cur.fetchall()
-        conn.commit()
-        return events
-
-    def process_pending(self, batch_size: int = 100, worker_id: str = "default") -> dict[str, int]:
-        stats = {"processed": 0, "failed": 0, "skipped": 0, "lease_lost": 0}
-        conn = self._get_conn()
-        try:
-            events = self._claim(batch_size, worker_id)
-            for event_id, event_type, payload, retry_count, max_retries in events:
-                payload = json.loads(payload) if isinstance(payload, str) else payload
-                outcome = self._process_event(event_id, event_type, payload, worker_id)
-                if outcome == "success":
-                    stats["processed"] += 1
-                elif outcome == "skipped":
-                    stats["skipped"] += 1
-                elif outcome == "lease_lost":
-                    # Another worker owns this event now. The stale worker must
-                    # neither retry it nor report the handler as failed.
-                    stats["lease_lost"] += 1
-                else:
-                    self._retry_or_dead_letter(
-                        event_id, retry_count + 1, max_retries, worker_id
-                    )
-                    stats["failed"] += 1
-            return stats
-        except Exception as exc:
-            conn.rollback()
-            logger.error("Failed to process event batch (%s)", safe_exception_class(exc))
-            raise
-
-    def _process_event(self, event_id, event_type, payload, worker_id):
-        conn = self._get_conn()
-        with conn.cursor() as cur:
-            cur.execute("""
-                SELECT h.id, h.module_path, h.function_name, h.timeout_seconds,
-                       d.status
-                FROM event_handler h
-                LEFT JOIN event_handler_delivery d
-                  ON d.event_id = %s AND d.handler_id = h.id
-                WHERE h.event_type = %s AND h.is_enabled = TRUE
-                ORDER BY h.priority_order
-            """, (event_id, event_type))
-            handlers = cur.fetchall()
-        conn.commit()
-        if not handlers:
-            return "skipped" if self._complete(event_id, worker_id) else "lease_lost"
-        if any(not _valid_handler_timeout(handler[3]) for handler in handlers):
-            # Match the isolated worker's database-function contract before
-            # extending a lease or invoking any handler. Returning failed
-            # routes this event through its bounded retry/dead-letter policy.
-            logger.error("Event handler timeout is outside the supported 1–3570 second range")
-            return "failed"
-
-        failed = False
-        for handler_id, module_path, function_name, timeout_seconds, status in handlers:
-            if status == "success":
-                continue
-            with conn.cursor() as cur:
-                cur.execute("""
-                    UPDATE platform_event
-                    SET lease_expires_at = NOW() + (%s * INTERVAL '1 second')
-                    WHERE id = %s AND status = 'processing' AND lease_owner = %s
-                    RETURNING id
-                """, (max(self.lease_seconds, timeout_seconds + 30), event_id, worker_id))
-                still_owned = cur.fetchone()
-            conn.commit()
-            if not still_owned:
-                logger.warning("Lease lost before handler delivery for event %s", event_id)
-                return "lease_lost"
-            with conn.cursor() as cur:
-                cur.execute("""
-                    INSERT INTO event_handler_delivery
-                        (event_id, handler_id, status, attempt_count, started_at, updated_at)
-                    VALUES (%s, %s, 'processing', 1, NOW(), NOW())
-                    ON CONFLICT (event_id, handler_id) DO UPDATE
-                    SET status = 'processing', attempt_count = event_handler_delivery.attempt_count + 1,
-                        started_at = NOW(), updated_at = NOW(), last_error = NULL
-                """, (event_id, handler_id))
-            conn.commit()
-            started = datetime.now(timezone.utc)
-            delivery_status, error = self._invoke_handler(
-                module_path, function_name, event_type, payload, timeout_seconds,
-                event_id=str(event_id),
-            )
-            duration_ms = int((datetime.now(timezone.utc) - started).total_seconds() * 1000)
-            with conn.cursor() as cur:
-                cur.execute("""
-                    UPDATE event_handler_delivery
-                    SET status = %s, completed_at = NOW(), last_error = %s, updated_at = NOW()
-                    WHERE event_id = %s AND handler_id = %s
-                """, (delivery_status, error, event_id, handler_id))
-                cur.execute("""
-                    INSERT INTO event_handler_log
-                        (event_id, handler_id, status, duration_ms, error_message)
-                    VALUES (%s, %s, %s, %s, %s)
-                """, (event_id, handler_id, delivery_status, duration_ms, error))
-            conn.commit()
-            if delivery_status != "success":
-                failed = True
-        if failed:
-            return "failed"
-        return "success" if self._complete(event_id, worker_id) else "lease_lost"
-
     def _invoke_handler(
         self, module_path, function_name, event_type, payload, timeout_seconds, *, event_id=None
     ):
@@ -292,44 +155,6 @@ class EventBus:
         ):
             return "error", f"Handler failed ({error_class})"
         return "error", "Handler failed"
-
-    def _complete(self, event_id, worker_id):
-        conn = self._get_conn()
-        with conn.cursor() as cur:
-            cur.execute("""
-                UPDATE platform_event SET status = 'completed', processed_at = NOW(),
-                    lease_owner = NULL, lease_expires_at = NULL
-                WHERE id = %s AND status = 'processing' AND lease_owner = %s
-                RETURNING id
-            """, (event_id, worker_id))
-            completed = cur.fetchone() is not None
-        conn.commit()
-        return completed
-
-    def _retry_or_dead_letter(self, event_id, retry_count, max_retries, worker_id):
-        conn = self._get_conn()
-        dead = retry_count >= max_retries
-        error = "Max retries exceeded" if dead else "One or more handlers failed"
-        with conn.cursor() as cur:
-            cur.execute("""
-                UPDATE platform_event SET status = %s, retry_count = %s,
-                    error_message = %s, lease_owner = NULL, lease_expires_at = NULL
-                WHERE id = %s AND lease_owner = %s
-                RETURNING id
-            """, ("dead_letter" if dead else "pending", retry_count, error,
-                  event_id, worker_id))
-            changed = cur.fetchone()
-            if dead and changed:
-                cur.execute("""
-                    INSERT INTO event_dead_letter
-                        (original_event_id, event_type, payload, failure_count, last_error)
-                    SELECT id, event_type, payload, retry_count, error_message
-                    FROM platform_event WHERE id = %s
-                    ON CONFLICT (original_event_id) WHERE disposition = 'pending'
-                    DO UPDATE SET failure_count = EXCLUDED.failure_count,
-                                  last_error = EXCLUDED.last_error
-                """, (event_id,))
-        conn.commit()
 
     def replay_dead_letter(self, event_id: str, actor: str) -> bool:
         if not actor or not actor.strip():

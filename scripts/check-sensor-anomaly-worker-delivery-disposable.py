@@ -33,6 +33,7 @@ FIXTURES_AND_MIGRATIONS = (
     ("tests/fixtures/sensor_anomaly_worker_reads_disposable.sql", "schemas/postgres/412_sensor_anomaly_worker_reads.sql"),
     ("tests/fixtures/sensor_anomaly_alert_write_disposable.sql", "schemas/postgres/413_sensor_anomaly_alert_write.sql"),
     ("tests/fixtures/sensor_anomaly_worker_delivery_disposable.sql", "schemas/postgres/414_sensor_anomaly_worker_delivery.sql"),
+    (None, "schemas/postgres/648_isolated_event_dispatch_worker.sql"),
     (None, "schemas/postgres/649_signed_sensor_anomaly_replay_inventory.sql"),
 )
 DEFAULT_OUTPUT = ROOT / "docs/refactor/builds/2026-10-16-recovery/sensor-anomaly-worker-delivery-disposable.json"
@@ -113,6 +114,10 @@ def main() -> int:
         for name in (
             "KOKONUT_SENSOR_ANOMALY_DATABASE_URL",
             "KOKONUT_SENSOR_ANOMALY_WORKER_CREDENTIAL",
+            "KOKONUT_EVENT_DISPATCH_DATABASE_URL",
+            "KOKONUT_ISOLATED_WORKER_KEY",
+            "KOKONUT_FEATURE_EVENT_BUS",
+            "KOKONUT_FEATURE_ISOLATED_EVENT_DISPATCH",
             "ALERT_WEBHOOK_URL",
             "ALERT_SMTP_HOST",
             "ALERT_EMAIL_TO",
@@ -140,7 +145,15 @@ def main() -> int:
             docker_sql(docker, container, migration_text)
             if migration_name.endswith("414_sensor_anomaly_worker_delivery.sql"):
                 docker_sql(docker, container, migration_text)
-        checks.append("migrations 405–414 and 649 apply in order and migration 649 replays cleanly")
+        checks.append("migrations 405–414, 648, and 649 apply in order and migration 649 replays cleanly")
+
+        event_dispatch_password = secrets.token_urlsafe(32)
+        docker_sql(
+            docker,
+            container,
+            "ALTER ROLE kokonut_event_dispatch_login WITH LOGIN PASSWORD "
+            f"'{event_dispatch_password}'",
+        )
 
         docker_sql(
             docker,
@@ -173,6 +186,12 @@ def main() -> int:
             f"postgresql://kokonut_worker_login:{admin_password_worker}@127.0.0.1:{port}/postgres"
         )
         os.environ["KOKONUT_SENSOR_ANOMALY_WORKER_CREDENTIAL"] = RAW_CREDENTIAL
+        os.environ["KOKONUT_EVENT_DISPATCH_DATABASE_URL"] = (
+            f"postgresql://kokonut_event_dispatch_login:{event_dispatch_password}@127.0.0.1:{port}/postgres"
+        )
+        os.environ["KOKONUT_ISOLATED_WORKER_KEY"] = "event_dispatch"
+        os.environ["KOKONUT_FEATURE_EVENT_BUS"] = "true"
+        os.environ["KOKONUT_FEATURE_ISOLATED_EVENT_DISPATCH"] = "true"
         os.environ["ALERT_WEBHOOK_URL"] = "https://synthetic.invalid/anomaly"
         os.environ["ALERT_SMTP_HOST"] = ""
         os.environ["ALERT_EMAIL_TO"] = ""
@@ -343,7 +362,7 @@ def main() -> int:
             raise AssertionError(f"worker retry duplicated a durable effect: {counts}")
         checks.append("source event replay suppresses duplicate alert, notification, and actuator records")
 
-        # Exercise the real EventBus subprocess boundary with a fresh source
+        # Exercise the isolated EventBus subprocess boundary with a fresh source
         # event. The first parent exits after the handler commits and before
         # it can write delivery success or acknowledge the source event.
         recovery_reading_id = str(uuid.uuid4())
@@ -395,7 +414,7 @@ def main() -> int:
         )
         if crashed.returncode != 86:
             raise AssertionError(
-                "expected the EventBus supervisor to crash after committed handler "
+                "expected the isolated dispatcher to crash after committed handler "
                 f"effects and before acknowledgement; got {crashed.returncode}: {crashed.stderr}"
             )
 
@@ -446,13 +465,15 @@ def main() -> int:
             "WHERE id = %s::uuid AND lease_owner = %s RETURNING id",
             (recovery_event_id, crash_worker_id),
         )
-        from services.events.bus import EventBus
+        from services.events.dispatch_worker import run_once
 
-        recovered = EventBus(conn=admin).process_pending(
-            batch_size=10, worker_id=f"anomaly-recovery-{secrets.token_hex(6)}"
+        recovered = run_once(
+            worker_id=f"anomaly-recovery-{secrets.token_hex(6)}",
+            batch_size=10,
+            lease_seconds=300,
         )
         if recovered != {"processed": 1, "failed": 0, "skipped": 1, "lease_lost": 0}:
-            raise AssertionError(f"EventBus did not recover the leased source event: {recovered}")
+            raise AssertionError(f"isolated dispatcher did not recover the leased source event: {recovered}")
         recovery_after = query(
             admin,
             """SELECT
@@ -491,7 +512,7 @@ def main() -> int:
         if delivery_after != [("completed", "success", 2, 1)]:
             raise AssertionError(f"retry did not complete the source delivery on attempt two: {delivery_after}")
         checks.append(
-            "real EventBus child commits signed effects, crashes before acknowledgement, "
+            "isolated EventBus child commits signed effects, crashes before acknowledgement, "
             "then retries on attempt two without duplicate effects"
         )
 
@@ -549,10 +570,10 @@ def main() -> int:
 if __name__ == "__main__":
     if len(sys.argv) == 4 and sys.argv[1] == "--crash-worker":
         event_id, worker_id = sys.argv[2], sys.argv[3]
-        from services.common.database import get_db
-        from services.events.bus import EventBus
+        from services.common.worker_database import get_worker_db
+        from services.events.dispatch_worker import IsolatedEventBus
 
-        class CrashAfterHandlerBus(EventBus):
+        class CrashAfterHandlerBus(IsolatedEventBus):
             def _invoke_handler(
                 self, module_path, function_name, event_type, payload, timeout_seconds,
                 *, event_id=None,
@@ -565,6 +586,12 @@ if __name__ == "__main__":
                     os._exit(86)
                 return result
 
-        CrashAfterHandlerBus(conn=get_db()).process_pending(batch_size=1, worker_id=worker_id)
+        dispatch_connection = get_worker_db("event_dispatch")
+        try:
+            CrashAfterHandlerBus(conn=dispatch_connection).process_pending(
+                batch_size=1, worker_id=worker_id
+            )
+        finally:
+            dispatch_connection.close()
         raise SystemExit("crash injection did not run")
     raise SystemExit(main())

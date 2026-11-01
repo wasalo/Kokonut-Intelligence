@@ -2,7 +2,7 @@
 
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, Mock
 
 import pytest
 
@@ -42,7 +42,7 @@ class _Connection:
         self.rollback_count += 1
 
 
-def _configure_stale_freshness(monkeypatch, connection):
+def _configure_stale_freshness(*, enqueue_error=None):
     location_id = "10000000-0000-0000-0000-000000000001"
     alert_id = "20000000-0000-0000-0000-000000000002"
     config = {
@@ -60,73 +60,49 @@ def _configure_stale_freshness(monkeypatch, connection):
         "last_event_status": "fresh",
         "last_event_at": None,
     }
-    monkeypatch.setattr(data_freshness, "_query_freshness_configs", lambda *_args: [config])
-    monkeypatch.setattr(data_freshness, "_location_ids", lambda _conn: [location_id])
-    monkeypatch.setattr(
-        data_freshness,
-        "_query_latest_data_at",
-        lambda *_args: datetime.now(timezone.utc) - timedelta(minutes=90),
-    )
-    monkeypatch.setattr(data_freshness, "_insert_check_result", lambda *_args: "check-id")
-    monkeypatch.setattr(data_freshness, "_alert_state", lambda *_args: state)
-    monkeypatch.setattr(data_freshness, "_persist_alert_event", lambda *_args: alert_id)
-    return location_id, alert_id
+    persistence = Mock()
+    persistence.list_configs.return_value = [config]
+    persistence.list_location_ids.return_value = [location_id]
+    persistence.latest_data_at.return_value = datetime.now(timezone.utc) - timedelta(minutes=90)
+    persistence.insert_check.return_value = "check-id"
+    persistence.lock_alert_state.return_value = state
+    persistence.persist_alert_event.return_value = alert_id
+    persistence.enqueue_alert_event.return_value = alert_id
+    if enqueue_error is not None:
+        persistence.enqueue_alert_event.side_effect = enqueue_error
+    return location_id, alert_id, persistence
 
 
-def test_stale_transition_publishes_same_transaction_event_without_inline_delivery(monkeypatch):
+def test_stale_transition_enqueues_durable_notification_through_persistence():
     connection = _Connection()
-    location_id, alert_id = _configure_stale_freshness(monkeypatch, connection)
-    published = []
+    location_id, alert_id, persistence = _configure_stale_freshness()
+    result = data_freshness.check_freshness(connection, persistence=persistence)
 
-    class EventBus:
-        def __init__(self, conn):
-            assert conn is connection
-
-        def publish(self, event_type, payload, **kwargs):
-            published.append((event_type, payload, kwargs))
-            connection.publish_before_commit = connection.commit_count == 0
-            return kwargs["event_id"]
-
-    monkeypatch.setattr("services.events.bus.EventBus", EventBus)
-    result = data_freshness.check_freshness(connection)
-
-    assert len(published) == 1
-    event_type, payload, options = published[0]
-    assert event_type == "data_stale"
-    assert options == {
-        "event_id": alert_id,
-        "source_table": "data_freshness_alert_history",
-        "source_id": alert_id,
-        "priority": "high",
-        "commit": False,
-    }
-    assert payload["alert_id"] == alert_id
-    assert payload["location_id"] == location_id
-    assert payload["source_system"] == "weather"
-    assert payload["status"] == "critical"
-    assert payload["severity"] == "critical"
-    assert connection.publish_before_commit is True
+    persistence.persist_alert_event.assert_called_once()
+    persistence.enqueue_alert_event.assert_called_once_with(
+        alert_id,
+        "weather",
+        "critical",
+        90,
+        persistence.latest_data_at.return_value,
+        "alert",
+        location_id,
+    )
+    persistence.update_check_alert.assert_called_once_with("check-id", False, "event_bus")
     assert connection.commit_count == 1
     assert result["results"][0]["alert_sent"] is False
     assert result["results"][0]["alert_channel"] == "event_bus"
-    assert not hasattr(data_freshness, "_send_alert")
+    assert connection.statements == ["SAVEPOINT freshness_scope", "RELEASE SAVEPOINT freshness_scope"]
 
 
 def test_event_publish_failure_rolls_back_freshness_transition(monkeypatch):
     connection = _Connection()
-    _configure_stale_freshness(monkeypatch, connection)
-
-    class EventBus:
-        def __init__(self, conn):
-            assert conn is connection
-
-        def publish(self, *_args, **_kwargs):
-            raise RuntimeError("synthetic event insert failure")
-
-    monkeypatch.setattr("services.events.bus.EventBus", EventBus)
+    _location_id, _alert_id, persistence = _configure_stale_freshness(
+        enqueue_error=RuntimeError("synthetic event insert failure")
+    )
 
     with pytest.raises(RuntimeError, match="synthetic event insert failure"):
-        data_freshness.check_freshness(connection)
+        data_freshness.check_freshness(connection, persistence=persistence)
 
     assert connection.commit_count == 0
     assert connection.rollback_count == 1
@@ -197,8 +173,12 @@ def test_stale_data_handler_commits_outbox_intents_before_ack(monkeypatch):
     event_id = "20000000-0000-0000-0000-000000000002"
     payload = {"location_id": location_id, "alert_id": event_id, "status": "critical"}
     monkeypatch.setattr(
-        "services.core.features.is_enabled",
-        lambda name: name == "isolated_notification_enqueue",
+        notification_outbox,
+        "_notification_payloads",
+        lambda *_args, **_kwargs: [("webhook", "primary", {"message": "Synthetic alert"})],
+    )
+    monkeypatch.setattr(
+        "services.core.features.require_feature", lambda _name: None
     )
     monkeypatch.setattr(
         "services.common.worker_database.get_worker_db",
@@ -231,8 +211,12 @@ def test_stale_data_handler_propagates_enqueue_failure_for_event_retry(monkeypat
     connection = MagicMock()
     enqueue = MagicMock(side_effect=RuntimeError("synthetic enqueue failure"))
     monkeypatch.setattr(
-        "services.core.features.is_enabled",
-        lambda name: name == "isolated_notification_enqueue",
+        notification_outbox,
+        "_notification_payloads",
+        lambda *_args, **_kwargs: [("webhook", "primary", {"message": "Synthetic alert"})],
+    )
+    monkeypatch.setattr(
+        "services.core.features.require_feature", lambda _name: None
     )
     monkeypatch.setattr(
         "services.common.worker_database.get_worker_db",

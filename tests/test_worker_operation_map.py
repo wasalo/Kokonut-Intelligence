@@ -77,8 +77,8 @@ def test_worker_map_states_shared_identity_and_open_authorization_boundaries():
     boundary = inventory["shared_boundary"]
 
     assert "configured runtime PG_USER and PG_PASSWORD" in boundary["database_identity"]
-    assert "worker-specific secrets are filtered" in boundary["database_identity"]
-    assert "exact source-controlled mapping" in boundary["database_identity"]
+    assert "Scheduled child processes receive only exact source-controlled worker credentials" in boundary["database_identity"]
+    assert "do not fall back to shared-runtime writes" in boundary["database_identity"]
     assert "Migration 405" in boundary["signed_tenant_context"]
     assert "Scheduler dispatch and the EventBus parent do not establish it" in boundary["signed_tenant_context"]
     assert "validate command_args" in boundary["module_argument_validation"]
@@ -140,6 +140,25 @@ def test_report_snapshot_export_worker_contract_isolated_from_shared_runtime():
     assert "no automatic artifact/history pruning" in entry["retry_boundary"]
     assert "services/export/report_snapshot_export_worker.py" in entry["sources"]
     assert "schemas/postgres/683_location_scoped_report_snapshot_exports.sql" in entry["sources"]
+
+
+def test_event_dispatch_contract_has_no_shared_runtime_fallback():
+    inventory = _load_map()
+    dispatch = next(
+        item
+        for item in inventory["isolated_workers"]
+        if item["module"] == "services.events.dispatch_worker"
+    )
+    scheduled = next(
+        item for item in inventory["scheduled_modules"] if item["module"] == "services.events"
+    )
+
+    assert "Default-off" in dispatch["scope"]
+    assert "requires event_bus and isolated_event_dispatch" in dispatch["scope"]
+    assert "never falls back to the shared runtime login" in dispatch["retry_boundary"]
+    assert "legacy --event-worker available" not in dispatch["retry_boundary"]
+    assert "isolation flags default off" in scheduled["scope"]
+    assert "pause without opening the shared database" in scheduled["scope"]
 
 
 def test_effect_inventory_traces_current_event_runner_and_worker_secret_filter():
@@ -269,7 +288,8 @@ def test_scheduled_operation_map_covers_contract_permitted_side_effects():
     assert "public.data_freshness_alert_history" in freshness["writes"]
     assert "public.platform_event" in freshness["writes"]
     assert "default-off" in freshness["retry_boundary"]
-    assert "default-off" in freshness_legacy["scope"]
+    assert "--check delegates to the default-off services.ingestion.freshness_worker" in freshness_legacy["scope"]
+    assert freshness_legacy["writes"] == []
 
     assert "public.noi_snapshot" not in metrics["writes"]
     assert "public.v_crop_cycle_noi" not in metrics["reads"]
@@ -337,7 +357,7 @@ def test_scheduled_operation_map_covers_contract_permitted_side_effects():
     assert market_data["reads"] == ["public.crop"]
     assert market_data["writes"] == ["public.price_observation", "public.ingestion_log"]
     assert "default-off" in market_data["scope"]
-    assert "bounded batch function" in market_data["scope"]
+    assert "fixed operation-specific functions" in market_data["scope"]
     assert "feature remains off" in market_data["retry_boundary"]
     assert "require exactly one explicit supported --chain" in legacy_eas["scope"]
     assert eas_worker["worker_key"] == "eas_indexer"
@@ -418,17 +438,28 @@ def test_metrics_worker_map_covers_calculator_and_database_function_reads():
 
 
 def test_freshness_worker_map_covers_fixed_source_table_map():
-    from services.ingestion.data_freshness import FRESHNESS_SOURCE_TABLES
-
     freshness = next(
         entry for entry in _load_map()["scheduled_modules"] if entry["module"] == "services.ingestion.data_freshness"
     )
+    worker = next(
+        entry for entry in _load_map()["scheduled_modules"] if entry["module"] == "services.ingestion.freshness_worker"
+    )
     mapped_reads = set(freshness["reads"])
-    source_tables = {f"public.{table}" for table in FRESHNESS_SOURCE_TABLES.values()}
+    worker_reads = set(worker["reads"])
+    source_tables = {
+        "public.weather_observation",
+        "public.sensor_reading",
+        "public.remote_sensing_observation",
+        "public.price_observation",
+        "public.attestation_record",
+        "public.wallet_activity_event",
+        "public.governance_event",
+    }
+    migration = (ROOT / "schemas/postgres/645_isolated_data_freshness_worker.sql").read_text()
 
-    assert len(FRESHNESS_SOURCE_TABLES) == 7
-    assert source_tables <= mapped_reads
-    assert {"public.data_freshness_config", "public.location", "public.sensor_device"} <= mapped_reads
+    assert all(f"FROM public.{table}" in migration for table in (item.removeprefix("public.") for item in source_tables))
+    assert mapped_reads == {"public.v_data_freshness_summary"}
+    assert source_tables <= worker_reads
 
 
 def test_climate_worker_map_names_current_schema_and_provider_effects():

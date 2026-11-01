@@ -106,7 +106,7 @@ the candidate defaults; it is not a production acceptance matrix.
 |---------|----------|-------|
 | Kernel app (minimal) | `http://127.0.0.1:8098` | FastAPI app plus enabled workers in the isolated candidate project |
 | PostgreSQL/PostGIS | Docker service `database:5432` | Private canonical store; no host port in the candidate base manifest |
-| API and worker (standard) | API uses candidate port; worker has no HTTP port | Separate services currently share the `kokonut_runtime` database login; distinct API/general-worker database identities remain an open C1 boundary. The notification-delivery child can opt into migration 647's dedicated login with `KOKONUT_FEATURE_ISOLATED_NOTIFICATION_DELIVERY=true` and `KOKONUT_NOTIFICATION_DELIVERY_DATABASE_URL`; that opt-in is off by default, its DSN is supplied to the worker only, and it does not isolate other worker children. Runtime-role setup applies the one-time compatibility grant to a new login or explicitly marked fresh placeholder; reprovisioning does not widen access to new tables. Broad grants on existing tables remain under review. Inspect durable run/delivery state for worker progress |
+| API and worker (standard) | API uses candidate port; worker has no HTTP port | Separate services still share the `kokonut_runtime` database login; distinct API/general-worker identities remain an open C1 boundary. Event dispatch, notification enqueue/delivery, global freshness, and ClickHouse projection delivery use dedicated bounded worker paths when explicitly enabled. Their default-off/disabled paths do not fall back to shared-runtime writes. Migration 723 removes direct runtime writes to the event-receipt, freshness-state, and notification-attempt tables while preserving reads. Runtime-role setup applies its one-time compatibility grant only to a new or explicitly marked fresh login; reprovisioning does not widen access to new tables. Broad grants on existing tables remain under review. Inspect durable run/delivery state for worker progress |
 | Caddy (optional proxy overlay) | `https://127.0.0.1:8448` | Loopback default; public bind requires explicit configuration and review |
 | Directus (optional adapter) | `http://127.0.0.1:18055` | Compatibility/admin integration; not the canonical Kernel API |
 | ClickHouse (optional analytics overlay) | Docker service `clickhouse:8123` | Private analytics adapter |
@@ -114,18 +114,13 @@ the candidate defaults; it is not a production acceptance matrix.
 | gRPC (optional overlay) | Private Compose service | External API transport; opt in explicitly |
 | Metabase | Legacy `metabase` Compose profile | Not part of the candidate planner's standard defaults |
 
-The current runtime ACL batch (migrations 719–722) preserves required reads
+The current runtime ACL batch (migrations 719–723) preserves required reads
 while narrowing writes to selected non-updatable public aggregates, thesaurus
 reference operations, governance reference catalogs, and the application’s
-schema-migration ledger. These are individually scoped boundaries; they do not
-close the broader C1 review or establish tenant/RLS isolation. A fresh native,
-network-disabled replay through migration 722 and its 38-check synthetic
-two-tenant probe report 1,315 of 1,522 public relations with effective runtime
-DML, including 931 tables where RLS is disabled. These are privilege-reach and
-inventory measures, not confirmed data leaks or proof of tenant isolation; see
-the [current refactor status and evidence](docs/refactor/current-state-and-implementation.md),
-[replay](docs/refactor/builds/2026-11-01-recovery/native-resource-limited-schema-722-operator-probe.json),
-and [ACL report](docs/refactor/builds/2026-11-01-recovery/runtime-privilege-callsite-report-722.json).
+schema-migration ledger, and worker-owned event/freshness/notification state.
+These are individually scoped boundaries; they do not close the broader C1
+review or establish tenant/RLS isolation. The latest aggregate counts and
+acceptance links are maintained in the [current refactor status and evidence](docs/refactor/current-state-and-implementation.md).
 
 To combine the Standard API/worker split with Edge's local encrypted media and
 resource settings, inspect the planner output before starting it:

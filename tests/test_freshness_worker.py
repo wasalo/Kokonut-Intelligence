@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
+import json
 from datetime import datetime, timezone
 from unittest.mock import Mock, patch
 
 import pytest
 
+from services.common.worker_environment import DENY_SHARED_DATABASE_ENV
 from services.ingestion import data_freshness, freshness_worker
 
 
@@ -179,11 +181,6 @@ def test_check_freshness_routes_every_database_effect_through_isolated_persisten
         "id": "state-id", "current_status": "no_data",
         "last_event_status": None, "last_event_at": None,
     }
-    monkeypatch.setattr(data_freshness, "_query_freshness_configs", Mock(side_effect=AssertionError))
-    monkeypatch.setattr(data_freshness, "_query_latest_data_at", Mock(side_effect=AssertionError))
-    monkeypatch.setattr(data_freshness, "_insert_check_result", Mock(side_effect=AssertionError))
-    monkeypatch.setattr(data_freshness, "_alert_state", Mock(side_effect=AssertionError))
-
     result = data_freshness.check_freshness(connection, persistence=persistence)
 
     assert result["checked"] == 1
@@ -198,24 +195,59 @@ def test_check_freshness_routes_every_database_effect_through_isolated_persisten
     )
     persistence.update_check_alert.assert_called_once_with("check-id", False, None)
     assert connection.commits == 1
+    assert [statement for statement, _parameters in connection.calls] == [
+        "SAVEPOINT freshness_scope",
+        "RELEASE SAVEPOINT freshness_scope",
+    ]
+
+
+def test_check_freshness_requires_persistence_before_touching_database():
+    class NoDatabaseAccess:
+        def cursor(self, *_args, **_kwargs):
+            raise AssertionError("shared database connection was touched")
+
+    with pytest.raises(RuntimeError, match="isolated persistence adapter"):
+        data_freshness.check_freshness(NoDatabaseAccess())
+
+
+def test_worker_cli_reports_paused_before_database_when_feature_is_off(
+    monkeypatch, capsys
+):
+    from services.core import features
+
+    monkeypatch.setattr(features, "is_enabled", lambda name: name != "isolated_freshness_worker")
+    monkeypatch.setattr(
+        freshness_worker,
+        "get_worker_db",
+        lambda *_args: pytest.fail("disabled worker opened its database"),
+    )
+
+    freshness_worker.main(["--check"])
+
+    assert json.loads(capsys.readouterr().out) == {
+        "status": "paused",
+        "reason": "isolated freshness worker is not enabled",
+    }
 
 
 @pytest.mark.parametrize(
-    ("enabled", "expected_job"),
-    [(False, "freshness_legacy"), (True, "freshness")],
+    "enabled",
+    [False, True],
+    ids=("default-off-pauses-in-worker", "enabled-worker"),
 )
-def test_freshness_job_switches_only_after_isolated_worker_is_enabled(
-    monkeypatch, enabled, expected_job
-):
+def test_freshness_job_always_dispatches_only_the_isolated_worker(monkeypatch, enabled):
     from services.core import jobs
 
     monkeypatch.setattr(jobs, "is_enabled", lambda name: enabled if name == "isolated_freshness_worker" else True)
     with patch("services.core.jobs._run_job_spec", return_value={"status": "success"}) as dispatch:
         jobs.run_job("freshness")
 
-    assert dispatch.call_args.args[:2] == (
-        expected_job,
-        jobs.JOBS[expected_job],
+    dispatch.assert_called_once_with(
+        "freshness",
+        jobs.JOBS["freshness"],
+        location_id=None,
+        driver_instance_id=None,
+        chain=None,
     )
 
 
@@ -252,3 +284,4 @@ def test_freshness_worker_receives_only_its_named_dsn_in_isolated_child():
     assert "KOKONUT_BAAL_INDEXER_DATABASE_URL" not in environment
     assert "PG_USER" not in environment
     assert "PG_PASSWORD" not in environment
+    assert environment[DENY_SHARED_DATABASE_ENV] == "true"

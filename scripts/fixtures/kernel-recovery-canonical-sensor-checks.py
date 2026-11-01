@@ -3,7 +3,7 @@ import json
 from unittest.mock import patch
 
 from services.common.database import get_db
-from services.ingestion import clickhouse_outbox as outbox
+from services.ingestion import clickhouse_outbox_worker as outbox_worker
 from services.ingestion.base import get_clickhouse
 from services.ingestion.sensor_ingester import get_sensor_by_id_or_slug, insert_reading, insert_reading_clickhouse
 
@@ -70,7 +70,9 @@ def main():
         checks['source_and_outbox_duplicate_identity_preserved'] = True
         checks['conflicting_source_reading_rejected'] = True
         assert q("SELECT count(*) FROM clickhouse_outbox WHERE source_table='sensor_reading' AND source_id=ANY(%s)", (ids,)) == [(3,)]
-        assert outbox.deliver_batch(conn, 'canonical-fixture-worker', 3) == {'claimed': 3, 'delivered': 3, 'failed': 0}
+        assert outbox_worker.run_once('canonical-fixture-worker', 3) == {
+            'claimed': 3, 'delivered': 3, 'failed': 0,
+        }
         pg = q('SELECT count(*),avg(value),min(value),max(value) FROM sensor_reading WHERE sensor_id=%s', (SENSOR,))[0]
         actual = sink.query("SELECT count(),avg(value),min(value),max(value) FROM sensor_readings WHERE sensor_id='%s'" % SENSOR).result_rows[0]
         assert actual[0] == pg[0] == 3 and all(abs(float(a)-float(b)) < 1e-9 for a,b in zip(actual[1:], pg[1:]))

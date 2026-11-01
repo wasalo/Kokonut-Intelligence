@@ -8,21 +8,38 @@ pre-existing and fresh logins. This does not remove broad grants from existing
 relations or change capability classifications. C1, tenant/RLS, and persistent
 rollout remain open ([acceptance](builds/2026-10-31-recovery/runtime-role-reprovision-guard-disposable.json)).
 
-**Latest C1 aggregate refresh — 31 October 2026:** The network-disabled,
-portless native PostgreSQL 16 replay applied all 709 schema files through
-migration 718 and passed 38 synthetic two-tenant/operator checks. The source/
-ACL report records 937 public tables with runtime DML while RLS is disabled,
-214 DML relations without SQL relation candidates, and 377 without candidate
-write sites. These figures measure privilege reach and inventory coverage, not
-confirmed leaks. Thirty legacy-unreviewed and eight reviewed-unresolved SQL
-fingerprints remain in the separate source review ledger. C1 remains open;
-tenant isolation, broader source/consumer review, and persistent rollout are
-not established. Capability classifications remain 24 baseline-retained,
-7 deployed, and 36 prepared across 67 rows. Standard+Edge planner/Compose
-support is documented but does not promote a capability or claim device
-acceptance ([replay and probe](builds/2026-10-31-recovery/native-resource-limited-schema-718-operator-probe-r2.json);
-[source/ACL report](builds/2026-10-31-recovery/runtime-privilege-callsite-report-718.json);
+**Latest C1 aggregate refresh — migration 723, 1 November 2026:** The
+network-disabled native PostgreSQL 16 replay applied all 714 ordered schemas
+and passed 38 synthetic two-tenant/operator checks. Migration 723 revokes
+shared-runtime table and residual column writes on six worker-owned event,
+freshness, and notification relations while preserving reads and separate
+Directus/maintenance grants. The source/ACL report records 1,309/1,522 public
+relations with effective runtime DML, 925 tables with runtime DML while RLS is
+disabled, and 178 migration-revoked relations matching declared policy with
+zero mismatches. These figures measure privilege reach and inventory coverage,
+not confirmed leaks or tenant isolation. ARM64/QEMU replay through 723 is in
+progress; physical Raspberry Pi acceptance is not available. C1 remains open.
+Capability classifications are unchanged at 24 baseline-retained, 7 deployed,
+and 36 prepared across 67 rows; this access-boundary work does not advance a
+capability. The runtime SQL review ledger now tracks 35 unresolved candidates
+after three retired direct-write sites disappeared from the source. Standard
+first-install recovery remains separately accepted through 722
+([native replay/probe](builds/2026-11-01-recovery/native-current-schema-723-operator-probe.json);
+[source/ACL report](builds/2026-11-01-recovery/runtime-privilege-callsite-report-723.json);
+[migration check](builds/2026-11-01-recovery/isolated-worker-runtime-write-boundary-723.json);
 [SQL review ledger](runtime-sql-unresolved-write-review.json)).
+
+**Previous C1 aggregate refresh — 31 October 2026:** The network-disabled,
+portless native PostgreSQL 16 replay applied 709 schema files through migration
+718 and passed 38 synthetic two-tenant/operator checks. The source/ACL report
+recorded 937 public tables with runtime DML while RLS was disabled, 214 DML
+relations without SQL relation candidates, and 377 without candidate write
+sites. These figures measure privilege reach and inventory coverage, not
+confirmed leaks. Thirty legacy-unreviewed and eight reviewed-unresolved SQL
+fingerprints remained in the separate source review ledger. That checkpoint
+was superseded by the migration-723 snapshot above
+([replay/probe](builds/2026-10-31-recovery/native-resource-limited-schema-718-operator-probe-r2.json);
+[report](builds/2026-10-31-recovery/runtime-privilege-callsite-report-718.json)).
 
 **Previous C1 continuation — 1 November 2026:** Migration 717 preserves runtime
 SELECT on `chat_intent` while denying runtime table and residual column writes;

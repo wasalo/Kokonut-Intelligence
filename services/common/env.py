@@ -9,6 +9,7 @@ from pathlib import Path
 
 from services.common.worker_environment import (
     _SHARED_DATABASE_ENV,
+    DENY_SHARED_DATABASE_ENV,
     ISOLATED_WORKER_KEY_ENV,
     isolated_worker_key,
     worker_subprocess_environment,
@@ -133,6 +134,14 @@ def _validate_production_environment() -> None:
 
 def load_dotenv() -> None:
     global _LOADED
+    if os.environ.get(DENY_SHARED_DATABASE_ENV, "").strip().lower() == "true":
+        # Isolated children often intentionally have no worker identity (for
+        # example, a disabled handler). Do not let their imports reload shared
+        # credentials from the repository dotenv file.
+        for name in _SHARED_DATABASE_ENV:
+            os.environ.pop(name, None)
+        _LOADED = True
+        return
     try:
         worker_key = isolated_worker_key()
     except ValueError as exc:

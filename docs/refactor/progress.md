@@ -26027,3 +26027,55 @@ Evidence: [native replay and two-tenant probe](builds/2026-11-01-recovery/native
 Checklist snapshot: 2,222 complete / 44 open (2,266 total); cross-phase TODO:
 799 checked / 40 open. Capability classifications remain 24 baseline-retained,
 7 deployed, and 36 prepared across 67 rows.
+
+### Progress addendum — migration 723 worker write boundary — 1 November 2026
+
+The event dispatch, notification enqueue/delivery, freshness, and ClickHouse
+projection paths now use their explicit worker entrypoints and fail closed
+without their configured isolated database identity. These workers do not
+fall back to the shared `kokonut_runtime` login. Migration 723 preserves runtime
+reads while removing table and residual column DML from six worker-owned event,
+freshness, and notification relations; Directus and maintenance grants remain
+unchanged. Runtime-role provisioning reapplies the restrictions. The existing
+freshness schedule is migrated only when its name, legacy command, and exact
+`--check` argument match, preserving cadence and other schedule settings.
+
+The 516-test focused source/contract selection and 43 adjacent architecture/
+CLI tests pass, as do Ruff on changed Python files, the scoped security lint,
+Python compilation, schema-only migration validation, regenerated
+SQL/worker-inventory checks, dependency and provider boundaries, capability
+matrix validation, and Compose syntax
+validation with synthetic non-secret placeholders. The focused isolated
+PostgreSQL 16 acceptance covers migration apply/replay,
+runtime table and column privilege denial, provisioner reapplication, optional
+Directus/maintenance grant preservation, exact schedule migration, and cleanup
+([evidence](builds/2026-11-01-recovery/isolated-worker-runtime-write-boundary-723.json)).
+Separate network-disabled PostgreSQL checks pass for the migration-648
+dispatcher, migration-647 notification delivery, and the signed sensor-anomaly
+replay/crash-retry path ([dispatch](builds/2026-11-01-recovery/event-dispatch-worker-648-disposable.json);
+[notification](builds/2026-11-01-recovery/notification-delivery-worker-647-disposable.json);
+[sensor anomaly](builds/2026-11-01-recovery/sensor-anomaly-worker-delivery-414-disposable.json)).
+The native, network-disabled, portless PostgreSQL 16 replay applied 714/714
+ordered schemas through 723 and passed all 38 synthetic operator/two-tenant
+checks. Its paired ACL report covers 1,522 public relations, 1,309 with
+effective runtime DML, 925 tables with runtime DML while RLS is disabled, 178
+migration-revoked relations matching policy with zero mismatches, 213
+unprotected DML relations without SQL relation candidates, and 374 without
+candidate write sites. Those are overlapping privilege-reach/source-coverage
+measures, not confirmed leaks or universal tenant-isolation evidence
+([native replay/probe](builds/2026-11-01-recovery/native-current-schema-723-operator-probe.json);
+[report](builds/2026-11-01-recovery/runtime-privilege-callsite-report-723.json)).
+
+The source attribution map covers 4,958 direct SQL sites: 34 API-only, 367
+worker-only, one shared, and 4,556 unresolved. Static candidates do not prove
+observed execution or constitute a safe grant list. ARM64/QEMU replay through
+723 is pending, and does not replace physical Raspberry Pi testing. The
+separate Standard first-install recovery remains through migration 722. No
+candidate, legacy, or production database/role was changed. External runtime
+consumer reconciliation, broad DML retirement, API/worker identity separation,
+tenant/RLS validation, and rollout remain open.
+
+Checklist snapshot: 2,227 complete / 45 open (2,272 total); cross-phase TODO:
+804 checked / 41 open. Capability classifications remain 24 baseline-retained,
+7 deployed, and 36 prepared across 67 rows; migration 723 does not advance a
+capability status by itself.
