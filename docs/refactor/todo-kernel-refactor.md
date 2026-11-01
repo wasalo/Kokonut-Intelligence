@@ -4700,3 +4700,22 @@ non-deployable until their functions exist; the old CLI remains intact.
   does not refresh the aggregate C1 report, enable RLS, or extend full Standard
   profile acceptance ([batch](batches.md);
   [evidence](builds/2026-10-31-recovery/runtime-solution-creation-receipt-714-disposable.json)).
+
+### C1 continuation — private receipt cohort and CI inventory repair — 1 November 2026
+
+- [x] Add migration 715 for the 23 audited private location-write receipts;
+  preserve function-owner grants and retry behavior, update the runtime private
+  table policy, and pass disposable PostgreSQL 16 apply/replay and
+  provisioner-reapplication checks.
+- [x] Regenerate `runtime-sql-inventory.json` after `runtime_role.py` line
+  positions changed; confirm the unresolved-write ledger is current.
+- [x] Pass 142 runtime-role and migration tests, Ruff, 706-file migration
+  validation, and `git diff --check`.
+- [ ] Obtain a complete green hosted CI and Security result on the repair SHA.
+  CI #1033's kernel-image job and Security #757 passed, but full CI failed on
+  the stale inventory before this regeneration.
+
+The separate source/ACL aggregate remains through migration 711, broad C1 and
+RLS remain open, and the migration has not been applied to candidate, legacy,
+or production databases. See [batch evidence](batches.md) and
+[CI/acceptance evidence](builds/2026-11-01-recovery/ci-1033-runtime-sql-inventory-repair.json).

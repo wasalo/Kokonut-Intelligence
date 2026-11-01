@@ -24,6 +24,32 @@ incomplete in the inventory.
 
 ## Current evidence and decisions
 
+### Latest C1/CI continuation — migration 715 and inventory repair — 1 November 2026
+
+Migration 715 revokes `PUBLIC`, `kokonut_runtime`, and
+`kokonut_directus_runtime` table and residual column access on the exact 23
+audited location-write receipt relations. It preserves the mapped bounded
+function-owner column grants and does not change business operations or retry
+semantics. The runtime-role provisioner now keeps the relations private. The
+focused runtime-role/migration selection passes 142 tests; a network-disabled
+PostgreSQL 16 checker passes migration apply/replay, owner-grant preservation,
+runtime/Directus/PUBLIC denial, and compatibility regrant followed by private
+policy reapplication ([migration](../../schemas/postgres/715_runtime_private_location_write_receipts.sql);
+[checker](../../scripts/check-runtime-private-receipts-disposable.py);
+[evidence](builds/2026-11-01-recovery/runtime-private-location-write-receipts-715-disposable.json)).
+
+Current-head [CI #1033](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/41255043315)
+failed at the fast-fail inventory gate: a receipt-list insertion in
+`042eebf` shifted line-based source IDs in `runtime-sql-inventory.json`. Its
+kernel-image job passed, and Security #757 passed. The inventory was regenerated
+after the migration-715 source edits; the inventory and unresolved-write ledger
+now pass locally, along with Ruff, 706-file migration validation, and
+142 runtime-role/migration tests. Hosted CI on the repair commit remains
+pending. This does not establish source/ACL aggregate freshness beyond the
+explicit inventory or close broad C1; the ACL report remains through migration
+711. No candidate, legacy, or production database or role was changed
+([CI diagnosis](builds/2026-11-01-recovery/ci-1033-runtime-sql-inventory-repair.json)).
+
 ### Latest C1 continuation — migration 713 climate worker boundary — 31 October 2026
 
 C1 remains open. The fresh, network-disabled native PostgreSQL 16 replay

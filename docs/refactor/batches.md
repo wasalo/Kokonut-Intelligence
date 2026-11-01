@@ -9962,3 +9962,32 @@ Rollback: no candidate, legacy, or production database/role was changed. Keep
 migration 712 immutable; a persistent ACL rollback requires a reviewed forward
 migration. The maintenance function and login remain optional and can be left
 unprovisioned by keeping its password unset.
+
+### C1/CI continuation — private receipt cohort and runtime inventory repair — 1 November 2026
+
+- [x] Diagnose CI #1033: full CI failed at the fast-fail runtime SQL inventory
+  freshness gate after a receipt name was added to `runtime_role.py` without
+  regenerating line-based execution-site IDs. The kernel-image job passed and
+  Security #757 passed.
+- [x] Add migration 715 to revoke `PUBLIC`, runtime, and Directus table plus
+  residual column privileges on 23 audited location-write receipts; retain
+  mapped function-owner grants and existing business-function/idempotency
+  behavior.
+- [x] Extend runtime provisioning and tests to keep the receipt relations
+  private and verify source/migration policy parity.
+- [x] Pass network-disabled disposable PostgreSQL 16 apply/replay, owner-grant
+  preservation, runtime/Directus/PUBLIC denial, and simulated compatibility
+  regrant followed by private-policy reapplication
+  ([acceptance](builds/2026-11-01-recovery/runtime-private-location-write-receipts-715-disposable.json)).
+- [x] Regenerate the runtime SQL inventory from the final source tree; both it
+  and the unresolved-write review ledger are current. Pass 142 focused
+  runtime-role/migration tests, Ruff, 706-file migration validation, and diff
+  checks.
+- [ ] Obtain green hosted CI and Security on the pushed repair SHA. CI #1033
+  full CI failed before this inventory regeneration; the original CI #1014
+  attempt-1 cause remains unknown because its logs expired.
+
+This closes the known #1033 freshness failure locally; it does not prove the
+unknown #1014 failure was repaired or close C1/RLS. The aggregate ACL report is
+still through migration 711. No candidate, legacy, or production database or
+role was accessed or changed ([diagnosis](builds/2026-11-01-recovery/ci-1033-runtime-sql-inventory-repair.json)).

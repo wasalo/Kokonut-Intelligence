@@ -25677,3 +25677,32 @@ legacy, or production database/role changed. This focused boundary does not
 refresh the aggregate C1 ACL report, close broad DML, establish RLS, or extend
 Standard recovery acceptance beyond migration 712
 ([acceptance](builds/2026-10-31-recovery/runtime-solution-creation-receipt-714-disposable.json)).
+
+### Progress addendum — migration 715 receipt cohort and CI #1033 repair — 1 November 2026
+
+The current-head CI #1033 full-ci job failed at its fast-fail gate because
+`runtime-sql-inventory.json` was stale. Commit `042eebf` inserted a receipt
+name in `services/migration/runtime_role.py`, shifting source line/column IDs
+for later SQL execution sites. The unresolved-write review ledger was current.
+The #1033 kernel-image job passed and Security #757 passed; hosted full CI did
+not.
+
+Migration 715 now revokes `PUBLIC`, `kokonut_runtime`, and
+`kokonut_directus_runtime` table and residual column access on 23 audited
+location-write receipt relations. The mapped bounded function-owner column
+grants, business function definitions, and retries remain unchanged. Runtime
+provisioning keeps the receipts private. The network-disabled PostgreSQL 16
+checker passes migration apply/replay, privilege denial, owner-grant
+preservation, and compatibility regrant followed by private-policy
+reapplication. The focused role/migration selection passes 142 tests; Ruff,
+706-file migration validation, runtime inventory freshness, unresolved-write
+ledger freshness, and diff checks pass. The full pytest run used the provided
+SOPS identity path without emitting secret values.
+
+The tracked runtime SQL inventory was regenerated after the final source edits.
+Hosted CI/Security on the repair SHA remains pending. The original CI #1014
+attempt-1 failure is still unknown because the hosted log expired; neither this
+repair nor #1029 establishes its cause. The C1 ACL aggregate remains through
+migration 711, and no candidate, legacy, or production database/role was
+changed ([CI diagnosis](builds/2026-11-01-recovery/ci-1033-runtime-sql-inventory-repair.json);
+[migration 715 acceptance](builds/2026-11-01-recovery/runtime-private-location-write-receipts-715-disposable.json)).

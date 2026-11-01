@@ -1,6 +1,6 @@
 # Kokonut Kernel refactor: current state and implementation guide
 
-**Status snapshot: 31 October 2026**
+**Status snapshot: 1 November 2026**
 **Purpose:** one readable guide to the intended architecture, current evidence,
 remaining gates, and safe order of work.
 **Authority:** this document summarizes the current repository; dated evidence
@@ -171,6 +171,8 @@ The latest code-first cohort includes:
 
 | Change | Result and boundary | Evidence |
 | --- | --- | --- |
+| Migration 715 — private location-write receipts | Revokes `PUBLIC`, `kokonut_runtime`, and `kokonut_directus_runtime` table and residual column privileges on 23 audited idempotency receipts while preserving mapped function-owner column grants. Runtime provisioning keeps the relations private. The migration changes no business function or retry behavior; external receipt consumers still require review before persistent rollout. | [Disposable apply/replay and ACL checks](builds/2026-11-01-recovery/runtime-private-location-write-receipts-715-disposable.json) |
+| CI #1033 runtime inventory repair | Regenerated the source inventory after a receipt-list insertion shifted line-based SQL call-site IDs. The inventory and unresolved-write ledger now pass locally; this does not establish ACL coverage or close C1. | [CI diagnosis and repair evidence](builds/2026-11-01-recovery/ci-1033-runtime-sql-inventory-repair.json) |
 | Migration 711 — energy-reading capture | Adds a signed, exact-location Gateway capture with idempotent receipts and private audit reason; retains `recorded` lifecycle; revokes runtime table/column DML while preserving SELECT and the existing Directus/maintenance write boundary. The legacy direct writer now fails closed before DB access. | [Disposable apply/replay and authorization checks](builds/2026-10-31-recovery/energy-reading-capture-711-disposable.json) |
 | Remote-sensing due-runner retirement | Legacy `--run-jobs`, `run_due_jobs()`, and `_claim_due_jobs()` paths fail before DB/provider access and direct operators to the default-off signed worker. Create/list/manual-job paths remain; this is not a blanket `remote_sensing_job` ACL revocation. | Focused remote-sensing/scheduler tests recorded in the current batch below. |
 | Runtime SQL inventory reconciliation | Regenerated the tracked inventory and review ledger after the due-claim query was retired. The freshness check passes locally; the stale fingerprint was removed from the unresolved candidate set. | `python3 scripts/runtime_sql_inventory.py --check docs/refactor/runtime-sql-inventory.json` |
@@ -182,14 +184,20 @@ run superseded it. Its original failure cause cannot be established. Later
 commits on this branch add an isolated multi-architecture Buildx cache and run
 the image gate in parallel with full CI, but those changes do not prove the
 cause of #1014. The later current-head [CI #1029](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/41233060705)
-failed at the fast-fail gate because `runtime-sql-inventory.json` was stale.
-That specific failure is repaired in this worktree and the inventory check now
-passes. The pushed head's CI #1032 full-ci runner later received a shutdown
-signal after 704 schema migrations and 28 seeds applied; no assertion failure
-was logged. Security #756 passed, while the multi-architecture image job was
-still running at inspection. This is incomplete hosted validation, not a pass
-([inventory repair](builds/2026-10-31-recovery/ci-1029-runtime-sql-inventory-fix.json);
-[hosted-run evidence](builds/2026-10-31-recovery/ci-1032-hosted-runner-shutdown.json)).
+failed at the fast-fail gate because `runtime-sql-inventory.json` was stale;
+that occurrence was repaired locally. The next [CI #1033](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/41255043315)
+again found a stale inventory after commit `042eebf` inserted a receipt name in
+`runtime_role.py`, shifting the inventory's line-based call-site IDs. This batch
+regenerates the inventory after the 715 source changes; both the inventory and
+unresolved-write ledger pass locally. The #1033 kernel-image job passed and
+Security #757 passed, but its full-ci job failed at that inventory gate. Hosted
+confirmation on the repair commit is pending. The preceding pushed-head CI
+#1032 full-ci runner received a shutdown signal after 704 schema migrations
+and 28 seeds applied; no assertion failure was logged. These outcomes are
+incomplete hosted validation, not a complete passing run
+([#1029 evidence](builds/2026-10-31-recovery/ci-1029-runtime-sql-inventory-fix.json);
+[#1032 evidence](builds/2026-10-31-recovery/ci-1032-hosted-runner-shutdown.json);
+[#1033 diagnosis](builds/2026-11-01-recovery/ci-1033-runtime-sql-inventory-repair.json)).
 
 Standard-profile disposable recovery is accepted through migration 712 for the
 specific controls recorded above. This does not establish candidate or
@@ -199,8 +207,8 @@ changed. Broader caller reconciliation, external importer ownership, Directus
 API parity, tenant/RLS, populated-data parity, and reviewed persistent rollout
 remain open. Migration 712 did not rerun the two-tenant operator-scope probe or
 refresh the C1 source/ACL aggregate; that evidence remains at migration 711.
-Migration 714's focused receipt check does not extend Standard recovery profile
-evidence.
+Migrations 714 and 715's focused receipt checks do not extend Standard recovery
+profile evidence. The C1 source/ACL aggregate remains at migration 711.
 
 ## Human and operational gates
 

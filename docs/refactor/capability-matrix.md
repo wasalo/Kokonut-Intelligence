@@ -1,31 +1,34 @@
 # Capability preservation matrix
 
-**Latest C1/CI continuation — 31 October 2026:** Migration 711 adds the
+**Latest C1/CI continuation — 1 November 2026:** Migration 715 makes the 23
+audited location-write idempotency receipts private from `PUBLIC`, runtime,
+and Directus table/column access while preserving the mapped bounded function
+owners. Its disposable PostgreSQL 16 apply/replay and provisioner-reapplication
+checks pass, as do 142 runtime-role/migration tests. The source runtime SQL
+inventory has been regenerated after line-based call-site IDs shifted; its
+freshness check and the unresolved-write ledger pass locally. CI #1033's image
+job and Security #757 passed, but full CI failed at the stale-inventory gate;
+hosted confirmation for the repair commit is pending. No capability is promoted
+and the matrix remains 24 baseline-retained, 7 deployed, and 36 prepared across
+67 rows. This receipt cohort does not refresh the C1 ACL aggregate (still
+through migration 711), establish RLS, or represent candidate/production
+rollout ([migration 715 acceptance](builds/2026-11-01-recovery/runtime-private-location-write-receipts-715-disposable.json);
+[CI evidence](builds/2026-11-01-recovery/ci-1033-runtime-sql-inventory-repair.json)).
+
+**Previous C1/CI continuation — 31 October 2026:** Migration 711 adds the
 signed exact-location energy-reading capture path and makes the legacy direct
 energy writer fail before database access. The remote-sensing due-claim CLI
-and service paths likewise fail closed before DB/provider work; the signed
-worker stays default-off, and manual/create/list paths remain. Focused checks,
-migration-711 disposable PostgreSQL acceptance, and native 702/702 full-schema
-replay with 38 two-tenant operator checks pass. The refreshed ACL/source report
-records 161 controls, zero mismatches/direct table-column violations, 968
-tables with effective runtime DML while RLS is disabled, and 40 unresolved
-write candidates. These are privilege-reach figures, not confirmed leaks or
-universal isolation. No candidate/legacy/production database or role changed.
-The matrix remains 24 baseline-retained, 7 deployed, and 36 prepared across 67
-rows; no named capability or candidate deployment is promoted by this
-synthetic acceptance. The user-linked CI #1014 attempt 1 failed but its log
-expired; attempt 2 was cancelled, so its original failure cause is unknown.
-Later current-head CI #1029 failed because the runtime SQL inventory was stale;
-this batch refreshes it and the local freshness check passes. A complete hosted
-CI/Security run on the pushed repair SHA is still required
-([native replay](builds/2026-10-31-recovery/native-schema-711-operator-probe.json);
-[energy acceptance](builds/2026-10-31-recovery/energy-reading-capture-711-disposable.json);
-[ACL/source report](builds/2026-10-31-recovery/runtime-privilege-callsite-report-711.json);
-[CI diagnosis](builds/2026-10-31-recovery/ci-1029-runtime-sql-inventory-fix.json)).
+and service paths likewise fail closed before DB/provider work. The user-linked
+CI #1014 attempt 1 failed but its log expired; attempt 2 was cancelled, so its
+original failure cause is unknown. Later current-head CI #1029 also found a
+stale runtime SQL inventory; the later #1033 recurrence and its repair are
+documented above.
 
 **C1 source continuation — signed climate compatibility and audit parity (31 October 2026):** Migration 713 adds a bounded climate-summary/audit function that preserves legacy payload hashes and zero-valued success timing while recording elapsed duration separately. The signed lookup now returns active locations with nullable centroid and bounds, allowing GEE use from plot-only geometry and explicit skips where source geometry/centroid is unavailable. Legacy `climate_data --all`/`run_all()` result labels remain unchanged. The focused climate suite passes 252 tests; isolated PostgreSQL 16 applies/replays migrations 405, 419, 428, 429, and 713 and verifies all five writes, digest/timing parity, retries, scope denial, and runtime DML revocation. Ruff, ordered migration validation, and generated worker/runtime SQL inventory checks are recorded in [the implementation evidence](builds/2026-10-31-recovery/climate-worker-713-implementation.json) and [disposable acceptance](builds/2026-10-31-recovery/climate-worker-713-disposable.json). This does not represent a full ordered-schema replay, candidate rollout, live provider run, or closure of broad C1. The failed hosted run #41172853331 cannot be assigned a source cause from its expired first-attempt logs; its second attempt was cancelled during Buildx setup. |
 
 **C1 ACL continuation — migration 714 private solution-creation receipt (31 October 2026):** Runtime provisioning now keeps `location_solution_creation_receipt` private, and migration 714 removes table and residual column access for `PUBLIC`, `kokonut_runtime`, and `kokonut_directus_runtime` while preserving the bounded creator function owner's request-ID column grants. The focused runtime-role/migration selection passes 141 tests; network-disabled PostgreSQL 16 apply/replay passes 11 acceptance groups ([evidence](builds/2026-10-31-recovery/runtime-solution-creation-receipt-714-disposable.json)). This is one focused boundary only; C1 remains open, the aggregate ACL/source report remains through migration 711, and this is not full Standard recovery, candidate rollout, or tenant-isolation evidence. The row classifications and MAN-CAP acceptance remain unchanged.
+
+**C1 ACL continuation — migration 715 private receipt cohort (1 November 2026):** Migration 715 extends the same narrowly reviewed boundary to 23 additional receipt relations. It revokes broad table and residual column access without changing writer functions or retry behavior; the runtime provisioner keeps the relations private. The isolated check verifies migration replay, bounded owner-grant preservation, runtime/Directus/PUBLIC denial, and policy reapplication after simulated compatibility grants. External receipt consumers and persistent rollout still require separate review. The capability classifications and MAN-CAP acceptance remain unchanged.
 
 **Previous acceptance — C1 public farm-summary view ACL through migration 699, 30 October 2026:** Migration 699 removes the unnecessary runtime DML and stale column grants from `v_public_farm_summary`, preserves runtime SELECT and Directus grants, and guards that the grouped view remains non-updatable. The view was already non-updatable due to aggregation; this is a least-privilege/future-proofing change, not a newly discovered writable path. Focused network-disabled PostgreSQL 16 apply/replay and provisioner reapplication pass on native and ARM64/QEMU. Native full-schema replay passes through 699 (690/690 files, 38 two-tenant operator checks); no seeds, host ports, or candidate/legacy data were used. The repaired 169-test source/ACL selection passes across the full run plus the corrected omitted-fixture regression. Its source/ACL report records 142 declared controls, zero policy mismatches, zero direct table/column privilege violations, and 1,367 public relations with any DML. 979 tables still have runtime DML while RLS is disabled; this measures privilege reach, not confirmed leaks. There are 41 unresolved write candidates. The next source-reviewed candidate is `living_wage_benchmark`; its only repository read is location-filtered and its only repository write is the Adelphi demo seed, but external importer use must be confirmed before revoking runtime writes ([audit](builds/2026-10-30-recovery/living-wage-benchmark-c1-source-audit.json)). The 699 focused QEMU run is software portability evidence, not physical Raspberry Pi acceptance; full QEMU schema replay remained through 696 at that snapshot. Broader tenant/RLS, populated-data parity, and reviewed rollout remain open. No candidate, legacy, or production database or role changed. The checklist/TODO counts below are historical 699-era counts, not the current checklist totals. Capability classifications at that snapshot were 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows; strict private Gateway response contracts totalled 226 ([migration](../../schemas/postgres/699_runtime_public_farm_summary_read_only.sql); [native focused check](builds/2026-10-30-recovery/runtime-public-farm-summary-699-disposable.json); [ARM64/QEMU focused check](builds/2026-10-30-recovery/runtime-public-farm-summary-699-arm64-disposable.json); [native schema replay](builds/2026-10-30-recovery/native-resource-limited-schema-699-operator-probe.json); [source/ACL report](builds/2026-10-30-recovery/runtime-privilege-callsite-report-699.json); [source/ACL regressions](builds/2026-10-30-recovery/runtime-public-farm-summary-699-source-checks.json)).
 

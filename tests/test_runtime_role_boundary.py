@@ -2322,6 +2322,7 @@ def test_c1_function_owner_roles_cannot_be_application_logins(owner, owner_label
 
 def test_c1_receipt_and_audit_tables_stay_private_after_runtime_reprovisioning():
     expected_private_tables = {
+        "composting_capture_receipt",
         "governance_tension_action_request",
         "extension_peer_network_create_receipt",
         "extension_learning_progress_update_receipt",
@@ -2330,6 +2331,28 @@ def test_c1_receipt_and_audit_tables_stay_private_after_runtime_reprovisioning()
         "metric_value_verification_receipt",
         "metric_value_operator_audit",
         "location_solution_creation_receipt",
+        "operating_capacity_draft_receipt",
+        "operating_capacity_draft_revision_receipt",
+        "operating_capacity_draft_submission_receipt",
+        "operating_demand_draft_receipt",
+        "operating_demand_draft_revision_receipt",
+        "operating_demand_draft_submission_receipt",
+        "operating_pilot_coaching_session_receipt",
+        "pesticide_impact_capture_receipt",
+        "pollinator_habitat_capture_receipt",
+        "pollinator_hive_capture_receipt",
+        "pollinator_hive_inspection_capture_receipt",
+        "pollinator_observation_capture_receipt",
+        "pollution_incident_operation_receipt",
+        "recycling_capture_receipt",
+        "solution_adoption_program_creation_receipt",
+        "solution_experiment_creation_receipt",
+        "solution_experiment_protocol_approval_receipt",
+        "solution_experiment_start_receipt",
+        "solution_experiment_submission_receipt",
+        "solution_gate_definition_receipt",
+        "solution_nonpromotion_transition_receipt",
+        "waste_stream_capture_receipt",
     }
     private_tables = set(runtime_role._RUNTIME_PRIVATE_TABLES)
     boundaries, _ = REPORTER["_runtime_role_boundaries"]()
@@ -2340,6 +2363,46 @@ def test_c1_receipt_and_audit_tables_stay_private_after_runtime_reprovisioning()
         table: boundaries[table]
         for table in expected_private_tables
     } == {table: "no_direct_runtime_access" for table in expected_private_tables}
+
+
+def test_migration_715_private_receipt_cohort_matches_runtime_boundary():
+    root = Path(__file__).resolve().parents[1]
+    migration = (root / "schemas/postgres/715_runtime_private_location_write_receipts.sql").read_text()
+    expected_receipts = {
+        "composting_capture_receipt",
+        "operating_capacity_draft_receipt",
+        "operating_capacity_draft_revision_receipt",
+        "operating_capacity_draft_submission_receipt",
+        "operating_demand_draft_receipt",
+        "operating_demand_draft_revision_receipt",
+        "operating_demand_draft_submission_receipt",
+        "operating_pilot_coaching_session_receipt",
+        "pesticide_impact_capture_receipt",
+        "pollinator_habitat_capture_receipt",
+        "pollinator_hive_capture_receipt",
+        "pollinator_hive_inspection_capture_receipt",
+        "pollinator_observation_capture_receipt",
+        "pollution_incident_operation_receipt",
+        "recycling_capture_receipt",
+        "solution_adoption_program_creation_receipt",
+        "solution_experiment_creation_receipt",
+        "solution_experiment_protocol_approval_receipt",
+        "solution_experiment_start_receipt",
+        "solution_experiment_submission_receipt",
+        "solution_gate_definition_receipt",
+        "solution_nonpromotion_transition_receipt",
+        "waste_stream_capture_receipt",
+    }
+
+    migration_receipts = set(re.findall(r"'([a-z][a-z0-9_]*_receipt)'", migration))
+    assert migration_receipts == expected_receipts
+    assert expected_receipts <= set(runtime_role._RUNTIME_PRIVATE_TABLES)
+    assert expected_receipts.isdisjoint(runtime_role._RUNTIME_MUTATION_TABLES)
+    assert "gnosis_event_log_receipt" not in migration_receipts
+    assert "location_solution_creation_receipt" not in migration_receipts
+    assert "BEGIN;" in migration
+    assert "COMMIT;" in migration
+    assert "GRANT " not in migration
 
 
 def test_freshness_worker_has_an_execute_only_role_contract():

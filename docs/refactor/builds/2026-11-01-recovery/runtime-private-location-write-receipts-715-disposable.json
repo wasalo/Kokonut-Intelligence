@@ -1,0 +1,26 @@
+{
+  "date": "2026-11-01",
+  "migration": "schemas/postgres/715_runtime_private_location_write_receipts.sql",
+  "receipt_relations": 23,
+  "result": "passed",
+  "database": {
+    "engine": "PostgreSQL 16 with PostGIS",
+    "disposable": true,
+    "network": "none",
+    "host_ports_published": false,
+    "candidate_legacy_or_production_touched": false
+  },
+  "checks": {
+    "migration_apply_and_replay": "passed",
+    "PUBLIC_runtime_and_Directus_table_privileges": "denied",
+    "PUBLIC_runtime_and_Directus_residual_column_privileges": "denied",
+    "mapped_bounded_function_owner_column_grants": "preserved",
+    "runtime_compatibility_grant_then_private_policy_reapplication": "passed",
+    "business_function_definitions_or_retry_semantics_changed": false
+  },
+  "limitations": [
+    "Uses synthetic relations and grants; does not verify populated target ACLs.",
+    "External consumers outside this repository may query receipt relations directly and require review before persistent rollout.",
+    "Does not refresh the aggregate C1 source/ACL report, establish RLS, or extend Standard deployment-profile recovery acceptance."
+  ]
+}
