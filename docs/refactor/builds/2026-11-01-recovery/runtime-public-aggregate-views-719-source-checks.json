@@ -1,0 +1,46 @@
+{
+  "date_utc": "2026-11-01T03:41:06+00:00",
+  "git_head": "0b147cbb54ac004350d76272becb7e26b718abed",
+  "worktree_changes_included": true,
+  "scope": "Migration 719 public aggregate-view runtime ACL and read-projection regression only; no tenant isolation claim.",
+  "migration": "719_runtime_public_aggregate_views_read_only.sql",
+  "migration_sha256": "e09365f76b24d62853f2352749821ff7b1bb3af46cc8a4e6e17753df4c6e67e2",
+  "focused_checks": {
+    "pytest": {
+      "command": "KOKONUT_ENV_SECRETS_NOT_REQUIRED=true python3 -m pytest tests/test_runtime_public_aggregate_views.py tests/test_runtime_privilege_callsite_report.py tests/test_ebf_report_scope.py -q",
+      "result": "passed",
+      "tests": 19,
+      "duration_seconds": 2.58
+    },
+    "ruff": {
+      "command": "ruff check services/analytics/pitch.py services/migration/runtime_role.py scripts/check-runtime-scoped-write-boundary-disposable.py scripts/runtime-privilege-callsite-report.py tests/test_runtime_public_aggregate_views.py tests/test_runtime_privilege_callsite_report.py",
+      "result": "passed"
+    },
+    "python_compile": {
+      "command": "python3 -m py_compile services/analytics/pitch.py services/migration/runtime_role.py scripts/check-runtime-scoped-write-boundary-disposable.py scripts/runtime-privilege-callsite-report.py tests/test_runtime_public_aggregate_views.py tests/test_runtime_privilege_callsite_report.py",
+      "result": "passed"
+    },
+    "migration_validation": {
+      "command": "python3 -m services.migration validate --schemas-only",
+      "result": "passed",
+      "migration_source_files_validated": 712
+    },
+    "runtime_sql_inventory": {
+      "command": "python3 scripts/runtime_sql_inventory.py --check docs/refactor/runtime-sql-inventory.json",
+      "result": "passed",
+      "unresolved_review_ledger_current": true
+    },
+    "capability_matrix": {
+      "command": "python3 scripts/check-capability-matrix.py",
+      "result": "passed",
+      "rows": 67,
+      "classifications": {
+        "baseline_retained": 24,
+        "deployed": 7,
+        "prepared": 36
+      }
+    }
+  },
+  "database_acceptance": "See runtime-public-aggregate-views-719-disposable.json; network-disabled temporary PostgreSQL 16 synthetic database, migration applied/replayed, aggregate outputs preserved, runtime table/column DML denied, provisioner reapplication preserves boundary, optional Directus grants unchanged, unlisted trigger-backed writable view remains writable.",
+  "persistent_targets_touched": false
+}

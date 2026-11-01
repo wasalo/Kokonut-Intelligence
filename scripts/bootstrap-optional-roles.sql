@@ -6,6 +6,8 @@ BEGIN
     IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'kokonut_runtime') THEN
         EXECUTE 'CREATE ROLE kokonut_runtime NOLOGIN NOINHERIT NOSUPERUSER '
             || 'NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS';
+        EXECUTE 'ALTER ROLE kokonut_runtime SET kokonut.compatibility_grant_state = '
+            || quote_literal('placeholder');
     END IF;
     IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'kokonut_worker_login') THEN
         EXECUTE 'CREATE ROLE kokonut_worker_login NOLOGIN NOINHERIT NOSUPERUSER '

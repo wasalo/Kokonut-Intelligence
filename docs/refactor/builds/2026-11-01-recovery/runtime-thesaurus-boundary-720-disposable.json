@@ -1,0 +1,21 @@
+{
+  "candidate_legacy_production_touched": false,
+  "checks": [
+    "migration succeeds before kokonut_runtime exists",
+    "PUBLIC EXECUTE remains revoked before runtime bootstrap",
+    "post-bootstrap compatibility regrants are closed on migration replay",
+    "preexisting runtime role receives explicit grants",
+    "safe no-login function owner and no membership",
+    "runtime read preservation and PUBLIC/runtime direct DML denial",
+    "residual column grant removal and narrow function-owner grants",
+    "PUBLIC execute denied and runtime execute granted",
+    "thesaurus create/upsert compatibility",
+    "keyword parent same-thesaurus enforcement",
+    "label upsert compatibility",
+    "keyword deletion and cascade behavior"
+  ],
+  "database": "network-disabled disposable PostgreSQL 16",
+  "migration": "720_runtime_thesaurus_bounded_writes.sql",
+  "migration_replays": 4,
+  "result": "passed"
+}

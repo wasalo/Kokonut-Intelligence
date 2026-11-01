@@ -127,8 +127,13 @@ def commands(port: int, with_workers: bool, workers_only: bool = False) -> list[
             ("events", [sys.executable, "-m", "services.events", event_command, "--worker-id", f"{worker_id}-events"])
         )
     if (with_workers or workers_only) and is_enabled("notification_delivery"):
+        notification_command = (
+            "--isolated-notification-worker"
+            if is_enabled("isolated_notification_delivery")
+            else "--notification-worker"
+        )
         children.append(
-            ("notifications", [sys.executable, "-m", "services.events", "--notification-worker",
+            ("notifications", [sys.executable, "-m", "services.events", notification_command,
                                "--worker-id", f"{worker_id}-notifications"])
         )
     return children
@@ -196,11 +201,18 @@ def run(port: int = 8099, with_workers: bool = False, shutdown_seconds: float = 
             isolated_event_dispatch = (
                 name == "events" and "--isolated-event-worker" in argv
             )
+            isolated_notification_delivery = (
+                name == "notifications" and "--isolated-notification-worker" in argv
+            )
             if isolated_event_dispatch:
                 allowed_worker_keys = ("event_dispatch", *EVENT_HANDLER_WORKER_KEYS)
+            elif isolated_notification_delivery:
+                allowed_worker_keys = ("notification_delivery",)
             environment_options = {"allowed_worker_keys": allowed_worker_keys}
             if isolated_event_dispatch:
                 environment_options["isolated_worker_key"] = "event_dispatch"
+            elif isolated_notification_delivery:
+                environment_options["isolated_worker_key"] = "notification_delivery"
             process = subprocess.Popen(
                 argv,
                 start_new_session=True,

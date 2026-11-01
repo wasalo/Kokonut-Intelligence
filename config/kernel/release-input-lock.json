@@ -45,7 +45,7 @@
     "docs/refactor/profile-selection.md": "4c9ff708cd8d71112bb25b3137e3ffc4cb263722c2d2496a0d56cb39ac79f65a",
     "requirements/README.md": "699bfef971be138ca125640284a47ef7a3a73d67f1007ea85bc3d2217f2bed36",
     "docker-compose.kernel-candidate.yml": "c404109f71e175649d1cd99a447990e8b9f177666f10c8dc8c071a2a9b1f99af",
-    "docker-compose.kernel-standard.yml": "c5043585cf0c2ec106cd52e950f6636a36edc992d993ce8f70516bd7aa52ab04",
+    "docker-compose.kernel-standard.yml": "dbb7b4c1ed70f144e099a9b8f8b60992d3b8043144c814b137dfe028ddbb17dc",
     "docker-compose.kernel-runtime-role.yml": "ca569d043e8966084fe0d6b8e0a304328a5b837234588159811d0b057a2ea6ce",
     "docker-compose.kernel-oidc.yml": "7b89c906f47966e0ac8442d1c5fb8052566ba77df554137c1c89d7a49c9eb8df",
     "docker-compose.kernel-proxy.yml": "4dcb0782d37e90a5caf378bf3258f7c1754512315100169749e8a5441f5a59e4"

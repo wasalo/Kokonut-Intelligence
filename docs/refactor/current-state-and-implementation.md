@@ -84,7 +84,7 @@ command and applicable rollout procedure.
 | **minimal** | Private PostgreSQL/PostGIS plus the combined Kernel app/API and enabled worker processes. | Smallest candidate deployment shape. Capability parity, recovery, live identity, and operational acceptance remain open. |
 | **core** | Minimal app built from the reduced, hash-locked dependency set. Optional Web3, exports, and local-media packages are selected explicitly. | Packaging profile, not a different data model. The current OIDC app overlay is incompatible with this reduced image. |
 | **edge** | Minimal plus encrypted local media and edge-oriented resource settings; MQTT/HTTP sensors remain separately selectable overlays. | No physical Raspberry Pi test has been performed. QEMU and source-level ARM64 checks do not establish device performance or power-loss behavior. |
-| **standard** | PostgreSQL plus separate API and durable-worker services sharing one application image, with loopback-bound Caddy ingress by default. `--no-proxy` selects a separately managed ingress. `standard --edge` composes Edge local-media and resource settings while preserving the API/worker split; the local-media key/volume apply only to the API, and Edge resource limits apply to PostgreSQL and the API, not the worker. Both services require a dedicated non-owner, non-privileged login before starting children; the worker also has a read-only PostgreSQL probe for stale leases, old eligible due backlog, and supervisor/child-process liveness. `--action release-up` prints a no-build pull/start command and requires digest-pinned application images. | The latest network-disabled Standard recovery applied 709/709 schema files through migration 718 against one captured SQL snapshot; both application images matched its digest. Runtime-role reapplication, API/worker/proxy health, database outage/recovery, heartbeat privacy, shutdown, and disposable cleanup passed ([evidence](builds/2026-11-01-recovery/standard-profile-recovery-718-disposable.json)). API and worker still share the `kokonut_runtime` database login, so distinct identities remain an open C1 boundary. Release image publication, current-target migration/role rollout, candidate rollout, live identity, populated lease/provider recovery, external alert routing, public ingress, backup/restore, scale, prolonged recovery, and physical-device acceptance remain open. Standard+Edge is planner/Compose-source support only; it does not establish physical Raspberry Pi suitability, power-loss behavior, or production readiness. The probe reports aggregate counts and ages without IDs or payloads; it detects exited children but not an alive-but-hung child. The default Caddy listener is local TLS, not public production ingress. |
+| **standard** | PostgreSQL plus separate API and durable-worker services sharing one application image, with loopback-bound Caddy ingress by default. `--no-proxy` selects a separately managed ingress. `standard --edge` composes Edge local-media and resource settings while preserving the API/worker split; the local-media key/volume apply only to the API, and Edge resource limits apply to PostgreSQL and the API, not the worker. Both services require a dedicated non-owner, non-privileged login before starting children; the worker also has a read-only PostgreSQL probe for stale leases, old eligible due backlog, and supervisor/child-process liveness. `--action release-up` prints a no-build pull/start command and requires digest-pinned application images. | The latest network-disabled Standard recovery applied all 713 schema files through migration 722 from one captured SQL snapshot; both app images matched its digest. Fresh placeholder provisioning, migration-ledger read access, runtime-role reapplication, API/worker/proxy health, database outage/recovery, heartbeat privacy, shutdown, and cleanup passed ([evidence](builds/2026-11-01-recovery/standard-profile-recovery-722-disposable.json)). The aggregate runtime ACL report and two-tenant probe remain through 718. API and worker still share the `kokonut_runtime` login, so distinct identities remain an open C1 boundary. Release image publication, current-target migration/role rollout, candidate rollout, live identity, populated lease/provider recovery, external alert routing, public ingress, backup/restore, scale, prolonged recovery, and physical-device acceptance remain open. Standard+Edge is planner/Compose-source support only; it does not establish physical Raspberry Pi suitability, power-loss behavior, or production readiness. The probe reports aggregate counts and ages without IDs or payloads; it detects exited children but not an alive-but-hung child. The default Caddy listener is local TLS, not public production ingress. |
 | **analytics** | Minimal plus private ClickHouse analytical projection. `--separate-workers` adds standard API/worker separation. | Requires projection parity, rebuild/outage behavior, and worker recovery acceptance. Metabase is not required. |
 | **scale** | Rejected by the planner. | Multi-host/replica behavior, shared budgets, failover, measured sizing, and concurrency/recovery gates are not accepted. |
 
@@ -150,26 +150,70 @@ older counts and deployment statements are snapshots from their dates.
 
 ## C1 runtime ACL work: current batch
 
-C1 remains **open**. A source-only change now prevents runtime-role
-reprovisioning from widening table and sequence access: the legacy compatibility
-grant is applied only when the login is first created. Later provisioning
-preserves existing grants, reapplies explicit boundaries, and leaves relations
-created since the prior run inaccessible. Network-disabled disposable
-PostgreSQL 16 acceptance verifies both a pre-existing login and a newly
-created login across reprovisioning; it does not remove broad grants already
-held on existing relations or grant tenant isolation. The API and worker still
-share `kokonut_runtime`, and C1 remains open ([acceptance](builds/2026-10-31-recovery/runtime-role-reprovision-guard-disposable.json)).
+C1 remains **open**. Runtime-role provisioning applies the legacy compatibility
+grant only to a newly created login or a fresh migration-created placeholder
+that carries an explicit first-provision marker. It records the marker as
+consumed after that one-time grant. A pre-existing unmarked login is not
+widened; later provisioning preserves existing grants, reapplies explicit
+boundaries, and leaves relations created since the prior run inaccessible.
+Network-disabled disposable PostgreSQL 16 acceptance verifies the original
+role-created and re-provision cases; the Standard recovery below exercises the
+placeholder-first path. Neither path removes broad grants already held on
+existing relations or grants tenant isolation. The API and worker still share
+`kokonut_runtime`, and C1 remains open ([acceptance](builds/2026-10-31-recovery/runtime-role-reprovision-guard-disposable.json)).
 
 Migrations 717 and 718 add two reviewed boundaries. Migration
 717 makes `chat_intent` read-only to `kokonut_runtime` while preserving runtime
 SELECT, Directus access, and migration/maintenance seed upserts. Migration 718
 removes direct runtime writes to `price_observation` and routes World Bank,
 reference-seed, and manual marketplace-price writes through bounded functions
-owned by the dedicated market-data identity. Focused runtime-role, migration,
-and Standard recovery checks pass through migration 718. The migration-717
+owned by the dedicated market-data identity. The targeted Standard recovery
+for migration 718 is historical; the latest full Standard recovery passes
+through migration 722. The migration-717
 runtime-boundary reapplication check passed across 192 synthetic relations
 ([717 evidence](builds/2026-11-01-recovery/chat-intent-runtime-acl-717.json);
 [Standard recovery evidence](builds/2026-11-01-recovery/standard-profile-recovery-718-disposable.json)).
+
+Migration 719 additionally removes runtime table/column DML grants from three
+catalog-guarded, non-updatable public aggregate views while preserving their
+reads and the optional Directus grants. Its focused network-disabled
+PostgreSQL 16 acceptance passes apply/replay, output parity, provisioner
+reapplication, and a trigger-backed writable-view control; 19 focused app and
+policy tests pass. This is a narrow view-ACL cleanup, not tenant isolation or
+the full C1 aggregate refresh. See the [migration](../../schemas/postgres/719_runtime_public_aggregate_views_read_only.sql),
+[disposable check](builds/2026-11-01-recovery/runtime-public-aggregate-views-719-disposable.json),
+and [source checks](builds/2026-11-01-recovery/runtime-public-aggregate-views-719-source-checks.json).
+
+Migration 720 moves the supported thesaurus mutations behind four bounded
+functions, preserves the service contract and runtime reads, and prevents
+cross-thesaurus keyword parenting. Migration 721 preserves runtime reads while
+removing direct runtime writes to the governance category and scope reference
+catalogs; Directus grants are unchanged. Both migrations handle Standard's
+migration-before-role-bootstrap ordering and pass isolated PostgreSQL
+apply/replay, privilege, provisioner, and behavior checks. Standard also has a
+default-off notification-delivery child using migration 647's bounded API and
+dedicated login. That child receives its DSN and provider credentials without
+inheriting shared runtime or unrelated worker database credentials; this does
+not separate the API and general worker identities. See the
+[thesaurus check](builds/2026-11-01-recovery/runtime-thesaurus-boundary-720-disposable.json),
+[governance-catalog check](builds/2026-11-01-recovery/governance-reference-catalogs-721-disposable.json),
+[notification-worker check](builds/2026-11-01-recovery/standard-notification-delivery-worker-isolation-647.json),
+and [Standard profile guide](standard-profile.md).
+
+Migration 722 preserves runtime SELECT on `schema_migration` while revoking
+table and residual column writes; the ordered migration runner remains its
+writer. The migration bootstrap marks only a newly created locked runtime
+placeholder for its first provisioning, allowing the one-time compatibility
+grant to run in Standard's migration-before-role order. Provisioning consumes
+that marker so later reapplication cannot widen access. The latest portless,
+network-disabled Standard recovery applies all 713 schemas through 722,
+provisions and reapplies the role, and passes the ledger-dependent API/worker
+health and outage-recovery checks ([migration](../../schemas/postgres/722_runtime_schema_migration_read_only.sql);
+[recovery](builds/2026-11-01-recovery/standard-profile-recovery-722-disposable.json)).
+The aggregate source/ACL report and two-tenant probe are still at migration
+718; C1 remains open for the remaining runtime writers, shared API/worker login,
+external callers, and tenant/RLS review.
+
 External `kokonut_runtime` SQL clients remain unconfirmed and must be reviewed
 before persistent rollout. Migration 714 keeps the location-solution creation
 retry receipt private from `PUBLIC`, the runtime role, and Directus while
@@ -209,7 +253,12 @@ The latest code-first cohort includes:
 
 | Change | Result and boundary | Evidence |
 | --- | --- | --- |
-| Runtime-role one-time compatibility grant | The all-public-table/sequence compatibility grant now runs only when the runtime login is first created. Reprovisioning preserves existing grants and reapplies explicit denials without granting newly created relations. This prevents one privilege-widening path; it does not remove existing broad grants or establish tenant isolation. | [Network-disabled PostgreSQL 16 acceptance](builds/2026-10-31-recovery/runtime-role-reprovision-guard-disposable.json) |
+| Migration 721 — governance reference-catalog ACL | Preserves runtime reads on `data_governance_category` and `data_governance_scope`, revokes table/column DML, leaves Directus unchanged, and stays closed after runtime provisioning. | [Disposable apply/replay and ACL acceptance](builds/2026-11-01-recovery/governance-reference-catalogs-721-disposable.json) |
+| Migration 720 — bounded thesaurus writers | Preserves the thesaurus service operations through four bounded functions; runtime and PUBLIC receive no direct table DML or PUBLIC function execution. Provisioning grants the full function set only after it exists. | [Disposable apply/replay and behavior acceptance](builds/2026-11-01-recovery/runtime-thesaurus-boundary-720-disposable.json) |
+| Standard notification-delivery child identity | Default-off worker child uses migration 647's dedicated login/functions; shared runtime DB credentials and unrelated worker DSNs are filtered from the child. API and general worker still share `kokonut_runtime`. | [Disposable worker acceptance](builds/2026-11-01-recovery/standard-notification-delivery-worker-isolation-647.json); [focused supervisor/profile checks](../../tests/test_kernel_runtime_supervisor.py) |
+| Migration 719 — public aggregate-view ACL | Preserves runtime SELECT and optional Directus grants while revoking runtime table/column DML from the three catalog-confirmed non-updatable public attestation/EBF summary views. A separate INSTEAD OF-trigger writable view remains writable as a scope control. This removes unused privileges only; no tenant boundary is established. The aggregate ACL report remains through 718; the Standard replay now passes through 722. | [Disposable ACL acceptance](builds/2026-11-01-recovery/runtime-public-aggregate-views-719-disposable.json); [source checks](builds/2026-11-01-recovery/runtime-public-aggregate-views-719-source-checks.json); [Standard replay](builds/2026-11-01-recovery/standard-profile-recovery-722-disposable.json) |
+| Migration 722 — schema migration ledger | Preserves runtime SELECT needed for fail-closed schema readiness while removing runtime table/column mutation privileges. | [Standard ordered recovery and role reapplication](builds/2026-11-01-recovery/standard-profile-recovery-722-disposable.json) |
+| Runtime-role one-time compatibility grant | The compatibility grant runs for a newly created login or an explicitly marked fresh migration placeholder, then marks the one-time step complete. An existing unmarked role is not widened; reprovisioning preserves grants and reapplies explicit denials. This does not remove broad grants already held or establish tenant isolation. | [Prior role-reprovision acceptance](builds/2026-10-31-recovery/runtime-role-reprovision-guard-disposable.json); [Standard placeholder-first recovery](builds/2026-11-01-recovery/standard-profile-recovery-722-disposable.json) |
 | Migration 718 — isolated global market-data writes | Retires direct runtime mutation of `price_observation`; the dedicated market-data worker uses bounded reference-seed, manual-price, and World Bank functions. Runtime SELECT remains. External runtime callers remain a persistent-rollout review gate. | [Full Standard replay](builds/2026-11-01-recovery/standard-profile-recovery-718-disposable.json); [fresh C1 replay and two-tenant probe](builds/2026-10-31-recovery/native-resource-limited-schema-718-operator-probe-r2.json); [refreshed source/ACL report](builds/2026-10-31-recovery/runtime-privilege-callsite-report-718.json) |
 | Migration 717 — read-only chat-intent runtime access | Preserves runtime reads and migration/maintenance upserts while revoking table and column mutation from `kokonut_runtime`; Directus is intentionally unchanged. Runtime provisioner reapplication does not restore DML. External runtime-login clients remain unconfirmed. | [Disposable apply/replay and runtime-boundary checks](builds/2026-11-01-recovery/chat-intent-runtime-acl-717.json) |
 | Migration 716 — retire climate v1 worker grant | Keeps the legacy `store_climate_summary` definition for compatibility but removes execution from the worker, runtime, optional Directus, and `PUBLIC`; the active climate worker continues using signed `store_climate_summary_v2`. Disposable PostgreSQL acceptance applies/replays both migrations and exercises all five source writes, retries, failure audit, and location scope. External callers remain a persistent-rollout gate. | [Disposable apply/replay and climate worker checks](builds/2026-11-01-recovery/climate-worker-716-disposable.json) |
@@ -273,16 +322,15 @@ The earlier outcomes are recorded here:
 [#1032 evidence](builds/2026-10-31-recovery/ci-1032-hosted-runner-shutdown.json);
 [#1033 diagnosis](builds/2026-11-01-recovery/ci-1033-runtime-sql-inventory-repair.json)).
 
-Standard-profile disposable recovery is accepted through migration 718 for
-the specific controls recorded above. The current full replay used a captured
-SQL snapshot for both API and worker image builds and applied 709/709 schema
-files. This does not establish candidate or production rollout, provider
-recovery, scale, 24-hour endurance, or physical-device acceptance. No
-candidate, legacy, or production database or role was changed. Broader caller
-reconciliation, external importer ownership, Directus API parity, tenant/RLS,
-populated-data parity, and reviewed persistent rollout remain open. The
-two-tenant operator-scope probe and C1 source/ACL aggregate remain at migration
-711.
+Standard-profile disposable recovery is accepted through migration 722 for
+the controls recorded above. The latest full replay used one captured SQL
+snapshot for both API and worker image builds and applied 713/713 schema files.
+This does not establish candidate or production rollout, provider recovery,
+scale, 24-hour endurance, or physical-device acceptance. No candidate, legacy,
+or production database or role was changed. Broader caller reconciliation,
+external importer ownership, Directus API parity, tenant/RLS, populated-data
+parity, and reviewed persistent rollout remain open. The two-tenant
+operator-scope probe and C1 source/ACL aggregate remain at migration 718.
 
 ## Human and operational gates
 

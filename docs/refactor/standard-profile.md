@@ -31,7 +31,10 @@ The supervisor starts enabled scheduler, event-dispatch, and notification
 delivery workers, generates distinct UUID-based identities for each supervisor
 lifetime, and refuses an empty worker role. Notification delivery defaults to
 the event-bus feature setting and can be independently disabled or enabled.
-CLI worker modes are mutually exclusive. When migrations or required read
+When `isolated_notification_delivery` is enabled, it selects the dedicated
+notification child mode and filters that child's environment; otherwise it
+retains the shared-runtime compatibility mode. CLI worker modes are mutually
+exclusive. When migrations or required read
 relations are missing, the supervisor exits before starting API or worker
 children; Compose retries after the external migration runner completes.
 Existing process-group shutdown,
@@ -47,6 +50,25 @@ credential/context functions; the maintenance login inherits only the shared
 `kokonut_security` schema usage and its explicit cleanup grant.
 An explicit provider override is available for a reviewed deployment topology;
 multi-replica APIs must retain a shared limiter.
+
+### Optional notification-delivery database identity
+
+Notification delivery can run as an isolated child with the dedicated login
+introduced by migration 647. It is opt-in and off by default. Set
+`KOKONUT_FEATURE_ISOLATED_NOTIFICATION_DELIVERY=true` and provide
+`KOKONUT_NOTIFICATION_DELIVERY_DATABASE_URL` to the Standard worker. Compose
+does not pass either setting to the API. The supervisor strips the shared
+PostgreSQL login and unrelated worker credentials from this child while
+preserving the SMTP, webhook, and Directus delivery settings it needs. The
+login receives only the bounded claim/completion functions; it gets no direct
+table or sequence access. Provision it with the explicit runtime-role bootstrap
+using `KOKONUT_NOTIFICATION_DELIVERY_PASSWORD` (and, if needed,
+`KOKONUT_NOTIFICATION_DELIVERY_USER`) after the ordered migrations. This
+isolates notification delivery only: the API and general worker still share
+`kokonut_runtime`, and other worker children still use their configured
+identities. See the
+[migration-647 disposable acceptance](builds/2026-10-25-recovery/notification-delivery-worker-disposable.json)
+and the [focused supervisor/profile checks](../../tests/test_kernel_runtime_supervisor.py).
 
 ## Deployment prerequisites
 
@@ -201,19 +223,20 @@ adds no volume or migration for liveness.
 
 ## Dated Standard acceptance snapshot
 
-The latest network-disabled disposable Standard recovery applied all 709
-ordered schema files through migration 718 with zero failures or seed rows.
+The latest network-disabled disposable Standard recovery applied all 713
+ordered schema files through migration 722 with zero failures or seed rows.
 The harness captured a stable schema snapshot before building the API and
-worker images, verified both image manifests against its SHA-256, explicitly
-ran the post-migration `runtime-admin` bootstrap, and checked runtime-role
-reapplication, API/worker/proxy health, database outage degradation and
-recovery, private heartbeat behavior, zero active leases after shutdown, and
-disposable resource cleanup. No host ports, external network, seeds, candidate,
-legacy stack, or production service were used
-([acceptance evidence](builds/2026-11-01-recovery/standard-profile-recovery-718-disposable.json);
+worker images and verified both image manifests against its SHA-256. It
+exercised fresh migration-created role placeholders, post-migration runtime
+provisioning and reapplication, the read-only migration ledger, API/worker/proxy
+health, database outage degradation and recovery, private heartbeat behavior,
+zero active leases after shutdown, and disposable resource cleanup. No host
+ports, external network, seeds, candidate, legacy stack, or production service
+were used ([acceptance evidence](builds/2026-11-01-recovery/standard-profile-recovery-722-disposable.json);
 [runner](../../scripts/check-kernel-standard-recovery-disposable.py)). The
-focused planner/harness suite passes 116 tests, and Ruff, Python compilation,
-and diff checks pass.
+focused source/contract selection passes 279 tests; Ruff, schema-only migration
+validation, runtime SQL inventory, dependency/provider boundaries, capability
+matrix, Python compilation, release-input validation, and diff checks pass.
 
 The API and worker are separate services but still connect as the same
 `kokonut_runtime` database login. Distinct API and worker identities remain an
@@ -221,6 +244,12 @@ open C1 boundary; this recovery check does not claim otherwise. It also does
 not prove long-running handler lease reclaim, populated-data parity, live
 provider recovery, 24-hour endurance, scale, public ingress, backup/restore
 ownership, or physical Raspberry Pi behavior.
+
+This recovery confirms Standard's current default topology and bootstrap path;
+it is not candidate rollout or production acceptance. The separate aggregate
+runtime ACL report and synthetic two-tenant operator-scope probe remain at
+migration 718, so those measurements must be refreshed before claiming an
+aggregate C1 snapshot at 722.
 
 The 31 October recovery through migration 712 remains useful historical
 evidence for the bounded Gateway rate-limit contract and its consume, deny,

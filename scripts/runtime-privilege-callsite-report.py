@@ -88,6 +88,20 @@ _SOURCE_REVOKE_POLICY_OVERRIDES = {
     # This grouped public projection is read-only in application code and is
     # guarded against becoming updatable before mutation grants are removed.
     "v_public_farm_summary": "runtime_mutations_denied",
+    # These public reporting projections aggregate governed rows. Their
+    # migration guards reject a future definition that becomes updatable.
+    "v_public_attestation_summary": "runtime_mutations_denied",
+    "v_public_ebf_scorecard_summary": "runtime_mutations_denied",
+    "v_public_ebf_pillar_summary": "runtime_mutations_denied",
+    # Global vocabulary mutations are now limited to the bounded service
+    # contract; application reads remain compatible.
+    "thesaurus": "runtime_mutations_denied",
+    "thesaurus_keyword": "runtime_mutations_denied",
+    "thesaurus_keyword_label": "runtime_mutations_denied",
+    # Consent category and scope names are global reference catalogs;
+    # retention policy remains configurable in data_retention_policy.
+    "data_governance_category": "runtime_mutations_denied",
+    "data_governance_scope": "runtime_mutations_denied",
     "water_access": "runtime_mutations_denied",
     "attestation_plan": "runtime_mutations_denied",
     # The existing location-scoped pollinator functions own narrow column
@@ -121,6 +135,7 @@ _SOURCE_REVOKE_POLICY_OVERRIDES = {
     "impact_framework": "runtime_mutations_denied",
     "impact_dimension": "runtime_mutations_denied",
     "schema_version": "runtime_mutations_denied",
+    "schema_migration": "runtime_mutations_denied",
     "cache_invalidation_rule": "runtime_mutations_denied",
     "expense_category": "runtime_mutations_denied",
     "crisp_risk_dimension": "runtime_mutations_denied",

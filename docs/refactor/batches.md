@@ -1,6 +1,6 @@
 # Kernel execution checklist
 
-Updated: 31 October 2026. Current implementation is concentrated in Phase 7,
+Updated: 1 November 2026. Current implementation is concentrated in Phase 7,
 with integration and portability acceptance in Phase 8. Batch numbers group
 work across phases and do not replace the phase gates.
 
@@ -22,8 +22,9 @@ pending.
 
 Remaining work is ordered in [the code-first execution plan](code-first-execution-plan.md): finish repository-owned implementation and reproducible software checks before collecting owner decisions and production inputs. Raspberry Pi hardware is unavailable, so Batch 6 uses ARM64 emulation and constrained software checks; it does not claim physical-device acceptance.
 
-**Current snapshot (31 October 2026):** 2,188 checklist items complete and 34 open (2,222 total), counting nested items. The cross-phase TODO queue has 777
-checked and 32 open items. The
+**Current aggregate snapshot (1 November 2026):** 2,221 checklist items complete
+and 45 open (2,266 total), counting nested items. The cross-phase TODO queue has
+798 checked and 40 open items. The
 [capability matrix](capability-matrix.md) has 67 validated rows: 24
 baseline-retained, 7 deployed, and 36 prepared. Named MAN-CAP
 acceptance remains separate; none is marked accepted.
@@ -10129,3 +10130,81 @@ reviewed forward migration.
 
 This bootstrap change is not a migration. No candidate, legacy, or production
 database/role was touched; C1 remains open.
+
+### C1 continuation — migration 719 public aggregate views — 1 November 2026
+
+- [x] Audit the three grouped public summaries and their app read paths. Fix
+  `services.analytics.pitch._query_attestations` to select the six columns
+  actually exposed by migration 018; preserve the exact location filter and
+  response fields.
+- [x] Add guarded migration 719 to remove `kokonut_runtime` table and column
+  DML on `v_public_attestation_summary`, `v_public_ebf_scorecard_summary`, and
+  `v_public_ebf_pillar_summary`. It requires each relation to remain a
+  non-updatable view, preserves SELECT, and leaves Directus grants unchanged.
+  Add the three names to runtime-role reprovision policy and the source/ACL
+  report's expected-boundary map.
+- [x] Disposable PostgreSQL 16 apply/replay, aggregate-output parity, provisioner
+  reapplication, Directus grant preservation, and a separate trigger-backed
+  writable-view control pass ([acceptance](builds/2026-11-01-recovery/runtime-public-aggregate-views-719-disposable.json)).
+- [x] The focused application, policy, and EBF projection selection passes 19
+  tests. Ruff, Python compilation, schema-only migration validation (711
+  migration source files), and runtime SQL inventory plus review-ledger checks
+  pass ([source evidence](builds/2026-11-01-recovery/runtime-public-aggregate-views-719-source-checks.json)).
+- [ ] Run the full native and ARM64/QEMU ordered replay and refresh the
+  aggregate source/ACL report and two-tenant probe beyond migration 718. The
+  focused 719 check and the Standard integration recovery through 722 do not
+  constitute that aggregate refresh or physical Raspberry Pi testing.
+
+The change removes unnecessary privileges from three read-only projections; it
+does not establish tenant isolation or close C1. No candidate, legacy, or
+production database or role was accessed or changed. Migration 719 is
+immutable after application; persistent rollback requires a reviewed forward
+migration granting the intended privilege back.
+
+### C1 continuation — migrations 720–722 and isolated notification delivery — 1 November 2026
+
+- [x] Add migration 720 to replace direct runtime thesaurus writes with the
+  existing four service operations implemented as bounded functions. Preserve
+  runtime SELECT, deny direct table DML and PUBLIC function execution, enforce
+  same-thesaurus keyword parenting, and grant the complete function set only
+  after schema installation. Migration-before-runtime-role bootstrap and
+  role-present apply/replay pass on network-disabled disposable PostgreSQL 16
+  ([migration](../../schemas/postgres/720_runtime_thesaurus_bounded_writes.sql);
+  [acceptance](builds/2026-11-01-recovery/runtime-thesaurus-boundary-720-disposable.json)).
+- [x] Add migration 721 to preserve runtime reads and revoke runtime table and
+  residual column DML on `data_governance_category` and
+  `data_governance_scope`; preserve Directus grants and catalog upserts.
+  Disposable role-absent and role-present apply/replay, provisioner
+  reapplication, and denied writes pass
+  ([migration](../../schemas/postgres/721_runtime_governance_reference_catalogs_read_only.sql);
+  [acceptance](builds/2026-11-01-recovery/governance-reference-catalogs-721-disposable.json)).
+- [x] Add a default-off Standard notification-delivery child mode using
+  migration 647's dedicated login. Compose passes its DSN and opt-in switch to
+  the worker only; the supervisor strips shared runtime and unrelated worker
+  database credentials while retaining the SMTP, webhook, and Directus settings
+  required for delivery. Focused supervisor/profile checks and disposable
+  migration-647 worker acceptance pass
+  ([implementation](../../services/core/runtime.py);
+  [profile guide](standard-profile.md);
+  [acceptance](builds/2026-11-01-recovery/standard-notification-delivery-worker-isolation-647.json)).
+- [x] Add migration 722 to preserve application readiness reads from
+  `schema_migration` while removing runtime table and residual column writes.
+  Mark only a migration-created fresh runtime-role placeholder so Standard's
+  first role provisioning applies the one-time compatibility grants; consume
+  that marker and keep later provisioning from widening access. Existing
+  unmarked roles are not widened.
+- [x] Pass the full Standard recovery with a stable schema snapshot: all
+  713/713 schema files through 722 applied with zero failures or seeds; both
+  app images matched the captured digest; placeholder bootstrap, runtime role
+  reapplication, API/worker/proxy health, DB outage/recovery, heartbeat privacy,
+  shutdown, and disposable cleanup passed ([evidence](builds/2026-11-01-recovery/standard-profile-recovery-722-disposable.json)).
+- [x] Pass 279 focused tests plus Ruff, Python compilation, migration
+  validation, runtime SQL inventory/review-ledger freshness, dependency and
+  provider boundaries, capability-matrix validation, release-input validation,
+  and diff checks.
+- [ ] Refresh the aggregate source/ACL report and two-tenant operator-scope
+  probe beyond migration 718. The current Standard integration replay is
+  through 722 but does not refresh those separate aggregate measurements.
+  Candidate rollout, external runtime-client reconciliation, remaining broad
+  DML retirement, API/worker identity separation, and broader tenant/RLS
+  closure remain separate gates.

@@ -197,7 +197,8 @@ def _query_attestations(conn, location_id: str) -> List[Dict[str, Any]]:
     try:
         with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
             cur.execute(
-                "SELECT schema_name, chain, status, created_at "
+                "SELECT claim_type, chain, total_attestations, published_count, "
+                "first_attestation, latest_attestation "
                 "FROM v_public_attestation_summary "
                 "WHERE location_id = %s",
                 (location_id,),

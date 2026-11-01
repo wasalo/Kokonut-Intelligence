@@ -25886,3 +25886,117 @@ No migration was added, and no persistent candidate, legacy, or production
 database or role was changed. The API and worker still share `kokonut_runtime`;
 external callers, existing broad grants, tenant/RLS isolation, and persistent
 rollout remain open.
+
+### Progress addendum — C1 public aggregate-view ACL — 1 November 2026
+
+Migration 719 removes `kokonut_runtime` table/column DML grants from the
+catalog-guarded, inherently non-updatable public views
+`v_public_attestation_summary`, `v_public_ebf_scorecard_summary`, and
+`v_public_ebf_pillar_summary`. It preserves SELECT, leaves Directus untouched,
+and aborts if any targeted relation is missing, is not a view, or becomes
+updatable. The exact three-view list is also in the runtime-role reprovision
+policy and source/ACL report boundary map.
+
+The focused, network-disabled PostgreSQL 16 check applies/replays migration
+719, verifies table and residual column DML denial, retained aggregate reads,
+provisioner reapplication, and unchanged Directus grants. An unlisted view with
+an INSTEAD OF trigger remains writable, demonstrating that the migration is
+scoped to named relations. The app contract selection passes 19 tests. It also
+found and fixed the pitch attestation query's stale column list; its replacement
+uses all six columns actually present in migration 018 and retains location
+binding. Ruff, compilation, schema-only validation of 711 migration source
+files, and runtime SQL inventory/review-ledger freshness pass
+([migration](../../schemas/postgres/719_runtime_public_aggregate_views_read_only.sql),
+[disposable acceptance](builds/2026-11-01-recovery/runtime-public-aggregate-views-719-disposable.json),
+[source checks](builds/2026-11-01-recovery/runtime-public-aggregate-views-719-source-checks.json)).
+
+This removes unused grants on non-updatable projections; it does not establish
+tenant isolation, prove a prior write exploit, or close C1. At the time this
+entry was recorded, the full aggregate ACL report, two-tenant probe, and
+Standard replay remained through migration 718. The following migration-722
+addendum supersedes the Standard recovery status; the aggregate report and
+two-tenant probe still remain through 718. No candidate, legacy, or production
+database/role was accessed or changed. Candidate rollout, external
+`kokonut_runtime` caller reconciliation, populated-data parity, broad C1/RLS,
+and hosted CI/Security remain separate gates.
+
+### Progress addendum — runtime ACL boundaries 720–721 — 1 November 2026
+
+Migration 720 keeps the four existing thesaurus operations behind bounded
+security-definer functions and denies direct runtime table DML and PUBLIC
+function execution. The runtime role receives the complete function set only
+when the migration is installed; runtime SELECT and service behavior remain.
+Network-disabled disposable PostgreSQL 16 checks cover role-absent and
+role-present application/replay, bootstrap reapplication, parent-thesaurus
+validation, and direct-write denial
+([migration](../../schemas/postgres/720_runtime_thesaurus_bounded_writes.sql),
+[evidence](builds/2026-11-01-recovery/runtime-thesaurus-boundary-720-disposable.json)).
+
+Migration 721 keeps runtime SELECT on `data_governance_category` and
+`data_governance_scope`, removes table and residual column DML, and preserves
+Directus access. Its disposable PostgreSQL 16 checks pass with the runtime role
+absent and present, including migration replay, provisioner reapplication,
+catalog upserts, and effective ACL checks
+([migration](../../schemas/postgres/721_runtime_governance_reference_catalogs_read_only.sql),
+[evidence](builds/2026-11-01-recovery/governance-reference-catalogs-721-disposable.json)).
+
+The Standard notification-delivery worker can now opt into migration 647's
+dedicated login and bounded functions. The opt-in is off by default; the DSN
+is supplied to the worker only, and its child environment excludes the shared
+runtime login and unrelated worker DSNs while retaining delivery provider
+settings. Focused supervisor/profile checks and disposable migration-647
+worker acceptance pass
+([evidence](builds/2026-11-01-recovery/standard-notification-delivery-worker-isolation-647.json)).
+This isolates the delivery child only; API and general worker still share
+`kokonut_runtime`.
+
+At this point the full ordered Standard replay through migration 721 and the
+aggregate source/ACL report plus two-tenant probe beyond 718 were still open.
+The following addendum records the completed Standard recovery through 722;
+the aggregate probe remains pending. No persistent candidate, legacy, or
+production target was changed. These narrow write boundaries do not establish
+tenant isolation or close C1.
+
+### Progress addendum — migration 722 and Standard first-install recovery — 1 November 2026
+
+The first Standard recovery after migrations 719–721 applied the complete
+schema snapshot but failed application readiness: the migration runner creates
+`kokonut_runtime` as a locked placeholder before the post-migration role
+provisioner runs, so the role-existence-only compatibility-grant guard skipped
+the initial grants. The runtime app then lacked SELECT on `schema_migration`.
+This was a bootstrap-ordering defect, not a SQL migration failure. The failed
+attempt and its container diagnostics were retained in the separate failed
+[721 attempt record](builds/2026-11-01-recovery/standard-profile-recovery-721-disposable.json).
+
+The fix marks only a newly created locked placeholder with
+`kokonut.compatibility_grant_state=placeholder`. The runtime-role provisioner
+recognizes that specific marker, applies the one-time compatibility grants,
+then changes it to `applied`; an existing unmarked role remains protected from
+grant widening on first provisioning or reprovisioning. Migration 722 makes
+`schema_migration` explicitly SELECT-only for the runtime login, preserving
+ledger writes for the ordered migration runner. The application readiness
+query and the migration ledger therefore agree on the needed privilege.
+
+The latest portless, network-disabled Standard recovery passes with one stable
+SQL snapshot: all 713/713 ordered schemas through migration 722 applied, zero
+failures and seeds, and both app images match the snapshot digest. The
+placeholder-first runtime-role bootstrap and reapplication pass; API, worker,
+and proxy are healthy; a database stop/start is detected and both app and
+worker recover; heartbeat metadata stays private; shutdown leaves no active
+leases; and disposable containers/volumes are removed
+([evidence](builds/2026-11-01-recovery/standard-profile-recovery-722-disposable.json)).
+
+The focused source/contract selection passes 279 tests. Ruff, Python
+compilation, schema-only migration validation (713 files), runtime SQL
+inventory/review-ledger freshness, dependency-group alignment, provider
+boundaries, capability-matrix validation, release-input lock validation, and
+diff checks pass. README, AGENTS, Standard-profile, current-state, C1 closure,
+batch, and TODO documentation now reflect the accepted recovery and its
+limitations. The aggregate source/ACL report and two-tenant probe remain at
+migration 718; the recovery does not update those measurements or establish
+tenant/RLS isolation. The API and general worker still share `kokonut_runtime`.
+Candidate, legacy, and production databases and roles were not touched.
+Checklist snapshot after this batch: 2,221 complete / 45 open (2,266 total);
+cross-phase TODO: 798 checked / 40 open. The capability matrix remains 67 rows
+(24 baseline-retained, 7 deployed, 36 prepared); no capability status is
+advanced by disposable recovery alone.

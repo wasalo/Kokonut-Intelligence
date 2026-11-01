@@ -24,7 +24,7 @@ incomplete in the inventory.
 
 ## Current evidence and decisions
 
-### Latest C1 continuation — runtime-role reprovision guard — 31 October 2026
+### C1 continuation — runtime-role reprovision guard — 31 October 2026
 
 The runtime-role bootstrap now applies its broad legacy compatibility grant
 for existing public tables and sequences only when the runtime login is first
@@ -88,7 +88,105 @@ created no Compose resources and touched no persistent target
 ([failed preflight evidence](builds/2026-10-31-recovery/native-resource-limited-schema-718-operator-probe.json)).
 No persistent candidate, legacy, or production database/role was changed.
 
-### Latest C1 continuation — migration 717 `chat_intent` runtime ACL — 1 November 2026
+### C1 continuation — migration 719 public aggregate views — 1 November 2026
+
+Migration 719 removes `kokonut_runtime` table and column mutation grants from
+`v_public_attestation_summary`, `v_public_ebf_scorecard_summary`, and
+`v_public_ebf_pillar_summary`, while preserving SELECT. It aborts unless each
+named object exists, remains an ordinary view, and is non-updatable according
+to PostgreSQL's catalog. The migration does not use a name-prefix sweep and
+does not alter Directus grants. Runtime provisioning and the source/ACL report
+declare the same exact three-view boundary.
+
+The network-disabled disposable PostgreSQL 16 checker applies and replays the
+migration, verifies effective table and column DML removal, read/output parity,
+and runtime-role provisioner reapplication. A separate trigger-backed writable
+view is an explicit control: because it is not named in migration 719, runtime
+INSERT/UPDATE/DELETE still work through it. Focused app tests preserve the
+public location summary's attestation aggregate and align the pitch reader with
+the columns actually exposed by migration 018. The source checks pass 19 tests;
+Ruff, Python compilation, schema-only migration validation, and runtime SQL
+inventory/ledger freshness pass ([migration](../../schemas/postgres/719_runtime_public_aggregate_views_read_only.sql),
+[disposable ACL acceptance](builds/2026-11-01-recovery/runtime-public-aggregate-views-719-disposable.json),
+[source checks](builds/2026-11-01-recovery/runtime-public-aggregate-views-719-source-checks.json)).
+
+This removes unnecessary grants on inherently read-only projections and is not
+evidence of a prior writable path, tenant isolation, or broad C1 closure. The
+full aggregate source/ACL report, two-tenant probe, Standard replay, candidate
+rollout, external runtime-client review, and populated-data parity remain at
+their separately recorded gates. No candidate, legacy, or production database
+or role was accessed or changed; rollback requires a reviewed forward
+migration if 719 has been applied. Migration 719 is immutable.
+
+### C1 continuation — thesaurus and governance reference writes — 1 November 2026
+
+Migration 720 keeps the four supported thesaurus service operations behind
+bounded `SECURITY DEFINER` functions owned by `kokonut_thesaurus_owner`. It
+preserves runtime reads and the existing create/add/upsert/delete service
+contracts, rejects keywords whose parent belongs to another thesaurus, and
+does not grant direct table mutation. PUBLIC function execution is revoked;
+the runtime-role provisioner grants the complete function set only after the
+migrations install it. The migration safely handles the Standard ordering in
+which schema migration runs before the runtime login is bootstrapped. Its
+network-disabled disposable PostgreSQL checker covers role-absent and
+role-present application/replay, runtime bootstrap/reapplication, denied
+direct writes, and service behavior
+([migration](../../schemas/postgres/720_runtime_thesaurus_bounded_writes.sql),
+[acceptance](builds/2026-11-01-recovery/runtime-thesaurus-boundary-720-disposable.json)).
+
+Migration 721 preserves runtime SELECT while revoking table and residual
+column DML on `data_governance_category` and `data_governance_scope`; Directus
+grants remain unchanged. It also supports migration-before-runtime-role
+bootstrap. Disposable replay confirms denied runtime writes, retained reads,
+seed/upsert behavior, unchanged Directus access, and no privilege widening
+when the runtime provisioner is reapplied
+([migration](../../schemas/postgres/721_runtime_governance_reference_catalogs_read_only.sql),
+[acceptance](builds/2026-11-01-recovery/governance-reference-catalogs-721-disposable.json)).
+
+Standard now has a default-off notification-delivery child mode using
+migration 647's dedicated login and bounded claim/completion functions. The
+supervisor filters the shared database credentials and unrelated worker DSNs
+from that child while retaining only its provider configuration; Compose
+passes its DSN and switch to the worker, not the API. This does not establish
+separate API/general-worker identities. Focused supervisor/profile tests pass,
+and the migration-647 disposable worker check is recorded at
+[notification delivery acceptance](builds/2026-11-01-recovery/standard-notification-delivery-worker-isolation-647.json).
+
+### Migration 722 and Standard placeholder-first recovery — 1 November 2026
+
+Migration 722 preserves `kokonut_runtime` SELECT on `schema_migration`, which
+the application uses for fail-closed startup readiness, and revokes table and
+residual column mutation. Migration and ledger writes remain with the ordered
+maintenance runner. The full Standard disposable recovery applies all 713
+ordered schema files through migration 722 and passes API/worker/proxy health,
+role reapplication, database outage/recovery, heartbeat privacy, graceful
+shutdown, and cleanup without ports, seeds, or external network
+([migration](../../schemas/postgres/722_runtime_schema_migration_read_only.sql);
+[recovery](builds/2026-11-01-recovery/standard-profile-recovery-722-disposable.json)).
+
+That run also exposed a separate first-install provisioning issue. The
+migration runner creates a locked `kokonut_runtime` placeholder before the
+post-migration role bootstrap, so the old role-existence-only condition skipped
+the one-time compatibility grants needed by existing application readers. The
+bootstrap now marks only a newly created placeholder; the provisioner consumes
+that marker when it applies the initial compatibility grants. Existing
+unmarked roles do not receive broader grants, and later re-provisioning still
+does not sweep newly created tables into the role. Migration 722 then removes
+runtime mutation from the schema ledger, and readiness succeeds with SELECT
+only.
+
+The focused selection passes 279 tests; Ruff, schema-only validation of 713
+migrations, runtime SQL inventory and review-ledger freshness, dependency and
+provider boundaries, capability matrix, release-input validation, Python
+compilation, and diff checks pass. The aggregate source/ACL report and
+two-tenant operator-scope probe remain through migration 718 and need a fresh
+run before claiming a 722 aggregate snapshot. Candidate rollout, external
+runtime-client review, broad C1 writer retirement, API/worker identity
+separation, populated-data parity, tenant/RLS, and production acceptance remain
+open. The disposable recovery touched no candidate, legacy, or production
+database or role.
+
+### Earlier C1 continuation — migration 717 `chat_intent` runtime ACL — 1 November 2026
 
 Source review found one application runtime reader for active `chat_intent`
 rows in `services/analytics/llm_chat.py`, no application write target, and the
@@ -164,7 +262,7 @@ explicit inventory or close broad C1; the ACL report remains through migration
 711. No candidate, legacy, or production database or role was changed
 ([CI diagnosis](builds/2026-11-01-recovery/ci-1033-runtime-sql-inventory-repair.json)).
 
-### Latest C1 continuation — migration 713 climate worker boundary — 31 October 2026
+### Earlier C1 continuation — migration 713 climate worker boundary — 31 October 2026
 
 C1 remains open. The fresh, network-disabled native PostgreSQL 16 replay
 applied 702/702 ordered schema files through migration 711 and passed all 38

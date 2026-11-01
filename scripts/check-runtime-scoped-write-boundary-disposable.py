@@ -12,6 +12,7 @@ import subprocess
 import sys
 import time
 import uuid
+from decimal import Decimal
 from pathlib import Path
 
 import psycopg2
@@ -146,6 +147,9 @@ PROCESS_BENCHMARK_MIGRATION = (
 )
 PUBLIC_FARM_SUMMARY_MIGRATION = (
     ROOT / "schemas/postgres/699_runtime_public_farm_summary_read_only.sql"
+)
+PUBLIC_AGGREGATE_VIEWS_MIGRATION = (
+    ROOT / "schemas/postgres/719_runtime_public_aggregate_views_read_only.sql"
 )
 LIVING_WAGE_BENCHMARK_MIGRATION = (
     ROOT / "schemas/postgres/704_runtime_living_wage_benchmark_read_only.sql"
@@ -370,6 +374,70 @@ def check_boundary(
                             "SELECT location_id, count(*) AS farm_count "
                             "FROM public.farm_summary_probe_source GROUP BY location_id"
                         )
+                    elif table == "v_public_attestation_summary":
+                        attestation_location_id = str(uuid.uuid4())
+                        cursor.execute(
+                            "CREATE TABLE public.attestation_summary_probe_source ("
+                            "location_id uuid NOT NULL, location_name text NOT NULL, "
+                            "claim_type text NOT NULL, chain text NOT NULL, "
+                            "status text NOT NULL, attested_at timestamptz NOT NULL)"
+                        )
+                        cursor.execute(
+                            "INSERT INTO public.attestation_summary_probe_source "
+                            "VALUES (%s, 'Synthetic farm', 'soil', 'celo', 'verified', "
+                            "'2026-10-01T00:00:00Z'), "
+                            "(%s, 'Synthetic farm', 'soil', 'celo', 'published', "
+                            "'2026-10-02T00:00:00Z'), "
+                            "(%s, 'Synthetic farm', 'soil', 'celo', 'draft', "
+                            "'2026-10-03T00:00:00Z')",
+                            (attestation_location_id,) * 3,
+                        )
+                        cursor.execute(
+                            "CREATE VIEW public.v_public_attestation_summary AS "
+                            "SELECT location_id, location_name, claim_type, chain, "
+                            "count(*) AS total_attestations, "
+                            "count(*) FILTER (WHERE status = 'published') AS published_count, "
+                            "min(attested_at) AS first_attestation, "
+                            "max(attested_at) AS latest_attestation "
+                            "FROM public.attestation_summary_probe_source "
+                            "WHERE status IN ('verified', 'published') "
+                            "GROUP BY location_id, location_name, claim_type, chain"
+                        )
+                    elif table == "v_public_ebf_scorecard_summary":
+                        cursor.execute(
+                            "CREATE TABLE public.ebf_scorecard_summary_probe_source ("
+                            "location_id uuid NOT NULL, scorecard_id uuid NOT NULL, "
+                            "overall_score numeric NOT NULL)"
+                        )
+                        cursor.execute(
+                            "INSERT INTO public.ebf_scorecard_summary_probe_source "
+                            "VALUES (%s, %s, 0.82)",
+                            (str(uuid.uuid4()), str(uuid.uuid4())),
+                        )
+                        cursor.execute(
+                            "CREATE VIEW public.v_public_ebf_scorecard_summary AS "
+                            "SELECT location_id, count(*) AS scorecard_count, "
+                            "avg(overall_score) AS average_score "
+                            "FROM public.ebf_scorecard_summary_probe_source "
+                            "GROUP BY location_id"
+                        )
+                    elif table == "v_public_ebf_pillar_summary":
+                        cursor.execute(
+                            "CREATE TABLE public.ebf_pillar_summary_probe_source ("
+                            "pillar_key text NOT NULL, normalized_score numeric NOT NULL)"
+                        )
+                        cursor.execute(
+                            "INSERT INTO public.ebf_pillar_summary_probe_source "
+                            "VALUES ('community_wellbeing', 0.74), "
+                            "('community_wellbeing', 0.82)"
+                        )
+                        cursor.execute(
+                            "CREATE VIEW public.v_public_ebf_pillar_summary AS "
+                            "SELECT pillar_key, count(*) AS score_count, "
+                            "avg(normalized_score) AS average_score "
+                            "FROM public.ebf_pillar_summary_probe_source "
+                            "GROUP BY pillar_key"
+                        )
                     elif table == "consent_data_type":
                         cursor.execute(
                             "CREATE TABLE public.consent_data_type ("
@@ -401,6 +469,32 @@ def check_boundary(
                                 sql.Identifier("public", table)
                             )
                         )
+                cursor.execute(
+                    "CREATE TABLE public.triggered_public_view_probe_source ("
+                    "id integer PRIMARY KEY, marker text NOT NULL)"
+                )
+                cursor.execute(
+                    "CREATE VIEW public.v_public_triggered_write_probe AS "
+                    "SELECT id, marker FROM public.triggered_public_view_probe_source"
+                )
+                cursor.execute(
+                    "CREATE FUNCTION public.triggered_public_view_probe_write() "
+                    "RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN "
+                    "IF TG_OP = 'INSERT' THEN "
+                    "INSERT INTO public.triggered_public_view_probe_source (id, marker) "
+                    "VALUES (NEW.id, NEW.marker); RETURN NEW; "
+                    "ELSIF TG_OP = 'UPDATE' THEN "
+                    "UPDATE public.triggered_public_view_probe_source "
+                    "SET marker = NEW.marker WHERE id = OLD.id; RETURN NEW; "
+                    "ELSE DELETE FROM public.triggered_public_view_probe_source "
+                    "WHERE id = OLD.id; RETURN OLD; END IF; END $$"
+                )
+                cursor.execute(
+                    "CREATE TRIGGER triggered_public_view_probe_write "
+                    "INSTEAD OF INSERT OR UPDATE OR DELETE "
+                    "ON public.v_public_triggered_write_probe "
+                    "FOR EACH ROW EXECUTE FUNCTION public.triggered_public_view_probe_write()"
+                )
                 cursor.execute(
                     "CREATE TABLE public.business_capability (id uuid PRIMARY KEY)"
                 )
@@ -544,6 +638,28 @@ def check_boundary(
                     "REFERENCES (location_id) ON public.v_public_farm_summary "
                     "TO kokonut_runtime"
                 )
+                for view_name, target_column in (
+                    ("v_public_attestation_summary", "location_id"),
+                    ("v_public_ebf_scorecard_summary", "location_id"),
+                    ("v_public_ebf_pillar_summary", "pillar_key"),
+                ):
+                    cursor.execute(
+                        sql.SQL(
+                            "GRANT SELECT, INSERT, UPDATE, DELETE ON public.{} "
+                            "TO kokonut_directus_runtime"
+                        ).format(sql.Identifier(view_name))
+                    )
+                    cursor.execute(
+                        sql.SQL(
+                            "GRANT INSERT ({}), UPDATE ({}), REFERENCES ({}) "
+                            "ON public.{} TO kokonut_runtime"
+                        ).format(
+                            sql.Identifier(target_column),
+                            sql.Identifier(target_column),
+                            sql.Identifier(target_column),
+                            sql.Identifier(view_name),
+                        )
+                    )
                 cursor.execute(
                     "GRANT SELECT (id, event_type, module_path, function_name, is_enabled, "
                     "priority_order, timeout_seconds) ON public.event_handler "
@@ -897,6 +1013,11 @@ def check_boundary(
                 farmer_role_migration = FARMER_ROLE_MIGRATION.read_text(encoding="utf-8")
                 cursor.execute(farmer_role_migration)
                 cursor.execute(farmer_role_migration)
+                public_aggregate_views_migration = (
+                    PUBLIC_AGGREGATE_VIEWS_MIGRATION.read_text(encoding="utf-8")
+                )
+                cursor.execute(public_aggregate_views_migration)
+                cursor.execute(public_aggregate_views_migration)
 
             with connection.cursor() as cursor:
                 runtime_role._verify_runtime_append_only_boundary(
@@ -959,6 +1080,12 @@ def check_boundary(
                 True, False, False, False
             ):
                 raise AssertionError("migration 699 did not establish read-only public-summary rights")
+            if _relation_privileges(connection, "v_public_triggered_write_probe") != (
+                True, True, True, True
+            ):
+                raise AssertionError(
+                    "migration 719 changed an unrelated trigger-backed writable view"
+                )
             with connection.cursor() as cursor:
                 cursor.execute(
                     "SELECT pg_relation_is_updatable('public.v_public_farm_summary'::regclass, TRUE), "
@@ -1000,6 +1127,125 @@ def check_boundary(
                     else:
                         connection.rollback()
                         raise AssertionError("runtime mutated the public farm summary view")
+                cursor.execute("RESET ROLE")
+                cursor.execute(
+                    "SELECT pg_relation_is_updatable('public.v_public_attestation_summary'::regclass, TRUE), "
+                    "pg_relation_is_updatable('public.v_public_ebf_scorecard_summary'::regclass, TRUE), "
+                    "pg_relation_is_updatable('public.v_public_ebf_pillar_summary'::regclass, TRUE)"
+                )
+                if cursor.fetchone() != (0, 0, 0):
+                    raise AssertionError("migration 719 probe views must be non-updatable")
+                cursor.execute("SET ROLE kokonut_runtime")
+                cursor.execute(
+                    "SELECT total_attestations, published_count "
+                    "FROM public.v_public_attestation_summary"
+                )
+                if cursor.fetchall() != [(2, 1)]:
+                    raise AssertionError(
+                        "runtime attestation summary read or publication filtering changed"
+                    )
+                cursor.execute(
+                    "SELECT scorecard_count, average_score "
+                    "FROM public.v_public_ebf_scorecard_summary"
+                )
+                if cursor.fetchall() != [(1, Decimal("0.82"))]:
+                    raise AssertionError("runtime EBF scorecard summary read changed")
+                cursor.execute(
+                    "SELECT score_count, average_score "
+                    "FROM public.v_public_ebf_pillar_summary"
+                )
+                if cursor.fetchall() != [(2, Decimal("0.78"))]:
+                    raise AssertionError("runtime EBF pillar summary read changed")
+                cursor.execute("RESET ROLE")
+                for view_name, target_column, target_value in (
+                    (
+                        "v_public_attestation_summary",
+                        "location_id",
+                        str(uuid.uuid4()),
+                    ),
+                    (
+                        "v_public_ebf_scorecard_summary",
+                        "location_id",
+                        str(uuid.uuid4()),
+                    ),
+                    ("v_public_ebf_pillar_summary", "pillar_key", "synthetic"),
+                ):
+                    cursor.execute(
+                        sql.SQL(
+                            "SELECT has_table_privilege('kokonut_directus_runtime', %s, 'SELECT'), "
+                            "has_table_privilege('kokonut_directus_runtime', %s, 'INSERT'), "
+                            "has_table_privilege('kokonut_directus_runtime', %s, 'UPDATE'), "
+                            "has_table_privilege('kokonut_directus_runtime', %s, 'DELETE'), "
+                            "has_column_privilege('kokonut_runtime', %s, %s, 'INSERT'), "
+                            "has_column_privilege('kokonut_runtime', %s, %s, 'UPDATE'), "
+                            "has_column_privilege('kokonut_runtime', %s, %s, 'REFERENCES')"
+                        ),
+                        (
+                            f"public.{view_name}",
+                            f"public.{view_name}",
+                            f"public.{view_name}",
+                            f"public.{view_name}",
+                            f"public.{view_name}", target_column,
+                            f"public.{view_name}", target_column,
+                            f"public.{view_name}", target_column,
+                        ),
+                    )
+                    if cursor.fetchone() != (True, True, True, True, False, False, False):
+                        raise AssertionError(
+                            f"migration 719 changed Directus or left runtime column grants on {view_name}"
+                        )
+                    for statement in (
+                        sql.SQL("INSERT INTO public.{} ({}) VALUES (%s)").format(
+                            sql.Identifier(view_name), sql.Identifier(target_column)
+                        ).as_string(connection),
+                        sql.SQL("UPDATE public.{} SET {} = %s WHERE false").format(
+                            sql.Identifier(view_name), sql.Identifier(target_column)
+                        ).as_string(connection),
+                        sql.SQL("DELETE FROM public.{} WHERE false").format(
+                            sql.Identifier(view_name)
+                        ).as_string(connection),
+                    ):
+                        try:
+                            cursor.execute("SET ROLE kokonut_runtime")
+                            cursor.execute(statement, (target_value,))
+                        except psycopg2.Error as exc:
+                            if exc.pgcode not in {"42501", "55000"}:
+                                raise AssertionError(
+                                    f"expected runtime ACL denial or non-updatable view "
+                                    f"for {view_name}; got {exc.pgcode}"
+                                ) from exc
+                            connection.rollback()
+                        else:
+                            connection.rollback()
+                            raise AssertionError(
+                                f"runtime unexpectedly retained DML on {view_name}"
+                            )
+                    cursor.execute("RESET ROLE")
+                cursor.execute(
+                    "SELECT pg_relation_is_updatable("
+                    "'public.v_public_triggered_write_probe'::regclass, TRUE)"
+                )
+                if not cursor.fetchone()[0]:
+                    raise AssertionError("trigger-backed control view is not updatable")
+                cursor.execute("SET ROLE kokonut_runtime")
+                cursor.execute(
+                    "INSERT INTO public.v_public_triggered_write_probe (id, marker) "
+                    "VALUES (1, 'before') RETURNING marker"
+                )
+                if cursor.fetchone() != ("before",):
+                    raise AssertionError("runtime trigger-backed view INSERT changed")
+                cursor.execute(
+                    "UPDATE public.v_public_triggered_write_probe "
+                    "SET marker = 'after' WHERE id = 1 RETURNING marker"
+                )
+                if cursor.fetchone() != ("after",):
+                    raise AssertionError("runtime trigger-backed view UPDATE changed")
+                cursor.execute(
+                    "DELETE FROM public.v_public_triggered_write_probe "
+                    "WHERE id = 1 RETURNING marker"
+                )
+                if cursor.fetchone() != ("after",):
+                    raise AssertionError("runtime trigger-backed view DELETE changed")
                 cursor.execute("RESET ROLE")
             with connection.cursor() as cursor:
                 cursor.execute(
@@ -2590,6 +2836,28 @@ def check_boundary(
                     "REFERENCES (location_id) ON public.v_public_farm_summary "
                     "TO kokonut_runtime"
                 )
+                for view_name, target_column in (
+                    ("v_public_attestation_summary", "location_id"),
+                    ("v_public_ebf_scorecard_summary", "location_id"),
+                    ("v_public_ebf_pillar_summary", "pillar_key"),
+                ):
+                    cursor.execute(
+                        sql.SQL(
+                            "GRANT SELECT, INSERT, UPDATE, DELETE ON public.{} "
+                            "TO kokonut_runtime"
+                        ).format(sql.Identifier(view_name))
+                    )
+                    cursor.execute(
+                        sql.SQL(
+                            "GRANT INSERT ({}), UPDATE ({}), REFERENCES ({}) "
+                            "ON public.{} TO kokonut_runtime"
+                        ).format(
+                            sql.Identifier(target_column),
+                            sql.Identifier(target_column),
+                            sql.Identifier(target_column),
+                            sql.Identifier(view_name),
+                        )
+                    )
                 result = runtime_role._apply_scoped_write_boundary(
                     cursor, sql.Identifier("kokonut_runtime")
                 )
@@ -2597,6 +2865,12 @@ def check_boundary(
                 result["relations"].values()
             ):
                 raise AssertionError("the provisioner did not visit every ACL relation")
+            if _relation_privileges(connection, "v_public_triggered_write_probe") != (
+                True, True, True, True
+            ):
+                raise AssertionError(
+                    "runtime-role provisioner changed an unrelated trigger-backed view"
+                )
             with connection.cursor() as cursor:
                 runtime_role._verify_scoped_write_boundary(cursor, "kokonut_runtime")
                 cursor.execute(
@@ -2611,6 +2885,25 @@ def check_boundary(
                     raise AssertionError(
                         "runtime-role provisioner left column-level public-view grants"
                     )
+                for view_name, target_column in (
+                    ("v_public_attestation_summary", "location_id"),
+                    ("v_public_ebf_scorecard_summary", "location_id"),
+                    ("v_public_ebf_pillar_summary", "pillar_key"),
+                ):
+                    cursor.execute(
+                        "SELECT has_column_privilege('kokonut_runtime', %s, %s, 'INSERT'), "
+                        "has_column_privilege('kokonut_runtime', %s, %s, 'UPDATE'), "
+                        "has_column_privilege('kokonut_runtime', %s, %s, 'REFERENCES')",
+                        (
+                            f"public.{view_name}", target_column,
+                            f"public.{view_name}", target_column,
+                            f"public.{view_name}", target_column,
+                        ),
+                    )
+                    if cursor.fetchone() != (False, False, False):
+                        raise AssertionError(
+                            f"runtime-role provisioner left column grants on {view_name}"
+                        )
 
             private_denied = 0
             for table in runtime_role._RUNTIME_PRIVATE_TABLES:
@@ -3092,6 +3385,20 @@ def check_boundary(
                     "runtime_select_only": True,
                     "runtime_dml_and_column_grants_denied": True,
                     "directus_view_grants_unchanged": True,
+                    "tenant_isolation_established": False,
+                },
+                "read_only_public_aggregate_views": {
+                    "migration": PUBLIC_AGGREGATE_VIEWS_MIGRATION.name,
+                    "migration_sha256": hashlib.sha256(
+                        public_aggregate_views_migration.encode("utf-8")
+                    ).hexdigest(),
+                    "migration_applied_and_replayed": True,
+                    "provisioner_reapplied_after_compatibility_grants": True,
+                    "runtime_select_preserved": True,
+                    "runtime_table_and_column_dml_denied": True,
+                    "directus_view_grants_unchanged": True,
+                    "aggregate_projection_outputs_preserved": True,
+                    "trigger_backed_unlisted_view_remains_writable": True,
                     "tenant_isolation_established": False,
                 },
                 "column_level_privilege_regression_detected": True,

@@ -13,7 +13,11 @@ from pathlib import Path
 
 import pytest
 
-from services.common.worker_environment import EVENT_HANDLER_WORKER_KEYS, SCHEDULED_WORKER_KEYS
+from services.common.worker_environment import (
+    EVENT_HANDLER_WORKER_KEYS,
+    SCHEDULED_WORKER_KEYS,
+    worker_subprocess_environment,
+)
 from services.core import runtime, worker_progress
 
 
@@ -230,6 +234,15 @@ def test_commands_start_event_and_notification_workers_independently(monkeypatch
     assert [name for name, _ in children] == ["api", "notifications"]
     assert children[1][1][3] == "--notification-worker"
 
+    enabled["isolated_notification_delivery"] = True
+    children = runtime.commands(8099, with_workers=True)
+
+    assert [name for name, _ in children] == ["api", "notifications"]
+    assert children[1][1][3] == "--isolated-notification-worker"
+
+    enabled["notification_delivery"] = False
+    assert [name for name, _ in runtime.commands(8099, with_workers=True)] == ["api"]
+
 
 def test_commands_omit_both_workers_when_features_are_disabled(monkeypatch):
     from services.core import features
@@ -278,6 +291,117 @@ def test_supervisor_marks_isolated_event_worker_and_keeps_exact_handler_secrets(
         "event_dispatch", *EVENT_HANDLER_WORKER_KEYS
     )
     assert spawned[1][1]["env"] == {"ISOLATED": "event_dispatch"}
+
+
+def test_supervisor_isolates_notification_delivery_database_and_preserves_provider_config(
+    monkeypatch, tmp_path
+):
+    monkeypatch.setenv(
+        runtime.SUPERVISOR_HEARTBEAT_FILE_ENV,
+        str(tmp_path / "worker" / "supervisor.json"),
+    )
+    process = _Process(131)
+    spawned = []
+    environment_options = []
+    source_environment = {
+        "PATH": "/synthetic/bin",
+        "PG_HOST": "database",
+        "PG_PORT": "5432",
+        "PG_DB": "kokonut_intelligence",
+        "PG_USER": "kokonut_runtime",
+        "PG_PASSWORD": "synthetic-runtime-password",
+        "POSTGRES_PASSWORD": "synthetic-admin-password",
+        "KOKONUT_RUNTIME_USER": "kokonut_runtime",
+        "KOKONUT_RUNTIME_PASSWORD": "synthetic-runtime-password",
+        "KOKONUT_NOTIFICATION_DELIVERY_DATABASE_URL": (
+            "postgresql://kokonut_notification_delivery_login:synthetic-secret@database/db"
+        ),
+        "KOKONUT_NOTIFICATION_ENQUEUE_DATABASE_URL": (
+            "postgresql://kokonut_notification_enqueue_login:synthetic-secret@database/db"
+        ),
+        "KOKONUT_EVENT_DISPATCH_DATABASE_URL": (
+            "postgresql://kokonut_event_dispatch_login:synthetic-secret@database/db"
+        ),
+        "KOKONUT_SENSOR_ANOMALY_DATABASE_URL": (
+            "postgresql://kokonut_worker_login:synthetic-secret@database/db"
+        ),
+        "KOKONUT_FEATURE_ISOLATED_NOTIFICATION_DELIVERY": "true",
+        "ALERT_WEBHOOK_URL": "https://hooks.example.test/synthetic-token",
+        "ALERT_SMTP_HOST": "smtp.example.test",
+        "ALERT_SMTP_PORT": "587",
+        "ALERT_SMTP_TLS_MODE": "starttls",
+        "ALERT_SMTP_USER": "synthetic-smtp-user",
+        "ALERT_SMTP_PASSWORD": "synthetic-smtp-password",
+        "ALERT_EMAIL_FROM": "alerts@example.test",
+        "ALERT_EMAIL_TO": "ops@example.test",
+        "DIRECTUS_URL": "http://directus:8055",
+        "DIRECTUS_ADMIN_TOKEN": "synthetic-directus-token",
+        "CELO_RPC_URL": "https://rpc.example.test/synthetic-token",
+    }
+    _install_signal_fakes(monkeypatch, stop_on_sleep=True)
+    monkeypatch.setattr(
+        runtime,
+        "commands",
+        lambda *_args, **_kwargs: [
+            ("notifications", ["events", "--isolated-notification-worker"])
+        ],
+    )
+
+    def filtered_environment(**kwargs):
+        environment_options.append(kwargs)
+        return worker_subprocess_environment(**kwargs, environ=source_environment)
+
+    monkeypatch.setattr(runtime, "worker_subprocess_environment", filtered_environment)
+    monkeypatch.setattr(
+        runtime.subprocess,
+        "Popen",
+        lambda argv, **kwargs: spawned.append((argv, kwargs)) or process,
+    )
+    monkeypatch.setattr(runtime.os, "killpg", lambda *_args: None)
+
+    assert runtime.run(workers_only=True) == 0
+
+    assert environment_options == [
+        {
+            "allowed_worker_keys": ("notification_delivery",),
+            "isolated_worker_key": "notification_delivery",
+        }
+    ]
+    child_environment = spawned[0][1]["env"]
+    assert child_environment["KOKONUT_NOTIFICATION_DELIVERY_DATABASE_URL"] == (
+        source_environment["KOKONUT_NOTIFICATION_DELIVERY_DATABASE_URL"]
+    )
+    for unrelated_key in (
+        "KOKONUT_NOTIFICATION_ENQUEUE_DATABASE_URL",
+        "KOKONUT_EVENT_DISPATCH_DATABASE_URL",
+        "KOKONUT_SENSOR_ANOMALY_DATABASE_URL",
+        "CELO_RPC_URL",
+    ):
+        assert unrelated_key not in child_environment
+    for shared_key in (
+        "PG_HOST",
+        "PG_PORT",
+        "PG_DB",
+        "PG_USER",
+        "PG_PASSWORD",
+        "POSTGRES_PASSWORD",
+        "KOKONUT_RUNTIME_USER",
+        "KOKONUT_RUNTIME_PASSWORD",
+    ):
+        assert shared_key not in child_environment
+    for provider_key in (
+        "ALERT_WEBHOOK_URL",
+        "ALERT_SMTP_HOST",
+        "ALERT_SMTP_PORT",
+        "ALERT_SMTP_TLS_MODE",
+        "ALERT_SMTP_USER",
+        "ALERT_SMTP_PASSWORD",
+        "ALERT_EMAIL_FROM",
+        "ALERT_EMAIL_TO",
+        "DIRECTUS_URL",
+        "DIRECTUS_ADMIN_TOKEN",
+    ):
+        assert child_environment[provider_key] == source_environment[provider_key]
 
 
 def test_unexpected_zero_exit_fails_supervisor_and_stops_siblings(monkeypatch):

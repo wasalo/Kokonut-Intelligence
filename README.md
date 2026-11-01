@@ -106,13 +106,20 @@ the candidate defaults; it is not a production acceptance matrix.
 |---------|----------|-------|
 | Kernel app (minimal) | `http://127.0.0.1:8098` | FastAPI app plus enabled workers in the isolated candidate project |
 | PostgreSQL/PostGIS | Docker service `database:5432` | Private canonical store; no host port in the candidate base manifest |
-| API and worker (standard) | API uses candidate port; worker has no HTTP port | Separate services currently share the `kokonut_runtime` database login; distinct API/worker database identities remain an open C1 boundary. Runtime-role reprovisioning no longer grants new tables to this login, but broad grants on existing tables remain under review. Inspect durable run/delivery state for worker progress |
+| API and worker (standard) | API uses candidate port; worker has no HTTP port | Separate services currently share the `kokonut_runtime` database login; distinct API/general-worker database identities remain an open C1 boundary. The notification-delivery child can opt into migration 647's dedicated login with `KOKONUT_FEATURE_ISOLATED_NOTIFICATION_DELIVERY=true` and `KOKONUT_NOTIFICATION_DELIVERY_DATABASE_URL`; that opt-in is off by default, its DSN is supplied to the worker only, and it does not isolate other worker children. Runtime-role setup applies the one-time compatibility grant to a new login or explicitly marked fresh placeholder; reprovisioning does not widen access to new tables. Broad grants on existing tables remain under review. Inspect durable run/delivery state for worker progress |
 | Caddy (optional proxy overlay) | `https://127.0.0.1:8448` | Loopback default; public bind requires explicit configuration and review |
 | Directus (optional adapter) | `http://127.0.0.1:18055` | Compatibility/admin integration; not the canonical Kernel API |
 | ClickHouse (optional analytics overlay) | Docker service `clickhouse:8123` | Private analytics adapter |
 | Mosquitto (optional MQTT overlay) | Loopback `mqtts://127.0.0.1:8883` | TLS sensor broker; requires certificates and identity provisioning |
 | gRPC (optional overlay) | Private Compose service | External API transport; opt in explicitly |
 | Metabase | Legacy `metabase` Compose profile | Not part of the candidate planner's standard defaults |
+
+The current runtime ACL batch (migrations 719–722) preserves required reads
+while narrowing writes to selected non-updatable public aggregates, thesaurus
+reference operations, governance reference catalogs, and the application’s
+schema-migration ledger. These are individually scoped boundaries; they do not
+close the broader C1 review or establish tenant/RLS isolation. See the
+[refactor status guide](docs/refactor/current-state-and-implementation.md).
 
 To combine the Standard API/worker split with Edge's local encrypted media and
 resource settings, inspect the planner output before starting it:

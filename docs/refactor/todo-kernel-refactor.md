@@ -8,7 +8,7 @@ can proceed now and gates that need an owner, provider, populated source data,
 or production environment. Check an item only when its evidence is recorded in
 the batch log and the affected capability/progress records are updated.
 
-**Current queue snapshot (1 November 2026):** 790 checked / 39 open across the TODO's dated and active checklist sections. Historical snapshots below this
+**Current queue snapshot (1 November 2026):** 798 checked / 40 open across the TODO's dated and active checklist sections. Historical snapshots below this
 active queue remain dated records and do not replace the current count.
 
 **Hosted validation (31 October 2026):** On the pre-batch PR head `fb4cc883`,
@@ -4799,3 +4799,38 @@ database/role was changed.
 - [ ] Continue retiring broad DML on existing relations; this guard does not
   close C1, split the shared Standard API/worker login, or prove tenant/RLS
   isolation. External callers and persistent rollout remain open.
+
+### Current continuation — migrations 719–722 and Standard notification delivery — 1 November 2026
+
+- [x] Revoke runtime table/column DML on the three catalog-confirmed
+  non-updatable public aggregate views in migration 719 while preserving
+  reads, optional Directus grants, and the unrelated trigger-backed writable
+  view control. Fix the stale pitch-attestation projection; focused tests and
+  disposable acceptance pass ([evidence](builds/2026-11-01-recovery/runtime-public-aggregate-views-719-disposable.json)).
+- [x] Route thesaurus mutations through bounded functions in migration 720,
+  preserve the service API and SELECT access, and cover migration-before-role
+  bootstrap, provisioner reapplication, replay, and denied direct writes
+  ([evidence](builds/2026-11-01-recovery/runtime-thesaurus-boundary-720-disposable.json)).
+- [x] Keep governance reference catalogs read-only to `kokonut_runtime` in
+  migration 721, preserving Directus and catalog upserts; role-absent and
+  role-present replay plus provisioner checks pass
+  ([evidence](builds/2026-11-01-recovery/governance-reference-catalogs-721-disposable.json)).
+- [x] Add the default-off Standard notification-delivery child identity and
+  filter unrelated database credentials from its environment while retaining
+  provider delivery configuration ([evidence](builds/2026-11-01-recovery/standard-notification-delivery-worker-isolation-647.json)).
+- [x] Add migration 722 to keep the `schema_migration` ledger readable but
+  immutable to the runtime login; preserve migration-owner writes.
+- [x] Mark only a newly created migration placeholder for first role
+  provisioning, then consume the marker after its one-time compatibility
+  grants; keep existing unmarked roles and later reprovisioning from widening.
+- [x] Pass the portless, network-disabled Standard recovery through all 713
+  schemas ending at 722, including image snapshot parity, fresh placeholder
+  bootstrap, role reapplication, API/worker/proxy health, outage recovery,
+  shutdown, and cleanup ([evidence](builds/2026-11-01-recovery/standard-profile-recovery-722-disposable.json)).
+- [x] Pass the 279-test focused regression selection, Ruff, migration
+  validation, SQL inventory/ledger freshness, provider/dependency boundaries,
+  capability matrix, release-input check, Python compilation, and diff checks.
+- [ ] Refresh the native/ARM64 aggregate source/ACL report and synthetic
+  two-tenant operator-scope probe beyond migration 718. Candidate rollout,
+  external runtime-client reconciliation, remaining broad DML, API/worker
+  identity separation, and tenant/RLS closure remain open.

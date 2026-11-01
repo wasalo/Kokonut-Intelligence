@@ -74,6 +74,34 @@ def test_landscape_capture_tables_are_in_the_reapplied_runtime_dml_denial_policy
     assert expected.isdisjoint(runtime_role._RUNTIME_PRIVATE_TABLES)
 
 
+def test_thesaurus_tables_and_bounded_writers_are_reapplied_by_runtime_provisioner():
+    expected_tables = {
+        "thesaurus",
+        "thesaurus_keyword",
+        "thesaurus_keyword_label",
+    }
+    expected_functions = {
+        "kokonut_security.create_thesaurus(text,text,text,text)",
+        "kokonut_security.add_thesaurus_keyword(uuid,text,text,uuid)",
+        "kokonut_security.upsert_thesaurus_keyword_label(uuid,text,text)",
+        "kokonut_security.delete_thesaurus_keyword(uuid)",
+    }
+    assert expected_tables.issubset(runtime_role._RUNTIME_MUTATION_TABLES)
+    assert expected_tables.isdisjoint(runtime_role._RUNTIME_PRIVATE_TABLES)
+    assert expected_functions.issubset(runtime_role._THESAURUS_FUNCTIONS)
+    assert expected_functions.issubset(runtime_role._PRIVATE_RUNTIME_FUNCTIONS)
+    owners = dict(runtime_role._SECURITY_DEFINER_OWNERS)
+    assert {owners[function] for function in expected_functions} == {
+        "kokonut_thesaurus_owner"
+    }
+
+
+def test_governance_reference_catalogs_are_read_only_to_runtime():
+    expected = {"data_governance_category", "data_governance_scope"}
+    assert expected.issubset(runtime_role._RUNTIME_MUTATION_TABLES)
+    assert expected.isdisjoint(runtime_role._RUNTIME_PRIVATE_TABLES)
+
+
 def test_historical_full_schema_acl_snapshot_matches_its_recorded_source_policy():
     root = Path(__file__).resolve().parents[1]
     probe = json.loads(
@@ -138,8 +166,8 @@ def test_runtime_compatibility_grant_is_one_time_and_scoped_denials_are_reapplie
     source = (
         Path(__file__).resolve().parents[1] / "services/migration/runtime_role.py"
     ).read_text()
-    role_existence_check = source.index(
-        "SELECT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = %s)"
+    placeholder_marker_check = source.index(
+        "kokonut.compatibility_grant_state=placeholder"
     )
     role_creation = source.index(
         "_ensure_login_role(cur, name=runtime_user, identifier=runtime_ident"
@@ -147,15 +175,31 @@ def test_runtime_compatibility_grant_is_one_time_and_scoped_denials_are_reapplie
     broad_grant = source.index(
         "GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public"
     )
-    broad_grant_guard = source.rindex("if runtime_role_created:", 0, broad_grant)
+    broad_grant_guard = source.rindex(
+        "if runtime_compatibility_grants_applied:", 0, broad_grant
+    )
     scoped_reapply = source.index(
         "scoped_write_grants = _apply_scoped_write_boundary("
     )
     scoped_verification = source.index("_verify_scoped_write_boundary(cur, runtime_user)")
 
-    assert role_existence_check < role_creation < broad_grant_guard < broad_grant
+    assert placeholder_marker_check < role_creation < broad_grant_guard < broad_grant
     assert broad_grant_guard < scoped_reapply < scoped_verification
-    assert '"legacy_compatibility_grants_applied": runtime_role_created' in source
+    assert "kokonut.compatibility_grant_state = 'applied'" in source
+    assert (
+        '"legacy_compatibility_grants_applied": runtime_compatibility_grants_applied'
+        in source
+    )
+
+
+def test_runtime_migration_ledger_is_readable_and_immutable():
+    root = Path(__file__).resolve().parents[1]
+    migration = (
+        root / "schemas/postgres/722_runtime_schema_migration_read_only.sql"
+    ).read_text()
+    assert "schema_migration" in runtime_role._RUNTIME_MUTATION_TABLES
+    assert "REVOKE ALL PRIVILEGES ON TABLE public.schema_migration" in migration
+    assert "GRANT SELECT ON TABLE public.schema_migration TO kokonut_runtime" in migration
 
 
 def test_append_only_data_access_log_is_reapplied_after_compatibility_grant():

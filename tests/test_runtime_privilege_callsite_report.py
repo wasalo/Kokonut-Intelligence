@@ -28,7 +28,29 @@ def test_reporting_registry_dynamic_revokes_are_joined_to_runtime_policy():
     assert overrides["metric_definition"] == "runtime_mutations_denied"
     assert overrides["service_registry"] == "runtime_mutations_denied"
     assert overrides["v_public_farm_summary"] == "runtime_mutations_denied"
+    assert overrides["v_public_attestation_summary"] == "runtime_mutations_denied"
+    assert overrides["v_public_ebf_scorecard_summary"] == "runtime_mutations_denied"
+    assert overrides["v_public_ebf_pillar_summary"] == "runtime_mutations_denied"
+    assert overrides["thesaurus"] == "runtime_mutations_denied"
+    assert overrides["thesaurus_keyword"] == "runtime_mutations_denied"
+    assert overrides["thesaurus_keyword_label"] == "runtime_mutations_denied"
+    assert overrides["data_governance_category"] == "runtime_mutations_denied"
+    assert overrides["data_governance_scope"] == "runtime_mutations_denied"
     assert "v_public_farm_summary" in runtime_role._RUNTIME_MUTATION_TABLES
+    assert {
+        "v_public_attestation_summary",
+        "v_public_ebf_scorecard_summary",
+        "v_public_ebf_pillar_summary",
+    }.issubset(runtime_role._RUNTIME_MUTATION_TABLES)
+    assert {
+        "data_governance_category",
+        "data_governance_scope",
+    }.issubset(runtime_role._RUNTIME_MUTATION_TABLES)
+    assert {
+        "thesaurus",
+        "thesaurus_keyword",
+        "thesaurus_keyword_label",
+    }.issubset(runtime_role._RUNTIME_MUTATION_TABLES)
 
 
 def test_landscape_capture_relations_have_runtime_mutation_policy():
@@ -98,6 +120,25 @@ def test_public_farm_summary_boundary_requires_a_non_updatable_view():
     assert "REVOKE ALL PRIVILEGES ON TABLE public.v_public_farm_summary" in migration
     assert "EXECUTE 'GRANT SELECT ON TABLE public.v_public_farm_summary '" in migration
     assert "'TO kokonut_runtime'" in migration
+
+
+def test_public_aggregate_view_boundary_guards_each_view_and_preserves_reads():
+    migration = (
+        ROOT
+        / "schemas/postgres/719_runtime_public_aggregate_views_read_only.sql"
+    ).read_text(encoding="utf-8")
+
+    for view in (
+        "v_public_attestation_summary",
+        "v_public_ebf_scorecard_summary",
+        "v_public_ebf_pillar_summary",
+    ):
+        assert f"'{view}'" in migration
+    assert "pg_relation_is_updatable(relation_oid, TRUE) <> 0" in migration
+    assert "REVOKE ALL PRIVILEGES ON TABLE public.%I FROM kokonut_runtime" in migration
+    assert "REVOKE INSERT (%1$I), UPDATE (%1$I), REFERENCES (%1$I) " in migration
+    assert "GRANT SELECT ON TABLE public.%I TO kokonut_runtime" in migration
+    assert "COMMENT ON VIEW public.%I IS %L" in migration
 
 
 def _acl_row(

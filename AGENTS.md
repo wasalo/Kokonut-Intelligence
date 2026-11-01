@@ -75,10 +75,17 @@ Commands:
   connect with the shared `kokonut_runtime` database login. Do not describe
   them as having distinct database identities; closing that C1 boundary is
   still open.
+- Standard can opt only the notification-delivery child into migration 647's
+  dedicated login with `KOKONUT_FEATURE_ISOLATED_NOTIFICATION_DELIVERY=true`
+  and `KOKONUT_NOTIFICATION_DELIVERY_DATABASE_URL`. It is off by default;
+  Compose supplies its DSN to the worker, not the API. This does not isolate
+  the API or other worker children from `kokonut_runtime`.
 - Runtime-role bootstrap applies its broad legacy compatibility table/sequence
-  grant only when it first creates `kokonut_runtime`. Reprovisioning preserves
-  existing grants and reapplies reviewed boundaries, but does not widen access
-  to relations created afterward. This guard does not remove broad grants from
+  grant only to a newly created login or a fresh migration-created placeholder
+  explicitly marked for its first provisioning. It marks that one-time
+  compatibility step complete. A pre-existing unmarked role is not widened;
+  later reprovisioning preserves existing grants and does not grant access to
+  relations created afterward. This guard does not remove broad grants from
   existing tables; C1 remains open until those writer cohorts are reviewed and
   migrated.
 - Standard can select Edge settings with the planner's `standard --edge`
@@ -124,6 +131,13 @@ Commands:
 - Migrations are ordered and checksummed. Do not edit an applied migration or bypass drift detection; add a new migration and preserve transactional failure behavior.
 - Gateway public access is explicit opt-in. Unknown routes remain protected, and new routes require deliberate resource/action/public policy plus authorization tests.
 - Scheduler claims, run state, event delivery, notification delivery, retries, and dead-letter disposition are durable database state. Preserve leases, idempotency, bounded retries, and explicit operator replay/disposal.
+- Migrations 719–722 retain runtime reads while narrowing writes on three
+  non-updatable public aggregate views, moving thesaurus mutations behind
+  bounded security-definer functions, making governance reference catalogs
+  read-only, and making the migration ledger read-only to the application
+  login. Keep each policy aligned across migration, runtime-role
+  reprovisioning, source ACL reporting, and disposable acceptance; these
+  changes do not establish tenant isolation.
 - Credit writes must preserve batch/account custody and supply invariants. Retirement reserves quantity atomically and requires an independent human confirmation before final balance mutation or certificate use.
 - Threatcasting/backcasting outputs and Delphi facilitator recommendations are advisory. Preserve governed lifecycle, evidence links, and human approval boundaries.
 - Focused platform-integrity tests: `python3 -m pytest tests/test_migration.py tests/test_gateway_auth.py tests/test_scheduler_durability.py tests/test_kgp_worker_durability.py tests/test_event_worker_recovery.py tests/test_event_bus_durability.py tests/test_directus_tenant_permissions.py tests/test_carbon_credits.py tests/test_threatcasting.py tests/test_backcasting_enhancements.py tests/test_delphi.py -v`
@@ -134,6 +148,10 @@ Commands:
 - Check optional provider import boundaries: `python3 scripts/check-provider-boundaries.py`
 - Check runtime-role boundaries in disposable PostgreSQL: `python3 scripts/check-operator-session-role-disposable.py`
 - Check migration-declared runtime table/column denials in disposable PostgreSQL: `python3 scripts/check-runtime-scoped-write-boundary-disposable.py`
+- Check the migration-720 thesaurus function boundary in disposable PostgreSQL: `python3 scripts/check-thesaurus-runtime-boundary-disposable.py`
+- Check the migration-721 governance reference-catalog boundary in disposable PostgreSQL: `python3 scripts/check-governance-reference-catalog-runtime-boundary-disposable.py`
+- Check the migration-647 notification-delivery worker boundary in disposable PostgreSQL: `python3 scripts/check-notification-delivery-worker-disposable.py`
+- Check the complete Standard profile migration, health, outage/recovery, and cleanup path in a portless disposable deployment: `KOKONUT_STANDARD_RECOVERY_TIMEOUT=900 python3 scripts/check-kernel-standard-recovery-disposable.py`
 - Check worker source import closure: `python3 scripts/worker_source_closure.py --check docs/refactor/worker-source-closure.json`
 - Check worker direct function reachability: `python3 scripts/worker_function_reachability.py --check docs/refactor/worker-function-reachability.json`
 - Check worker SQL/function reachability: `python3 scripts/worker_sql_reachability.py --check docs/refactor/worker-sql-reachability.json`

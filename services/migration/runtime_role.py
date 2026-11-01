@@ -61,6 +61,12 @@ _MARKET_DATA_FUNCTIONS = (
     _MARKET_DATA_MANUAL_PRICE_FUNCTION,
     _MARKET_DATA_REFERENCE_SEED_FUNCTION,
 )
+_THESAURUS_FUNCTIONS = (
+    "kokonut_security.create_thesaurus(text,text,text,text)",
+    "kokonut_security.add_thesaurus_keyword(uuid,text,text,uuid)",
+    "kokonut_security.upsert_thesaurus_keyword_label(uuid,text,text)",
+    "kokonut_security.delete_thesaurus_keyword(uuid)",
+)
 _EAS_INDEXER_FUNCTIONS = (
     "kokonut_security.acquire_eas_indexer_chain_lock(text)",
     "kokonut_security.release_eas_indexer_chain_lock(text)",
@@ -244,6 +250,7 @@ _SECURITY_DEFINER_OWNERS = (
     (_MARKET_DATA_FUNCTION, "kokonut_market_data_owner"),
     (_MARKET_DATA_MANUAL_PRICE_FUNCTION, "kokonut_market_data_owner"),
     (_MARKET_DATA_REFERENCE_SEED_FUNCTION, "kokonut_market_data_owner"),
+    *((function, "kokonut_thesaurus_owner") for function in _THESAURUS_FUNCTIONS),
     *((function, "kokonut_eas_indexer_owner") for function in _EAS_INDEXER_FUNCTIONS),
     *((function, "kokonut_rpc_indexer_owner") for function in _RPC_INDEXER_FUNCTIONS),
     *((function, "kokonut_gnosis_indexer_owner") for function in _GNOSIS_INDEXER_FUNCTIONS),
@@ -287,6 +294,7 @@ _PRIVATE_RUNTIME_FUNCTIONS = (
     _WORKER_SCOPE_FUNCTION,
     _NOTIFICATION_ENQUEUE_FUNCTION,
     *_MARKET_DATA_FUNCTIONS,
+    *_THESAURUS_FUNCTIONS,
     *_EAS_INDEXER_FUNCTIONS,
     *_RPC_INDEXER_FUNCTIONS,
     *_GNOSIS_INDEXER_FUNCTIONS,
@@ -1288,12 +1296,21 @@ _RUNTIME_MUTATION_TABLES = (
     "solution_configuration",
     "solution_learning_record",
     "v_public_farm_summary",
+    "v_public_attestation_summary",
+    "v_public_ebf_scorecard_summary",
+    "v_public_ebf_pillar_summary",
+    "thesaurus",
+    "thesaurus_keyword",
+    "thesaurus_keyword_label",
+    "data_governance_category",
+    "data_governance_scope",
     "habitat_zone",
     "wildlife_corridor",
     "hedgerow_record",
     "buffer_zone_monitoring",
     "landscape_biodiversity_score",
     "schema_version",
+    "schema_migration",
     "cache_invalidation_rule",
     "price_observation",
     "energy_reading",
@@ -2208,11 +2225,43 @@ def provision_runtime_role(
                 "gateway rate-limit consume and cleanup functions must be installed together"
             )
 
+        cur.execute(
+            "SELECT " + ", ".join(
+                "to_regprocedure(%s)" for _ in _THESAURUS_FUNCTIONS
+            ),
+            _THESAURUS_FUNCTIONS,
+        )
+        thesaurus_functions = cur.fetchone()
+        if any(procedure is not None for procedure in thesaurus_functions) and any(
+            procedure is None for procedure in thesaurus_functions
+        ):
+            raise RuntimeError(
+                "thesaurus mutation functions must be installed as a complete set"
+            )
+
         for function in _PRIVATE_RUNTIME_FUNCTIONS:
             _revoke_public_function_execute(cur, function)
 
-        cur.execute("SELECT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = %s)", (runtime_user,))
-        runtime_role_created = not cur.fetchone()[0]
+        cur.execute(
+            """SELECT
+                   EXISTS (SELECT 1 FROM pg_catalog.pg_roles WHERE rolname = %s),
+                   EXISTS (
+                       SELECT 1
+                         FROM pg_catalog.pg_roles AS role
+                         JOIN pg_catalog.pg_db_role_setting AS setting
+                           ON setting.setrole = role.oid
+                        CROSS JOIN LATERAL unnest(setting.setconfig) AS config(value)
+                        WHERE role.rolname = %s
+                          AND setting.setdatabase = 0
+                          AND config.value =
+                              'kokonut.compatibility_grant_state=placeholder'
+                   )""",
+            (runtime_user, runtime_user),
+        )
+        runtime_role_exists, runtime_placeholder_pending = cur.fetchone()
+        runtime_compatibility_grants_applied = (
+            not runtime_role_exists or runtime_placeholder_pending
+        )
         _ensure_login_role(cur, name=runtime_user, identifier=runtime_ident, password=runtime_password)
         for function in _REPORT_SNAPSHOT_EXPORT_RUNTIME_FUNCTIONS:
             cur.execute(
@@ -2232,6 +2281,13 @@ def provision_runtime_role(
                     sql.SQL(function), runtime_ident
                 )
             )
+        if all(procedure is not None for procedure in thesaurus_functions):
+            for function in _THESAURUS_FUNCTIONS:
+                cur.execute(
+                    sql.SQL("GRANT EXECUTE ON FUNCTION {} TO {}").format(
+                        sql.SQL(function), runtime_ident
+                    )
+                )
         if rate_limit_functions[0] is not None:
             cur.execute(
                 sql.SQL("GRANT EXECUTE ON FUNCTION {} TO {}").format(
@@ -3013,7 +3069,7 @@ def provision_runtime_role(
 
         _revoke_runtime_default_privileges(cur, admin_ident, runtime_ident)
 
-        if runtime_role_created:
+        if runtime_compatibility_grants_applied:
             cur.execute(
                 sql.SQL("GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO {}").format(
                     runtime_ident
@@ -3024,6 +3080,11 @@ def provision_runtime_role(
                     runtime_ident
                 )
             )
+        cur.execute(
+            sql.SQL(
+                "ALTER ROLE {} SET kokonut.compatibility_grant_state = 'applied'"
+            ).format(runtime_ident)
+        )
         farm_activity_event_owner_ready = _restore_farm_activity_event_owner(cur)
         mobile_credential_grants = _apply_mobile_credential_boundary(cur, runtime_ident)
         api_key_grants = _apply_api_key_boundary(cur, runtime_ident)
@@ -4054,6 +4115,20 @@ def provision_runtime_role(
         )
         if cur.fetchone() != (True,) * len(_REPORT_SNAPSHOT_EXPORT_RUNTIME_FUNCTIONS):
             raise RuntimeError("runtime role is missing the bounded report snapshot export API")
+        if all(procedure is not None for procedure in thesaurus_functions):
+            cur.execute(
+                "SELECT " + ", ".join(
+                    "has_function_privilege(%s, %s, 'EXECUTE')"
+                    for _ in _THESAURUS_FUNCTIONS
+                ),
+                tuple(
+                    value
+                    for function in _THESAURUS_FUNCTIONS
+                    for value in (runtime_user, function)
+                ),
+            )
+            if cur.fetchone() != (True,) * len(_THESAURUS_FUNCTIONS):
+                raise RuntimeError("runtime role is missing the bounded thesaurus write API")
         cur.execute(
             "SELECT has_schema_privilege(%s, 'kokonut_security', 'USAGE'), "
             "has_schema_privilege(%s, 'kokonut_security', 'USAGE')",
@@ -4355,7 +4430,7 @@ def provision_runtime_role(
         "status": "provisioned",
         "database": database,
         "runtime_user": runtime_user,
-        "legacy_compatibility_grants_applied": runtime_role_created,
+        "legacy_compatibility_grants_applied": runtime_compatibility_grants_applied,
         "operator_auth_user": operator_auth_user,
         "notification_enqueue_user": notification_enqueue_user,
         "market_data_user": market_data_user,

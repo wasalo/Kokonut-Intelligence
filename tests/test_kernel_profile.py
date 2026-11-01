@@ -536,6 +536,14 @@ def test_standard_compose_keeps_notification_secrets_on_delivery_worker_only() -
     assert worker_environment["ALERT_SMTP_USER"] == "${ALERT_SMTP_USER:-}"
     assert worker_environment["ALERT_SMTP_PASSWORD"] == "${ALERT_SMTP_PASSWORD:-}"
     assert worker_environment["ALERT_WEBHOOK_URL"] == "${ALERT_WEBHOOK_URL:-}"
+    assert worker_environment["KOKONUT_NOTIFICATION_DELIVERY_DATABASE_URL"] == (
+        "${KOKONUT_NOTIFICATION_DELIVERY_DATABASE_URL:-}"
+    )
+    assert worker_environment["KOKONUT_FEATURE_ISOLATED_NOTIFICATION_DELIVERY"] == (
+        "${KOKONUT_FEATURE_ISOLATED_NOTIFICATION_DELIVERY:-false}"
+    )
+    assert "KOKONUT_NOTIFICATION_DELIVERY_DATABASE_URL" not in app_environment
+    assert "KOKONUT_FEATURE_ISOLATED_NOTIFICATION_DELIVERY" not in app_environment
 
     # The event producer keeps non-secret channel/routing settings needed to
     # enqueue intents; the worker keeps those settings plus SMTP credentials.
@@ -564,6 +572,10 @@ def test_standard_resolved_compose_keeps_notification_secrets_on_delivery_worker
         "KOKONUT_RUNTIME_USER": "kokonut_runtime",
         "KOKONUT_RUNTIME_PASSWORD": "synthetic-runtime-password",
         "KOKONUT_OPERATOR_AUTH_PASSWORD": "synthetic-operator-password",
+        "KOKONUT_NOTIFICATION_DELIVERY_DATABASE_URL": (
+            "postgresql://kokonut_notification_delivery_login:synthetic-password@database/db"
+        ),
+        "KOKONUT_FEATURE_ISOLATED_NOTIFICATION_DELIVERY": "true",
         "ALERT_SMTP_USER": "synthetic-smtp-user",
         "ALERT_SMTP_PASSWORD": "synthetic-smtp-password",
         "ALERT_SMTP_HOST": "smtp.example.test",
@@ -608,6 +620,12 @@ def test_standard_resolved_compose_keeps_notification_secrets_on_delivery_worker
     assert worker_environment["ALERT_SMTP_USER"] == "synthetic-smtp-user"
     assert worker_environment["ALERT_SMTP_PASSWORD"] == "synthetic-smtp-password"
     assert worker_environment["ALERT_WEBHOOK_URL"] == environment["ALERT_WEBHOOK_URL"]
+    assert worker_environment["KOKONUT_NOTIFICATION_DELIVERY_DATABASE_URL"] == (
+        environment["KOKONUT_NOTIFICATION_DELIVERY_DATABASE_URL"]
+    )
+    assert worker_environment["KOKONUT_FEATURE_ISOLATED_NOTIFICATION_DELIVERY"] == "true"
+    assert "KOKONUT_NOTIFICATION_DELIVERY_DATABASE_URL" not in app_environment
+    assert "KOKONUT_FEATURE_ISOLATED_NOTIFICATION_DELIVERY" not in app_environment
     assert environment["ALERT_WEBHOOK_URL"] not in json.dumps(model["services"]["app"])
 
 

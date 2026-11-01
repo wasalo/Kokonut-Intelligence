@@ -10,11 +10,17 @@ import secrets
 import shutil
 import subprocess
 import time
+from datetime import datetime, timezone
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 MIGRATION = ROOT / "schemas/postgres/647_isolated_notification_delivery_worker.sql"
-EVIDENCE = ROOT / "docs/refactor/builds/2026-10-25-recovery/notification-delivery-worker-disposable.json"
+EVIDENCE = (
+    ROOT
+    / "docs/refactor/builds"
+    / f"{datetime.now(timezone.utc).date().isoformat()}-recovery"
+    / "notification-delivery-worker-disposable.json"
+)
 
 FIXTURE = """
 CREATE TABLE public.notification_outbox (
@@ -412,7 +418,7 @@ def main() -> int:
             "END $$;",
         )
         evidence = {
-            "date": "2026-10-25",
+            "date": datetime.now(timezone.utc).date().isoformat(),
             "migration": MIGRATION.name,
             "migration_sha256": hashlib.sha256(migration.encode()).hexdigest(),
             "database": "PostgreSQL 16 disposable container; Docker network disabled",
