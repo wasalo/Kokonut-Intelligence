@@ -10154,9 +10154,10 @@ database/role was touched; C1 remains open.
   through migration 722: 713/713 schemas, 38 checks, no seeds, and successful
   cleanup ([probe](builds/2026-11-01-recovery/native-resource-limited-schema-722-operator-probe.json);
   [report](builds/2026-11-01-recovery/runtime-privilege-callsite-report-722.json)).
-- [ ] Complete the equivalent ARM64/QEMU ordered replay and refresh its
-  aggregate source/ACL report and two-tenant probe through migration 722.
-  QEMU is not physical Raspberry Pi acceptance.
+- [x] Supersede the migration-722 ARM64/QEMU gate with the completed full replay
+  and two-tenant probe through migration 723. QEMU is software portability
+  evidence, not physical Raspberry Pi acceptance
+  ([evidence](builds/2026-11-01-recovery/arm64-qemu-current-schema-723-operator-probe.json)).
 
 The change removes unnecessary privileges from three read-only projections; it
 does not establish tenant isolation or close C1. No candidate, legacy, or
@@ -10242,8 +10243,11 @@ separation, and broader tenant/RLS closure remain separate gates.
   refresh the paired ACL report and remove the disposable project
   ([probe](builds/2026-11-01-recovery/native-current-schema-723-operator-probe.json);
   [report](builds/2026-11-01-recovery/runtime-privilege-callsite-report-723.json)).
-- [ ] Complete the equivalent ARM64/QEMU replay and two-tenant probe through
-  723. This is emulated portability evidence, not physical Raspberry Pi
-  acceptance. Candidate/production rollout, external runtime-consumer
+- [x] Complete the equivalent ARM64/QEMU replay and two-tenant probe through
+  723: 714/714 schemas and all 38 checks passed with no seeds, published ports,
+  OOM, or cleanup residue. This is emulated portability evidence, not physical
+  Raspberry Pi acceptance
+  ([evidence](builds/2026-11-01-recovery/arm64-qemu-current-schema-723-operator-probe.json)).
+  Candidate/production rollout, external runtime-consumer
   reconciliation, broad DML retirement, API/worker identity separation, and
   tenant/RLS closure remain open.

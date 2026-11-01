@@ -270,9 +270,12 @@ unprotected DML relations without candidate SQL relations and 374 without
 candidate write sites. These overlapping counts measure privilege reach and
 heuristic inventory coverage, not confirmed leaks or tenant isolation. The
 probe found zero direct table/column violations within its declared scoped-write
-checks. ARM64/QEMU replay through 723 is in progress. Distinct API/worker
-identities, Directus/tenant reconciliation, candidate rollout, and production
-acceptance remain open
+checks. The separate ARM64/QEMU replay through 723 also applies all 714 schemas
+and passes the same 38 operator-scope checks. This is software portability
+evidence only, not physical Raspberry Pi acceptance
+([replay and probe](builds/2026-11-01-recovery/arm64-qemu-current-schema-723-operator-probe.json)).
+Distinct API/worker identities, Directus/tenant reconciliation, candidate
+rollout, and production acceptance remain open
 ([native replay and probe](builds/2026-11-01-recovery/native-current-schema-723-operator-probe.json);
 [ACL report](builds/2026-11-01-recovery/runtime-privilege-callsite-report-723.json)).
 

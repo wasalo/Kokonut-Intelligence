@@ -17,8 +17,11 @@ Directus/maintenance grants. The source/ACL report records 1,309/1,522 public
 relations with effective runtime DML, 925 tables with runtime DML while RLS is
 disabled, and 178 migration-revoked relations matching declared policy with
 zero mismatches. These figures measure privilege reach and inventory coverage,
-not confirmed leaks or tenant isolation. ARM64/QEMU replay through 723 is in
-progress; physical Raspberry Pi acceptance is not available. C1 remains open.
+not confirmed leaks or tenant isolation. ARM64/QEMU replay through 723 also
+applied all 714 schemas and passed 38 synthetic two-tenant/operator checks;
+this is software portability evidence, not physical Raspberry Pi acceptance
+([evidence](builds/2026-11-01-recovery/arm64-qemu-current-schema-723-operator-probe.json)).
+C1 remains open.
 Capability classifications are unchanged at 24 baseline-retained, 7 deployed,
 and 36 prepared across 67 rows; this access-boundary work does not advance a
 capability. The runtime SQL review ledger now tracks 35 unresolved candidates

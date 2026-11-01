@@ -240,9 +240,11 @@ It records 213 unprotected DML relations without candidate SQL relations and
 source-coverage counts, not confirmed leaks or a universal tenant-isolation
 result. The refreshed static attribution map covers 4,958 SQL sites: 34
 API-only, 367 worker-only, one shared, and 4,556 unresolved. Static candidates
-are not observed executions or a safe grant list. ARM64/QEMU replay and the
-two-tenant probe through 723 are still pending; physical Raspberry Pi
-acceptance remains unavailable.
+are not observed executions or a safe grant list. The ARM64/QEMU full replay
+through 723 applied all 714 schemas and passed 38 synthetic two-tenant/operator
+checks with no seeds, ports, OOM, or cleanup residue. This is software
+portability evidence, not physical Raspberry Pi acceptance
+([QEMU replay/probe](builds/2026-11-01-recovery/arm64-qemu-current-schema-723-operator-probe.json)).
 
 Evidence: [migration](../../schemas/postgres/723_isolated_worker_runtime_write_boundaries.sql),
 [focused ACL acceptance](builds/2026-11-01-recovery/isolated-worker-runtime-write-boundary-723.json),
@@ -840,9 +842,10 @@ The detailed entries below are dated historical checkpoints through migration
   files, 38 checks, no seeds, zero scoped-policy table/column violations, and
   successful cleanup ([probe](builds/2026-11-01-recovery/native-resource-limited-schema-722-operator-probe.json);
   [report](builds/2026-11-01-recovery/runtime-privilege-callsite-report-722.json)).
-- [ ] Complete ARM64/QEMU full-schema replay and refresh the aggregate ACL/source
-  report plus the two-tenant operator-scope probe through migration 722. This is
-  emulated portability evidence, not physical Raspberry Pi acceptance.
+- [x] Complete ARM64/QEMU full-schema replay and the two-tenant operator-scope
+  probe through migration 723; 714/714 schemas and 38 checks pass. This is
+  emulated portability evidence, not physical Raspberry Pi acceptance
+  ([evidence](builds/2026-11-01-recovery/arm64-qemu-current-schema-723-operator-probe.json)).
 
 ### 2. Credit-class gRPC and command surfaces
 

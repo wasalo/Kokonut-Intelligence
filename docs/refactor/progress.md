@@ -26068,14 +26068,18 @@ measures, not confirmed leaks or universal tenant-isolation evidence
 
 The source attribution map covers 4,958 direct SQL sites: 34 API-only, 367
 worker-only, one shared, and 4,556 unresolved. Static candidates do not prove
-observed execution or constitute a safe grant list. ARM64/QEMU replay through
-723 is pending, and does not replace physical Raspberry Pi testing. The
-separate Standard first-install recovery remains through migration 722. No
+observed execution or constitute a safe grant list. The ARM64/QEMU replay
+applied 714/714 schemas through 723 and passed all 38 synthetic
+two-tenant/operator checks. It used `linux/arm64` under QEMU with no seeds,
+host ports, OOM, or cleanup residue; this does not replace physical Raspberry
+Pi testing
+([evidence](builds/2026-11-01-recovery/arm64-qemu-current-schema-723-operator-probe.json)).
+The separate Standard first-install recovery remains through migration 722. No
 candidate, legacy, or production database/role was changed. External runtime
 consumer reconciliation, broad DML retirement, API/worker identity separation,
 tenant/RLS validation, and rollout remain open.
 
-Checklist snapshot: 2,227 complete / 45 open (2,272 total); cross-phase TODO:
-804 checked / 41 open. Capability classifications remain 24 baseline-retained,
+Checklist snapshot: 2,229 complete / 43 open (2,272 total); cross-phase TODO:
+806 checked / 39 open. Capability classifications remain 24 baseline-retained,
 7 deployed, and 36 prepared across 67 rows; migration 723 does not advance a
 capability status by itself.

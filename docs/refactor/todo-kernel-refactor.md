@@ -8,7 +8,7 @@ can proceed now and gates that need an owner, provider, populated source data,
 or production environment. Check an item only when its evidence is recorded in
 the batch log and the affected capability/progress records are updated.
 
-**Current queue snapshot (1 November 2026):** 804 checked / 41 open across the
+**Current queue snapshot (1 November 2026):** 806 checked / 39 open across the
 TODO's dated and active checklist sections. Historical snapshots below this
 active queue remain dated records and do not replace the current count.
 
@@ -4838,11 +4838,11 @@ database/role was changed.
   privilege-reach measures, not confirmed leaks or proof of tenant isolation
   ([probe](builds/2026-11-01-recovery/native-resource-limited-schema-722-operator-probe.json);
   [report](builds/2026-11-01-recovery/runtime-privilege-callsite-report-722.json)).
-- [ ] Complete the equivalent ARM64/QEMU replay, aggregate report, and
-  two-tenant probe through migration 722. Candidate rollout, external
-  runtime-client reconciliation, remaining broad DML retirement, API/worker
-  identity separation, Directus reconciliation, and broader tenant/RLS closure
-  remain separate gates.
+- [x] Supersede the migration-722 ARM64/QEMU gate with the completed full
+  replay and two-tenant probe through migration 723; see the current evidence
+  below. Candidate rollout, external runtime-client reconciliation, remaining
+  broad DML retirement, API/worker identity separation, Directus reconciliation,
+  and broader tenant/RLS closure remain separate gates.
 
 ### Current continuation — migration 723 worker write boundary — 1 November 2026
 
@@ -4872,7 +4872,9 @@ database/role was changed.
   tenant-isolation proof
   ([probe](builds/2026-11-01-recovery/native-current-schema-723-operator-probe.json);
   [report](builds/2026-11-01-recovery/runtime-privilege-callsite-report-723.json)).
-- [ ] Finish the ARM64/QEMU full-schema replay and two-tenant probe through
-  723. Physical Raspberry Pi behavior remains untested; candidate/production
-  rollout, external runtime-client reconciliation, API/worker identity split,
-  broad DML retirement, and tenant/RLS closure are separate gates.
+- [x] Finish the ARM64/QEMU full-schema replay and two-tenant probe through
+  723: 714/714 schemas and 38 checks passed with no seeds, ports, OOM, or
+  cleanup residue. Physical Raspberry Pi behavior remains untested;
+  candidate/production rollout, external runtime-client reconciliation,
+  API/worker identity split, broad DML retirement, and tenant/RLS closure are
+  separate gates ([evidence](builds/2026-11-01-recovery/arm64-qemu-current-schema-723-operator-probe.json)).
