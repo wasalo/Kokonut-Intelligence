@@ -407,6 +407,10 @@ _EXPECTED_OPERATOR_POLICIES = {
     ): _expected("metric_value", "read", scoped=True, location_id=_LOCATION_ID),
     (
         "POST",
+        "/operator/api/environmental-baselines/11111111-1111-4111-8111-111111111111/captures",
+    ): _expected("environmental_baseline", "create", scoped=True, location_id=_LOCATION_ID),
+    (
+        "POST",
         "/operator/api/metrics/11111111-1111-4111-8111-111111111111/values",
     ): _expected("metric_value", "compute", scoped=True, location_id=_LOCATION_ID),
     (

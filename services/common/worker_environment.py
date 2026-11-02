@@ -285,7 +285,11 @@ def worker_subprocess_environment(
     enqueue_only = "event_dispatch" in allowed or "notification_enqueue" in allowed
     child_environment: dict[str, str] = {}
     for name, value in source.items():
-        if name in {ISOLATED_WORKER_KEY_ENV, DENY_SHARED_DATABASE_ENV}:
+        if name in {
+            ISOLATED_WORKER_KEY_ENV,
+            DENY_SHARED_DATABASE_ENV,
+            "KOKONUT_WORKER_PROGRESS_NAME",
+        }:
             continue
         if enqueue_only and name in _NOTIFICATION_PROVIDER_SECRETS:
             continue

@@ -1,0 +1,43 @@
+{
+  "candidate_legacy_production_touched": false,
+  "completed_at_utc": "2026-11-01T20:01:53Z",
+  "container_network": "dedicated disposable bridge; no external service calls",
+  "database": "disposable PostgreSQL 16 only",
+  "docker_image": "postgis/postgis:16-3.4@sha256:44126d872ac91993766c341e369c539e8196614321765d36a6f1bab0419a5fa5",
+  "host_binding": "ephemeral 127.0.0.1 only",
+  "isolated_freshness_worker_read": {
+    "migration-645 bounded config reader": "preserved and callable"
+  },
+  "maintenance_and_owner_access": {
+    "bio_ingredient_composition_reference": "owner and maintenance writes preserved",
+    "bio_regional_input_availability": "owner and maintenance writes preserved",
+    "data_freshness_config": "owner and maintenance writes preserved",
+    "location_baseline": "owner and maintenance writes preserved"
+  },
+  "migration_apply_and_replay": "passed",
+  "migration_sha256": {
+    "735_runtime_location_baseline_read_only.sql": "dc5f5977f95ecd0b1ddd2857143ca9e49579d64ef197c293f40f2980fcd095e1",
+    "736_runtime_bio_ingredient_composition_reference_read_only.sql": "3ddb654c72a5f1ca2586ee2283d2a33763d45e7ef8ef33f9e3445cb02cd8b31d",
+    "737_runtime_data_freshness_config_read_only.sql": "0c977606348205de7f84b1e693e0ecd9984695b810156f677ece9d485a6a3cb3"
+  },
+  "migrations": [
+    "735_runtime_location_baseline_read_only.sql",
+    "736_runtime_bio_ingredient_composition_reference_read_only.sql",
+    "737_runtime_data_freshness_config_read_only.sql"
+  ],
+  "ok": true,
+  "relations": [
+    "location_baseline",
+    "bio_ingredient_composition_reference",
+    "bio_regional_input_availability",
+    "data_freshness_config"
+  ],
+  "runtime_provisioner_reapplication": "passed",
+  "runtime_select": "preserved for all four reviewed relations",
+  "runtime_table_and_column_dml": "denied for all four reviewed relations",
+  "seed_style_upserts": {
+    "bio_ingredient_composition_reference": "synthetic ON CONFLICT seed upsert succeeded",
+    "bio_regional_input_availability": "synthetic ON CONFLICT seed upsert succeeded",
+    "data_freshness_config": "synthetic ON CONFLICT seed upsert succeeded"
+  }
+}

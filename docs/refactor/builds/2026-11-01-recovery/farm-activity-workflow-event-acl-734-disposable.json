@@ -1,0 +1,16 @@
+{
+  "status": "passed",
+  "migration": "734_runtime_farm_activity_workflow_event_append_only.sql",
+  "postgres_major": 16,
+  "network": "none",
+  "host_ports": "none",
+  "synthetic_data_only": true,
+  "checks": [
+    "migration replay is idempotent",
+    "runtime retains only table-level SELECT and INSERT",
+    "stale per-column grants are removed",
+    "runtime UPDATE and DELETE fail before table triggers",
+    "Directus and maintenance grants remain unchanged",
+    "append-only trigger remains installed"
+  ]
+}

@@ -1,10 +1,12 @@
 """Focused scheduler durability tests without a live PostgreSQL dependency."""
 
+import subprocess
 import sys
 from datetime import datetime, timezone
 from unittest import TestCase
 from unittest.mock import Mock, patch
 
+from services.scheduler import engine as scheduler_engine
 from services.scheduler.engine import SchedulerEngine, SchedulerLeaseLostError
 from services.scheduler.parser import next_run_time
 
@@ -17,15 +19,33 @@ class SchedulerDurabilityTests(TestCase):
             datetime(2026, 7, 12, 3, 0, tzinfo=timezone.utc),
         )
 
+    def test_bounded_scheduler_task_wait_pulses_the_supervised_worker(self):
+        process = Mock()
+        process.communicate.side_effect = [
+            subprocess.TimeoutExpired(["synthetic-command"], 5),
+            ("complete", ""),
+        ]
+        with (
+            patch("services.scheduler.engine.time.monotonic", side_effect=(0, 1, 2)),
+            patch("services.scheduler.engine.pulse_worker_progress") as pulse,
+        ):
+            output = scheduler_engine._communicate_with_progress(
+                process, ["synthetic-command"], 10
+            )
+
+        self.assertEqual(output, ("complete", ""))
+        pulse.assert_called_once_with()
+
     def test_execute_passes_structured_arguments_and_records_success(self):
         engine = object.__new__(SchedulerEngine)
         engine._complete_task = Mock()
         completed = Mock(returncode=0, stdout="ok", stderr="")
+        completed.communicate.return_value = ("ok", "")
 
         child_env = {"PATH": "/synthetic/bin"}
         with (
-            patch("services.scheduler.engine.worker_subprocess_environment", return_value=child_env),
-            patch("services.scheduler.engine.subprocess.run", return_value=completed) as run,
+            patch("services.scheduler.engine.scheduled_module_worker_environment", return_value=child_env),
+            patch("services.scheduler.engine.subprocess.Popen", return_value=completed) as spawn,
         ):
             result = engine._execute_task(
                 "run",
@@ -38,7 +58,7 @@ class SchedulerDurabilityTests(TestCase):
             )
 
         self.assertTrue(result)
-        run.assert_called_once_with(
+        spawn.assert_called_once_with(
             [
                 sys.executable,
                 "-m",
@@ -48,21 +68,23 @@ class SchedulerDurabilityTests(TestCase):
                 "--location-id",
                 "a9aa6466-0754-4b7c-b20c-155a81134eaa",
             ],
-            capture_output=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
             text=True,
-            timeout=30,
             env=child_env,
         )
+        completed.communicate.assert_called_once_with(timeout=5)
         engine._complete_task.assert_called_once()
 
     def test_noi_snapshot_dispatch_forwards_only_its_worker_secret_key(self):
         engine = object.__new__(SchedulerEngine)
         engine._complete_task = Mock()
         completed = Mock(returncode=0, stdout='{"reconciled":1}', stderr="")
+        completed.communicate.return_value = ('{"reconciled":1}', "")
         child_env = {"KOKONUT_NOI_SNAPSHOT_WORKER_CREDENTIAL": "synthetic"}
         with (
-            patch("services.scheduler.engine.worker_subprocess_environment", return_value=child_env) as environment,
-            patch("services.scheduler.engine.subprocess.run", return_value=completed) as run,
+            patch("services.scheduler.engine.scheduled_module_worker_environment", return_value=child_env) as environment,
+            patch("services.scheduler.engine.subprocess.Popen", return_value=completed) as spawn,
         ):
             result = engine._execute_task(
                 "run", "task", "noi_snapshots",
@@ -73,17 +95,17 @@ class SchedulerDurabilityTests(TestCase):
 
         self.assertTrue(result)
         environment.assert_called_once_with(
-            allowed_worker_keys=("noi_snapshot",),
-            isolated_database_credentials=True,
+            "services.metrics.noi_snapshot_worker",
+            ("--location-id", "a9aa6466-0754-4b7c-b20c-155a81134eaa"),
         )
-        self.assertIs(run.call_args.kwargs["env"], child_env)
+        self.assertIs(spawn.call_args.kwargs["env"], child_env)
 
     def test_execute_records_spawn_failure_for_retry(self):
         engine = object.__new__(SchedulerEngine)
         engine._complete_task = Mock()
 
         with patch(
-            "services.scheduler.engine.subprocess.run",
+            "services.scheduler.engine.subprocess.Popen",
             side_effect=OSError("synthetic spawn diagnostic marker"),
         ):
             result = engine._execute_task("run", "task", "events", "services.events", ["--process"], 30, None)
@@ -104,13 +126,17 @@ class SchedulerDurabilityTests(TestCase):
             stdout="synthetic stdout diagnostic marker",
             stderr="synthetic stderr diagnostic marker",
         )
+        failed.communicate.return_value = (
+            "synthetic stdout diagnostic marker",
+            "synthetic stderr diagnostic marker",
+        )
 
         with (
             patch(
-                "services.scheduler.engine.worker_subprocess_environment",
+                "services.scheduler.engine.scheduled_module_worker_environment",
                 return_value={"PATH": "/synthetic/bin"},
             ),
-            patch("services.scheduler.engine.subprocess.run", return_value=failed),
+                patch("services.scheduler.engine.subprocess.Popen", return_value=failed),
         ):
             result = engine._execute_task(
                 "run", "task", "events", "services.events", ["--process"], 30, None
@@ -128,7 +154,7 @@ class SchedulerDurabilityTests(TestCase):
         engine = object.__new__(SchedulerEngine)
         engine._complete_task = Mock()
 
-        with patch("services.scheduler.engine.subprocess.run") as run:
+        with patch("services.scheduler.engine.subprocess.Popen") as run:
             result = engine._execute_task("run", "task", "untrusted", "os", ["--help"], 30, None)
 
         self.assertFalse(result)
@@ -139,7 +165,7 @@ class SchedulerDurabilityTests(TestCase):
         engine = object.__new__(SchedulerEngine)
         engine._complete_task = Mock()
 
-        with patch("services.scheduler.engine.subprocess.run") as run:
+        with patch("services.scheduler.engine.subprocess.Popen") as run:
             result = engine._execute_task(
                 "run",
                 "task",

@@ -59,6 +59,21 @@ def test_non_isolated_child_does_not_inherit_a_stale_deny_marker():
     assert child == {"PATH": "/synthetic/bin"}
 
 
+def test_scheduled_subprocess_does_not_inherit_supervisor_worker_progress_identity():
+    child = worker_subprocess_environment(
+        environ={
+            "PATH": "/synthetic/bin",
+            "KOKONUT_WORKER_PROGRESS_NAME": "scheduler",
+            "KOKONUT_WORKER_PROGRESS_HEARTBEAT_FILE": "/private/worker-progress/supervisor.json",
+        }
+    )
+
+    assert child == {
+        "PATH": "/synthetic/bin",
+        "KOKONUT_WORKER_PROGRESS_HEARTBEAT_FILE": "/private/worker-progress/supervisor.json",
+    }
+
+
 def test_child_environment_allows_only_the_named_worker_key():
     source = {
         "KOKONUT_SCHEDULER_DATABASE_URL": "postgresql://scheduler",
@@ -551,7 +566,7 @@ def test_every_service_subprocess_uses_the_shared_environment_policy():
             ):
                 continue
             environment = next((item.value for item in node.keywords if item.arg == "env"), None)
-            if not (
+            direct_policy = (
                 isinstance(environment, ast.Call)
                 and isinstance(environment.func, ast.Name)
                 and environment.func.id
@@ -560,7 +575,22 @@ def test_every_service_subprocess_uses_the_shared_environment_policy():
                     "scheduled_module_worker_environment",
                     "_handler_child_environment",
                 }
-            ):
+            )
+            policy_variable = (
+                isinstance(environment, ast.Name)
+                and any(
+                    isinstance(statement, ast.Assign)
+                    and any(
+                        isinstance(target, ast.Name) and target.id == environment.id
+                        for target in statement.targets
+                    )
+                    and isinstance(statement.value, ast.Call)
+                    and isinstance(statement.value.func, ast.Name)
+                    and statement.value.func.id == "worker_subprocess_environment"
+                    for statement in ast.walk(tree)
+                )
+            )
+            if not (direct_policy or policy_variable):
                 violations.append(f"{path.relative_to(ROOT)}:{node.lineno}")
 
     assert violations == []

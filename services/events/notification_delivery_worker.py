@@ -10,6 +10,7 @@ import psycopg2.extras
 from services.common.cli import print_json
 from services.common.worker_database import get_worker_db
 from services.core.features import require_feature
+from services.core.worker_progress import pulse_worker_progress
 from services.events.notification_outbox import _configured_channels, deliver_claimed_batch
 
 MAX_FUNCTION_BATCH_SIZE = 100
@@ -93,6 +94,7 @@ def run_once(
             lambda row, **kwargs: _finish(
                 connection, worker_id, row, **kwargs
             ),
+            progress_callback=pulse_worker_progress,
         )
     finally:
         connection.close()

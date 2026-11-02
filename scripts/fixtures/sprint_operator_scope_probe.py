@@ -21,6 +21,7 @@ from services.migration.runtime_role import (
     _RUNTIME_APPEND_ONLY_TABLES,
     _RUNTIME_MUTATION_TABLES,
     _RUNTIME_PRIVATE_TABLES,
+    _owned_sequences_for_relation,
     provision_runtime_role,
 )
 
@@ -92,6 +93,7 @@ def _assert_scoped_runtime_acl(cur) -> dict[str, int]:
 
     private_installed = 0
     mutation_installed = 0
+    mutation_sequences_verified = 0
     for table in _RUNTIME_PRIVATE_TABLES:
         if not relation_exists(table):
             raise AssertionError(f"full schema is missing private runtime relation {table}")
@@ -110,6 +112,19 @@ def _assert_scoped_runtime_acl(cur) -> dict[str, int]:
             raise AssertionError(f"runtime login retains table mutation privilege on {table}")
         if any(has_column_privilege(table, privilege) for privilege in ("INSERT", "UPDATE", "REFERENCES")):
             raise AssertionError(f"runtime login retains column mutation privilege on {table}")
+        for sequence_schema, sequence_name, sequence_oid in _owned_sequences_for_relation(cur, table):
+            cur.execute(
+                "SELECT has_sequence_privilege(current_user, %s, 'USAGE') "
+                "OR has_sequence_privilege(current_user, %s, 'SELECT') "
+                "OR has_sequence_privilege(current_user, %s, 'UPDATE')",
+                (sequence_oid, sequence_oid, sequence_oid),
+            )
+            if cur.fetchone()[0]:
+                raise AssertionError(
+                    f"runtime login retains sequence mutation privilege on "
+                    f"{sequence_schema}.{sequence_name} owned by {table}"
+                )
+            mutation_sequences_verified += 1
 
     if not has_table_privilege("farm_activity_operator_event", "SELECT"):
         raise AssertionError("runtime login lost read access to the farm-activity audit ledger")
@@ -331,8 +346,10 @@ def _assert_scoped_runtime_acl(cur) -> dict[str, int]:
     return {
         "private_relations_verified": private_installed,
         "mutation_denied_relations_verified": mutation_installed,
+        "mutation_denied_sequences_verified": mutation_sequences_verified,
         "direct_table_privilege_violations": 0,
         "direct_column_privilege_violations": 0,
+        "direct_sequence_privilege_violations": 0,
         "farm_activity_ledger_readable": 1,
         "service_registry_read_only_verified": 1,
         "append_only_relations_expected": len(_RUNTIME_APPEND_ONLY_TABLES),
@@ -384,6 +401,11 @@ def run_probe() -> dict[str, object]:
             raise AssertionError("runtime provisioner returned an incomplete scoped ACL policy")
         if not all(relations.values()):
             raise AssertionError("runtime provisioner did not find every scoped ACL relation")
+        owned_sequences_denied = (
+            scoped_write.get("owned_sequences_denied") if isinstance(scoped_write, dict) else None
+        )
+        if type(owned_sequences_denied) is not int or owned_sequences_denied < 0:
+            raise AssertionError("runtime provisioner did not report owned-sequence ACL reapplication")
         api_key_privileges = provisioned.get("runtime_api_key_privileges")
         expected_api_key_privileges = {
             "select": list(_API_KEY_COLUMNS),
@@ -494,6 +516,40 @@ def run_probe() -> dict[str, object]:
             PROBE_STAGE = "signed_tenant_context"
             with runtime.cursor() as cur:
                 scoped_acl = _assert_scoped_runtime_acl(cur)
+                if scoped_acl["mutation_denied_sequences_verified"] != owned_sequences_denied:
+                    raise AssertionError(
+                        "runtime provisioner and post-bootstrap sequence checks disagree"
+                    )
+                checks.append(
+                    "runtime provisioner denied owned-sequence privileges on mutation-denied relations"
+                )
+                for relation_name in ("ebf_pillar", "ebf_rubric_band"):
+                    cur.execute(sql.SQL("SELECT count(*) FROM public.{}").format(sql.Identifier(relation_name)))
+                    if cur.fetchone() is None:
+                        raise AssertionError(f"runtime cannot query EBF reference {relation_name}")
+                checks.append(
+                    "runtime can query EBF pillar and rubric references during schema-only replay"
+                )
+                cur.execute("SELECT count(*) FROM public.v_public_ebf_scorecard")
+                if cur.fetchone() is None:
+                    raise AssertionError("runtime cannot query the public EBF scorecard projection")
+                checks.append("runtime can query the public EBF scorecard projection")
+                cur.execute("SELECT count(*) FROM public.v_public_metric_summary")
+                if cur.fetchone() is None:
+                    raise AssertionError("runtime cannot query the public metric summary projection")
+                checks.append("runtime can query the public metric summary projection")
+                cur.execute("SELECT count(*) FROM public.v_public_wellbeing_metric_summary")
+                if cur.fetchone() is None:
+                    raise AssertionError("runtime cannot query the public wellbeing metric summary")
+                checks.append("runtime can query the public wellbeing metric summary projection")
+                cur.execute("SELECT count(*) FROM public.quality_grade")
+                if cur.fetchone() is None:
+                    raise AssertionError("runtime cannot query the curated quality-grade reference")
+                checks.append("runtime can query the curated quality-grade reference")
+                cur.execute("SELECT count(*) FROM public.readiness_dimension")
+                if cur.fetchone() is None:
+                    raise AssertionError("runtime cannot query regional-readiness dimensions")
+                checks.append("runtime can query shared regional-readiness dimension defaults")
                 cur.execute("SELECT count(*) FROM public.farmer_credential_type")
                 if cur.fetchone()[0] < 1:
                     raise AssertionError(
@@ -549,6 +605,7 @@ def run_probe() -> dict[str, object]:
                 "runtime can read shared quantity units",
                 "runtime provisioner limited API-key reads to reviewed columns and denied all writes",
                 "runtime can append and read data-access evidence but cannot update, delete, or truncate it",
+                "runtime can append/read farm-activity workflow history but cannot update or delete it",
                 "each real runtime login context sees only its synthetic tenant under forced RLS",
                 "wrong-location denial clears context and tenant-probe visibility",
                 "tenant context is cleared at transaction end",
@@ -650,6 +707,7 @@ def run_probe() -> dict[str, object]:
         "runtime_scoped_write_policy": {
             "private_relations_expected": len(_RUNTIME_PRIVATE_TABLES),
             "mutation_denied_relations_expected": len(_RUNTIME_MUTATION_TABLES),
+            "mutation_denied_sequences_expected": owned_sequences_denied,
             **scoped_acl,
         },
         "runtime_api_key_policy": {

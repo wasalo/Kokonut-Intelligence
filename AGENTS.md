@@ -2,13 +2,14 @@
 
 ## Current architecture and status source
 
-For the current Kernel architecture, deployment profiles, evidence labels, and
-remaining refactor gates, use
+For the current Kernel architecture, deployment profiles, phase status,
+acceptance evidence, and remaining refactor gates, start with
 [`docs/refactor/current-state-and-implementation.md`](docs/refactor/current-state-and-implementation.md).
-It is the concise status index; `docs/refactor/progress.md` is a dated
-historical ledger, while the capability matrix, batch checklist, and C1 plan
-remain the detailed acceptance records. Do not treat an old evidence entry as
-current deployment state.
+The [refactor documentation map](docs/refactor/README.md) routes readers to the
+supporting records. The current-state guide is the canonical status summary;
+`docs/refactor/progress.md` is the dated historical ledger, while the capability
+matrix, batch checklist, and C1 plan hold detailed classifications and
+acceptance. Do not treat an old evidence entry as current deployment state.
 
 The repository still contains a legacy Compose stack as well as the isolated
 Kernel candidate. Current work targets the candidate's native Gateway and
@@ -136,6 +137,7 @@ Commands:
 
 - In the Codex restricted shell, direct access to Docker Desktop's user socket (`~/.docker/run/docker.sock`) is blocked by the command sandbox even when Docker is healthy. Run Docker CLI commands through the approved host-access/elevated command path; do not change socket ownership or make it world-writable, since that cannot remove the sandbox restriction and would weaken host security.
 - Metric computation creates draft, unverified `metric_value` rows. Never describe `--compute` or `compute-metrics.sh` as verification; a human must run `--verify-value` separately.
+- Environmental-baseline sensor alerts and mock-sensor cleanup use signed, exact-location worker functions. Baseline alerts and their event/notification intents are transactional and retry-safe; cleanup requires an explicit UUID and only removes data whose sensor remains marked as a demo device. Do not restore direct `sensor_alert` DML to the shared runtime role.
 - Base Compose keeps PostgreSQL and ClickHouse private. Use Compose service names for database access; do not document host ports unless an explicit override publishes them.
 - ClickHouse retention is not configured. Keep automated TTL pruning disabled in source DDL. The legacy seed runner applies schema 011 through `scripts/apply-clickhouse-retention.py`, which checks table metadata and removes a TTL only when one exists; use that helper for an existing Kernel analytics target before enabling ingestion. Do not create a fixed retention rule without an owner-approved configurable policy that respects jurisdiction and legal holds.
 - Validate the ClickHouse no-prune bootstrap/upgrade and repeat apply with `python3 scripts/check-clickhouse-retention-disposable.py`; it uses a network-disabled temporary server and synthetic data.
@@ -165,6 +167,10 @@ Commands:
 - Check optional provider import boundaries: `python3 scripts/check-provider-boundaries.py`
 - Check runtime-role boundaries in disposable PostgreSQL: `python3 scripts/check-operator-session-role-disposable.py`
 - Check migration-declared runtime table/column denials in disposable PostgreSQL: `python3 scripts/check-runtime-scoped-write-boundary-disposable.py`
+- Check the migration-741 `quality_grade` reference-catalog ACL in disposable PostgreSQL: `python3 scripts/check-quality-grade-runtime-boundary-disposable.py`
+- Check the migration-742 `readiness_dimension` catalog ACL in disposable PostgreSQL: `python3 scripts/check-readiness-dimension-runtime-boundary-disposable.py`
+- Check the migration-743 public EBF scorecard view ACL in disposable PostgreSQL: `python3 scripts/check-public-ebf-scorecard-runtime-boundary-disposable.py`
+- Check signed sensor baseline, event inventory, demo cleanup, and the `sensor_alert` runtime ACL in disposable PostgreSQL: `python3 scripts/check-sensor-anomaly-alert-write-disposable.py`
 - Check the migration-720 thesaurus function boundary in disposable PostgreSQL: `python3 scripts/check-thesaurus-runtime-boundary-disposable.py`
 - Check the migration-721 governance reference-catalog boundary in disposable PostgreSQL: `python3 scripts/check-governance-reference-catalog-runtime-boundary-disposable.py`
 - Check migration 723's isolated event/freshness/notification write boundary in disposable PostgreSQL: `python3 scripts/check-isolated-worker-runtime-write-boundary-disposable.py`
@@ -281,6 +287,7 @@ Commands:
 - Anomaly detection (all locations): `python3 -m services.ingestion.anomaly_detector --all-locations`
 - Anomaly detection (sensor): `python3 -m services.ingestion.anomaly_detector --location-id UUID --sensor UUID`
 - Baseline check: `python3 -m services.ingestion.anomaly_detector --baseline-check --all-locations`
+- Mock sensor cleanup (exact location required): `python3 -m services.ingestion.mock_sensors --cleanup --location-id UUID`
 - Alert rules list: `python3 -m services.ingestion.anomaly_detector --list-rules`
 - AI summary: `python3 -m services.agents.ai_summary --location-id UUID --summary-type combined`
 - AI summary (store draft): `python3 -m services.agents.ai_summary --location-id UUID --summary-type combined --store`

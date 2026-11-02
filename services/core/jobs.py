@@ -130,15 +130,6 @@ JOBS = MappingProxyType(
             "Anomaly detection",
             required_inputs=("location_id",),
         ),
-        "anomaly_legacy": JobSpec(
-            "services.ingestion.anomaly_detector",
-            (),
-            300,
-            2,
-            300,
-            "Anomaly detection (legacy compatibility)",
-            required_inputs=("location_id",),
-        ),
         "freshness": JobSpec(
             "services.ingestion.freshness_worker", ("--check",), 120, 2, 120,
             "Freshness check",
@@ -253,7 +244,6 @@ def _run_job_spec(
         job_label = {
             "eas": "EAS indexing",
             "rpc": "RPC indexing",
-            "anomaly_legacy": "Anomaly",
         }.get(job_id, job_id.replace("_", " ").capitalize())
         raise ValueError(
             f"{job_label} refresh requires "
@@ -301,6 +291,27 @@ def run_job(
 ) -> dict[str, str]:
     """Invoke one known operation through its canonical JobSpec."""
     spec = JOBS[job_id]
+    if job_id == "anomaly":
+        if location_id is None:
+            raise ValueError("Anomaly refresh requires a location")
+        if driver_instance_id is not None or chain is not None:
+            raise ValueError("Anomaly does not accept driver_instance_id or chain")
+        from uuid import UUID
+
+        try:
+            location_id = str(UUID(str(location_id)))
+        except (TypeError, ValueError, AttributeError):
+            raise ValueError("location_id must be a UUID") from None
+        validate_scheduled_command(spec.module, ["--location-id", location_id])
+        if not is_enabled("isolated_sensor_anomaly_scan_worker"):
+            # The compatibility CLI now delegates to the signed worker too;
+            # it is no longer a safe shared-runtime fallback. Treat the
+            # default-off scheduled operation as a deliberate no-op until
+            # worker credentials, grants, and schedule activation are approved.
+            return {
+                "status": "skipped",
+                "reason": "isolated sensor anomaly worker is disabled",
+            }
     if job_id == "credit_adjustment" and not is_enabled("signed_credit_adjustment_worker"):
         # Keep the existing Prefect daily flow usable until the owner has
         # provisioned the signed login/grant and explicitly enabled the new
@@ -314,9 +325,6 @@ def run_job(
         spec = JOBS[job_id]
     if job_id == "baal" and not is_enabled("isolated_baal_indexer_worker"):
         job_id = "baal_legacy"
-        spec = JOBS[job_id]
-    if job_id == "anomaly" and not is_enabled("isolated_sensor_anomaly_scan_worker"):
-        job_id = "anomaly_legacy"
         spec = JOBS[job_id]
     return _run_job_spec(
         job_id,

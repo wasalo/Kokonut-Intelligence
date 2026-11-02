@@ -6,6 +6,12 @@ Read the **[current-state and implementation guide](current-state-and-implementa
 
 This folder contains the detailed trackers, design records, inventories, and dated evidence that support that guide. They are intentionally retained for reviewability; they are not independent current-status summaries.
 
+The repository-root [README](../../README.md) is the project-facing overview,
+and [`AGENTS.md`](../../AGENTS.md) contains contributor workflow and local
+commands. Both point back to the current-state guide rather than maintaining a
+separate refactor status. Update these entry points when deployment behavior or
+commands change, and keep dated run details in the supporting records.
+
 ## Source of truth
 
 1. **Current behavior:** source code, migration chain, profile planner, and CI definitions at the checked-out commit.

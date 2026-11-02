@@ -1,0 +1,13 @@
+{
+  "container_network": "internal-only",
+  "directus_grants_unchanged": "passed",
+  "host_binding": "none",
+  "migration": "726_runtime_time_delay_reference_read_only.sql",
+  "migration_apply_and_replay": "passed",
+  "ok": true,
+  "owner_seed_replay_and_upsert": "passed",
+  "runtime_provisioner_reapplication": "passed",
+  "runtime_select": "preserved",
+  "runtime_table_and_column_writes": "denied",
+  "target": "disposable PostgreSQL only"
+}

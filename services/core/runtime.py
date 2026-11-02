@@ -22,6 +22,10 @@ from services.common.worker_environment import (
     event_dispatch_worker_keys,
     worker_subprocess_environment,
 )
+from services.core.worker_progress import (
+    WORKER_PROGRESS_NAME_ENV,
+    remove_worker_progress_heartbeat,
+)
 
 logger = get_logger("core.runtime")
 
@@ -223,10 +227,13 @@ def run(port: int = 8099, with_workers: bool = False, shutdown_seconds: float = 
                     "allowed_worker_keys": (),
                     "strip_shared_database_credentials": True,
                 }
+            child_environment = worker_subprocess_environment(**environment_options)
+            if name in {"scheduler", "events", "notifications"}:
+                child_environment[WORKER_PROGRESS_NAME_ENV] = name
             process = subprocess.Popen(
                 argv,
                 start_new_session=True,
-                env=worker_subprocess_environment(**environment_options),
+                env=child_environment,
             )
             children.append((name, process))
             logger.info("Started Kernel process %s (pid=%s)", name, process.pid)
@@ -266,6 +273,9 @@ def run(port: int = 8099, with_workers: bool = False, shutdown_seconds: float = 
         for _, process in children:
             send_group(process, signal.SIGKILL)
             process.wait()
+        for name, process in children:
+            if name in {"scheduler", "events", "notifications"}:
+                remove_worker_progress_heartbeat(name, process.pid)
         for signum, handler in old_handlers.items():
             signal.signal(signum, handler)
         if heartbeat is not None:

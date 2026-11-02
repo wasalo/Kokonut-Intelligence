@@ -39,6 +39,7 @@ _SOURCE_REVOKE_POLICY_OVERRIDES = {
     # column allowlist for API-key authentication.
     "api_key": "read_only_column_allowlist",
     "farm_activity_operator_event": "runtime_mutations_denied",
+    "farm_activity_workflow_event": "runtime_append_only_read_insert",
     "advisory_rule": "runtime_mutations_denied",
     "crop_family": "runtime_mutations_denied",
     "crop_nutrient_removal_factor": "runtime_mutations_denied",
@@ -79,6 +80,18 @@ _SOURCE_REVOKE_POLICY_OVERRIDES = {
     # a separate maintenance/import identity. External importer use through the
     # runtime login is not confirmed by repository source review.
     "living_wage_benchmark": "runtime_mutations_denied",
+    # The location baseline is populated by migration backfill; application
+    # reads remain available and future writes use separate maintenance access.
+    "location_baseline": "runtime_mutations_denied",
+    # Static NPK composition references are maintained by seeds/admins; the
+    # application keeps SELECT access and has no repository write callsite.
+    "bio_ingredient_composition_reference": "runtime_mutations_denied",
+    # The regional Bio Factory reference is served through its public summary
+    # view and maintained by the reviewed seed/admin path.
+    "bio_regional_input_availability": "runtime_mutations_denied",
+    # The isolated data-freshness worker reads this configuration through
+    # migration 645's bounded function; writes use seed/admin authority.
+    "data_freshness_config": "runtime_mutations_denied",
     # Protocol references are read by application/indexer code and written by
     # the maintenance seed path. External runtime-login importers are unconfirmed.
     "protocol": "runtime_mutations_denied",
@@ -93,6 +106,10 @@ _SOURCE_REVOKE_POLICY_OVERRIDES = {
     "v_public_attestation_summary": "runtime_mutations_denied",
     "v_public_ebf_scorecard_summary": "runtime_mutations_denied",
     "v_public_ebf_pillar_summary": "runtime_mutations_denied",
+    # Pillar definitions and scoring bands are curated by the owner seed; the
+    # application only reads them for scored EBF exports and rankings.
+    "ebf_pillar": "runtime_mutations_denied",
+    "ebf_rubric_band": "runtime_mutations_denied",
     # Global vocabulary mutations are now limited to the bounded service
     # contract; application reads remain compatible.
     "thesaurus": "runtime_mutations_denied",
@@ -152,6 +169,13 @@ _SOURCE_REVOKE_POLICY_OVERRIDES = {
     # Delay mappings are curated reference data; application code reads them
     # while the database owner applies the idempotent seed.
     "time_delay": "runtime_mutations_denied",
+    # Catalog migrations temporarily revoke all privileges, then restore SELECT.
+    # Runtime keeps read access; only direct table mutations are denied.
+    "quality_grade": "runtime_mutations_denied",
+    "readiness_dimension": "runtime_mutations_denied",
+    "v_public_ebf_scorecard": "runtime_mutations_denied",
+    "v_public_metric_summary": "runtime_mutations_denied",
+    "v_public_wellbeing_metric_summary": "runtime_mutations_denied",
     # Lifecycle writes remain behind exact-location SECURITY DEFINER paths.
     "solution": "runtime_mutations_denied",
     "solution_lifecycle_event": "runtime_mutations_denied",
@@ -180,16 +204,12 @@ def _source_revokes() -> dict[str, list[dict[str, str]]]:
     for path in sorted((ROOT / "schemas/postgres").glob("*.sql")):
         source = path.read_text(encoding="utf-8")
         for match in _REVOKE.finditer(source):
-            if not re.search(
-                r"\bkokonut_runtime\b", match.group("grantees"), re.IGNORECASE
-            ):
+            if not re.search(r"\bkokonut_runtime\b", match.group("grantees"), re.IGNORECASE):
                 continue
             privileges = " ".join(match.group("privileges").split()).upper()
             for relation_match in _PUBLIC_RELATION.finditer(match.group("relations")):
                 relation = relation_match.group(1) or relation_match.group(2)
-                revokes[relation].append(
-                    {"migration": path.name, "privileges": privileges}
-                )
+                revokes[relation].append({"migration": path.name, "privileges": privileges})
         if path.name in {
             "723_isolated_worker_runtime_write_boundaries.sql",
             "727_runtime_solution_lifecycle_read_only.sql",
@@ -203,24 +223,52 @@ def _source_revokes() -> dict[str, list[dict[str, str]]]:
                 source,
                 re.IGNORECASE | re.DOTALL,
             )
-            dynamic_runtime_revoke = (
-                "REVOKE ALL PRIVILEGES ON TABLE public.%I FROM kokonut_runtime"
-                in source
-            )
+            dynamic_runtime_revoke = "REVOKE ALL PRIVILEGES ON TABLE public.%I FROM kokonut_runtime" in source
             if target_match and dynamic_runtime_revoke:
                 relations = re.findall(r"'([a-z_][a-z0-9_]*)'", target_match.group(1))
                 for relation in relations:
-                    revokes[relation].append({
-                        "migration": path.name,
-                        "privileges": "ALL PRIVILEGES",
-                    })
+                    revokes[relation].append(
+                        {
+                            "migration": path.name,
+                            "privileges": "ALL PRIVILEGES",
+                        }
+                    )
+        # Catalog-boundary migrations use a single literal regclass target
+        # and loop over the runtime/optional-Directus roles. Their format()
+        # templates are intentionally dynamic because roles may not exist on
+        # a fresh install, so attribute the named relation explicitly here.
+        relation_target = re.search(
+            r"relation_oid\s+regclass\s*:=\s*pg_catalog\.to_regclass\(\s*"
+            r"'public\.([a-z_][a-z0-9_]*)'\s*\)",
+            source,
+            re.IGNORECASE,
+        )
+        application_roles = re.search(
+            r"application_roles\s+CONSTANT\s+TEXT\[\]\s*:=\s*ARRAY\[(.*?)\]",
+            source,
+            re.IGNORECASE | re.DOTALL,
+        )
+        dynamic_relation_revoke = bool(
+            relation_target
+            and (
+                "REVOKE ALL PRIVILEGES ON TABLE public.%I FROM %I" in source
+                or f"REVOKE ALL PRIVILEGES ON TABLE public.{relation_target.group(1)} FROM %I"
+                in source
+            )
+        )
+        if (
+            relation_target
+            and application_roles
+            and "'kokonut_runtime'" in application_roles.group(1)
+            and dynamic_relation_revoke
+        ):
+            revokes[relation_target.group(1)].append(
+                {"migration": path.name, "privileges": "ALL PRIVILEGES"}
+            )
     return {
         relation: [
             {"migration": migration, "privileges": privileges}
-            for migration, privileges in sorted({
-                (entry["migration"], entry["privileges"])
-                for entry in entries
-            })
+            for migration, privileges in sorted({(entry["migration"], entry["privileges"]) for entry in entries})
         ]
         for relation, entries in revokes.items()
     }
@@ -237,17 +285,14 @@ def _runtime_role_boundaries() -> tuple[dict[str, str], str]:
 
     values: dict[str, set[str]] = {}
     api_key_columns: tuple[str, ...] | None = None
-    functions = {
-        node.name: node for node in tree.body if isinstance(node, ast.FunctionDef)
-    }
+    functions = {node.name: node for node in tree.body if isinstance(node, ast.FunctionDef)}
     for node in tree.body:
         if not isinstance(node, ast.Assign) or len(node.targets) != 1:
             continue
         target = node.targets[0]
         if isinstance(target, ast.Name) and target.id == "_API_KEY_COLUMNS":
             if not isinstance(node.value, (ast.Tuple, ast.List)) or any(
-                not isinstance(item, ast.Constant) or not isinstance(item.value, str)
-                for item in node.value.elts
+                not isinstance(item, ast.Constant) or not isinstance(item.value, str) for item in node.value.elts
             ):
                 raise ValueError("_API_KEY_COLUMNS must be a literal tuple or list")
             api_key_columns = tuple(item.value for item in node.value.elts)
@@ -263,30 +308,28 @@ def _runtime_role_boundaries() -> tuple[dict[str, str], str]:
         raise ValueError("runtime-role source lacks an explicit scoped denial list")
     if values[_RUNTIME_POLICY_NAMES["private"]] & values[_RUNTIME_POLICY_NAMES["mutations"]]:
         raise ValueError("runtime-role private and mutation-only lists overlap")
-    if (
-        values[_RUNTIME_POLICY_NAMES["append_only"]]
-        & (values[_RUNTIME_POLICY_NAMES["private"]] | values[_RUNTIME_POLICY_NAMES["mutations"]])
+    if values[_RUNTIME_POLICY_NAMES["append_only"]] & (
+        values[_RUNTIME_POLICY_NAMES["private"]] | values[_RUNTIME_POLICY_NAMES["mutations"]]
     ):
         raise ValueError("runtime-role append-only list overlaps another policy list")
 
     denials = {
         **{table: "no_direct_runtime_access" for table in values[_RUNTIME_POLICY_NAMES["private"]]},
         **{table: "runtime_mutations_denied" for table in values[_RUNTIME_POLICY_NAMES["mutations"]]},
-        **{
-            table: "runtime_append_only_read_insert"
-            for table in values[_RUNTIME_POLICY_NAMES["append_only"]]
-        },
+        **{table: "runtime_append_only_read_insert" for table in values[_RUNTIME_POLICY_NAMES["append_only"]]},
     }
     provisioner = functions.get("provision_runtime_role")
-    provisioner_calls = {
-        node.func.id
-        for node in ast.walk(provisioner)
-        if isinstance(node, ast.Call) and isinstance(node.func, ast.Name)
-    } if provisioner is not None else set()
+    provisioner_calls = (
+        {
+            node.func.id
+            for node in ast.walk(provisioner)
+            if isinstance(node, ast.Call) and isinstance(node.func, ast.Name)
+        }
+        if provisioner is not None
+        else set()
+    )
     if (
-        api_key_columns == (
-            "id", "key_hash", "key_prefix", "role_id", "scopes", "expires_at", "is_active"
-        )
+        api_key_columns == ("id", "key_hash", "key_prefix", "role_id", "scopes", "expires_at", "is_active")
         and {"_apply_api_key_boundary", "_verify_api_key_boundary"} <= functions.keys()
         and {"_apply_api_key_boundary", "_verify_api_key_boundary"} <= provisioner_calls
     ):
@@ -300,10 +343,7 @@ def _expected_runtime_denial(revokes: list[dict[str, str]]) -> str | None:
     if any("ALL" in entry["privileges"].split() for entry in revokes):
         return "no_direct_runtime_access"
     if any(
-        _DML_PRIVILEGES.intersection(
-            token.strip() for token in entry["privileges"].split(",")
-        )
-        for entry in revokes
+        _DML_PRIVILEGES.intersection(token.strip() for token in entry["privileges"].split(",")) for entry in revokes
     ):
         return "runtime_mutations_denied"
     return None
@@ -331,11 +371,7 @@ def build_report(probe: dict[str, Any], inventory: dict[str, Any]) -> dict[str, 
     schema_files = list((ROOT / "schemas/postgres").glob("*.sql"))
     expected_schema_files = len(schema_files)
     repository_latest_migration = max(
-        (
-            int(match.group(1))
-            for path in schema_files
-            if (match := re.match(r"(\d+)_", path.name)) is not None
-        ),
+        (int(match.group(1)) for path in schema_files if (match := re.match(r"(\d+)_", path.name)) is not None),
         default=None,
     )
     replay = probe
@@ -386,30 +422,32 @@ def build_report(probe: dict[str, Any], inventory: dict[str, Any]) -> dict[str, 
 
     revokes = _source_revokes()
     runtime_boundaries, runtime_role_sha256 = _runtime_role_boundaries()
+    recorded_append_only_policy = probe.get("runtime_append_only_policy")
+    recorded_append_only_count = (
+        recorded_append_only_policy.get("relations_expected")
+        if isinstance(recorded_append_only_policy, dict)
+        and type(recorded_append_only_policy.get("relations_expected")) is int
+        else -1
+    )
     scoped_write = probe.get("runtime_scoped_write_policy")
-    private_relation_count = sum(
-        policy == "no_direct_runtime_access" for policy in runtime_boundaries.values()
-    )
-    mutation_denial_count = sum(
-        policy == "runtime_mutations_denied" for policy in runtime_boundaries.values()
-    )
+    private_relation_count = sum(policy == "no_direct_runtime_access" for policy in runtime_boundaries.values())
+    mutation_denial_count = sum(policy == "runtime_mutations_denied" for policy in runtime_boundaries.values())
     expected_scoped_write = {
         "direct_table_privilege_violations": 0,
         "direct_column_privilege_violations": 0,
         "farm_activity_ledger_readable": 1,
         "service_registry_read_only_verified": 1,
-        "append_only_relations_expected": 2,
-        "append_only_relations_verified": 2,
-        "append_only_select_insert_verified": 2,
-        "append_only_mutations_denied": 2,
-        "append_only_column_grants_denied": 2,
+        "append_only_relations_expected": recorded_append_only_count,
+        "append_only_relations_verified": recorded_append_only_count,
+        "append_only_select_insert_verified": recorded_append_only_count,
+        "append_only_mutations_denied": recorded_append_only_count,
+        "append_only_column_grants_denied": recorded_append_only_count,
     }
     recorded_scoped_write_passed = (
         isinstance(scoped_write, dict)
         and type(scoped_write.get("service_registry_read_only_verified")) is int
         and all(scoped_write.get(key) == value for key, value in expected_scoped_write.items())
-        and scoped_write.get("private_relations_expected")
-        == scoped_write.get("private_relations_verified")
+        and scoped_write.get("private_relations_expected") == scoped_write.get("private_relations_verified")
         and scoped_write.get("mutation_denied_relations_expected")
         == scoped_write.get("mutation_denied_relations_verified")
     )
@@ -420,9 +458,7 @@ def build_report(probe: dict[str, Any], inventory: dict[str, Any]) -> dict[str, 
     )
     api_key_policy = probe.get("runtime_api_key_policy")
     api_key_boundary_passed = api_key_policy == {
-        "select_columns": [
-            "id", "key_hash", "key_prefix", "role_id", "scopes", "expires_at", "is_active"
-        ],
+        "select_columns": ["id", "key_hash", "key_prefix", "role_id", "scopes", "expires_at", "is_active"],
         "insert_columns": [],
         "update_columns": [],
         "delete": False,
@@ -430,11 +466,11 @@ def build_report(probe: dict[str, Any], inventory: dict[str, Any]) -> dict[str, 
     }
     append_only_policy = probe.get("runtime_append_only_policy")
     append_only_boundary_passed = append_only_policy == {
-        "relations_expected": 2,
-        "relations_verified": 2,
-        "select_insert_verified": 2,
-        "mutations_denied": 2,
-        "column_grants_denied": 2,
+        "relations_expected": recorded_append_only_count,
+        "relations_verified": recorded_append_only_count,
+        "select_insert_verified": recorded_append_only_count,
+        "mutations_denied": recorded_append_only_count,
+        "column_grants_denied": recorded_append_only_count,
         "verified_by_provisioner": True,
     }
     recorded_schema_files_expected = replay.get("schema_files_expected")
@@ -460,23 +496,17 @@ def build_report(probe: dict[str, Any], inventory: dict[str, Any]) -> dict[str, 
         else None
     )
     observed_latest_migration_number = (
-        int(observed_migration_match.group(1))
-        if observed_migration_match is not None
-        else None
+        int(observed_migration_match.group(1)) if observed_migration_match is not None else None
     )
     output_rows: list[dict[str, Any]] = []
     for name, row in sorted(relations.items()):
-        dml = any(
-            row.get(privilege) is True
-            for privilege in ("insert", "update", "delete")
-        )
+        dml = any(row.get(privilege) is True for privilege in ("insert", "update", "delete"))
         source_revokes = revokes.get(name, [])
         dml_revokes = [
-            revoke for revoke in source_revokes
+            revoke
+            for revoke in source_revokes
             if "ALL" in revoke["privileges"].split()
-            or bool(_DML_PRIVILEGES.intersection(
-                token.strip() for token in revoke["privileges"].split(",")
-            ))
+            or bool(_DML_PRIVILEGES.intersection(token.strip() for token in revoke["privileges"].split(",")))
         ]
         expected_boundary = _SOURCE_REVOKE_POLICY_OVERRIDES.get(name)
         if expected_boundary is None:
@@ -488,93 +518,71 @@ def build_report(probe: dict[str, Any], inventory: dict[str, Any]) -> dict[str, 
             if tokens & {"ALL", "ALL PRIVILEGES"}:
                 revoked_dml_privileges.update(_TABLE_DML_PRIVILEGES)
             else:
-                revoked_dml_privileges.update(
-                    _TABLE_DML_PRIVILEGES.intersection(tokens)
-                )
+                revoked_dml_privileges.update(_TABLE_DML_PRIVILEGES.intersection(tokens))
         effective_dml_privileges = {
-            privilege
-            for privilege in _TABLE_DML_PRIVILEGES
-            if row.get(privilege.lower()) is True
+            privilege for privilege in _TABLE_DML_PRIVILEGES if row.get(privilege.lower()) is True
         }
         # data_access_log restores INSERT after a migration-level REVOKE ALL;
         # its only intended runtime DML privilege is the append operation.
-        policy_allowed_dml = (
-            {"INSERT"}
-            if expected_boundary == "runtime_append_only_read_insert"
-            else set()
+        policy_allowed_dml = {"INSERT"} if expected_boundary == "runtime_append_only_read_insert" else set()
+        effective_dml_revokes = sorted((effective_dml_privileges & revoked_dml_privileges) - policy_allowed_dml)
+        output_rows.append(
+            {
+                "relation": name,
+                "kind": row.get("kind"),
+                "effective_privileges": {
+                    privilege: row.get(privilege) is True
+                    for privilege in ("select", "insert", "update", "delete", "truncate")
+                },
+                "effective_truncate_privilege": row.get("truncate") is True,
+                "rls_enabled": row.get("rls_enabled") is True,
+                "rls_forced": row.get("rls_forced") is True,
+                "has_any_dml": dml,
+                "candidate_execution_sites_by_statement": dict(sorted(row["sites"].items())),
+                "candidate_source_files": [
+                    {
+                        "path": source,
+                        "statement_counts": dict(sorted(counts.items())),
+                    }
+                    for source, counts in sorted(row["sources"].items())
+                ],
+                "candidate_write_target_sites_by_statement": dict(sorted(row["write_target_sites"].items())),
+                "candidate_write_target_source_files": [
+                    {
+                        "path": source,
+                        "statement_counts": dict(sorted(counts.items())),
+                    }
+                    for source, counts in sorted(row["write_target_sources"].items())
+                ],
+                "explicit_runtime_revokes": source_revokes,
+                "explicit_runtime_dml_revokes": dml_revokes,
+                "effective_dml_privileges": sorted(effective_dml_privileges),
+                "effective_dml_revokes": effective_dml_revokes,
+                "dml_overlaps_explicit_revoke": bool(effective_dml_revokes),
+                "expected_runtime_boundary": expected_boundary,
+                "configured_runtime_boundary": configured_boundary,
+                "runtime_boundary_policy_matches_source": (
+                    configured_boundary == expected_boundary if expected_boundary is not None else None
+                ),
+            }
         )
-        effective_dml_revokes = sorted(
-            (effective_dml_privileges & revoked_dml_privileges) - policy_allowed_dml
-        )
-        output_rows.append({
-            "relation": name,
-            "kind": row.get("kind"),
-            "effective_privileges": {
-                privilege: row.get(privilege) is True
-                for privilege in ("select", "insert", "update", "delete", "truncate")
-            },
-            "effective_truncate_privilege": row.get("truncate") is True,
-            "rls_enabled": row.get("rls_enabled") is True,
-            "rls_forced": row.get("rls_forced") is True,
-            "has_any_dml": dml,
-            "candidate_execution_sites_by_statement": dict(
-                sorted(row["sites"].items())
-            ),
-            "candidate_source_files": [
-                {
-                    "path": source,
-                    "statement_counts": dict(sorted(counts.items())),
-                }
-                for source, counts in sorted(row["sources"].items())
-            ],
-            "candidate_write_target_sites_by_statement": dict(
-                sorted(row["write_target_sites"].items())
-            ),
-            "candidate_write_target_source_files": [
-                {
-                    "path": source,
-                    "statement_counts": dict(sorted(counts.items())),
-                }
-                for source, counts in sorted(row["write_target_sources"].items())
-            ],
-            "explicit_runtime_revokes": source_revokes,
-            "explicit_runtime_dml_revokes": dml_revokes,
-            "effective_dml_privileges": sorted(effective_dml_privileges),
-            "effective_dml_revokes": effective_dml_revokes,
-            "dml_overlaps_explicit_revoke": bool(effective_dml_revokes),
-            "expected_runtime_boundary": expected_boundary,
-            "configured_runtime_boundary": configured_boundary,
-            "runtime_boundary_policy_matches_source": (
-                configured_boundary == expected_boundary
-                if expected_boundary is not None else None
-            ),
-        })
 
     dml_without_site = [
-        row["relation"] for row in output_rows
+        row["relation"]
+        for row in output_rows
         if row["has_any_dml"] and not row["candidate_execution_sites_by_statement"]
     ]
-    overlapping = [
-        row["relation"] for row in output_rows if row["dml_overlaps_explicit_revoke"]
-    ]
+    overlapping = [row["relation"] for row in output_rows if row["dml_overlaps_explicit_revoke"]]
     unprotected_dml = [
-        row for row in output_rows
-        if row["kind"] in {"r", "p"}
-        and row["has_any_dml"]
-        and not row["rls_enabled"]
+        row for row in output_rows if row["kind"] in {"r", "p"} and row["has_any_dml"] and not row["rls_enabled"]
     ]
     unprotected_without_site = [
-        row["relation"] for row in unprotected_dml
-        if not row["candidate_execution_sites_by_statement"]
+        row["relation"] for row in unprotected_dml if not row["candidate_execution_sites_by_statement"]
     ]
     unprotected_without_write_site = [
-        row["relation"] for row in unprotected_dml
-        if not row["candidate_write_target_sites_by_statement"]
+        row["relation"] for row in unprotected_dml if not row["candidate_write_target_sites_by_statement"]
     ]
-    unprotected_overlapping = [
-        row["relation"] for row in unprotected_dml
-        if row["dml_overlaps_explicit_revoke"]
-    ]
+    unprotected_overlapping = [row["relation"] for row in unprotected_dml if row["dml_overlaps_explicit_revoke"]]
     write_relations_by_service: dict[str, set[str]] = defaultdict(set)
     for row in unprotected_dml:
         for source in row["candidate_write_target_source_files"]:
@@ -582,10 +590,7 @@ def build_report(probe: dict[str, Any], inventory: dict[str, Any]) -> dict[str, 
             service = parts[1] if len(parts) > 2 and parts[0] == "services" else "other"
             write_relations_by_service[service].add(row["relation"])
     policy_rows = [row for row in output_rows if row["expected_runtime_boundary"] is not None]
-    policy_gaps = [
-        row["relation"] for row in policy_rows
-        if not row["runtime_boundary_policy_matches_source"]
-    ]
+    policy_gaps = [row["relation"] for row in policy_rows if not row["runtime_boundary_policy_matches_source"]]
     return {
         "result": "inventory",
         "source_revision": replay.get("source_revision"),
@@ -644,55 +649,37 @@ def build_report(probe: dict[str, Any], inventory: dict[str, Any]) -> dict[str, 
         "summary": {
             "runtime_relations": len(output_rows),
             "relations_with_any_dml": sum(row["has_any_dml"] for row in output_rows),
-            "relations_with_effective_truncate": sum(
-                row["effective_truncate_privilege"] for row in output_rows
-            ),
+            "relations_with_effective_truncate": sum(row["effective_truncate_privilege"] for row in output_rows),
             "relations_with_effective_truncate_and_rls_disabled": sum(
-                row["effective_truncate_privilege"] and not row["rls_enabled"]
-                for row in output_rows
+                row["effective_truncate_privilege"] and not row["rls_enabled"] for row in output_rows
             ),
             "tables_with_dml_and_rls_disabled": len(unprotected_dml),
             "relations_with_candidate_execution_sites": sum(
-                bool(row["candidate_execution_sites_by_statement"])
-                for row in output_rows
+                bool(row["candidate_execution_sites_by_statement"]) for row in output_rows
             ),
             "dml_relations_without_candidate_sites": len(dml_without_site),
             "dml_relations_matching_explicit_runtime_revoke": len(overlapping),
-            "unprotected_dml_relations_without_candidate_sites": len(
-                unprotected_without_site
-            ),
-            "unprotected_dml_relations_without_candidate_write_sites": len(
-                unprotected_without_write_site
-            ),
-            "unprotected_dml_relations_matching_explicit_runtime_revoke": len(
-                unprotected_overlapping
-            ),
+            "unprotected_dml_relations_without_candidate_sites": len(unprotected_without_site),
+            "unprotected_dml_relations_without_candidate_write_sites": len(unprotected_without_write_site),
+            "unprotected_dml_relations_matching_explicit_runtime_revoke": len(unprotected_overlapping),
             "migration_revoked_relations_with_runtime_policy": len(policy_rows) - len(policy_gaps),
             "migration_revoked_relations_missing_or_mismatched_runtime_policy": len(policy_gaps),
         },
         "dml_relations_without_candidate_sites": dml_without_site,
         "relations_with_effective_truncate": [
-            row["relation"] for row in output_rows
-            if row["effective_truncate_privilege"]
+            row["relation"] for row in output_rows if row["effective_truncate_privilege"]
         ],
         "relations_with_effective_truncate_and_rls_disabled": [
-            row["relation"] for row in output_rows
-            if row["effective_truncate_privilege"] and not row["rls_enabled"]
+            row["relation"] for row in output_rows if row["effective_truncate_privilege"] and not row["rls_enabled"]
         ],
         "dml_relations_matching_explicit_runtime_revoke": overlapping,
         "unprotected_dml_relations_without_candidate_sites": unprotected_without_site,
-        "unprotected_dml_relations_without_candidate_write_sites": (
-            unprotected_without_write_site
-        ),
+        "unprotected_dml_relations_without_candidate_write_sites": (unprotected_without_write_site),
         "unprotected_candidate_write_relations_by_service": {
             service: len(relations)
-            for service, relations in sorted(
-                write_relations_by_service.items(), key=lambda item: item[0]
-            )
+            for service, relations in sorted(write_relations_by_service.items(), key=lambda item: item[0])
         },
-        "unprotected_dml_relations_matching_explicit_runtime_revoke": (
-            unprotected_overlapping
-        ),
+        "unprotected_dml_relations_matching_explicit_runtime_revoke": (unprotected_overlapping),
         "migration_revoked_relations_missing_or_mismatched_runtime_policy": policy_gaps,
         "relations": output_rows,
     }
@@ -700,11 +687,10 @@ def build_report(probe: dict[str, Any], inventory: dict[str, Any]) -> dict[str, 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--probe", type=Path, required=True, help="ACL inventory probe JSON")
     parser.add_argument(
-        "--probe", type=Path, required=True, help="ACL inventory probe JSON"
-    )
-    parser.add_argument(
-        "--sql-inventory", type=Path,
+        "--sql-inventory",
+        type=Path,
         default=ROOT / "docs/refactor/runtime-sql-inventory.json",
         help="runtime SQL inventory JSON",
     )
@@ -715,9 +701,7 @@ def main() -> int:
         _load_json(args.sql_inventory, "SQL inventory"),
     )
     args.output.parent.mkdir(parents=True, exist_ok=True)
-    args.output.write_text(
-        json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8"
-    )
+    args.output.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     print(args.output)
     print(json.dumps(report["summary"], sort_keys=True))
     return 0

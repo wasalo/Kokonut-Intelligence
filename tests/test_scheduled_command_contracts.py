@@ -3,6 +3,7 @@
 import subprocess
 import sys
 from argparse import Namespace
+from datetime import datetime, timezone
 from unittest.mock import MagicMock, patch
 from uuid import uuid4
 
@@ -55,8 +56,6 @@ def test_every_scheduled_module_has_a_command_contract():
             "services.ingestion.sensor_worker",
             ["--location-id", str(uuid4()), "--driver-instance-id", str(uuid4())],
         ),
-        ("services.ingestion.anomaly_detector", ["--location-id", str(uuid4())]),
-        ("services.ingestion.anomaly_detector", ["--baseline-check", "--location-id", str(uuid4())]),
         ("services.ingestion.sensor_anomaly_scan_worker", ["--location-id", str(uuid4())]),
         (
             "services.ingestion.sensor_anomaly_scan_worker",
@@ -131,8 +130,6 @@ def test_supported_operations_accept_valid_argv(module, arguments):
         ("services.ingestion.rpc_indexer", ["--chain", "polygon"]),
         ("services.ingestion.rpc_worker", []),
         ("services.ingestion.rpc_worker", ["--chain", "polygon"]),
-        ("services.ingestion.anomaly_detector", []),
-        ("services.ingestion.anomaly_detector", ["--baseline-check"]),
         ("services.ingestion.sensor_anomaly_scan_worker", []),
         (
             "services.ingestion.sensor_anomaly_scan_worker",
@@ -192,7 +189,6 @@ def test_supported_operations_accept_valid_argv(module, arguments):
         ("services.export.dataset_refresh", ["--all", "--dataset-id", str(uuid4())]),
         ("services.ingestion.weather", ["--all-locations"]),
         ("services.ingestion.weather_worker", ["--all-locations"]),
-        ("services.ingestion.anomaly_detector", ["--all-locations"]),
     ],
 )
 def test_unsupported_or_incomplete_operations_are_rejected(module, arguments):
@@ -463,42 +459,53 @@ def test_sensor_anomaly_scan_accepts_timezone_aware_since(timestamp):
     ) == tuple(arguments)
 
 
-def test_legacy_anomaly_cli_keeps_accepting_naive_since():
+def test_legacy_anomaly_cli_keeps_accepting_naive_since(monkeypatch):
+    monkeypatch.setenv("KOKONUT_ENV_SECRETS_NOT_REQUIRED", "true")
     from services.ingestion import anomaly_detector
 
     location_id = str(uuid4())
-    timestamp = "2026-10-30 09:30:00"
+    timestamp = datetime.now(timezone.utc).replace(tzinfo=None).isoformat(timespec="seconds")
     arguments = ["--location-id", location_id, "--since", timestamp]
 
-    assert validate_scheduled_command(
-        "services.ingestion.anomaly_detector", arguments
-    ) == tuple(arguments)
+    assert anomaly_detector._replay_since(timestamp).tzinfo is not None
     with patch.object(anomaly_detector, "run_check") as run_check:
         anomaly_detector.main(arguments)
 
     run_check.assert_called_once_with(
-        sensor_id=None, since=timestamp, location_id=location_id
+        sensor_id=None, since=timestamp, location_id=location_id,
+        all_locations=False,
     )
 
 
-@pytest.mark.parametrize(
-    ("enabled", "expected_job"),
-    [(False, "anomaly_legacy"), (True, "anomaly")],
-)
-def test_anomaly_schedule_switches_only_after_signed_replay_is_enabled(
-    monkeypatch, enabled, expected_job
-):
+def test_anomaly_schedule_skips_until_signed_replay_is_enabled(monkeypatch):
     import services.core.jobs as jobs
 
-    monkeypatch.setattr(
-        jobs,
-        "is_enabled",
-        lambda name: enabled if name == "isolated_sensor_anomaly_scan_worker" else True,
-    )
+    monkeypatch.setattr(jobs, "is_enabled", lambda _name: False)
+    with patch("services.core.jobs._run_job_spec") as dispatch:
+        result = jobs.run_job("anomaly", location_id=str(uuid4()))
+
+    assert result == {
+        "status": "skipped",
+        "reason": "isolated sensor anomaly worker is disabled",
+    }
+    dispatch.assert_not_called()
+
+    monkeypatch.setattr(jobs, "is_enabled", lambda _name: True)
     with patch("services.core.jobs._run_job_spec", return_value={"status": "success"}) as dispatch:
         jobs.run_job("anomaly", location_id=str(uuid4()))
 
-    assert dispatch.call_args.args[:2] == (expected_job, jobs.JOBS[expected_job])
+    assert dispatch.call_args.args[:2] == ("anomaly", jobs.JOBS["anomaly"])
+
+
+def test_legacy_anomaly_module_is_not_a_scheduled_target():
+    from services.security.execution_allowlist import ALLOWED_SCHEDULED_MODULES
+
+    assert "services.ingestion.anomaly_detector" not in ALLOWED_SCHEDULED_MODULES
+    with pytest.raises(ScheduledCommandRejected, match="not allowlisted"):
+        validate_scheduled_command(
+            "services.ingestion.anomaly_detector",
+            ["--location-id", str(uuid4())],
+        )
 
 
 def test_remote_sensing_job_defaults_to_one_due_job_batch():

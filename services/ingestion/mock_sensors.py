@@ -20,7 +20,7 @@ Usage:
     python -m services.ingestion.mock_sensors --generate --count 100
 
     # Cleanup test data
-    python -m services.ingestion.mock_sensors --cleanup
+    python -m services.ingestion.mock_sensors --cleanup --location-id UUID
 """
 
 import argparse
@@ -28,6 +28,7 @@ import json
 import math
 import random
 import re
+import uuid
 from datetime import datetime, timedelta, timezone
 
 from ..common.errors import safe_exception_class
@@ -367,39 +368,29 @@ def generate_data(count: int = 96, inject_anomalies: bool = False):
         db.close()
 
 
-def cleanup():
-    """Remove mock readings and alerts for explicitly marked demo devices."""
-    db = get_db()
+def cleanup(location_id: str):
+    """Remove mock readings and alerts for marked devices at one location."""
+    if not isinstance(location_id, str) or not location_id.strip():
+        raise ValueError("--location-id must be a UUID for cleanup")
     try:
-        with db.cursor() as cur:
-            cur.execute(
-                """
-                DELETE FROM sensor_alert
-                WHERE sensor_device_id IN (
-                    SELECT id
-                    FROM sensor_device
-                    WHERE metadata->>'mock_sensor_demo' = 'true'
-                )
-                """
-            )
-            cur.execute(
-                """
-                DELETE FROM sensor_reading
-                WHERE metadata->>'mock' = 'true'
-                  AND sensor_id::text IN (
-                      SELECT id::text
-                      FROM sensor_device
-                      WHERE metadata->>'mock_sensor_demo' = 'true'
-                  )
-                """
-            )
-        db.commit()
-    except Exception:
-        db.rollback()
-        raise
-    finally:
-        db.close()
-    logger.info("Cleanup done")
+        stable_location_id = str(uuid.UUID(location_id.strip()))
+    except (TypeError, ValueError, AttributeError) as exc:
+        raise ValueError("--location-id must be a UUID for cleanup") from exc
+
+    # Alerts belong to the isolated sensor_anomaly identity and are removed by
+    # its signed, retry-safe function before the mock-reading cleanup.
+    from .sensor_mock_cleanup_worker import (
+        delete_mock_sensor_alerts,
+        delete_mock_sensor_readings,
+    )
+
+    deleted_alerts = delete_mock_sensor_alerts(stable_location_id)
+    deleted_readings = delete_mock_sensor_readings(stable_location_id)
+    logger.info(
+        "Cleanup done (%d mock alerts and %d mock readings removed)",
+        deleted_alerts,
+        deleted_readings,
+    )
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -413,6 +404,10 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--count", type=int, default=96, help="Number of readings per sensor (default: 96 = 15min intervals over 24h)")
     parser.add_argument("--anomalies", action="store_true", help="Inject anomalies for testing")
     parser.add_argument("--cleanup", action="store_true", help="Remove mock data")
+    parser.add_argument(
+        "--location-id",
+        help="Exact farm/location scope required with --cleanup",
+    )
     return parser
 
 
@@ -430,7 +425,13 @@ def main(argv: list[str] | None = None) -> None:
             parser.error(str(exc))
         generate_data(count=args.count, inject_anomalies=args.anomalies)
     elif args.cleanup:
-        cleanup()
+        if not args.location_id:
+            parser.error("--cleanup requires --location-id")
+        try:
+            stable_location_id = str(uuid.UUID(args.location_id.strip()))
+        except (AttributeError, TypeError, ValueError):
+            parser.error("--location-id must be a UUID for cleanup")
+        cleanup(location_id=stable_location_id)
     else:
         parser.print_help()
 

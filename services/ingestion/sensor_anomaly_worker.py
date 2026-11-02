@@ -25,6 +25,12 @@ SELECT event_id::text, sensor_id::text, event_created_at
       %s::uuid, %s::timestamptz, %s::integer
   )
 """
+PENDING_SENSOR_EVENTS_SQL = """
+SELECT event_id::text, sensor_id::text, event_created_at
+  FROM kokonut_security.list_sensor_anomaly_events_for_sensor_since(
+      %s::uuid, %s::uuid, %s::timestamptz, %s::integer
+  )
+"""
 RULES_SQL = """
 SELECT * FROM kokonut_security.list_sensor_anomaly_rules(%s::uuid, %s::uuid)
 """
@@ -90,6 +96,7 @@ _QUERY_SQL = MappingProxyType(
     {
         "read_source": SOURCE_SQL,
         "list_pending_events": PENDING_EVENTS_SQL,
+        "list_pending_sensor_events": PENDING_SENSOR_EVENTS_SQL,
         "list_rules": RULES_SQL,
         "reserve_effect": RESERVE_SQL,
         "check_cooldown": COOLDOWN_SQL,
@@ -438,10 +445,15 @@ def process_sensor_reading(
 
 
 def list_pending_sensor_reading_events(
-    *, location_id: str, since: datetime, batch_size: int = 100
+    *,
+    location_id: str,
+    since: datetime,
+    batch_size: int = 100,
+    sensor_id: str | None = None,
 ) -> list[dict[str, Any]]:
     """Read a bounded event replay page for exactly one signed location."""
     stable_location_id = str(uuid.UUID(str(location_id)))
+    stable_sensor_id = str(uuid.UUID(str(sensor_id))) if sensor_id is not None else None
     if not isinstance(since, datetime) or since.tzinfo is None:
         raise ValueError("since must be a timezone-aware datetime")
     if isinstance(batch_size, bool) or not isinstance(batch_size, int) or not 1 <= batch_size <= 100:
@@ -457,11 +469,23 @@ def list_pending_sensor_reading_events(
             resource="sensor_reading",
             action="process",
         )
-        rows = _many(
-            connection,
-            "list_pending_events",
-            (stable_location_id, since.astimezone(timezone.utc), batch_size),
-        )
+        if stable_sensor_id is None:
+            rows = _many(
+                connection,
+                "list_pending_events",
+                (stable_location_id, since.astimezone(timezone.utc), batch_size),
+            )
+        else:
+            rows = _many(
+                connection,
+                "list_pending_sensor_events",
+                (
+                    stable_location_id,
+                    stable_sensor_id,
+                    since.astimezone(timezone.utc),
+                    batch_size,
+                ),
+            )
         connection.commit()
         return [
             {
@@ -479,20 +503,24 @@ def list_pending_sensor_reading_events(
 
 
 def replay_recent_sensor_reading_events(
-    *, location_id: str, since: datetime | None = None, batch_size: int = 100
+    *,
+    location_id: str,
+    since: datetime | None = None,
+    batch_size: int = 100,
+    sensor_id: str | None = None,
 ) -> dict[str, int]:
-    """Replay one bounded page through the idempotent signed event handler."""
+    """Replay pending pages through the idempotent signed event handler."""
     stable_location_id = str(uuid.UUID(str(location_id)))
+    stable_sensor_id = str(uuid.UUID(str(sensor_id))) if sensor_id is not None else None
     replay_since = since or (datetime.now(timezone.utc) - timedelta(hours=24))
     if replay_since.tzinfo is None:
         raise ValueError("since must be a timezone-aware datetime")
-    events = list_pending_sensor_reading_events(
-        location_id=stable_location_id,
-        since=replay_since,
-        batch_size=batch_size,
-    )
+    now = datetime.now(timezone.utc)
+    replay_since = replay_since.astimezone(timezone.utc)
+    if replay_since < now - timedelta(hours=24) or replay_since > now:
+        raise ValueError("since must be within the previous 24 hours")
     totals = {
-        "events_found": len(events),
+        "events_found": 0,
         "events_processed": 0,
         "rules": 0,
         "reserved": 0,
@@ -502,13 +530,23 @@ def replay_recent_sensor_reading_events(
         "actuation_intents": 0,
         "skipped": 0,
     }
-    for event in events:
-        result = process_sensor_reading(
-            sensor_id=event["sensor_id"],
+    while True:
+        events = list_pending_sensor_reading_events(
             location_id=stable_location_id,
-            event_id=event["event_id"],
+            since=replay_since,
+            batch_size=batch_size,
+            sensor_id=stable_sensor_id,
         )
-        totals["events_processed"] += 1
-        for key in totals.keys() - {"events_found", "events_processed"}:
-            totals[key] += int(result[key])
+        totals["events_found"] += len(events)
+        for event in events:
+            result = process_sensor_reading(
+                sensor_id=event["sensor_id"],
+                location_id=stable_location_id,
+                event_id=event["event_id"],
+            )
+            totals["events_processed"] += 1
+            for key in totals.keys() - {"events_found", "events_processed"}:
+                totals[key] += int(result[key])
+        if len(events) < batch_size:
+            break
     return totals

@@ -3,10 +3,26 @@
 from unittest import TestCase
 from unittest.mock import Mock, call, patch
 
+from services.scheduler import worker as scheduler_worker
 from services.scheduler.worker import _run_tick
 
 
 class SchedulerWorkerRecoveryTests(TestCase):
+    def test_worker_pulses_after_ticks_and_during_idle_sleep(self):
+        with (
+            patch("services.scheduler.worker._running", True),
+            patch("services.scheduler.worker.signal.signal"),
+            patch(
+                "services.scheduler.worker._run_tick",
+                side_effect=lambda _worker_id: setattr(scheduler_worker, "_running", False),
+            ),
+            patch("services.scheduler.worker.pulse_worker_progress") as pulse,
+            patch("services.scheduler.worker.time.sleep"),
+        ):
+            scheduler_worker.run_worker(tick_interval=1, worker_id="synthetic-worker")
+
+        self.assertEqual(pulse.call_count, 2)
+
     def test_each_tick_uses_and_closes_a_bounded_connection(self):
         first_conn = Mock()
         second_conn = Mock()

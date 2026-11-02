@@ -3,8 +3,7 @@
 from __future__ import annotations
 
 import uuid
-from datetime import datetime, timezone
-from unittest.mock import MagicMock, patch, PropertyMock
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -35,7 +34,9 @@ class TestSituationAssessor:
         mock_cursor.fetchall.return_value = []
         mock_cursor.fetchone.return_value = None
 
-        result = assessor.assess(location_id="test-loc-001")
+        result = assessor.assess(
+            location_id="00000000-0000-4000-8000-000000000001"
+        )
 
         assert "assessment_id" in result
         assert "situation_grade" in result
@@ -51,7 +52,9 @@ class TestSituationAssessor:
         mock_cursor.fetchall.return_value = []
         mock_cursor.fetchone.return_value = None
 
-        result = assessor.assess(location_id="test-loc-002")
+        result = assessor.assess(
+            location_id="00000000-0000-4000-8000-000000000002"
+        )
         assert result["situation_grade"] in ("critical", "warning", "stable", "flourishing")
 
     def test_assess_persists_dimensions(self):
@@ -60,7 +63,7 @@ class TestSituationAssessor:
         mock_cursor.fetchall.return_value = []
         mock_cursor.fetchone.return_value = None
 
-        assessor.assess(location_id="test-loc-003")
+        assessor.assess(location_id="00000000-0000-4000-8000-000000000003")
 
         calls = [str(c) for c in mock_cursor.execute.call_args_list]
         dim_inserts = [c for c in calls if "assessment_dimension" in c]
@@ -72,7 +75,7 @@ class TestSituationAssessor:
         mock_cursor.fetchall.return_value = []
         mock_cursor.fetchone.return_value = None
 
-        assessor.assess(location_id="test-loc-004")
+        assessor.assess(location_id="00000000-0000-4000-8000-000000000004")
 
         calls = [str(c) for c in mock_cursor.execute.call_args_list]
         assessment_inserts = [c for c in calls if "situation_assessment" in c]
@@ -84,7 +87,9 @@ class TestSituationAssessor:
         mock_cursor.fetchall.return_value = []
         mock_cursor.fetchone.return_value = None
 
-        result = assessor.assess(location_id="test-loc-005")
+        result = assessor.assess(
+            location_id="00000000-0000-4000-8000-000000000005"
+        )
         assert isinstance(result["recommendation_count"], int)
 
     def test_get_latest_returns_none_when_no_assessment(self):

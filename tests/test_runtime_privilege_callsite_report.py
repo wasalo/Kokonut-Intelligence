@@ -20,7 +20,11 @@ def test_reporting_registry_dynamic_revokes_are_joined_to_runtime_policy():
     assert overrides["governance_framework"] == "runtime_mutations_denied"
     assert overrides["impact_framework"] == "runtime_mutations_denied"
     assert overrides["impact_dimension"] == "runtime_mutations_denied"
+    assert overrides["ebf_pillar"] == "runtime_mutations_denied"
+    assert overrides["ebf_rubric_band"] == "runtime_mutations_denied"
     assert overrides["time_delay"] == "runtime_mutations_denied"
+    assert overrides["quality_grade"] == "runtime_mutations_denied"
+    assert overrides["readiness_dimension"] == "runtime_mutations_denied"
     assert overrides["solution"] == "runtime_mutations_denied"
     assert overrides["solution_lifecycle_event"] == "runtime_mutations_denied"
     assert revokes["solution"][-1] == {
@@ -29,6 +33,14 @@ def test_reporting_registry_dynamic_revokes_are_joined_to_runtime_policy():
     }
     assert revokes["solution_lifecycle_event"][-1] == {
         "migration": "727_runtime_solution_lifecycle_read_only.sql",
+        "privileges": "ALL PRIVILEGES",
+    }
+    assert revokes["quality_grade"][-1] == {
+        "migration": "741_runtime_quality_grade_catalog_read_only.sql",
+        "privileges": "ALL PRIVILEGES",
+    }
+    assert revokes["readiness_dimension"][-1] == {
+        "migration": "742_runtime_readiness_dimension_catalog_read_only.sql",
         "privileges": "ALL PRIVILEGES",
     }
     assert overrides["expense_category"] == "runtime_mutations_denied"
@@ -221,11 +233,11 @@ def test_zero_grant_private_relation_stays_in_source_policy_join():
         "direct_column_privilege_violations": 0,
         "farm_activity_ledger_readable": 1,
         "service_registry_read_only_verified": 1,
-        "append_only_relations_expected": 2,
-        "append_only_relations_verified": 2,
-        "append_only_select_insert_verified": 2,
-        "append_only_mutations_denied": 2,
-        "append_only_column_grants_denied": 2,
+        "append_only_relations_expected": len(runtime_role._RUNTIME_APPEND_ONLY_TABLES),
+        "append_only_relations_verified": len(runtime_role._RUNTIME_APPEND_ONLY_TABLES),
+        "append_only_select_insert_verified": len(runtime_role._RUNTIME_APPEND_ONLY_TABLES),
+        "append_only_mutations_denied": len(runtime_role._RUNTIME_APPEND_ONLY_TABLES),
+        "append_only_column_grants_denied": len(runtime_role._RUNTIME_APPEND_ONLY_TABLES),
     }
     replay = {
         "result": "passed",
@@ -386,11 +398,11 @@ def test_zero_grant_private_relation_stays_in_source_policy_join():
             ],
             "runtime_scoped_write_policy": scoped_policy,
             "runtime_append_only_policy": {
-                "relations_expected": 2,
-                "relations_verified": 2,
-                "select_insert_verified": 2,
-                "mutations_denied": 2,
-                "column_grants_denied": 2,
+                "relations_expected": len(runtime_role._RUNTIME_APPEND_ONLY_TABLES),
+                "relations_verified": len(runtime_role._RUNTIME_APPEND_ONLY_TABLES),
+                "select_insert_verified": len(runtime_role._RUNTIME_APPEND_ONLY_TABLES),
+                "mutations_denied": len(runtime_role._RUNTIME_APPEND_ONLY_TABLES),
+                "column_grants_denied": len(runtime_role._RUNTIME_APPEND_ONLY_TABLES),
                 "verified_by_provisioner": True,
             },
         },
@@ -507,11 +519,11 @@ def test_api_key_revocation_matches_read_only_column_allowlist_boundary():
                 ],
                 "runtime_api_key_policy": api_key_policy,
                 "runtime_append_only_policy": {
-                    "relations_expected": 2,
-                    "relations_verified": 2,
-                    "select_insert_verified": 2,
-                    "mutations_denied": 2,
-                    "column_grants_denied": 2,
+                    "relations_expected": len(runtime_role._RUNTIME_APPEND_ONLY_TABLES),
+                    "relations_verified": len(runtime_role._RUNTIME_APPEND_ONLY_TABLES),
+                    "select_insert_verified": len(runtime_role._RUNTIME_APPEND_ONLY_TABLES),
+                    "mutations_denied": len(runtime_role._RUNTIME_APPEND_ONLY_TABLES),
+                    "column_grants_denied": len(runtime_role._RUNTIME_APPEND_ONLY_TABLES),
                     "verified_by_provisioner": True,
                 },
             },
@@ -600,11 +612,11 @@ def test_boolean_does_not_satisfy_service_registry_acl_probe_count():
         "direct_column_privilege_violations": 0,
         "farm_activity_ledger_readable": 1,
         "service_registry_read_only_verified": True,
-        "append_only_relations_expected": 2,
-        "append_only_relations_verified": 2,
-        "append_only_select_insert_verified": 2,
-        "append_only_mutations_denied": 2,
-        "append_only_column_grants_denied": 2,
+        "append_only_relations_expected": len(runtime_role._RUNTIME_APPEND_ONLY_TABLES),
+        "append_only_relations_verified": len(runtime_role._RUNTIME_APPEND_ONLY_TABLES),
+        "append_only_select_insert_verified": len(runtime_role._RUNTIME_APPEND_ONLY_TABLES),
+        "append_only_mutations_denied": len(runtime_role._RUNTIME_APPEND_ONLY_TABLES),
+        "append_only_column_grants_denied": len(runtime_role._RUNTIME_APPEND_ONLY_TABLES),
     }
     replay = {
         "result": "passed",

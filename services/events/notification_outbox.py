@@ -420,10 +420,12 @@ def _deliver(row: dict[str, Any]) -> None:
     response.raise_for_status()
 
 
-def deliver_claimed_batch(rows, finish_callback) -> dict[str, int]:
+def deliver_claimed_batch(rows, finish_callback, *, progress_callback=None) -> dict[str, int]:
     """Deliver claimed rows through a caller-owned completion boundary."""
     stats = {"claimed": len(rows), "delivered": 0, "failed": 0, "lease_lost": 0}
     for row in rows:
+        if progress_callback is not None:
+            progress_callback()
         error_class = None
         try:
             _deliver(row)
@@ -436,6 +438,8 @@ def deliver_claimed_batch(rows, finish_callback) -> dict[str, int]:
                 row["id"], row["channel"], error_class,
             )
         status = finish_callback(row, success=success, error_class=error_class)
+        if progress_callback is not None:
+            progress_callback()
         if status == "succeeded":
             stats["delivered"] += 1
         elif status == "lease_lost":

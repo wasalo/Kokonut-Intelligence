@@ -6,6 +6,7 @@ import importlib
 import json
 import subprocess
 import sys
+import time
 import uuid
 from typing import Any
 
@@ -130,12 +131,35 @@ class EventBus:
             )
         except OSError as exc:
             return "error", f"Handler process could not start: {type(exc).__name__}"
-        try:
-            output, _ = process.communicate(request_body, timeout=timeout_seconds)
-        except subprocess.TimeoutExpired:
-            process.kill()
-            process.communicate()
-            return "timeout", f"Handler exceeded {timeout_seconds}s timeout"
+        from services.core.worker_progress import (
+            WORKER_PROGRESS_POLL_SECONDS,
+            pulse_worker_progress,
+        )
+
+        deadline = time.monotonic() + timeout_seconds
+        request_input: str | None = request_body
+        while True:
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                if process.poll() is None:
+                    process.kill()
+                process.communicate()
+                return "timeout", f"Handler exceeded {timeout_seconds}s timeout"
+            try:
+                output, _ = process.communicate(
+                    request_input,
+                    timeout=min(remaining, WORKER_PROGRESS_POLL_SECONDS),
+                )
+                break
+            except subprocess.TimeoutExpired:
+                request_input = None
+                try:
+                    pulse_worker_progress()
+                except Exception:
+                    if process.poll() is None:
+                        process.kill()
+                    process.communicate()
+                    raise
         if process.returncode != 0:
             return "error", f"Handler process exited with code {process.returncode}"
         try:

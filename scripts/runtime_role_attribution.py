@@ -118,6 +118,220 @@ class _RouteRootCollector(ast.NodeVisitor):
         )
 
 
+class _OuterFunctionVisitor(ast.NodeVisitor):
+    """Visit one function body while excluding nested handler bodies."""
+
+    def __init__(self, root: ast.FunctionDef | ast.AsyncFunctionDef):
+        self.root = root
+
+    def visit_FunctionDef(self, node: ast.FunctionDef) -> None:
+        if node is self.root:
+            for statement in node.body:
+                self.visit(statement)
+
+    visit_AsyncFunctionDef = visit_FunctionDef
+
+    def visit_ClassDef(self, node: ast.ClassDef) -> None:
+        return
+
+
+def _verified_route_threadpool_parameters(source_files: list[str]) -> dict[tuple[str, str], str]:
+    """Return route-registration parameters proven to receive Starlette's helper.
+
+    Many Gateway handlers pass their database callback to Starlette's
+    ``run_in_threadpool``. The function graph deliberately does not treat an
+    arbitrary callable argument as an edge. Here, only direct route registrar
+    calls from ``create_auth_router`` are trusted, and only when that enclosing
+    function imports the named helper from ``starlette.concurrency``.
+    """
+    source_by_module = {}
+    trees = {}
+    for source in source_files:
+        path = ROOT / source
+        module = worker_source_closure._module_for_path(path)
+        source_by_module[module] = source
+        trees[module] = ast.parse(path.read_text(encoding="utf-8"), filename=source)
+
+    auth_module = "services.gateway.operator_auth"
+    auth_tree = trees.get(auth_module)
+    if auth_tree is None:
+        return {}
+
+    create_auth_router = next(
+        (
+            node for node in auth_tree.body
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+            and node.name == "create_auth_router"
+        ),
+        None,
+    )
+    if create_auth_router is None:
+        return {}
+
+    return _verified_route_threadpool_parameters_from_router(
+        auth_module,
+        ROOT / source_by_module[auth_module],
+        create_auth_router,
+        trees,
+    )
+
+
+def _verified_route_threadpool_parameters_from_router(
+    auth_module: str,
+    auth_path: Path,
+    create_auth_router: ast.FunctionDef | ast.AsyncFunctionDef,
+    trees: dict[str, ast.Module],
+) -> dict[tuple[str, str], str]:
+    """Pure AST implementation for testing the verified injection rule."""
+
+    imported_routes: dict[str, tuple[str, str]] = {}
+    threadpool_names: set[str] = set()
+
+    class Imports(_OuterFunctionVisitor):
+        def visit_ImportFrom(self, node: ast.ImportFrom) -> None:
+            base = worker_source_closure._resolve_import_from(
+                auth_module, auth_path, node
+            )
+            for alias in node.names:
+                local_name = alias.asname or alias.name
+                if base == "starlette.concurrency" and alias.name == "run_in_threadpool":
+                    threadpool_names.add(local_name)
+                elif base.startswith("services.gateway.") and alias.name.startswith("register_"):
+                    imported_routes[local_name] = (base, alias.name)
+
+    Imports(create_auth_router).visit(create_auth_router)
+    if not threadpool_names:
+        return {}
+
+    trusted: dict[tuple[str, str], str] = {}
+
+    class Calls(_OuterFunctionVisitor):
+        def visit_Call(self, node: ast.Call) -> None:
+            if not isinstance(node.func, ast.Name):
+                return
+            target = imported_routes.get(node.func.id)
+            if target is None:
+                return
+            module, function_name = target
+            route_tree = trees.get(module)
+            if route_tree is None:
+                return
+            route_function = next(
+                (
+                    item for item in route_tree.body
+                    if isinstance(item, (ast.FunctionDef, ast.AsyncFunctionDef))
+                    and item.name == function_name
+                ),
+                None,
+            )
+            if route_function is None:
+                return
+
+            parameters = [
+                *route_function.args.posonlyargs,
+                *route_function.args.args,
+                *route_function.args.kwonlyargs,
+            ]
+            parameter_name = None
+            for index, argument in enumerate(node.args):
+                if isinstance(argument, ast.Name) and argument.id in threadpool_names and index < len(parameters):
+                    parameter_name = parameters[index].arg
+                    break
+            if parameter_name is None:
+                for keyword in node.keywords:
+                    if (
+                        isinstance(keyword.value, ast.Name)
+                        and keyword.value.id in threadpool_names
+                        and keyword.arg
+                    ):
+                        parameter_name = keyword.arg
+                        break
+            if parameter_name:
+                trusted[(module, function_name)] = parameter_name
+
+        def visit_FunctionDef(self, node: ast.FunctionDef) -> None:
+            if node is self.root:
+                for statement in node.body:
+                    self.visit(statement)
+
+        visit_AsyncFunctionDef = visit_FunctionDef
+
+    Calls(create_auth_router).visit(create_auth_router)
+    if len(threadpool_names) == 1:
+        trusted[(auth_module, "create_auth_router")] = next(iter(threadpool_names))
+    return trusted
+
+
+def _api_threadpool_callback_roots(
+    source_files: list[str],
+    api_roots: list[dict],
+) -> tuple[list[dict], list[dict]]:
+    """Resolve database callbacks handed to verified Starlette threadpool calls."""
+    trusted_registrars = _verified_route_threadpool_parameters(source_files)
+    trees, modules_by_source = worker_function_reachability._collect_modules(source_files)
+    known_modules = set(trees)
+    definitions = {}
+    classes = {}
+    for source, module in modules_by_source.items():
+        visitor = worker_function_reachability._DefinitionVisitor(module, source)
+        visitor.visit(trees[module])
+        definitions.update(visitor.definitions)
+        classes.update(visitor.classes)
+
+    contexts = {}
+    for source, module in modules_by_source.items():
+        visitor = worker_function_reachability._ImportContextVisitor(
+            module, source, known_modules, definitions, classes
+        )
+        visitor.visit(trees[module])
+        contexts[module] = visitor
+
+    threadpool_names: dict[str, set[str]] = {}
+    for root in api_roots:
+        module, _, qualname = root["function"].partition(":")
+        registrar, separator, _ = qualname.partition(".")
+        if not separator:
+            continue
+        parameter = trusted_registrars.get((module, registrar))
+        if parameter:
+            threadpool_names.setdefault(root["function"], set()).add(parameter)
+
+    callbacks: dict[str, dict] = {}
+    edges: dict[tuple[str, str, int], dict] = {}
+    for function_key, names in threadpool_names.items():
+        function = definitions.get(function_key)
+        if function is None:
+            continue
+        pending = list(function["node"].body)
+        while pending:
+            node = pending.pop()
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef, ast.Lambda)) and node is not function["node"]:
+                continue
+            if isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id in names and node.args:
+                callback_call = ast.Call(func=node.args[0], args=[], keywords=[])
+                target = worker_function_reachability._resolve_call_target(
+                    function, callback_call, definitions, contexts
+                )
+                if target and target in definitions:
+                    callbacks[target] = {
+                        "function": target,
+                        "source": definitions[target]["source"],
+                    }
+                    edge = {
+                        "caller": function_key,
+                        "callee": target,
+                        "source": function["source"],
+                        "line": node.lineno,
+                        "dispatch": "verified_starlette_run_in_threadpool_callback",
+                    }
+                    edges[(function_key, target, node.lineno)] = edge
+            pending.extend(ast.iter_child_nodes(node))
+
+    callback_roots = [callbacks[key] for key in sorted(callbacks)]
+    callback_edges = [edges[key] for key in sorted(edges)]
+    return callback_roots, callback_edges
+
+
 def _gateway_route_roots(source_files: list[str]) -> tuple[list[dict], list[dict]]:
     collectors = []
     for source in source_files:
@@ -331,17 +545,32 @@ def build_inventory() -> dict:
         api_operation,
         entry_functions=api_roots,
     )
-    api_functions = {
+    direct_api_functions = {
         (function["source"], function["qualname"])
         for function in api_graph["reachable_functions"]
     }
+    threadpool_callback_roots, threadpool_callback_edges = _api_threadpool_callback_roots(
+        api_closure["source_files"], api_roots
+    )
+    if threadpool_callback_roots:
+        expanded_api_graph = worker_function_reachability._operation_graph(
+            api_operation,
+            entry_functions=[*api_roots, *threadpool_callback_roots],
+        )
+    else:
+        expanded_api_graph = api_graph
+    api_functions = {
+        (function["source"], function["qualname"])
+        for function in expanded_api_graph["reachable_functions"]
+    }
+    api_threadpool_functions = api_functions - direct_api_functions
     api_function_sources = {
         f"{function['module']}:{function['qualname']}": function["source"]
-        for function in api_graph["reachable_functions"]
+        for function in expanded_api_graph["reachable_functions"]
     }
     api_dynamic_targets = {
         (api_function_sources[edge["callee"]], edge["callee"].partition(":")[2])
-        for edge in api_graph["dynamic_dispatch_edges"]
+        for edge in expanded_api_graph["dynamic_dispatch_edges"]
         if edge["callee"] in api_function_sources
     }
 
@@ -357,6 +586,7 @@ def build_inventory() -> dict:
         site_id = site["id"]
         source_scope = (site["source"], site["scope"])
         api_reached = source_scope in api_functions
+        api_threadpool_reached = source_scope in api_threadpool_functions
         worker_site = worker_sites.get(site_id)
         worker_refs = worker_site["statically_reachable_operations"] if worker_site else []
         if api_reached and worker_refs:
@@ -371,7 +601,11 @@ def build_inventory() -> dict:
 
         labels = []
         if api_reached:
-            labels.append("gateway_route_static_call_path")
+            labels.append(
+                "gateway_route_starlette_threadpool_callback_path"
+                if api_threadpool_reached
+                else "gateway_route_static_call_path"
+            )
             if source_scope in api_dynamic_targets:
                 labels.append("gateway_path_includes_registered_dynamic_dispatch")
         else:
@@ -415,8 +649,13 @@ def build_inventory() -> dict:
         )},
         "api_route_root_count": len(api_roots),
         "api_static_function_count": len(api_functions),
+        "api_verified_threadpool_callback_edge_count": len(threadpool_callback_edges),
         "api_static_sql_site_count": sum(record["api_static_reachability"] == "linked" for record in records),
-        "api_dynamic_dispatch_edge_count": len(api_graph["dynamic_dispatch_edges"]),
+        "api_threadpool_callback_sql_site_count": sum(
+            "gateway_route_starlette_threadpool_callback_path" in record["review_labels"]
+            for record in records
+        ),
+        "api_dynamic_dispatch_edge_count": len(expanded_api_graph["dynamic_dispatch_edges"]),
         "api_unresolved_route_registration_count": len(unresolved_registrations),
         "api_dynamic_import_site_count": dynamic_import_count,
         "worker_operation_root_count": worker_sql["summary"]["operation_roots"],
@@ -430,7 +669,7 @@ def build_inventory() -> dict:
     isolation_flags = role_contract["isolated_mode_defaults"]["feature_variables"]
 
     return {
-        "version": 1,
+        "version": 2,
         "generated_by": "scripts/runtime_role_attribution.py",
         "scope": (
             "Conservative static attribution of direct Python SQL execution sites to source-registered Gateway route handlers and the existing supervisor worker operation graphs. "
@@ -441,7 +680,8 @@ def build_inventory() -> dict:
         "summary": summary,
         "process_and_credential_policy": role_contract,
         "api_roots": api_roots,
-        "api_dynamic_dispatch_edges": api_graph["dynamic_dispatch_edges"],
+        "api_dynamic_dispatch_edges": expanded_api_graph["dynamic_dispatch_edges"],
+        "api_verified_threadpool_callback_edges": threadpool_callback_edges,
         "api_import_closure_review": {
             "source_file_count": len(api_closure["source_files"]),
             "unresolved_local_modules": api_closure["unresolved_local_modules"],

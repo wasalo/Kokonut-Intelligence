@@ -1,10 +1,10 @@
 {
   "version": 1,
   "reviewed": "2026-11-01",
-  "purpose": "Source inventory of every allowlisted scheduler module, isolated worker, and event handler; this is not an authorization or RLS policy.",
+  "purpose": "Source inventory of every allowlisted scheduler module, isolated worker, event handler, and signed manual CLI path; this is not an authorization or RLS policy.",
   "shared_boundary": {
-    "database_identity": "The scheduler control plane retains configured runtime PG_USER and PG_PASSWORD. Scheduled child processes receive only exact source-controlled worker credentials when mapped. Event dispatch uses migration 648 bounded queue/receipt functions through a dedicated login; notification delivery uses migration 647 bounded claim/completion functions through its own login; freshness and ClickHouse delivery use their migration 645/646 worker paths. These dedicated paths are opt-in and pause or fail closed when disabled; they do not fall back to shared-runtime writes. Event handlers receive only exact mapped handler identities, and configured notification destinations require the migration-417 enqueue login/function. Other scheduled jobs and handlers still use the shared runtime database identity. The NOI snapshot, current-weather, weather-forecast, climate, market-data, sensor-ingestion, remote-sensing, and EAS modules use separately named worker DSNs and exact secret mappings. Migrations 436, 643, 644, and 683 retain the documented dedicated global/indexer/export boundaries.",
-    "signed_tenant_context": "Migration 405 and services.common.tenant_context provide signed worker context. Scheduler dispatch and the EventBus parent do not establish it. The migration-648 dispatcher is a global control-plane identity and passes only exact mapped handler credentials; each tenant-scoped handler establishes its own signed context. The sensor-anomaly handler uses dedicated credentials and signed transaction context through migrations 405-414, and the four cache handlers use the cache_invalidation worker through migrations 415-416 when enabled. Notification enqueue uses migration 417 through its distinct global function identity, not a tenant grant. Migrations 418-419 keep restricted function ACLs private. Migrations 425-427 add signed location-scoped NOI/weather operations; 429 climate; 431 sensor ingestion; 432 remote sensing; 599 credit adjustment. Migrations 430, 433, 436, 643, 644, 645, 647, 648, and 683 define their documented bounded global control-plane operations without claiming farm context. Disabled isolated event, notification, freshness, and ClickHouse paths do not use a shared-runtime fallback.",
+    "database_identity": "The scheduler control plane retains configured runtime PG_USER and PG_PASSWORD. Scheduled child processes receive only exact source-controlled worker credentials when mapped. Event dispatch uses migration 648 bounded queue/receipt functions through a dedicated login; notification delivery uses migration 647 bounded claim/completion functions through its own login; freshness and ClickHouse delivery use their migration 645/646 worker paths. These dedicated paths are opt-in and pause or fail closed when disabled; they do not fall back to shared-runtime writes. Event handlers receive only exact mapped handler identities, and configured notification destinations require the migration-417 enqueue login/function. Other scheduled jobs and handlers still use the shared runtime database identity. The sensor_anomaly worker key supplies KOKONUT_SENSOR_ANOMALY_DATABASE_URL and KOKONUT_SENSOR_ANOMALY_WORKER_CREDENTIAL to kokonut_worker_login; signed sensor anomaly, baseline, and mock-cleanup calls use that same mapped identity. The NOI snapshot, current-weather, weather-forecast, climate, market-data, sensor-ingestion, remote-sensing, and EAS modules use separately named worker DSNs and exact secret mappings. Migrations 436, 643, 644, and 683 retain the documented dedicated global/indexer/export boundaries.",
+    "signed_tenant_context": "Migration 405 and services.common.tenant_context provide signed worker context. Scheduler dispatch and the EventBus parent do not establish it. The migration-648 dispatcher is a global control-plane identity and passes only exact mapped handler credentials; each tenant-scoped handler establishes its own signed context. The sensor-anomaly handler and its manual anomaly-replay, baseline, and mock-cleanup paths establish sensor_reading/process scope with the sensor_anomaly credential through migrations 405-414 and 729-731; migrations 729 and 730 use separate NOLOGIN SECURITY DEFINER owner roles. Migration 732 removes shared runtime and worker-execution direct sensor_alert DML while retaining runtime SELECT. The four cache handlers use the cache_invalidation worker through migrations 415-416 when enabled. Notification enqueue uses migration 417 through its distinct global function identity, not a tenant grant. Migrations 418-419 keep restricted function ACLs private. Migrations 425-427 add signed location-scoped NOI/weather operations; 429 climate; 431 sensor ingestion; 432 remote sensing; 599 credit adjustment. Migrations 430, 433, 436, 643, 644, 645, 647, 648, and 683 define their documented bounded global control-plane operations without claiming farm context. Disabled isolated event, notification, freshness, and ClickHouse paths do not use a shared-runtime fallback.",
     "module_argument_validation": "Static module-specific operation schemas validate command_args before schedule activation, run-now, generated job plans, scheduler-allowlisted code-owned job runs, and worker subprocess creation. Unsupported manual/destructive operations and source-less recurring sensor ingestion fail closed; existing task rows are not rewritten.",
     "deployment_effect": "Inventory only; it does not change grants, activate schedules, or enable RLS."
   },
@@ -102,48 +102,6 @@
         "services/export/dataset_refresh.py",
         "services/analytics/reporting_reader.py",
         "services/migration/analytics_role.py"
-      ]
-    },
-    {
-      "module": "services.ingestion.anomaly_detector",
-      "scope": "The explicit-location manual CLI remains available. The scheduled JobSpec now targets a default-off signed replay worker; when disabled, Prefect retains this legacy per-location scan as a compatibility fallback. Baseline comparison and ML operations remain on the legacy CLI and require an explicit location or --all-locations; --list-rules remains an explicit global read.",
-      "reads": [
-        "public.alert_rule",
-        "public.sensor_reading",
-        "public.sensor_device",
-        "public.sensor_type",
-        "public.environmental_baseline",
-        "public.platform_event"
-      ],
-      "writes": [
-        "public.sensor_anomaly_effect",
-        "public.sensor_alert",
-        "public.mrv_claim",
-        "public.ingestion_log",
-        "public.platform_event",
-        "public.notification_outbox",
-        "public.actuation_log"
-      ],
-      "external_effects": [
-        "Scheduled CLI mode can send email and Directus notifications; event mode queues notifications durably. Actuation is recorded for later approval/execution in PostgreSQL; this module does not publish MQTT commands."
-      ],
-      "idempotency": "The legacy scheduled fallback remains at-least-once. The default-off Kernel replay worker selects only durable source events with an enabled rule lacking a location-bound effect receipt, then delegates each event to the existing per-reading/rule idempotent handler. No duplicate event is emitted.",
-      "retry_boundary": "The legacy fallback can repeat readings and direct provider notification remains at-least-once. The signed replay path is bounded to a 24-hour event window and 100 events per invocation; each event commits independently through the existing worker. Failed events remain eligible for a later scheduled retry, while committed receipts suppress duplicate effects. Feature-off retains the legacy route; credentials and candidate rollout remain separate gates.",
-      "sources": [
-        "docs/refactor/event-handler-concurrency.md",
-        "schemas/postgres/081_oracle_infrastructure.sql",
-        "schemas/postgres/375_notification_outbox.sql",
-        "schemas/postgres/649_signed_sensor_anomaly_replay_inventory.sql",
-        "scripts/check-sensor-anomaly-worker-delivery-disposable.py",
-        "services/core/jobs.py",
-        "services/events/notification_outbox.py",
-        "services/flows/anomaly_detection.py",
-        "services/ingestion/anomaly_detector.py",
-        "services/ingestion/mqtt_actuator.py",
-        "services/ingestion/sensor_anomaly_scan_worker.py",
-        "services/ingestion/sensor_anomaly_worker.py",
-        "services/security/scheduled_command_contracts.py",
-        "tests/test_sensor_anomaly_scan_worker.py"
       ]
     },
     {
@@ -658,7 +616,7 @@
     {
       "module": "services.ingestion.sensor_anomaly_scan_worker",
       "worker_key": "sensor_anomaly",
-      "scope": "Default-off scheduled replay requires one explicit --location-id. Migration 649 lists only actual sensor_reading source events for the matching signed location, device, sensor type, and enabled rule; the event payload selectors and source reading must agree. The inventory is bounded to the preceding 24 hours and at most 100 readings per call. Each event is delegated to the existing signed event handler. Manual baseline/ML and source-less historical scans remain on the legacy CLI.",
+      "scope": "Default-off scheduled replay requires one explicit --location-id. Migration 649 lists only actual sensor_reading source events for the matching signed location, device, sensor type, and enabled rule; event payload selectors and source rows must agree. Inventory is bounded to the preceding 24 hours and at most 100 readings per call. The scheduler returns skipped while isolated_sensor_anomaly_scan_worker is disabled instead of invoking a shared-runtime compatibility scan. The manual anomaly_detector CLI remains signed; its optional --sensor filter uses migration 731's exact-device inventory. Baseline evaluation and mock cleanup have separately mapped signed manual paths.",
       "reads": [
         "public.alert_rule",
         "public.platform_event",
@@ -680,7 +638,34 @@
         "No provider call in the scanner; event handling queues notification intents and approval-required actuation intents for separate workers/review."
       ],
       "idempotency": "Migration 649 returns one canonical event per reading only while at least one current enabled device rule lacks a location-bound receipt. The existing worker commits the alert/claim/notification/actuation intent and per-reading/rule receipts atomically for each event. Duplicate event rows do not consume multiple batch slots.",
-      "retry_boundary": "The inventory function is read-only and enforces signed location equality, a 24-hour maximum lookback, and a 1\u2013100 batch limit. Each event is processed in its own worker transaction; a failed event remains eligible for retry, and previous committed events are suppressed by receipts. The feature defaults off and the scheduler falls back to the legacy per-location job until worker credentials, grant, migration rollout, and schedule reconciliation are completed.",
+      "retry_boundary": "The inventory function is read-only and enforces signed location equality, a 24-hour maximum lookback, and a 1\u2013100 batch limit. Each event is processed in its own worker transaction; failed events remain eligible for retry and committed receipts suppress duplicates. The scheduler skips while KOKONUT_FEATURE_ISOLATED_SENSOR_ANOMALY_SCAN_WORKER defaults false; activation still requires worker credentials/grants, candidate rollout, and schedule reconciliation. Manual replay, baseline, and cleanup operations have no feature-flag gate and require their mapped worker configuration and signed SQL grants.",
+      "cli_entrypoints": [
+        "python3 -m services.ingestion.sensor_anomaly_scan_worker --location-id UUID [--since ISO-8601] [--batch-size 1..100]"
+      ],
+      "worker_identity": {
+        "worker_key": "sensor_anomaly",
+        "database_login": "kokonut_worker_login",
+        "database_url_env": "KOKONUT_SENSOR_ANOMALY_DATABASE_URL",
+        "credential_env": "KOKONUT_SENSOR_ANOMALY_WORKER_CREDENTIAL",
+        "signed_scope": "sensor_reading/process for the exact location",
+        "security_definer_owner_roles": [
+          "kokonut_anomaly_read_owner"
+        ]
+      },
+      "feature_flags": [
+        {
+          "name": "isolated_sensor_anomaly_scan_worker",
+          "environment_variable": "KOKONUT_FEATURE_ISOLATED_SENSOR_ANOMALY_SCAN_WORKER",
+          "default": false
+        }
+      ],
+      "sql_functions": [
+        {
+          "name": "kokonut_security.list_sensor_anomaly_events_since",
+          "signature": "(UUID, TIMESTAMPTZ, INTEGER)",
+          "migration": 649
+        }
+      ],
       "sources": [
         "services/ingestion/sensor_anomaly_scan_worker.py",
         "services/ingestion/sensor_anomaly_worker.py",
@@ -1217,12 +1202,214 @@
       ]
     }
   ],
+  "manual_signed_operations": [
+    {
+      "operation": "sensor_anomaly_manual_replay",
+      "entrypoint": "services.ingestion.anomaly_detector:run_check",
+      "cli_entrypoints": [
+        "python3 -m services.ingestion.anomaly_detector --location-id UUID [--sensor UUID] [--since ISO-8601]",
+        "python3 -m services.ingestion.anomaly_detector --all-locations [--sensor UUID] [--since ISO-8601]"
+      ],
+      "scope": "Manual event replay requires exactly one explicit --location-id or --all-locations selector. The explicit aggregate mode resolves active Kokonut Network locations first, then establishes one signed worker scope per location. --sensor optionally narrows inventory to that exact device through migration 731; without it, migration 649 lists eligible source events for the signed location. The input lookback is limited to 24 hours (one hour by default), and each location requests at most 100 events.",
+      "worker_identity": {
+        "worker_key": "sensor_anomaly",
+        "database_login": "kokonut_worker_login",
+        "database_url_env": "KOKONUT_SENSOR_ANOMALY_DATABASE_URL",
+        "credential_env": "KOKONUT_SENSOR_ANOMALY_WORKER_CREDENTIAL",
+        "signed_scope": "sensor_reading/process for each exact location",
+        "security_definer_owner_roles": [
+          "kokonut_anomaly_read_owner"
+        ]
+      },
+      "feature_flags": [],
+      "sql_functions": [
+        {
+          "name": "kokonut_security.list_sensor_anomaly_events_since",
+          "signature": "(UUID, TIMESTAMPTZ, INTEGER)",
+          "migration": 649
+        },
+        {
+          "name": "kokonut_security.list_sensor_anomaly_events_for_sensor_since",
+          "signature": "(UUID, UUID, TIMESTAMPTZ, INTEGER)",
+          "migration": 731
+        }
+      ],
+      "reads": [
+        "public.alert_rule",
+        "public.location",
+        "public.platform_event",
+        "public.sensor_anomaly_effect",
+        "public.sensor_device",
+        "public.sensor_reading",
+        "public.sensor_type"
+      ],
+      "writes": [
+        "public.sensor_anomaly_effect",
+        "public.sensor_alert",
+        "public.mrv_claim",
+        "public.ingestion_log",
+        "public.platform_event",
+        "public.notification_outbox",
+        "public.actuation_log"
+      ],
+      "external_effects": [
+        "No provider call in event replay; the delegated event handler creates durable notification intents and approval-required actuation intents."
+      ],
+      "idempotency": "The event inventory returns one canonical event per reading and enabled rule only while a signed location-bound receipt is absent. The handler commits each event's alert, audit, event, notification, optional claim/actuation intent, and per-reading/rule receipt atomically; replayed events are suppressed by those receipts.",
+      "retry_boundary": "Inventory reads are limited to the previous 24 hours and 1-100 events. Each event commits independently; a failed event remains eligible for retry and prior committed receipts suppress duplicate effects. This manual CLI has no feature-flag gate; it still requires the sensor_anomaly worker DSN/credential and signed grants. Notification provider delivery remains at-least-once, and actuation remains approval-gated.",
+      "sources": [
+        "services/ingestion/anomaly_detector.py",
+        "services/ingestion/sensor_anomaly_worker.py",
+            "services/core/jobs.py",
+        "services/common/tenant_context.py",
+        "services/common/worker_database.py",
+        "services/common/worker_environment.py",
+        "services/events/handler_runner.py",
+        "schemas/postgres/405_signed_worker_tenant_context.sql",
+        "schemas/postgres/649_signed_sensor_anomaly_replay_inventory.sql",
+        "schemas/postgres/731_sensor_anomaly_sensor_event_inventory.sql",
+        "schemas/postgres/732_runtime_sensor_alert_read_only.sql",
+        "tests/test_anomaly_detector.py",
+        "tests/test_sensor_anomaly_scan_worker.py"
+      ]
+    },
+    {
+      "operation": "sensor_baseline_manual_check",
+      "entrypoint": "services.ingestion.anomaly_detector:run_baseline_check",
+      "cli_entrypoints": [
+        "python3 -m services.ingestion.anomaly_detector --baseline-check --location-id UUID",
+        "python3 -m services.ingestion.anomaly_detector --baseline-check --all-locations"
+      ],
+      "scope": "Manual baseline evaluation requires exactly one --location-id or an explicit --all-locations fanout over active Kokonut Network locations. Each target is evaluated through the sensor_anomaly worker with signed sensor_reading/process context; a shared-runtime query resolves the explicit all-locations target list.",
+      "worker_identity": {
+        "worker_key": "sensor_anomaly",
+        "database_login": "kokonut_worker_login",
+        "database_url_env": "KOKONUT_SENSOR_ANOMALY_DATABASE_URL",
+        "credential_env": "KOKONUT_SENSOR_ANOMALY_WORKER_CREDENTIAL",
+        "signed_scope": "sensor_reading/process for each exact location",
+        "security_definer_owner_roles": [
+          "kokonut_sensor_baseline_owner"
+        ]
+      },
+      "feature_flags": [],
+      "sql_functions": [
+        {
+          "name": "kokonut_security.evaluate_sensor_baselines",
+          "signature": "(UUID)",
+          "migration": 729
+        },
+        {
+          "name": "kokonut_security.enqueue_sensor_baseline_notification_intent",
+          "signature": "(UUID, UUID, UUID, UUID, TEXT, TEXT, JSONB)",
+          "migration": 729
+        }
+      ],
+      "reads": [
+        "kokonut_security.sensor_baseline_alert_effect",
+        "public.environmental_baseline",
+        "public.sensor_reading",
+        "public.sensor_device",
+        "public.sensor_type",
+        "public.alert_rule",
+        "public.location",
+        "public.sensor_alert",
+        "public.platform_event",
+        "public.notification_outbox"
+      ],
+      "writes": [
+        "kokonut_security.sensor_baseline_alert_effect",
+        "public.sensor_alert",
+        "public.platform_event",
+        "public.notification_outbox"
+      ],
+      "external_effects": [
+        "No provider call; allowlisted destination payloads are enqueued for separate notification delivery."
+      ],
+      "idempotency": "Migration 729 stores an effect receipt keyed by baseline and latest source reading. Re-evaluating that pair returns the committed alert/event identifiers without creating another alert; notification intents use stable source-event/channel/destination identity and reject conflicting content.",
+      "retry_boundary": "Each location runs in one worker transaction: baseline evaluation, alert/event/receipt writes, and notification intents commit together. A failure rolls the location back; a retry is safe for a committed baseline/reading pair. The manual CLI has no feature-flag gate and all-locations mode opens independent per-location worker transactions. Notification delivery remains a separate at-least-once boundary.",
+      "sources": [
+        "services/ingestion/anomaly_detector.py",
+        "services/ingestion/sensor_baseline_worker.py",
+        "services/common/tenant_context.py",
+        "services/common/worker_database.py",
+        "services/events/notification_outbox.py",
+        "services/core/jobs.py",
+        "schemas/postgres/405_signed_worker_tenant_context.sql",
+        "schemas/postgres/729_signed_sensor_baseline_worker.sql",
+        "schemas/postgres/732_runtime_sensor_alert_read_only.sql",
+        "scripts/check-sensor-anomaly-alert-write-disposable.py",
+        "tests/test_sensor_baseline_worker_contract.py"
+      ]
+    },
+    {
+      "operation": "mock_sensor_manual_cleanup",
+      "entrypoint": "services.ingestion.mock_sensors:cleanup",
+      "cli_entrypoints": [
+        "python3 -m services.ingestion.mock_sensors --cleanup --location-id UUID"
+      ],
+      "scope": "Manual cleanup requires one exact --location-id. The sensor_anomaly worker installs signed sensor_reading/process context before bounded functions delete alerts for devices still marked mock_sensor_demo=true and readings still marked mock=true for those devices.",
+      "worker_identity": {
+        "worker_key": "sensor_anomaly",
+        "database_login": "kokonut_worker_login",
+        "database_url_env": "KOKONUT_SENSOR_ANOMALY_DATABASE_URL",
+        "credential_env": "KOKONUT_SENSOR_ANOMALY_WORKER_CREDENTIAL",
+        "signed_scope": "sensor_reading/process for the exact location",
+        "security_definer_owner_roles": [
+          "kokonut_sensor_mock_cleanup_owner"
+        ]
+      },
+      "feature_flags": [],
+      "sql_functions": [
+        {
+          "name": "kokonut_security.delete_mock_sensor_alerts",
+          "signature": "(UUID)",
+          "migration": 730
+        },
+        {
+          "name": "kokonut_security.delete_mock_sensor_readings",
+          "signature": "(UUID)",
+          "migration": 730
+        }
+      ],
+      "reads": [
+        "public.sensor_device",
+        "public.sensor_alert",
+        "public.sensor_reading"
+      ],
+      "writes": [
+        "public.sensor_alert",
+        "public.sensor_reading"
+      ],
+      "external_effects": [],
+      "idempotency": "Each bounded deletion is idempotent: the first successful call removes only matching demo rows and subsequent calls return zero. SQL checks exact signed location and the current mock markers at deletion time.",
+      "retry_boundary": "Alert deletion and reading deletion use separate worker connections and transactions, in that order; the alert deletion may remain committed if the reading deletion fails. Re-running cleanup safely repeats both functions. There is no feature-flag gate; migration 730 and the sensor_anomaly worker DSN/credential and signed grant are required. Migration 732 removes direct shared-runtime sensor_alert DML.",
+      "sources": [
+        "services/ingestion/mock_sensors.py",
+        "services/ingestion/sensor_mock_cleanup_worker.py",
+        "services/common/tenant_context.py",
+        "services/common/worker_database.py",
+        "schemas/postgres/405_signed_worker_tenant_context.sql",
+        "schemas/postgres/730_signed_mock_sensor_cleanup.sql",
+        "schemas/postgres/732_runtime_sensor_alert_read_only.sql",
+        "scripts/check-sensor-anomaly-alert-write-disposable.py",
+        "tests/test_mock_sensors_cleanup.py",
+        "tests/test_sensor_mock_cleanup_worker.py"
+      ]
+    }
+  ],
   "event_handlers": [
     {
       "module": "services.ingestion.anomaly_detector",
       "function": "handle_sensor_reading",
       "event_type": "sensor_reading",
-      "scope": "One event/source reading and its location. The handler receives a dedicated sensor_anomaly database URL and credential through exact source-controlled routing, then establishes signed transaction context and uses bounded database functions through migrations 405-414. It has no shared-DSN fallback or direct access to protected source/effect tables.",
+      "scope": "One event/source reading and its location. The handler receives the exact sensor_anomaly database URL and credential through source-controlled routing, then establishes signed transaction context and uses bounded database functions through migrations 405\u2013414. It has no shared-DSN fallback or direct table access. Legacy direct alert and cooldown helpers fail closed. Manual anomaly replay, baseline evaluation, and mock cleanup are separately mapped signed CLI paths.",
+      "worker_identity": {
+        "worker_key": "sensor_anomaly",
+        "database_login": "kokonut_worker_login",
+        "database_url_env": "KOKONUT_SENSOR_ANOMALY_DATABASE_URL",
+        "credential_env": "KOKONUT_SENSOR_ANOMALY_WORKER_CREDENTIAL",
+        "signed_scope": "sensor_reading/process for the event location"
+      },
       "reads": [
         "public.platform_event",
         "public.sensor_reading",
@@ -1242,7 +1429,7 @@
         "public.actuation_log"
       ],
       "idempotency": "A signed per-reading/rule receipt fences the bounded effects; the handler commits its source, alert, audit, event, notification, and optional draft/actuation intents atomically before the parent worker stores its delivery receipt.",
-      "retry_boundary": "The handler may run again after crash or lease expiry; its source-reading/rule effect receipt suppresses duplicate database effects, while notification delivery remains at-least-once.",
+      "retry_boundary": "The handler may run again after crash or lease expiry; its source-reading/rule receipt suppresses duplicate database effects. It commits alert, audit, event, notification, and optional draft/actuation intents atomically before the parent delivery receipt. Notification delivery remains at-least-once; optional actuation remains approval-gated. Migration 732 removes direct sensor_alert DML from shared application roles; signed function writes remain bounded.",
       "sources": [
         "services/ingestion/anomaly_detector.py",
         "services/ingestion/sensor_anomaly_worker.py",
@@ -1266,7 +1453,9 @@
         "schemas/postgres/413_sensor_anomaly_alert_write.sql",
         "schemas/postgres/414_sensor_anomaly_worker_delivery.sql",
         "docs/refactor/event-handler-concurrency.md",
-        "docs/refactor/sensor-anomaly-delivery.md"
+        "docs/refactor/sensor-anomaly-delivery.md",
+        "schemas/postgres/732_runtime_sensor_alert_read_only.sql",
+        "scripts/check-sensor-anomaly-alert-write-disposable.py"
       ]
     },
     {

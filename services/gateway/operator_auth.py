@@ -383,6 +383,19 @@ def create_provider() -> OIDCOperatorProvider | None:
 
 def auth_route_policy(method: str, path: str, *, enabled: bool) -> dict | None:
     """Return middleware policy only for the small, explicit OIDC endpoint set."""
+    environmental_baseline_capture_match = re.fullmatch(
+        r"/operator/api/environmental-baselines/([0-9a-fA-F-]{36})/captures", path
+    )
+    if environmental_baseline_capture_match and method.upper() == "POST" and enabled:
+        return {
+            "resource": "environmental_baseline",
+            "action": "create",
+            "public": False,
+            "location_id": environmental_baseline_capture_match.group(1),
+            "scope_required": True,
+            "operator_auth": True,
+        }
+
     metric_value_compute_match = re.fullmatch(
         r"/operator/api/metrics/([0-9a-fA-F-]{36})/values", path
     )
@@ -5992,6 +6005,9 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
         register_energy_monitoring_capture_routes,
     )
     from services.gateway.energy_monitoring_routes import register_energy_monitoring_routes
+    from services.gateway.environmental_baseline_routes import (
+        register_environmental_baseline_routes,
+    )
     from services.gateway.extension_learning_routes import (
         register_extension_learning_routes,
     )
@@ -6041,6 +6057,7 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
     register_geostatistics_routes(router, provider, run_in_threadpool, psycopg2)
     register_energy_monitoring_routes(router, provider, run_in_threadpool, psycopg2)
     register_energy_monitoring_capture_routes(router, provider, run_in_threadpool, psycopg2)
+    register_environmental_baseline_routes(router, provider, run_in_threadpool, psycopg2)
     register_waste_management_routes(router, provider, run_in_threadpool, psycopg2)
     register_landscape_conservation_routes(router, provider, run_in_threadpool, psycopg2)
     register_pollinator_health_routes(router, provider, run_in_threadpool, psycopg2)

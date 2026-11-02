@@ -89,12 +89,6 @@ _OPTIONS: dict[str, dict[str, str | None]] = {
         "--from-block": "block",
         "--to-block": "block",
     },
-    "services.ingestion.anomaly_detector": {
-        "--sensor": "uuid",
-        "--since": "datetime",
-        "--baseline-check": None,
-        "--location-id": "uuid",
-    },
     "services.metrics": {
         "--compute": None,
         "--metric": "metric_key",
@@ -342,12 +336,6 @@ def _validate_operation(module_path: str, values: dict[str, str | bool]) -> None
             raise _reject("Baal block range requires both --from-block and --to-block")
         if has_start and int(str(values["--from-block"])) > int(str(values["--to-block"])):
             raise _reject("Baal block range start must not exceed its end")
-
-    elif module_path == "services.ingestion.anomaly_detector":
-        if "--location-id" not in options:
-            raise _reject("scheduled anomaly detection requires one explicit location")
-        if "--baseline-check" in options and options != {"--baseline-check", "--location-id"}:
-            raise _reject("baseline check cannot be combined with sensor-window options")
 
     elif module_path == "services.metrics":
         if "--compute" not in options:

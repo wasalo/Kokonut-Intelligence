@@ -256,17 +256,20 @@ def test_operator_probe_requires_both_tenants_and_a_success_result():
         "runtime_scoped_write_policy": {
             "private_relations_expected": len(runtime_role._RUNTIME_PRIVATE_TABLES),
             "mutation_denied_relations_expected": len(runtime_role._RUNTIME_MUTATION_TABLES),
+            "mutation_denied_sequences_expected": 0,
             "private_relations_verified": len(runtime_role._RUNTIME_PRIVATE_TABLES),
             "mutation_denied_relations_verified": len(runtime_role._RUNTIME_MUTATION_TABLES),
+            "mutation_denied_sequences_verified": 0,
             "direct_table_privilege_violations": 0,
             "direct_column_privilege_violations": 0,
+            "direct_sequence_privilege_violations": 0,
             "farm_activity_ledger_readable": 1,
             "service_registry_read_only_verified": 1,
-            "append_only_relations_expected": 2,
-            "append_only_relations_verified": 2,
-            "append_only_select_insert_verified": 2,
-            "append_only_mutations_denied": 2,
-            "append_only_column_grants_denied": 2,
+            "append_only_relations_expected": len(runtime_role._RUNTIME_APPEND_ONLY_TABLES),
+            "append_only_relations_verified": len(runtime_role._RUNTIME_APPEND_ONLY_TABLES),
+            "append_only_select_insert_verified": len(runtime_role._RUNTIME_APPEND_ONLY_TABLES),
+            "append_only_mutations_denied": len(runtime_role._RUNTIME_APPEND_ONLY_TABLES),
+            "append_only_column_grants_denied": len(runtime_role._RUNTIME_APPEND_ONLY_TABLES),
         },
         "runtime_api_key_policy": {
             "select_columns": [
@@ -278,11 +281,11 @@ def test_operator_probe_requires_both_tenants_and_a_success_result():
             "verified_by_provisioner": True,
         },
         "runtime_append_only_policy": {
-            "relations_expected": 2,
-            "relations_verified": 2,
-            "select_insert_verified": 2,
-            "mutations_denied": 2,
-            "column_grants_denied": 2,
+            "relations_expected": len(runtime_role._RUNTIME_APPEND_ONLY_TABLES),
+            "relations_verified": len(runtime_role._RUNTIME_APPEND_ONLY_TABLES),
+            "select_insert_verified": len(runtime_role._RUNTIME_APPEND_ONLY_TABLES),
+            "mutations_denied": len(runtime_role._RUNTIME_APPEND_ONLY_TABLES),
+            "column_grants_denied": len(runtime_role._RUNTIME_APPEND_ONLY_TABLES),
             "verified_by_provisioner": True,
         },
     }
@@ -298,6 +301,24 @@ def test_operator_probe_requires_both_tenants_and_a_success_result():
     }
     with pytest.raises(ValueError, match="scoped-write ACL"):
         parse_operator_scope_probe(json.dumps(stale_count))
+    stale_sequence_count = {
+        **good,
+        "runtime_scoped_write_policy": {
+            **good["runtime_scoped_write_policy"],
+            "mutation_denied_sequences_verified": 1,
+        },
+    }
+    with pytest.raises(ValueError, match="scoped-write ACL"):
+        parse_operator_scope_probe(json.dumps(stale_sequence_count))
+    sequence_violation = {
+        **good,
+        "runtime_scoped_write_policy": {
+            **good["runtime_scoped_write_policy"],
+            "direct_sequence_privilege_violations": 1,
+        },
+    }
+    with pytest.raises(ValueError, match="scoped-write ACL"):
+        parse_operator_scope_probe(json.dumps(sequence_violation))
     stale_service_registry = {
         **good,
         "runtime_scoped_write_policy": {
@@ -350,17 +371,20 @@ def test_operator_probe_counts_insert_only_relations_as_effective_dml():
         "runtime_scoped_write_policy": {
             "private_relations_expected": len(runtime_role._RUNTIME_PRIVATE_TABLES),
             "mutation_denied_relations_expected": len(runtime_role._RUNTIME_MUTATION_TABLES),
+            "mutation_denied_sequences_expected": 0,
             "private_relations_verified": len(runtime_role._RUNTIME_PRIVATE_TABLES),
             "mutation_denied_relations_verified": len(runtime_role._RUNTIME_MUTATION_TABLES),
+            "mutation_denied_sequences_verified": 0,
             "direct_table_privilege_violations": 0,
             "direct_column_privilege_violations": 0,
+            "direct_sequence_privilege_violations": 0,
             "farm_activity_ledger_readable": 1,
             "service_registry_read_only_verified": 1,
-            "append_only_relations_expected": 2,
-            "append_only_relations_verified": 2,
-            "append_only_select_insert_verified": 2,
-            "append_only_mutations_denied": 2,
-            "append_only_column_grants_denied": 2,
+            "append_only_relations_expected": len(runtime_role._RUNTIME_APPEND_ONLY_TABLES),
+            "append_only_relations_verified": len(runtime_role._RUNTIME_APPEND_ONLY_TABLES),
+            "append_only_select_insert_verified": len(runtime_role._RUNTIME_APPEND_ONLY_TABLES),
+            "append_only_mutations_denied": len(runtime_role._RUNTIME_APPEND_ONLY_TABLES),
+            "append_only_column_grants_denied": len(runtime_role._RUNTIME_APPEND_ONLY_TABLES),
         },
         "runtime_api_key_policy": {
             "select_columns": ["id", "key_hash", "key_prefix", "role_id", "scopes", "expires_at", "is_active"],
@@ -368,9 +392,12 @@ def test_operator_probe_counts_insert_only_relations_as_effective_dml():
             "verified_by_provisioner": True,
         },
         "runtime_append_only_policy": {
-            "relations_expected": 2, "relations_verified": 2,
-            "select_insert_verified": 2, "mutations_denied": 2,
-            "column_grants_denied": 2, "verified_by_provisioner": True,
+            "relations_expected": len(runtime_role._RUNTIME_APPEND_ONLY_TABLES),
+            "relations_verified": len(runtime_role._RUNTIME_APPEND_ONLY_TABLES),
+            "select_insert_verified": len(runtime_role._RUNTIME_APPEND_ONLY_TABLES),
+            "mutations_denied": len(runtime_role._RUNTIME_APPEND_ONLY_TABLES),
+            "column_grants_denied": len(runtime_role._RUNTIME_APPEND_ONLY_TABLES),
+            "verified_by_provisioner": True,
         },
         "runtime_public_relation_acl": [
             {

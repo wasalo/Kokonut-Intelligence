@@ -45,6 +45,20 @@ def test_delivery_failure_records_only_exception_class_and_continues(monkeypatch
     assert "secret URL and token" not in str(warning.call_args)
 
 
+def test_delivery_progress_callback_brackets_each_bounded_provider_attempt(monkeypatch):
+    events = []
+    monkeypatch.setattr(notification_outbox, "_deliver", lambda _row: events.append("deliver"))
+
+    result = notification_outbox.deliver_claimed_batch(
+        [_row("one")],
+        lambda _row, **_kwargs: events.append("finish") or "succeeded",
+        progress_callback=lambda: events.append("pulse"),
+    )
+
+    assert result == {"claimed": 1, "delivered": 1, "failed": 0, "lease_lost": 0}
+    assert events == ["pulse", "deliver", "finish", "pulse"]
+
+
 def test_completion_database_failure_propagates_without_processing_next_row(monkeypatch):
     rows = [_row("first"), _row("second")]
     deliver = MagicMock()

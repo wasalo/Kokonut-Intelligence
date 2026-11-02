@@ -1,0 +1,104 @@
+{
+  "api_worker_split": true,
+  "candidate_legacy_production_touched": false,
+  "database_image": "postgis/postgis:16-3.4@sha256:44126d872ac91993766c341e369c539e8196614321765d36a6f1bab0419a5fa5",
+  "database_outage_recovery": {
+    "api_healthy_after_restart": true,
+    "database_healthy_after_restart": true,
+    "private_supervisor_heartbeat_after_restart": {
+      "child_files_private": true,
+      "child_shapes_valid": true,
+      "directory_private": true,
+      "file_private": true,
+      "shape_valid": true
+    },
+    "worker_degraded_state_observed": "unhealthy",
+    "worker_healthy_after_restart": true,
+    "worker_restart_count": 0
+  },
+  "host_ports_published": false,
+  "limitations": [
+    "This is a short disposable restart/recovery check, not 24-hour endurance or scale acceptance.",
+    "The internal Compose network has no Internet egress; no real providers, seeds, candidate, legacy, or production data are used.",
+    "Child heartbeat freshness shows the supervised process is responsive, not that individual tasks completed or business work succeeded.",
+    "The seed-free run verifies that shutdown leaves no active leases; it does not claim to exercise lease recovery during a long-running handler."
+  ],
+  "migration_snapshot": {
+    "app_image_matches": true,
+    "latest_migration": "schema:745_runtime_public_wellbeing_metric_summary_read_only.sql",
+    "schema_count": 736,
+    "sha256": "a09aa7b8dc2b271fa6f489f54da4e82a78beee3a0a176d69a600f264d4e96e0f",
+    "worker_image_matches": true
+  },
+  "migrations": {
+    "latest_schema_migration": "schema:745_runtime_public_wellbeing_metric_summary_read_only.sql",
+    "schemas_applied": 736,
+    "schemas_failed": 0,
+    "seed_rows": 0,
+    "source_snapshot_sha256": "a09aa7b8dc2b271fa6f489f54da4e82a78beee3a0a176d69a600f264d4e96e0f"
+  },
+  "profile": "standard",
+  "project": "kokonut-standard-recovery-44413e247c",
+  "required_schema_missing_fails_closed": true,
+  "result": "passed",
+  "runtime_network_internal": true,
+  "runtime_role": {
+    "app_database_user": "kokonut_runtime",
+    "bootstrap_profile": "runtime-admin",
+    "bootstrap_ran_explicitly_after_migrations": true,
+    "directus_reference_tables_read_only_after_initial_provision": true,
+    "directus_reference_tables_read_only_after_provisioner_reapply": true,
+    "freshness_worker_login_and_bounded_config_read_after_initial_provision": true,
+    "freshness_worker_login_and_bounded_config_read_after_provisioner_reapply": true,
+    "optional_directus_role": "provisioned",
+    "role_attributes": {
+      "bypass_rls": false,
+      "create_database": false,
+      "create_role": false,
+      "has_role_memberships": false,
+      "inherit": false,
+      "login": true,
+      "member_of_database_owner": false,
+      "owns_database": false,
+      "replication": false,
+      "superuser": false
+    },
+    "role_attributes_preserved_after_reapply": true,
+    "runtime_reference_tables_read_only_after_initial_provision": true,
+    "runtime_reference_tables_read_only_after_provisioner_reapply": true,
+    "schema_version_insert_denied_after_initial_provision": true,
+    "schema_version_insert_denied_after_provisioner_reapply": true,
+    "worker_database_user": "kokonut_runtime"
+  },
+  "shutdown": {
+    "active_work_leases_after_shutdown": 0,
+    "supervisor_heartbeat_removed": true,
+    "worker_container_stopped": true
+  },
+  "stalled_child_healthcheck": {
+    "database_healthy_after_restore": true,
+    "database_unavailable_during_probe": true,
+    "health_state": "worker_child_stalled",
+    "health_state_after_restore": "healthy",
+    "process_alive_during_stall": true,
+    "pulse_restored": true,
+    "worker": "events",
+    "worker_healthy_after_restore": true
+  },
+  "startup": {
+    "api_healthy": true,
+    "private_supervisor_heartbeat": {
+      "child_files_private": true,
+      "child_shapes_valid": true,
+      "directory_private": true,
+      "file_private": true,
+      "shape_valid": true
+    },
+    "proxy_running": true,
+    "worker_children_alive": true,
+    "worker_children_progressing": true,
+    "worker_healthy": true,
+    "worker_probe": "healthy"
+  },
+  "unsafe_admin_runtime_role_fails_before_children": true
+}

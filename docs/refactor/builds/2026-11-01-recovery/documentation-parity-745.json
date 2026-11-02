@@ -1,0 +1,42 @@
+{
+  "date": "2026-11-01",
+  "source_head": "88008a00",
+  "working_tree": "dirty",
+  "scope": "Project-facing documentation and the consolidated refactor status guide were reconciled with the migration-745 acceptance snapshot.",
+  "markdown_audit": {
+    "project_markdown_files": 417,
+    "local_file_links_checked": 10736,
+    "missing_local_file_links": 0,
+    "excluded": [".git", "node_modules", "contracts/lib"]
+  },
+  "checks": {
+    "capability_matrix": "passed: 67 rows; 24 baseline-retained, 7 deployed, 36 prepared",
+    "migration_sources": "passed: 736 ordered migration source files",
+    "git_diff_check": "passed"
+  },
+  "current_refactor_snapshot": {
+    "latest_migration": 745,
+    "native_schemas_replayed": 736,
+    "native_operator_tenant_checks_passed": 47,
+    "arm64_qemu_schemas_replayed": 736,
+    "arm64_qemu_operator_tenant_checks_passed": 47,
+    "standard_disposable_recovery": "passed",
+    "runtime_dml_tables_rls_disabled": 906,
+    "capability_rows": 67,
+    "capabilities": {
+      "baseline_retained": 24,
+      "deployed": 7,
+      "prepared": 36
+    },
+    "batches_complete": 2264,
+    "batches_open": 43,
+    "todo_checked": 836,
+    "todo_open": 39
+  },
+  "limitations": [
+    "Markdown link validation checks local file targets, not heading fragments or external URL reachability.",
+    "The runtime DML count is privilege reach, not a count of confirmed writes, leaks, or public Internet exposure.",
+    "ARM64/QEMU does not establish physical Raspberry Pi acceptance.",
+    "No candidate, legacy, or production database or role was changed by this documentation batch."
+  ]
+}

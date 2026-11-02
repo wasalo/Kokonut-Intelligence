@@ -30,13 +30,28 @@ RUNTIME_ROLE_COMPOSE = ROOT / "docker-compose.kernel-runtime-role.yml"
 DEFAULT_TIMEOUT_SECONDS = 180
 HEARTBEAT_PATH = "/var/lib/kokonut/worker-progress/supervisor.json"
 RUNTIME_REFERENCE_READ_ONLY_TABLES = (
+    "bio_ingredient_composition_reference",
+    "bio_regional_input_availability",
+    "data_freshness_config",
+    "quality_grade",
+    "readiness_dimension",
     "form_of_capital",
+    "location_baseline",
     "pillar_of_value",
     "regeneration_principle",
     "sdg",
     "solution",
     "solution_lifecycle_event",
     "time_delay",
+    "v_public_ebf_scorecard",
+    "v_public_metric_summary",
+    "v_public_wellbeing_metric_summary",
+)
+RECOVERY_LIMITATIONS = (
+    "This is a short disposable restart/recovery check, not 24-hour endurance or scale acceptance.",
+    "The internal Compose network has no Internet egress; no real providers, seeds, candidate, legacy, or production data are used.",
+    "Child heartbeat freshness shows the supervised process is responsive, not that individual tasks completed or business work succeeded.",
+    "The seed-free run verifies that shutdown leaves no active leases; it does not claim to exercise lease recovery during a long-running handler.",
 )
 
 
@@ -209,6 +224,7 @@ def _redact_secrets(value: str, environment: dict[str, str]) -> str:
         "KOKONUT_OPERATOR_AUTH_PASSWORD",
         "KOKONUT_RATE_LIMIT_MAINTENANCE_PASSWORD",
         "KOKONUT_RATE_LIMIT_MAINTENANCE_DSN",
+        "KOKONUT_DIRECTUS_RUNTIME_PASSWORD",
         "DIRECTUS_SECRET",
     ):
         secret = environment.get(secret_name, "")
@@ -218,19 +234,25 @@ def _redact_secrets(value: str, environment: dict[str, str]) -> str:
 
 
 def _heartbeat_is_removed(worker_id: str, environment: dict[str, str]) -> bool:
-    result = subprocess.run(
-        ["docker", "cp", f"{worker_id}:{HEARTBEAT_PATH}", "-"],
-        cwd=ROOT,
-        env=environment,
-        capture_output=True,
-        check=False,
-        timeout=10,
-    )
-    if result.returncode == 0:
-        return False
-    error = result.stderr.decode("utf-8", errors="replace").lower()
-    if not any(marker in error for marker in ("no such file or directory", "could not find the file")):
-        raise AcceptanceError("could not inspect heartbeat removal after worker shutdown")
+    paths = [
+        HEARTBEAT_PATH,
+        *(str(Path(HEARTBEAT_PATH).with_name(f"{worker}.json"))
+          for worker in ("scheduler", "events", "notifications")),
+    ]
+    for path in paths:
+        result = subprocess.run(
+            ["docker", "cp", f"{worker_id}:{path}", "-"],
+            cwd=ROOT,
+            env=environment,
+            capture_output=True,
+            check=False,
+            timeout=10,
+        )
+        if result.returncode == 0:
+            return False
+        error = result.stderr.decode("utf-8", errors="replace").lower()
+        if not any(marker in error for marker in ("no such file or directory", "could not find the file")):
+            raise AcceptanceError("could not inspect heartbeat removal after worker shutdown")
     return True
 
 
@@ -249,7 +271,7 @@ def _compose_command(project: str, manifest: Path) -> list[str]:
     ]
 
 
-def _compose_environment(sensor_root: Path) -> dict[str, str]:
+def _compose_environment(sensor_root: Path, project: str) -> dict[str, str]:
     # Keep Docker's connection settings but do not inherit arbitrary host
     # provider credentials into Compose interpolation or container env.
     environment = {
@@ -269,11 +291,18 @@ def _compose_environment(sensor_root: Path) -> dict[str, str]:
     runtime_password = secrets.token_urlsafe(32)
     operator_auth_password = secrets.token_urlsafe(32)
     rate_limit_maintenance_password = secrets.token_urlsafe(32)
+    freshness_password = secrets.token_urlsafe(32)
+    directus_password = secrets.token_urlsafe(32)
     environment.update(
         {
             "POSTGRES_PASSWORD": password,
             "KOKONUT_DB_ADMIN_USER": "kokonut",
             "KOKONUT_DB_ADMIN_PASSWORD": password,
+            # The recovery harness builds and removes its own app/worker
+            # images. Never retag or remove the candidate's shared local tag.
+            "KOKONUT_KERNEL_APP_IMAGE": (
+                f"kokonut-kernel-standard-recovery:{project.rsplit('-', 1)[-1]}"
+            ),
             "KOKONUT_RUNTIME_USER": "kokonut_runtime",
             "KOKONUT_RUNTIME_PASSWORD": runtime_password,
             "KOKONUT_OPERATOR_AUTH_USER": "kokonut_operator_auth",
@@ -282,6 +311,10 @@ def _compose_environment(sensor_root: Path) -> dict[str, str]:
                 "kokonut_rate_limit_maintenance_login"
             ),
             "KOKONUT_RATE_LIMIT_MAINTENANCE_PASSWORD": rate_limit_maintenance_password,
+            "KOKONUT_FRESHNESS_USER": "kokonut_freshness_login",
+            "KOKONUT_FRESHNESS_PASSWORD": freshness_password,
+            "KOKONUT_DIRECTUS_RUNTIME_USER": "kokonut_directus_runtime",
+            "KOKONUT_DIRECTUS_RUNTIME_PASSWORD": directus_password,
             "KOKONUT_ENV": "development",
             "KOKONUT_ENV_SECRETS_NOT_REQUIRED": "true",
             "KOKONUT_ALLOW_PLAINTEXT_ENV": "true",
@@ -367,7 +400,9 @@ def _isolated_compose_model(model: dict[str, Any]) -> dict[str, Any]:
         "interval": "2s",
         "timeout": "4s",
         "retries": 3,
-        "start_period": "5s",
+        # Cold imports can outlast Docker's first health window on a developer
+        # laptop even though the API starts cleanly.
+        "start_period": "30s",
     }
     _validate_split_commands(app, worker)
     return isolated
@@ -437,6 +472,22 @@ def _failure_diagnostics(
         result = _run(command, environment=environment, check=False, timeout=20)
         output = "\n".join(part for part in (result.stdout, result.stderr) if part).strip()
         outputs.append(_redact_secrets(output, environment))
+    container_ids = _run(
+        [*_compose_command(project, manifest), "ps", "--all", "-q"],
+        environment=environment,
+        check=False,
+        timeout=20,
+    ).stdout.splitlines()
+    for container_id in container_ids:
+        result = _run(
+            ["docker", "inspect", "--format", "{{json .State.Health}}", container_id],
+            environment=environment,
+            check=False,
+            timeout=20,
+        )
+        output = "\n".join(part for part in (result.stdout, result.stderr) if part).strip()
+        if output and output != "<no value>":
+            outputs.append(_redact_secrets(f"Health {container_id}: {output}", environment))
     return "\nDisposable Compose diagnostics:\n" + "\n".join(outputs)[-8000:]
 
 
@@ -642,13 +693,22 @@ def _assert_runtime_reference_read_only_boundary(
     )
     query = f"""SET ROLE kokonut_runtime;
 SELECT
+    (SELECT count(*) FROM public.bio_ingredient_composition_reference) >= 0,
+    (SELECT count(*) FROM public.bio_regional_input_availability) >= 0,
+    (SELECT count(*) FROM public.data_freshness_config) >= 0,
+    (SELECT count(*) FROM public.quality_grade) >= 0,
+    (SELECT count(*) FROM public.readiness_dimension) >= 0,
     (SELECT count(*) FROM public.form_of_capital) >= 0,
+    (SELECT count(*) FROM public.location_baseline) >= 0,
     (SELECT count(*) FROM public.pillar_of_value) >= 0,
     (SELECT count(*) FROM public.regeneration_principle) >= 0,
     (SELECT count(*) FROM public.sdg) >= 0,
     (SELECT count(*) FROM public.solution) >= 0,
     (SELECT count(*) FROM public.solution_lifecycle_event) >= 0,
-    (SELECT count(*) FROM public.time_delay) >= 0;
+    (SELECT count(*) FROM public.time_delay) >= 0,
+    (SELECT count(*) FROM public.v_public_ebf_scorecard) >= 0,
+    (SELECT count(*) FROM public.v_public_metric_summary) >= 0,
+    (SELECT count(*) FROM public.v_public_wellbeing_metric_summary) >= 0;
 RESET ROLE;
 WITH targets(relation_name) AS (VALUES {catalog_values})
 SELECT
@@ -691,20 +751,203 @@ ORDER BY relation_name;"""
         environment=environment,
     )
     expected = [
-        "t|t|t|t|t|t|t",
+        "t|t|t|t|t|t|t|t|t|t|t|t|t|t|t|t",
+        "bio_ingredient_composition_reference|t|f|f|f|f|f|f|t",
+        "bio_regional_input_availability|t|f|f|f|f|f|f|t",
+        "data_freshness_config|t|f|f|f|f|f|f|t",
         "form_of_capital|t|f|f|f|f|f|f|t",
+        "location_baseline|t|f|f|f|f|f|f|t",
         "pillar_of_value|t|f|f|f|f|f|f|t",
+        "quality_grade|t|f|f|f|f|f|f|t",
+        "readiness_dimension|t|f|f|f|f|f|f|t",
         "regeneration_principle|t|f|f|f|f|f|f|t",
         "sdg|t|f|f|f|f|f|f|t",
         "solution|t|f|f|f|f|f|f|t",
         "solution_lifecycle_event|t|f|f|f|f|f|f|t",
         "time_delay|t|f|f|f|f|f|f|t",
+        "v_public_ebf_scorecard|t|f|f|f|f|f|f|t",
+        "v_public_metric_summary|t|f|f|f|f|f|f|t",
+        "v_public_wellbeing_metric_summary|t|f|f|f|f|f|f|t",
     ]
     observed = [line.strip() for line in result.stdout.splitlines() if line.strip()]
     if observed != expected:
         raise AcceptanceError(
             "curated reference tables are not read-only to kokonut_runtime "
             f"after provisioning; received {observed}"
+        )
+
+
+def _provision_directus_runtime_role(
+    project: str, manifest: Path, environment: dict[str, str]
+) -> dict[str, Any]:
+    """Exercise the optional Directus role provisioner in the disposable DB."""
+    result = _run(
+        [
+            *_compose_command(project, manifest),
+            "run", "--rm", "--no-deps", "-T",
+            "-e", "PG_HOST=database",
+            "-e", "PG_PORT=5432",
+            "-e", "PG_DB=kokonut_intelligence",
+            "-e", "KOKONUT_DB_ADMIN_USER=kokonut",
+            "-e", f"KOKONUT_DB_ADMIN_PASSWORD={environment['POSTGRES_PASSWORD']}",
+            "-e", f"KOKONUT_DIRECTUS_RUNTIME_USER={environment['KOKONUT_DIRECTUS_RUNTIME_USER']}",
+            "-e", f"KOKONUT_DIRECTUS_RUNTIME_PASSWORD={environment['KOKONUT_DIRECTUS_RUNTIME_PASSWORD']}",
+            "app", "python3", "-m", "services.migration.directus_role",
+        ],
+        environment=environment,
+        timeout=120,
+    )
+    try:
+        payload = json.loads(result.stdout)
+    except json.JSONDecodeError as exc:
+        raise AcceptanceError("Directus provisioner returned malformed JSON") from exc
+    if not isinstance(payload, dict) or payload.get("status") != "provisioned":
+        raise AcceptanceError("optional Directus role provisioner did not complete")
+    return payload
+
+
+def _assert_directus_reference_read_only_boundary(
+    project: str, manifest: Path, environment: dict[str, str]
+) -> None:
+    """Verify optional Directus can read curated references but cannot mutate them."""
+    directus = environment["KOKONUT_DIRECTUS_RUNTIME_USER"]
+    targets = (
+        "location_baseline",
+        "bio_ingredient_composition_reference",
+        "bio_regional_input_availability",
+        "data_freshness_config",
+        "quality_grade",
+        "readiness_dimension",
+    )
+    query = "SET ROLE kokonut_directus_runtime;\n" + "\n".join(
+        f"SELECT count(*) >= 0 FROM public.{relation};" for relation in targets
+    ) + "\nRESET ROLE;\n" + "\n".join(
+        "SELECT "
+        f"has_table_privilege('{directus}', 'public.{relation}', 'SELECT'), "
+        f"has_table_privilege('{directus}', 'public.{relation}', 'INSERT'), "
+        f"has_table_privilege('{directus}', 'public.{relation}', 'UPDATE'), "
+        f"has_table_privilege('{directus}', 'public.{relation}', 'DELETE'), "
+        f"has_table_privilege('{directus}', 'public.{relation}', 'TRUNCATE'), "
+        f"has_table_privilege('{directus}', 'public.{relation}', 'REFERENCES'), "
+        f"has_table_privilege('{directus}', 'public.{relation}', 'TRIGGER'), "
+        "NOT EXISTS (SELECT 1 FROM pg_catalog.pg_attribute AS attribute "
+        f"WHERE attribute.attrelid = 'public.{relation}'::regclass "
+        "AND attribute.attnum > 0 AND NOT attribute.attisdropped AND ("
+        f"has_column_privilege('{directus}', attribute.attrelid, attribute.attname, 'INSERT') "
+        "OR "
+        f"has_column_privilege('{directus}', attribute.attrelid, attribute.attname, 'UPDATE') "
+        "OR "
+        f"has_column_privilege('{directus}', attribute.attrelid, attribute.attname, 'REFERENCES')));"
+        for relation in targets
+    )
+    result = _run(
+        [
+            *_compose_command(project, manifest),
+            "exec", "-T", "database", "psql", "-XAtq", "-F", "|",
+            "-U", "kokonut", "-d", "kokonut_intelligence",
+            "-v", "ON_ERROR_STOP=1", "-c", query,
+        ],
+        environment=environment,
+    )
+    expected = ["t"] * len(targets) + ["t|f|f|f|f|f|f|t"] * len(targets)
+    observed = [line.strip() for line in result.stdout.splitlines() if line.strip()]
+    if observed != expected:
+        raise AcceptanceError(
+            "optional Directus does not retain SELECT-only access to reviewed tables; "
+            f"received {observed}"
+        )
+
+    for relation in targets:
+        for statement in (
+            f"UPDATE public.{relation} SET id = id WHERE false",
+            f"INSERT INTO public.{relation} SELECT * FROM public.{relation} WHERE false",
+            f"DELETE FROM public.{relation} WHERE false",
+            f"TRUNCATE public.{relation}",
+        ):
+            denied = _run(
+                [
+                    *_compose_command(project, manifest),
+                    "exec", "-T", "database", "psql", "-XAtq",
+                    "-U", "kokonut", "-d", "kokonut_intelligence",
+                    "-v", "ON_ERROR_STOP=1", "-c",
+                    f"SET ROLE {directus}; {statement};",
+                ],
+                environment=environment,
+                check=False,
+            )
+            if denied.returncode == 0 or "permission denied" not in denied.stderr.lower():
+                raise AcceptanceError(
+                    f"optional Directus unexpectedly mutated public.{relation}"
+                )
+
+
+def _assert_freshness_worker_path(
+    project: str, manifest: Path, environment: dict[str, str]
+) -> None:
+    """Verify the dedicated freshness login still reaches its bounded reader."""
+    query = """SELECT
+    role.rolcanlogin
+    AND NOT role.rolsuper
+    AND NOT role.rolcreatedb
+    AND NOT role.rolcreaterole
+    AND NOT role.rolreplication
+    AND NOT role.rolbypassrls
+    AND NOT role.rolinherit
+    AND NOT EXISTS (
+        SELECT 1
+          FROM pg_catalog.pg_auth_members AS membership
+          JOIN pg_catalog.pg_roles AS granted_role
+            ON granted_role.oid = membership.roleid
+          JOIN pg_catalog.pg_roles AS member_role
+            ON member_role.oid = membership.member
+         WHERE granted_role.rolname = 'kokonut_freshness_login'
+            OR member_role.rolname = 'kokonut_freshness_login'
+    )
+    AND has_function_privilege(
+        'kokonut_freshness_login',
+        'kokonut_security.list_freshness_configs(text)',
+        'EXECUTE'
+    )
+    AND NOT has_table_privilege(
+        'kokonut_freshness_login', 'public.data_freshness_config', 'SELECT'
+    )
+    AND NOT has_table_privilege(
+        'kokonut_freshness_login', 'public.data_freshness_config', 'INSERT'
+    )
+    AND NOT has_table_privilege(
+        'kokonut_freshness_login', 'public.data_freshness_config', 'UPDATE'
+    )
+    AND NOT has_table_privilege(
+        'kokonut_freshness_login', 'public.data_freshness_config', 'DELETE'
+    )
+    AND NOT has_table_privilege(
+        'kokonut_freshness_login', 'public.data_freshness_config', 'TRUNCATE'
+    )
+    AND NOT has_table_privilege(
+        'kokonut_freshness_login', 'public.data_freshness_config', 'REFERENCES'
+    )
+    AND NOT has_table_privilege(
+        'kokonut_freshness_login', 'public.data_freshness_config', 'TRIGGER'
+    )
+FROM pg_catalog.pg_roles AS role
+WHERE role.rolname = 'kokonut_freshness_login';
+SET SESSION AUTHORIZATION kokonut_freshness_login;
+SELECT count(*) FROM kokonut_security.list_freshness_configs(NULL);
+RESET SESSION AUTHORIZATION;"""
+    result = _run(
+        [
+            *_compose_command(project, manifest),
+            "exec", "-T", "database", "psql", "-XAtq",
+            "-U", "kokonut", "-d", "kokonut_intelligence",
+            "-v", "ON_ERROR_STOP=1", "-c", query,
+        ],
+        environment=environment,
+    )
+    observed = [line.strip() for line in result.stdout.splitlines() if line.strip()]
+    if observed != ["t", "0"]:
+        raise AcceptanceError(
+            "dedicated freshness login or bounded configuration reader is unavailable; "
+            f"received {observed}"
         )
 
 
@@ -898,6 +1141,163 @@ def _worker_probe(
     return payload
 
 
+def _stalled_child_probe_program() -> str:
+    """Build a container-side probe that stalls one live child, then restores it."""
+    return f"""
+import json, os, subprocess, sys, tempfile, time
+from pathlib import Path
+
+supervisor_path = Path({HEARTBEAT_PATH!r})
+supervisor = json.loads(supervisor_path.read_text(encoding="utf-8"))
+children = supervisor.get("children")
+if not isinstance(children, dict) or not children:
+    raise RuntimeError("supervisor has no child process inventory")
+worker = sorted(children)[0]
+if worker not in {{"scheduler", "events", "notifications"}}:
+    raise RuntimeError("supervisor selected an unknown child")
+pid = children[worker]
+os.kill(pid, 0)
+heartbeat_path = supervisor_path.with_name(f"{{worker}}.json")
+original = json.loads(heartbeat_path.read_text(encoding="utf-8"))
+if original.get("pid") != pid or original.get("worker") != worker:
+    raise RuntimeError("child heartbeat does not match the live supervisor inventory")
+
+def write_pulse(payload):
+    descriptor, temporary = tempfile.mkstemp(prefix=f".{{heartbeat_path.name}}.", dir=heartbeat_path.parent)
+    try:
+        os.fchmod(descriptor, 0o600)
+        with os.fdopen(descriptor, "w", encoding="utf-8") as handle:
+            json.dump(payload, handle, separators=(",", ":"), sort_keys=True)
+            handle.write("\\n")
+            handle.flush()
+            os.fsync(handle.fileno())
+        os.replace(temporary, heartbeat_path)
+    finally:
+        try:
+            os.unlink(temporary)
+        except FileNotFoundError:
+            pass
+
+threshold = int(os.environ.get("KOKONUT_WORKER_PROGRESS_HEARTBEAT_SECONDS", "60"))
+try:
+    probe = None
+    for _attempt in range(3):
+        os.kill(pid, 0)
+        stale = dict(original)
+        stale["monotonic_ns"] = time.monotonic_ns() - (threshold + 5) * 1_000_000_000
+        write_pulse(stale)
+        completed = subprocess.run(
+            [sys.executable, "-m", "services.core.worker_progress", "--check"],
+            capture_output=True,
+            text=True,
+            timeout=10,
+            check=False,
+        )
+        try:
+            candidate = json.loads(completed.stdout)
+        except json.JSONDecodeError:
+            candidate = {{}}
+        if (
+            completed.returncode != 0
+            and candidate.get("status") == "unhealthy"
+            and candidate.get("state") == "worker_child_stalled"
+            and candidate.get("supervisor", {{}}).get("children_alive") is True
+            and candidate.get("supervisor", {{}}).get("children_progressing") is False
+            and candidate.get("workers") == {{}}
+        ):
+            probe = candidate
+            break
+    if probe is None:
+        raise RuntimeError("live child pulse did not fail closed as worker_child_stalled")
+finally:
+    restored = dict(original)
+    restored["monotonic_ns"] = time.monotonic_ns()
+    write_pulse(restored)
+
+os.kill(pid, 0)
+print(json.dumps({{
+    "database_unavailable_during_probe": True,
+    "health_state": probe["state"],
+    "process_alive_during_stall": True,
+    "pulse_restored": True,
+    "worker": worker,
+}}, sort_keys=True))
+"""
+
+
+def _assert_supervised_child_stalled(
+    project: str, manifest: Path, environment: dict[str, str]
+) -> dict[str, Any]:
+    """Require an alive child with a stale pulse to fail before database access."""
+    result = _run(
+        [
+            *_compose_command(project, manifest),
+            "exec",
+            "-T",
+            "worker",
+            "python3",
+            "-c",
+            _stalled_child_probe_program(),
+        ],
+        environment=environment,
+        timeout=45,
+    )
+    try:
+        payload = json.loads(result.stdout)
+    except json.JSONDecodeError as exc:
+        raise AcceptanceError("stalled-child probe returned malformed JSON") from exc
+    if (
+        not isinstance(payload, dict)
+        or payload.get("database_unavailable_during_probe") is not True
+        or payload.get("health_state") != "worker_child_stalled"
+        or payload.get("process_alive_during_stall") is not True
+        or payload.get("pulse_restored") is not True
+        or payload.get("worker") not in {"scheduler", "events", "notifications"}
+    ):
+        raise AcceptanceError("live stalled child did not fail closed and restore its pulse")
+    return {
+        "database_unavailable_during_probe": True,
+        "health_state": "worker_child_stalled",
+        "process_alive_during_stall": True,
+        "pulse_restored": True,
+        "worker": payload["worker"],
+    }
+
+
+def _exercise_stalled_child_healthcheck(
+    project: str,
+    manifest: Path,
+    environment: dict[str, str],
+    timeout: float,
+) -> dict[str, Any]:
+    """Stop PostgreSQL during a stale-pulse probe, then require healthy recovery."""
+    compose = _compose_command(project, manifest)
+    _run([*compose, "stop", "database"], environment=environment, timeout=30)
+    try:
+        stalled = _assert_supervised_child_stalled(project, manifest, environment)
+    finally:
+        _run([*compose, "start", "database"], environment=environment, timeout=30)
+
+    database = _wait_for_health(
+        project, manifest, environment, "database", "healthy", timeout
+    )
+    worker = _wait_for_health(project, manifest, environment, "worker", "healthy", timeout)
+    probe = _worker_probe(project, manifest, environment)
+    if (
+        _health_status(database) != "healthy"
+        or _health_status(worker) != "healthy"
+        or probe.get("status") != "healthy"
+        or probe.get("supervisor", {}).get("children_progressing") is not True
+    ):
+        raise AcceptanceError("worker health did not recover after restoring the child pulse")
+    return {
+        **stalled,
+        "database_healthy_after_restore": True,
+        "worker_healthy_after_restore": True,
+        "health_state_after_restore": probe["status"],
+    }
+
+
 def _heartbeat_metadata(
     project: str, manifest: Path, environment: dict[str, str]
 ) -> dict[str, Any]:
@@ -909,13 +1309,24 @@ try:
     directory = path.parent.lstat()
     record = path.lstat()
     payload = json.loads(path.read_text(encoding='utf-8'))
+    children = payload.get('children', {{}})
+    child_payloads = {{}}
+    child_private = True
+    for worker, pid in children.items():
+        child_path = path.with_name(f'{{worker}}.json')
+        child_record = child_path.lstat()
+        child = json.loads(child_path.read_text(encoding='utf-8'))
+        child_private = child_private and stat.S_ISREG(child_record.st_mode) and child_record.st_uid == os.getuid() and child_record.st_size <= 512 and not (child_record.st_mode & 0o077)
+        child_payloads[worker] = set(child) == {{'generation', 'monotonic_ns', 'pid', 'worker'}} and child.get('worker') == worker and child.get('pid') == pid
     result = {{
         'directory_private': stat.S_ISDIR(directory.st_mode) and not (directory.st_mode & 0o077),
         'file_private': stat.S_ISREG(record.st_mode) and not (record.st_mode & 0o077),
         'shape_valid': set(payload) == {{'children', 'generation', 'monotonic_ns', 'pid'}},
+        'child_files_private': child_private,
+        'child_shapes_valid': bool(children) and all(child_payloads.values()),
     }}
-except (OSError, ValueError, TypeError):
-    result = {{'directory_private': False, 'file_private': False, 'shape_valid': False}}
+except (OSError, ValueError, TypeError, AttributeError):
+    result = {{'directory_private': False, 'file_private': False, 'shape_valid': False, 'child_files_private': False, 'child_shapes_valid': False}}
 print(json.dumps(result, sort_keys=True))
 """
     result = _run(
@@ -938,7 +1349,7 @@ def _main(timeout: float) -> dict[str, Any]:
         sensor_root = temp_root / "sensor-inputs"
         sensor_root.mkdir(mode=0o700)
         manifest = temp_root / "compose.json"
-        environment = _compose_environment(sensor_root)
+        environment = _compose_environment(sensor_root, project)
         result = {
             "result": "failed",
             "profile": "standard",
@@ -1168,6 +1579,13 @@ def _main(timeout: float) -> dict[str, Any]:
             _assert_runtime_reference_read_only_boundary(
                 project, manifest, environment
             )
+            _assert_freshness_worker_path(project, manifest, environment)
+            directus_initial_provisioning = _provision_directus_runtime_role(
+                project, manifest, environment
+            )
+            _assert_directus_reference_read_only_boundary(
+                project, manifest, environment
+            )
             role_attributes = _query_runtime_role_attributes(project, manifest, environment)
             _run([*compose, "up", "-d", "app", "worker", "proxy"], environment=environment, timeout=120)
             app = _wait_for_health(project, manifest, environment, "app", "healthy", timeout)
@@ -1199,6 +1617,13 @@ def _main(timeout: float) -> dict[str, Any]:
             _assert_runtime_reference_read_only_boundary(
                 project, manifest, environment
             )
+            _assert_freshness_worker_path(project, manifest, environment)
+            directus_reprovisioning = _provision_directus_runtime_role(
+                project, manifest, environment
+            )
+            _assert_directus_reference_read_only_boundary(
+                project, manifest, environment
+            )
             result["runtime_role"] = {
                 "bootstrap_profile": "runtime-admin",
                 "bootstrap_ran_explicitly_after_migrations": True,
@@ -1209,6 +1634,13 @@ def _main(timeout: float) -> dict[str, Any]:
                 "schema_version_insert_denied_after_provisioner_reapply": True,
                 "runtime_reference_tables_read_only_after_initial_provision": True,
                 "runtime_reference_tables_read_only_after_provisioner_reapply": True,
+                "optional_directus_role": directus_initial_provisioning["status"],
+                "directus_reference_tables_read_only_after_initial_provision": True,
+                "directus_reference_tables_read_only_after_provisioner_reapply": (
+                    directus_reprovisioning["status"] == "provisioned"
+                ),
+                "freshness_worker_login_and_bounded_config_read_after_initial_provision": True,
+                "freshness_worker_login_and_bounded_config_read_after_provisioner_reapply": True,
                 "role_attributes_preserved_after_reapply": (
                     role_attributes_after_reapply == role_attributes
                 ),
@@ -1252,6 +1684,7 @@ def _main(timeout: float) -> dict[str, Any]:
                 probe.get("status") != "healthy"
                 or probe.get("supervisor", {}).get("alive") is not True
                 or probe.get("supervisor", {}).get("children_alive") is not True
+                or probe.get("supervisor", {}).get("children_progressing") is not True
             ):
                 raise AcceptanceError(
                     "Standard worker probe did not confirm healthy supervisor, children, and schema state"
@@ -1263,9 +1696,16 @@ def _main(timeout: float) -> dict[str, Any]:
                 "proxy_running": proxy is not None and proxy.get("State", {}).get("Status") == "running",
                 "worker_probe": "healthy",
                 "worker_children_alive": True,
+                "worker_children_progressing": True,
                 "private_supervisor_heartbeat": heartbeat,
             }
 
+            result["stalled_child_healthcheck"] = _exercise_stalled_child_healthcheck(
+                project, manifest, environment, timeout
+            )
+            worker = _inspect_container(
+                _service_id(project, manifest, environment, "worker"), environment
+            )
             worker_restarts_before = int(worker.get("RestartCount", 0))
             _run([*compose, "stop", "--timeout", "1", "database"], environment=environment, timeout=30)
             degraded = False
@@ -1297,6 +1737,7 @@ def _main(timeout: float) -> dict[str, Any]:
                 recovery_probe.get("status") != "healthy"
                 or recovery_probe.get("supervisor", {}).get("alive") is not True
                 or recovery_probe.get("supervisor", {}).get("children_alive") is not True
+                or recovery_probe.get("supervisor", {}).get("children_progressing") is not True
             ):
                 raise AcceptanceError("worker did not report healthy recovery after database restart")
             self_recovered = _heartbeat_metadata(project, manifest, environment)
@@ -1348,12 +1789,7 @@ def _main(timeout: float) -> dict[str, Any]:
                 "active_work_leases_after_shutdown": 0,
             }
             result["result"] = "passed"
-            result["limitations"] = [
-                "This is a short disposable restart/recovery check, not 24-hour endurance or scale acceptance.",
-                "The internal Compose network has no Internet egress; no real providers, seeds, candidate, legacy, or production data are used.",
-                "A healthy worker process and supervisor heartbeat do not prove every idle child is responsive or every business handler has output parity.",
-                "The seed-free run verifies that shutdown leaves no active leases; it does not claim to exercise lease recovery during a long-running handler.",
-            ]
+            result["limitations"] = list(RECOVERY_LIMITATIONS)
             return result
         except Exception as exc:
             diagnostics = _failure_diagnostics(project, manifest, environment)

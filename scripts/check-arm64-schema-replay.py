@@ -31,6 +31,7 @@ OPERATOR_PROBE_CHECKS = frozenset({
     "revoked grant and revoked session both fail closed",
     "runtime provisioner denied direct table and column access to private relations",
     "runtime provisioner denied direct mutations on scoped relations and preserved farm-activity ledger reads",
+    "runtime provisioner denied owned-sequence privileges on mutation-denied relations",
     "runtime provisioner keeps shared advisory rules readable but immutable",
     "runtime can read service registry but cannot mutate it",
     "runtime can read event-handler definitions but cannot mutate the registry",
@@ -45,6 +46,12 @@ OPERATOR_PROBE_CHECKS = frozenset({
     "runtime can query the governance framework registry",
     "runtime can query shared impact frameworks",
     "runtime can query shared impact framework dimensions",
+    "runtime can query EBF pillar and rubric references during schema-only replay",
+    "runtime can query the public EBF scorecard projection",
+    "runtime can query the public metric summary projection",
+    "runtime can query the public wellbeing metric summary projection",
+    "runtime can query the curated quality-grade reference",
+    "runtime can query shared regional-readiness dimension defaults",
     "runtime can read governed expense categories",
     "runtime can query shared CRISP risk dimension definitions",
     "runtime can query shared currency references",
@@ -60,10 +67,12 @@ OPERATOR_PROBE_CHECKS = frozenset({
     "runtime can read shared quantity units",
     "runtime provisioner limited API-key reads to reviewed columns and denied all writes",
     "runtime can append and read data-access evidence but cannot update, delete, or truncate it",
+    "runtime can append/read farm-activity workflow history but cannot update or delete it",
 })
 sys.path.insert(0, str(ROOT))
 
 from services.migration.runtime_role import (  # noqa: E402
+    _RUNTIME_APPEND_ONLY_TABLES,
     _RUNTIME_MUTATION_TABLES,
     _RUNTIME_PRIVATE_TABLES,
 )
@@ -373,10 +382,13 @@ def parse_operator_scope_probe(output: str) -> dict[str, object]:
     expected_scoped_fields = {
         "private_relations_expected",
         "mutation_denied_relations_expected",
+        "mutation_denied_sequences_expected",
         "private_relations_verified",
         "mutation_denied_relations_verified",
+        "mutation_denied_sequences_verified",
         "direct_table_privilege_violations",
         "direct_column_privilege_violations",
+        "direct_sequence_privilege_violations",
         "farm_activity_ledger_readable",
         "service_registry_read_only_verified",
         "append_only_relations_expected",
@@ -390,17 +402,20 @@ def parse_operator_scope_probe(output: str) -> dict[str, object]:
     expected_scoped_values = {
         "private_relations_expected": len(_RUNTIME_PRIVATE_TABLES),
         "mutation_denied_relations_expected": len(_RUNTIME_MUTATION_TABLES),
+        "mutation_denied_sequences_expected": scoped_write.get("mutation_denied_sequences_expected"),
         "private_relations_verified": len(_RUNTIME_PRIVATE_TABLES),
         "mutation_denied_relations_verified": len(_RUNTIME_MUTATION_TABLES),
+        "mutation_denied_sequences_verified": scoped_write.get("mutation_denied_sequences_expected"),
         "direct_table_privilege_violations": 0,
         "direct_column_privilege_violations": 0,
+        "direct_sequence_privilege_violations": 0,
         "farm_activity_ledger_readable": 1,
         "service_registry_read_only_verified": 1,
-        "append_only_relations_expected": 2,
-        "append_only_relations_verified": 2,
-        "append_only_select_insert_verified": 2,
-        "append_only_mutations_denied": 2,
-        "append_only_column_grants_denied": 2,
+        "append_only_relations_expected": len(_RUNTIME_APPEND_ONLY_TABLES),
+        "append_only_relations_verified": len(_RUNTIME_APPEND_ONLY_TABLES),
+        "append_only_select_insert_verified": len(_RUNTIME_APPEND_ONLY_TABLES),
+        "append_only_mutations_denied": len(_RUNTIME_APPEND_ONLY_TABLES),
+        "append_only_column_grants_denied": len(_RUNTIME_APPEND_ONLY_TABLES),
     }
     mismatched_scoped_values = {
         key: {"expected": expected, "observed": scoped_write[key]}
@@ -411,6 +426,18 @@ def parse_operator_scope_probe(output: str) -> dict[str, object]:
         mismatched_scoped_values["service_registry_read_only_verified"] = {
             "expected": 1,
             "observed_type": type(scoped_write["service_registry_read_only_verified"]).__name__,
+        }
+    if (
+        type(scoped_write["mutation_denied_sequences_expected"]) is not int
+        or scoped_write["mutation_denied_sequences_expected"] < 0
+        or type(scoped_write["mutation_denied_sequences_verified"]) is not int
+        or type(scoped_write["direct_sequence_privilege_violations"]) is not int
+    ):
+        mismatched_scoped_values["mutation_denied_sequences_verified"] = {
+            "expected": "matching non-negative integer count and zero integer violations",
+            "observed_expected_type": type(scoped_write["mutation_denied_sequences_expected"]).__name__,
+            "observed_verified_type": type(scoped_write["mutation_denied_sequences_verified"]).__name__,
+            "observed_violations_type": type(scoped_write["direct_sequence_privilege_violations"]).__name__,
         }
     if mismatched_scoped_values:
         raise ValueError(
@@ -428,11 +455,11 @@ def parse_operator_scope_probe(output: str) -> dict[str, object]:
     }:
         raise ValueError("operator scope probe did not verify the API-key column boundary")
     if result.get("runtime_append_only_policy") != {
-        "relations_expected": 2,
-        "relations_verified": 2,
-        "select_insert_verified": 2,
-        "mutations_denied": 2,
-        "column_grants_denied": 2,
+        "relations_expected": len(_RUNTIME_APPEND_ONLY_TABLES),
+        "relations_verified": len(_RUNTIME_APPEND_ONLY_TABLES),
+        "select_insert_verified": len(_RUNTIME_APPEND_ONLY_TABLES),
+        "mutations_denied": len(_RUNTIME_APPEND_ONLY_TABLES),
+        "column_grants_denied": len(_RUNTIME_APPEND_ONLY_TABLES),
         "verified_by_provisioner": True,
     }:
         raise ValueError("operator scope probe did not verify the append-only audit boundary")

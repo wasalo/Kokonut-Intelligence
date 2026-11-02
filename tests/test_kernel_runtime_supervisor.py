@@ -128,6 +128,7 @@ def test_worker_runtime_pulses_and_removes_heartbeat_on_shutdown(monkeypatch, tm
     heartbeat_path = tmp_path / "worker" / "supervisor.json"
     monkeypatch.setenv(runtime.SUPERVISOR_HEARTBEAT_FILE_ENV, str(heartbeat_path))
     process = _Process(401)
+    child_heartbeat_path = heartbeat_path.with_name("scheduler.json")
     spawned = []
     handlers = {}
     sleeps = 0
@@ -155,7 +156,16 @@ def test_worker_runtime_pulses_and_removes_heartbeat_on_shutdown(monkeypatch, tm
     monkeypatch.setattr(
         runtime.subprocess,
         "Popen",
-        lambda argv, **kwargs: spawned.append((argv, kwargs)) or process,
+        lambda argv, **kwargs: (
+            spawned.append((argv, kwargs)),
+            child_heartbeat_path.write_text(json.dumps({
+                "generation": "a" * 32,
+                "monotonic_ns": time.monotonic_ns(),
+                "pid": process.pid,
+                "worker": "scheduler",
+            })),
+            process,
+        )[-1],
     )
     monkeypatch.setattr(runtime.os, "killpg", lambda *_args: None)
 
@@ -163,6 +173,24 @@ def test_worker_runtime_pulses_and_removes_heartbeat_on_shutdown(monkeypatch, tm
     assert spawned[0][0] == ["scheduler"]
     assert sleeps == 2
     assert not heartbeat_path.exists()
+    assert not child_heartbeat_path.exists()
+
+
+def test_supervisor_removes_only_the_reaped_child_heartbeat(monkeypatch, tmp_path):
+    path = tmp_path / "worker" / "supervisor.json"
+    path.parent.mkdir(mode=0o700)
+    child_path = path.with_name("events.json")
+    child_path.write_text(json.dumps({
+        "generation": "b" * 32,
+        "monotonic_ns": time.monotonic_ns(),
+        "pid": 512,
+        "worker": "events",
+    }))
+
+    assert worker_progress.remove_worker_progress_heartbeat("events", 511, path=path) is False
+    assert child_path.exists()
+    assert worker_progress.remove_worker_progress_heartbeat("events", 512, path=path) is True
+    assert not child_path.exists()
 
 
 def test_supervisor_scopes_each_worker_key_to_its_process(monkeypatch, tmp_path):
@@ -210,6 +238,9 @@ def test_supervisor_scopes_each_worker_key_to_its_process(monkeypatch, tmp_path)
     ]
     assert [call[1]["env"]["VISIBLE_WORKER_KEYS"] for call in spawned] == [
         "", ",".join(scheduler_allowlist), "", ""
+    ]
+    assert [call[1]["env"].get(runtime.WORKER_PROGRESS_NAME_ENV) for call in spawned] == [
+        None, "scheduler", "events", "notifications"
     ]
 
 
@@ -339,7 +370,10 @@ def test_supervisor_marks_isolated_event_worker_and_keeps_exact_handler_secrets(
     event_kwargs = environment_options[1]
     assert event_kwargs["isolated_worker_key"] == "event_dispatch"
     assert event_kwargs["allowed_worker_keys"] == ("event_dispatch", "sensor_anomaly")
-    assert spawned[1][1]["env"] == {"ISOLATED": "event_dispatch"}
+    assert spawned[1][1]["env"] == {
+        "ISOLATED": "event_dispatch",
+        runtime.WORKER_PROGRESS_NAME_ENV: "events",
+    }
 
 
 def test_supervisor_isolates_notification_delivery_database_and_preserves_provider_config(

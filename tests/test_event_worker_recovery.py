@@ -25,6 +25,16 @@ def _args():
 
 
 class EventWorkerRecoveryTests(TestCase):
+    def test_idle_worker_sleep_keeps_progress_heartbeat_fresh(self):
+        with (
+            patch("services.events.cli.pulse_worker_progress") as pulse,
+            patch("services.events.cli.time.sleep", side_effect=KeyboardInterrupt),
+        ):
+            with self.assertRaises(KeyboardInterrupt):
+                events_cli._sleep_with_worker_progress(30)
+
+        pulse.assert_called_once_with()
+
     def test_cli_selects_independent_worker_modes(self):
         for flag, command in (
             ("--worker", events_cli.cmd_worker),

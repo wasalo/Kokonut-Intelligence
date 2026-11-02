@@ -3,10 +3,13 @@
 from __future__ import annotations
 
 import json
+import re
 from inspect import getsourcefile
 from pathlib import Path
 
 from scripts.worker_effect_inventory import _classify
+from services.common.worker_database import _DEFAULT_WORKER_LOGIN, _WORKER_LOGINS
+from services.common.worker_environment import _SCHEDULED_MODULE_WORKERS
 from services.common.worker_environment import EVENT_HANDLER_WORKERS as _HANDLER_WORKER_KEYS
 from services.metrics.calculators import CALCULATORS
 from services.security.execution_allowlist import (
@@ -48,6 +51,11 @@ def test_worker_map_entries_have_effect_retry_and_existing_source_evidence():
         assert required <= entry.keys()
     for entry in inventory["event_handlers"]:
         assert required | {"event_type", "function"} <= entry.keys()
+    for entry in inventory["manual_signed_operations"]:
+        assert required | {
+            "operation", "entrypoint", "cli_entrypoints", "worker_identity",
+            "feature_flags", "sql_functions",
+        } <= entry.keys()
     for entry in inventory["isolated_workers"]:
         assert required <= entry.keys()
         assert {"worker_key", "worker_keys"} & entry.keys()
@@ -61,6 +69,7 @@ def test_worker_map_entries_have_effect_retry_and_existing_source_evidence():
 
     for entry in (
         *inventory["scheduled_modules"],
+        *inventory["manual_signed_operations"],
         *inventory["isolated_workers"],
         *inventory["signed_source_functions"],
         *inventory["event_handlers"],
@@ -161,6 +170,184 @@ def test_event_dispatch_contract_has_no_shared_runtime_fallback():
     assert "pause without opening the shared database" in scheduled["scope"]
 
 
+def test_sensor_alert_operation_map_matches_signed_worker_routes_and_sql():
+    inventory = _load_map()
+    scanner = next(
+        item
+        for item in inventory["scheduled_modules"]
+        if item["module"] == "services.ingestion.sensor_anomaly_scan_worker"
+    )
+    handler = next(
+        item
+        for item in inventory["event_handlers"]
+        if item["module"] == "services.ingestion.anomaly_detector"
+    )
+    manual = {
+        item["operation"]: item for item in inventory["manual_signed_operations"]
+    }
+
+    assert "services.ingestion.anomaly_detector" not in {
+        item["module"] for item in inventory["scheduled_modules"]
+    }
+    assert scanner["worker_key"] == "sensor_anomaly"
+    assert scanner["worker_identity"]["worker_key"] == "sensor_anomaly"
+    assert scanner["worker_key"] == _SCHEDULED_MODULE_WORKERS[scanner["module"]]
+    assert scanner["worker_identity"]["database_login"] == _WORKER_LOGINS.get(
+        "sensor_anomaly", _DEFAULT_WORKER_LOGIN
+    ) == "kokonut_worker_login"
+    assert scanner["worker_identity"]["database_url_env"] == (
+        "KOKONUT_SENSOR_ANOMALY_DATABASE_URL"
+    )
+    assert scanner["worker_identity"]["credential_env"] == (
+        "KOKONUT_SENSOR_ANOMALY_WORKER_CREDENTIAL"
+    )
+    assert scanner["worker_identity"]["security_definer_owner_roles"] == [
+        "kokonut_anomaly_read_owner"
+    ]
+    assert scanner["cli_entrypoints"] == [
+        "python3 -m services.ingestion.sensor_anomaly_scan_worker --location-id UUID [--since ISO-8601] [--batch-size 1..100]"
+    ]
+    assert scanner["feature_flags"] == [{
+        "name": "isolated_sensor_anomaly_scan_worker",
+        "environment_variable": "KOKONUT_FEATURE_ISOLATED_SENSOR_ANOMALY_SCAN_WORKER",
+        "default": False,
+    }]
+    assert scanner["sql_functions"] == [{
+        "name": "kokonut_security.list_sensor_anomaly_events_since",
+        "signature": "(UUID, TIMESTAMPTZ, INTEGER)",
+        "migration": 649,
+    }]
+    assert "scheduler skips" in scanner["retry_boundary"]
+    assert "KOKONUT_FEATURE_ISOLATED_SENSOR_ANOMALY_SCAN_WORKER defaults false" in scanner["retry_boundary"]
+    assert "schemas/postgres/649_signed_sensor_anomaly_replay_inventory.sql" in scanner["sources"]
+    assert "schemas/postgres/731_sensor_anomaly_sensor_event_inventory.sql" not in scanner["sources"]
+    assert "fail closed" in handler["scope"]
+    assert handler["worker_identity"]["worker_key"] == "sensor_anomaly"
+    assert handler["worker_identity"]["database_login"] == _WORKER_LOGINS.get(
+        "sensor_anomaly", _DEFAULT_WORKER_LOGIN
+    )
+    assert _HANDLER_WORKER_KEYS[(handler["module"], handler["function"])] == (
+        "sensor_anomaly",
+    )
+    assert "schemas/postgres/732_runtime_sensor_alert_read_only.sql" in handler["sources"]
+
+    expected_sql = {
+        "sensor_anomaly_manual_replay": [
+            ("kokonut_security.list_sensor_anomaly_events_since", "(UUID, TIMESTAMPTZ, INTEGER)", 649),
+            ("kokonut_security.list_sensor_anomaly_events_for_sensor_since", "(UUID, UUID, TIMESTAMPTZ, INTEGER)", 731),
+        ],
+        "sensor_baseline_manual_check": [
+            ("kokonut_security.evaluate_sensor_baselines", "(UUID)", 729),
+            ("kokonut_security.enqueue_sensor_baseline_notification_intent", "(UUID, UUID, UUID, UUID, TEXT, TEXT, JSONB)", 729),
+        ],
+        "mock_sensor_manual_cleanup": [
+            ("kokonut_security.delete_mock_sensor_alerts", "(UUID)", 730),
+            ("kokonut_security.delete_mock_sensor_readings", "(UUID)", 730),
+        ],
+    }
+    assert set(manual) == set(expected_sql)
+    expected_cli = {
+        "sensor_anomaly_manual_replay": {
+            "services.ingestion.anomaly_detector:run_check",
+            "python3 -m services.ingestion.anomaly_detector --location-id UUID [--sensor UUID] [--since ISO-8601]",
+            "python3 -m services.ingestion.anomaly_detector --all-locations [--sensor UUID] [--since ISO-8601]",
+        },
+        "sensor_baseline_manual_check": {
+            "services.ingestion.anomaly_detector:run_baseline_check",
+            "python3 -m services.ingestion.anomaly_detector --baseline-check --location-id UUID",
+            "python3 -m services.ingestion.anomaly_detector --baseline-check --all-locations",
+        },
+        "mock_sensor_manual_cleanup": {
+            "services.ingestion.mock_sensors:cleanup",
+            "python3 -m services.ingestion.mock_sensors --cleanup --location-id UUID",
+        },
+    }
+    for operation, expected_functions in expected_sql.items():
+        entry = manual[operation]
+        identity = entry["worker_identity"]
+        assert entry["feature_flags"] == []
+        assert entry["entrypoint"] in expected_cli[operation]
+        assert set(entry["cli_entrypoints"]) == expected_cli[operation] - {entry["entrypoint"]}
+        assert identity["worker_key"] == "sensor_anomaly"
+        assert identity["database_login"] == _WORKER_LOGINS.get(
+            "sensor_anomaly", _DEFAULT_WORKER_LOGIN
+        ) == "kokonut_worker_login"
+        assert identity["database_url_env"] == "KOKONUT_SENSOR_ANOMALY_DATABASE_URL"
+        assert identity["credential_env"] == "KOKONUT_SENSOR_ANOMALY_WORKER_CREDENTIAL"
+        assert identity["signed_scope"] == "sensor_reading/process for each exact location" or (
+            operation == "mock_sensor_manual_cleanup"
+            and identity["signed_scope"] == "sensor_reading/process for the exact location"
+        )
+        assert [
+            (item["name"], item["signature"], item["migration"])
+            for item in entry["sql_functions"]
+        ] == expected_functions
+    assert "kokonut_security.sensor_baseline_alert_effect" in manual[
+        "sensor_baseline_manual_check"
+    ]["reads"]
+
+    scan_source = (ROOT / "services/ingestion/sensor_anomaly_scan_worker.py").read_text()
+    anomaly_source = (ROOT / "services/ingestion/anomaly_detector.py").read_text()
+    baseline_source = (ROOT / "services/ingestion/sensor_baseline_worker.py").read_text()
+    cleanup_source = (ROOT / "services/ingestion/sensor_mock_cleanup_worker.py").read_text()
+    mock_cli_source = (ROOT / "services/ingestion/mock_sensors.py").read_text()
+    feature_source = (ROOT / "services/core/features.py").read_text()
+    assert 'require_feature("isolated_sensor_anomaly_scan_worker")' in scan_source
+    assert 'parser.add_argument("--location-id", required=True)' in scan_source
+    assert 'parser.add_argument("--baseline-check"' in anomaly_source
+    assert 'scope.add_argument(\n        "--all-locations"' in anomaly_source
+    assert "run_scoped_baseline_check(target)" in anomaly_source
+    assert 'parser.add_argument("--cleanup"' in mock_cli_source
+    assert 'parser.add_argument(\n        "--location-id"' in mock_cli_source
+    assert 'get_worker_db("sensor_anomaly")' in baseline_source
+    assert 'get_worker_credential("sensor_anomaly")' in baseline_source
+    assert 'get_worker_db("sensor_anomaly")' in cleanup_source
+    assert 'get_worker_credential("sensor_anomaly")' in cleanup_source
+    anomaly_worker_source = (ROOT / "services/ingestion/sensor_anomaly_worker.py").read_text()
+    assert "list_sensor_anomaly_events_since" in anomaly_worker_source
+    assert "list_sensor_anomaly_events_for_sensor_since" in anomaly_worker_source
+    assert "evaluate_sensor_baselines" in baseline_source
+    assert "enqueue_sensor_baseline_notification_intent" in baseline_source
+    assert "delete_mock_sensor_alerts" in cleanup_source
+    assert "delete_mock_sensor_readings" in cleanup_source
+    for source in (baseline_source, cleanup_source):
+        assert 'resource="sensor_reading"' in source
+        assert 'action="process"' in source
+    assert '"isolated_sensor_anomaly_scan_worker"' in feature_source
+    assert '"KOKONUT_FEATURE_ISOLATED_SENSOR_ANOMALY_SCAN_WORKER", "false"' in feature_source
+
+    baseline_migration = (ROOT / "schemas/postgres/729_signed_sensor_baseline_worker.sql").read_text()
+    cleanup_migration = (ROOT / "schemas/postgres/730_signed_mock_sensor_cleanup.sql").read_text()
+    alert_boundary = (ROOT / "schemas/postgres/732_runtime_sensor_alert_read_only.sql").read_text()
+    assert "kokonut_sensor_baseline_owner" in baseline_migration
+    assert "CREATE ROLE kokonut_sensor_baseline_owner\n            NOLOGIN" in baseline_migration
+    assert "kokonut_sensor_mock_cleanup_owner" in cleanup_migration
+    assert "CREATE ROLE kokonut_sensor_mock_cleanup_owner\n            NOLOGIN" in cleanup_migration
+    assert "REVOKE ALL PRIVILEGES ON TABLE public.sensor_alert" in alert_boundary
+    assert "GRANT SELECT ON TABLE public.sensor_alert TO kokonut_runtime" in alert_boundary
+    migrations = {
+        649: (ROOT / "schemas/postgres/649_signed_sensor_anomaly_replay_inventory.sql").read_text(),
+        729: baseline_migration,
+        730: cleanup_migration,
+        731: (ROOT / "schemas/postgres/731_sensor_anomaly_sensor_event_inventory.sql").read_text(),
+    }
+    for entry in manual.values():
+        for function in entry["sql_functions"]:
+            migration_sql = migrations[function["migration"]].lower()
+            argument_types = function["signature"].strip("()").split(", ")
+            signature_pattern = r"\s*,\s*".join(
+                re.escape(argument_type.lower()) for argument_type in argument_types
+            )
+            assert re.search(
+                rf"alter\s+function\s+{re.escape(function['name'].lower())}"
+                rf"\s*\(\s*{signature_pattern}\s*\)",
+                migration_sql,
+            )
+    assert "separate worker connections and transactions" in manual[
+        "mock_sensor_manual_cleanup"
+    ]["retry_boundary"]
+
+
 def test_effect_inventory_traces_current_event_runner_and_worker_secret_filter():
     effect_inventory = json.loads(EFFECT_PATH.read_text(encoding="utf-8"))
     dispatches = effect_inventory["callback_dispatches"]
@@ -235,7 +422,7 @@ def test_sensor_anomaly_effect_contract_matches_source_operation_map():
     assert all(item["class"] for item in effects)
     assert "commit=False" in contract["transaction"]["event_publication"]
     assert "integrated anomaly worker establishes it" in contract["transaction"]["context"]
-    assert "dedicated sensor_anomaly database URL and credential" in handler["scope"]
+    assert "sensor_anomaly database URL and credential" in handler["scope"]
     assert "signed transaction context" in handler["scope"]
     assert "services/ingestion/sensor_anomaly_worker.py" in handler["sources"]
     assert "schemas/postgres/414_sensor_anomaly_worker_delivery.sql" in handler["sources"]

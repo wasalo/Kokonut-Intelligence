@@ -11,6 +11,7 @@ from services.common.cli import print_json
 from services.common.worker_database import get_worker_db
 from services.common.worker_environment import isolated_worker_key
 from services.core.features import require_feature
+from services.core.worker_progress import pulse_worker_progress
 from services.events.bus import EventBus
 
 
@@ -54,6 +55,7 @@ class IsolatedEventBus(EventBus):
         try:
             events = self._claim(batch_size, worker_id)
             for event_id, event_type, payload, retry_count, max_retries, lease_token in events:
+                pulse_worker_progress()
                 payload = json.loads(payload) if isinstance(payload, str) else payload
                 outcome = self._process_event(
                     event_id, event_type, payload, worker_id, lease_token
@@ -72,6 +74,7 @@ class IsolatedEventBus(EventBus):
                         stats["lease_lost"] += 1
                     else:
                         stats["failed"] += 1
+                pulse_worker_progress()
             return stats
         except Exception:
             connection.rollback()

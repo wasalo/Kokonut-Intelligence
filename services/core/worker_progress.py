@@ -3,10 +3,13 @@
 from __future__ import annotations
 
 import argparse
+import atexit
 import json
 import os
 import stat
+import tempfile
 import time
+import uuid
 from pathlib import Path
 from typing import Any, Callable
 
@@ -16,11 +19,14 @@ DEFAULT_STALE_SECONDS = 300
 DEFAULT_BACKLOG_SECONDS = 900
 DEFAULT_HEARTBEAT_SECONDS = 60
 HEARTBEAT_FILE_ENV = "KOKONUT_WORKER_PROGRESS_HEARTBEAT_FILE"
+WORKER_PROGRESS_POLL_SECONDS = 5
 DEFAULT_HEARTBEAT_FILE = str(
     Path.home() / ".local" / "state" / "kokonut" / "worker-progress" / "supervisor.json"
 )
 MAX_STALE_SECONDS = 2_678_400  # 31 days; protects interval conversion from bad configuration.
 WORKER_NAMES = ("scheduler", "events", "notifications")
+WORKER_PROGRESS_NAME_ENV = "KOKONUT_WORKER_PROGRESS_NAME"
+CHILD_HEARTBEAT_MAX_BYTES = 512
 
 _PROGRESS_SELECTS = {
     "scheduler": """
@@ -124,6 +130,142 @@ _PROGRESS_SELECTS = {
 }
 
 
+class WorkerProgressHeartbeat:
+    """Publish secret-free progress for one supervised worker child."""
+
+    def __init__(
+        self,
+        worker: str,
+        *,
+        path: str | Path | None = None,
+        pid: int | None = None,
+        generation: str | None = None,
+        monotonic_ns: Callable[[], int] = time.monotonic_ns,
+    ) -> None:
+        if worker not in WORKER_NAMES:
+            raise ValueError("worker progress name is not recognized")
+        self.worker = worker
+        supervisor_path = _heartbeat_file_path() if path is None else Path(path)
+        self.path = supervisor_path.with_name(f"{worker}.json")
+        self.pid = os.getpid() if pid is None else pid
+        if isinstance(self.pid, bool) or not isinstance(self.pid, int) or not 1 <= self.pid <= 2_147_483_647:
+            raise ValueError("worker progress process ID is invalid")
+        self.generation = uuid.uuid4().hex if generation is None else generation
+        if not isinstance(self.generation, str) or len(self.generation) != 32 or any(
+            character not in "0123456789abcdef" for character in self.generation
+        ):
+            raise ValueError("worker progress generation is invalid")
+        self._monotonic_ns = monotonic_ns
+        self._last_pulse_ns: int | None = None
+
+    def pulse(self) -> None:
+        now_ns = self._monotonic_ns()
+        if (
+            self._last_pulse_ns is not None
+            and now_ns - self._last_pulse_ns
+            < WORKER_PROGRESS_POLL_SECONDS * 1_000_000_000
+        ):
+            return
+        parent = self.path.parent
+        parent.mkdir(mode=0o700, parents=True, exist_ok=True)
+        directory = parent.lstat()
+        if (
+            not stat.S_ISDIR(directory.st_mode)
+            or directory.st_uid != os.getuid()
+            or directory.st_mode & 0o077
+        ):
+            raise OSError("worker progress directory is not private")
+
+        payload = {
+            "generation": self.generation,
+            "monotonic_ns": now_ns,
+            "pid": self.pid,
+            "worker": self.worker,
+        }
+        descriptor, temporary_name = tempfile.mkstemp(
+            prefix=f".{self.path.name}.", dir=parent
+        )
+        try:
+            os.fchmod(descriptor, 0o600)
+            with os.fdopen(descriptor, "w", encoding="utf-8") as handle:
+                json.dump(payload, handle, separators=(",", ":"), sort_keys=True)
+                handle.write("\n")
+                handle.flush()
+                os.fsync(handle.fileno())
+            os.replace(temporary_name, self.path)
+            self._last_pulse_ns = now_ns
+        except BaseException:
+            try:
+                os.close(descriptor)
+            except OSError:
+                pass
+            try:
+                os.unlink(temporary_name)
+            except FileNotFoundError:
+                pass
+            raise
+
+    def close(self) -> None:
+        """Remove only the worker heartbeat generation owned by this process."""
+        try:
+            payload = json.loads(self.path.read_text(encoding="utf-8"))
+            if payload.get("pid") == self.pid and payload.get("generation") == self.generation:
+                self.path.unlink(missing_ok=True)
+        except (OSError, ValueError, AttributeError):
+            pass
+
+
+def remove_worker_progress_heartbeat(
+    worker: str,
+    pid: int,
+    *,
+    path: str | Path | None = None,
+) -> bool:
+    """Remove a stopped supervised child pulse only when its identity matches.
+
+    The supervisor uses this after reaping a child because SIGTERM does not
+    run the child's ``atexit`` handlers when a worker retains the default
+    signal disposition. This preserves a pulse belonging to a newer process
+    or a different worker identity.
+    """
+    if worker not in WORKER_NAMES:
+        return False
+    if isinstance(pid, bool) or not isinstance(pid, int) or not 1 <= pid <= 2_147_483_647:
+        return False
+
+    supervisor_path = _heartbeat_file_path() if path is None else Path(path)
+    child_path = supervisor_path.with_name(f"{worker}.json")
+    try:
+        payload = json.loads(child_path.read_text(encoding="utf-8"))
+        if (
+            not isinstance(payload, dict)
+            or payload.get("worker") != worker
+            or payload.get("pid") != pid
+        ):
+            return False
+        child_path.unlink(missing_ok=True)
+        return True
+    except (OSError, ValueError, UnicodeError):
+        return False
+
+
+_PROCESS_HEARTBEAT: WorkerProgressHeartbeat | None = None
+
+
+def pulse_worker_progress() -> None:
+    """Pulse the supervisor-assigned worker, or do nothing for standalone CLIs."""
+    global _PROCESS_HEARTBEAT
+    worker = os.environ.get(WORKER_PROGRESS_NAME_ENV)
+    if worker is None:
+        return
+    if _PROCESS_HEARTBEAT is None:
+        _PROCESS_HEARTBEAT = WorkerProgressHeartbeat(worker)
+        atexit.register(_PROCESS_HEARTBEAT.close)
+    elif _PROCESS_HEARTBEAT.worker != worker:
+        raise RuntimeError("worker progress identity changed during process lifetime")
+    _PROCESS_HEARTBEAT.pulse()
+
+
 def _progress_sql(enabled_workers: tuple[str, ...]) -> str:
     """Build a query only for feature-selected queues, from fixed SQL fragments."""
     query = """
@@ -196,6 +338,62 @@ def _heartbeat_file_path() -> Path:
     return Path(os.environ.get(HEARTBEAT_FILE_ENV, DEFAULT_HEARTBEAT_FILE))
 
 
+def _child_progress_status(
+    *,
+    directory: Path,
+    worker: str,
+    expected_pid: int,
+    stale_seconds: int,
+    monotonic_ns: Callable[[], int],
+) -> dict[str, int | bool | None]:
+    """Validate a child pulse and return only a boolean plus its age."""
+    path = directory / f"{worker}.json"
+    try:
+        parent_stat = directory.lstat()
+        file_stat = path.lstat()
+        if (
+            not stat.S_ISDIR(parent_stat.st_mode)
+            or parent_stat.st_uid != os.getuid()
+            or parent_stat.st_mode & 0o077
+            or not stat.S_ISREG(file_stat.st_mode)
+            or file_stat.st_uid != os.getuid()
+            or file_stat.st_mode & 0o077
+            or file_stat.st_size > CHILD_HEARTBEAT_MAX_BYTES
+        ):
+            return {"progressing": False, "age_seconds": None}
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError, UnicodeError):
+        return {"progressing": False, "age_seconds": None}
+
+    if not isinstance(payload, dict) or set(payload) != {
+        "generation", "monotonic_ns", "pid", "worker"
+    }:
+        return {"progressing": False, "age_seconds": None}
+    generation = payload["generation"]
+    pid = payload["pid"]
+    worker_name = payload["worker"]
+    heartbeat_ns = payload["monotonic_ns"]
+    if (
+        not isinstance(generation, str)
+        or len(generation) != 32
+        or any(character not in "0123456789abcdef" for character in generation)
+        or isinstance(pid, bool)
+        or not isinstance(pid, int)
+        or pid != expected_pid
+        or worker_name != worker
+        or isinstance(heartbeat_ns, bool)
+        or not isinstance(heartbeat_ns, int)
+        or heartbeat_ns <= 0
+    ):
+        return {"progressing": False, "age_seconds": None}
+
+    age_ns = monotonic_ns() - heartbeat_ns
+    if age_ns < 0:
+        return {"progressing": False, "age_seconds": None}
+    age_seconds = age_ns // 1_000_000_000
+    return {"progressing": age_seconds <= stale_seconds, "age_seconds": age_seconds}
+
+
 def _supervisor_liveness(
     *,
     path: str | Path | None = None,
@@ -203,7 +401,7 @@ def _supervisor_liveness(
     expected_workers: tuple[str, ...] = WORKER_NAMES,
     monotonic_ns: Callable[[], int] = time.monotonic_ns,
     process_probe: Callable[[int], None] | None = None,
-) -> dict[str, int | bool | None]:
+) -> dict[str, Any]:
     """Read private heartbeat state without returning process IDs."""
     threshold = heartbeat_threshold_seconds(stale_seconds)
     heartbeat_path = _heartbeat_file_path() if path is None else Path(path)
@@ -219,15 +417,24 @@ def _supervisor_liveness(
             or file_stat.st_mode & 0o077
             or file_stat.st_size > 1024
         ):
-            return {"alive": False, "age_seconds": None, "children_alive": False}
+            return {
+                "alive": False, "age_seconds": None, "children_alive": False,
+                "children_progressing": False, "child_progress": {},
+            }
         payload = json.loads(heartbeat_path.read_text(encoding="utf-8"))
     except (OSError, ValueError, UnicodeError):
-        return {"alive": False, "age_seconds": None, "children_alive": False}
+        return {
+            "alive": False, "age_seconds": None, "children_alive": False,
+            "children_progressing": False, "child_progress": {},
+        }
 
     if not isinstance(payload, dict) or set(payload) != {
         "children", "generation", "monotonic_ns", "pid"
     }:
-        return {"alive": False, "age_seconds": None, "children_alive": False}
+        return {
+            "alive": False, "age_seconds": None, "children_alive": False,
+            "children_progressing": False, "child_progress": {},
+        }
     generation = payload["generation"]
     pid = payload["pid"]
     heartbeat_ns = payload["monotonic_ns"]
@@ -254,27 +461,50 @@ def _supervisor_liveness(
         )
         or len(set(children.values())) != len(children)
     ):
-        return {"alive": False, "age_seconds": None, "children_alive": False}
+        return {
+            "alive": False, "age_seconds": None, "children_alive": False,
+            "children_progressing": False, "child_progress": {},
+        }
 
     age_ns = monotonic_ns() - heartbeat_ns
     if age_ns < 0:
-        return {"alive": False, "age_seconds": None, "children_alive": False}
+        return {
+            "alive": False, "age_seconds": None, "children_alive": False,
+            "children_progressing": False, "child_progress": {},
+        }
     age_seconds = age_ns // 1_000_000_000
     probe = os.kill if process_probe is None else process_probe
     try:
         probe(pid, 0) if process_probe is None else probe(pid)
     except (ProcessLookupError, PermissionError, OSError):
-        return {"alive": False, "age_seconds": age_seconds, "children_alive": False}
+        return {
+            "alive": False, "age_seconds": age_seconds, "children_alive": False,
+            "children_progressing": False, "child_progress": {},
+        }
     children_alive = True
     try:
         for child_pid in children.values():
             probe(child_pid, 0) if process_probe is None else probe(child_pid)
     except (ProcessLookupError, PermissionError, OSError):
         children_alive = False
+    child_progress = {
+        worker: _child_progress_status(
+            directory=heartbeat_path.parent,
+            worker=worker,
+            expected_pid=children[worker],
+            stale_seconds=threshold,
+            monotonic_ns=monotonic_ns,
+        )
+        for worker in expected_workers
+    }
     return {
         "alive": age_seconds <= threshold,
         "age_seconds": age_seconds,
         "children_alive": children_alive,
+        "children_progressing": all(
+            status["progressing"] for status in child_progress.values()
+        ),
+        "child_progress": child_progress,
     }
 
 
@@ -367,11 +597,13 @@ def check_progress(
                 "alive": False,
                 "age_seconds": None,
                 "children_alive": False,
+                "children_progressing": False,
+                "child_progress": {},
             },
             "workers": {},
         }
 
-    supervisor: dict[str, int | bool | None] = {
+    supervisor: dict[str, Any] = {
         "alive": False,
         "age_seconds": None,
         "children_alive": False,
@@ -389,6 +621,8 @@ def check_progress(
                     "alive": False,
                     "age_seconds": None,
                     "children_alive": False,
+                    "children_progressing": False,
+                    "child_progress": {},
                 },
                 "workers": {},
             }
@@ -411,6 +645,16 @@ def check_progress(
             return {
                 "status": "unhealthy",
                 "state": "worker_child_unresponsive",
+                "stale_after_seconds": threshold,
+                "backlog_after_seconds": backlog_threshold,
+                "backlog_workers": [],
+                "supervisor": supervisor,
+                "workers": {},
+            }
+        if not supervisor["children_progressing"]:
+            return {
+                "status": "unhealthy",
+                "state": "worker_child_stalled",
                 "stale_after_seconds": threshold,
                 "backlog_after_seconds": backlog_threshold,
                 "backlog_workers": [],

@@ -31,6 +31,15 @@ def fresh_supervisor_heartbeat(monkeypatch, tmp_path):
         )
     )
     path.chmod(0o600)
+    for worker, pid in child_pids.items():
+        child_path = path.with_name(f"{worker}.json")
+        child_path.write_text(json.dumps({
+            "generation": uuid.uuid4().hex,
+            "monotonic_ns": time.monotonic_ns(),
+            "pid": pid,
+            "worker": worker,
+        }))
+        child_path.chmod(0o600)
     monkeypatch.setattr(worker_progress.os, "kill", lambda _pid, _signal: None)
     monkeypatch.setenv(worker_progress.HEARTBEAT_FILE_ENV, str(path))
     return path
@@ -108,7 +117,16 @@ def test_idle_workers_are_healthy_and_probe_is_read_only():
         "stale_after_seconds": 300,
         "backlog_after_seconds": 900,
         "backlog_workers": [],
-        "supervisor": {"alive": True, "age_seconds": 0, "children_alive": True},
+        "supervisor": {
+            "alive": True,
+            "age_seconds": 0,
+            "children_alive": True,
+            "children_progressing": True,
+            "child_progress": {
+                worker: {"progressing": True, "age_seconds": 0}
+                for worker in worker_progress.WORKER_NAMES
+            },
+        },
         "workers": {
             "events": {"active": 0, "stale": 0, "queued": 0, "oldest_due_seconds": None},
             "notifications": {"active": 0, "stale": 0, "queued": 0, "oldest_due_seconds": None},
@@ -270,7 +288,16 @@ def test_database_failure_fails_closed_without_exposing_exception_message():
         "stale_after_seconds": 300,
         "backlog_after_seconds": 900,
         "backlog_workers": [],
-        "supervisor": {"alive": True, "age_seconds": 0, "children_alive": True},
+        "supervisor": {
+            "alive": True,
+            "age_seconds": 0,
+            "children_alive": True,
+            "children_progressing": True,
+            "child_progress": {
+                worker: {"progressing": True, "age_seconds": 0}
+                for worker in worker_progress.WORKER_NAMES
+            },
+        },
         "workers": {},
         "error": "RuntimeError",
     }
@@ -327,7 +354,9 @@ def test_invalid_supervisor_heartbeat_fails_closed_before_database_access(
     assert result["status"] == "unhealthy"
     assert result["state"] == "supervisor_unresponsive"
     assert result["supervisor"]["alive"] is False
-    assert set(result["supervisor"]) == {"alive", "age_seconds", "children_alive"}
+    assert set(result["supervisor"]) == {
+        "alive", "age_seconds", "children_alive", "children_progressing", "child_progress"
+    }
     assert factory_calls == []
 
 
@@ -337,7 +366,110 @@ def test_supervisor_liveness_reports_only_alive_and_aggregate_age(fresh_supervis
     assert result["alive"] is True
     assert result["age_seconds"] == 0
     assert result["children_alive"] is True
-    assert set(result) == {"alive", "age_seconds", "children_alive"}
+    assert result["children_progressing"] is True
+    assert result["child_progress"] == {
+        worker: {"progressing": True, "age_seconds": 0}
+        for worker in worker_progress.WORKER_NAMES
+    }
+    assert set(result) == {
+        "alive", "age_seconds", "children_alive", "children_progressing", "child_progress"
+    }
+
+
+def test_child_progress_heartbeat_is_atomic_private_and_owner_cleaned(tmp_path):
+    supervisor_path = tmp_path / "worker-progress" / "supervisor.json"
+    supervisor_path.parent.mkdir(mode=0o700, exist_ok=True)
+    heartbeat = worker_progress.WorkerProgressHeartbeat(
+        "scheduler",
+        path=supervisor_path,
+        pid=os.getpid(),
+        generation="b" * 32,
+        monotonic_ns=lambda: 10_000_000_000,
+    )
+
+    heartbeat.pulse()
+
+    path = supervisor_path.with_name("scheduler.json")
+    assert json.loads(path.read_text()) == {
+        "generation": "b" * 32,
+        "monotonic_ns": 10_000_000_000,
+        "pid": os.getpid(),
+        "worker": "scheduler",
+    }
+    assert path.stat().st_mode & 0o777 == 0o600
+    assert list(path.parent.glob(".scheduler.json.*")) == []
+    heartbeat.close()
+    assert not path.exists()
+
+
+def test_process_progress_pulses_are_throttled_to_the_configured_interval(
+    fresh_supervisor_heartbeat, monkeypatch
+):
+    clock = [10_000_000_000]
+    heartbeat_path = fresh_supervisor_heartbeat.with_name("scheduler.json")
+    heartbeat_type = worker_progress.WorkerProgressHeartbeat
+    monkeypatch.setattr(worker_progress, "_PROCESS_HEARTBEAT", None)
+    monkeypatch.setenv(worker_progress.WORKER_PROGRESS_NAME_ENV, "scheduler")
+    monkeypatch.setattr(
+        worker_progress,
+        "WorkerProgressHeartbeat",
+        lambda worker: heartbeat_type(
+            worker,
+            path=fresh_supervisor_heartbeat,
+            pid=os.getpid(),
+            generation="c" * 32,
+            monotonic_ns=lambda: clock[0],
+        ),
+    )
+
+    worker_progress.pulse_worker_progress()
+    first = json.loads(heartbeat_path.read_text())["monotonic_ns"]
+    clock[0] += 1_000_000_000
+    worker_progress.pulse_worker_progress()
+    throttled = json.loads(heartbeat_path.read_text())["monotonic_ns"]
+    clock[0] += (worker_progress.WORKER_PROGRESS_POLL_SECONDS - 1) * 1_000_000_000
+    worker_progress.pulse_worker_progress()
+    after_interval = json.loads(heartbeat_path.read_text())["monotonic_ns"]
+
+    assert first == 10_000_000_000
+    assert throttled == first
+    assert after_interval == 10_000_000_000 + worker_progress.WORKER_PROGRESS_POLL_SECONDS * 1_000_000_000
+
+
+@pytest.mark.parametrize("failure", ["missing", "malformed", "stale", "wrong_pid", "permissions"])
+def test_stalled_or_invalid_child_progress_fails_closed_before_database_access(
+    failure, fresh_supervisor_heartbeat, monkeypatch
+):
+    monkeypatch.setenv("KOKONUT_WORKER_PROGRESS_HEARTBEAT_SECONDS", "60")
+    supervisor = json.loads(fresh_supervisor_heartbeat.read_text())
+    child_path = fresh_supervisor_heartbeat.with_name("scheduler.json")
+    if failure == "missing":
+        child_path.unlink()
+    elif failure == "malformed":
+        child_path.write_text("not-json")
+        child_path.chmod(0o600)
+    elif failure in {"stale", "wrong_pid"}:
+        payload = json.loads(child_path.read_text())
+        if failure == "stale":
+            payload["monotonic_ns"] = time.monotonic_ns() - 61_000_000_000
+        else:
+            payload["pid"] = supervisor["children"]["scheduler"] + 100
+        child_path.write_text(json.dumps(payload))
+        child_path.chmod(0o600)
+    else:
+        child_path.chmod(0o644)
+
+    result = worker_progress.check_progress(
+        connection_factory=lambda **_kwargs: pytest.fail("stalled worker must fail before DB access"),
+        enabled_workers=worker_progress.WORKER_NAMES,
+    )
+
+    assert result["status"] == "unhealthy"
+    assert result["state"] == "worker_child_stalled"
+    assert result["supervisor"]["children_alive"] is True
+    assert result["supervisor"]["children_progressing"] is False
+    assert result["supervisor"]["child_progress"]["scheduler"]["progressing"] is False
+    assert str(supervisor["children"]["scheduler"]) not in repr(result)
 
 
 def test_dead_worker_child_fails_closed_before_database_access(
@@ -362,6 +494,11 @@ def test_dead_worker_child_fails_closed_before_database_access(
         "alive": True,
         "age_seconds": 0,
         "children_alive": False,
+        "children_progressing": True,
+        "child_progress": {
+            worker: {"progressing": True, "age_seconds": 0}
+            for worker in worker_progress.WORKER_NAMES
+        },
     }
     assert str(dead_pid) not in repr(result)
 

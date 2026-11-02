@@ -1,0 +1,89 @@
+{
+  "result": "passed",
+  "date": "2026-11-01",
+  "profile": "standard",
+  "project": "kokonut-standard-recovery-8e44aaf16e",
+  "host_ports_published": false,
+  "runtime_network_internal": true,
+  "candidate_legacy_production_touched": false,
+  "migration_snapshot": {
+    "latest_migration": "schema:732_runtime_sensor_alert_read_only.sql",
+    "schema_count": 723,
+    "sha256": "5487b6bc43968653c5069fac8ed530562ad95759eeef43ae1775e8edf2040304",
+    "app_image_matches": true,
+    "worker_image_matches": true
+  },
+  "migrations": {
+    "latest_schema_migration": "schema:732_runtime_sensor_alert_read_only.sql",
+    "schemas_applied": 723,
+    "schemas_failed": 0,
+    "seed_rows": 0,
+    "source_snapshot_sha256": "5487b6bc43968653c5069fac8ed530562ad95759eeef43ae1775e8edf2040304"
+  },
+  "runtime_role": {
+    "app_database_user": "kokonut_runtime",
+    "worker_database_user": "kokonut_runtime",
+    "bootstrap_profile": "runtime-admin",
+    "bootstrap_ran_explicitly_after_migrations": true,
+    "role_attributes": {
+      "bypass_rls": false,
+      "create_database": false,
+      "create_role": false,
+      "has_role_memberships": false,
+      "inherit": false,
+      "login": true,
+      "member_of_database_owner": false,
+      "owns_database": false,
+      "replication": false,
+      "superuser": false
+    },
+    "role_attributes_preserved_after_reapply": true,
+    "runtime_reference_tables_read_only_after_initial_provision": true,
+    "runtime_reference_tables_read_only_after_provisioner_reapply": true,
+    "schema_version_insert_denied_after_initial_provision": true,
+    "schema_version_insert_denied_after_provisioner_reapply": true
+  },
+  "required_schema_missing_fails_closed": true,
+  "unsafe_admin_runtime_role_fails_before_children": true,
+  "startup": {
+    "api_healthy": true,
+    "worker_healthy": true,
+    "worker_children_alive": true,
+    "proxy_running": true,
+    "worker_probe": "healthy",
+    "private_supervisor_heartbeat": {
+      "directory_private": true,
+      "file_private": true,
+      "shape_valid": true
+    }
+  },
+  "database_outage_recovery": {
+    "worker_degraded_state_observed": "unhealthy",
+    "database_healthy_after_restart": true,
+    "worker_healthy_after_restart": true,
+    "worker_restart_count": 0,
+    "api_healthy_after_restart": true,
+    "private_supervisor_heartbeat_after_restart": {
+      "directory_private": true,
+      "file_private": true,
+      "shape_valid": true
+    }
+  },
+  "shutdown": {
+    "worker_container_stopped": true,
+    "supervisor_heartbeat_removed": true,
+    "active_work_leases_after_shutdown": 0
+  },
+  "cleanup": {
+    "project_containers_remaining": 0,
+    "unique_recovery_image_removed": true,
+    "candidate_image_tag_preserved": "sha256:c69a6405e990de070b00b2fac0c0e7ca5c8c3c73e380754fe778a9aa1ceedff4"
+  },
+  "limitations": [
+    "Short disposable recovery is not 24-hour endurance or scale acceptance.",
+    "The internal network has no Internet egress; no real providers, seeds, candidate, legacy, or production data were used.",
+    "A healthy process and heartbeat do not prove every idle child is responsive or every business handler has output parity.",
+    "The seed-free run verifies no active leases remain after shutdown; it does not exercise lease recovery during a long-running handler.",
+    "The API and general worker still share the kokonut_runtime database login."
+  ]
+}

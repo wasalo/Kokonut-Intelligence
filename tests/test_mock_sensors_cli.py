@@ -7,13 +7,19 @@ import pytest
 from services.ingestion import cli as ingestion_cli
 from services.ingestion import mock_sensors
 
+LOCATION_ID = "1f31512c-3b1d-4312-bd0f-54a2b23b31d0"
+
 
 @pytest.mark.parametrize(
     ("arguments", "action", "expected"),
     [
         (["--setup"], "setup", None),
         (["--generate", "--count", "7", "--anomalies"], "generate", {"count": 7, "inject_anomalies": True}),
-        (["--cleanup"], "cleanup", None),
+        (
+            ["--cleanup", "--location-id", LOCATION_ID],
+            "cleanup",
+            {"location_id": LOCATION_ID},
+        ),
     ],
 )
 @pytest.mark.parametrize("unified", [False, True], ids=["standalone", "unified"])
@@ -27,7 +33,9 @@ def test_standalone_and_unified_entrypoints_dispatch_selected_action(
         "generate_data",
         lambda **kwargs: calls.append(("generate", kwargs)),
     )
-    monkeypatch.setattr(mock_sensors, "cleanup", lambda: calls.append(("cleanup", None)))
+    monkeypatch.setattr(
+        mock_sensors, "cleanup", lambda **kwargs: calls.append(("cleanup", kwargs))
+    )
 
     if unified:
         ingestion_cli.main(["mock_sensors", *arguments])
@@ -50,7 +58,9 @@ def test_no_action_prints_help_without_running_demo_operations(monkeypatch, caps
         lambda **_kwargs: pytest.fail("no-action invocation must not generate data"),
     )
     monkeypatch.setattr(
-        mock_sensors, "cleanup", lambda: pytest.fail("no-action invocation must not clean data")
+        mock_sensors,
+        "cleanup",
+        lambda **_kwargs: pytest.fail("no-action invocation must not clean data"),
     )
 
     if unified:
@@ -111,3 +121,36 @@ def test_generate_data_validates_count_before_opening_database(monkeypatch, coun
 
     with pytest.raises(ValueError, match="--count must be a positive integer"):
         mock_sensors.generate_data(count=count)
+
+
+@pytest.mark.parametrize("unified", [False, True], ids=["standalone", "unified"])
+@pytest.mark.parametrize(
+    "arguments",
+    [["--cleanup"], ["--cleanup", "--location-id", "not-a-uuid"]],
+)
+def test_cleanup_requires_valid_location_before_dispatch(
+    monkeypatch, capsys, unified, arguments
+):
+    monkeypatch.setattr(
+        mock_sensors,
+        "cleanup",
+        lambda **_kwargs: pytest.fail("invalid cleanup scope must not be dispatched"),
+    )
+    monkeypatch.setattr(
+        mock_sensors,
+        "get_db",
+        lambda: pytest.fail("invalid cleanup scope must fail before database access"),
+    )
+
+    with pytest.raises(SystemExit) as exc_info:
+        if unified:
+            ingestion_cli.main(["mock_sensors", *arguments])
+        else:
+            mock_sensors.main(arguments)
+
+    assert exc_info.value.code == 2
+    error = capsys.readouterr().err
+    if len(arguments) == 1:
+        assert "--cleanup requires --location-id" in error
+    else:
+        assert "--location-id must be a UUID" in error

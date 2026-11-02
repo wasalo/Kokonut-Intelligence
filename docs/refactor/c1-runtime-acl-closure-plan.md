@@ -7,8 +7,9 @@ write boundaries while preserving supported farm, finance, credit, event,
 analytics, worker, and administrative capabilities. C1 is complete when each
 runtime writer has an accountable identity, a bounded operation contract, and
 database-enforced scope or an explicitly approved global/system boundary; no
-unreviewed direct table DML remains. The two existing append-only audit ledgers
-may retain INSERT only under their declared controls.
+unreviewed direct table DML remains. Explicitly declared append-only evidence
+and workflow ledgers may retain SELECT/INSERT only under their database
+triggers, scoped function paths, and provisioner-enforced grants.
 
 ### Historical ACL baseline — migrations 689–699
 
@@ -19,8 +20,8 @@ Migrations 690–697 remove runtime DML from twelve reviewed relations; migratio
 699 removes unnecessary grants from the inherently non-updatable
 `v_public_farm_summary` view. The native full-schema 699 probe reports 979
 tables still exposed. These figures are historical ACL-reach measurements, not
-confirmed tenant leaks. For current migration-725 counts, see the
-[current source/ACL report](builds/2026-11-01-recovery/runtime-privilege-callsite-report-725.json)
+confirmed tenant leaks. For current migration-741 counts, see the
+[current source/ACL report](builds/2026-11-01-recovery/runtime-privilege-callsite-report-741.json)
 and the C1 continuation dated 1 November 2026 below. Static SQL absence is not
 proof that a table is unused: helper-mediated writes, Directus permissions,
 dynamic SQL, ORM paths, external integrations, and populated production data
@@ -28,7 +29,253 @@ remain incomplete in the inventory.
 
 ## Current evidence and decisions
 
-### Latest C1 continuation — migration 725 framework reference catalogs — 1 November 2026
+### Previous C1 continuation — migration 741 — 1 November 2026
+
+Migration 741 applies the owner decision that `quality_grade` is a global
+curated catalog. Runtime and optional Directus roles retain SELECT but cannot
+write; reviewed migrations and database maintenance retain the write path.
+The owner reports no known external writers, which is not a complete
+external-client audit. RLS is unchanged
+([migration](../../schemas/postgres/741_runtime_quality_grade_catalog_read_only.sql);
+[acceptance](builds/2026-11-01-recovery/quality-grade-runtime-boundary-741-disposable.json)).
+
+### Current C1 continuation — migrations 742–745 — 1 November 2026
+
+Schema and callsite review treats `readiness_dimension` as a global curated
+catalog: migration 204 provides its global defaults, while per-location
+weighting is stored separately in `readiness_location_weight`. Migration 742
+preserves runtime and optional Directus reads and removes direct writes while
+leaving migration/database-owner maintenance available. The focused disposable
+check covers absent/present roles, both provisioners, replay, read/write
+grants, owner maintenance, location overrides, and unchanged RLS. The owner
+has confirmed that Directus should not edit the global dimension definitions;
+location-specific weights remain separate ([migration](../../schemas/postgres/742_runtime_readiness_dimension_catalog_read_only.sql);
+[acceptance](builds/2026-11-01-recovery/readiness-dimension-runtime-boundary-742-disposable.json)).
+
+Migrations 743–745 remove direct runtime mutation privileges from the
+non-updatable disclosure views `v_public_ebf_scorecard`,
+`v_public_metric_summary`, and `v_public_wellbeing_metric_summary`, retaining
+their existing SELECT grants and leaving base-table writers and RLS unchanged.
+For the EBF view, PUBLIC SELECT and named read consumers remain; mutation
+privileges are removed from PUBLIC and runtime. Migration 743 has a focused
+PostgreSQL checker; migrations 744–745 are exercised by Standard recovery's
+role-ACL assertions. Provisioner and source regressions pass
+([743 migration](../../schemas/postgres/743_runtime_public_ebf_scorecard_read_only.sql);
+[743 acceptance](builds/2026-11-01-recovery/public-ebf-scorecard-runtime-boundary-743-disposable.json);
+[744 migration](../../schemas/postgres/744_runtime_public_metric_summary_read_only.sql);
+[745 migration](../../schemas/postgres/745_runtime_public_wellbeing_metric_summary_read_only.sql)).
+
+The native replay passes through 745 (736/736 schemas, zero failures/pending
+migrations or seeds, 47 synthetic operator/two-tenant checks). Standard
+first-install/recovery passes through 745 from a captured 736-schema snapshot,
+including role provisioning/reapplication, outage recovery, stalled-child
+detection, clean shutdown, and read-only view checks. Native and ARM64/QEMU replays each applied 736/736 ordered schemas through
+745 and passed 47 synthetic operator/two-tenant checks; the emulated run
+cleaned up successfully. QEMU is software portability evidence, not physical
+Raspberry Pi acceptance
+([native](builds/2026-11-01-recovery/native-current-schema-745-operator-probe.json);
+[ARM64/QEMU](builds/2026-11-01-recovery/arm64-qemu-current-schema-745-operator-probe.json);
+[Standard recovery](builds/2026-11-01-recovery/standard-profile-recovery-745-disposable.json)).
+
+The current native ACL/source report counts 906 public-schema tables with
+effective runtime table-level DML while RLS is disabled. This is privilege
+reach, not a confirmed-leak count; the older 915 figure is historical. Source
+inventories remain heuristic, and the synthetic probe covers its declared
+policies only. C1 remains open for other writer/caller cohorts, API/worker
+identity separation, Directus API/external-client review, tenant/RLS,
+populated-data parity, and persistent-target rollout
+([report](builds/2026-11-01-recovery/runtime-privilege-callsite-report-745.json);
+[SQL inventory](runtime-sql-inventory.json);
+[role attribution](runtime-role-attribution.json)).
+
+### Previous C1 continuation — migrations 726–728 — 1 November 2026
+
+Three additional C1 boundaries now pass isolated PostgreSQL acceptance:
+
+- Migration 726 retains runtime SELECT on `time_delay` while removing table
+  and residual column DML. The database-owner seed path still replays and
+  upserts reference values; the Directus SQL grant is unchanged.
+- Migration 727 retains runtime SELECT on `solution` and
+  `solution_lifecycle_event`, removes table and residual column DML, and
+  preserves the bounded function-owner write path used by solution lifecycle
+  operations. The checker exercises creation, stage/review transitions,
+  retirement, retries, gate transitions, and role re-provisioning while
+  retaining Directus/maintenance access.
+- Migration 728 forces RLS on `farm_activity_operator_event`. Reads require the
+  current signed operator/location transaction context; the SECURITY DEFINER
+  trigger path appends audit events. Runtime direct DML remains denied and the
+  ledger remains append-only. The disposable checker verifies forged or
+  missing context fails closed, cross-location reads are denied, rollback
+  clears context, and stale table/column grants are removed on provisioner
+  reapplication.
+
+The network-disabled Standard recovery applied a captured snapshot of all 719
+schema files through migration 728 with zero failed schemas or seed rows. It
+verified matching API/worker image inputs, safe runtime-role bootstrap and
+reapplication, API/worker/proxy health, database restart recovery, private
+heartbeat handling, shutdown lease cleanup, and disposable cleanup. Native
+and ARM64/QEMU full-schema replays also applied 719/719 migrations through 728
+and passed the 39-check synthetic operator/two-tenant probe. Both probes
+reported 917 public tables with runtime DML while RLS is disabled, 113 private
+relations verified, 101 policy-declared mutation-denied relations verified,
+and zero direct table/column privilege violations within that declared
+policy. The 917 figure is privilege reach, not a count of confirmed leaks; the
+101 verified denials are not universal C1 or tenant-isolation coverage. The
+ARM64/QEMU result is portability evidence, not physical Raspberry Pi
+acceptance. The refreshed source/ACL report joins this migration-728 native
+probe to the then-current 4,959-site/1,063-write-candidate SQL inventory. It
+records 1,301 relations with effective runtime DML, 917 tables with DML while
+RLS is disabled, and 186 migration-denied relations matching policy with zero
+mismatches. It also records 207 unprotected DML relations without candidate
+SQL sites and 364 without candidate write targets. These are source and
+privilege-reach measures, not confirmed leaks or proof of tenant isolation.
+The report inherits the probe's captured pre-commit source revision and dirty
+worktree metadata; the schema/runtime code it audits is committed at
+`88008a00`.
+
+The focused migration/test batch passed 208 tests, Ruff, Python compilation,
+ordered migration validation, SQL inventory checks, and diff checks. The
+source/migration batch is committed at `88008a00`; the Standard recovery,
+migration-726 check, and regenerated source/ACL report were collected
+afterward and are being recorded in the progress documents for the next
+commit. The native/QEMU probe JSON records the pre-commit source revision and
+a dirty worktree because it ran before that source snapshot was committed; the
+migration contents are present in `88008a00`, but the evidence metadata is
+intentionally preserved as captured.
+
+Evidence: [migration 726](../../schemas/postgres/726_runtime_time_delay_reference_read_only.sql),
+[migration 726 ACL acceptance](builds/2026-11-01-recovery/time-delay-runtime-boundary-726-disposable.json),
+[migration 727](../../schemas/postgres/727_runtime_solution_lifecycle_read_only.sql),
+[migration 727 ACL/behavior acceptance](builds/2026-11-01-recovery/solution-lifecycle-runtime-acl-727-disposable.json),
+[migration 728](../../schemas/postgres/728_farm_activity_operator_event_signed_location_rls.sql),
+[migration 728 signed-RLS acceptance](builds/2026-11-01-recovery/farm-activity-operator-event-rls-728-disposable.json),
+[native full replay and operator probe](builds/2026-11-01-recovery/native-current-schema-728-operator-probe.json),
+[ARM64/QEMU full replay and operator probe](builds/2026-11-01-recovery/arm64-current-schema-728-operator-probe.json),
+[Standard recovery](builds/2026-11-01-recovery/standard-profile-recovery-728-disposable.json),
+[refreshed source/ACL report](builds/2026-11-01-recovery/runtime-privilege-callsite-report-728.json).
+
+These are disposable acceptance results; no candidate, legacy, or production
+database or role was changed. Standard still uses `kokonut_runtime` for both
+API and general worker. C1 remains open for the unreconciled broad runtime
+writer set, shared login, remaining tenant-safe read/RLS boundaries, external
+consumer ownership, populated-data parity, and persistent-target rollout.
+
+### Completed C1 continuation — sensor anomaly and demo cleanup, migrations 729–732 — 1 November 2026
+
+Migrations 729–730 move environmental-baseline alerting and marked-demo sensor
+cleanup behind separate no-login function-owner roles and signed
+`sensor_reading/process` worker context. Baseline processing preserves the
+location's eligible baseline, the latest ten readings from the prior 24 hours,
+the strict greater-than-30% deviation threshold, warning status, and
+rule/device/location cooldown. Alert, platform event, notification intent,
+and receipt effects are transactional and idempotent. Demo cleanup requires an
+explicit exact location and deletes only readings and alerts whose current
+sensor device is still marked as demo data.
+
+Migration 731 adds the bounded signed inventory for the legacy exact-sensor
+replay path. Its join validates event, source reading, device, canonical
+sensor type, location, payload IDs, enabled rule, and missing receipt before
+returning a bounded ordered page. Conditional SELECT policies support the
+membership-free reader roles where installations already use RLS; the
+security-definer functions retain explicit signed-scope predicates. Migration
+732 removes direct `sensor_alert` DML from `kokonut_runtime` and
+`kokonut_worker_execution`, preserving runtime SELECT and bounded function
+owner writes. This is a writer boundary, not a claim of tenant isolation.
+Runtime SELECT remains for current readers; their authorization/scope and any
+future tenant RLS policy require separate review.
+
+The focused selection passes 369 tests across anomaly detection, CLI scope,
+signed worker contracts, mock cleanup, adaptive sampling, advisor/orientation/
+systems consumers, scheduler command contracts, and the worker-operation map.
+The disposable PostgreSQL 16 acceptance applies and replays migrations 649
+and 729–732 and passes 15 scoped baseline, inventory, retry, cleanup, role,
+RLS, ACL, and provisioner checks
+([evidence](builds/2026-11-01-recovery/sensor-alert-worker-acl-732-disposable.json)).
+The network-disabled native full-chain replay and ARM64/QEMU replay each apply
+all 723 ordered schema files through migration 732 and pass the 39-check
+synthetic operator/two-tenant probe. Standard first-install recovery also
+passes through migration 732 with the same captured schema snapshot in the API
+and worker images, safe runtime-role bootstrap/reapplication, health and
+database-outage recovery, private heartbeat, shutdown, and cleanup. The latest
+source/ACL report records 1,300 public relations with effective runtime DML,
+916 tables with runtime DML while RLS is disabled, and 186 migration-declared
+denials matching provisioner policy with zero mismatches. The focused sensor
+check verifies 102 mutation-denied relations and 113 private relations; these
+policy-scoped counts do not represent all runtime grants or prove tenant
+isolation. The ACL report additionally finds 208 unprotected DML relations
+without candidate SQL sites and 366 without candidate write sites. These
+counts measure source correlation or privilege reach, not confirmed leaks.
+QEMU is portability evidence only. The Standard recovery is short-duration
+and disposable. The API and general worker still share `kokonut_runtime`; C1
+remains open for unreconciled writers, remaining tenant-safe reads/RLS,
+external consumer ownership, populated-data parity, and persistent rollout.
+
+Evidence: [focused tests and sensor ACL/behavior acceptance](builds/2026-11-01-recovery/sensor-alert-worker-acl-732-disposable.json),
+[native full replay and operator probe](builds/2026-11-01-recovery/native-current-schema-732-operator-probe-retry.json),
+[ARM64/QEMU full replay and operator probe](builds/2026-11-01-recovery/arm64-qemu-current-schema-732-operator-probe.json),
+[Standard recovery](builds/2026-11-01-recovery/standard-profile-recovery-732-disposable.json),
+[source/ACL report](builds/2026-11-01-recovery/runtime-privilege-callsite-report-732.json).
+No candidate, legacy, or production database or role was changed.
+
+### Latest C1 continuation — reference-table boundaries, migrations 735–738 — 1 November 2026
+
+Migrations 735–737 preserve `kokonut_runtime` SELECT while removing table and
+residual column DML from `location_baseline`,
+`bio_ingredient_composition_reference`, `bio_regional_input_availability`,
+and `data_freshness_config`. The bounded migration-645 freshness reader,
+database-owner seed upserts, and table-owner writes remain available.
+Migration 738 registers all four relations in the Directus policy catalog as
+`read_only`, removes optional Directus table/column/sequence DML, preserves
+SELECT, and proves reprovisioning does not restore writes. The isolated
+acceptance uses disposable PostgreSQL 16 and the actual `postgres`
+administrator to model the repository seed runner; it does not prove a
+separate maintenance login exists.
+
+The Standard recovery caught two integration issues before passing: the
+freshness-login verifier now allows only the three PostGIS metadata relations
+that are readable through `PUBLIC` while still rejecting mutations; and the
+Directus acceptance query now terminates every generated SQL statement. The
+freshness-contract regression, Directus query regression, 39 Standard harness
+tests, Ruff, Python compilation, and diff checks pass. The network-disabled
+native and ARM64/QEMU full replays each applied all 729 ordered schemas through
+migration 738 and passed the 40-check synthetic two-tenant/operator probe.
+Standard first-install recovery passed from an identical captured schema
+snapshot in both API and worker images, runtime and Directus role
+bootstrap/reapplication, health, database outage recovery, heartbeat,
+shutdown, and cleanup. The probe records 113 private relations, 107
+policy-declared mutation denials, three append-only relations, 911 public
+tables with runtime DML while RLS is disabled, and zero table/column privilege
+violations inside that declared policy. These are privilege-scope counts, not
+confirmed leaks or universal tenant-isolation evidence. QEMU is not physical
+Raspberry Pi acceptance; Standard recovery is short and disposable. API and
+general worker still share `kokonut_runtime`.
+
+C1 remains open: the writer/caller inventory is predominantly unresolved, a
+safe next table-only revoke was not found, Directus API permissions and
+external consumers need reconciliation, and tenant/RLS, populated-data,
+identity-separation, and persistent-target rollout gates remain. Evidence:
+[migrations 735–738](builds/2026-11-01-recovery/runtime-read-only-735-738-disposable.json),
+[native replay](builds/2026-11-01-recovery/native-current-schema-738-operator-probe.json),
+[ARM64/QEMU replay](builds/2026-11-01-recovery/arm64-qemu-current-schema-738-operator-probe.json),
+[Standard recovery](builds/2026-11-01-recovery/standard-profile-recovery-738-disposable.json),
+[source/ACL join](builds/2026-11-01-recovery/runtime-privilege-callsite-report-738.json),
+[migration 738](../../schemas/postgres/738_directus_reference_relations_read_only.sql).
+No candidate, legacy, or production database or role was changed.
+
+The refreshed report joins the native probe to 4,947 SQL execution sites. It
+records 1,295 of 1,522 relations with effective runtime DML and 911 public
+tables with DML while RLS is disabled; 192 migration-denied relations match the
+declared policy with zero mismatches. It also finds 204 unprotected DML
+relations without candidate SQL sites and 361 without candidate write sites.
+The refreshed API/worker attribution inventory now has 3,640 unresolved of
+4,947 SQL sites after a static enhancement followed verified Starlette
+`run_in_threadpool` callbacks from Gateway route registrars. The enhancement
+adds 261 callback edges covering 943 SQL sites; it does not prove that a route
+is active, authorized, or safe to revoke. These counts measure grants and
+source-inventory coverage, not confirmed data exposure. They show why another
+table-only revoke without caller review would be unsafe.
+
+### Previous C1 continuation — migration 725 framework reference catalogs — 1 November 2026
 
 Migration 725 keeps `form_of_capital`, `sdg`, `pillar_of_value`, and
 `regeneration_principle` readable while removing unused `kokonut_runtime`
@@ -738,9 +985,10 @@ The detailed entries below are dated historical checkpoints through migration
   checks and 698 relationship-scope checks pass on native and ARM64/QEMU. The
   historical 991 figure and current counts measure ACL reach, not confirmed
   tenant-data leaks.
-- The current SQL inventory check passes with 41 unresolved write candidates;
-  the prior migration-692 snapshot recorded 4,959 execution sites across 989
-  files, 1,253 relation candidates, and 585 static write-target relations. Its analytics subset has 278 relations across
+- At that historical checkpoint, the SQL inventory check passed with 41
+  unresolved write candidates; the prior migration-692 snapshot recorded
+  4,959 execution sites across 989 files, 1,253 relation candidates, and 585
+  static write-target relations. Its analytics subset has 278 relations across
   91 files and 437 write-site candidates, with no unmatched relation in the
   analytics cohort ([current analytics inventory](builds/2026-10-30-recovery/analytics-runtime-write-candidate-inventory-692.json));
   the other reviewed service groups contain 275 unique relations across 44
@@ -891,23 +1139,25 @@ The detailed entries below are dated historical checkpoints through migration
   compare native with ARM64/QEMU.
 - [x] Separate analytics, credit-class, and other service candidates; preserve
   unresolved and no-callsite records as unresolved.
-- [x] Reconcile the latest native C1 inventories through migration 722: the
-  ACL report records 212 unprotected DML relations without candidate SQL
-  relations and 374 without candidate write sites. The separate runtime SQL
-  review ledger contains 30 legacy-unreviewed and eight reviewed-unresolved
-  fingerprints. These are different units; source review is not ACL approval.
-  Refresh both records as operations are migrated ([ACL report](builds/2026-11-01-recovery/runtime-privilege-callsite-report-722.json);
+- [x] Reconcile the current native C1 inventories through migration 745: the
+  ACL report records 202 unprotected DML relations without candidate SQL
+  sites and 357 without candidate write sites. The separate runtime SQL
+  review ledger contains 27 legacy-unreviewed fingerprints and eight
+  entries in its reviewed-sites ledger. These are different units; source review is not ACL approval.
+  Refresh both records as operations are migrated ([ACL report](builds/2026-11-01-recovery/runtime-privilege-callsite-report-745.json);
   [SQL review ledger](runtime-sql-unresolved-write-review.json)).
 - [x] Add and refresh the deterministic API/general-worker attribution map.
-  The current snapshot covers 4,958 SQL sites; the original baseline covered
-  4,967 before later source retirements. It includes Standard
-  credential/default-child policy and explicit unresolved labels
+  The current snapshot covers 4,951 SQL sites: 975 API candidates, 329 worker
+  candidates, three shared candidates, and 3,644 unresolved. The original
+  baseline covered 4,967 before later source retirements. The map includes
+  Standard credential/default-child policy and explicit unresolved labels
   ([inventory](runtime-role-attribution.json);
   [generator](../../scripts/runtime_role_attribution.py)). The inventory
   checker passes; this is static source evidence only.
-- [ ] Review the 4,556 unresolved SQL sites, four dynamic Gateway route
-  factories, 56 worker dynamic-dispatch edges, persisted schedule activation,
-  and external callers before defining any API/general-worker grants.
+- [ ] Review the current 3,644 unattributed SQL sites, four dynamic Gateway
+  route registrations, 56 worker dynamic-dispatch edges, persisted schedule
+  activation, and external callers before defining any API/general-worker
+  grants. Static attribution is not proof of runtime activation.
 - [ ] Reconcile Directus field/row permissions, extension hooks, ORM/dynamic SQL,
   API keys, saved reports, and external consumers per candidate relation.
 - [x] Verify migration 690 and the `capex_breakdown` boundary on network-
@@ -994,22 +1244,26 @@ The detailed entries below are dated historical checkpoints through migration
 
 ### 3. Analytics writers
 
-- [ ] Group the 280 analytics write-target relations by capability and public
-  caller. Replace tenant-facing writes with signed location-scoped Gateway
-  operations or bounded functions; use dedicated identities for durable
-  workers and distinct maintenance identities for administrative jobs.
-- [ ] Separate the 439 candidate SQL sites into reachable, unused, and
-  unresolved call paths using direct function/job reachability; module-level
-  operation tags are not proof of worker reachability.
+- [ ] Group the current 277 analytics write-target relations by capability
+  and public caller. Replace tenant-facing writes with signed location-scoped
+  Gateway operations or bounded functions; use dedicated identities for
+  durable workers and distinct maintenance identities for administrative jobs.
+  These are static source candidates, not verified live writers.
+- [ ] Separate the current 444 analytics write-candidate SQL sites into
+  reachable, unused, and unresolved call paths using direct function/job
+  reachability; module-level operation tags are not proof of worker
+  reachability.
 - [ ] Preserve current calculations and reports with synthetic/populated
   reference fixtures before changing grants.
 - [ ] Revoke DML per completed relation cohort, never by broad source absence.
 
 ### 4. Other service writers
 
-- [ ] Reconcile the 275 unique non-analytics/non-credit-class candidate
-  relations across 44 packages. Preserve durable event/scheduler state,
+- [ ] Reconcile the current 269 unique non-analytics/non-credit-class write
+  targets across 43 service packages. Preserve durable event/scheduler state,
   farm-operation workflows, finance, certificates, and protocol execution.
+  The inventory also has other read candidates; these write-target counts are
+  heuristic until call paths are reviewed.
 - [ ] Add bounded APIs/functions or dedicated writer identities per capability
   group, with authorization, idempotency, rollback, and audit coverage.
 - [ ] Keep global reference and administrative writes distinct from

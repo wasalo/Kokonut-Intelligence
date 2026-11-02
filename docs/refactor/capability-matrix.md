@@ -1,6 +1,34 @@
 # Capability preservation matrix
 
-**Latest source-only C1 continuation — 31 October 2026:** Runtime-role
+**Current C1 acceptance — migrations 742–745, 1 November 2026:** The owner
+selected `quality_grade` as a global curated catalog and reports no known
+external writers for it; that is not an exhaustive client audit. Based on
+migration 204's global defaults and the separate
+`readiness_location_weight` table, the implementation treats
+`readiness_dimension` as a global curated catalog; the owner confirmed it
+should remain global/read-only for Directus as well. Migration 742 keeps
+runtime/Directus reads and database-owner catalog maintenance while removing
+their direct writes. Migrations 743–745 remove unnecessary PUBLIC/runtime mutation
+privileges from three non-updatable public summary views while preserving
+their SELECT contracts and underlying table writers. RLS and capability
+classifications are unchanged. Native PostgreSQL replay through 745 passes
+736 schemas and 47 synthetic operator/two-tenant checks; Standard recovery
+passes through 745 from the same schema snapshot. ARM64/QEMU replay through 745 also passes 736/736 schemas and 47 synthetic operator/two-tenant checks, with cleanup complete. QEMU does not substitute for physical Raspberry Pi acceptance. The current ACL report counts 906 public tables with runtime
+DML while RLS is disabled. This is privilege reach, not a confirmed-leak
+count; the historical 915 count is superseded. C1 remains open for remaining
+writer/caller review, API/worker identity separation, external consumers,
+tenant/RLS, populated-data parity, and persistent rollout. This
+access-boundary work does not advance capability rows: the matrix remains
+24 baseline-retained, 7 deployed, and 36 prepared across 67 rows
+([readiness ACL](builds/2026-11-01-recovery/readiness-dimension-runtime-boundary-742-disposable.json);
+[public EBF ACL](builds/2026-11-01-recovery/public-ebf-scorecard-runtime-boundary-743-disposable.json);
+[native replay](builds/2026-11-01-recovery/native-current-schema-745-operator-probe.json);
+[Standard recovery](builds/2026-11-01-recovery/standard-profile-recovery-745-disposable.json);
+[ARM64/QEMU replay](builds/2026-11-01-recovery/arm64-qemu-current-schema-745-operator-probe.json);
+[ACL/source report](builds/2026-11-01-recovery/runtime-privilege-callsite-report-745.json);
+[C1 closure plan](c1-runtime-acl-closure-plan.md)).
+
+**Previous source-only C1 continuation — 31 October 2026:** Runtime-role
 provisioning now grants legacy compatibility DML only when the login is first
 created. Reprovisioning preserves existing grants and reviewed denials without
 granting newly created relations; disposable PostgreSQL 16 checks cover both
@@ -8,7 +36,7 @@ pre-existing and fresh logins. This does not remove broad grants from existing
 relations or change capability classifications. C1, tenant/RLS, and persistent
 rollout remain open ([acceptance](builds/2026-10-31-recovery/runtime-role-reprovision-guard-disposable.json)).
 
-**Latest C1 aggregate refresh — migration 725, 1 November 2026:** Network-
+**Previous C1 aggregate refresh — migration 725, 1 November 2026:** Network-
 disabled native PostgreSQL 16 replay applied all 716 ordered schemas and
 passed 39 synthetic two-tenant/operator checks; the focused runtime-role and
 ACL-report regression selection passes 125 tests. Migration 725 preserves reads

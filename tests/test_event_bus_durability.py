@@ -43,6 +43,25 @@ def test_lazy_event_bus_connection_uses_configured_timeout():
     connection.close.assert_called_once()
 
 
+def test_supervised_event_handler_wait_refreshes_progress_without_changing_result():
+    bus = EventBus()
+    process = MagicMock(returncode=0)
+    process.communicate.side_effect = [
+        subprocess.TimeoutExpired(["handler"], 5),
+        ('{"succeeded": true}', ""),
+    ]
+    with (
+        patch("services.events.bus.subprocess.Popen", return_value=process),
+        patch("services.events.bus.time.monotonic", side_effect=(0, 1, 2)),
+        patch("services.core.worker_progress.pulse_worker_progress") as pulse,
+    ):
+        result = bus._invoke_handler("module", "handler", "event", {}, 10)
+
+    assert result == ("success", None)
+    assert process.communicate.call_count == 2
+    pulse.assert_called_once_with()
+
+
 @pytest.mark.parametrize("lease_seconds", [29, 3601, 0, -1, True, False, 30.0, "30", None])
 def test_event_bus_rejects_invalid_lease_before_database_access(lease_seconds):
     with patch("services.common.database.get_db") as get_db:
@@ -348,8 +367,12 @@ def test_handler_timeout_kills_and_reaps_child():
         subprocess.TimeoutExpired("handler", 1),
         ("", ""),
     ]
+    process.poll.return_value = None
 
-    with patch("services.events.bus.subprocess.Popen", return_value=process):
+    with (
+        patch("services.events.bus.subprocess.Popen", return_value=process),
+        patch("services.events.bus.time.monotonic", side_effect=(0, 0, 2)),
+    ):
         status, error = bus._invoke_handler("module", "function", "kind", {}, 1)
 
     assert status == "timeout"

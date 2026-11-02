@@ -113,55 +113,33 @@ def check_application_writes(docker: str, container: str, password: str) -> None
         from services.ingestion.base import log_ingestion
 
         location_id = "a0000000-0000-0000-0000-000000000001"
-        device_id = "a0000000-0000-0000-0000-000000000011"
         reading_id = "a0000000-0000-0000-0000-000000000021"
-        alert_id = create_alert(
-            connection,
-            device_id,
-            "a0000000-0000-0000-0000-000000000051",
-            reading_id,
-            "warning",
-            "Disposable location-lineage check",
-            12.5,
-            15.0,
-            location_id=location_id,
-        )
-        with connection.cursor() as cursor:
-            cursor.execute("SELECT location_id::text FROM public.sensor_alert WHERE id = %s", (alert_id,))
-            if cursor.fetchone()[0] != location_id:
-                raise AssertionError("application alert insert lost its location lineage")
+        # Migration 406 validates/backfills legacy lineage. New sensor-alert
+        # writes must use the signed worker and the retired shared-DB adapter
+        # must fail before it can issue SQL.
         try:
             create_alert(
                 connection,
-                device_id,
+                "a0000000-0000-0000-0000-000000000011",
                 "a0000000-0000-0000-0000-000000000051",
                 reading_id,
                 "warning",
-                "Wrong location must fail",
-                12.5,
-                15.0,
-                location_id="a0000000-0000-0000-0000-000000000002",
-            )
-        except ValueError:
-            pass
-        else:
-            raise AssertionError("application alert insert accepted a mismatched device location")
-        try:
-            create_alert(
-                connection,
-                device_id,
-                "a0000000-0000-0000-0000-000000000051",
-                "a0000000-0000-0000-0000-000000000022",
-                "warning",
-                "Cross-location reading must fail",
+                "Disposable location-lineage check",
                 12.5,
                 15.0,
                 location_id=location_id,
             )
-        except ValueError:
-            pass
+        except RuntimeError as exc:
+            if "signed anomaly worker" not in str(exc):
+                raise
         else:
-            raise AssertionError("application alert insert accepted a cross-location reading")
+            raise AssertionError("retired shared-runtime alert writer remained available")
+
+        alert_id = "a0000000-0000-0000-0000-000000000041"
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT location_id::text FROM public.sensor_alert WHERE id = %s", (alert_id,))
+            if cursor.fetchone()[0] != location_id:
+                raise AssertionError("migration 406 fixture alert lost its location lineage")
 
         log_ingestion(
             source_system="anomaly_detector",
@@ -333,7 +311,7 @@ def main() -> int:
         checks.append("new direct location keys reject unknown locations")
         check_application_writes(docker, container, password)
         checks.append(
-            "application alert binds device, reading, and location; audit/outbox helpers preserve location scope"
+            "retired shared-runtime alert writer fails before SQL; audit/outbox helpers preserve location scope"
         )
 
         evidence = {

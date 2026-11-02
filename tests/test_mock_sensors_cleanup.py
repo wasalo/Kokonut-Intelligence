@@ -4,7 +4,9 @@ from __future__ import annotations
 
 import pytest
 
-from services.ingestion import mock_sensors
+from services.ingestion import mock_sensors, sensor_mock_cleanup_worker
+
+LOCATION_ID = "1f31512c-3b1d-4312-bd0f-54a2b23b31d0"
 
 
 class _Cursor:
@@ -48,34 +50,87 @@ class _Database:
         self.closed = True
 
 
-def test_cleanup_only_deletes_rows_for_marked_demo_devices(monkeypatch) -> None:
-    database = _Database()
-    monkeypatch.setattr(mock_sensors, "get_db", lambda: database)
+def test_cleanup_deletes_alerts_and_readings_through_signed_workers(monkeypatch) -> None:
+    alert_cleanup_calls: list[str] = []
+    reading_cleanup_calls: list[str] = []
+    monkeypatch.setattr(
+        mock_sensors,
+        "get_db",
+        lambda: pytest.fail("cleanup must not use the shared runtime database"),
+    )
+    monkeypatch.setattr(
+        sensor_mock_cleanup_worker,
+        "delete_mock_sensor_alerts",
+        lambda location_id: alert_cleanup_calls.append(location_id) or 2,
+    )
+    monkeypatch.setattr(
+        sensor_mock_cleanup_worker,
+        "delete_mock_sensor_readings",
+        lambda location_id: reading_cleanup_calls.append(location_id) or 14,
+    )
 
-    mock_sensors.cleanup()
+    mock_sensors.cleanup(LOCATION_ID.upper())
 
-    assert len(database.db_cursor.queries) == 2
-    alert_delete, reading_delete = database.db_cursor.queries
-    assert alert_delete.startswith("DELETE FROM sensor_alert WHERE sensor_device_id IN")
-    assert "metadata->>'mock_sensor_demo' = 'true'" in alert_delete
-    assert reading_delete.startswith("DELETE FROM sensor_reading WHERE")
-    assert "metadata->>'mock' = 'true'" in reading_delete
-    assert "metadata->>'mock_sensor_demo' = 'true'" in reading_delete
-    assert database.committed
-    assert not database.rolled_back
-    assert database.closed
+    assert alert_cleanup_calls == [LOCATION_ID]
+    assert reading_cleanup_calls == [LOCATION_ID]
 
 
-def test_cleanup_rolls_back_and_closes_when_delete_fails(monkeypatch) -> None:
-    database = _Database(fail_on="DELETE FROM sensor_reading")
-    monkeypatch.setattr(mock_sensors, "get_db", lambda: database)
+def test_cleanup_propagates_signed_reading_cleanup_failure(monkeypatch) -> None:
+    monkeypatch.setattr(
+        sensor_mock_cleanup_worker,
+        "delete_mock_sensor_alerts",
+        lambda _location: 0,
+    )
+    monkeypatch.setattr(
+        sensor_mock_cleanup_worker,
+        "delete_mock_sensor_readings",
+        lambda _location: (_ for _ in ()).throw(RuntimeError("signed cleanup denied")),
+    )
 
-    with pytest.raises(RuntimeError, match="synthetic query failure"):
-        mock_sensors.cleanup()
+    with pytest.raises(RuntimeError, match="signed cleanup denied"):
+        mock_sensors.cleanup(LOCATION_ID)
 
-    assert not database.committed
-    assert database.rolled_back
-    assert database.closed
+def test_cleanup_rejects_missing_or_invalid_location_before_worker_or_db(monkeypatch) -> None:
+    monkeypatch.setattr(
+        sensor_mock_cleanup_worker,
+        "delete_mock_sensor_alerts",
+        lambda _location: pytest.fail("invalid scope must fail before worker access"),
+    )
+    monkeypatch.setattr(
+        sensor_mock_cleanup_worker,
+        "delete_mock_sensor_readings",
+        lambda _location: pytest.fail("invalid scope must fail before worker access"),
+    )
+    monkeypatch.setattr(
+        mock_sensors,
+        "get_db",
+        lambda: pytest.fail("invalid scope must fail before database access"),
+    )
+
+    for location_id in (None, "", "not-a-uuid"):
+        with pytest.raises(ValueError, match="--location-id must be a UUID"):
+            mock_sensors.cleanup(location_id)
+
+
+def test_cleanup_stops_before_reading_delete_when_signed_alert_operation_fails(monkeypatch) -> None:
+    monkeypatch.setattr(
+        sensor_mock_cleanup_worker,
+        "delete_mock_sensor_alerts",
+        lambda _location: (_ for _ in ()).throw(RuntimeError("signed cleanup denied")),
+    )
+    monkeypatch.setattr(
+        sensor_mock_cleanup_worker,
+        "delete_mock_sensor_readings",
+        lambda _location: pytest.fail("reading cleanup must not run after alert cleanup fails"),
+    )
+    monkeypatch.setattr(
+        mock_sensors,
+        "get_db",
+        lambda: pytest.fail("cleanup must not use shared runtime database"),
+    )
+
+    with pytest.raises(RuntimeError, match="signed cleanup denied"):
+        mock_sensors.cleanup(LOCATION_ID)
 
 
 def test_setup_sensors_commits_and_closes_on_success(monkeypatch) -> None:

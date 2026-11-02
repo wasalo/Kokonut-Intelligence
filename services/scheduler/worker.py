@@ -13,6 +13,7 @@ import uuid
 from services.common.database import get_db
 from services.common.errors import safe_exception_class
 from services.common.logging import get_logger
+from services.core.worker_progress import pulse_worker_progress
 from services.scheduler.backend import get_scheduler
 
 logger = get_logger("scheduler.worker")
@@ -39,13 +40,16 @@ def run_worker(tick_interval: int = 30, worker_id: str | None = None):
 
     try:
         while _running:
+            pulse_worker_progress()
             _run_tick(worker_id)
+            pulse_worker_progress()
 
             # Sleep in small increments so we respond to signals quickly. A
             # later tick obtains a new connection after a transient DB outage.
             for _ in range(tick_interval):
                 if not _running:
                     break
+                pulse_worker_progress()
                 time.sleep(1.0)
     finally:
         logger.info("Scheduler worker stopped")

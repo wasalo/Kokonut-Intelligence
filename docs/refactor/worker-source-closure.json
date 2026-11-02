@@ -312,6 +312,7 @@
         "services.common.worker_environment",
         "services.core.features",
         "services.core.providers",
+        "services.core.worker_progress",
         "services.events",
         "services.events.backend",
         "services.events.bus",
@@ -338,6 +339,7 @@
         "services/common/worker_environment.py",
         "services/core/features.py",
         "services/core/providers.py",
+        "services/core/worker_progress.py",
         "services/events/__init__.py",
         "services/events/__main__.py",
         "services/events/backend.py",
@@ -420,6 +422,24 @@
           "kind": "from"
         },
         {
+          "source": "services/core/worker_progress.py",
+          "line": 16,
+          "target": "services.common.errors",
+          "kind": "from"
+        },
+        {
+          "source": "services/core/worker_progress.py",
+          "line": 248,
+          "target": "services.core.features",
+          "kind": "from"
+        },
+        {
+          "source": "services/core/worker_progress.py",
+          "line": 631,
+          "target": "services.common.database",
+          "kind": "from"
+        },
+        {
           "source": "services/events/__init__.py",
           "line": 12,
           "target": "services.events.insight_transfer",
@@ -445,25 +465,31 @@
         },
         {
           "source": "services/events/bus.py",
-          "line": 12,
+          "line": 13,
           "target": "services.common.worker_environment",
           "kind": "from"
         },
         {
           "source": "services/events/bus.py",
-          "line": 16,
+          "line": 17,
           "target": "services.security.execution_allowlist",
           "kind": "from"
         },
         {
           "source": "services/events/bus.py",
-          "line": 68,
+          "line": 69,
           "target": "services.common.database",
           "kind": "from"
         },
         {
           "source": "services/events/bus.py",
-          "line": 220,
+          "line": 134,
+          "target": "services.core.worker_progress",
+          "kind": "from"
+        },
+        {
+          "source": "services/events/bus.py",
+          "line": 244,
           "target": "services.events.retention",
           "kind": "from"
         },
@@ -487,181 +513,187 @@
         },
         {
           "source": "services/events/cli.py",
-          "line": 61,
+          "line": 33,
+          "target": "services.core.worker_progress",
+          "kind": "from"
+        },
+        {
+          "source": "services/events/cli.py",
+          "line": 75,
           "target": "services.common.worker_environment",
           "kind": "from"
         },
         {
           "source": "services/events/cli.py",
-          "line": 65,
+          "line": 79,
           "target": "services.core.features",
           "kind": "from"
         },
         {
           "source": "services/events/cli.py",
-          "line": 66,
+          "line": 80,
           "target": "services.events.dispatch_worker",
           "kind": "from"
         },
         {
           "source": "services/events/cli.py",
-          "line": 116,
+          "line": 130,
           "target": "services.events.bus",
           "kind": "from"
         },
         {
           "source": "services/events/cli.py",
-          "line": 122,
+          "line": 136,
           "target": "services.core.features",
           "kind": "from"
         },
         {
           "source": "services/events/cli.py",
-          "line": 171,
+          "line": 186,
           "target": "services.events.dispatch_worker",
           "kind": "from"
         },
         {
           "source": "services/events/cli.py",
-          "line": 175,
+          "line": 191,
           "target": "services.events.notification_delivery_worker",
           "kind": "from"
         },
         {
           "source": "services/events/cli.py",
-          "line": 256,
+          "line": 273,
           "target": "services.events.backend",
           "kind": "from"
         },
         {
           "source": "services/events/cli.py",
-          "line": 270,
+          "line": 287,
           "target": "services.events.retention",
           "kind": "from"
         },
         {
           "source": "services/events/cli.py",
-          "line": 278,
+          "line": 295,
           "target": "services.events.backend",
           "kind": "from"
         },
         {
           "source": "services/events/cli.py",
-          "line": 293,
+          "line": 310,
           "target": "services.common.database",
           "kind": "from"
         },
         {
           "source": "services/events/cli.py",
-          "line": 322,
+          "line": 339,
           "target": "services.common.database",
           "kind": "from"
         },
         {
           "source": "services/events/cli.py",
-          "line": 354,
+          "line": 371,
           "target": "services.events.backend",
           "kind": "from"
         },
         {
           "source": "services/events/cli.py",
-          "line": 366,
+          "line": 383,
           "target": "services.events.backend",
           "kind": "from"
         },
         {
           "source": "services/events/cli.py",
-          "line": 381,
+          "line": 398,
           "target": "services.events.notification_delivery_worker",
           "kind": "from"
         },
         {
           "source": "services/events/cli.py",
-          "line": 389,
+          "line": 406,
           "target": "services.common.database",
           "kind": "from"
         },
         {
           "source": "services/events/cli.py",
-          "line": 390,
+          "line": 407,
           "target": "services.events.notification_outbox",
           "kind": "from"
         },
         {
           "source": "services/events/cli.py",
-          "line": 399,
+          "line": 416,
           "target": "services.common.database",
           "kind": "from"
         },
         {
           "source": "services/events/cli.py",
-          "line": 400,
+          "line": 417,
           "target": "services.events.notification_outbox",
           "kind": "from"
         },
         {
           "source": "services/events/cli.py",
-          "line": 409,
+          "line": 426,
           "target": "services.common.database",
           "kind": "from"
         },
         {
           "source": "services/events/cli.py",
-          "line": 410,
+          "line": 427,
           "target": "services.events.notification_outbox",
           "kind": "from"
         },
         {
           "source": "services/events/cli.py",
-          "line": 421,
+          "line": 438,
           "target": "services.common.database",
           "kind": "from"
         },
         {
           "source": "services/events/cli.py",
-          "line": 422,
+          "line": 439,
           "target": "services.events.notification_outbox",
           "kind": "from"
         },
         {
           "source": "services/events/cli.py",
-          "line": 580,
+          "line": 597,
           "target": "services.events.fork_detector",
           "kind": "from"
         },
         {
           "source": "services/events/cli.py",
-          "line": 588,
+          "line": 605,
           "target": "services.events.fork_detector",
           "kind": "from"
         },
         {
           "source": "services/events/cli.py",
-          "line": 600,
+          "line": 617,
           "target": "services.events.insight_transfer",
           "kind": "from"
         },
         {
           "source": "services/events/cli.py",
-          "line": 612,
+          "line": 629,
           "target": "services.events.insight_transfer",
           "kind": "from"
         },
         {
           "source": "services/events/cli.py",
-          "line": 621,
+          "line": 638,
           "target": "services.events.insight_transfer",
           "kind": "from"
         },
         {
           "source": "services/events/cli.py",
-          "line": 630,
+          "line": 647,
           "target": "services.events.insight_transfer",
           "kind": "from"
         },
         {
           "source": "services/events/cli.py",
-          "line": 641,
+          "line": 658,
           "target": "services.common.database",
           "kind": "from"
         },
@@ -692,6 +724,12 @@
         {
           "source": "services/events/dispatch_worker.py",
           "line": 14,
+          "target": "services.core.worker_progress",
+          "kind": "from"
+        },
+        {
+          "source": "services/events/dispatch_worker.py",
+          "line": 15,
           "target": "services.events.bus",
           "kind": "from"
         },
@@ -722,6 +760,12 @@
         {
           "source": "services/events/notification_delivery_worker.py",
           "line": 13,
+          "target": "services.core.worker_progress",
+          "kind": "from"
+        },
+        {
+          "source": "services/events/notification_delivery_worker.py",
+          "line": 14,
           "target": "services.events.notification_outbox",
           "kind": "from"
         },
@@ -769,7 +813,7 @@
         },
         {
           "source": "services/events/notification_outbox.py",
-          "line": 451,
+          "line": 455,
           "target": "services.events.notification_delivery_worker",
           "kind": "from"
         }
@@ -778,7 +822,7 @@
       "dynamic_import_sites": [
         {
           "source": "services/events/bus.py",
-          "line": 50,
+          "line": 51,
           "kind": "dynamic module expression"
         }
       ]
@@ -879,441 +923,6 @@
       ],
       "unresolved_local_modules": [],
       "dynamic_import_sites": []
-    },
-    {
-      "kind": "scheduled_module",
-      "name": "services.ingestion.anomaly_detector",
-      "root_modules": [
-        "services.ingestion.anomaly_detector"
-      ],
-      "modules": [
-        "services.common.cli",
-        "services.common.database",
-        "services.common.db",
-        "services.common.env",
-        "services.common.errors",
-        "services.common.http",
-        "services.common.logging",
-        "services.common.smtp",
-        "services.common.tenant_context",
-        "services.common.worker_database",
-        "services.common.worker_environment",
-        "services.core.adapters.clickhouse",
-        "services.core.adapters.mqtt",
-        "services.core.features",
-        "services.core.providers",
-        "services.events.bus",
-        "services.events.notification_delivery_worker",
-        "services.events.notification_outbox",
-        "services.events.retention",
-        "services.ingestion.anomaly_detector",
-        "services.ingestion.base",
-        "services.ingestion.config",
-        "services.ingestion.ml_anomaly_detector",
-        "services.ingestion.mqtt_actuator",
-        "services.ingestion.sensor_anomaly_ml_worker",
-        "services.ingestion.sensor_anomaly_worker",
-        "services.security.execution_allowlist"
-      ],
-      "source_files": [
-        "services/common/cli.py",
-        "services/common/database.py",
-        "services/common/db.py",
-        "services/common/env.py",
-        "services/common/errors.py",
-        "services/common/http.py",
-        "services/common/logging.py",
-        "services/common/smtp.py",
-        "services/common/tenant_context.py",
-        "services/common/worker_database.py",
-        "services/common/worker_environment.py",
-        "services/core/adapters/clickhouse.py",
-        "services/core/adapters/mqtt.py",
-        "services/core/features.py",
-        "services/core/providers.py",
-        "services/events/bus.py",
-        "services/events/notification_delivery_worker.py",
-        "services/events/notification_outbox.py",
-        "services/events/retention.py",
-        "services/ingestion/anomaly_detector.py",
-        "services/ingestion/base.py",
-        "services/ingestion/config.py",
-        "services/ingestion/ml_anomaly_detector.py",
-        "services/ingestion/mqtt_actuator.py",
-        "services/ingestion/sensor_anomaly_ml_worker.py",
-        "services/ingestion/sensor_anomaly_worker.py",
-        "services/security/execution_allowlist.py"
-      ],
-      "local_import_edges": [
-        {
-          "source": "services/common/cli.py",
-          "line": 42,
-          "target": "services.common.database",
-          "kind": "from"
-        },
-        {
-          "source": "services/common/cli.py",
-          "line": 59,
-          "target": "services.common.database",
-          "kind": "from"
-        },
-        {
-          "source": "services/common/cli.py",
-          "line": 67,
-          "target": "services.common.database",
-          "kind": "from"
-        },
-        {
-          "source": "services/common/database.py",
-          "line": 24,
-          "target": "services.common.db",
-          "kind": "from"
-        },
-        {
-          "source": "services/common/database.py",
-          "line": 25,
-          "target": "services.common.worker_environment",
-          "kind": "from"
-        },
-        {
-          "source": "services/common/db.py",
-          "line": 8,
-          "target": "services.core.providers",
-          "kind": "from"
-        },
-        {
-          "source": "services/common/db.py",
-          "line": 10,
-          "target": "services.common.env",
-          "kind": "from"
-        },
-        {
-          "source": "services/common/db.py",
-          "line": 11,
-          "target": "services.common.worker_environment",
-          "kind": "from"
-        },
-        {
-          "source": "services/common/env.py",
-          "line": 10,
-          "target": "services.common.worker_environment",
-          "kind": "from"
-        },
-        {
-          "source": "services/common/env.py",
-          "line": 219,
-          "target": "services.common.database",
-          "kind": "from"
-        },
-        {
-          "source": "services/core/adapters/clickhouse.py",
-          "line": 14,
-          "target": "services.core.providers",
-          "kind": "from"
-        },
-        {
-          "source": "services/core/adapters/mqtt.py",
-          "line": 14,
-          "target": "services.core.providers",
-          "kind": "from"
-        },
-        {
-          "source": "services/core/features.py",
-          "line": 12,
-          "target": "services.core.providers",
-          "kind": "from"
-        },
-        {
-          "source": "services/events/bus.py",
-          "line": 12,
-          "target": "services.common.worker_environment",
-          "kind": "from"
-        },
-        {
-          "source": "services/events/bus.py",
-          "line": 16,
-          "target": "services.security.execution_allowlist",
-          "kind": "from"
-        },
-        {
-          "source": "services/events/bus.py",
-          "line": 68,
-          "target": "services.common.database",
-          "kind": "from"
-        },
-        {
-          "source": "services/events/bus.py",
-          "line": 220,
-          "target": "services.events.retention",
-          "kind": "from"
-        },
-        {
-          "source": "services/events/notification_delivery_worker.py",
-          "line": 10,
-          "target": "services.common.cli",
-          "kind": "from"
-        },
-        {
-          "source": "services/events/notification_delivery_worker.py",
-          "line": 11,
-          "target": "services.common.worker_database",
-          "kind": "from"
-        },
-        {
-          "source": "services/events/notification_delivery_worker.py",
-          "line": 12,
-          "target": "services.core.features",
-          "kind": "from"
-        },
-        {
-          "source": "services/events/notification_delivery_worker.py",
-          "line": 13,
-          "target": "services.events.notification_outbox",
-          "kind": "from"
-        },
-        {
-          "source": "services/events/notification_outbox.py",
-          "line": 18,
-          "target": "services.common.logging",
-          "kind": "from"
-        },
-        {
-          "source": "services/events/notification_outbox.py",
-          "line": 19,
-          "target": "services.common.smtp",
-          "kind": "from"
-        },
-        {
-          "source": "services/events/notification_outbox.py",
-          "line": 127,
-          "target": "services.core.providers",
-          "kind": "from"
-        },
-        {
-          "source": "services/events/notification_outbox.py",
-          "line": 185,
-          "target": "services.core.providers",
-          "kind": "from"
-        },
-        {
-          "source": "services/events/notification_outbox.py",
-          "line": 368,
-          "target": "services.common.http",
-          "kind": "from"
-        },
-        {
-          "source": "services/events/notification_outbox.py",
-          "line": 375,
-          "target": "services.common.http",
-          "kind": "from"
-        },
-        {
-          "source": "services/events/notification_outbox.py",
-          "line": 376,
-          "target": "services.core.providers",
-          "kind": "from"
-        },
-        {
-          "source": "services/events/notification_outbox.py",
-          "line": 451,
-          "target": "services.events.notification_delivery_worker",
-          "kind": "from"
-        },
-        {
-          "source": "services/ingestion/anomaly_detector.py",
-          "line": 38,
-          "target": "services.common.cli",
-          "kind": "from"
-        },
-        {
-          "source": "services/ingestion/anomaly_detector.py",
-          "line": 39,
-          "target": "services.common.smtp",
-          "kind": "from"
-        },
-        {
-          "source": "services/ingestion/anomaly_detector.py",
-          "line": 41,
-          "target": "services.common.logging",
-          "kind": "from"
-        },
-        {
-          "source": "services/ingestion/anomaly_detector.py",
-          "line": 42,
-          "target": "services.ingestion.base",
-          "kind": "from"
-        },
-        {
-          "source": "services/ingestion/anomaly_detector.py",
-          "line": 51,
-          "target": "services.events.bus",
-          "kind": "from"
-        },
-        {
-          "source": "services/ingestion/anomaly_detector.py",
-          "line": 74,
-          "target": "services.ingestion.sensor_anomaly_worker",
-          "kind": "from"
-        },
-        {
-          "source": "services/ingestion/anomaly_detector.py",
-          "line": 550,
-          "target": "services.common.http",
-          "kind": "from"
-        },
-        {
-          "source": "services/ingestion/anomaly_detector.py",
-          "line": 590,
-          "target": "services.ingestion.mqtt_actuator",
-          "kind": "from"
-        },
-        {
-          "source": "services/ingestion/anomaly_detector.py",
-          "line": 810,
-          "target": "services.events.bus",
-          "kind": "from"
-        },
-        {
-          "source": "services/ingestion/anomaly_detector.py",
-          "line": 949,
-          "target": "services.events.notification_outbox",
-          "kind": "from"
-        },
-        {
-          "source": "services/ingestion/anomaly_detector.py",
-          "line": 1222,
-          "target": "services.core.features",
-          "kind": "from"
-        },
-        {
-          "source": "services/ingestion/anomaly_detector.py",
-          "line": 1230,
-          "target": "services.ingestion.sensor_anomaly_ml_worker",
-          "kind": "from"
-        },
-        {
-          "source": "services/ingestion/anomaly_detector.py",
-          "line": 1240,
-          "target": "services.ingestion.base",
-          "kind": "from"
-        },
-        {
-          "source": "services/ingestion/anomaly_detector.py",
-          "line": 1241,
-          "target": "services.ingestion.ml_anomaly_detector",
-          "kind": "from"
-        },
-        {
-          "source": "services/ingestion/base.py",
-          "line": 20,
-          "target": "services.common.http",
-          "kind": "from"
-        },
-        {
-          "source": "services/ingestion/base.py",
-          "line": 22,
-          "target": "services.common.logging",
-          "kind": "from"
-        },
-        {
-          "source": "services/ingestion/base.py",
-          "line": 23,
-          "target": "services.ingestion.config",
-          "kind": "from"
-        },
-        {
-          "source": "services/ingestion/base.py",
-          "line": 57,
-          "target": "services.common.database",
-          "kind": "from"
-        },
-        {
-          "source": "services/ingestion/base.py",
-          "line": 64,
-          "target": "services.core.adapters.clickhouse",
-          "kind": "from"
-        },
-        {
-          "source": "services/ingestion/config.py",
-          "line": 9,
-          "target": "services.common.db",
-          "kind": "from"
-        },
-        {
-          "source": "services/ingestion/ml_anomaly_detector.py",
-          "line": 26,
-          "target": "services.common.errors",
-          "kind": "from"
-        },
-        {
-          "source": "services/ingestion/ml_anomaly_detector.py",
-          "line": 27,
-          "target": "services.common.logging",
-          "kind": "from"
-        },
-        {
-          "source": "services/ingestion/mqtt_actuator.py",
-          "line": 17,
-          "target": "services.common.logging",
-          "kind": "from"
-        },
-        {
-          "source": "services/ingestion/mqtt_actuator.py",
-          "line": 181,
-          "target": "services.core.adapters.mqtt",
-          "kind": "from"
-        },
-        {
-          "source": "services/ingestion/sensor_anomaly_ml_worker.py",
-          "line": 8,
-          "target": "services.common.tenant_context",
-          "kind": "from"
-        },
-        {
-          "source": "services/ingestion/sensor_anomaly_ml_worker.py",
-          "line": 9,
-          "target": "services.common.worker_database",
-          "kind": "from"
-        },
-        {
-          "source": "services/ingestion/sensor_anomaly_ml_worker.py",
-          "line": 10,
-          "target": "services.core.features",
-          "kind": "from"
-        },
-        {
-          "source": "services/ingestion/sensor_anomaly_ml_worker.py",
-          "line": 53,
-          "target": "services.ingestion.ml_anomaly_detector",
-          "kind": "from"
-        },
-        {
-          "source": "services/ingestion/sensor_anomaly_worker.py",
-          "line": 13,
-          "target": "services.common.tenant_context",
-          "kind": "from"
-        },
-        {
-          "source": "services/ingestion/sensor_anomaly_worker.py",
-          "line": 14,
-          "target": "services.common.worker_database",
-          "kind": "from"
-        },
-        {
-          "source": "services/ingestion/sensor_anomaly_worker.py",
-          "line": 15,
-          "target": "services.events.notification_outbox",
-          "kind": "from"
-        }
-      ],
-      "unresolved_local_modules": [],
-      "dynamic_import_sites": [
-        {
-          "source": "services/events/bus.py",
-          "line": 50,
-          "kind": "dynamic module expression"
-        }
-      ]
     },
     {
       "kind": "scheduled_module",
@@ -5228,6 +4837,7 @@
         "services.common.database",
         "services.common.db",
         "services.common.env",
+        "services.common.errors",
         "services.common.http",
         "services.common.logging",
         "services.common.smtp",
@@ -5236,6 +4846,7 @@
         "services.common.worker_environment",
         "services.core.features",
         "services.core.providers",
+        "services.core.worker_progress",
         "services.events.notification_delivery_worker",
         "services.events.notification_outbox",
         "services.ingestion.sensor_anomaly_scan_worker",
@@ -5246,6 +4857,7 @@
         "services/common/database.py",
         "services/common/db.py",
         "services/common/env.py",
+        "services/common/errors.py",
         "services/common/http.py",
         "services/common/logging.py",
         "services/common/smtp.py",
@@ -5254,6 +4866,7 @@
         "services/common/worker_environment.py",
         "services/core/features.py",
         "services/core/providers.py",
+        "services/core/worker_progress.py",
         "services/events/notification_delivery_worker.py",
         "services/events/notification_outbox.py",
         "services/ingestion/sensor_anomaly_scan_worker.py",
@@ -5327,6 +4940,24 @@
           "kind": "from"
         },
         {
+          "source": "services/core/worker_progress.py",
+          "line": 16,
+          "target": "services.common.errors",
+          "kind": "from"
+        },
+        {
+          "source": "services/core/worker_progress.py",
+          "line": 248,
+          "target": "services.core.features",
+          "kind": "from"
+        },
+        {
+          "source": "services/core/worker_progress.py",
+          "line": 631,
+          "target": "services.common.database",
+          "kind": "from"
+        },
+        {
           "source": "services/events/notification_delivery_worker.py",
           "line": 10,
           "target": "services.common.cli",
@@ -5347,6 +4978,12 @@
         {
           "source": "services/events/notification_delivery_worker.py",
           "line": 13,
+          "target": "services.core.worker_progress",
+          "kind": "from"
+        },
+        {
+          "source": "services/events/notification_delivery_worker.py",
+          "line": 14,
           "target": "services.events.notification_outbox",
           "kind": "from"
         },
@@ -5394,7 +5031,7 @@
         },
         {
           "source": "services/events/notification_outbox.py",
-          "line": 451,
+          "line": 455,
           "target": "services.events.notification_delivery_worker",
           "kind": "from"
         },
@@ -5457,6 +5094,7 @@
         "services.core.adapters.clickhouse",
         "services.core.features",
         "services.core.providers",
+        "services.core.worker_progress",
         "services.drivers.registry",
         "services.events.bus",
         "services.events.retention",
@@ -5482,6 +5120,7 @@
         "services/core/adapters/clickhouse.py",
         "services/core/features.py",
         "services/core/providers.py",
+        "services/core/worker_progress.py",
         "services/drivers/registry.py",
         "services/events/bus.py",
         "services/events/retention.py",
@@ -5568,6 +5207,24 @@
           "kind": "from"
         },
         {
+          "source": "services/core/worker_progress.py",
+          "line": 16,
+          "target": "services.common.errors",
+          "kind": "from"
+        },
+        {
+          "source": "services/core/worker_progress.py",
+          "line": 248,
+          "target": "services.core.features",
+          "kind": "from"
+        },
+        {
+          "source": "services/core/worker_progress.py",
+          "line": 631,
+          "target": "services.common.database",
+          "kind": "from"
+        },
+        {
           "source": "services/drivers/registry.py",
           "line": 14,
           "target": "services.common.errors",
@@ -5587,25 +5244,31 @@
         },
         {
           "source": "services/events/bus.py",
-          "line": 12,
+          "line": 13,
           "target": "services.common.worker_environment",
           "kind": "from"
         },
         {
           "source": "services/events/bus.py",
-          "line": 16,
+          "line": 17,
           "target": "services.security.execution_allowlist",
           "kind": "from"
         },
         {
           "source": "services/events/bus.py",
-          "line": 68,
+          "line": 69,
           "target": "services.common.database",
           "kind": "from"
         },
         {
           "source": "services/events/bus.py",
-          "line": 220,
+          "line": 134,
+          "target": "services.core.worker_progress",
+          "kind": "from"
+        },
+        {
+          "source": "services/events/bus.py",
+          "line": 244,
           "target": "services.events.retention",
           "kind": "from"
         },
@@ -5780,7 +5443,7 @@
         },
         {
           "source": "services/events/bus.py",
-          "line": 50,
+          "line": 51,
           "kind": "dynamic module expression"
         }
       ]
@@ -7085,7 +6748,9 @@
         "services.common.logging",
         "services.common.worker_environment",
         "services.core.adapters.clickhouse",
+        "services.core.features",
         "services.core.providers",
+        "services.core.worker_progress",
         "services.events.bus",
         "services.events.retention",
         "services.ingestion.base",
@@ -7126,7 +6791,9 @@
         "services/common/logging.py",
         "services/common/worker_environment.py",
         "services/core/adapters/clickhouse.py",
+        "services/core/features.py",
         "services/core/providers.py",
+        "services/core/worker_progress.py",
         "services/events/bus.py",
         "services/events/retention.py",
         "services/ingestion/base.py",
@@ -7226,26 +6893,56 @@
           "kind": "from"
         },
         {
-          "source": "services/events/bus.py",
+          "source": "services/core/features.py",
           "line": 12,
-          "target": "services.common.worker_environment",
+          "target": "services.core.providers",
           "kind": "from"
         },
         {
-          "source": "services/events/bus.py",
+          "source": "services/core/worker_progress.py",
           "line": 16,
-          "target": "services.security.execution_allowlist",
+          "target": "services.common.errors",
           "kind": "from"
         },
         {
-          "source": "services/events/bus.py",
-          "line": 68,
+          "source": "services/core/worker_progress.py",
+          "line": 248,
+          "target": "services.core.features",
+          "kind": "from"
+        },
+        {
+          "source": "services/core/worker_progress.py",
+          "line": 631,
           "target": "services.common.database",
           "kind": "from"
         },
         {
           "source": "services/events/bus.py",
-          "line": 220,
+          "line": 13,
+          "target": "services.common.worker_environment",
+          "kind": "from"
+        },
+        {
+          "source": "services/events/bus.py",
+          "line": 17,
+          "target": "services.security.execution_allowlist",
+          "kind": "from"
+        },
+        {
+          "source": "services/events/bus.py",
+          "line": 69,
+          "target": "services.common.database",
+          "kind": "from"
+        },
+        {
+          "source": "services/events/bus.py",
+          "line": 134,
+          "target": "services.core.worker_progress",
+          "kind": "from"
+        },
+        {
+          "source": "services/events/bus.py",
+          "line": 244,
           "target": "services.events.retention",
           "kind": "from"
         },
@@ -7494,7 +7191,7 @@
       "dynamic_import_sites": [
         {
           "source": "services/events/bus.py",
-          "line": 50,
+          "line": 51,
           "kind": "dynamic module expression"
         }
       ]
@@ -8326,10 +8023,12 @@
         "services.common.database",
         "services.common.db",
         "services.common.env",
+        "services.common.errors",
         "services.common.worker_database",
         "services.common.worker_environment",
         "services.core.features",
         "services.core.providers",
+        "services.core.worker_progress",
         "services.events.bus",
         "services.events.dispatch_worker",
         "services.events.retention",
@@ -8340,10 +8039,12 @@
         "services/common/database.py",
         "services/common/db.py",
         "services/common/env.py",
+        "services/common/errors.py",
         "services/common/worker_database.py",
         "services/common/worker_environment.py",
         "services/core/features.py",
         "services/core/providers.py",
+        "services/core/worker_progress.py",
         "services/events/bus.py",
         "services/events/dispatch_worker.py",
         "services/events/retention.py",
@@ -8417,26 +8118,50 @@
           "kind": "from"
         },
         {
-          "source": "services/events/bus.py",
-          "line": 12,
-          "target": "services.common.worker_environment",
-          "kind": "from"
-        },
-        {
-          "source": "services/events/bus.py",
+          "source": "services/core/worker_progress.py",
           "line": 16,
-          "target": "services.security.execution_allowlist",
+          "target": "services.common.errors",
           "kind": "from"
         },
         {
-          "source": "services/events/bus.py",
-          "line": 68,
+          "source": "services/core/worker_progress.py",
+          "line": 248,
+          "target": "services.core.features",
+          "kind": "from"
+        },
+        {
+          "source": "services/core/worker_progress.py",
+          "line": 631,
           "target": "services.common.database",
           "kind": "from"
         },
         {
           "source": "services/events/bus.py",
-          "line": 220,
+          "line": 13,
+          "target": "services.common.worker_environment",
+          "kind": "from"
+        },
+        {
+          "source": "services/events/bus.py",
+          "line": 17,
+          "target": "services.security.execution_allowlist",
+          "kind": "from"
+        },
+        {
+          "source": "services/events/bus.py",
+          "line": 69,
+          "target": "services.common.database",
+          "kind": "from"
+        },
+        {
+          "source": "services/events/bus.py",
+          "line": 134,
+          "target": "services.core.worker_progress",
+          "kind": "from"
+        },
+        {
+          "source": "services/events/bus.py",
+          "line": 244,
           "target": "services.events.retention",
           "kind": "from"
         },
@@ -8467,6 +8192,12 @@
         {
           "source": "services/events/dispatch_worker.py",
           "line": 14,
+          "target": "services.core.worker_progress",
+          "kind": "from"
+        },
+        {
+          "source": "services/events/dispatch_worker.py",
+          "line": 15,
           "target": "services.events.bus",
           "kind": "from"
         }
@@ -8475,7 +8206,7 @@
       "dynamic_import_sites": [
         {
           "source": "services/events/bus.py",
-          "line": 50,
+          "line": 51,
           "kind": "dynamic module expression"
         }
       ]
@@ -8491,6 +8222,7 @@
         "services.common.database",
         "services.common.db",
         "services.common.env",
+        "services.common.errors",
         "services.common.http",
         "services.common.logging",
         "services.common.smtp",
@@ -8498,6 +8230,7 @@
         "services.common.worker_environment",
         "services.core.features",
         "services.core.providers",
+        "services.core.worker_progress",
         "services.events.notification_delivery_worker",
         "services.events.notification_outbox"
       ],
@@ -8506,6 +8239,7 @@
         "services/common/database.py",
         "services/common/db.py",
         "services/common/env.py",
+        "services/common/errors.py",
         "services/common/http.py",
         "services/common/logging.py",
         "services/common/smtp.py",
@@ -8513,6 +8247,7 @@
         "services/common/worker_environment.py",
         "services/core/features.py",
         "services/core/providers.py",
+        "services/core/worker_progress.py",
         "services/events/notification_delivery_worker.py",
         "services/events/notification_outbox.py"
       ],
@@ -8584,6 +8319,24 @@
           "kind": "from"
         },
         {
+          "source": "services/core/worker_progress.py",
+          "line": 16,
+          "target": "services.common.errors",
+          "kind": "from"
+        },
+        {
+          "source": "services/core/worker_progress.py",
+          "line": 248,
+          "target": "services.core.features",
+          "kind": "from"
+        },
+        {
+          "source": "services/core/worker_progress.py",
+          "line": 631,
+          "target": "services.common.database",
+          "kind": "from"
+        },
+        {
           "source": "services/events/notification_delivery_worker.py",
           "line": 10,
           "target": "services.common.cli",
@@ -8604,6 +8357,12 @@
         {
           "source": "services/events/notification_delivery_worker.py",
           "line": 13,
+          "target": "services.core.worker_progress",
+          "kind": "from"
+        },
+        {
+          "source": "services/events/notification_delivery_worker.py",
+          "line": 14,
           "target": "services.events.notification_outbox",
           "kind": "from"
         },
@@ -8651,7 +8410,7 @@
         },
         {
           "source": "services/events/notification_outbox.py",
-          "line": 451,
+          "line": 455,
           "target": "services.events.notification_delivery_worker",
           "kind": "from"
         }
@@ -12114,6 +11873,7 @@
         "services.common.database",
         "services.common.db",
         "services.common.env",
+        "services.common.errors",
         "services.common.http",
         "services.common.logging",
         "services.common.smtp",
@@ -12121,6 +11881,7 @@
         "services.common.worker_environment",
         "services.core.features",
         "services.core.providers",
+        "services.core.worker_progress",
         "services.events.handlers",
         "services.events.notification_delivery_worker",
         "services.events.notification_outbox"
@@ -12130,6 +11891,7 @@
         "services/common/database.py",
         "services/common/db.py",
         "services/common/env.py",
+        "services/common/errors.py",
         "services/common/http.py",
         "services/common/logging.py",
         "services/common/smtp.py",
@@ -12137,6 +11899,7 @@
         "services/common/worker_environment.py",
         "services/core/features.py",
         "services/core/providers.py",
+        "services/core/worker_progress.py",
         "services/events/handlers.py",
         "services/events/notification_delivery_worker.py",
         "services/events/notification_outbox.py"
@@ -12209,6 +11972,24 @@
           "kind": "from"
         },
         {
+          "source": "services/core/worker_progress.py",
+          "line": 16,
+          "target": "services.common.errors",
+          "kind": "from"
+        },
+        {
+          "source": "services/core/worker_progress.py",
+          "line": 248,
+          "target": "services.core.features",
+          "kind": "from"
+        },
+        {
+          "source": "services/core/worker_progress.py",
+          "line": 631,
+          "target": "services.common.database",
+          "kind": "from"
+        },
+        {
           "source": "services/events/handlers.py",
           "line": 9,
           "target": "services.common.logging",
@@ -12253,6 +12034,12 @@
         {
           "source": "services/events/notification_delivery_worker.py",
           "line": 13,
+          "target": "services.core.worker_progress",
+          "kind": "from"
+        },
+        {
+          "source": "services/events/notification_delivery_worker.py",
+          "line": 14,
           "target": "services.events.notification_outbox",
           "kind": "from"
         },
@@ -12300,7 +12087,7 @@
         },
         {
           "source": "services/events/notification_outbox.py",
-          "line": 451,
+          "line": 455,
           "target": "services.events.notification_delivery_worker",
           "kind": "from"
         }
@@ -12319,6 +12106,7 @@
         "services.common.database",
         "services.common.db",
         "services.common.env",
+        "services.common.errors",
         "services.common.http",
         "services.common.logging",
         "services.common.smtp",
@@ -12326,6 +12114,7 @@
         "services.common.worker_environment",
         "services.core.features",
         "services.core.providers",
+        "services.core.worker_progress",
         "services.events.handlers",
         "services.events.notification_delivery_worker",
         "services.events.notification_outbox"
@@ -12335,6 +12124,7 @@
         "services/common/database.py",
         "services/common/db.py",
         "services/common/env.py",
+        "services/common/errors.py",
         "services/common/http.py",
         "services/common/logging.py",
         "services/common/smtp.py",
@@ -12342,6 +12132,7 @@
         "services/common/worker_environment.py",
         "services/core/features.py",
         "services/core/providers.py",
+        "services/core/worker_progress.py",
         "services/events/handlers.py",
         "services/events/notification_delivery_worker.py",
         "services/events/notification_outbox.py"
@@ -12414,6 +12205,24 @@
           "kind": "from"
         },
         {
+          "source": "services/core/worker_progress.py",
+          "line": 16,
+          "target": "services.common.errors",
+          "kind": "from"
+        },
+        {
+          "source": "services/core/worker_progress.py",
+          "line": 248,
+          "target": "services.core.features",
+          "kind": "from"
+        },
+        {
+          "source": "services/core/worker_progress.py",
+          "line": 631,
+          "target": "services.common.database",
+          "kind": "from"
+        },
+        {
           "source": "services/events/handlers.py",
           "line": 9,
           "target": "services.common.logging",
@@ -12458,6 +12267,12 @@
         {
           "source": "services/events/notification_delivery_worker.py",
           "line": 13,
+          "target": "services.core.worker_progress",
+          "kind": "from"
+        },
+        {
+          "source": "services/events/notification_delivery_worker.py",
+          "line": 14,
           "target": "services.events.notification_outbox",
           "kind": "from"
         },
@@ -12505,7 +12320,7 @@
         },
         {
           "source": "services/events/notification_outbox.py",
-          "line": 451,
+          "line": 455,
           "target": "services.events.notification_delivery_worker",
           "kind": "from"
         }
@@ -12534,7 +12349,9 @@
         "services.core.adapters.clickhouse",
         "services.core.adapters.mqtt",
         "services.core.features",
+        "services.core.jobs",
         "services.core.providers",
+        "services.core.worker_progress",
         "services.events.bus",
         "services.events.notification_delivery_worker",
         "services.events.notification_outbox",
@@ -12546,7 +12363,9 @@
         "services.ingestion.mqtt_actuator",
         "services.ingestion.sensor_anomaly_ml_worker",
         "services.ingestion.sensor_anomaly_worker",
-        "services.security.execution_allowlist"
+        "services.ingestion.sensor_baseline_worker",
+        "services.security.execution_allowlist",
+        "services.security.scheduled_command_contracts"
       ],
       "source_files": [
         "services/common/cli.py",
@@ -12563,7 +12382,9 @@
         "services/core/adapters/clickhouse.py",
         "services/core/adapters/mqtt.py",
         "services/core/features.py",
+        "services/core/jobs.py",
         "services/core/providers.py",
+        "services/core/worker_progress.py",
         "services/events/bus.py",
         "services/events/notification_delivery_worker.py",
         "services/events/notification_outbox.py",
@@ -12575,7 +12396,9 @@
         "services/ingestion/mqtt_actuator.py",
         "services/ingestion/sensor_anomaly_ml_worker.py",
         "services/ingestion/sensor_anomaly_worker.py",
-        "services/security/execution_allowlist.py"
+        "services/ingestion/sensor_baseline_worker.py",
+        "services/security/execution_allowlist.py",
+        "services/security/scheduled_command_contracts.py"
       ],
       "local_import_edges": [
         {
@@ -12657,26 +12480,80 @@
           "kind": "from"
         },
         {
-          "source": "services/events/bus.py",
+          "source": "services/core/jobs.py",
           "line": 12,
           "target": "services.common.worker_environment",
           "kind": "from"
         },
         {
-          "source": "services/events/bus.py",
+          "source": "services/core/jobs.py",
+          "line": 15,
+          "target": "services.core.features",
+          "kind": "from"
+        },
+        {
+          "source": "services/core/jobs.py",
           "line": 16,
           "target": "services.security.execution_allowlist",
           "kind": "from"
         },
         {
-          "source": "services/events/bus.py",
-          "line": 68,
+          "source": "services/core/jobs.py",
+          "line": 17,
+          "target": "services.security.scheduled_command_contracts",
+          "kind": "from"
+        },
+        {
+          "source": "services/core/jobs.py",
+          "line": 387,
+          "target": "services.common.database",
+          "kind": "from"
+        },
+        {
+          "source": "services/core/worker_progress.py",
+          "line": 16,
+          "target": "services.common.errors",
+          "kind": "from"
+        },
+        {
+          "source": "services/core/worker_progress.py",
+          "line": 248,
+          "target": "services.core.features",
+          "kind": "from"
+        },
+        {
+          "source": "services/core/worker_progress.py",
+          "line": 631,
           "target": "services.common.database",
           "kind": "from"
         },
         {
           "source": "services/events/bus.py",
-          "line": 220,
+          "line": 13,
+          "target": "services.common.worker_environment",
+          "kind": "from"
+        },
+        {
+          "source": "services/events/bus.py",
+          "line": 17,
+          "target": "services.security.execution_allowlist",
+          "kind": "from"
+        },
+        {
+          "source": "services/events/bus.py",
+          "line": 69,
+          "target": "services.common.database",
+          "kind": "from"
+        },
+        {
+          "source": "services/events/bus.py",
+          "line": 134,
+          "target": "services.core.worker_progress",
+          "kind": "from"
+        },
+        {
+          "source": "services/events/bus.py",
+          "line": 244,
           "target": "services.events.retention",
           "kind": "from"
         },
@@ -12701,6 +12578,12 @@
         {
           "source": "services/events/notification_delivery_worker.py",
           "line": 13,
+          "target": "services.core.worker_progress",
+          "kind": "from"
+        },
+        {
+          "source": "services/events/notification_delivery_worker.py",
+          "line": 14,
           "target": "services.events.notification_outbox",
           "kind": "from"
         },
@@ -12748,91 +12631,97 @@
         },
         {
           "source": "services/events/notification_outbox.py",
-          "line": 451,
+          "line": 455,
           "target": "services.events.notification_delivery_worker",
           "kind": "from"
         },
         {
           "source": "services/ingestion/anomaly_detector.py",
-          "line": 38,
+          "line": 37,
           "target": "services.common.cli",
           "kind": "from"
         },
         {
           "source": "services/ingestion/anomaly_detector.py",
-          "line": 39,
+          "line": 38,
           "target": "services.common.smtp",
           "kind": "from"
         },
         {
           "source": "services/ingestion/anomaly_detector.py",
-          "line": 41,
+          "line": 40,
           "target": "services.common.logging",
           "kind": "from"
         },
         {
           "source": "services/ingestion/anomaly_detector.py",
-          "line": 42,
+          "line": 41,
           "target": "services.ingestion.base",
           "kind": "from"
         },
         {
           "source": "services/ingestion/anomaly_detector.py",
-          "line": 51,
+          "line": 50,
           "target": "services.events.bus",
           "kind": "from"
         },
         {
           "source": "services/ingestion/anomaly_detector.py",
-          "line": 74,
+          "line": 73,
           "target": "services.ingestion.sensor_anomaly_worker",
           "kind": "from"
         },
         {
           "source": "services/ingestion/anomaly_detector.py",
-          "line": 550,
+          "line": 451,
           "target": "services.common.http",
           "kind": "from"
         },
         {
           "source": "services/ingestion/anomaly_detector.py",
-          "line": 590,
+          "line": 491,
           "target": "services.ingestion.mqtt_actuator",
           "kind": "from"
         },
         {
           "source": "services/ingestion/anomaly_detector.py",
-          "line": 810,
-          "target": "services.events.bus",
+          "line": 586,
+          "target": "services.core.jobs",
           "kind": "from"
         },
         {
           "source": "services/ingestion/anomaly_detector.py",
-          "line": 949,
-          "target": "services.events.notification_outbox",
+          "line": 632,
+          "target": "services.ingestion.sensor_anomaly_worker",
           "kind": "from"
         },
         {
           "source": "services/ingestion/anomaly_detector.py",
-          "line": 1222,
+          "line": 672,
+          "target": "services.ingestion.sensor_baseline_worker",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/anomaly_detector.py",
+          "line": 779,
           "target": "services.core.features",
           "kind": "from"
         },
         {
           "source": "services/ingestion/anomaly_detector.py",
-          "line": 1230,
+          "line": 787,
           "target": "services.ingestion.sensor_anomaly_ml_worker",
           "kind": "from"
         },
         {
           "source": "services/ingestion/anomaly_detector.py",
-          "line": 1240,
+          "line": 797,
           "target": "services.ingestion.base",
           "kind": "from"
         },
         {
           "source": "services/ingestion/anomaly_detector.py",
-          "line": 1241,
+          "line": 798,
           "target": "services.ingestion.ml_anomaly_detector",
           "kind": "from"
         },
@@ -12937,13 +12826,37 @@
           "line": 15,
           "target": "services.events.notification_outbox",
           "kind": "from"
+        },
+        {
+          "source": "services/ingestion/sensor_baseline_worker.py",
+          "line": 11,
+          "target": "services.common.tenant_context",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/sensor_baseline_worker.py",
+          "line": 12,
+          "target": "services.common.worker_database",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/sensor_baseline_worker.py",
+          "line": 13,
+          "target": "services.events.notification_outbox",
+          "kind": "from"
+        },
+        {
+          "source": "services/security/scheduled_command_contracts.py",
+          "line": 14,
+          "target": "services.security.execution_allowlist",
+          "kind": "from"
         }
       ],
       "unresolved_local_modules": [],
       "dynamic_import_sites": [
         {
           "source": "services/events/bus.py",
-          "line": 50,
+          "line": 51,
           "kind": "dynamic module expression"
         }
       ]

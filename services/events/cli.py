@@ -30,11 +30,25 @@ from uuid import UUID
 from services.common.cli import print_json
 from services.common.errors import safe_exception_class
 from services.common.logging import get_logger
+from services.core.worker_progress import (
+    WORKER_PROGRESS_POLL_SECONDS,
+    pulse_worker_progress,
+)
 
 logger = get_logger("events.cli")
 
 MAX_EVENT_BATCH_SIZE = 100
 MAX_NOTIFICATION_BATCH_SIZE = 500
+
+
+def _sleep_with_worker_progress(seconds: float) -> None:
+    """Keep an idle supervised worker fresh without masking blocked work."""
+    remaining = seconds
+    while remaining > 0:
+        pulse_worker_progress()
+        interval = min(remaining, WORKER_PROGRESS_POLL_SECONDS)
+        time.sleep(interval)
+        remaining -= interval
 
 
 def _validate_batch_size(batch_size: int, *, maximum: int) -> None:
@@ -155,7 +169,7 @@ def _run_worker(args, *, process_events: bool, deliver_notifications: bool,
             # the parent does not enter a restart loop while isolation is off.
             try:
                 while True:
-                    time.sleep(args.poll_interval)
+                    _sleep_with_worker_progress(args.poll_interval)
             except KeyboardInterrupt:
                 return 0
         logger.info("Event and notification workers are disabled by feature configuration")
@@ -163,6 +177,7 @@ def _run_worker(args, *, process_events: bool, deliver_notifications: bool,
 
     try:
         while True:
+            pulse_worker_progress()
             iteration_failed = False
             result = {"processed": 0, "failed": 0}
             notifications = {"claimed": 0}
@@ -171,12 +186,14 @@ def _run_worker(args, *, process_events: bool, deliver_notifications: bool,
                     from services.events.dispatch_worker import run_once
 
                     result = run_once(args.worker_id, args.batch_size, args.lease_seconds)
+                    pulse_worker_progress()
                 if deliver_notifications:
                     from services.events.notification_delivery_worker import run_batches
 
                     notifications = run_batches(
                         args.worker_id, args.batch_size, args.lease_seconds
                     )
+                    pulse_worker_progress()
             except KeyboardInterrupt:
                 return 0
             except Exception as exc:
@@ -188,7 +205,7 @@ def _run_worker(args, *, process_events: bool, deliver_notifications: bool,
                 iteration_failed = True
 
             if iteration_failed:
-                time.sleep(args.poll_interval)
+                _sleep_with_worker_progress(args.poll_interval)
                 continue
 
             # Lease loss means another worker owns the event; this worker has
@@ -196,7 +213,7 @@ def _run_worker(args, *, process_events: bool, deliver_notifications: bool,
             # durable backoff, so an empty claim can safely sleep.
             if (result["processed"] == 0 and result["failed"] == 0
                     and notifications["claimed"] == 0):
-                time.sleep(args.poll_interval)
+                _sleep_with_worker_progress(args.poll_interval)
     except KeyboardInterrupt:
         return 0
 

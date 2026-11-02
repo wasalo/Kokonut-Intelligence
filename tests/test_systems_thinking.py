@@ -3,11 +3,8 @@
 from __future__ import annotations
 
 import uuid
-from datetime import datetime, timezone
-from unittest.mock import MagicMock, patch
-from contextlib import contextmanager
-
-import pytest
+from datetime import datetime
+from unittest.mock import MagicMock
 
 
 def _make_mock_conn(mock_cursor):
@@ -96,7 +93,7 @@ class TestLeverageAnalyzer:
         analyzer, _, mock_cursor = self._make_analyzer()
         mock_cursor.fetchone.return_value = {"cnt": 0}
         mock_cursor.fetchall.return_value = []
-        result = analyzer.assess("loc-001")
+        result = analyzer.assess("00000000-0000-4000-8000-000000000001")
         assert len(result) == 12
 
     def test_rank_by_impact_returns_empty_when_no_data(self):
@@ -120,7 +117,7 @@ class TestLeverageAnalyzer:
     def test_leverage_points_sorted_by_impact(self):
         analyzer, _, mock_cursor = self._make_analyzer()
         mock_cursor.fetchone.return_value = {"cnt": 0}
-        result = analyzer.assess("loc-001")
+        result = analyzer.assess("00000000-0000-4000-8000-000000000001")
         scores = [r["impact_score"] for r in result]
         assert scores == sorted(scores, reverse=True)
 
@@ -224,7 +221,9 @@ class TestDoubleLoopController:
         controller, _, mock_cursor = self._make_controller()
         mock_cursor.fetchone.return_value = {"cnt": 0}
         mock_cursor.fetchall.return_value = []
-        result = controller.evaluate_structural_questions("loc-001")
+        result = controller.evaluate_structural_questions(
+            "00000000-0000-4000-8000-000000000001"
+        )
         assert isinstance(result, list)
 
     def test_challenge_assumption_returns_id(self):

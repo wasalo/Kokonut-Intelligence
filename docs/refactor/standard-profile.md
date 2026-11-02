@@ -234,57 +234,87 @@ and aggregate `children_alive`; it never returns process IDs or the generation
 token. In Standard Compose, the file is ephemeral container state; the profile
 adds no volume or migration for liveness.
 
-## Dated Standard acceptance snapshot
+## Current Standard acceptance — migration 745 — 1 November 2026
 
-The latest network-disabled disposable Standard recovery applied all 714
-ordered schema files through migration 723 with zero failures or seed rows.
+The network-disabled disposable Standard recovery applied all 736 ordered
+schema migrations through migration 745 with zero failures or seed rows. It
+captured one migration snapshot and verified the API and worker images use the
+same schema bytes. Runtime-role provisioning/reapplication preserved the
+reviewed read-only relations, including the three current public summary views;
+optional Directus checks and bounded freshness reads also passed. The API,
+worker, and proxy started healthy. The check observed worker degradation and
+recovery through a database outage, detected and recovered from a live-but-
+stalled child, then verified clean worker shutdown, removal of the supervisor
+heartbeat, zero active leases, and no published host ports on an internal
+network. Candidate, legacy, and production data were untouched
+([acceptance summary](builds/2026-11-01-recovery/standard-profile-recovery-745-disposable.json);
+[runner](../../scripts/check-kernel-standard-recovery-disposable.py)).
+
+The accepted schema includes migration 742's global curated
+`readiness_dimension` boundary (location-specific weights remain in
+`readiness_location_weight`) and migrations 743–745's read-only boundaries for
+`v_public_ebf_scorecard`, `v_public_metric_summary`, and
+`v_public_wellbeing_metric_summary`. Existing SELECT behavior is retained;
+the base-table writers and RLS policies are unchanged. The owner confirmed
+`readiness_dimension` is global/read-only for Directus. The owner reports no
+known external writers for `quality_grade`; external-client review remains
+open.
+
+The API and worker remain separate services using the same
+`kokonut_runtime` database login. This short disposable acceptance does not
+complete C1, establish populated-data parity, external provider or public
+ingress readiness, 24-hour recovery, scale, backup restoration, or production
+acceptance. Native and ARM64/QEMU replays through migration 745 each passed
+736/736 schemas and the 47-check synthetic operator/two-tenant probe; the
+emulated run cleaned up successfully. QEMU is not physical Raspberry Pi
+acceptance
+([native](builds/2026-11-01-recovery/native-current-schema-745-operator-probe.json);
+[ARM64/QEMU](builds/2026-11-01-recovery/arm64-qemu-current-schema-745-operator-probe.json)).
+
+## Previous Standard acceptance snapshot — migration 738
+
+The latest network-disabled disposable Standard recovery applied all 729
+ordered schema files through migration 738 with zero failures or seed rows.
 The harness captured a stable schema snapshot before building the API and
-worker images and verified both image manifests against its SHA-256. It
-exercised fresh migration-created role placeholders, post-migration runtime
-provisioning and reapplication, the read-only migration ledger, API/worker/proxy
-health, database outage degradation and recovery, private heartbeat behavior,
-zero active leases after shutdown, and disposable resource cleanup. No host
-ports, external network, seeds, candidate, legacy stack, or production service
-were used ([acceptance evidence](builds/2026-11-01-recovery/standard-profile-recovery-723-disposable.json);
-[runner](../../scripts/check-kernel-standard-recovery-disposable.py)). This
-follow-up also fixes the supervisor environment policy so the API child keeps
-its configured shared runtime `PG_*` connection while unrelated worker DSNs
-and credentials remain filtered. The 13-test supervisor selection and Ruff
-pass; the preceding migration-722 batch's 279-test selection remains recorded
-in its dated evidence.
+worker images and verified both image inputs against its SHA-256. It exercised
+fresh migration-created role placeholders, post-migration runtime provisioning
+and reapplication, the read-only migration ledger, API/worker/proxy health,
+database outage degradation and recovery, private heartbeat behavior, zero
+active leases after shutdown, and disposable resource cleanup. No host ports,
+external network, seeds, candidate, legacy stack, or production service were
+used ([acceptance evidence](builds/2026-11-01-recovery/standard-profile-recovery-738-disposable.json);
+[runner](../../scripts/check-kernel-standard-recovery-disposable.py)).
+
+Native and ARM64/QEMU network-disabled schema replays each applied 729/729
+ordered migrations through 738 and passed the synthetic two-tenant/operator
+probe. The current scoped ACL policy check verifies 113 private relations,
+107 mutation-denied relations, and three append-only relations, with zero
+table/column violations inside that declared policy. The aggregate probe
+reports 911 public tables with runtime DML while RLS is disabled. The joined
+source/ACL report records 1,295 of 1,522 relations with effective runtime DML,
+192 migration-denied relations matching policy, and zero policy mismatches;
+3,640 of 4,947 SQL sites remain unresolved after tracing 261 verified Gateway
+callback edges covering 943 sites. Static reachability does not prove route
+authorization or runtime activation. These are scoped privilege and inventory
+measurements, not confirmed leaks or proof of tenant isolation
+([source/ACL report](builds/2026-11-01-recovery/runtime-privilege-callsite-report-738.json);
+[attribution inventory](runtime-role-attribution.json)). QEMU is portability evidence,
+not physical Raspberry Pi acceptance
+([native replay and probe](builds/2026-11-01-recovery/native-current-schema-738-operator-probe.json);
+[ARM64/QEMU replay and probe](builds/2026-11-01-recovery/arm64-qemu-current-schema-738-operator-probe.json);
+[reference-table ACL check](builds/2026-11-01-recovery/runtime-read-only-735-738-disposable.json)).
 
 The API and worker are separate services but still connect as the same
 `kokonut_runtime` database login. Distinct API and worker identities remain an
-open C1 boundary; this recovery check does not claim otherwise. It also does
-not prove long-running handler lease reclaim, populated-data parity, live
-provider recovery, 24-hour endurance, scale, public ingress, backup/restore
-ownership, or physical Raspberry Pi behavior.
-
-This recovery confirms Standard's migration-723 default topology and bootstrap
-path; it is not candidate rollout or production acceptance. The latest native,
-network-disabled replay and synthetic two-tenant/operator probe cover migration
-725, applying 716/716 ordered schemas and passing all 39 checks. The focused
-ARM64/QEMU migration-725 ACL check also passes. The last complete ARM64/QEMU
-full-schema replay is through migration 724, with 715 schemas and the same 39
-checks; a redundant migration-725 full replay failed before applying any schema
-(0/716) and cleaned up. The current source/ACL report covers 1,522 public relations:
-1,304 have effective runtime DML, 920 tables have runtime DML while RLS is
-disabled, and 183 migration-revoked relations match policy with zero
-mismatches. It also records 209 unprotected DML relations without candidate
-SQL sites and 367 without candidate write targets. These overlapping counts
-measure privilege reach and heuristic inventory coverage, not confirmed leaks
-or tenant isolation. Scoped probe checks found no direct table/column
-violations within their declared policy. QEMU is software portability evidence
-only, not physical Raspberry Pi acceptance
-([native replay and probe](builds/2026-11-01-recovery/native-current-schema-725-operator-probe.json);
-[focused ARM64/QEMU ACL check](builds/2026-11-01-recovery/framework-reference-catalog-runtime-boundary-725-arm64-qemu-disposable.json);
-[full ARM64/QEMU replay through 724](builds/2026-11-01-recovery/arm64-qemu-current-schema-724-operator-probe.json);
-[ACL report](builds/2026-11-01-recovery/runtime-privilege-callsite-report-725.json);
-[interrupted redundant replay](builds/2026-11-01-recovery/arm64-qemu-current-schema-725-interrupted.json)).
-Distinct API/worker identities, Directus/tenant reconciliation, candidate
-rollout, and production acceptance remain open. Standard first-install
-recovery remains separately accepted through migration 723 only
-([recovery](builds/2026-11-01-recovery/standard-profile-recovery-723-disposable.json)).
+open C1 boundary. These short disposable checks do not establish long-running
+handler lease reclaim, populated-data parity, live provider recovery, 24-hour
+endurance, scale, public ingress, backup/restore ownership, or production
+acceptance. The optional remote-checkpoint client now rejects malformed,
+non-HTTPS, and credential-bearing endpoint URLs before S3 client construction;
+16 mock-only tests include acceptance of the configured Cloudflare R2 endpoint.
+No live R2 request or credential was used, so bucket permissions, inventory,
+retention, and restore remain open. No candidate, legacy, or production
+database or role was changed.
 
 The 31 October recovery through migration 712 remains useful historical
 evidence for the bounded Gateway rate-limit contract and its consume, deny,
@@ -338,9 +368,9 @@ not lost.
 
 ## Acceptance and rollback
 
-The latest stable-snapshot replay applies all 714 ordered schema files through
-migration 723 and is recorded in the [dated Standard acceptance snapshot
-above](#dated-standard-acceptance-snapshot). The replay does not start the
+The latest stable-snapshot replay applies all 736 ordered schema files through
+migration 745 and is recorded in the [dated Standard acceptance snapshot
+above](#current-standard-acceptance-migration-745-1-november-2026). The replay does not start the
 local candidate or establish production readiness. The harness pins migration
 discovery and both app images to the same private snapshot, records its digest,
 and preserves a redacted runner-output tail if the migration count changes or

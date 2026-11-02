@@ -1,0 +1,45 @@
+{
+  "result": "failed",
+  "date": "2026-11-01",
+  "source_revision": "88008a00",
+  "working_tree_dirty": true,
+  "runtime_architecture": "linux/amd64",
+  "execution": "native Docker host",
+  "database_image": {
+    "name": "postgis/postgis:16-3.4",
+    "platform": "linux/amd64",
+    "image_id": "sha256:44126d872ac91993766c341e369c539e8196614321765d36a6f1bab0419a5fa5"
+  },
+  "isolated_compose_project": "kokonut-standard-732-native-20261101",
+  "schema_files_expected": 723,
+  "schema_files_applied": 531,
+  "schema_files_pending": 192,
+  "schema_files_failed": null,
+  "latest_migration": "schema:732_runtime_sensor_alert_read_only.sql",
+  "network_mode": "none",
+  "host_ports_published": false,
+  "seeds_applied": 0,
+  "farm_data_loaded": false,
+  "candidate_or_legacy_touched": false,
+  "resource_limits": {
+    "requested_memory_bytes": 1610612736,
+    "requested_cpu_count": 2.0,
+    "verified_database_limits": {
+      "memory_bytes": 1610612736,
+      "memory_swap_bytes": 1610612736,
+      "nano_cpus": 2000000000
+    }
+  },
+  "cleanup": {
+    "attempted": true,
+    "completed": true
+  },
+  "operator_scope_probe_image": {
+    "name": "kokonut-kernel-candidate-app:latest",
+    "platform": "linux/amd64",
+    "image_id": "sha256:c69a6405e990de070b00b2fac0c0e7ca5c8c3c73e380754fe778a9aa1ceedff4",
+    "runtime_machine": "x86_64"
+  },
+  "latest_applied_migration": "schema:540_scoped_agent_source_references.sql",
+  "elapsed_seconds": 927.9
+}

@@ -3,28 +3,28 @@
 Tests for Advisory Engine
 """
 
-import sys
 import os
+import sys
+
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 import unittest
+from datetime import date, timedelta
 from unittest.mock import MagicMock, patch
-from datetime import datetime, date, timezone, timedelta
 
 from services.analytics.advisor import (
-    evaluate_rules,
-    _is_in_cooldown,
-    _exceeds_daily_limit,
-    _eval_threshold,
-    _eval_composite,
-    _eval_schedule,
-    _eval_forecast,
     _eval_anomaly,
-    generate_recommendation,
+    _eval_composite,
+    _eval_forecast,
+    _eval_schedule,
+    _eval_threshold,
+    _exceeds_daily_limit,
+    _is_in_cooldown,
     accept_recommendation,
     dismiss_recommendation,
-    run_advisory_cycle,
+    generate_recommendation,
     list_recommendations,
+    run_advisory_cycle,
 )
 
 
@@ -185,14 +185,18 @@ class TestRuleEvaluation(unittest.TestCase):
         self.mock_cursor.fetchone.return_value = (5,)
         self.mock_cursor.description = [("count",)]
         conditions = {"min_severity": "warning"}
-        result = _eval_anomaly(self.conn, "loc-001", conditions)
+        result = _eval_anomaly(
+            self.conn, "00000000-0000-4000-8000-000000000001", conditions
+        )
         self.assertIsNotNone(result)
 
     def test_eval_anomaly_no_alerts(self):
         self.mock_cursor.fetchone.return_value = (0,)
         self.mock_cursor.description = [("count",)]
         conditions = {"min_severity": "warning"}
-        result = _eval_anomaly(self.conn, "loc-001", conditions)
+        result = _eval_anomaly(
+            self.conn, "00000000-0000-4000-8000-000000000001", conditions
+        )
         self.assertIsNone(result)
 
 
@@ -274,7 +278,9 @@ class TestRunCycle(unittest.TestCase):
         conn.cursor.return_value = mock_cursor
         mock_cursor.fetchall.return_value = []
         mock_cursor.description = []
-        result = run_advisory_cycle(conn, "loc-001")
+        result = run_advisory_cycle(
+            conn, "00000000-0000-4000-8000-000000000001"
+        )
         self.assertIn("recommendations_generated", result)
 
 

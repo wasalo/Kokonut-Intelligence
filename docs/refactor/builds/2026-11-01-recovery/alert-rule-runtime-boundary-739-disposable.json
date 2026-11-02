@@ -1,0 +1,21 @@
+{
+  "apply_and_replay": "passed with roles absent and present",
+  "container_cleaned_up": true,
+  "directus_acl": "SELECT preserved; table/column writes and initializer execution denied",
+  "directus_provisioner_reapplication": "read_only registry policy removed broad grant and retained SELECT",
+  "empty_catalog": "runtime bounded call inserted ten defaults; repeat inserted zero",
+  "host_ports_published": false,
+  "latest": "schema:739_runtime_alert_rule_read_only.sql",
+  "migration": "739_runtime_alert_rule_read_only.sql",
+  "migration_sources_validated": 730,
+  "network": "none",
+  "owner_seed_access": "kokonut owner inserted a curated rule",
+  "pilot_seed": "actual 003 pilot alert_rule insert retained exactly eight rows",
+  "populated_catalog": "single custom rule suppresses default insertion",
+  "result": "passed",
+  "rls": "unchanged and disabled for the global catalog",
+  "role_absent_ordering": "passed; migration did not create runtime or Directus roles",
+  "runtime_acl": "SELECT and bounded execute preserved; table/column writes denied",
+  "runtime_provisioner_reapplication": "broad grant was revoked and bounded function/SELECT restored",
+  "worker_reads": "both anomaly-event and sensor-baseline SECURITY DEFINER readers returned the rule count"
+}
