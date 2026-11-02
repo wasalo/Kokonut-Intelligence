@@ -1,5 +1,8 @@
 # Select the verified ARM64 manifests for the self-hosted identity services.
 services:
+  zitadel-bootstrap-permissions:
+    platform: linux/arm64
+
   zitadel-db:
     platform: linux/arm64
 

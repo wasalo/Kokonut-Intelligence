@@ -115,6 +115,93 @@ def _typescript_method_signatures() -> dict[str, dict[str, set[tuple[bool, ...]]
     return inventory
 
 
+def _python_method_argument_names() -> dict[str, dict[str, tuple[str, ...]]]:
+    tree = ast.parse((ROOT / "sdk/python/kokonut/methods.py").read_text(encoding="utf-8"))
+    classes = {node.name: node for node in tree.body if isinstance(node, ast.ClassDef)}
+    inventory: dict[str, dict[str, tuple[str, ...]]] = {}
+    for name, node in classes.items():
+        methods: dict[str, tuple[str, ...]] = {}
+        for member in node.body:
+            if not isinstance(member, (ast.FunctionDef, ast.AsyncFunctionDef)) or member.name.startswith("_"):
+                continue
+            positional = member.args.posonlyargs + member.args.args
+            if positional and positional[0].arg in {"self", "cls"}:
+                positional = positional[1:]
+            methods[_camel_case(member.name)] = tuple(
+                _camel_case(argument.arg) for argument in positional
+            )
+
+        if name != "GenericMethods" and any(
+            isinstance(base, ast.Name) and base.id == "GenericMethods" for base in node.bases
+        ):
+            inherited = inventory["GenericMethods"].copy()
+            inherited.update(methods)
+            methods = inherited
+        inventory[name] = methods
+    return inventory
+
+
+def _typescript_method_argument_names() -> dict[str, dict[str, set[tuple[str, ...]]]]:
+    source = (ROOT / "sdk/javascript/src/methods.ts").read_text(encoding="utf-8")
+    declarations = re.finditer(
+        r"export interface (?P<name>[A-Za-z_]\w*Methods)(?:\s*<[^>{}]*>)?"
+        r"(?P<extends>\s+extends\s+GenericMethods)?\s*\{",
+        source,
+    )
+    inventory: dict[str, dict[str, set[tuple[str, ...]]]] = {}
+    for declaration in declarations:
+        depth = 0
+        end = declaration.end() - 1
+        for end in range(end, len(source)):
+            if source[end] == "{":
+                depth += 1
+            elif source[end] == "}":
+                depth -= 1
+                if depth == 0:
+                    break
+        else:
+            raise AssertionError(f"Unclosed TypeScript interface {declaration.group('name')}")
+
+        body = source[declaration.end() : end]
+        methods: dict[str, set[tuple[str, ...]]] = {}
+        for method in re.finditer(r"^\s*([A-Za-z_]\w*)\s*\(", body, re.MULTILINE):
+            parameter_start = method.end()
+            depth = 1
+            parameter_end = parameter_start
+            while parameter_end < len(body) and depth:
+                if body[parameter_end] == "(":
+                    depth += 1
+                elif body[parameter_end] == ")":
+                    depth -= 1
+                parameter_end += 1
+            if depth:
+                raise AssertionError(f"Unclosed TypeScript method signature {method.group(1)}")
+
+            names = []
+            for parameter in _split_typescript_parameters(
+                body[parameter_start : parameter_end - 1]
+            ):
+                match = re.match(
+                    r"\s*(?:\.\.\.)?([A-Za-z_$][\w$]*)\??\s*(?::|=)", parameter
+                )
+                if match is None:
+                    raise AssertionError(
+                        f"Could not parse TypeScript SDK parameter: {parameter!r}"
+                    )
+                names.append(match.group(1))
+            methods.setdefault(method.group(1), set()).add(tuple(names))
+
+        name = declaration.group("name")
+        if declaration.group("extends"):
+            inherited = {
+                key: value.copy() for key, value in inventory["GenericMethods"].items()
+            }
+            inherited.update(methods)
+            methods = inherited
+        inventory[name] = methods
+    return inventory
+
+
 def test_python_and_typescript_sdk_method_names_match():
     python_methods = _python_method_signatures()
     typescript_methods = _typescript_method_signatures()
@@ -139,3 +226,162 @@ def test_typescript_preserves_python_method_argument_optionality():
                 f"{group}.{method} argument optionality mismatch: Python={python_shape}, "
                 f"TypeScript overloads={sorted(typescript_shapes)}"
             )
+
+
+def test_python_and_typescript_sdk_argument_names_match_or_use_reviewed_aliases():
+    python_methods = _python_method_argument_names()
+    typescript_methods = _typescript_method_argument_names()
+    aliases = {
+        "itemId": "id",
+        "sensorId": "deviceId",
+        "subjectType": "entityType",
+        "subjectId": "entityId",
+    }
+
+    assert python_methods.keys() == typescript_methods.keys()
+    for group, methods in python_methods.items():
+        assert methods.keys() == typescript_methods[group].keys()
+        for method, python_names in methods.items():
+            canonical_python = tuple(aliases.get(name, name) for name in python_names)
+            canonical_typescript = {
+                tuple(aliases.get(name, name) for name in signature)
+                for signature in typescript_methods[group][method]
+            }
+            assert canonical_python in canonical_typescript, (
+                f"{group}.{method} argument names mismatch: Python={python_names}, "
+                f"TypeScript={sorted(typescript_methods[group][method])}"
+            )
+
+
+def test_export_sdk_is_read_only_and_models_match_canonical_table_columns():
+    schema = (ROOT / "schemas/postgres/008_governance.sql").read_text(encoding="utf-8")
+    table = re.search(
+        r"CREATE TABLE IF NOT EXISTS export_log\s*\((.*?)\n\);", schema, re.DOTALL
+    )
+    assert table is not None
+    sql_columns = tuple(
+        line.strip().split()[0].rstrip(",")
+        for line in table.group(1).splitlines()
+        if line.strip() and not line.strip().startswith("--")
+    )
+
+    python_types = ast.parse(
+        (ROOT / "sdk/python/kokonut/types.py").read_text(encoding="utf-8")
+    )
+    export_log = next(
+        node for node in python_types.body
+        if isinstance(node, ast.ClassDef) and node.name == "ExportLog"
+    )
+    python_columns = tuple(
+        node.target.id for node in export_log.body
+        if isinstance(node, ast.AnnAssign) and isinstance(node.target, ast.Name)
+    )
+
+    typescript_types = (ROOT / "sdk/javascript/src/types.ts").read_text(encoding="utf-8")
+    interface = re.search(r"export interface ExportLog\s*\{(.*?)\n\}", typescript_types, re.DOTALL)
+    assert interface is not None
+    typescript_columns = tuple(
+        re.findall(r"^\s*([A-Za-z_][A-Za-z0-9_]*)\??:", interface.group(1), re.MULTILINE)
+    )
+    assert set(python_columns) == set(sql_columns)
+    assert typescript_columns == sql_columns
+
+    python_methods = ast.parse(
+        (ROOT / "sdk/python/kokonut/methods.py").read_text(encoding="utf-8")
+    )
+    export_methods = next(
+        node for node in python_methods.body
+        if isinstance(node, ast.ClassDef) and node.name == "ExportMethods"
+    )
+    python_names = {
+        node.name for node in export_methods.body
+        if isinstance(node, ast.FunctionDef) and not node.name.startswith("_")
+    }
+    assert python_names == {"list", "get"}
+    assert not any(isinstance(base, ast.Name) and base.id == "GenericMethods" for base in export_methods.bases)
+
+    typescript_methods = (ROOT / "sdk/javascript/src/methods.ts").read_text(encoding="utf-8")
+    declaration = re.search(r"export interface ExportMethods(.*?)\n\}", typescript_methods, re.DOTALL)
+    assert declaration is not None
+    assert "extends GenericMethods" not in declaration.group(1)
+    assert re.findall(r"^\s*([A-Za-z_][A-Za-z0-9_]*)\(", declaration.group(1), re.MULTILINE) == [
+        "list", "get"
+    ]
+
+
+def test_report_sdk_exposes_reads_without_generic_mutation():
+    python_methods = ast.parse(
+        (ROOT / "sdk/python/kokonut/methods.py").read_text(encoding="utf-8")
+    )
+    report_methods = next(
+        node for node in python_methods.body
+        if isinstance(node, ast.ClassDef) and node.name == "ReportMethods"
+    )
+    python_names = {
+        node.name for node in report_methods.body
+        if isinstance(node, ast.FunctionDef) and not node.name.startswith("_")
+    }
+    assert python_names == {"list", "get", "list_by_type"}
+    assert not any(isinstance(base, ast.Name) and base.id == "GenericMethods" for base in report_methods.bases)
+
+    typescript_methods = (ROOT / "sdk/javascript/src/methods.ts").read_text(encoding="utf-8")
+    declaration = re.search(r"export interface ReportMethods(.*?)\n\}", typescript_methods, re.DOTALL)
+    assert declaration is not None
+    assert "extends GenericMethods" not in declaration.group(1)
+    assert re.findall(r"^\s*([A-Za-z_][A-Za-z0-9_]*)\(", declaration.group(1), re.MULTILINE) == [
+        "list", "get", "listByType"
+    ]
+
+
+def test_attestation_sdk_exposes_governed_reads_without_generic_mutation():
+    python_methods = ast.parse(
+        (ROOT / "sdk/python/kokonut/methods.py").read_text(encoding="utf-8")
+    )
+    attestation_methods = next(
+        node for node in python_methods.body
+        if isinstance(node, ast.ClassDef) and node.name == "AttestationMethods"
+    )
+    python_names = {
+        node.name for node in attestation_methods.body
+        if isinstance(node, ast.FunctionDef) and not node.name.startswith("_")
+    }
+    assert python_names == {"list", "get", "list_pending", "list_by_entity"}
+    assert not any(
+        isinstance(base, ast.Name) and base.id == "GenericMethods"
+        for base in attestation_methods.bases
+    )
+
+    typescript_methods = (ROOT / "sdk/javascript/src/methods.ts").read_text(encoding="utf-8")
+    declaration = re.search(r"export interface AttestationMethods(.*?)\n\}", typescript_methods, re.DOTALL)
+    assert declaration is not None
+    assert "extends GenericMethods" not in declaration.group(1)
+    assert re.findall(r"^\s*([A-Za-z_][A-Za-z0-9_]*)\(", declaration.group(1), re.MULTILINE) == [
+        "list", "get", "listPending", "listByEntity"
+    ]
+
+
+def test_noi_sdk_exposes_snapshot_reads_without_generic_mutation():
+    python_methods = ast.parse(
+        (ROOT / "sdk/python/kokonut/methods.py").read_text(encoding="utf-8")
+    )
+    noi_methods = next(
+        node for node in python_methods.body
+        if isinstance(node, ast.ClassDef) and node.name == "NoiMethods"
+    )
+    python_names = {
+        node.name for node in noi_methods.body
+        if isinstance(node, ast.FunctionDef) and not node.name.startswith("_")
+    }
+    assert python_names == {"list", "get", "list_by_crop_cycle"}
+    assert not any(
+        isinstance(base, ast.Name) and base.id == "GenericMethods"
+        for base in noi_methods.bases
+    )
+
+    typescript_methods = (ROOT / "sdk/javascript/src/methods.ts").read_text(encoding="utf-8")
+    declaration = re.search(r"export interface NoiMethods(.*?)\n\}", typescript_methods, re.DOTALL)
+    assert declaration is not None
+    assert "extends GenericMethods" not in declaration.group(1)
+    assert re.findall(r"^\s*([A-Za-z_][A-Za-z0-9_]*)\(", declaration.group(1), re.MULTILINE) == [
+        "list", "get", "listByCropCycle"
+    ]

@@ -17,6 +17,7 @@ Usage:
 """
 
 import argparse
+import re
 import uuid
 from datetime import date
 
@@ -196,7 +197,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--period-start", help="Report period start (YYYY-MM-DD)")
     parser.add_argument("--period-end", help="Report period end (YYYY-MM-DD)")
     parser.add_argument("--list", action="store_true", help="List existing snapshots")
-    parser.add_argument("--verify", help="Verify a snapshot by hash")
+    parser.add_argument("--verify", help="Verify a snapshot by UUID or SHA-256 hash")
     parser.add_argument("--auto", action="store_true", help="Attempt all report types for one location or --all")
     return parser
 
@@ -260,6 +261,15 @@ def validate_args(parser: argparse.ArgumentParser, args: argparse.Namespace) -> 
         and parsed_periods["--period-start"] > parsed_periods["--period-end"]
     ):
         parser.error("--period-start cannot be after --period-end")
+
+    if args.verify:
+        try:
+            args.verify = str(uuid.UUID(args.verify))
+        except (AttributeError, TypeError, ValueError):
+            if re.fullmatch(r"[0-9a-fA-F]{64}", args.verify):
+                args.verify = args.verify.lower()
+            else:
+                parser.error("--verify must be a snapshot UUID or 64-character SHA-256 hash")
 
     if args.list or args.verify:
         return

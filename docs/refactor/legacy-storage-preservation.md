@@ -8,8 +8,12 @@ container identities, mounts and stopped timestamps again before finalizing.
 All named and anonymous attached volumes are mapped in its manifest. No legacy
 provider is started. Ruff passed; no acceptance test suite ran.
 
+Set `SOPS_AGE_KEY_FILE` to the operator-controlled private age identity path
+before creating the public recipient; do not store or share the identity in the
+repository.
+
 ```bash
-recipient=$(age-keygen -y /Users/gilbertoadon/.config/sops/age/keys.txt)
+recipient=$(age-keygen -y "$SOPS_AGE_KEY_FILE")
 python3 scripts/kernel-legacy-archive.py \
   --destination backups/NEW_LEGACY_CHECKPOINT --recipient "$recipient"
 ```

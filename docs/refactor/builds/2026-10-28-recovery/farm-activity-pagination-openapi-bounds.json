@@ -1,0 +1,27 @@
+{
+  "result": "passed",
+  "date": "2026-10-28",
+  "source_revision": "753b4645",
+  "working_tree_dirty": true,
+  "scope": "Gateway farm-activity list pagination contract",
+  "finding": "The service enforced limits from 1 through 100, but both operator list routes exposed an unbounded integer in OpenAPI and accepted oversized values until service access.",
+  "change": "Both operator list routes now declare FastAPI Query bounds ge=1 and le=100 with the existing default of 50. OpenAPI publishes the range and FastAPI rejects invalid values before invoking the service.",
+  "checks": {
+    "focused_tests": {
+      "command": "python3 -m pytest tests/test_farm_activity_routes.py -q",
+      "result": "6 passed"
+    },
+    "targeted_ruff": "passed",
+    "python_compilation": "passed",
+    "diff_check": "passed"
+  },
+  "external_services": {
+    "database": false,
+    "network": false,
+    "provider": false
+  },
+  "rollback": "Revert the Query bounds and focused regression; no migration or persisted data changed.",
+  "limitations": [
+    "The checks cover OpenAPI generation and in-process request validation only; they do not establish live proxy behavior or database/service availability."
+  ]
+}

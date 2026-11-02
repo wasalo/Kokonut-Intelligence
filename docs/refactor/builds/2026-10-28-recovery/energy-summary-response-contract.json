@@ -1,0 +1,62 @@
+{
+  "date": "2026-10-28",
+  "source_revision": "caa1ba4a",
+  "working_tree_dirty": true,
+  "scope": "Strict response contract for the private location-scoped energy monitoring summary.",
+  "route": {
+    "method": "GET",
+    "path": "/operator/api/energy/{location_id}/summary",
+    "response_model": "EnergyMonitoringSummaryResponse",
+    "constraints": {
+      "extra_fields": "forbidden at every object level",
+      "source_types": "match energy_source source_type constraint",
+      "renewable_types": "match renewable_energy_source renewable_type constraint",
+      "reading_types": "consumption or production",
+      "activity_types": "match energy_reading activity_type constraint plus unspecified aggregate bucket",
+      "count_fields": "strict nonnegative integers",
+      "percentages": "bounded from 0 through 100 where the calculation defines a percentage",
+      "groups": "at most 98, from two reading types, seven source types, and seven activity buckets",
+      "trend": "at most eight daily points from the inclusive seven-day query window",
+      "efficiency_history": "at most 12 records, matching the query limit",
+      "active_sources": "at most seven source types",
+      "renewable_groups": "at most five schema-constrained renewable types",
+      "energy_cost_currencies": "three uppercase letters, matching migration 604; at most 26 cubed distinct codes",
+      "validation": "Explicitly validate the service projection before constructing JSONResponse",
+      "request_path": "summary location identifier must match the location in the route path"
+    }
+  },
+  "error_contract": {
+    "disabled_oidc": "existing 404 preserved",
+    "tenant_denial": "existing 403 preserved",
+    "invalid_input": "existing 400 preserved",
+    "database_failure": "existing sanitized 503 and Retry-After: 30 preserved",
+    "invalid_projection": "sanitized 500 with Cache-Control: no-store and Vary: Cookie"
+  },
+  "checks": [
+    {
+      "command": "python3 -m pytest tests/test_gateway_energy_monitoring.py -q",
+      "result": "passed",
+      "passed": 23
+    },
+    {
+      "command": "python3 -m ruff check services/gateway/energy_monitoring_routes.py tests/test_gateway_energy_monitoring.py",
+      "result": "passed"
+    },
+    {
+      "command": "python3 -m py_compile services/gateway/energy_monitoring_routes.py tests/test_gateway_energy_monitoring.py",
+      "result": "passed"
+    },
+    {
+      "command": "git diff --check",
+      "result": "passed"
+    }
+  ],
+  "environment": {
+    "live_database_used": false,
+    "candidate_or_legacy_touched": false,
+    "provider_called": false
+  },
+  "limitations": [
+    "This closes one response-contract slice only; it does not establish live OIDC behavior, populated-data parity, or broad tenant isolation."
+  ]
+}

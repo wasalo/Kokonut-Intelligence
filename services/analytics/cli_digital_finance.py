@@ -6,7 +6,9 @@ queries/business logic. Reachable via:
     python -m services.analytics.cli_digital_finance --help
 """
 
+import argparse
 import json
+from uuid import UUID
 
 from ..common.commands import CommandLine
 from .digital_finance import (
@@ -29,6 +31,23 @@ from .digital_finance import (
 # ============================================================
 
 cli = CommandLine("digital_finance", "Digital financial services")
+
+def _parse_location_id(value: str) -> str:
+    """Validate and canonicalize a CLI location UUID during argument parsing."""
+    try:
+        return str(UUID(value))
+    except (TypeError, ValueError, AttributeError) as exc:
+        raise argparse.ArgumentTypeError("must be a valid UUID") from exc
+
+
+def _parse_evidence(value: str):
+    """Decode optional evidence JSON while argparse can still reject input."""
+    if not value:
+        return None
+    try:
+        return json.loads(value)
+    except json.JSONDecodeError as exc:
+        raise argparse.ArgumentTypeError("must be valid JSON") from exc
 
 
 def _cmd_create_account(db, a):
@@ -58,10 +77,9 @@ def _cmd_create_insurance(db, a):
 
 
 def _cmd_file_claim(db, a):
-    evidence = json.loads(a.evidence) if a.evidence else None
     return file_insurance_claim(
         db, a.policy_id, a.claim_type, a.amount,
-        evidence=evidence, event_date=a.event_date, description=a.description,
+        evidence=a.evidence, event_date=a.event_date, description=a.description,
     )
 
 
@@ -88,7 +106,7 @@ def _cmd_repay(db, a):
 
 
 cli.subcommand("create-account", "Create financial account") \
-    .add("--location-id", required=True) \
+    .add("--location-id", required=True, type=_parse_location_id) \
     .add("--type", required=True, dest="account_type") \
     .add("--currency", default="KES") \
     .add("--holder", dest="holder_name") \
@@ -116,12 +134,12 @@ cli.subcommand("balance", "Get account balance") \
     .run(lambda db, a: get_account_balance(db, a.account_id))
 
 cli.subcommand("list", "List accounts") \
-    .add("--location-id", required=True) \
+    .add("--location-id", required=True, type=_parse_location_id) \
     .add("--json", action="store_true") \
     .run(lambda db, a: list_accounts(db, a.location_id))
 
 cli.subcommand("create-insurance", "Create insurance policy") \
-    .add("--location-id", required=True) \
+    .add("--location-id", required=True, type=_parse_location_id) \
     .add("--product", required=True, dest="product_type") \
     .add("--coverage", type=float, required=True) \
     .add("--premium", type=float, required=True) \
@@ -138,7 +156,7 @@ cli.subcommand("file-claim", "File insurance claim") \
     .add("--policy-id", required=True) \
     .add("--type", required=True, dest="claim_type") \
     .add("--amount", type=float, required=True) \
-    .add("--evidence", help="JSON evidence data") \
+    .add("--evidence", type=_parse_evidence, help="JSON evidence data") \
     .add("--event-date") \
     .add("--description") \
     .add("--json", action="store_true") \
@@ -154,7 +172,7 @@ cli.subcommand("evaluate-claim", "Evaluate insurance claim") \
     .run(_cmd_evaluate_claim)
 
 cli.subcommand("create-loan", "Create digital loan") \
-    .add("--location-id", required=True) \
+    .add("--location-id", required=True, type=_parse_location_id) \
     .add("--amount", type=float, required=True) \
     .add("--rate", type=float, required=True) \
     .add("--term", type=int, required=True) \
@@ -173,26 +191,29 @@ cli.subcommand("repay", "Record loan repayment") \
     .run(_cmd_repay)
 
 cli.subcommand("portfolio", "Portfolio summary") \
-    .add("--location-id", required=True) \
+    .add("--location-id", required=True, type=_parse_location_id) \
     .add("--json", action="store_true") \
     .run(lambda db, a: get_portfolio_summary(db, a.location_id))
 
 cli.subcommand("premium", "Calculate insurance premium") \
-    .add("--location-id", required=True) \
+    .add("--location-id", required=True, type=_parse_location_id) \
     .add("--product", required=True) \
     .add("--coverage", type=float, required=True) \
     .add("--json", action="store_true") \
     .run(lambda db, a: calculate_insurance_premium(db, a.location_id, a.product, a.coverage))
 
 cli.subcommand("eligibility", "Evaluate loan eligibility") \
-    .add("--location-id", required=True) \
+    .add("--location-id", required=True, type=_parse_location_id) \
     .add("--amount", type=float, required=True) \
     .add("--json", action="store_true") \
     .run(lambda db, a: evaluate_loan_eligibility(db, a.location_id, a.amount))
 
 
 def main(argv=None):
-    cli.run(argv)
+    # Preflight before delegating to the runner; its parser applies the same
+    # UUID type and passes the canonical string to the database handler.
+    cli.build_parser().parse_args(argv)
+    return cli.run(argv)
 
 
 if __name__ == "__main__":

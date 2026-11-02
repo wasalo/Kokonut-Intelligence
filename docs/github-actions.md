@@ -5,15 +5,21 @@ The former OneDev buildspec has been replaced by these repository workflows:
 
 | Workflow | Trigger | Purpose |
 |---|---|---|
-| `CI` | Pull requests to `develop` or `main`, pushes to `develop` or `main`, manual dispatch | Runs secret-pattern and image-digest gates, the locked AMD64/ARM64 image builds, Python security checks and full suite, static analysis, Solidity checks, and Directus hook checks. It builds temporary OCI archives only; it does not publish images. |
+| `CI` | Pull requests to `develop` or `main`, pushes to `develop` or `main`, manual dispatch | Runs dependency-free preflight, then parallel source/security/static/contract, database-integration, and AMD64/ARM64 Kernel image gates. Stable required check `CI / ci` aggregates every gate. CI builds test images only; it does not publish or deploy them. |
 | `Security` | Pull requests to `develop` or `main`, pushes to `develop` or `main`, weekly schedule, manual dispatch | Scans tracked source and all fetched Git history with the checksum-pinned Gitleaks CLI. |
+| `Publish Kernel images` | Manual dispatch from `main` with the explicit `publish` input | Publishes digest-pinned AMD64/ARM64 Standard app and OIDC images after the `kernel-release` environment gate; configure required reviewers before first use. It records the image references and does not deploy them. |
 | `Deploy staging` | Manual dispatch from `main` only | Requires the explicit `yes` input and protected `staging` environment; a source-controlled disabled flag keeps deployment blocked until the architecture/data hold is cleared. |
 | `Deploy production` | Manual dispatch from `main` only | Requires the explicit `yes` input, the protected `production` environment, pre-deploy backup, and post-deploy health verification. |
 
-Every third-party action is pinned to a full commit SHA. The CI job is limited
-to 90 minutes, uses the isolated `ki-ci` Compose project and high loopback
-ports, installs Foundry from a SHA-pinned action at a fixed release, and tears
-its containers and volumes down when it exits.
+Every third-party action is pinned to a full commit SHA. CI runs on
+GitHub-hosted `ubuntu-24.04`. Preflight has a 10-minute limit; source checks and
+multi-architecture image checks each have a 45-minute limit; database
+integration has a 90-minute limit. The `integration-ci` job uses the isolated
+`ki-ci` Compose project and high loopback ports, installs Foundry from a
+SHA-pinned action at a fixed release, and tears its containers and volumes down
+when it exits. On failure, source and integration jobs upload separate
+diagnostic artifacts retained for seven days. Per-step Actions logs remain the
+primary place to find the failure; artifacts are additional context.
 
 ## GitHub repository settings
 

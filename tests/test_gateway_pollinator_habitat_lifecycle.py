@@ -208,6 +208,27 @@ def test_habitat_detail_read_sets_separate_context_and_limits_fields(monkeypatch
     assert connection.rollbacks == 1 and connection.closed
 
 
+@pytest.mark.parametrize(("offset", "expected_more", "expected_next"), [
+    (9975, False, None),
+    (9950, True, 10000),
+])
+def test_habitat_detail_read_stops_at_supported_offset_ceiling(
+    monkeypatch, offset, expected_more, expected_next
+):
+    updated_at = datetime(2026, 10, 25, 12, 34, tzinfo=timezone.utc)
+    row = (_HABITAT, "North buffer", "hedgerow", 123.5, "good", "active", date(2026, 10, 20), updated_at)
+    connection = Connection(rows=[row] * 51)
+    monkeypatch.setattr(pollinator_health_reads, "set_operator_tenant_context", lambda *_a, **_kw: None)
+
+    result = pollinator_health_reads.get_location_pollinator_habitat_details(
+        _OPERATOR, _LOCATION, limit=50, offset=offset,
+        connection_factory=lambda: connection,
+    )
+
+    assert result["has_more"] is expected_more
+    assert result["next_offset"] == expected_next
+
+
 @pytest.mark.parametrize("limit,offset", [(0, 0), (51, 0), (1, -1), (1, 10001), (True, 0)])
 def test_habitat_detail_page_bounds_fail_before_database(limit, offset):
     with pytest.raises(ValueError):

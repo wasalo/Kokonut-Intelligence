@@ -2,15 +2,150 @@
 
 from __future__ import annotations
 
+from datetime import datetime
 from functools import partial
-from typing import Callable
+from typing import Annotated, Callable, Literal
 from uuid import UUID
+
+from pydantic import (
+    AwareDatetime,
+    BaseModel,
+    BeforeValidator,
+    ConfigDict,
+    Field,
+    model_validator,
+)
 
 from services.common.tenant_context import set_operator_tenant_context
 
 _QUEUE_STATUSES = ("submitted", "triaged", "in_progress", "deferred")
 _MAX_PAGE_SIZE = 100
 _MAX_EVENT_HISTORY = 100
+
+
+def _strict_response_uuid(value):
+    if isinstance(value, UUID):
+        return value
+    if isinstance(value, str):
+        try:
+            return UUID(value)
+        except ValueError as exc:
+            raise ValueError("UUID value is invalid") from exc
+    raise ValueError("UUID values must be UUIDs or strings")
+
+
+def _strict_response_datetime(value):
+    if isinstance(value, datetime):
+        return value
+    if isinstance(value, str):
+        try:
+            return datetime.fromisoformat(value.replace("Z", "+00:00"))
+        except ValueError as exc:
+            raise ValueError("timestamp value is invalid") from exc
+    raise ValueError("timestamp values must be ISO strings or datetime objects")
+
+
+_ResponseUUID = Annotated[UUID, BeforeValidator(_strict_response_uuid)]
+_ResponseDatetime = Annotated[AwareDatetime, BeforeValidator(_strict_response_datetime)]
+
+
+class _TensionResponseModel(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+
+class GovernanceTensionReviewQueueItem(_TensionResponseModel):
+    id: _ResponseUUID
+    title: str = Field(min_length=1, max_length=255)
+    tension_type: Literal[
+        "unmet_interest",
+        "unclear_accountability",
+        "authority_gap",
+        "authority_conflict",
+        "commitment_risk",
+        "representation_gap",
+        "consent_gap",
+        "evidence_gap",
+        "harm_risk",
+        "policy_gap",
+        "cross_circle_dependency",
+        "role_overload",
+    ]
+    severity: int = Field(ge=1, le=5, strict=True)
+    urgency: int = Field(ge=1, le=5, strict=True)
+    status: Literal["submitted", "triaged", "in_progress", "deferred"]
+    created_at: _ResponseDatetime
+    review_due_at: _ResponseDatetime | None
+
+
+class GovernanceTensionReviewQueueResponse(_TensionResponseModel):
+    location_id: _ResponseUUID
+    items: list[GovernanceTensionReviewQueueItem] = Field(max_length=_MAX_PAGE_SIZE)
+    next_cursor: _ResponseUUID | None
+
+    @model_validator(mode="after")
+    def validate_queue_order_and_cursor(self):
+        keys = [(item.created_at, item.id) for item in self.items]
+        if any(left <= right for left, right in zip(keys, keys[1:])):
+            raise ValueError("governance tension items are not in descending order")
+        if self.next_cursor is not None and (
+            not self.items or self.next_cursor != self.items[-1].id
+        ):
+            raise ValueError("governance tension cursor does not match the page")
+        return self
+
+
+class GovernanceTensionReviewDetail(_TensionResponseModel):
+    id: _ResponseUUID
+    title: str = Field(min_length=1, max_length=255)
+    description: str
+    tension_type: Literal[
+        "unmet_interest",
+        "unclear_accountability",
+        "authority_gap",
+        "authority_conflict",
+        "commitment_risk",
+        "representation_gap",
+        "consent_gap",
+        "evidence_gap",
+        "harm_risk",
+        "policy_gap",
+        "cross_circle_dependency",
+        "role_overload",
+    ]
+    severity: int = Field(ge=1, le=5, strict=True)
+    urgency: int = Field(ge=1, le=5, strict=True)
+    status: Literal["submitted", "triaged", "in_progress", "deferred"]
+    review_due_at: _ResponseDatetime | None
+    deferred_until: _ResponseDatetime | None
+    created_at: _ResponseDatetime
+    updated_at: _ResponseDatetime
+
+
+class GovernanceTensionReviewEvent(_TensionResponseModel):
+    from_status: Literal[
+        "draft", "submitted", "triaged", "in_progress", "resolved", "deferred", "rejected", "closed"
+    ] | None
+    to_status: Literal[
+        "draft", "submitted", "triaged", "in_progress", "resolved", "deferred", "rejected", "closed"
+    ]
+    action: str = Field(min_length=1, max_length=60)
+    created_at: _ResponseDatetime
+
+
+class GovernanceTensionReviewDetailResponse(_TensionResponseModel):
+    location_id: _ResponseUUID
+    tension: GovernanceTensionReviewDetail
+    events: list[GovernanceTensionReviewEvent] = Field(max_length=_MAX_EVENT_HISTORY)
+    events_truncated: bool
+
+    @model_validator(mode="after")
+    def validate_bounded_event_history(self):
+        timestamps = [event.created_at for event in self.events]
+        if any(left < right for left, right in zip(timestamps, timestamps[1:])):
+            raise ValueError("governance tension events are not in descending order")
+        if self.events_truncated and len(self.events) != _MAX_EVENT_HISTORY:
+            raise ValueError("truncated governance tension history must fill the page")
+        return self
 
 
 class GovernanceTensionReviewInvalid(ValueError):

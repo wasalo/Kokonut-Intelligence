@@ -1,0 +1,38 @@
+{
+  "result": "passed",
+  "date": "2026-10-28",
+  "source_revision": "753b4645",
+  "working_tree_dirty": true,
+  "scope": "Directus hook workflow authorization role-name resolution",
+  "change": "Removed the five-minute process-local role-name cache; each non-admin authorization check resolves the current Directus role name from the request database.",
+  "checks": {
+    "focused_tests": {
+      "suites": ["roles", "error-safety", "workflow"],
+      "result": "46 passed"
+    },
+    "full_extension_suite": {
+      "command": "npm test",
+      "result": "120 passed across 9 test files"
+    },
+    "extension_build_and_types": {
+      "command": "npm run build (directus-extension build && tsc --noEmit)",
+      "result": "passed"
+    },
+    "diff_check": {
+      "command": "git diff --check",
+      "result": "passed"
+    }
+  },
+  "boundary": {
+    "server_accountability_required": true,
+    "payload_accountability_trusted": false,
+    "database_or_live_directus_used": false,
+    "candidate_or_legacy_touched": false
+  },
+  "tradeoff": "Adds one directus_roles lookup for each non-admin workflow authorization check.",
+  "rollback": "Revert the cache removal and regression test; no migration or persisted data changed.",
+  "limitations": [
+    "The focused mocked checks do not establish deployed Directus permission parity.",
+    "Live role propagation and effective API/field/row permissions remain open."
+  ]
+}

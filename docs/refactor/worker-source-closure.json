@@ -40,7 +40,7 @@
       "local_import_edges": [
         {
           "source": "services/analytics/carbon_balance.py",
-          "line": 13,
+          "line": 14,
           "target": "services.common.database",
           "kind": "from"
         },
@@ -142,7 +142,7 @@
         },
         {
           "source": "services/common/env.py",
-          "line": 210,
+          "line": 219,
           "target": "services.common.database",
           "kind": "from"
         },
@@ -279,7 +279,7 @@
         },
         {
           "source": "services/common/env.py",
-          "line": 210,
+          "line": 219,
           "target": "services.common.database",
           "kind": "from"
         },
@@ -312,6 +312,7 @@
         "services.common.worker_environment",
         "services.core.features",
         "services.core.providers",
+        "services.core.worker_progress",
         "services.events",
         "services.events.backend",
         "services.events.bus",
@@ -338,6 +339,7 @@
         "services/common/worker_environment.py",
         "services/core/features.py",
         "services/core/providers.py",
+        "services/core/worker_progress.py",
         "services/events/__init__.py",
         "services/events/__main__.py",
         "services/events/backend.py",
@@ -409,7 +411,7 @@
         },
         {
           "source": "services/common/env.py",
-          "line": 210,
+          "line": 219,
           "target": "services.common.database",
           "kind": "from"
         },
@@ -417,6 +419,24 @@
           "source": "services/core/features.py",
           "line": 12,
           "target": "services.core.providers",
+          "kind": "from"
+        },
+        {
+          "source": "services/core/worker_progress.py",
+          "line": 16,
+          "target": "services.common.errors",
+          "kind": "from"
+        },
+        {
+          "source": "services/core/worker_progress.py",
+          "line": 248,
+          "target": "services.core.features",
+          "kind": "from"
+        },
+        {
+          "source": "services/core/worker_progress.py",
+          "line": 631,
+          "target": "services.common.database",
           "kind": "from"
         },
         {
@@ -446,264 +466,270 @@
         {
           "source": "services/events/bus.py",
           "line": 13,
-          "target": "services.common.errors",
-          "kind": "from"
-        },
-        {
-          "source": "services/events/bus.py",
-          "line": 14,
-          "target": "services.common.logging",
-          "kind": "from"
-        },
-        {
-          "source": "services/events/bus.py",
-          "line": 15,
           "target": "services.common.worker_environment",
           "kind": "from"
         },
         {
           "source": "services/events/bus.py",
-          "line": 19,
+          "line": 17,
           "target": "services.security.execution_allowlist",
           "kind": "from"
         },
         {
           "source": "services/events/bus.py",
-          "line": 63,
+          "line": 69,
           "target": "services.common.database",
           "kind": "from"
         },
         {
           "source": "services/events/bus.py",
-          "line": 371,
+          "line": 134,
+          "target": "services.core.worker_progress",
+          "kind": "from"
+        },
+        {
+          "source": "services/events/bus.py",
+          "line": 244,
           "target": "services.events.retention",
           "kind": "from"
         },
         {
           "source": "services/events/cli.py",
-          "line": 27,
+          "line": 30,
           "target": "services.common.cli",
           "kind": "from"
         },
         {
           "source": "services/events/cli.py",
-          "line": 28,
+          "line": 31,
           "target": "services.common.errors",
           "kind": "from"
         },
         {
           "source": "services/events/cli.py",
-          "line": 29,
+          "line": 32,
           "target": "services.common.logging",
           "kind": "from"
         },
         {
           "source": "services/events/cli.py",
-          "line": 35,
-          "target": "services.events.backend",
+          "line": 33,
+          "target": "services.core.worker_progress",
           "kind": "from"
         },
         {
           "source": "services/events/cli.py",
-          "line": 55,
+          "line": 75,
+          "target": "services.common.worker_environment",
+          "kind": "from"
+        },
+        {
+          "source": "services/events/cli.py",
+          "line": 79,
           "target": "services.core.features",
           "kind": "from"
         },
         {
           "source": "services/events/cli.py",
-          "line": 87,
+          "line": 80,
           "target": "services.events.dispatch_worker",
           "kind": "from"
         },
         {
           "source": "services/events/cli.py",
-          "line": 93,
-          "target": "services.events.backend",
+          "line": 130,
+          "target": "services.events.bus",
           "kind": "from"
         },
         {
           "source": "services/events/cli.py",
-          "line": 99,
+          "line": 136,
+          "target": "services.core.features",
+          "kind": "from"
+        },
+        {
+          "source": "services/events/cli.py",
+          "line": 186,
+          "target": "services.events.dispatch_worker",
+          "kind": "from"
+        },
+        {
+          "source": "services/events/cli.py",
+          "line": 191,
           "target": "services.events.notification_delivery_worker",
           "kind": "from"
         },
         {
           "source": "services/events/cli.py",
-          "line": 105,
-          "target": "services.common.database",
-          "kind": "from"
-        },
-        {
-          "source": "services/events/cli.py",
-          "line": 106,
-          "target": "services.events.notification_outbox",
-          "kind": "from"
-        },
-        {
-          "source": "services/events/cli.py",
-          "line": 178,
+          "line": 273,
           "target": "services.events.backend",
           "kind": "from"
         },
         {
           "source": "services/events/cli.py",
-          "line": 192,
+          "line": 287,
           "target": "services.events.retention",
           "kind": "from"
         },
         {
           "source": "services/events/cli.py",
-          "line": 200,
+          "line": 295,
           "target": "services.events.backend",
           "kind": "from"
         },
         {
           "source": "services/events/cli.py",
-          "line": 215,
+          "line": 310,
           "target": "services.common.database",
           "kind": "from"
         },
         {
           "source": "services/events/cli.py",
-          "line": 244,
+          "line": 339,
           "target": "services.common.database",
           "kind": "from"
         },
         {
           "source": "services/events/cli.py",
-          "line": 276,
+          "line": 371,
           "target": "services.events.backend",
           "kind": "from"
         },
         {
           "source": "services/events/cli.py",
-          "line": 288,
+          "line": 383,
           "target": "services.events.backend",
           "kind": "from"
         },
         {
           "source": "services/events/cli.py",
-          "line": 302,
+          "line": 398,
+          "target": "services.events.notification_delivery_worker",
+          "kind": "from"
+        },
+        {
+          "source": "services/events/cli.py",
+          "line": 406,
           "target": "services.common.database",
           "kind": "from"
         },
         {
           "source": "services/events/cli.py",
-          "line": 303,
+          "line": 407,
           "target": "services.events.notification_outbox",
           "kind": "from"
         },
         {
           "source": "services/events/cli.py",
-          "line": 312,
+          "line": 416,
           "target": "services.common.database",
           "kind": "from"
         },
         {
           "source": "services/events/cli.py",
-          "line": 313,
+          "line": 417,
           "target": "services.events.notification_outbox",
           "kind": "from"
         },
         {
           "source": "services/events/cli.py",
-          "line": 322,
+          "line": 426,
           "target": "services.common.database",
           "kind": "from"
         },
         {
           "source": "services/events/cli.py",
-          "line": 323,
+          "line": 427,
           "target": "services.events.notification_outbox",
           "kind": "from"
         },
         {
           "source": "services/events/cli.py",
-          "line": 332,
+          "line": 438,
           "target": "services.common.database",
           "kind": "from"
         },
         {
           "source": "services/events/cli.py",
-          "line": 333,
+          "line": 439,
           "target": "services.events.notification_outbox",
           "kind": "from"
         },
         {
           "source": "services/events/cli.py",
-          "line": 344,
-          "target": "services.common.database",
-          "kind": "from"
-        },
-        {
-          "source": "services/events/cli.py",
-          "line": 345,
-          "target": "services.events.notification_outbox",
-          "kind": "from"
-        },
-        {
-          "source": "services/events/cli.py",
-          "line": 496,
+          "line": 597,
           "target": "services.events.fork_detector",
           "kind": "from"
         },
         {
           "source": "services/events/cli.py",
-          "line": 504,
+          "line": 605,
           "target": "services.events.fork_detector",
           "kind": "from"
         },
         {
           "source": "services/events/cli.py",
-          "line": 516,
+          "line": 617,
           "target": "services.events.insight_transfer",
           "kind": "from"
         },
         {
           "source": "services/events/cli.py",
-          "line": 528,
+          "line": 629,
           "target": "services.events.insight_transfer",
           "kind": "from"
         },
         {
           "source": "services/events/cli.py",
-          "line": 537,
+          "line": 638,
           "target": "services.events.insight_transfer",
           "kind": "from"
         },
         {
           "source": "services/events/cli.py",
-          "line": 546,
+          "line": 647,
           "target": "services.events.insight_transfer",
           "kind": "from"
         },
         {
           "source": "services/events/cli.py",
-          "line": 557,
+          "line": 658,
           "target": "services.common.database",
-          "kind": "from"
-        },
-        {
-          "source": "services/events/dispatch_worker.py",
-          "line": 9,
-          "target": "services.common.worker_database",
           "kind": "from"
         },
         {
           "source": "services/events/dispatch_worker.py",
           "line": 10,
-          "target": "services.common.worker_environment",
+          "target": "services.common.cli",
           "kind": "from"
         },
         {
           "source": "services/events/dispatch_worker.py",
           "line": 11,
-          "target": "services.core.features",
+          "target": "services.common.worker_database",
           "kind": "from"
         },
         {
           "source": "services/events/dispatch_worker.py",
           "line": 12,
+          "target": "services.common.worker_environment",
+          "kind": "from"
+        },
+        {
+          "source": "services/events/dispatch_worker.py",
+          "line": 13,
+          "target": "services.core.features",
+          "kind": "from"
+        },
+        {
+          "source": "services/events/dispatch_worker.py",
+          "line": 14,
+          "target": "services.core.worker_progress",
+          "kind": "from"
+        },
+        {
+          "source": "services/events/dispatch_worker.py",
+          "line": 15,
           "target": "services.events.bus",
           "kind": "from"
         },
@@ -716,18 +742,30 @@
         {
           "source": "services/events/notification_delivery_worker.py",
           "line": 10,
-          "target": "services.common.worker_database",
+          "target": "services.common.cli",
           "kind": "from"
         },
         {
           "source": "services/events/notification_delivery_worker.py",
           "line": 11,
-          "target": "services.core.features",
+          "target": "services.common.worker_database",
           "kind": "from"
         },
         {
           "source": "services/events/notification_delivery_worker.py",
           "line": 12,
+          "target": "services.core.features",
+          "kind": "from"
+        },
+        {
+          "source": "services/events/notification_delivery_worker.py",
+          "line": 13,
+          "target": "services.core.worker_progress",
+          "kind": "from"
+        },
+        {
+          "source": "services/events/notification_delivery_worker.py",
+          "line": 14,
           "target": "services.events.notification_outbox",
           "kind": "from"
         },
@@ -745,32 +783,38 @@
         },
         {
           "source": "services/events/notification_outbox.py",
-          "line": 104,
+          "line": 127,
           "target": "services.core.providers",
           "kind": "from"
         },
         {
           "source": "services/events/notification_outbox.py",
-          "line": 164,
+          "line": 185,
           "target": "services.core.providers",
           "kind": "from"
         },
         {
           "source": "services/events/notification_outbox.py",
-          "line": 437,
+          "line": 368,
           "target": "services.common.http",
           "kind": "from"
         },
         {
           "source": "services/events/notification_outbox.py",
-          "line": 444,
+          "line": 375,
           "target": "services.common.http",
           "kind": "from"
         },
         {
           "source": "services/events/notification_outbox.py",
-          "line": 445,
+          "line": 376,
           "target": "services.core.providers",
+          "kind": "from"
+        },
+        {
+          "source": "services/events/notification_outbox.py",
+          "line": 455,
+          "target": "services.events.notification_delivery_worker",
           "kind": "from"
         }
       ],
@@ -778,7 +822,7 @@
       "dynamic_import_sites": [
         {
           "source": "services/events/bus.py",
-          "line": 46,
+          "line": 51,
           "kind": "dynamic module expression"
         }
       ]
@@ -848,7 +892,7 @@
         },
         {
           "source": "services/common/env.py",
-          "line": 210,
+          "line": 219,
           "target": "services.common.database",
           "kind": "from"
         },
@@ -879,421 +923,6 @@
       ],
       "unresolved_local_modules": [],
       "dynamic_import_sites": []
-    },
-    {
-      "kind": "scheduled_module",
-      "name": "services.ingestion.anomaly_detector",
-      "root_modules": [
-        "services.ingestion.anomaly_detector"
-      ],
-      "modules": [
-        "services.common.cli",
-        "services.common.database",
-        "services.common.db",
-        "services.common.env",
-        "services.common.errors",
-        "services.common.http",
-        "services.common.logging",
-        "services.common.smtp",
-        "services.common.tenant_context",
-        "services.common.worker_database",
-        "services.common.worker_environment",
-        "services.core.adapters.clickhouse",
-        "services.core.adapters.mqtt",
-        "services.core.features",
-        "services.core.providers",
-        "services.events.bus",
-        "services.events.notification_outbox",
-        "services.events.retention",
-        "services.ingestion.anomaly_detector",
-        "services.ingestion.base",
-        "services.ingestion.config",
-        "services.ingestion.ml_anomaly_detector",
-        "services.ingestion.mqtt_actuator",
-        "services.ingestion.sensor_anomaly_ml_worker",
-        "services.ingestion.sensor_anomaly_worker",
-        "services.security.execution_allowlist"
-      ],
-      "source_files": [
-        "services/common/cli.py",
-        "services/common/database.py",
-        "services/common/db.py",
-        "services/common/env.py",
-        "services/common/errors.py",
-        "services/common/http.py",
-        "services/common/logging.py",
-        "services/common/smtp.py",
-        "services/common/tenant_context.py",
-        "services/common/worker_database.py",
-        "services/common/worker_environment.py",
-        "services/core/adapters/clickhouse.py",
-        "services/core/adapters/mqtt.py",
-        "services/core/features.py",
-        "services/core/providers.py",
-        "services/events/bus.py",
-        "services/events/notification_outbox.py",
-        "services/events/retention.py",
-        "services/ingestion/anomaly_detector.py",
-        "services/ingestion/base.py",
-        "services/ingestion/config.py",
-        "services/ingestion/ml_anomaly_detector.py",
-        "services/ingestion/mqtt_actuator.py",
-        "services/ingestion/sensor_anomaly_ml_worker.py",
-        "services/ingestion/sensor_anomaly_worker.py",
-        "services/security/execution_allowlist.py"
-      ],
-      "local_import_edges": [
-        {
-          "source": "services/common/cli.py",
-          "line": 42,
-          "target": "services.common.database",
-          "kind": "from"
-        },
-        {
-          "source": "services/common/cli.py",
-          "line": 59,
-          "target": "services.common.database",
-          "kind": "from"
-        },
-        {
-          "source": "services/common/cli.py",
-          "line": 67,
-          "target": "services.common.database",
-          "kind": "from"
-        },
-        {
-          "source": "services/common/database.py",
-          "line": 24,
-          "target": "services.common.db",
-          "kind": "from"
-        },
-        {
-          "source": "services/common/database.py",
-          "line": 25,
-          "target": "services.common.worker_environment",
-          "kind": "from"
-        },
-        {
-          "source": "services/common/db.py",
-          "line": 8,
-          "target": "services.core.providers",
-          "kind": "from"
-        },
-        {
-          "source": "services/common/db.py",
-          "line": 10,
-          "target": "services.common.env",
-          "kind": "from"
-        },
-        {
-          "source": "services/common/db.py",
-          "line": 11,
-          "target": "services.common.worker_environment",
-          "kind": "from"
-        },
-        {
-          "source": "services/common/env.py",
-          "line": 10,
-          "target": "services.common.worker_environment",
-          "kind": "from"
-        },
-        {
-          "source": "services/common/env.py",
-          "line": 210,
-          "target": "services.common.database",
-          "kind": "from"
-        },
-        {
-          "source": "services/core/adapters/clickhouse.py",
-          "line": 14,
-          "target": "services.core.providers",
-          "kind": "from"
-        },
-        {
-          "source": "services/core/adapters/mqtt.py",
-          "line": 14,
-          "target": "services.core.providers",
-          "kind": "from"
-        },
-        {
-          "source": "services/core/features.py",
-          "line": 12,
-          "target": "services.core.providers",
-          "kind": "from"
-        },
-        {
-          "source": "services/events/bus.py",
-          "line": 13,
-          "target": "services.common.errors",
-          "kind": "from"
-        },
-        {
-          "source": "services/events/bus.py",
-          "line": 14,
-          "target": "services.common.logging",
-          "kind": "from"
-        },
-        {
-          "source": "services/events/bus.py",
-          "line": 15,
-          "target": "services.common.worker_environment",
-          "kind": "from"
-        },
-        {
-          "source": "services/events/bus.py",
-          "line": 19,
-          "target": "services.security.execution_allowlist",
-          "kind": "from"
-        },
-        {
-          "source": "services/events/bus.py",
-          "line": 63,
-          "target": "services.common.database",
-          "kind": "from"
-        },
-        {
-          "source": "services/events/bus.py",
-          "line": 371,
-          "target": "services.events.retention",
-          "kind": "from"
-        },
-        {
-          "source": "services/events/notification_outbox.py",
-          "line": 18,
-          "target": "services.common.logging",
-          "kind": "from"
-        },
-        {
-          "source": "services/events/notification_outbox.py",
-          "line": 19,
-          "target": "services.common.smtp",
-          "kind": "from"
-        },
-        {
-          "source": "services/events/notification_outbox.py",
-          "line": 104,
-          "target": "services.core.providers",
-          "kind": "from"
-        },
-        {
-          "source": "services/events/notification_outbox.py",
-          "line": 164,
-          "target": "services.core.providers",
-          "kind": "from"
-        },
-        {
-          "source": "services/events/notification_outbox.py",
-          "line": 437,
-          "target": "services.common.http",
-          "kind": "from"
-        },
-        {
-          "source": "services/events/notification_outbox.py",
-          "line": 444,
-          "target": "services.common.http",
-          "kind": "from"
-        },
-        {
-          "source": "services/events/notification_outbox.py",
-          "line": 445,
-          "target": "services.core.providers",
-          "kind": "from"
-        },
-        {
-          "source": "services/ingestion/anomaly_detector.py",
-          "line": 38,
-          "target": "services.common.cli",
-          "kind": "from"
-        },
-        {
-          "source": "services/ingestion/anomaly_detector.py",
-          "line": 39,
-          "target": "services.common.smtp",
-          "kind": "from"
-        },
-        {
-          "source": "services/ingestion/anomaly_detector.py",
-          "line": 41,
-          "target": "services.common.logging",
-          "kind": "from"
-        },
-        {
-          "source": "services/ingestion/anomaly_detector.py",
-          "line": 42,
-          "target": "services.ingestion.base",
-          "kind": "from"
-        },
-        {
-          "source": "services/ingestion/anomaly_detector.py",
-          "line": 51,
-          "target": "services.events.bus",
-          "kind": "from"
-        },
-        {
-          "source": "services/ingestion/anomaly_detector.py",
-          "line": 74,
-          "target": "services.ingestion.sensor_anomaly_worker",
-          "kind": "from"
-        },
-        {
-          "source": "services/ingestion/anomaly_detector.py",
-          "line": 550,
-          "target": "services.common.http",
-          "kind": "from"
-        },
-        {
-          "source": "services/ingestion/anomaly_detector.py",
-          "line": 590,
-          "target": "services.ingestion.mqtt_actuator",
-          "kind": "from"
-        },
-        {
-          "source": "services/ingestion/anomaly_detector.py",
-          "line": 810,
-          "target": "services.events.bus",
-          "kind": "from"
-        },
-        {
-          "source": "services/ingestion/anomaly_detector.py",
-          "line": 949,
-          "target": "services.events.notification_outbox",
-          "kind": "from"
-        },
-        {
-          "source": "services/ingestion/anomaly_detector.py",
-          "line": 1222,
-          "target": "services.core.features",
-          "kind": "from"
-        },
-        {
-          "source": "services/ingestion/anomaly_detector.py",
-          "line": 1230,
-          "target": "services.ingestion.sensor_anomaly_ml_worker",
-          "kind": "from"
-        },
-        {
-          "source": "services/ingestion/anomaly_detector.py",
-          "line": 1240,
-          "target": "services.ingestion.base",
-          "kind": "from"
-        },
-        {
-          "source": "services/ingestion/anomaly_detector.py",
-          "line": 1241,
-          "target": "services.ingestion.ml_anomaly_detector",
-          "kind": "from"
-        },
-        {
-          "source": "services/ingestion/base.py",
-          "line": 20,
-          "target": "services.common.http",
-          "kind": "from"
-        },
-        {
-          "source": "services/ingestion/base.py",
-          "line": 22,
-          "target": "services.common.logging",
-          "kind": "from"
-        },
-        {
-          "source": "services/ingestion/base.py",
-          "line": 23,
-          "target": "services.ingestion.config",
-          "kind": "from"
-        },
-        {
-          "source": "services/ingestion/base.py",
-          "line": 57,
-          "target": "services.common.database",
-          "kind": "from"
-        },
-        {
-          "source": "services/ingestion/base.py",
-          "line": 64,
-          "target": "services.core.adapters.clickhouse",
-          "kind": "from"
-        },
-        {
-          "source": "services/ingestion/config.py",
-          "line": 9,
-          "target": "services.common.db",
-          "kind": "from"
-        },
-        {
-          "source": "services/ingestion/ml_anomaly_detector.py",
-          "line": 26,
-          "target": "services.common.errors",
-          "kind": "from"
-        },
-        {
-          "source": "services/ingestion/ml_anomaly_detector.py",
-          "line": 27,
-          "target": "services.common.logging",
-          "kind": "from"
-        },
-        {
-          "source": "services/ingestion/mqtt_actuator.py",
-          "line": 17,
-          "target": "services.common.logging",
-          "kind": "from"
-        },
-        {
-          "source": "services/ingestion/mqtt_actuator.py",
-          "line": 181,
-          "target": "services.core.adapters.mqtt",
-          "kind": "from"
-        },
-        {
-          "source": "services/ingestion/sensor_anomaly_ml_worker.py",
-          "line": 8,
-          "target": "services.common.tenant_context",
-          "kind": "from"
-        },
-        {
-          "source": "services/ingestion/sensor_anomaly_ml_worker.py",
-          "line": 9,
-          "target": "services.common.worker_database",
-          "kind": "from"
-        },
-        {
-          "source": "services/ingestion/sensor_anomaly_ml_worker.py",
-          "line": 10,
-          "target": "services.core.features",
-          "kind": "from"
-        },
-        {
-          "source": "services/ingestion/sensor_anomaly_ml_worker.py",
-          "line": 53,
-          "target": "services.ingestion.ml_anomaly_detector",
-          "kind": "from"
-        },
-        {
-          "source": "services/ingestion/sensor_anomaly_worker.py",
-          "line": 13,
-          "target": "services.common.tenant_context",
-          "kind": "from"
-        },
-        {
-          "source": "services/ingestion/sensor_anomaly_worker.py",
-          "line": 14,
-          "target": "services.common.worker_database",
-          "kind": "from"
-        },
-        {
-          "source": "services/ingestion/sensor_anomaly_worker.py",
-          "line": 15,
-          "target": "services.events.notification_outbox",
-          "kind": "from"
-        }
-      ],
-      "unresolved_local_modules": [],
-      "dynamic_import_sites": [
-        {
-          "source": "services/events/bus.py",
-          "line": 46,
-          "kind": "dynamic module expression"
-        }
-      ]
     },
     {
       "kind": "scheduled_module",
@@ -1370,7 +999,7 @@
         },
         {
           "source": "services/common/env.py",
-          "line": 210,
+          "line": 219,
           "target": "services.common.database",
           "kind": "from"
         },
@@ -1565,7 +1194,7 @@
         },
         {
           "source": "services/common/env.py",
-          "line": 210,
+          "line": 219,
           "target": "services.common.database",
           "kind": "from"
         },
@@ -1706,11 +1335,14 @@
         "services.common.env",
         "services.common.http",
         "services.common.logging",
+        "services.common.worker_database",
         "services.common.worker_environment",
         "services.core.adapters.clickhouse",
+        "services.core.features",
         "services.core.providers",
         "services.ingestion.base",
         "services.ingestion.clickhouse_outbox",
+        "services.ingestion.clickhouse_outbox_worker",
         "services.ingestion.config"
       ],
       "source_files": [
@@ -1720,11 +1352,14 @@
         "services/common/env.py",
         "services/common/http.py",
         "services/common/logging.py",
+        "services/common/worker_database.py",
         "services/common/worker_environment.py",
         "services/core/adapters/clickhouse.py",
+        "services/core/features.py",
         "services/core/providers.py",
         "services/ingestion/base.py",
         "services/ingestion/clickhouse_outbox.py",
+        "services/ingestion/clickhouse_outbox_worker.py",
         "services/ingestion/config.py"
       ],
       "local_import_edges": [
@@ -1784,13 +1419,19 @@
         },
         {
           "source": "services/common/env.py",
-          "line": 210,
+          "line": 219,
           "target": "services.common.database",
           "kind": "from"
         },
         {
           "source": "services/core/adapters/clickhouse.py",
           "line": 14,
+          "target": "services.core.providers",
+          "kind": "from"
+        },
+        {
+          "source": "services/core/features.py",
+          "line": 12,
           "target": "services.core.providers",
           "kind": "from"
         },
@@ -1826,26 +1467,56 @@
         },
         {
           "source": "services/ingestion/clickhouse_outbox.py",
-          "line": 15,
+          "line": 14,
           "target": "services.common.cli",
           "kind": "from"
         },
         {
           "source": "services/ingestion/clickhouse_outbox.py",
-          "line": 16,
+          "line": 15,
           "target": "services.common.logging",
           "kind": "from"
         },
         {
           "source": "services/ingestion/clickhouse_outbox.py",
-          "line": 17,
+          "line": 16,
           "target": "services.ingestion.base",
           "kind": "from"
         },
         {
           "source": "services/ingestion/clickhouse_outbox.py",
-          "line": 329,
+          "line": 255,
+          "target": "services.ingestion.clickhouse_outbox_worker",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/clickhouse_outbox_worker.py",
+          "line": 11,
+          "target": "services.common.cli",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/clickhouse_outbox_worker.py",
+          "line": 12,
+          "target": "services.common.worker_database",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/clickhouse_outbox_worker.py",
+          "line": 13,
+          "target": "services.core.features",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/clickhouse_outbox_worker.py",
+          "line": 14,
           "target": "services.core.providers",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/clickhouse_outbox_worker.py",
+          "line": 15,
+          "target": "services.ingestion.clickhouse_outbox",
           "kind": "from"
         },
         {
@@ -1955,7 +1626,7 @@
         },
         {
           "source": "services/common/env.py",
-          "line": 210,
+          "line": 219,
           "target": "services.common.database",
           "kind": "from"
         },
@@ -2003,26 +1674,26 @@
         },
         {
           "source": "services/ingestion/clickhouse_outbox.py",
-          "line": 15,
+          "line": 14,
           "target": "services.common.cli",
           "kind": "from"
         },
         {
           "source": "services/ingestion/clickhouse_outbox.py",
-          "line": 16,
+          "line": 15,
           "target": "services.common.logging",
           "kind": "from"
         },
         {
           "source": "services/ingestion/clickhouse_outbox.py",
-          "line": 17,
+          "line": 16,
           "target": "services.ingestion.base",
           "kind": "from"
         },
         {
           "source": "services/ingestion/clickhouse_outbox.py",
-          "line": 329,
-          "target": "services.core.providers",
+          "line": 255,
+          "target": "services.ingestion.clickhouse_outbox_worker",
           "kind": "from"
         },
         {
@@ -2076,30 +1747,26 @@
         "services.common.database",
         "services.common.db",
         "services.common.env",
-        "services.common.http",
         "services.common.logging",
         "services.common.worker_environment",
-        "services.core.adapters.clickhouse",
+        "services.core.features",
         "services.core.providers",
-        "services.ingestion.base",
         "services.ingestion.climate_data",
-        "services.ingestion.config",
-        "services.ingestion.gee_climate"
+        "services.security.execution_allowlist",
+        "services.security.scheduled_command_contracts"
       ],
       "source_files": [
         "services/common/cli.py",
         "services/common/database.py",
         "services/common/db.py",
         "services/common/env.py",
-        "services/common/http.py",
         "services/common/logging.py",
         "services/common/worker_environment.py",
-        "services/core/adapters/clickhouse.py",
+        "services/core/features.py",
         "services/core/providers.py",
-        "services/ingestion/base.py",
         "services/ingestion/climate_data.py",
-        "services/ingestion/config.py",
-        "services/ingestion/gee_climate.py"
+        "services/security/execution_allowlist.py",
+        "services/security/scheduled_command_contracts.py"
       ],
       "local_import_edges": [
         {
@@ -2158,104 +1825,50 @@
         },
         {
           "source": "services/common/env.py",
-          "line": 210,
+          "line": 219,
           "target": "services.common.database",
           "kind": "from"
         },
         {
-          "source": "services/core/adapters/clickhouse.py",
-          "line": 14,
+          "source": "services/core/features.py",
+          "line": 12,
           "target": "services.core.providers",
           "kind": "from"
         },
         {
-          "source": "services/ingestion/base.py",
-          "line": 20,
-          "target": "services.common.http",
-          "kind": "from"
-        },
-        {
-          "source": "services/ingestion/base.py",
-          "line": 22,
-          "target": "services.common.logging",
-          "kind": "from"
-        },
-        {
-          "source": "services/ingestion/base.py",
-          "line": 23,
-          "target": "services.ingestion.config",
-          "kind": "from"
-        },
-        {
-          "source": "services/ingestion/base.py",
-          "line": 57,
-          "target": "services.common.database",
-          "kind": "from"
-        },
-        {
-          "source": "services/ingestion/base.py",
-          "line": 64,
-          "target": "services.core.adapters.clickhouse",
-          "kind": "from"
-        },
-        {
           "source": "services/ingestion/climate_data.py",
-          "line": 25,
+          "line": 16,
           "target": "services.common.cli",
           "kind": "from"
         },
         {
           "source": "services/ingestion/climate_data.py",
-          "line": 27,
+          "line": 17,
           "target": "services.common.logging",
           "kind": "from"
         },
         {
           "source": "services/ingestion/climate_data.py",
-          "line": 28,
-          "target": "services.ingestion.base",
+          "line": 18,
+          "target": "services.common.worker_environment",
           "kind": "from"
         },
         {
           "source": "services/ingestion/climate_data.py",
-          "line": 227,
-          "target": "services.ingestion.gee_climate",
+          "line": 19,
+          "target": "services.core.features",
           "kind": "from"
         },
         {
           "source": "services/ingestion/climate_data.py",
-          "line": 246,
-          "target": "services.ingestion.gee_climate",
+          "line": 20,
+          "target": "services.security.scheduled_command_contracts",
           "kind": "from"
         },
         {
-          "source": "services/ingestion/climate_data.py",
-          "line": 265,
-          "target": "services.ingestion.gee_climate",
-          "kind": "from"
-        },
-        {
-          "source": "services/ingestion/climate_data.py",
-          "line": 284,
-          "target": "services.ingestion.gee_climate",
-          "kind": "from"
-        },
-        {
-          "source": "services/ingestion/config.py",
-          "line": 9,
-          "target": "services.common.db",
-          "kind": "from"
-        },
-        {
-          "source": "services/ingestion/gee_climate.py",
-          "line": 15,
-          "target": "services.common.logging",
-          "kind": "from"
-        },
-        {
-          "source": "services/ingestion/gee_climate.py",
-          "line": 16,
-          "target": "services.ingestion.base",
+          "source": "services/security/scheduled_command_contracts.py",
+          "line": 14,
+          "target": "services.security.execution_allowlist",
           "kind": "from"
         }
       ],
@@ -2273,38 +1886,34 @@
         "services.common.database",
         "services.common.db",
         "services.common.env",
-        "services.common.http",
         "services.common.logging",
         "services.common.tenant_context",
         "services.common.worker_database",
         "services.common.worker_environment",
-        "services.core.adapters.clickhouse",
         "services.core.features",
         "services.core.providers",
-        "services.ingestion.base",
         "services.ingestion.climate_data",
         "services.ingestion.climate_worker",
-        "services.ingestion.config",
-        "services.ingestion.gee_climate"
+        "services.ingestion.gee_climate",
+        "services.security.execution_allowlist",
+        "services.security.scheduled_command_contracts"
       ],
       "source_files": [
         "services/common/cli.py",
         "services/common/database.py",
         "services/common/db.py",
         "services/common/env.py",
-        "services/common/http.py",
         "services/common/logging.py",
         "services/common/tenant_context.py",
         "services/common/worker_database.py",
         "services/common/worker_environment.py",
-        "services/core/adapters/clickhouse.py",
         "services/core/features.py",
         "services/core/providers.py",
-        "services/ingestion/base.py",
         "services/ingestion/climate_data.py",
         "services/ingestion/climate_worker.py",
-        "services/ingestion/config.py",
-        "services/ingestion/gee_climate.py"
+        "services/ingestion/gee_climate.py",
+        "services/security/execution_allowlist.py",
+        "services/security/scheduled_command_contracts.py"
       ],
       "local_import_edges": [
         {
@@ -2363,7 +1972,202 @@
         },
         {
           "source": "services/common/env.py",
-          "line": 210,
+          "line": 219,
+          "target": "services.common.database",
+          "kind": "from"
+        },
+        {
+          "source": "services/core/features.py",
+          "line": 12,
+          "target": "services.core.providers",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/climate_data.py",
+          "line": 16,
+          "target": "services.common.cli",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/climate_data.py",
+          "line": 17,
+          "target": "services.common.logging",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/climate_data.py",
+          "line": 18,
+          "target": "services.common.worker_environment",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/climate_data.py",
+          "line": 19,
+          "target": "services.core.features",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/climate_data.py",
+          "line": 20,
+          "target": "services.security.scheduled_command_contracts",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/climate_worker.py",
+          "line": 10,
+          "target": "services.common.cli",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/climate_worker.py",
+          "line": 11,
+          "target": "services.common.tenant_context",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/climate_worker.py",
+          "line": 12,
+          "target": "services.common.worker_database",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/climate_worker.py",
+          "line": 13,
+          "target": "services.core.features",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/climate_worker.py",
+          "line": 14,
+          "target": "services.ingestion.climate_data",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/climate_worker.py",
+          "line": 15,
+          "target": "services.ingestion.gee_climate",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/gee_climate.py",
+          "line": 15,
+          "target": "services.common.logging",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/gee_climate.py",
+          "line": 392,
+          "target": "services.ingestion.climate_data",
+          "kind": "from"
+        },
+        {
+          "source": "services/security/scheduled_command_contracts.py",
+          "line": 14,
+          "target": "services.security.execution_allowlist",
+          "kind": "from"
+        }
+      ],
+      "unresolved_local_modules": [],
+      "dynamic_import_sites": []
+    },
+    {
+      "kind": "scheduled_module",
+      "name": "services.ingestion.data_freshness",
+      "root_modules": [
+        "services.ingestion.data_freshness"
+      ],
+      "modules": [
+        "services.common.cli",
+        "services.common.database",
+        "services.common.db",
+        "services.common.env",
+        "services.common.http",
+        "services.common.logging",
+        "services.common.worker_database",
+        "services.common.worker_environment",
+        "services.core.adapters.clickhouse",
+        "services.core.features",
+        "services.core.providers",
+        "services.ingestion.base",
+        "services.ingestion.config",
+        "services.ingestion.data_freshness",
+        "services.ingestion.freshness_worker"
+      ],
+      "source_files": [
+        "services/common/cli.py",
+        "services/common/database.py",
+        "services/common/db.py",
+        "services/common/env.py",
+        "services/common/http.py",
+        "services/common/logging.py",
+        "services/common/worker_database.py",
+        "services/common/worker_environment.py",
+        "services/core/adapters/clickhouse.py",
+        "services/core/features.py",
+        "services/core/providers.py",
+        "services/ingestion/base.py",
+        "services/ingestion/config.py",
+        "services/ingestion/data_freshness.py",
+        "services/ingestion/freshness_worker.py"
+      ],
+      "local_import_edges": [
+        {
+          "source": "services/common/cli.py",
+          "line": 42,
+          "target": "services.common.database",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/cli.py",
+          "line": 59,
+          "target": "services.common.database",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/cli.py",
+          "line": 67,
+          "target": "services.common.database",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/database.py",
+          "line": 24,
+          "target": "services.common.db",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/database.py",
+          "line": 25,
+          "target": "services.common.worker_environment",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/db.py",
+          "line": 8,
+          "target": "services.core.providers",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/db.py",
+          "line": 10,
+          "target": "services.common.env",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/db.py",
+          "line": 11,
+          "target": "services.common.worker_environment",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/env.py",
+          "line": 10,
+          "target": "services.common.worker_environment",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/env.py",
+          "line": 219,
           "target": "services.common.database",
           "kind": "from"
         },
@@ -2410,319 +2214,68 @@
           "kind": "from"
         },
         {
-          "source": "services/ingestion/climate_data.py",
-          "line": 25,
-          "target": "services.common.cli",
-          "kind": "from"
-        },
-        {
-          "source": "services/ingestion/climate_data.py",
-          "line": 27,
-          "target": "services.common.logging",
-          "kind": "from"
-        },
-        {
-          "source": "services/ingestion/climate_data.py",
-          "line": 28,
-          "target": "services.ingestion.base",
-          "kind": "from"
-        },
-        {
-          "source": "services/ingestion/climate_data.py",
-          "line": 227,
-          "target": "services.ingestion.gee_climate",
-          "kind": "from"
-        },
-        {
-          "source": "services/ingestion/climate_data.py",
-          "line": 246,
-          "target": "services.ingestion.gee_climate",
-          "kind": "from"
-        },
-        {
-          "source": "services/ingestion/climate_data.py",
-          "line": 265,
-          "target": "services.ingestion.gee_climate",
-          "kind": "from"
-        },
-        {
-          "source": "services/ingestion/climate_data.py",
-          "line": 284,
-          "target": "services.ingestion.gee_climate",
-          "kind": "from"
-        },
-        {
-          "source": "services/ingestion/climate_worker.py",
-          "line": 10,
-          "target": "services.common.cli",
-          "kind": "from"
-        },
-        {
-          "source": "services/ingestion/climate_worker.py",
-          "line": 11,
-          "target": "services.common.tenant_context",
-          "kind": "from"
-        },
-        {
-          "source": "services/ingestion/climate_worker.py",
-          "line": 12,
-          "target": "services.common.worker_database",
-          "kind": "from"
-        },
-        {
-          "source": "services/ingestion/climate_worker.py",
-          "line": 13,
-          "target": "services.core.features",
-          "kind": "from"
-        },
-        {
-          "source": "services/ingestion/climate_worker.py",
-          "line": 14,
-          "target": "services.ingestion.climate_data",
-          "kind": "from"
-        },
-        {
-          "source": "services/ingestion/climate_worker.py",
-          "line": 15,
-          "target": "services.ingestion.gee_climate",
-          "kind": "from"
-        },
-        {
           "source": "services/ingestion/config.py",
           "line": 9,
           "target": "services.common.db",
           "kind": "from"
         },
         {
-          "source": "services/ingestion/gee_climate.py",
-          "line": 15,
-          "target": "services.common.logging",
-          "kind": "from"
-        },
-        {
-          "source": "services/ingestion/gee_climate.py",
-          "line": 16,
-          "target": "services.ingestion.base",
-          "kind": "from"
-        }
-      ],
-      "unresolved_local_modules": [],
-      "dynamic_import_sites": []
-    },
-    {
-      "kind": "scheduled_module",
-      "name": "services.ingestion.data_freshness",
-      "root_modules": [
-        "services.ingestion.data_freshness"
-      ],
-      "modules": [
-        "services.common.cli",
-        "services.common.database",
-        "services.common.db",
-        "services.common.env",
-        "services.common.errors",
-        "services.common.http",
-        "services.common.logging",
-        "services.common.worker_environment",
-        "services.core.adapters.clickhouse",
-        "services.core.providers",
-        "services.events.bus",
-        "services.events.retention",
-        "services.ingestion.base",
-        "services.ingestion.config",
-        "services.ingestion.data_freshness",
-        "services.security.execution_allowlist"
-      ],
-      "source_files": [
-        "services/common/cli.py",
-        "services/common/database.py",
-        "services/common/db.py",
-        "services/common/env.py",
-        "services/common/errors.py",
-        "services/common/http.py",
-        "services/common/logging.py",
-        "services/common/worker_environment.py",
-        "services/core/adapters/clickhouse.py",
-        "services/core/providers.py",
-        "services/events/bus.py",
-        "services/events/retention.py",
-        "services/ingestion/base.py",
-        "services/ingestion/config.py",
-        "services/ingestion/data_freshness.py",
-        "services/security/execution_allowlist.py"
-      ],
-      "local_import_edges": [
-        {
-          "source": "services/common/cli.py",
-          "line": 42,
-          "target": "services.common.database",
-          "kind": "from"
-        },
-        {
-          "source": "services/common/cli.py",
-          "line": 59,
-          "target": "services.common.database",
-          "kind": "from"
-        },
-        {
-          "source": "services/common/cli.py",
-          "line": 67,
-          "target": "services.common.database",
-          "kind": "from"
-        },
-        {
-          "source": "services/common/database.py",
-          "line": 24,
-          "target": "services.common.db",
-          "kind": "from"
-        },
-        {
-          "source": "services/common/database.py",
-          "line": 25,
-          "target": "services.common.worker_environment",
-          "kind": "from"
-        },
-        {
-          "source": "services/common/db.py",
-          "line": 8,
-          "target": "services.core.providers",
-          "kind": "from"
-        },
-        {
-          "source": "services/common/db.py",
-          "line": 10,
-          "target": "services.common.env",
-          "kind": "from"
-        },
-        {
-          "source": "services/common/db.py",
-          "line": 11,
-          "target": "services.common.worker_environment",
-          "kind": "from"
-        },
-        {
-          "source": "services/common/env.py",
-          "line": 10,
-          "target": "services.common.worker_environment",
-          "kind": "from"
-        },
-        {
-          "source": "services/common/env.py",
-          "line": 210,
-          "target": "services.common.database",
-          "kind": "from"
-        },
-        {
-          "source": "services/core/adapters/clickhouse.py",
-          "line": 14,
-          "target": "services.core.providers",
-          "kind": "from"
-        },
-        {
-          "source": "services/events/bus.py",
-          "line": 13,
-          "target": "services.common.errors",
-          "kind": "from"
-        },
-        {
-          "source": "services/events/bus.py",
-          "line": 14,
-          "target": "services.common.logging",
-          "kind": "from"
-        },
-        {
-          "source": "services/events/bus.py",
-          "line": 15,
-          "target": "services.common.worker_environment",
-          "kind": "from"
-        },
-        {
-          "source": "services/events/bus.py",
+          "source": "services/ingestion/data_freshness.py",
           "line": 19,
-          "target": "services.security.execution_allowlist",
-          "kind": "from"
-        },
-        {
-          "source": "services/events/bus.py",
-          "line": 63,
-          "target": "services.common.database",
-          "kind": "from"
-        },
-        {
-          "source": "services/events/bus.py",
-          "line": 371,
-          "target": "services.events.retention",
-          "kind": "from"
-        },
-        {
-          "source": "services/ingestion/base.py",
-          "line": 20,
-          "target": "services.common.http",
-          "kind": "from"
-        },
-        {
-          "source": "services/ingestion/base.py",
-          "line": 22,
-          "target": "services.common.logging",
-          "kind": "from"
-        },
-        {
-          "source": "services/ingestion/base.py",
-          "line": 23,
-          "target": "services.ingestion.config",
-          "kind": "from"
-        },
-        {
-          "source": "services/ingestion/base.py",
-          "line": 57,
-          "target": "services.common.database",
-          "kind": "from"
-        },
-        {
-          "source": "services/ingestion/base.py",
-          "line": 64,
-          "target": "services.core.adapters.clickhouse",
-          "kind": "from"
-        },
-        {
-          "source": "services/ingestion/config.py",
-          "line": 9,
-          "target": "services.common.db",
+          "target": "services.common.cli",
           "kind": "from"
         },
         {
           "source": "services/ingestion/data_freshness.py",
           "line": 21,
-          "target": "services.common.cli",
-          "kind": "from"
-        },
-        {
-          "source": "services/ingestion/data_freshness.py",
-          "line": 23,
           "target": "services.common.logging",
           "kind": "from"
         },
         {
           "source": "services/ingestion/data_freshness.py",
-          "line": 300,
-          "target": "services.events.bus",
+          "line": 258,
+          "target": "services.ingestion.freshness_worker",
           "kind": "from"
         },
         {
           "source": "services/ingestion/data_freshness.py",
-          "line": 576,
+          "line": 272,
           "target": "services.ingestion.base",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/freshness_worker.py",
+          "line": 17,
+          "target": "services.common.cli",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/freshness_worker.py",
+          "line": 18,
+          "target": "services.common.worker_database",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/freshness_worker.py",
+          "line": 19,
+          "target": "services.core.features",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/freshness_worker.py",
+          "line": 20,
+          "target": "services.ingestion.data_freshness",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/freshness_worker.py",
+          "line": 177,
+          "target": "services.core.features",
           "kind": "from"
         }
       ],
       "unresolved_local_modules": [],
-      "dynamic_import_sites": [
-        {
-          "source": "services/events/bus.py",
-          "line": 46,
-          "kind": "dynamic module expression"
-        }
-      ]
+      "dynamic_import_sites": []
     },
     {
       "kind": "scheduled_module",
@@ -2737,11 +2290,14 @@
         "services.common.env",
         "services.common.http",
         "services.common.logging",
+        "services.common.worker_database",
         "services.common.worker_environment",
         "services.core.adapters.clickhouse",
+        "services.core.features",
         "services.core.providers",
         "services.ingestion.base",
         "services.ingestion.clickhouse_outbox",
+        "services.ingestion.clickhouse_outbox_worker",
         "services.ingestion.config",
         "services.ingestion.eas_indexer",
         "services.ingestion.eas_provider"
@@ -2753,11 +2309,14 @@
         "services/common/env.py",
         "services/common/http.py",
         "services/common/logging.py",
+        "services/common/worker_database.py",
         "services/common/worker_environment.py",
         "services/core/adapters/clickhouse.py",
+        "services/core/features.py",
         "services/core/providers.py",
         "services/ingestion/base.py",
         "services/ingestion/clickhouse_outbox.py",
+        "services/ingestion/clickhouse_outbox_worker.py",
         "services/ingestion/config.py",
         "services/ingestion/eas_indexer.py",
         "services/ingestion/eas_provider.py"
@@ -2819,13 +2378,19 @@
         },
         {
           "source": "services/common/env.py",
-          "line": 210,
+          "line": 219,
           "target": "services.common.database",
           "kind": "from"
         },
         {
           "source": "services/core/adapters/clickhouse.py",
           "line": 14,
+          "target": "services.core.providers",
+          "kind": "from"
+        },
+        {
+          "source": "services/core/features.py",
+          "line": 12,
           "target": "services.core.providers",
           "kind": "from"
         },
@@ -2861,26 +2426,56 @@
         },
         {
           "source": "services/ingestion/clickhouse_outbox.py",
-          "line": 15,
+          "line": 14,
           "target": "services.common.cli",
           "kind": "from"
         },
         {
           "source": "services/ingestion/clickhouse_outbox.py",
-          "line": 16,
+          "line": 15,
           "target": "services.common.logging",
           "kind": "from"
         },
         {
           "source": "services/ingestion/clickhouse_outbox.py",
-          "line": 17,
+          "line": 16,
           "target": "services.ingestion.base",
           "kind": "from"
         },
         {
           "source": "services/ingestion/clickhouse_outbox.py",
-          "line": 329,
+          "line": 255,
+          "target": "services.ingestion.clickhouse_outbox_worker",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/clickhouse_outbox_worker.py",
+          "line": 11,
+          "target": "services.common.cli",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/clickhouse_outbox_worker.py",
+          "line": 12,
+          "target": "services.common.worker_database",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/clickhouse_outbox_worker.py",
+          "line": 13,
+          "target": "services.core.features",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/clickhouse_outbox_worker.py",
+          "line": 14,
           "target": "services.core.providers",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/clickhouse_outbox_worker.py",
+          "line": 15,
+          "target": "services.ingestion.clickhouse_outbox",
           "kind": "from"
         },
         {
@@ -3012,7 +2607,7 @@
         },
         {
           "source": "services/common/env.py",
-          "line": 210,
+          "line": 219,
           "target": "services.common.database",
           "kind": "from"
         },
@@ -3073,7 +2668,6 @@
         "services.common.database",
         "services.common.db",
         "services.common.env",
-        "services.common.errors",
         "services.common.http",
         "services.common.logging",
         "services.common.worker_database",
@@ -3081,20 +2675,16 @@
         "services.core.adapters.clickhouse",
         "services.core.features",
         "services.core.providers",
-        "services.events.bus",
-        "services.events.retention",
         "services.ingestion.base",
         "services.ingestion.config",
         "services.ingestion.data_freshness",
-        "services.ingestion.freshness_worker",
-        "services.security.execution_allowlist"
+        "services.ingestion.freshness_worker"
       ],
       "source_files": [
         "services/common/cli.py",
         "services/common/database.py",
         "services/common/db.py",
         "services/common/env.py",
-        "services/common/errors.py",
         "services/common/http.py",
         "services/common/logging.py",
         "services/common/worker_database.py",
@@ -3102,13 +2692,10 @@
         "services/core/adapters/clickhouse.py",
         "services/core/features.py",
         "services/core/providers.py",
-        "services/events/bus.py",
-        "services/events/retention.py",
         "services/ingestion/base.py",
         "services/ingestion/config.py",
         "services/ingestion/data_freshness.py",
-        "services/ingestion/freshness_worker.py",
-        "services/security/execution_allowlist.py"
+        "services/ingestion/freshness_worker.py"
       ],
       "local_import_edges": [
         {
@@ -3167,7 +2754,7 @@
         },
         {
           "source": "services/common/env.py",
-          "line": 210,
+          "line": 219,
           "target": "services.common.database",
           "kind": "from"
         },
@@ -3181,42 +2768,6 @@
           "source": "services/core/features.py",
           "line": 12,
           "target": "services.core.providers",
-          "kind": "from"
-        },
-        {
-          "source": "services/events/bus.py",
-          "line": 13,
-          "target": "services.common.errors",
-          "kind": "from"
-        },
-        {
-          "source": "services/events/bus.py",
-          "line": 14,
-          "target": "services.common.logging",
-          "kind": "from"
-        },
-        {
-          "source": "services/events/bus.py",
-          "line": 15,
-          "target": "services.common.worker_environment",
-          "kind": "from"
-        },
-        {
-          "source": "services/events/bus.py",
-          "line": 19,
-          "target": "services.security.execution_allowlist",
-          "kind": "from"
-        },
-        {
-          "source": "services/events/bus.py",
-          "line": 63,
-          "target": "services.common.database",
-          "kind": "from"
-        },
-        {
-          "source": "services/events/bus.py",
-          "line": 371,
-          "target": "services.events.retention",
           "kind": "from"
         },
         {
@@ -3257,25 +2808,25 @@
         },
         {
           "source": "services/ingestion/data_freshness.py",
-          "line": 21,
+          "line": 19,
           "target": "services.common.cli",
           "kind": "from"
         },
         {
           "source": "services/ingestion/data_freshness.py",
-          "line": 23,
+          "line": 21,
           "target": "services.common.logging",
           "kind": "from"
         },
         {
           "source": "services/ingestion/data_freshness.py",
-          "line": 300,
-          "target": "services.events.bus",
+          "line": 258,
+          "target": "services.ingestion.freshness_worker",
           "kind": "from"
         },
         {
           "source": "services/ingestion/data_freshness.py",
-          "line": 576,
+          "line": 272,
           "target": "services.ingestion.base",
           "kind": "from"
         },
@@ -3302,16 +2853,16 @@
           "line": 20,
           "target": "services.ingestion.data_freshness",
           "kind": "from"
+        },
+        {
+          "source": "services/ingestion/freshness_worker.py",
+          "line": 177,
+          "target": "services.core.features",
+          "kind": "from"
         }
       ],
       "unresolved_local_modules": [],
-      "dynamic_import_sites": [
-        {
-          "source": "services/events/bus.py",
-          "line": 46,
-          "kind": "dynamic module expression"
-        }
-      ]
+      "dynamic_import_sites": []
     },
     {
       "kind": "scheduled_module",
@@ -3326,11 +2877,14 @@
         "services.common.env",
         "services.common.http",
         "services.common.logging",
+        "services.common.worker_database",
         "services.common.worker_environment",
         "services.core.adapters.clickhouse",
+        "services.core.features",
         "services.core.providers",
         "services.ingestion.base",
         "services.ingestion.clickhouse_outbox",
+        "services.ingestion.clickhouse_outbox_worker",
         "services.ingestion.config",
         "services.ingestion.gnosis_indexer"
       ],
@@ -3341,11 +2895,14 @@
         "services/common/env.py",
         "services/common/http.py",
         "services/common/logging.py",
+        "services/common/worker_database.py",
         "services/common/worker_environment.py",
         "services/core/adapters/clickhouse.py",
+        "services/core/features.py",
         "services/core/providers.py",
         "services/ingestion/base.py",
         "services/ingestion/clickhouse_outbox.py",
+        "services/ingestion/clickhouse_outbox_worker.py",
         "services/ingestion/config.py",
         "services/ingestion/gnosis_indexer.py"
       ],
@@ -3406,13 +2963,19 @@
         },
         {
           "source": "services/common/env.py",
-          "line": 210,
+          "line": 219,
           "target": "services.common.database",
           "kind": "from"
         },
         {
           "source": "services/core/adapters/clickhouse.py",
           "line": 14,
+          "target": "services.core.providers",
+          "kind": "from"
+        },
+        {
+          "source": "services/core/features.py",
+          "line": 12,
           "target": "services.core.providers",
           "kind": "from"
         },
@@ -3448,26 +3011,56 @@
         },
         {
           "source": "services/ingestion/clickhouse_outbox.py",
-          "line": 15,
+          "line": 14,
           "target": "services.common.cli",
           "kind": "from"
         },
         {
           "source": "services/ingestion/clickhouse_outbox.py",
-          "line": 16,
+          "line": 15,
           "target": "services.common.logging",
           "kind": "from"
         },
         {
           "source": "services/ingestion/clickhouse_outbox.py",
-          "line": 17,
+          "line": 16,
           "target": "services.ingestion.base",
           "kind": "from"
         },
         {
           "source": "services/ingestion/clickhouse_outbox.py",
-          "line": 329,
+          "line": 255,
+          "target": "services.ingestion.clickhouse_outbox_worker",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/clickhouse_outbox_worker.py",
+          "line": 11,
+          "target": "services.common.cli",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/clickhouse_outbox_worker.py",
+          "line": 12,
+          "target": "services.common.worker_database",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/clickhouse_outbox_worker.py",
+          "line": 13,
+          "target": "services.core.features",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/clickhouse_outbox_worker.py",
+          "line": 14,
           "target": "services.core.providers",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/clickhouse_outbox_worker.py",
+          "line": 15,
+          "target": "services.ingestion.clickhouse_outbox",
           "kind": "from"
         },
         {
@@ -3525,6 +3118,7 @@
         "services.ingestion",
         "services.ingestion.base",
         "services.ingestion.clickhouse_outbox",
+        "services.ingestion.clickhouse_outbox_worker",
         "services.ingestion.config",
         "services.ingestion.gnosis_indexer",
         "services.ingestion.gnosis_worker"
@@ -3544,6 +3138,7 @@
         "services/ingestion/__init__.py",
         "services/ingestion/base.py",
         "services/ingestion/clickhouse_outbox.py",
+        "services/ingestion/clickhouse_outbox_worker.py",
         "services/ingestion/config.py",
         "services/ingestion/gnosis_indexer.py",
         "services/ingestion/gnosis_worker.py"
@@ -3605,7 +3200,7 @@
         },
         {
           "source": "services/common/env.py",
-          "line": 210,
+          "line": 219,
           "target": "services.common.database",
           "kind": "from"
         },
@@ -3653,26 +3248,56 @@
         },
         {
           "source": "services/ingestion/clickhouse_outbox.py",
-          "line": 15,
+          "line": 14,
           "target": "services.common.cli",
           "kind": "from"
         },
         {
           "source": "services/ingestion/clickhouse_outbox.py",
-          "line": 16,
+          "line": 15,
           "target": "services.common.logging",
           "kind": "from"
         },
         {
           "source": "services/ingestion/clickhouse_outbox.py",
-          "line": 17,
+          "line": 16,
           "target": "services.ingestion.base",
           "kind": "from"
         },
         {
           "source": "services/ingestion/clickhouse_outbox.py",
-          "line": 329,
+          "line": 255,
+          "target": "services.ingestion.clickhouse_outbox_worker",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/clickhouse_outbox_worker.py",
+          "line": 11,
+          "target": "services.common.cli",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/clickhouse_outbox_worker.py",
+          "line": 12,
+          "target": "services.common.worker_database",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/clickhouse_outbox_worker.py",
+          "line": 13,
+          "target": "services.core.features",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/clickhouse_outbox_worker.py",
+          "line": 14,
           "target": "services.core.providers",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/clickhouse_outbox_worker.py",
+          "line": 15,
+          "target": "services.ingestion.clickhouse_outbox",
           "kind": "from"
         },
         {
@@ -3752,32 +3377,58 @@
         "services.ingestion.market_data"
       ],
       "modules": [
+        "services.common.cli",
         "services.common.database",
         "services.common.db",
         "services.common.env",
         "services.common.http",
         "services.common.logging",
+        "services.common.worker_database",
         "services.common.worker_environment",
         "services.core.adapters.clickhouse",
+        "services.core.features",
         "services.core.providers",
         "services.ingestion.base",
         "services.ingestion.config",
-        "services.ingestion.market_data"
+        "services.ingestion.market_data",
+        "services.ingestion.market_data_worker"
       ],
       "source_files": [
+        "services/common/cli.py",
         "services/common/database.py",
         "services/common/db.py",
         "services/common/env.py",
         "services/common/http.py",
         "services/common/logging.py",
+        "services/common/worker_database.py",
         "services/common/worker_environment.py",
         "services/core/adapters/clickhouse.py",
+        "services/core/features.py",
         "services/core/providers.py",
         "services/ingestion/base.py",
         "services/ingestion/config.py",
-        "services/ingestion/market_data.py"
+        "services/ingestion/market_data.py",
+        "services/ingestion/market_data_worker.py"
       ],
       "local_import_edges": [
+        {
+          "source": "services/common/cli.py",
+          "line": 42,
+          "target": "services.common.database",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/cli.py",
+          "line": 59,
+          "target": "services.common.database",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/cli.py",
+          "line": 67,
+          "target": "services.common.database",
+          "kind": "from"
+        },
         {
           "source": "services/common/database.py",
           "line": 24,
@@ -3816,13 +3467,19 @@
         },
         {
           "source": "services/common/env.py",
-          "line": 210,
+          "line": 219,
           "target": "services.common.database",
           "kind": "from"
         },
         {
           "source": "services/core/adapters/clickhouse.py",
           "line": 14,
+          "target": "services.core.providers",
+          "kind": "from"
+        },
+        {
+          "source": "services/core/features.py",
+          "line": 12,
           "target": "services.core.providers",
           "kind": "from"
         },
@@ -3864,20 +3521,74 @@
         },
         {
           "source": "services/ingestion/market_data.py",
+          "line": 25,
+          "target": "services.common.cli",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/market_data.py",
           "line": 26,
           "target": "services.common.http",
           "kind": "from"
         },
         {
           "source": "services/ingestion/market_data.py",
-          "line": 28,
-          "target": "services.common.logging",
+          "line": 27,
+          "target": "services.core.features",
           "kind": "from"
         },
         {
           "source": "services/ingestion/market_data.py",
           "line": 29,
+          "target": "services.common.logging",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/market_data.py",
+          "line": 419,
+          "target": "services.ingestion.market_data_worker",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/market_data.py",
+          "line": 428,
+          "target": "services.ingestion.market_data_worker",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/market_data.py",
+          "line": 437,
+          "target": "services.ingestion.market_data_worker",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/market_data_worker.py",
+          "line": 11,
+          "target": "services.common.cli",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/market_data_worker.py",
+          "line": 12,
+          "target": "services.common.worker_database",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/market_data_worker.py",
+          "line": 13,
+          "target": "services.core.features",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/market_data_worker.py",
+          "line": 14,
           "target": "services.ingestion.base",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/market_data_worker.py",
+          "line": 15,
+          "target": "services.ingestion.market_data",
           "kind": "from"
         }
       ],
@@ -3981,7 +3692,7 @@
         },
         {
           "source": "services/common/env.py",
-          "line": 210,
+          "line": 219,
           "target": "services.common.database",
           "kind": "from"
         },
@@ -4035,49 +3746,73 @@
         },
         {
           "source": "services/ingestion/market_data.py",
+          "line": 25,
+          "target": "services.common.cli",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/market_data.py",
           "line": 26,
           "target": "services.common.http",
           "kind": "from"
         },
         {
           "source": "services/ingestion/market_data.py",
-          "line": 28,
-          "target": "services.common.logging",
+          "line": 27,
+          "target": "services.core.features",
           "kind": "from"
         },
         {
           "source": "services/ingestion/market_data.py",
           "line": 29,
-          "target": "services.ingestion.base",
+          "target": "services.common.logging",
           "kind": "from"
         },
         {
-          "source": "services/ingestion/market_data_worker.py",
-          "line": 9,
-          "target": "services.common.cli",
+          "source": "services/ingestion/market_data.py",
+          "line": 419,
+          "target": "services.ingestion.market_data_worker",
           "kind": "from"
         },
         {
-          "source": "services/ingestion/market_data_worker.py",
-          "line": 10,
-          "target": "services.common.worker_database",
+          "source": "services/ingestion/market_data.py",
+          "line": 428,
+          "target": "services.ingestion.market_data_worker",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/market_data.py",
+          "line": 437,
+          "target": "services.ingestion.market_data_worker",
           "kind": "from"
         },
         {
           "source": "services/ingestion/market_data_worker.py",
           "line": 11,
-          "target": "services.core.features",
+          "target": "services.common.cli",
           "kind": "from"
         },
         {
           "source": "services/ingestion/market_data_worker.py",
           "line": 12,
-          "target": "services.ingestion.base",
+          "target": "services.common.worker_database",
           "kind": "from"
         },
         {
           "source": "services/ingestion/market_data_worker.py",
           "line": 13,
+          "target": "services.core.features",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/market_data_worker.py",
+          "line": 14,
+          "target": "services.ingestion.base",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/market_data_worker.py",
+          "line": 15,
           "target": "services.ingestion.market_data",
           "kind": "from"
         }
@@ -4098,11 +3833,14 @@
         "services.common.env",
         "services.common.http",
         "services.common.logging",
+        "services.common.worker_database",
         "services.common.worker_environment",
         "services.core.adapters.clickhouse",
+        "services.core.features",
         "services.core.providers",
         "services.ingestion.base",
         "services.ingestion.clickhouse_outbox",
+        "services.ingestion.clickhouse_outbox_worker",
         "services.ingestion.config",
         "services.ingestion.copernicus_remote_sensing",
         "services.ingestion.gee_remote_sensing",
@@ -4115,11 +3853,14 @@
         "services/common/env.py",
         "services/common/http.py",
         "services/common/logging.py",
+        "services/common/worker_database.py",
         "services/common/worker_environment.py",
         "services/core/adapters/clickhouse.py",
+        "services/core/features.py",
         "services/core/providers.py",
         "services/ingestion/base.py",
         "services/ingestion/clickhouse_outbox.py",
+        "services/ingestion/clickhouse_outbox_worker.py",
         "services/ingestion/config.py",
         "services/ingestion/copernicus_remote_sensing.py",
         "services/ingestion/gee_remote_sensing.py",
@@ -4182,13 +3923,19 @@
         },
         {
           "source": "services/common/env.py",
-          "line": 210,
+          "line": 219,
           "target": "services.common.database",
           "kind": "from"
         },
         {
           "source": "services/core/adapters/clickhouse.py",
           "line": 14,
+          "target": "services.core.providers",
+          "kind": "from"
+        },
+        {
+          "source": "services/core/features.py",
+          "line": 12,
           "target": "services.core.providers",
           "kind": "from"
         },
@@ -4224,26 +3971,56 @@
         },
         {
           "source": "services/ingestion/clickhouse_outbox.py",
-          "line": 15,
+          "line": 14,
           "target": "services.common.cli",
           "kind": "from"
         },
         {
           "source": "services/ingestion/clickhouse_outbox.py",
-          "line": 16,
+          "line": 15,
           "target": "services.common.logging",
           "kind": "from"
         },
         {
           "source": "services/ingestion/clickhouse_outbox.py",
-          "line": 17,
+          "line": 16,
           "target": "services.ingestion.base",
           "kind": "from"
         },
         {
           "source": "services/ingestion/clickhouse_outbox.py",
-          "line": 329,
+          "line": 255,
+          "target": "services.ingestion.clickhouse_outbox_worker",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/clickhouse_outbox_worker.py",
+          "line": 11,
+          "target": "services.common.cli",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/clickhouse_outbox_worker.py",
+          "line": 12,
+          "target": "services.common.worker_database",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/clickhouse_outbox_worker.py",
+          "line": 13,
+          "target": "services.core.features",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/clickhouse_outbox_worker.py",
+          "line": 14,
           "target": "services.core.providers",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/clickhouse_outbox_worker.py",
+          "line": 15,
+          "target": "services.ingestion.clickhouse_outbox",
           "kind": "from"
         },
         {
@@ -4296,37 +4073,37 @@
         },
         {
           "source": "services/ingestion/remote_sensing_fetcher.py",
-          "line": 23,
+          "line": 24,
           "target": "services.common.cli",
           "kind": "from"
         },
         {
           "source": "services/ingestion/remote_sensing_fetcher.py",
-          "line": 25,
+          "line": 26,
           "target": "services.common.logging",
           "kind": "from"
         },
         {
           "source": "services/ingestion/remote_sensing_fetcher.py",
-          "line": 26,
+          "line": 27,
           "target": "services.ingestion.base",
           "kind": "from"
         },
         {
           "source": "services/ingestion/remote_sensing_fetcher.py",
-          "line": 27,
+          "line": 28,
           "target": "services.ingestion.clickhouse_outbox",
           "kind": "from"
         },
         {
           "source": "services/ingestion/remote_sensing_fetcher.py",
-          "line": 336,
+          "line": 311,
           "target": "services.ingestion.gee_remote_sensing",
           "kind": "from"
         },
         {
           "source": "services/ingestion/remote_sensing_fetcher.py",
-          "line": 340,
+          "line": 315,
           "target": "services.ingestion.copernicus_remote_sensing",
           "kind": "from"
         }
@@ -4355,6 +4132,7 @@
         "services.core.providers",
         "services.ingestion.base",
         "services.ingestion.clickhouse_outbox",
+        "services.ingestion.clickhouse_outbox_worker",
         "services.ingestion.config",
         "services.ingestion.copernicus_remote_sensing",
         "services.ingestion.gee_remote_sensing",
@@ -4376,6 +4154,7 @@
         "services/core/providers.py",
         "services/ingestion/base.py",
         "services/ingestion/clickhouse_outbox.py",
+        "services/ingestion/clickhouse_outbox_worker.py",
         "services/ingestion/config.py",
         "services/ingestion/copernicus_remote_sensing.py",
         "services/ingestion/gee_remote_sensing.py",
@@ -4439,7 +4218,7 @@
         },
         {
           "source": "services/common/env.py",
-          "line": 210,
+          "line": 219,
           "target": "services.common.database",
           "kind": "from"
         },
@@ -4487,26 +4266,56 @@
         },
         {
           "source": "services/ingestion/clickhouse_outbox.py",
-          "line": 15,
+          "line": 14,
           "target": "services.common.cli",
           "kind": "from"
         },
         {
           "source": "services/ingestion/clickhouse_outbox.py",
-          "line": 16,
+          "line": 15,
           "target": "services.common.logging",
           "kind": "from"
         },
         {
           "source": "services/ingestion/clickhouse_outbox.py",
-          "line": 17,
+          "line": 16,
           "target": "services.ingestion.base",
           "kind": "from"
         },
         {
           "source": "services/ingestion/clickhouse_outbox.py",
-          "line": 329,
+          "line": 255,
+          "target": "services.ingestion.clickhouse_outbox_worker",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/clickhouse_outbox_worker.py",
+          "line": 11,
+          "target": "services.common.cli",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/clickhouse_outbox_worker.py",
+          "line": 12,
+          "target": "services.common.worker_database",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/clickhouse_outbox_worker.py",
+          "line": 13,
+          "target": "services.core.features",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/clickhouse_outbox_worker.py",
+          "line": 14,
           "target": "services.core.providers",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/clickhouse_outbox_worker.py",
+          "line": 15,
+          "target": "services.ingestion.clickhouse_outbox",
           "kind": "from"
         },
         {
@@ -4559,37 +4368,37 @@
         },
         {
           "source": "services/ingestion/remote_sensing_fetcher.py",
-          "line": 23,
+          "line": 24,
           "target": "services.common.cli",
           "kind": "from"
         },
         {
           "source": "services/ingestion/remote_sensing_fetcher.py",
-          "line": 25,
+          "line": 26,
           "target": "services.common.logging",
           "kind": "from"
         },
         {
           "source": "services/ingestion/remote_sensing_fetcher.py",
-          "line": 26,
+          "line": 27,
           "target": "services.ingestion.base",
           "kind": "from"
         },
         {
           "source": "services/ingestion/remote_sensing_fetcher.py",
-          "line": 27,
+          "line": 28,
           "target": "services.ingestion.clickhouse_outbox",
           "kind": "from"
         },
         {
           "source": "services/ingestion/remote_sensing_fetcher.py",
-          "line": 336,
+          "line": 311,
           "target": "services.ingestion.gee_remote_sensing",
           "kind": "from"
         },
         {
           "source": "services/ingestion/remote_sensing_fetcher.py",
-          "line": 340,
+          "line": 315,
           "target": "services.ingestion.copernicus_remote_sensing",
           "kind": "from"
         },
@@ -4652,11 +4461,14 @@
         "services.common.env",
         "services.common.http",
         "services.common.logging",
+        "services.common.worker_database",
         "services.common.worker_environment",
         "services.core.adapters.clickhouse",
+        "services.core.features",
         "services.core.providers",
         "services.ingestion.base",
         "services.ingestion.clickhouse_outbox",
+        "services.ingestion.clickhouse_outbox_worker",
         "services.ingestion.config",
         "services.ingestion.rpc_indexer",
         "services.ingestion.rpc_provider"
@@ -4668,11 +4480,14 @@
         "services/common/env.py",
         "services/common/http.py",
         "services/common/logging.py",
+        "services/common/worker_database.py",
         "services/common/worker_environment.py",
         "services/core/adapters/clickhouse.py",
+        "services/core/features.py",
         "services/core/providers.py",
         "services/ingestion/base.py",
         "services/ingestion/clickhouse_outbox.py",
+        "services/ingestion/clickhouse_outbox_worker.py",
         "services/ingestion/config.py",
         "services/ingestion/rpc_indexer.py",
         "services/ingestion/rpc_provider.py"
@@ -4734,13 +4549,19 @@
         },
         {
           "source": "services/common/env.py",
-          "line": 210,
+          "line": 219,
           "target": "services.common.database",
           "kind": "from"
         },
         {
           "source": "services/core/adapters/clickhouse.py",
           "line": 14,
+          "target": "services.core.providers",
+          "kind": "from"
+        },
+        {
+          "source": "services/core/features.py",
+          "line": 12,
           "target": "services.core.providers",
           "kind": "from"
         },
@@ -4776,26 +4597,56 @@
         },
         {
           "source": "services/ingestion/clickhouse_outbox.py",
-          "line": 15,
+          "line": 14,
           "target": "services.common.cli",
           "kind": "from"
         },
         {
           "source": "services/ingestion/clickhouse_outbox.py",
-          "line": 16,
+          "line": 15,
           "target": "services.common.logging",
           "kind": "from"
         },
         {
           "source": "services/ingestion/clickhouse_outbox.py",
-          "line": 17,
+          "line": 16,
           "target": "services.ingestion.base",
           "kind": "from"
         },
         {
           "source": "services/ingestion/clickhouse_outbox.py",
-          "line": 329,
+          "line": 255,
+          "target": "services.ingestion.clickhouse_outbox_worker",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/clickhouse_outbox_worker.py",
+          "line": 11,
+          "target": "services.common.cli",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/clickhouse_outbox_worker.py",
+          "line": 12,
+          "target": "services.common.worker_database",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/clickhouse_outbox_worker.py",
+          "line": 13,
+          "target": "services.core.features",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/clickhouse_outbox_worker.py",
+          "line": 14,
           "target": "services.core.providers",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/clickhouse_outbox_worker.py",
+          "line": 15,
+          "target": "services.ingestion.clickhouse_outbox",
           "kind": "from"
         },
         {
@@ -4931,7 +4782,7 @@
         },
         {
           "source": "services/common/env.py",
-          "line": 210,
+          "line": 219,
           "target": "services.common.database",
           "kind": "from"
         },
@@ -4986,6 +4837,7 @@
         "services.common.database",
         "services.common.db",
         "services.common.env",
+        "services.common.errors",
         "services.common.http",
         "services.common.logging",
         "services.common.smtp",
@@ -4994,6 +4846,8 @@
         "services.common.worker_environment",
         "services.core.features",
         "services.core.providers",
+        "services.core.worker_progress",
+        "services.events.notification_delivery_worker",
         "services.events.notification_outbox",
         "services.ingestion.sensor_anomaly_scan_worker",
         "services.ingestion.sensor_anomaly_worker"
@@ -5003,6 +4857,7 @@
         "services/common/database.py",
         "services/common/db.py",
         "services/common/env.py",
+        "services/common/errors.py",
         "services/common/http.py",
         "services/common/logging.py",
         "services/common/smtp.py",
@@ -5011,6 +4866,8 @@
         "services/common/worker_environment.py",
         "services/core/features.py",
         "services/core/providers.py",
+        "services/core/worker_progress.py",
+        "services/events/notification_delivery_worker.py",
         "services/events/notification_outbox.py",
         "services/ingestion/sensor_anomaly_scan_worker.py",
         "services/ingestion/sensor_anomaly_worker.py"
@@ -5072,7 +4929,7 @@
         },
         {
           "source": "services/common/env.py",
-          "line": 210,
+          "line": 219,
           "target": "services.common.database",
           "kind": "from"
         },
@@ -5080,6 +4937,54 @@
           "source": "services/core/features.py",
           "line": 12,
           "target": "services.core.providers",
+          "kind": "from"
+        },
+        {
+          "source": "services/core/worker_progress.py",
+          "line": 16,
+          "target": "services.common.errors",
+          "kind": "from"
+        },
+        {
+          "source": "services/core/worker_progress.py",
+          "line": 248,
+          "target": "services.core.features",
+          "kind": "from"
+        },
+        {
+          "source": "services/core/worker_progress.py",
+          "line": 631,
+          "target": "services.common.database",
+          "kind": "from"
+        },
+        {
+          "source": "services/events/notification_delivery_worker.py",
+          "line": 10,
+          "target": "services.common.cli",
+          "kind": "from"
+        },
+        {
+          "source": "services/events/notification_delivery_worker.py",
+          "line": 11,
+          "target": "services.common.worker_database",
+          "kind": "from"
+        },
+        {
+          "source": "services/events/notification_delivery_worker.py",
+          "line": 12,
+          "target": "services.core.features",
+          "kind": "from"
+        },
+        {
+          "source": "services/events/notification_delivery_worker.py",
+          "line": 13,
+          "target": "services.core.worker_progress",
+          "kind": "from"
+        },
+        {
+          "source": "services/events/notification_delivery_worker.py",
+          "line": 14,
+          "target": "services.events.notification_outbox",
           "kind": "from"
         },
         {
@@ -5096,32 +5001,38 @@
         },
         {
           "source": "services/events/notification_outbox.py",
-          "line": 104,
+          "line": 127,
           "target": "services.core.providers",
           "kind": "from"
         },
         {
           "source": "services/events/notification_outbox.py",
-          "line": 164,
+          "line": 185,
           "target": "services.core.providers",
           "kind": "from"
         },
         {
           "source": "services/events/notification_outbox.py",
-          "line": 437,
+          "line": 368,
           "target": "services.common.http",
           "kind": "from"
         },
         {
           "source": "services/events/notification_outbox.py",
-          "line": 444,
+          "line": 375,
           "target": "services.common.http",
           "kind": "from"
         },
         {
           "source": "services/events/notification_outbox.py",
-          "line": 445,
+          "line": 376,
           "target": "services.core.providers",
+          "kind": "from"
+        },
+        {
+          "source": "services/events/notification_outbox.py",
+          "line": 455,
+          "target": "services.events.notification_delivery_worker",
           "kind": "from"
         },
         {
@@ -5178,14 +5089,18 @@
         "services.common.errors",
         "services.common.http",
         "services.common.logging",
+        "services.common.worker_database",
         "services.common.worker_environment",
         "services.core.adapters.clickhouse",
+        "services.core.features",
         "services.core.providers",
+        "services.core.worker_progress",
         "services.drivers.registry",
         "services.events.bus",
         "services.events.retention",
         "services.ingestion.base",
         "services.ingestion.clickhouse_outbox",
+        "services.ingestion.clickhouse_outbox_worker",
         "services.ingestion.config",
         "services.ingestion.field_validation",
         "services.ingestion.sensor_ingester",
@@ -5200,14 +5115,18 @@
         "services/common/errors.py",
         "services/common/http.py",
         "services/common/logging.py",
+        "services/common/worker_database.py",
         "services/common/worker_environment.py",
         "services/core/adapters/clickhouse.py",
+        "services/core/features.py",
         "services/core/providers.py",
+        "services/core/worker_progress.py",
         "services/drivers/registry.py",
         "services/events/bus.py",
         "services/events/retention.py",
         "services/ingestion/base.py",
         "services/ingestion/clickhouse_outbox.py",
+        "services/ingestion/clickhouse_outbox_worker.py",
         "services/ingestion/config.py",
         "services/ingestion/field_validation.py",
         "services/ingestion/sensor_ingester.py",
@@ -5271,7 +5190,7 @@
         },
         {
           "source": "services/common/env.py",
-          "line": 210,
+          "line": 219,
           "target": "services.common.database",
           "kind": "from"
         },
@@ -5282,6 +5201,30 @@
           "kind": "from"
         },
         {
+          "source": "services/core/features.py",
+          "line": 12,
+          "target": "services.core.providers",
+          "kind": "from"
+        },
+        {
+          "source": "services/core/worker_progress.py",
+          "line": 16,
+          "target": "services.common.errors",
+          "kind": "from"
+        },
+        {
+          "source": "services/core/worker_progress.py",
+          "line": 248,
+          "target": "services.core.features",
+          "kind": "from"
+        },
+        {
+          "source": "services/core/worker_progress.py",
+          "line": 631,
+          "target": "services.common.database",
+          "kind": "from"
+        },
+        {
           "source": "services/drivers/registry.py",
           "line": 14,
           "target": "services.common.errors",
@@ -5295,43 +5238,37 @@
         },
         {
           "source": "services/drivers/registry.py",
-          "line": 159,
+          "line": 161,
           "target": "services.common.database",
           "kind": "from"
         },
         {
           "source": "services/events/bus.py",
           "line": 13,
-          "target": "services.common.errors",
-          "kind": "from"
-        },
-        {
-          "source": "services/events/bus.py",
-          "line": 14,
-          "target": "services.common.logging",
-          "kind": "from"
-        },
-        {
-          "source": "services/events/bus.py",
-          "line": 15,
           "target": "services.common.worker_environment",
           "kind": "from"
         },
         {
           "source": "services/events/bus.py",
-          "line": 19,
+          "line": 17,
           "target": "services.security.execution_allowlist",
           "kind": "from"
         },
         {
           "source": "services/events/bus.py",
-          "line": 63,
+          "line": 69,
           "target": "services.common.database",
           "kind": "from"
         },
         {
           "source": "services/events/bus.py",
-          "line": 371,
+          "line": 134,
+          "target": "services.core.worker_progress",
+          "kind": "from"
+        },
+        {
+          "source": "services/events/bus.py",
+          "line": 244,
           "target": "services.events.retention",
           "kind": "from"
         },
@@ -5367,26 +5304,56 @@
         },
         {
           "source": "services/ingestion/clickhouse_outbox.py",
-          "line": 15,
+          "line": 14,
           "target": "services.common.cli",
           "kind": "from"
         },
         {
           "source": "services/ingestion/clickhouse_outbox.py",
-          "line": 16,
+          "line": 15,
           "target": "services.common.logging",
           "kind": "from"
         },
         {
           "source": "services/ingestion/clickhouse_outbox.py",
-          "line": 17,
+          "line": 16,
           "target": "services.ingestion.base",
           "kind": "from"
         },
         {
           "source": "services/ingestion/clickhouse_outbox.py",
-          "line": 329,
+          "line": 255,
+          "target": "services.ingestion.clickhouse_outbox_worker",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/clickhouse_outbox_worker.py",
+          "line": 11,
+          "target": "services.common.cli",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/clickhouse_outbox_worker.py",
+          "line": 12,
+          "target": "services.common.worker_database",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/clickhouse_outbox_worker.py",
+          "line": 13,
+          "target": "services.core.features",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/clickhouse_outbox_worker.py",
+          "line": 14,
           "target": "services.core.providers",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/clickhouse_outbox_worker.py",
+          "line": 15,
+          "target": "services.ingestion.clickhouse_outbox",
           "kind": "from"
         },
         {
@@ -5466,17 +5433,17 @@
       "dynamic_import_sites": [
         {
           "source": "services/drivers/registry.py",
-          "line": 123,
+          "line": 125,
           "kind": "dynamic module expression"
         },
         {
           "source": "services/drivers/registry.py",
-          "line": 425,
+          "line": 481,
           "kind": "dynamic module expression"
         },
         {
           "source": "services/events/bus.py",
-          "line": 46,
+          "line": 51,
           "kind": "dynamic module expression"
         }
       ]
@@ -5584,7 +5551,7 @@
         },
         {
           "source": "services/common/env.py",
-          "line": 210,
+          "line": 219,
           "target": "services.common.database",
           "kind": "from"
         },
@@ -5614,7 +5581,7 @@
         },
         {
           "source": "services/drivers/registry.py",
-          "line": 159,
+          "line": 161,
           "target": "services.common.database",
           "kind": "from"
         },
@@ -5701,12 +5668,12 @@
       "dynamic_import_sites": [
         {
           "source": "services/drivers/registry.py",
-          "line": 123,
+          "line": 125,
           "kind": "dynamic module expression"
         },
         {
           "source": "services/drivers/registry.py",
-          "line": 425,
+          "line": 481,
           "kind": "dynamic module expression"
         }
       ]
@@ -5724,11 +5691,14 @@
         "services.common.env",
         "services.common.http",
         "services.common.logging",
+        "services.common.worker_database",
         "services.common.worker_environment",
         "services.core.adapters.clickhouse",
+        "services.core.features",
         "services.core.providers",
         "services.ingestion.base",
         "services.ingestion.clickhouse_outbox",
+        "services.ingestion.clickhouse_outbox_worker",
         "services.ingestion.config",
         "services.ingestion.weather"
       ],
@@ -5739,11 +5709,14 @@
         "services/common/env.py",
         "services/common/http.py",
         "services/common/logging.py",
+        "services/common/worker_database.py",
         "services/common/worker_environment.py",
         "services/core/adapters/clickhouse.py",
+        "services/core/features.py",
         "services/core/providers.py",
         "services/ingestion/base.py",
         "services/ingestion/clickhouse_outbox.py",
+        "services/ingestion/clickhouse_outbox_worker.py",
         "services/ingestion/config.py",
         "services/ingestion/weather.py"
       ],
@@ -5804,13 +5777,19 @@
         },
         {
           "source": "services/common/env.py",
-          "line": 210,
+          "line": 219,
           "target": "services.common.database",
           "kind": "from"
         },
         {
           "source": "services/core/adapters/clickhouse.py",
           "line": 14,
+          "target": "services.core.providers",
+          "kind": "from"
+        },
+        {
+          "source": "services/core/features.py",
+          "line": 12,
           "target": "services.core.providers",
           "kind": "from"
         },
@@ -5846,26 +5825,56 @@
         },
         {
           "source": "services/ingestion/clickhouse_outbox.py",
-          "line": 15,
+          "line": 14,
           "target": "services.common.cli",
           "kind": "from"
         },
         {
           "source": "services/ingestion/clickhouse_outbox.py",
-          "line": 16,
+          "line": 15,
           "target": "services.common.logging",
           "kind": "from"
         },
         {
           "source": "services/ingestion/clickhouse_outbox.py",
-          "line": 17,
+          "line": 16,
           "target": "services.ingestion.base",
           "kind": "from"
         },
         {
           "source": "services/ingestion/clickhouse_outbox.py",
-          "line": 329,
+          "line": 255,
+          "target": "services.ingestion.clickhouse_outbox_worker",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/clickhouse_outbox_worker.py",
+          "line": 11,
+          "target": "services.common.cli",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/clickhouse_outbox_worker.py",
+          "line": 12,
+          "target": "services.common.worker_database",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/clickhouse_outbox_worker.py",
+          "line": 13,
+          "target": "services.core.features",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/clickhouse_outbox_worker.py",
+          "line": 14,
           "target": "services.core.providers",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/clickhouse_outbox_worker.py",
+          "line": 15,
+          "target": "services.ingestion.clickhouse_outbox",
           "kind": "from"
         },
         {
@@ -5921,11 +5930,14 @@
         "services.common.env",
         "services.common.http",
         "services.common.logging",
+        "services.common.worker_database",
         "services.common.worker_environment",
         "services.core.adapters.clickhouse",
+        "services.core.features",
         "services.core.providers",
         "services.ingestion.base",
         "services.ingestion.clickhouse_outbox",
+        "services.ingestion.clickhouse_outbox_worker",
         "services.ingestion.config",
         "services.ingestion.weather_forecast"
       ],
@@ -5936,11 +5948,14 @@
         "services/common/env.py",
         "services/common/http.py",
         "services/common/logging.py",
+        "services/common/worker_database.py",
         "services/common/worker_environment.py",
         "services/core/adapters/clickhouse.py",
+        "services/core/features.py",
         "services/core/providers.py",
         "services/ingestion/base.py",
         "services/ingestion/clickhouse_outbox.py",
+        "services/ingestion/clickhouse_outbox_worker.py",
         "services/ingestion/config.py",
         "services/ingestion/weather_forecast.py"
       ],
@@ -6001,13 +6016,19 @@
         },
         {
           "source": "services/common/env.py",
-          "line": 210,
+          "line": 219,
           "target": "services.common.database",
           "kind": "from"
         },
         {
           "source": "services/core/adapters/clickhouse.py",
           "line": 14,
+          "target": "services.core.providers",
+          "kind": "from"
+        },
+        {
+          "source": "services/core/features.py",
+          "line": 12,
           "target": "services.core.providers",
           "kind": "from"
         },
@@ -6043,26 +6064,56 @@
         },
         {
           "source": "services/ingestion/clickhouse_outbox.py",
-          "line": 15,
+          "line": 14,
           "target": "services.common.cli",
           "kind": "from"
         },
         {
           "source": "services/ingestion/clickhouse_outbox.py",
-          "line": 16,
+          "line": 15,
           "target": "services.common.logging",
           "kind": "from"
         },
         {
           "source": "services/ingestion/clickhouse_outbox.py",
-          "line": 17,
+          "line": 16,
           "target": "services.ingestion.base",
           "kind": "from"
         },
         {
           "source": "services/ingestion/clickhouse_outbox.py",
-          "line": 329,
+          "line": 255,
+          "target": "services.ingestion.clickhouse_outbox_worker",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/clickhouse_outbox_worker.py",
+          "line": 11,
+          "target": "services.common.cli",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/clickhouse_outbox_worker.py",
+          "line": 12,
+          "target": "services.common.worker_database",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/clickhouse_outbox_worker.py",
+          "line": 13,
+          "target": "services.core.features",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/clickhouse_outbox_worker.py",
+          "line": 14,
           "target": "services.core.providers",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/clickhouse_outbox_worker.py",
+          "line": 15,
+          "target": "services.ingestion.clickhouse_outbox",
           "kind": "from"
         },
         {
@@ -6126,6 +6177,7 @@
         "services.core.providers",
         "services.ingestion.base",
         "services.ingestion.clickhouse_outbox",
+        "services.ingestion.clickhouse_outbox_worker",
         "services.ingestion.config",
         "services.ingestion.weather_forecast",
         "services.ingestion.weather_forecast_worker"
@@ -6145,6 +6197,7 @@
         "services/core/providers.py",
         "services/ingestion/base.py",
         "services/ingestion/clickhouse_outbox.py",
+        "services/ingestion/clickhouse_outbox_worker.py",
         "services/ingestion/config.py",
         "services/ingestion/weather_forecast.py",
         "services/ingestion/weather_forecast_worker.py"
@@ -6206,7 +6259,7 @@
         },
         {
           "source": "services/common/env.py",
-          "line": 210,
+          "line": 219,
           "target": "services.common.database",
           "kind": "from"
         },
@@ -6254,26 +6307,56 @@
         },
         {
           "source": "services/ingestion/clickhouse_outbox.py",
-          "line": 15,
+          "line": 14,
           "target": "services.common.cli",
           "kind": "from"
         },
         {
           "source": "services/ingestion/clickhouse_outbox.py",
-          "line": 16,
+          "line": 15,
           "target": "services.common.logging",
           "kind": "from"
         },
         {
           "source": "services/ingestion/clickhouse_outbox.py",
-          "line": 17,
+          "line": 16,
           "target": "services.ingestion.base",
           "kind": "from"
         },
         {
           "source": "services/ingestion/clickhouse_outbox.py",
-          "line": 329,
+          "line": 255,
+          "target": "services.ingestion.clickhouse_outbox_worker",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/clickhouse_outbox_worker.py",
+          "line": 11,
+          "target": "services.common.cli",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/clickhouse_outbox_worker.py",
+          "line": 12,
+          "target": "services.common.worker_database",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/clickhouse_outbox_worker.py",
+          "line": 13,
+          "target": "services.core.features",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/clickhouse_outbox_worker.py",
+          "line": 14,
           "target": "services.core.providers",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/clickhouse_outbox_worker.py",
+          "line": 15,
+          "target": "services.ingestion.clickhouse_outbox",
           "kind": "from"
         },
         {
@@ -6314,44 +6397,44 @@
         },
         {
           "source": "services/ingestion/weather_forecast_worker.py",
-          "line": 10,
+          "line": 11,
           "target": "services.common.cli",
           "kind": "from"
         },
         {
           "source": "services/ingestion/weather_forecast_worker.py",
-          "line": 11,
+          "line": 12,
           "target": "services.common.tenant_context",
           "kind": "from"
         },
         {
           "source": "services/ingestion/weather_forecast_worker.py",
-          "line": 12,
+          "line": 13,
           "target": "services.common.worker_database",
           "kind": "from"
         },
         {
           "source": "services/ingestion/weather_forecast_worker.py",
-          "line": 13,
+          "line": 14,
           "target": "services.core.features",
           "kind": "from"
         },
         {
           "source": "services/ingestion/weather_forecast_worker.py",
-          "line": 14,
-          "target": "services.ingestion.base",
-          "kind": "from"
-        },
-        {
-          "source": "services/ingestion/weather_forecast_worker.py",
           "line": 15,
-          "target": "services.ingestion.config",
+          "target": "services.ingestion.base",
           "kind": "from"
         },
         {
           "source": "services/ingestion/weather_forecast_worker.py",
           "line": 16,
           "target": "services.ingestion.weather_forecast",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/weather_forecast_worker.py",
+          "line": 155,
+          "target": "services.common.logging",
           "kind": "from"
         }
       ],
@@ -6379,6 +6462,7 @@
         "services.core.providers",
         "services.ingestion.base",
         "services.ingestion.clickhouse_outbox",
+        "services.ingestion.clickhouse_outbox_worker",
         "services.ingestion.config",
         "services.ingestion.weather",
         "services.ingestion.weather_worker"
@@ -6398,6 +6482,7 @@
         "services/core/providers.py",
         "services/ingestion/base.py",
         "services/ingestion/clickhouse_outbox.py",
+        "services/ingestion/clickhouse_outbox_worker.py",
         "services/ingestion/config.py",
         "services/ingestion/weather.py",
         "services/ingestion/weather_worker.py"
@@ -6459,7 +6544,7 @@
         },
         {
           "source": "services/common/env.py",
-          "line": 210,
+          "line": 219,
           "target": "services.common.database",
           "kind": "from"
         },
@@ -6507,26 +6592,56 @@
         },
         {
           "source": "services/ingestion/clickhouse_outbox.py",
-          "line": 15,
+          "line": 14,
           "target": "services.common.cli",
           "kind": "from"
         },
         {
           "source": "services/ingestion/clickhouse_outbox.py",
-          "line": 16,
+          "line": 15,
           "target": "services.common.logging",
           "kind": "from"
         },
         {
           "source": "services/ingestion/clickhouse_outbox.py",
-          "line": 17,
+          "line": 16,
           "target": "services.ingestion.base",
           "kind": "from"
         },
         {
           "source": "services/ingestion/clickhouse_outbox.py",
-          "line": 329,
+          "line": 255,
+          "target": "services.ingestion.clickhouse_outbox_worker",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/clickhouse_outbox_worker.py",
+          "line": 11,
+          "target": "services.common.cli",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/clickhouse_outbox_worker.py",
+          "line": 12,
+          "target": "services.common.worker_database",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/clickhouse_outbox_worker.py",
+          "line": 13,
+          "target": "services.core.features",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/clickhouse_outbox_worker.py",
+          "line": 14,
           "target": "services.core.providers",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/clickhouse_outbox_worker.py",
+          "line": 15,
+          "target": "services.ingestion.clickhouse_outbox",
           "kind": "from"
         },
         {
@@ -6606,6 +6721,12 @@
           "line": 17,
           "target": "services.ingestion.weather",
           "kind": "from"
+        },
+        {
+          "source": "services/ingestion/weather_worker.py",
+          "line": 173,
+          "target": "services.common.logging",
+          "kind": "from"
         }
       ],
       "unresolved_local_modules": [],
@@ -6627,7 +6748,9 @@
         "services.common.logging",
         "services.common.worker_environment",
         "services.core.adapters.clickhouse",
+        "services.core.features",
         "services.core.providers",
+        "services.core.worker_progress",
         "services.events.bus",
         "services.events.retention",
         "services.ingestion.base",
@@ -6668,7 +6791,9 @@
         "services/common/logging.py",
         "services/common/worker_environment.py",
         "services/core/adapters/clickhouse.py",
+        "services/core/features.py",
         "services/core/providers.py",
+        "services/core/worker_progress.py",
         "services/events/bus.py",
         "services/events/retention.py",
         "services/ingestion/base.py",
@@ -6757,7 +6882,7 @@
         },
         {
           "source": "services/common/env.py",
-          "line": 210,
+          "line": 219,
           "target": "services.common.database",
           "kind": "from"
         },
@@ -6768,38 +6893,56 @@
           "kind": "from"
         },
         {
-          "source": "services/events/bus.py",
-          "line": 13,
+          "source": "services/core/features.py",
+          "line": 12,
+          "target": "services.core.providers",
+          "kind": "from"
+        },
+        {
+          "source": "services/core/worker_progress.py",
+          "line": 16,
           "target": "services.common.errors",
           "kind": "from"
         },
         {
-          "source": "services/events/bus.py",
-          "line": 14,
-          "target": "services.common.logging",
+          "source": "services/core/worker_progress.py",
+          "line": 248,
+          "target": "services.core.features",
           "kind": "from"
         },
         {
-          "source": "services/events/bus.py",
-          "line": 15,
-          "target": "services.common.worker_environment",
-          "kind": "from"
-        },
-        {
-          "source": "services/events/bus.py",
-          "line": 19,
-          "target": "services.security.execution_allowlist",
-          "kind": "from"
-        },
-        {
-          "source": "services/events/bus.py",
-          "line": 63,
+          "source": "services/core/worker_progress.py",
+          "line": 631,
           "target": "services.common.database",
           "kind": "from"
         },
         {
           "source": "services/events/bus.py",
-          "line": 371,
+          "line": 13,
+          "target": "services.common.worker_environment",
+          "kind": "from"
+        },
+        {
+          "source": "services/events/bus.py",
+          "line": 17,
+          "target": "services.security.execution_allowlist",
+          "kind": "from"
+        },
+        {
+          "source": "services/events/bus.py",
+          "line": 69,
+          "target": "services.common.database",
+          "kind": "from"
+        },
+        {
+          "source": "services/events/bus.py",
+          "line": 134,
+          "target": "services.core.worker_progress",
+          "kind": "from"
+        },
+        {
+          "source": "services/events/bus.py",
+          "line": 244,
           "target": "services.events.retention",
           "kind": "from"
         },
@@ -7048,7 +7191,7 @@
       "dynamic_import_sites": [
         {
           "source": "services/events/bus.py",
-          "line": 46,
+          "line": 51,
           "kind": "dynamic module expression"
         }
       ]
@@ -7140,7 +7283,7 @@
         },
         {
           "source": "services/common/env.py",
-          "line": 210,
+          "line": 219,
           "target": "services.common.database",
           "kind": "from"
         },
@@ -7781,7 +7924,7 @@
         },
         {
           "source": "services/common/env.py",
-          "line": 210,
+          "line": 219,
           "target": "services.common.database",
           "kind": "from"
         },
@@ -7876,36 +8019,56 @@
         "services.events.dispatch_worker"
       ],
       "modules": [
+        "services.common.cli",
         "services.common.database",
         "services.common.db",
         "services.common.env",
         "services.common.errors",
-        "services.common.logging",
         "services.common.worker_database",
         "services.common.worker_environment",
         "services.core.features",
         "services.core.providers",
+        "services.core.worker_progress",
         "services.events.bus",
         "services.events.dispatch_worker",
         "services.events.retention",
         "services.security.execution_allowlist"
       ],
       "source_files": [
+        "services/common/cli.py",
         "services/common/database.py",
         "services/common/db.py",
         "services/common/env.py",
         "services/common/errors.py",
-        "services/common/logging.py",
         "services/common/worker_database.py",
         "services/common/worker_environment.py",
         "services/core/features.py",
         "services/core/providers.py",
+        "services/core/worker_progress.py",
         "services/events/bus.py",
         "services/events/dispatch_worker.py",
         "services/events/retention.py",
         "services/security/execution_allowlist.py"
       ],
       "local_import_edges": [
+        {
+          "source": "services/common/cli.py",
+          "line": 42,
+          "target": "services.common.database",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/cli.py",
+          "line": 59,
+          "target": "services.common.database",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/cli.py",
+          "line": 67,
+          "target": "services.common.database",
+          "kind": "from"
+        },
         {
           "source": "services/common/database.py",
           "line": 24,
@@ -7944,7 +8107,7 @@
         },
         {
           "source": "services/common/env.py",
-          "line": 210,
+          "line": 219,
           "target": "services.common.database",
           "kind": "from"
         },
@@ -7955,62 +8118,86 @@
           "kind": "from"
         },
         {
-          "source": "services/events/bus.py",
-          "line": 13,
+          "source": "services/core/worker_progress.py",
+          "line": 16,
           "target": "services.common.errors",
           "kind": "from"
         },
         {
-          "source": "services/events/bus.py",
-          "line": 14,
-          "target": "services.common.logging",
+          "source": "services/core/worker_progress.py",
+          "line": 248,
+          "target": "services.core.features",
           "kind": "from"
         },
         {
-          "source": "services/events/bus.py",
-          "line": 15,
-          "target": "services.common.worker_environment",
-          "kind": "from"
-        },
-        {
-          "source": "services/events/bus.py",
-          "line": 19,
-          "target": "services.security.execution_allowlist",
-          "kind": "from"
-        },
-        {
-          "source": "services/events/bus.py",
-          "line": 63,
+          "source": "services/core/worker_progress.py",
+          "line": 631,
           "target": "services.common.database",
           "kind": "from"
         },
         {
           "source": "services/events/bus.py",
-          "line": 371,
+          "line": 13,
+          "target": "services.common.worker_environment",
+          "kind": "from"
+        },
+        {
+          "source": "services/events/bus.py",
+          "line": 17,
+          "target": "services.security.execution_allowlist",
+          "kind": "from"
+        },
+        {
+          "source": "services/events/bus.py",
+          "line": 69,
+          "target": "services.common.database",
+          "kind": "from"
+        },
+        {
+          "source": "services/events/bus.py",
+          "line": 134,
+          "target": "services.core.worker_progress",
+          "kind": "from"
+        },
+        {
+          "source": "services/events/bus.py",
+          "line": 244,
           "target": "services.events.retention",
           "kind": "from"
         },
         {
           "source": "services/events/dispatch_worker.py",
-          "line": 9,
-          "target": "services.common.worker_database",
-          "kind": "from"
-        },
-        {
-          "source": "services/events/dispatch_worker.py",
           "line": 10,
-          "target": "services.common.worker_environment",
+          "target": "services.common.cli",
           "kind": "from"
         },
         {
           "source": "services/events/dispatch_worker.py",
           "line": 11,
-          "target": "services.core.features",
+          "target": "services.common.worker_database",
           "kind": "from"
         },
         {
           "source": "services/events/dispatch_worker.py",
           "line": 12,
+          "target": "services.common.worker_environment",
+          "kind": "from"
+        },
+        {
+          "source": "services/events/dispatch_worker.py",
+          "line": 13,
+          "target": "services.core.features",
+          "kind": "from"
+        },
+        {
+          "source": "services/events/dispatch_worker.py",
+          "line": 14,
+          "target": "services.core.worker_progress",
+          "kind": "from"
+        },
+        {
+          "source": "services/events/dispatch_worker.py",
+          "line": 15,
           "target": "services.events.bus",
           "kind": "from"
         }
@@ -8019,7 +8206,7 @@
       "dynamic_import_sites": [
         {
           "source": "services/events/bus.py",
-          "line": 46,
+          "line": 51,
           "kind": "dynamic module expression"
         }
       ]
@@ -8031,26 +8218,100 @@
         "services.events.notification_delivery_worker"
       ],
       "modules": [
+        "services.common.cli",
+        "services.common.database",
+        "services.common.db",
+        "services.common.env",
+        "services.common.errors",
         "services.common.http",
         "services.common.logging",
         "services.common.smtp",
         "services.common.worker_database",
+        "services.common.worker_environment",
         "services.core.features",
         "services.core.providers",
+        "services.core.worker_progress",
         "services.events.notification_delivery_worker",
         "services.events.notification_outbox"
       ],
       "source_files": [
+        "services/common/cli.py",
+        "services/common/database.py",
+        "services/common/db.py",
+        "services/common/env.py",
+        "services/common/errors.py",
         "services/common/http.py",
         "services/common/logging.py",
         "services/common/smtp.py",
         "services/common/worker_database.py",
+        "services/common/worker_environment.py",
         "services/core/features.py",
         "services/core/providers.py",
+        "services/core/worker_progress.py",
         "services/events/notification_delivery_worker.py",
         "services/events/notification_outbox.py"
       ],
       "local_import_edges": [
+        {
+          "source": "services/common/cli.py",
+          "line": 42,
+          "target": "services.common.database",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/cli.py",
+          "line": 59,
+          "target": "services.common.database",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/cli.py",
+          "line": 67,
+          "target": "services.common.database",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/database.py",
+          "line": 24,
+          "target": "services.common.db",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/database.py",
+          "line": 25,
+          "target": "services.common.worker_environment",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/db.py",
+          "line": 8,
+          "target": "services.core.providers",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/db.py",
+          "line": 10,
+          "target": "services.common.env",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/db.py",
+          "line": 11,
+          "target": "services.common.worker_environment",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/env.py",
+          "line": 10,
+          "target": "services.common.worker_environment",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/env.py",
+          "line": 219,
+          "target": "services.common.database",
+          "kind": "from"
+        },
         {
           "source": "services/core/features.py",
           "line": 12,
@@ -8058,20 +8319,50 @@
           "kind": "from"
         },
         {
+          "source": "services/core/worker_progress.py",
+          "line": 16,
+          "target": "services.common.errors",
+          "kind": "from"
+        },
+        {
+          "source": "services/core/worker_progress.py",
+          "line": 248,
+          "target": "services.core.features",
+          "kind": "from"
+        },
+        {
+          "source": "services/core/worker_progress.py",
+          "line": 631,
+          "target": "services.common.database",
+          "kind": "from"
+        },
+        {
           "source": "services/events/notification_delivery_worker.py",
           "line": 10,
-          "target": "services.common.worker_database",
+          "target": "services.common.cli",
           "kind": "from"
         },
         {
           "source": "services/events/notification_delivery_worker.py",
           "line": 11,
-          "target": "services.core.features",
+          "target": "services.common.worker_database",
           "kind": "from"
         },
         {
           "source": "services/events/notification_delivery_worker.py",
           "line": 12,
+          "target": "services.core.features",
+          "kind": "from"
+        },
+        {
+          "source": "services/events/notification_delivery_worker.py",
+          "line": 13,
+          "target": "services.core.worker_progress",
+          "kind": "from"
+        },
+        {
+          "source": "services/events/notification_delivery_worker.py",
+          "line": 14,
           "target": "services.events.notification_outbox",
           "kind": "from"
         },
@@ -8089,32 +8380,201 @@
         },
         {
           "source": "services/events/notification_outbox.py",
-          "line": 104,
+          "line": 127,
           "target": "services.core.providers",
           "kind": "from"
         },
         {
           "source": "services/events/notification_outbox.py",
-          "line": 164,
+          "line": 185,
           "target": "services.core.providers",
           "kind": "from"
         },
         {
           "source": "services/events/notification_outbox.py",
-          "line": 437,
+          "line": 368,
           "target": "services.common.http",
           "kind": "from"
         },
         {
           "source": "services/events/notification_outbox.py",
-          "line": 444,
+          "line": 375,
           "target": "services.common.http",
           "kind": "from"
         },
         {
           "source": "services/events/notification_outbox.py",
-          "line": 445,
+          "line": 376,
           "target": "services.core.providers",
+          "kind": "from"
+        },
+        {
+          "source": "services/events/notification_outbox.py",
+          "line": 455,
+          "target": "services.events.notification_delivery_worker",
+          "kind": "from"
+        }
+      ],
+      "unresolved_local_modules": [],
+      "dynamic_import_sites": []
+    },
+    {
+      "kind": "isolated_worker",
+      "name": "services.export.report_snapshot_export_worker",
+      "root_modules": [
+        "services.export.report_snapshot_export_worker"
+      ],
+      "modules": [
+        "services.common.cli",
+        "services.common.database",
+        "services.common.db",
+        "services.common.env",
+        "services.common.utils",
+        "services.common.worker_database",
+        "services.common.worker_environment",
+        "services.core.features",
+        "services.core.providers",
+        "services.export.artifact_storage",
+        "services.export.report_snapshot_export",
+        "services.export.report_snapshot_export_worker",
+        "services.export.reports.common",
+        "services.export.reports.context"
+      ],
+      "source_files": [
+        "services/common/cli.py",
+        "services/common/database.py",
+        "services/common/db.py",
+        "services/common/env.py",
+        "services/common/utils.py",
+        "services/common/worker_database.py",
+        "services/common/worker_environment.py",
+        "services/core/features.py",
+        "services/core/providers.py",
+        "services/export/artifact_storage.py",
+        "services/export/report_snapshot_export.py",
+        "services/export/report_snapshot_export_worker.py",
+        "services/export/reports/common.py",
+        "services/export/reports/context.py"
+      ],
+      "local_import_edges": [
+        {
+          "source": "services/common/cli.py",
+          "line": 42,
+          "target": "services.common.database",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/cli.py",
+          "line": 59,
+          "target": "services.common.database",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/cli.py",
+          "line": 67,
+          "target": "services.common.database",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/database.py",
+          "line": 24,
+          "target": "services.common.db",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/database.py",
+          "line": 25,
+          "target": "services.common.worker_environment",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/db.py",
+          "line": 8,
+          "target": "services.core.providers",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/db.py",
+          "line": 10,
+          "target": "services.common.env",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/db.py",
+          "line": 11,
+          "target": "services.common.worker_environment",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/env.py",
+          "line": 10,
+          "target": "services.common.worker_environment",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/env.py",
+          "line": 219,
+          "target": "services.common.database",
+          "kind": "from"
+        },
+        {
+          "source": "services/core/features.py",
+          "line": 12,
+          "target": "services.core.providers",
+          "kind": "from"
+        },
+        {
+          "source": "services/export/report_snapshot_export.py",
+          "line": 16,
+          "target": "services.export.reports.context",
+          "kind": "from"
+        },
+        {
+          "source": "services/export/report_snapshot_export_worker.py",
+          "line": 21,
+          "target": "services.common.worker_database",
+          "kind": "from"
+        },
+        {
+          "source": "services/export/report_snapshot_export_worker.py",
+          "line": 22,
+          "target": "services.core.features",
+          "kind": "from"
+        },
+        {
+          "source": "services/export/report_snapshot_export_worker.py",
+          "line": 23,
+          "target": "services.export.artifact_storage",
+          "kind": "from"
+        },
+        {
+          "source": "services/export/report_snapshot_export_worker.py",
+          "line": 28,
+          "target": "services.export.report_snapshot_export",
+          "kind": "from"
+        },
+        {
+          "source": "services/export/report_snapshot_export_worker.py",
+          "line": 309,
+          "target": "services.common.cli",
+          "kind": "from"
+        },
+        {
+          "source": "services/export/reports/common.py",
+          "line": 8,
+          "target": "services.common.database",
+          "kind": "from"
+        },
+        {
+          "source": "services/export/reports/common.py",
+          "line": 9,
+          "target": "services.common.utils",
+          "kind": "from"
+        },
+        {
+          "source": "services/export/reports/context.py",
+          "line": 12,
+          "target": "services.export.reports.common",
           "kind": "from"
         }
       ],
@@ -8474,7 +8934,7 @@
         },
         {
           "source": "services/common/env.py",
-          "line": 210,
+          "line": 219,
           "target": "services.common.database",
           "kind": "from"
         },
@@ -8853,7 +9313,7 @@
         },
         {
           "source": "services/common/env.py",
-          "line": 210,
+          "line": 219,
           "target": "services.common.database",
           "kind": "from"
         },
@@ -9232,7 +9692,7 @@
         },
         {
           "source": "services/common/env.py",
-          "line": 210,
+          "line": 219,
           "target": "services.common.database",
           "kind": "from"
         },
@@ -9611,7 +10071,7 @@
         },
         {
           "source": "services/common/env.py",
-          "line": 210,
+          "line": 219,
           "target": "services.common.database",
           "kind": "from"
         },
@@ -9990,7 +10450,7 @@
         },
         {
           "source": "services/common/env.py",
-          "line": 210,
+          "line": 219,
           "target": "services.common.database",
           "kind": "from"
         },
@@ -10369,7 +10829,7 @@
         },
         {
           "source": "services/common/env.py",
-          "line": 210,
+          "line": 219,
           "target": "services.common.database",
           "kind": "from"
         },
@@ -10748,7 +11208,7 @@
         },
         {
           "source": "services/common/env.py",
-          "line": 210,
+          "line": 219,
           "target": "services.common.database",
           "kind": "from"
         },
@@ -10917,7 +11377,7 @@
         },
         {
           "source": "services/common/env.py",
-          "line": 210,
+          "line": 219,
           "target": "services.common.database",
           "kind": "from"
         },
@@ -11074,7 +11534,7 @@
         },
         {
           "source": "services/common/env.py",
-          "line": 210,
+          "line": 219,
           "target": "services.common.database",
           "kind": "from"
         },
@@ -11231,7 +11691,7 @@
         },
         {
           "source": "services/common/env.py",
-          "line": 210,
+          "line": 219,
           "target": "services.common.database",
           "kind": "from"
         },
@@ -11388,7 +11848,7 @@
         },
         {
           "source": "services/common/env.py",
-          "line": 210,
+          "line": 219,
           "target": "services.common.database",
           "kind": "from"
         },
@@ -11409,324 +11869,6 @@
         "services.events.handlers"
       ],
       "modules": [
-        "services.common.database",
-        "services.common.db",
-        "services.common.env",
-        "services.common.http",
-        "services.common.logging",
-        "services.common.smtp",
-        "services.common.worker_database",
-        "services.common.worker_environment",
-        "services.core.features",
-        "services.core.providers",
-        "services.events.handlers",
-        "services.events.notification_outbox"
-      ],
-      "source_files": [
-        "services/common/database.py",
-        "services/common/db.py",
-        "services/common/env.py",
-        "services/common/http.py",
-        "services/common/logging.py",
-        "services/common/smtp.py",
-        "services/common/worker_database.py",
-        "services/common/worker_environment.py",
-        "services/core/features.py",
-        "services/core/providers.py",
-        "services/events/handlers.py",
-        "services/events/notification_outbox.py"
-      ],
-      "local_import_edges": [
-        {
-          "source": "services/common/database.py",
-          "line": 24,
-          "target": "services.common.db",
-          "kind": "from"
-        },
-        {
-          "source": "services/common/database.py",
-          "line": 25,
-          "target": "services.common.worker_environment",
-          "kind": "from"
-        },
-        {
-          "source": "services/common/db.py",
-          "line": 8,
-          "target": "services.core.providers",
-          "kind": "from"
-        },
-        {
-          "source": "services/common/db.py",
-          "line": 10,
-          "target": "services.common.env",
-          "kind": "from"
-        },
-        {
-          "source": "services/common/db.py",
-          "line": 11,
-          "target": "services.common.worker_environment",
-          "kind": "from"
-        },
-        {
-          "source": "services/common/env.py",
-          "line": 10,
-          "target": "services.common.worker_environment",
-          "kind": "from"
-        },
-        {
-          "source": "services/common/env.py",
-          "line": 210,
-          "target": "services.common.database",
-          "kind": "from"
-        },
-        {
-          "source": "services/core/features.py",
-          "line": 12,
-          "target": "services.core.providers",
-          "kind": "from"
-        },
-        {
-          "source": "services/events/handlers.py",
-          "line": 9,
-          "target": "services.common.logging",
-          "kind": "from"
-        },
-        {
-          "source": "services/events/handlers.py",
-          "line": 16,
-          "target": "services.common.database",
-          "kind": "from"
-        },
-        {
-          "source": "services/events/handlers.py",
-          "line": 17,
-          "target": "services.core.features",
-          "kind": "from"
-        },
-        {
-          "source": "services/events/handlers.py",
-          "line": 18,
-          "target": "services.events.notification_outbox",
-          "kind": "from"
-        },
-        {
-          "source": "services/events/handlers.py",
-          "line": 31,
-          "target": "services.common.worker_database",
-          "kind": "from"
-        },
-        {
-          "source": "services/events/notification_outbox.py",
-          "line": 18,
-          "target": "services.common.logging",
-          "kind": "from"
-        },
-        {
-          "source": "services/events/notification_outbox.py",
-          "line": 19,
-          "target": "services.common.smtp",
-          "kind": "from"
-        },
-        {
-          "source": "services/events/notification_outbox.py",
-          "line": 104,
-          "target": "services.core.providers",
-          "kind": "from"
-        },
-        {
-          "source": "services/events/notification_outbox.py",
-          "line": 164,
-          "target": "services.core.providers",
-          "kind": "from"
-        },
-        {
-          "source": "services/events/notification_outbox.py",
-          "line": 437,
-          "target": "services.common.http",
-          "kind": "from"
-        },
-        {
-          "source": "services/events/notification_outbox.py",
-          "line": 444,
-          "target": "services.common.http",
-          "kind": "from"
-        },
-        {
-          "source": "services/events/notification_outbox.py",
-          "line": 445,
-          "target": "services.core.providers",
-          "kind": "from"
-        }
-      ],
-      "unresolved_local_modules": [],
-      "dynamic_import_sites": []
-    },
-    {
-      "kind": "event_handler",
-      "name": "services.events.handlers.handle_stale_data",
-      "root_modules": [
-        "services.events.handlers"
-      ],
-      "modules": [
-        "services.common.database",
-        "services.common.db",
-        "services.common.env",
-        "services.common.http",
-        "services.common.logging",
-        "services.common.smtp",
-        "services.common.worker_database",
-        "services.common.worker_environment",
-        "services.core.features",
-        "services.core.providers",
-        "services.events.handlers",
-        "services.events.notification_outbox"
-      ],
-      "source_files": [
-        "services/common/database.py",
-        "services/common/db.py",
-        "services/common/env.py",
-        "services/common/http.py",
-        "services/common/logging.py",
-        "services/common/smtp.py",
-        "services/common/worker_database.py",
-        "services/common/worker_environment.py",
-        "services/core/features.py",
-        "services/core/providers.py",
-        "services/events/handlers.py",
-        "services/events/notification_outbox.py"
-      ],
-      "local_import_edges": [
-        {
-          "source": "services/common/database.py",
-          "line": 24,
-          "target": "services.common.db",
-          "kind": "from"
-        },
-        {
-          "source": "services/common/database.py",
-          "line": 25,
-          "target": "services.common.worker_environment",
-          "kind": "from"
-        },
-        {
-          "source": "services/common/db.py",
-          "line": 8,
-          "target": "services.core.providers",
-          "kind": "from"
-        },
-        {
-          "source": "services/common/db.py",
-          "line": 10,
-          "target": "services.common.env",
-          "kind": "from"
-        },
-        {
-          "source": "services/common/db.py",
-          "line": 11,
-          "target": "services.common.worker_environment",
-          "kind": "from"
-        },
-        {
-          "source": "services/common/env.py",
-          "line": 10,
-          "target": "services.common.worker_environment",
-          "kind": "from"
-        },
-        {
-          "source": "services/common/env.py",
-          "line": 210,
-          "target": "services.common.database",
-          "kind": "from"
-        },
-        {
-          "source": "services/core/features.py",
-          "line": 12,
-          "target": "services.core.providers",
-          "kind": "from"
-        },
-        {
-          "source": "services/events/handlers.py",
-          "line": 9,
-          "target": "services.common.logging",
-          "kind": "from"
-        },
-        {
-          "source": "services/events/handlers.py",
-          "line": 16,
-          "target": "services.common.database",
-          "kind": "from"
-        },
-        {
-          "source": "services/events/handlers.py",
-          "line": 17,
-          "target": "services.core.features",
-          "kind": "from"
-        },
-        {
-          "source": "services/events/handlers.py",
-          "line": 18,
-          "target": "services.events.notification_outbox",
-          "kind": "from"
-        },
-        {
-          "source": "services/events/handlers.py",
-          "line": 31,
-          "target": "services.common.worker_database",
-          "kind": "from"
-        },
-        {
-          "source": "services/events/notification_outbox.py",
-          "line": 18,
-          "target": "services.common.logging",
-          "kind": "from"
-        },
-        {
-          "source": "services/events/notification_outbox.py",
-          "line": 19,
-          "target": "services.common.smtp",
-          "kind": "from"
-        },
-        {
-          "source": "services/events/notification_outbox.py",
-          "line": 104,
-          "target": "services.core.providers",
-          "kind": "from"
-        },
-        {
-          "source": "services/events/notification_outbox.py",
-          "line": 164,
-          "target": "services.core.providers",
-          "kind": "from"
-        },
-        {
-          "source": "services/events/notification_outbox.py",
-          "line": 437,
-          "target": "services.common.http",
-          "kind": "from"
-        },
-        {
-          "source": "services/events/notification_outbox.py",
-          "line": 444,
-          "target": "services.common.http",
-          "kind": "from"
-        },
-        {
-          "source": "services/events/notification_outbox.py",
-          "line": 445,
-          "target": "services.core.providers",
-          "kind": "from"
-        }
-      ],
-      "unresolved_local_modules": [],
-      "dynamic_import_sites": []
-    },
-    {
-      "kind": "event_handler",
-      "name": "services.ingestion.anomaly_detector.handle_sensor_reading",
-      "root_modules": [
-        "services.ingestion.anomaly_detector"
-      ],
-      "modules": [
         "services.common.cli",
         "services.common.database",
         "services.common.db",
@@ -11735,24 +11877,14 @@
         "services.common.http",
         "services.common.logging",
         "services.common.smtp",
-        "services.common.tenant_context",
         "services.common.worker_database",
         "services.common.worker_environment",
-        "services.core.adapters.clickhouse",
-        "services.core.adapters.mqtt",
         "services.core.features",
         "services.core.providers",
-        "services.events.bus",
-        "services.events.notification_outbox",
-        "services.events.retention",
-        "services.ingestion.anomaly_detector",
-        "services.ingestion.base",
-        "services.ingestion.config",
-        "services.ingestion.ml_anomaly_detector",
-        "services.ingestion.mqtt_actuator",
-        "services.ingestion.sensor_anomaly_ml_worker",
-        "services.ingestion.sensor_anomaly_worker",
-        "services.security.execution_allowlist"
+        "services.core.worker_progress",
+        "services.events.handlers",
+        "services.events.notification_delivery_worker",
+        "services.events.notification_outbox"
       ],
       "source_files": [
         "services/common/cli.py",
@@ -11763,24 +11895,14 @@
         "services/common/http.py",
         "services/common/logging.py",
         "services/common/smtp.py",
-        "services/common/tenant_context.py",
         "services/common/worker_database.py",
         "services/common/worker_environment.py",
-        "services/core/adapters/clickhouse.py",
-        "services/core/adapters/mqtt.py",
         "services/core/features.py",
         "services/core/providers.py",
-        "services/events/bus.py",
-        "services/events/notification_outbox.py",
-        "services/events/retention.py",
-        "services/ingestion/anomaly_detector.py",
-        "services/ingestion/base.py",
-        "services/ingestion/config.py",
-        "services/ingestion/ml_anomaly_detector.py",
-        "services/ingestion/mqtt_actuator.py",
-        "services/ingestion/sensor_anomaly_ml_worker.py",
-        "services/ingestion/sensor_anomaly_worker.py",
-        "services/security/execution_allowlist.py"
+        "services/core/worker_progress.py",
+        "services/events/handlers.py",
+        "services/events/notification_delivery_worker.py",
+        "services/events/notification_outbox.py"
       ],
       "local_import_edges": [
         {
@@ -11839,7 +11961,503 @@
         },
         {
           "source": "services/common/env.py",
-          "line": 210,
+          "line": 219,
+          "target": "services.common.database",
+          "kind": "from"
+        },
+        {
+          "source": "services/core/features.py",
+          "line": 12,
+          "target": "services.core.providers",
+          "kind": "from"
+        },
+        {
+          "source": "services/core/worker_progress.py",
+          "line": 16,
+          "target": "services.common.errors",
+          "kind": "from"
+        },
+        {
+          "source": "services/core/worker_progress.py",
+          "line": 248,
+          "target": "services.core.features",
+          "kind": "from"
+        },
+        {
+          "source": "services/core/worker_progress.py",
+          "line": 631,
+          "target": "services.common.database",
+          "kind": "from"
+        },
+        {
+          "source": "services/events/handlers.py",
+          "line": 9,
+          "target": "services.common.logging",
+          "kind": "from"
+        },
+        {
+          "source": "services/events/handlers.py",
+          "line": 16,
+          "target": "services.core.features",
+          "kind": "from"
+        },
+        {
+          "source": "services/events/handlers.py",
+          "line": 17,
+          "target": "services.events.notification_outbox",
+          "kind": "from"
+        },
+        {
+          "source": "services/events/handlers.py",
+          "line": 52,
+          "target": "services.common.worker_database",
+          "kind": "from"
+        },
+        {
+          "source": "services/events/notification_delivery_worker.py",
+          "line": 10,
+          "target": "services.common.cli",
+          "kind": "from"
+        },
+        {
+          "source": "services/events/notification_delivery_worker.py",
+          "line": 11,
+          "target": "services.common.worker_database",
+          "kind": "from"
+        },
+        {
+          "source": "services/events/notification_delivery_worker.py",
+          "line": 12,
+          "target": "services.core.features",
+          "kind": "from"
+        },
+        {
+          "source": "services/events/notification_delivery_worker.py",
+          "line": 13,
+          "target": "services.core.worker_progress",
+          "kind": "from"
+        },
+        {
+          "source": "services/events/notification_delivery_worker.py",
+          "line": 14,
+          "target": "services.events.notification_outbox",
+          "kind": "from"
+        },
+        {
+          "source": "services/events/notification_outbox.py",
+          "line": 18,
+          "target": "services.common.logging",
+          "kind": "from"
+        },
+        {
+          "source": "services/events/notification_outbox.py",
+          "line": 19,
+          "target": "services.common.smtp",
+          "kind": "from"
+        },
+        {
+          "source": "services/events/notification_outbox.py",
+          "line": 127,
+          "target": "services.core.providers",
+          "kind": "from"
+        },
+        {
+          "source": "services/events/notification_outbox.py",
+          "line": 185,
+          "target": "services.core.providers",
+          "kind": "from"
+        },
+        {
+          "source": "services/events/notification_outbox.py",
+          "line": 368,
+          "target": "services.common.http",
+          "kind": "from"
+        },
+        {
+          "source": "services/events/notification_outbox.py",
+          "line": 375,
+          "target": "services.common.http",
+          "kind": "from"
+        },
+        {
+          "source": "services/events/notification_outbox.py",
+          "line": 376,
+          "target": "services.core.providers",
+          "kind": "from"
+        },
+        {
+          "source": "services/events/notification_outbox.py",
+          "line": 455,
+          "target": "services.events.notification_delivery_worker",
+          "kind": "from"
+        }
+      ],
+      "unresolved_local_modules": [],
+      "dynamic_import_sites": []
+    },
+    {
+      "kind": "event_handler",
+      "name": "services.events.handlers.handle_stale_data",
+      "root_modules": [
+        "services.events.handlers"
+      ],
+      "modules": [
+        "services.common.cli",
+        "services.common.database",
+        "services.common.db",
+        "services.common.env",
+        "services.common.errors",
+        "services.common.http",
+        "services.common.logging",
+        "services.common.smtp",
+        "services.common.worker_database",
+        "services.common.worker_environment",
+        "services.core.features",
+        "services.core.providers",
+        "services.core.worker_progress",
+        "services.events.handlers",
+        "services.events.notification_delivery_worker",
+        "services.events.notification_outbox"
+      ],
+      "source_files": [
+        "services/common/cli.py",
+        "services/common/database.py",
+        "services/common/db.py",
+        "services/common/env.py",
+        "services/common/errors.py",
+        "services/common/http.py",
+        "services/common/logging.py",
+        "services/common/smtp.py",
+        "services/common/worker_database.py",
+        "services/common/worker_environment.py",
+        "services/core/features.py",
+        "services/core/providers.py",
+        "services/core/worker_progress.py",
+        "services/events/handlers.py",
+        "services/events/notification_delivery_worker.py",
+        "services/events/notification_outbox.py"
+      ],
+      "local_import_edges": [
+        {
+          "source": "services/common/cli.py",
+          "line": 42,
+          "target": "services.common.database",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/cli.py",
+          "line": 59,
+          "target": "services.common.database",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/cli.py",
+          "line": 67,
+          "target": "services.common.database",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/database.py",
+          "line": 24,
+          "target": "services.common.db",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/database.py",
+          "line": 25,
+          "target": "services.common.worker_environment",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/db.py",
+          "line": 8,
+          "target": "services.core.providers",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/db.py",
+          "line": 10,
+          "target": "services.common.env",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/db.py",
+          "line": 11,
+          "target": "services.common.worker_environment",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/env.py",
+          "line": 10,
+          "target": "services.common.worker_environment",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/env.py",
+          "line": 219,
+          "target": "services.common.database",
+          "kind": "from"
+        },
+        {
+          "source": "services/core/features.py",
+          "line": 12,
+          "target": "services.core.providers",
+          "kind": "from"
+        },
+        {
+          "source": "services/core/worker_progress.py",
+          "line": 16,
+          "target": "services.common.errors",
+          "kind": "from"
+        },
+        {
+          "source": "services/core/worker_progress.py",
+          "line": 248,
+          "target": "services.core.features",
+          "kind": "from"
+        },
+        {
+          "source": "services/core/worker_progress.py",
+          "line": 631,
+          "target": "services.common.database",
+          "kind": "from"
+        },
+        {
+          "source": "services/events/handlers.py",
+          "line": 9,
+          "target": "services.common.logging",
+          "kind": "from"
+        },
+        {
+          "source": "services/events/handlers.py",
+          "line": 16,
+          "target": "services.core.features",
+          "kind": "from"
+        },
+        {
+          "source": "services/events/handlers.py",
+          "line": 17,
+          "target": "services.events.notification_outbox",
+          "kind": "from"
+        },
+        {
+          "source": "services/events/handlers.py",
+          "line": 52,
+          "target": "services.common.worker_database",
+          "kind": "from"
+        },
+        {
+          "source": "services/events/notification_delivery_worker.py",
+          "line": 10,
+          "target": "services.common.cli",
+          "kind": "from"
+        },
+        {
+          "source": "services/events/notification_delivery_worker.py",
+          "line": 11,
+          "target": "services.common.worker_database",
+          "kind": "from"
+        },
+        {
+          "source": "services/events/notification_delivery_worker.py",
+          "line": 12,
+          "target": "services.core.features",
+          "kind": "from"
+        },
+        {
+          "source": "services/events/notification_delivery_worker.py",
+          "line": 13,
+          "target": "services.core.worker_progress",
+          "kind": "from"
+        },
+        {
+          "source": "services/events/notification_delivery_worker.py",
+          "line": 14,
+          "target": "services.events.notification_outbox",
+          "kind": "from"
+        },
+        {
+          "source": "services/events/notification_outbox.py",
+          "line": 18,
+          "target": "services.common.logging",
+          "kind": "from"
+        },
+        {
+          "source": "services/events/notification_outbox.py",
+          "line": 19,
+          "target": "services.common.smtp",
+          "kind": "from"
+        },
+        {
+          "source": "services/events/notification_outbox.py",
+          "line": 127,
+          "target": "services.core.providers",
+          "kind": "from"
+        },
+        {
+          "source": "services/events/notification_outbox.py",
+          "line": 185,
+          "target": "services.core.providers",
+          "kind": "from"
+        },
+        {
+          "source": "services/events/notification_outbox.py",
+          "line": 368,
+          "target": "services.common.http",
+          "kind": "from"
+        },
+        {
+          "source": "services/events/notification_outbox.py",
+          "line": 375,
+          "target": "services.common.http",
+          "kind": "from"
+        },
+        {
+          "source": "services/events/notification_outbox.py",
+          "line": 376,
+          "target": "services.core.providers",
+          "kind": "from"
+        },
+        {
+          "source": "services/events/notification_outbox.py",
+          "line": 455,
+          "target": "services.events.notification_delivery_worker",
+          "kind": "from"
+        }
+      ],
+      "unresolved_local_modules": [],
+      "dynamic_import_sites": []
+    },
+    {
+      "kind": "event_handler",
+      "name": "services.ingestion.anomaly_detector.handle_sensor_reading",
+      "root_modules": [
+        "services.ingestion.anomaly_detector"
+      ],
+      "modules": [
+        "services.common.cli",
+        "services.common.database",
+        "services.common.db",
+        "services.common.env",
+        "services.common.errors",
+        "services.common.http",
+        "services.common.logging",
+        "services.common.smtp",
+        "services.common.tenant_context",
+        "services.common.worker_database",
+        "services.common.worker_environment",
+        "services.core.adapters.clickhouse",
+        "services.core.adapters.mqtt",
+        "services.core.features",
+        "services.core.jobs",
+        "services.core.providers",
+        "services.core.worker_progress",
+        "services.events.bus",
+        "services.events.notification_delivery_worker",
+        "services.events.notification_outbox",
+        "services.events.retention",
+        "services.ingestion.anomaly_detector",
+        "services.ingestion.base",
+        "services.ingestion.config",
+        "services.ingestion.ml_anomaly_detector",
+        "services.ingestion.mqtt_actuator",
+        "services.ingestion.sensor_anomaly_ml_worker",
+        "services.ingestion.sensor_anomaly_worker",
+        "services.ingestion.sensor_baseline_worker",
+        "services.security.execution_allowlist",
+        "services.security.scheduled_command_contracts"
+      ],
+      "source_files": [
+        "services/common/cli.py",
+        "services/common/database.py",
+        "services/common/db.py",
+        "services/common/env.py",
+        "services/common/errors.py",
+        "services/common/http.py",
+        "services/common/logging.py",
+        "services/common/smtp.py",
+        "services/common/tenant_context.py",
+        "services/common/worker_database.py",
+        "services/common/worker_environment.py",
+        "services/core/adapters/clickhouse.py",
+        "services/core/adapters/mqtt.py",
+        "services/core/features.py",
+        "services/core/jobs.py",
+        "services/core/providers.py",
+        "services/core/worker_progress.py",
+        "services/events/bus.py",
+        "services/events/notification_delivery_worker.py",
+        "services/events/notification_outbox.py",
+        "services/events/retention.py",
+        "services/ingestion/anomaly_detector.py",
+        "services/ingestion/base.py",
+        "services/ingestion/config.py",
+        "services/ingestion/ml_anomaly_detector.py",
+        "services/ingestion/mqtt_actuator.py",
+        "services/ingestion/sensor_anomaly_ml_worker.py",
+        "services/ingestion/sensor_anomaly_worker.py",
+        "services/ingestion/sensor_baseline_worker.py",
+        "services/security/execution_allowlist.py",
+        "services/security/scheduled_command_contracts.py"
+      ],
+      "local_import_edges": [
+        {
+          "source": "services/common/cli.py",
+          "line": 42,
+          "target": "services.common.database",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/cli.py",
+          "line": 59,
+          "target": "services.common.database",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/cli.py",
+          "line": 67,
+          "target": "services.common.database",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/database.py",
+          "line": 24,
+          "target": "services.common.db",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/database.py",
+          "line": 25,
+          "target": "services.common.worker_environment",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/db.py",
+          "line": 8,
+          "target": "services.core.providers",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/db.py",
+          "line": 10,
+          "target": "services.common.env",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/db.py",
+          "line": 11,
+          "target": "services.common.worker_environment",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/env.py",
+          "line": 10,
+          "target": "services.common.worker_environment",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/env.py",
+          "line": 219,
           "target": "services.common.database",
           "kind": "from"
         },
@@ -11862,39 +12480,111 @@
           "kind": "from"
         },
         {
-          "source": "services/events/bus.py",
-          "line": 13,
-          "target": "services.common.errors",
-          "kind": "from"
-        },
-        {
-          "source": "services/events/bus.py",
-          "line": 14,
-          "target": "services.common.logging",
-          "kind": "from"
-        },
-        {
-          "source": "services/events/bus.py",
-          "line": 15,
+          "source": "services/core/jobs.py",
+          "line": 12,
           "target": "services.common.worker_environment",
           "kind": "from"
         },
         {
-          "source": "services/events/bus.py",
-          "line": 19,
+          "source": "services/core/jobs.py",
+          "line": 15,
+          "target": "services.core.features",
+          "kind": "from"
+        },
+        {
+          "source": "services/core/jobs.py",
+          "line": 16,
           "target": "services.security.execution_allowlist",
           "kind": "from"
         },
         {
-          "source": "services/events/bus.py",
-          "line": 63,
+          "source": "services/core/jobs.py",
+          "line": 17,
+          "target": "services.security.scheduled_command_contracts",
+          "kind": "from"
+        },
+        {
+          "source": "services/core/jobs.py",
+          "line": 387,
+          "target": "services.common.database",
+          "kind": "from"
+        },
+        {
+          "source": "services/core/worker_progress.py",
+          "line": 16,
+          "target": "services.common.errors",
+          "kind": "from"
+        },
+        {
+          "source": "services/core/worker_progress.py",
+          "line": 248,
+          "target": "services.core.features",
+          "kind": "from"
+        },
+        {
+          "source": "services/core/worker_progress.py",
+          "line": 631,
           "target": "services.common.database",
           "kind": "from"
         },
         {
           "source": "services/events/bus.py",
-          "line": 371,
+          "line": 13,
+          "target": "services.common.worker_environment",
+          "kind": "from"
+        },
+        {
+          "source": "services/events/bus.py",
+          "line": 17,
+          "target": "services.security.execution_allowlist",
+          "kind": "from"
+        },
+        {
+          "source": "services/events/bus.py",
+          "line": 69,
+          "target": "services.common.database",
+          "kind": "from"
+        },
+        {
+          "source": "services/events/bus.py",
+          "line": 134,
+          "target": "services.core.worker_progress",
+          "kind": "from"
+        },
+        {
+          "source": "services/events/bus.py",
+          "line": 244,
           "target": "services.events.retention",
+          "kind": "from"
+        },
+        {
+          "source": "services/events/notification_delivery_worker.py",
+          "line": 10,
+          "target": "services.common.cli",
+          "kind": "from"
+        },
+        {
+          "source": "services/events/notification_delivery_worker.py",
+          "line": 11,
+          "target": "services.common.worker_database",
+          "kind": "from"
+        },
+        {
+          "source": "services/events/notification_delivery_worker.py",
+          "line": 12,
+          "target": "services.core.features",
+          "kind": "from"
+        },
+        {
+          "source": "services/events/notification_delivery_worker.py",
+          "line": 13,
+          "target": "services.core.worker_progress",
+          "kind": "from"
+        },
+        {
+          "source": "services/events/notification_delivery_worker.py",
+          "line": 14,
+          "target": "services.events.notification_outbox",
           "kind": "from"
         },
         {
@@ -11911,115 +12601,127 @@
         },
         {
           "source": "services/events/notification_outbox.py",
-          "line": 104,
+          "line": 127,
           "target": "services.core.providers",
           "kind": "from"
         },
         {
           "source": "services/events/notification_outbox.py",
-          "line": 164,
+          "line": 185,
           "target": "services.core.providers",
           "kind": "from"
         },
         {
           "source": "services/events/notification_outbox.py",
-          "line": 437,
+          "line": 368,
           "target": "services.common.http",
           "kind": "from"
         },
         {
           "source": "services/events/notification_outbox.py",
-          "line": 444,
+          "line": 375,
           "target": "services.common.http",
           "kind": "from"
         },
         {
           "source": "services/events/notification_outbox.py",
-          "line": 445,
+          "line": 376,
           "target": "services.core.providers",
+          "kind": "from"
+        },
+        {
+          "source": "services/events/notification_outbox.py",
+          "line": 455,
+          "target": "services.events.notification_delivery_worker",
           "kind": "from"
         },
         {
           "source": "services/ingestion/anomaly_detector.py",
-          "line": 38,
+          "line": 37,
           "target": "services.common.cli",
           "kind": "from"
         },
         {
           "source": "services/ingestion/anomaly_detector.py",
-          "line": 39,
+          "line": 38,
           "target": "services.common.smtp",
           "kind": "from"
         },
         {
           "source": "services/ingestion/anomaly_detector.py",
-          "line": 41,
+          "line": 40,
           "target": "services.common.logging",
           "kind": "from"
         },
         {
           "source": "services/ingestion/anomaly_detector.py",
-          "line": 42,
+          "line": 41,
           "target": "services.ingestion.base",
           "kind": "from"
         },
         {
           "source": "services/ingestion/anomaly_detector.py",
-          "line": 51,
+          "line": 50,
           "target": "services.events.bus",
           "kind": "from"
         },
         {
           "source": "services/ingestion/anomaly_detector.py",
-          "line": 74,
+          "line": 73,
           "target": "services.ingestion.sensor_anomaly_worker",
           "kind": "from"
         },
         {
           "source": "services/ingestion/anomaly_detector.py",
-          "line": 550,
+          "line": 451,
           "target": "services.common.http",
           "kind": "from"
         },
         {
           "source": "services/ingestion/anomaly_detector.py",
-          "line": 590,
+          "line": 491,
           "target": "services.ingestion.mqtt_actuator",
           "kind": "from"
         },
         {
           "source": "services/ingestion/anomaly_detector.py",
-          "line": 810,
-          "target": "services.events.bus",
+          "line": 586,
+          "target": "services.core.jobs",
           "kind": "from"
         },
         {
           "source": "services/ingestion/anomaly_detector.py",
-          "line": 949,
-          "target": "services.events.notification_outbox",
+          "line": 632,
+          "target": "services.ingestion.sensor_anomaly_worker",
           "kind": "from"
         },
         {
           "source": "services/ingestion/anomaly_detector.py",
-          "line": 1222,
+          "line": 672,
+          "target": "services.ingestion.sensor_baseline_worker",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/anomaly_detector.py",
+          "line": 779,
           "target": "services.core.features",
           "kind": "from"
         },
         {
           "source": "services/ingestion/anomaly_detector.py",
-          "line": 1230,
+          "line": 787,
           "target": "services.ingestion.sensor_anomaly_ml_worker",
           "kind": "from"
         },
         {
           "source": "services/ingestion/anomaly_detector.py",
-          "line": 1240,
+          "line": 797,
           "target": "services.ingestion.base",
           "kind": "from"
         },
         {
           "source": "services/ingestion/anomaly_detector.py",
-          "line": 1241,
+          "line": 798,
           "target": "services.ingestion.ml_anomaly_detector",
           "kind": "from"
         },
@@ -12124,13 +12826,37 @@
           "line": 15,
           "target": "services.events.notification_outbox",
           "kind": "from"
+        },
+        {
+          "source": "services/ingestion/sensor_baseline_worker.py",
+          "line": 11,
+          "target": "services.common.tenant_context",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/sensor_baseline_worker.py",
+          "line": 12,
+          "target": "services.common.worker_database",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/sensor_baseline_worker.py",
+          "line": 13,
+          "target": "services.events.notification_outbox",
+          "kind": "from"
+        },
+        {
+          "source": "services/security/scheduled_command_contracts.py",
+          "line": 14,
+          "target": "services.security.execution_allowlist",
+          "kind": "from"
         }
       ],
       "unresolved_local_modules": [],
       "dynamic_import_sites": [
         {
           "source": "services/events/bus.py",
-          "line": 46,
+          "line": 51,
           "kind": "dynamic module expression"
         }
       ]

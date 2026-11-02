@@ -12,7 +12,7 @@ Score ≥ 12 = High; 6–11 = Medium; <6 = Low.
 | R-01 | Secret leakage via mis-committed key | Crypto | 2 | 5 | 10 | SOPS+age; `check-tracked-secrets.sh`; rotate+scrub on leak | Core |
 | R-02 | Unverified metric published as fact | Data | 2 | 4 | 8 | Governed lifecycle; human `--verify-value` | Human |
 | R-03 | Migration drift / unapplied change | Integrity | 1 | 4 | 4 | Ordered+checksummed; drift detection fails CI | Agent |
-| R-04 | Staging data loss | Availability | 1 | 4 | 4 | Nightly verified backup; restore rehearsal | Ops |
+| R-04 | Staging data loss | Availability | 1 | 4 | 4 | Confirm active backup schedule, encrypted off-host copy, retention, and restore rehearsal | Ops |
 | R-05 | Unauthorized gateway route | Access | 1 | 5 | 5 | Opt-in public; authz tests per route | Agent |
 | R-06 | Credit double-spend / bad retirement | Crypto | 1 | 5 | 5 | Atomic custody; human confirm before mutation | Human |
 | R-07 | Missing ISMS documentation | Compliance | 3 | 3 | 9 | This register + `isms-policy.md` | Core |

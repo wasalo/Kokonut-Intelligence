@@ -1,0 +1,79 @@
+{
+  "date": "2026-10-29",
+  "base_head": "ef005843",
+  "scope": "Strict adoption-program draft queue, explicit customer-value benchmark projection, and energy CLI date preflight",
+  "files": [
+    "services/gateway/solution_lifecycle_routes.py",
+    "apps/operator-console/index.html",
+    "tests/test_gateway_solution_lifecycle_adoption_program_review.py",
+    "tests/test_operator_console_solution_lifecycle.py",
+    "services/analytics/customer_value.py",
+    "tests/test_customer_value.py",
+    "services/analytics/cli_energy_monitoring.py",
+    "tests/test_cli_energy_monitoring_scope.py"
+  ],
+  "source_migrations": [
+    "schemas/postgres/520_location_solution_adoption_consent_events.sql",
+    "schemas/postgres/285_competitive_value_economics.sql"
+  ],
+  "adoption_program_drafts": {
+    "item_fields": [
+      "program_id", "solution_id", "solution_name", "program_status",
+      "adoption_pathway", "local_adaptation_policy", "created_at",
+      "consent_data_category", "consent_purpose", "consent_version"
+    ],
+    "invariants": [
+      "status is draft and draft page contains exactly the migration-520 projection",
+      "consent policy fields are all null or all present and valid",
+      "page echoes and binds location, limit, and offset; IDs are unique",
+      "items follow created_at DESC, program_id ASC",
+      "unrequestable lookahead beyond offset 10000 is represented by offset_limited without a next_offset",
+      "malformed service results return sanitized no-store errors",
+      "console validates page metadata and reports when remaining drafts exceed the offset cap"
+    ]
+  },
+  "competitive_benchmarks": {
+    "columns": [
+      "id", "strategy_plan_id", "buyer_segment_id", "benchmark_type",
+      "subject_type", "subject_name", "measure_name", "unit", "value",
+      "currency", "observed_at", "source_ref", "confidence", "status",
+      "evidence", "created_at"
+    ],
+    "preserved_behavior": [
+      "filters remain strategy_plan_id, benchmark_type, measure_name, and submitted/verified/published status",
+      "ordering remains observed_at DESC, subject_type, subject_name",
+      "UUID cleanup and row payload remain unchanged"
+    ]
+  },
+  "energy_monitoring_cli_dates": {
+    "arguments": ["add-source --installation-date", "record --date"],
+    "invariants": [
+      "invalid supplied dates fail via parser.error before cli.run can acquire PostgreSQL",
+      "valid values use the existing date.fromisoformat behavior and handler conversion",
+      "omitted and empty optional date values keep their existing fallback behavior"
+    ]
+  },
+  "verification": {
+    "adoption_gateway_command": "python3 -m pytest tests/test_gateway_solution_lifecycle_adoption_program_review.py -k 'adoption_program_drafts' -q",
+    "adoption_gateway_tests_passed": 14,
+    "adoption_console_command": "python3 -m pytest tests/test_operator_console_solution_lifecycle.py -k 'adoption_program_drafts_bind_page_and_report_offset_cap' -q",
+    "adoption_console_tests_passed": 1,
+    "benchmark_command": "python3 -m pytest tests/test_customer_value.py::test_compare_benchmarks_uses_explicit_migration_projection_and_cleans_uuids -q",
+    "benchmark_tests_passed": 1,
+    "energy_date_command": "python3 -m pytest tests/test_cli_energy_monitoring_scope.py -k 'date_arguments or valid_iso_date or missing_or_empty_date' -q",
+    "energy_date_tests_passed": 8,
+    "console_javascript_syntax_command": "python3 -m pytest tests/test_operator_console_solution_lifecycle.py -k inline_javascript_parses_when_node_is_available -q",
+    "console_javascript_syntax_checks_passed": 1,
+    "total_focused_checks_passed": 25,
+    "ruff": "passed",
+    "python_compileall": "passed",
+    "capability_matrix": "passed: 67 rows; 24 baseline-retained, 7 deployed, 36 prepared",
+    "git_diff_check": "passed"
+  },
+  "environment": {
+    "database_used": false,
+    "external_provider_used": false,
+    "candidate_or_legacy_state_changed": false,
+    "errors": 0
+  }
+}

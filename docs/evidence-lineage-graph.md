@@ -2,8 +2,8 @@
 
 The evidence-lineage graph is a generation-backed PostgreSQL read model. It
 projects explicit, policy-filtered relationships from canonical PostgreSQL
-records into `graph_node` and `graph_edge`. PostgreSQL and Directus records
-remain authoritative. RDF triples, IRIs, and the metadata API are separate
+records into `graph_node` and `graph_edge`. PostgreSQL records remain
+authoritative. Directus is an optional adapter. RDF triples, IRIs, and the metadata API are separate
 interoperability/read models.
 
 The projection is designed for bounded evidence lineage and provenance queries,

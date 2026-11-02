@@ -1,0 +1,111 @@
+{
+  "date": "2026-10-28",
+  "source_revision": "bfeec998b6021573821c3162e7d4b197c7282a97",
+  "working_tree_dirty": true,
+  "scope": "Source-level batch with request-bound private Gateway contracts for operating-pilot work opportunities and governance-circle detail, CRISP location preflight, Data Governance UUID canonicalization, and a 94-generator report-scope audit.",
+  "checks": [
+    {
+      "command": "python3 -m pytest -q <operating-pilot response and CLI boundary regression modules>",
+      "result": "passed",
+      "passed": 262,
+      "test_files": [
+        "tests/test_crisp_cli_location_preflight.py",
+        "tests/test_data_governance_cli_scope.py",
+        "tests/test_gateway_operating_pilot_work_opportunities_response.py",
+        "tests/test_gateway_operating_pilot_work_claims.py",
+        "tests/test_gateway_operating_pilot_reads.py",
+        "tests/test_gateway_operating_pilot_pagination_openapi.py"
+      ]
+    },
+    {
+      "command": "python3 -m pytest -q <governance circle and adjacent governance regressions>",
+      "result": "passed",
+      "passed": 44,
+      "skipped": 5,
+      "test_files": [
+        "tests/test_gateway_governance_circle_response.py",
+        "tests/test_gateway_governance_roles.py",
+        "tests/test_gateway_governance_role_detail_response.py",
+        "tests/test_gateway_governance_role_response_contract.py",
+        "tests/test_gateway_governance_role_pagination_openapi.py",
+        "tests/test_governance_roles.py",
+        "tests/test_governance_role_authority_unit.py",
+        "tests/test_governance_role_authority.py"
+      ]
+    },
+    {
+      "command": "CRISP location-preflight and scoring selection",
+      "result": "passed",
+      "passed": 97,
+      "test_files": [
+        "tests/test_crisp_cli_location_preflight.py",
+        "tests/test_crisp_scoring.py"
+      ]
+    },
+    {
+      "command": "Data Governance CLI focused location-scope tests",
+      "result": "passed",
+      "passed": 9,
+      "test_files": ["tests/test_data_governance_cli_scope.py"]
+    },
+    {
+      "command": "python3 -m pytest -q <operating-pilot work-opportunity response contract selection>",
+      "result": "passed",
+      "passed": 110,
+      "test_files": [
+        "tests/test_gateway_operating_pilot_work_opportunities_response.py",
+        "tests/test_gateway_operating_pilot_work_claims.py",
+        "tests/test_gateway_operating_pilot_reads.py",
+        "tests/test_gateway_operating_pilot_pagination_openapi.py"
+      ]
+    },
+    {
+      "command": "Governance circle detail focused response selection",
+      "result": "passed",
+      "passed": 39,
+      "test_files": ["tests/test_gateway_governance_circle_response.py"]
+    },
+    {
+      "command": "Ruff check on changed Python implementation and test files",
+      "result": "passed"
+    },
+    {
+      "command": "python3 -m py_compile on changed Python implementation files",
+      "result": "passed"
+    },
+    {
+      "command": "python3 scripts/report_generator_inventory.py --check docs/refactor/report-generator-source-inventory.json",
+      "result": "passed",
+      "notes": "Source-only audit covered all 94 registered report generators; 89 validate scope inline, 3 delegate before cursor creation to a checked view helper, and 2 enforce their explicit network/UUID contract."
+    },
+    {
+      "command": "python3 scripts/check-capability-matrix.py",
+      "result": "passed",
+      "matrix_rows": 67
+    },
+    {
+      "command": "git diff --check",
+      "result": "passed"
+    }
+  ],
+  "progress": {
+    "checklist_complete": 1503,
+    "checklist_open": 25,
+    "todo_complete": 209,
+    "todo_open": 16,
+    "capability_rows": 67,
+    "strict_private_gateway_response_endpoints": 81,
+    "cli_groups_with_location_uuid_preflight": 25
+  },
+  "environment": {
+    "live_database_used": false,
+    "candidate_or_legacy_touched": false,
+    "provider_called": false,
+    "live_network_used": false
+  },
+  "limitations": [
+    "Response models were exercised through mocked services and ASGI; live OIDC and Gateway/database behavior remain unverified.",
+    "Location UUID preflight and request-bound responses do not establish tenant row-level isolation or full populated-data parity.",
+    "Capability classifications and MAN-CAP acceptance remain unchanged."
+  ]
+}

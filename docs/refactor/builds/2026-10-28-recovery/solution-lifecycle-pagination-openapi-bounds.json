@@ -1,0 +1,39 @@
+{
+  "result": "passed",
+  "date": "2026-10-28",
+  "source_revision": "753b4645",
+  "working_tree_dirty": true,
+  "scope": "OpenAPI pagination bounds for the 25 solution-lifecycle Gateway list routes",
+  "finding": "All 25 list endpoints relied on service-level page validation, while their route signatures used string query parameters without published min/max bounds.",
+  "service_contracts": {
+    "read_projections": "limit 1..50; offset 0..10000",
+    "adoption_program_drafts_and_review": "limit 1..25; offset 0..10000",
+    "adoption_program_redesigns": "limit 1..50; offset 0..10000",
+    "adopter_readiness_review": "limit 1..100; offset 0..10000",
+    "configuration_drafts_and_review": "limit 1..25; offset 0..10000"
+  },
+  "change": "Route query parameters now use typed FastAPI Query declarations aligned to each downstream reader/action validator. Existing defaults and service-side validation remain unchanged; invalid query values return 422 before service invocation.",
+  "checks": {
+    "openapi_and_invalid_query_regression": {
+      "command": "python3 -m pytest tests/test_gateway_solution_lifecycle_pagination_openapi.py -q",
+      "result": "4 passed",
+      "coverage": "All 25 routes publish the expected default/minimum/maximum and reject limit=0, limit=101, and offset=-1 before the mocked service can run."
+    },
+    "solution_lifecycle_route_regression": {
+      "command": "python3 -m pytest tests/test_gateway_solution_lifecycle_*.py -q",
+      "result": "448 passed"
+    },
+    "targeted_ruff": "passed",
+    "python_compilation": "passed",
+    "diff_check": "passed"
+  },
+  "external_services": {
+    "database": false,
+    "network": false,
+    "provider": false
+  },
+  "rollback": "Revert the Query parameter declarations and the focused OpenAPI regression; no migration or persisted data changed.",
+  "limitations": [
+    "This verifies FastAPI OpenAPI generation and in-process request validation only; it does not establish live proxy behavior or database/service availability."
+  ]
+}

@@ -1,0 +1,98 @@
+{
+  "date": "2026-10-28",
+  "source_revision": "8ebdfe887e9d32fc4b502f9bdd465b226f8ccf8b",
+  "working_tree_dirty": true,
+  "scope": "Source-only batch covering five mixed/network-capable report UUID guards, strict private operating-pilot competency-history response validation, and supplied-location UUID preflight across 17 CLI groups.",
+  "checks": [
+    {
+      "command": "python3 -m pytest <listed route, report, CLI, and adjacent regression modules> -q",
+      "result": "passed",
+      "passed": 745,
+      "skipped": 2,
+      "test_files": [
+        "tests/test_gateway_operating_pilot_own_competency_response.py",
+        "tests/test_gateway_operating_pilot_reads.py",
+        "tests/test_gateway_operating_pilot_pagination_openapi.py",
+        "tests/test_kokonut_commons_governance.py",
+        "tests/test_open_source_capitalist_scaling.py",
+        "tests/test_value_stream.py",
+        "tests/test_capital_cli_location_preflight.py",
+        "tests/test_certificates_cli_location_preflight.py",
+        "tests/test_cli_location_preflight_driver_sandbox.py",
+        "tests/test_events_fork_cli_location_preflight.py",
+        "tests/test_finance_cli_location_preflight.py",
+        "tests/test_forecast_cli_location_preflight.py",
+        "tests/test_fortune500_cli_location_preflight.py",
+        "tests/test_geostatistics_cli_location_preflight.py",
+        "tests/test_graph_projection_cli_location_preflight.py",
+        "tests/test_management_cli_location_preflight.py",
+        "tests/test_office_cli_location_preflight.py",
+        "tests/test_planning_cli_location_preflight.py",
+        "tests/test_rdf_cli_location_preflight.py",
+        "tests/test_revenue_multiplier_cli_location_preflight.py",
+        "tests/test_strategic_reserve_cli_location_preflight.py",
+        "tests/test_threatcasting_cli_location_preflight.py",
+        "tests/test_threatcasting_cli_compat.py",
+        "tests/test_unified_cli_success_contract.py",
+        "tests/test_threatcasting.py",
+        "tests/test_forecast.py",
+        "tests/test_capital_accounting.py",
+        "tests/test_capital_accounting_error_redaction.py",
+        "tests/test_revenue_multiplier.py",
+        "tests/test_graph_projection.py",
+        "tests/test_impact_office_integrity.py",
+        "tests/test_strategic_reserve.py",
+        "tests/test_geostatistics.py",
+        "tests/test_rdf_graph.py",
+        "tests/test_sandbox_error_redaction.py",
+        "tests/test_sandbox_module_input.py",
+        "tests/test_sandbox_database_error_redaction.py"
+      ]
+    },
+    {
+      "command": "Ruff on changed implementation and test files; Graph Projection checked with `ruff check --select I,F`",
+      "result": "passed",
+      "notes": "Graph Projection has pre-existing E701/E702 compact-formatting findings; these were not expanded into a broad formatting rewrite."
+    },
+    {
+      "command": "python3 -m py_compile on changed Python implementation files",
+      "result": "passed"
+    },
+    {
+      "command": "python3 scripts/report_generator_inventory.py --check docs/refactor/report-generator-source-inventory.json",
+      "result": "passed"
+    },
+    {
+      "command": "python3 scripts/report_generator_query_scope_inventory.py --check docs/refactor/report-generator-query-scope-inventory.json",
+      "result": "passed"
+    },
+    {
+      "command": "python3 scripts/check-capability-matrix.py",
+      "result": "passed",
+      "matrix_rows": 67
+    },
+    {
+      "command": "git diff --check",
+      "result": "passed"
+    }
+  ],
+  "progress": {
+    "checklist_complete": 1494,
+    "checklist_open": 25,
+    "todo_complete": 200,
+    "todo_open": 16,
+    "capability_rows": 67,
+    "strict_private_gateway_response_endpoints": 77
+  },
+  "environment": {
+    "live_database_used": false,
+    "candidate_or_legacy_touched": false,
+    "provider_called": false,
+    "live_network_used": false
+  },
+  "limitations": [
+    "UUID preflight prevents malformed scope from reaching database setup; it does not prove tenant row-level isolation or query-level scope correctness.",
+    "The private competency response contract was exercised against a mocked service through ASGI; live OIDC and Gateway database behavior remain unverified.",
+    "The capability matrix retains its existing capability classifications; this batch hardens scope and response boundaries without changing deployment acceptance."
+  ]
+}

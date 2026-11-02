@@ -3,10 +3,7 @@
 from __future__ import annotations
 
 import uuid
-from datetime import datetime, timezone
-from unittest.mock import MagicMock, patch
-
-import pytest
+from unittest.mock import MagicMock
 
 
 def _make_mock_conn(mock_cursor):
@@ -153,8 +150,9 @@ class TestAdaptiveSampler:
         mock_cursor.fetchone.return_value = {"anomaly_count": 0, "observation_count": 10}
 
         result = sampler.check_stability(
-            sensor_device_id="sensor-001",
+            sensor_device_id="00000000-0000-4000-8000-000000000002",
             sensor_type="soil_moisture",
+            location_id="00000000-0000-4000-8000-000000000001",
             stable_threshold_days=7,
         )
 
@@ -167,8 +165,9 @@ class TestAdaptiveSampler:
         mock_cursor.fetchone.return_value = {"anomaly_count": 3, "observation_count": 10}
 
         result = sampler.check_stability(
-            sensor_device_id="sensor-001",
+            sensor_device_id="00000000-0000-4000-8000-000000000002",
             sensor_type="soil_moisture",
+            location_id="00000000-0000-4000-8000-000000000001",
             stable_threshold_days=7,
         )
 

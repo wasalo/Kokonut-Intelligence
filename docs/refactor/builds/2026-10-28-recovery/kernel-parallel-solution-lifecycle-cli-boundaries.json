@@ -1,0 +1,56 @@
+{
+  "date": "2026-10-28",
+  "source_revision": "1f1963d1c55ea9767dbdb22e5d8d73cd1f3cd6c8",
+  "working_tree_dirty": true,
+  "scope": "Source-level batch adding a strict private solution-lifecycle gate-page response contract and pre-dispatch location UUID validation for Analytics and Credit Class CLI operations.",
+  "checks": [
+    {
+      "command": "python3 -m pytest tests/test_gateway_solution_lifecycle_reads.py tests/test_gateway_solution_lifecycle_pagination_openapi.py tests/test_analytics_cli_scope.py tests/test_credit_class_cli_scope.py -q",
+      "result": "passed",
+      "passed": 159,
+      "test_files": [
+        "tests/test_gateway_solution_lifecycle_reads.py",
+        "tests/test_gateway_solution_lifecycle_pagination_openapi.py",
+        "tests/test_analytics_cli_scope.py",
+        "tests/test_credit_class_cli_scope.py"
+      ]
+    },
+    {
+      "command": "ruff check on changed implementation and test files",
+      "result": "passed"
+    },
+    {
+      "command": "python3 -m py_compile on changed implementation files",
+      "result": "passed"
+    },
+    {
+      "command": "python3 scripts/check-capability-matrix.py",
+      "result": "passed",
+      "matrix_rows": 67
+    },
+    {
+      "command": "git diff --check",
+      "result": "passed"
+    }
+  ],
+  "progress": {
+    "checklist_complete": 1506,
+    "checklist_open": 25,
+    "todo_complete": 212,
+    "todo_open": 16,
+    "capability_rows": 67,
+    "strict_private_gateway_response_endpoints": 82,
+    "cli_groups_with_location_uuid_preflight": 27
+  },
+  "environment": {
+    "live_database_used": false,
+    "candidate_or_legacy_touched": false,
+    "provider_called": false,
+    "live_network_used": false
+  },
+  "limitations": [
+    "The response contract was exercised with mocked readers and ASGI; live OIDC and Gateway/database behavior remain unverified.",
+    "CLI UUID preflight and request-bound responses do not establish database row-level isolation or populated-data parity.",
+    "Capability classifications and MAN-CAP acceptance remain unchanged."
+  ]
+}

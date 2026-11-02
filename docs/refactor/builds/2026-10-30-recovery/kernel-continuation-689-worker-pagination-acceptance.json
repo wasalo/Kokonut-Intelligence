@@ -1,0 +1,28 @@
+{
+  "date": "2026-10-30",
+  "branch": "chore/kernel-next-sprint-plan",
+  "scope": "PRM migration 689, private pagination, current-weather error redaction, EventBus lease and handler-timeout boundaries",
+  "focused_test_command": "python3 -m pytest tests/test_prm_outcome_correlation_projection.py tests/test_gateway_extension_learning_pagination_openapi.py tests/test_gateway_extension_learning_reads.py tests/test_gateway_traceability_pagination_openapi.py tests/test_gateway_traceability.py tests/test_weather_worker.py tests/test_event_bus_durability.py tests/test_event_worker_recovery.py -q",
+  "focused_tests_passed": 139,
+  "focused_subtests_passed": 63,
+  "prm_migration_689": {
+    "applied_and_replayed": true,
+    "database": "disposable PostgreSQL 16",
+    "network_mode": "none",
+    "host_port_published": false,
+    "assertions_passed": 6,
+    "candidate_database_touched": false,
+    "legacy_database_touched": false,
+    "container_cleanup": "passed",
+    "detailed_evidence": "prm-portfolio-metric-scope-disposable.json"
+  },
+  "provider_contacted": false,
+  "static_checks": {
+    "ruff": "passed for all changed Python source, tests, and checker",
+    "python_compile": "passed for all changed Python files",
+    "runtime_sql_inventory": "passed",
+    "dependency_groups": "passed",
+    "provider_boundaries": "passed",
+    "git_diff_check": "passed"
+  }
+}

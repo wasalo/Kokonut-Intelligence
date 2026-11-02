@@ -277,12 +277,29 @@ class AdaptiveSampler:
         sensor_device_id: str,
         sensor_type: str,
         stable_threshold_days: int = 7,
+        *,
+        location_id: str,
     ) -> Dict[str, Any]:
         """Check if a sensor has been stable and should have reduced sampling.
 
         A sensor is considered stable if it has had no anomalies for
         stable_threshold_days days.
         """
+        try:
+            location_id = str(uuid.UUID(str(location_id)))
+        except (TypeError, ValueError, AttributeError) as exc:
+            raise ValueError("location_id must be a valid UUID") from exc
+        try:
+            sensor_device_id = str(uuid.UUID(str(sensor_device_id)))
+        except (TypeError, ValueError, AttributeError) as exc:
+            raise ValueError("sensor_device_id must be a valid UUID") from exc
+        if (
+            isinstance(stable_threshold_days, bool)
+            or not isinstance(stable_threshold_days, int)
+            or stable_threshold_days < 1
+        ):
+            raise ValueError("stable_threshold_days must be a positive integer")
+
         conn = self._get_conn()
         cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
@@ -290,12 +307,26 @@ class AdaptiveSampler:
             SELECT
                 (SELECT COUNT(*) FROM sensor_alert sa
                  JOIN sensor_device sd ON sd.id = sa.sensor_device_id
-                 WHERE sd.id = %s AND sd.sensor_type = %s
-                   AND sa.created_at > NOW() - INTERVAL '%s days') AS anomaly_count,
+                 JOIN sensor_type st ON st.id = sd.sensor_type_id
+                 WHERE sd.id = %s AND st.name = %s
+                   AND sd.location_id = %s::uuid
+                   AND sa.location_id = sd.location_id
+                   AND sa.created_at > NOW() - (%s * INTERVAL '1 day')) AS anomaly_count,
                 (SELECT COUNT(*) FROM sensor_reading sr
+                 JOIN sensor_device reading_device ON reading_device.id = sr.sensor_id
                  WHERE sr.sensor_id = %s
-                   AND sr.created_at > NOW() - INTERVAL '%s days') AS observation_count
-        """, (sensor_device_id, sensor_type, stable_threshold_days, sensor_device_id, stable_threshold_days))
+                   AND reading_device.location_id = %s::uuid
+                   AND sr.location_id = reading_device.location_id
+                   AND sr.created_at > NOW() - (%s * INTERVAL '1 day')) AS observation_count
+        """, (
+            sensor_device_id,
+            sensor_type,
+            location_id,
+            stable_threshold_days,
+            sensor_device_id,
+            location_id,
+            stable_threshold_days,
+        ))
 
         row = cur.fetchone()
         anomaly_count = row["anomaly_count"] if row else 0

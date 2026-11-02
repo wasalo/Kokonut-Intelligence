@@ -1,0 +1,109 @@
+{
+  "date": "2026-10-29",
+  "base_head": "48ffcba9",
+  "scope": "Migration-backed stakeholder trust/identity projections, marketplace and pest-management CLI preflight, and strict migration-517 configuration own-drafts queue contract",
+  "files": [
+    "services/analytics/stakeholder_trust.py",
+    "services/analytics/stakeholder_identity_resolution.py",
+    "tests/test_analytics_stakeholder_view_projections.py",
+    "services/analytics/cli_marketplace.py",
+    "tests/test_marketplace_cli_scope.py",
+    "services/analytics/cli_pest_management.py",
+    "tests/test_pest_management_cli_scope.py",
+    "services/gateway/solution_lifecycle_routes.py",
+    "tests/test_gateway_solution_lifecycle_configuration.py",
+    "apps/operator-console/index.html",
+    "tests/test_operator_console_solution_lifecycle.py",
+    "docs/refactor/runtime-sql-inventory.json"
+  ],
+  "source_migrations": [
+    "schemas/postgres/222_cooperative_trust.sql",
+    "schemas/postgres/227_stakeholder_identity_accountability.sql",
+    "schemas/postgres/517_location_solution_configuration_draft_review.sql"
+  ],
+  "analytics_projections": {
+    "v_party_trust_profile": [
+      "party_id", "display_name", "party_type", "evidence_count",
+      "supporting_evidence_count", "contradicting_evidence_count",
+      "contested_evidence_count", "open_risk_count", "latest_evidence_at",
+      "earliest_evidence_at", "latest_snapshot_at", "latest_uncertainty",
+      "interpretation"
+    ],
+    "v_party_trust_evidence_timeline": [
+      "id", "subject_party_id", "subject_name", "relationship_party_id",
+      "relationship_name", "dimension", "direction", "source_type",
+      "source_id", "source_label", "summary", "observed_at", "expires_at",
+      "confidence", "uncertainty", "status", "correction_status",
+      "appeal_status"
+    ],
+    "v_party_resolution_queue": [
+      "resolution_case_id", "source_system", "source_type", "source_id",
+      "candidate_party_id", "candidate_name", "proposed_party_type",
+      "match_method", "confidence", "status", "created_at", "reviewed_at"
+    ],
+    "v_canonical_party_source_links": [
+      "source_system", "source_id", "identifier_type", "identifier_value",
+      "party_id", "party_type", "display_name", "verification_status",
+      "confidence", "reviewed_by", "reviewed_at"
+    ],
+    "preserved_behavior": [
+      "existing filters, bind order, ordering, serialization, and access boundaries",
+      "source projections match the migration-declared ordered columns"
+    ]
+  },
+  "cli_preflight": {
+    "pest_management_dates": [
+      "record-scouting, record-intervention, record-pesticide, record-resistance, record-degree-day",
+      "create-schedule start/end, record-compliance, schedule-re-scout",
+      "compliance-score, add-trap, record-catch, organic-pest-score, generate-audit"
+    ],
+    "marketplace_inputs": [
+      "create-listing --harvest-date",
+      "create-buyer --preferences and --contact-info must decode to JSON objects"
+    ],
+    "invariants": [
+      "invalid dates or malformed/non-object JSON fail before database acquisition",
+      "valid ISO dates are forwarded to service handlers as datetime.date values",
+      "valid buyer JSON is forwarded as decoded objects"
+    ]
+  },
+  "configuration_own_drafts": {
+    "item_fields": [
+      "configuration_id", "solution_id", "version", "comparability_class",
+      "evidence_impact", "proposed_at"
+    ],
+    "page_fields": [
+      "location_id", "limit", "offset", "drafts", "has_more", "next_offset",
+      "offset_limited"
+    ],
+    "invariants": [
+      "strict OpenAPI/runtime schema and exact response fields",
+      "operator and exact-location request binding with the requested page echoed",
+      "unique configuration IDs and migration-517 proposed_at DESC, id DESC ordering",
+      "console ordering comparison preserves PostgreSQL microsecond timestamp precision and normalizes timezone offsets",
+      "continuations stop at offset 10000 with explicit offset_limited state",
+      "malformed provider output returns sanitized no-store failure before rendering",
+      "operator console validates exact fields, scope, cursor, order, and cap state"
+    ]
+  },
+  "verification": {
+    "focused_tests_command": "python3 -m pytest tests/test_analytics_stakeholder_view_projections.py tests/test_pest_management_cli_scope.py tests/test_marketplace_cli_scope.py tests/test_gateway_solution_lifecycle_configuration.py tests/test_operator_console_solution_lifecycle.py -q",
+    "focused_tests_passed": 177,
+    "focused_tests_skipped": 0,
+    "ruff": "passed for all changed Python source and test files",
+    "python_compileall": "passed",
+    "capability_matrix": "passed: 67 rows; 24 baseline-retained, 7 deployed, 36 prepared",
+    "runtime_sql_inventory": "refreshed and current; unresolved-write review ledger current with 42 tracked candidates",
+    "provider_boundaries": "passed: 17 vendor import sites",
+    "dependency_groups": "passed: 14 groups, 33 requirements",
+    "git_diff_check": "passed"
+  },
+  "environment": {
+    "database_used": false,
+    "external_provider_used": false,
+    "candidate_or_legacy_state_changed": false,
+    "migration_applied": false,
+    "errors": 0
+  },
+  "rollback": "Revert the source, focused tests, evidence/progress entries, and refreshed runtime SQL inventory. Migration 517 was not applied, so no schema or data rollback is required."
+}

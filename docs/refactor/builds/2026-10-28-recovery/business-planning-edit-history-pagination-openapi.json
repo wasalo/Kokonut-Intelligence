@@ -1,0 +1,23 @@
+{
+  "date": "2026-10-28",
+  "result": "passed",
+  "scope": "Gateway version-history pagination contract for business-planning canvases",
+  "route": "/operator/api/business-planning/{location_id}/canvases/{canvas_id}/versions",
+  "finding": "The underlying reader already bounded history pages to limit 1..5 and offset 0..10000, but the Gateway accepted string parameters without publishing or enforcing those bounds at the HTTP boundary.",
+  "change": "The route now declares integer query parameters with FastAPI bounds: limit defaults to 5 and is constrained to 1..5; offset defaults to 0 and is constrained to 0..10000.",
+  "checks": {
+    "command": "python3 -m pytest tests/test_gateway_business_planning_edits.py -q",
+    "result": "23 passed",
+    "openapi_bounds": "passed",
+    "invalid_values_rejected_before_reader": ["limit=0", "limit=6", "offset=-1", "offset=10001"],
+    "ruff": "passed",
+    "py_compile": "passed",
+    "diff_check": "passed"
+  },
+  "external_services": {
+    "database": false,
+    "network": false,
+    "provider": false
+  },
+  "rollback": "Revert the FastAPI query bounds and the focused test; no database schema or stored data changed."
+}

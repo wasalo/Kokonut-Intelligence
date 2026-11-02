@@ -261,7 +261,18 @@ def test_retry_response_uses_success_status(monkeypatch):
     router = APIRouter()
 
     async def run_in_threadpool(*_args, **_kwargs):
-        return {"summary_id": SUMMARY_ID, "resulting_status": "draft", "replayed": True}
+        return {
+            "summary_id": SUMMARY_ID,
+            "location_id": LOCATION_ID,
+            "summary_type": "operations",
+            "content": "Previously reviewed summary",
+            "source_tables": ["farm_activity"],
+            "source_references": {},
+            "model_version": "rules-v1",
+            "created_at": None,
+            "resulting_status": "verified",
+            "replayed": True,
+        }
 
     register_ai_summary_draft_routes(router, object(), run_in_threadpool, __import__("psycopg2"))
     app = FastAPI()
@@ -306,3 +317,142 @@ def test_gateway_error_and_invalid_body_are_fail_closed():
     )
     assert response.status_code == 400
     assert response.headers["cache-control"] == "no-store"
+
+
+def _draft_route_app(monkeypatch, result, *, dispatched=None):
+    from services.gateway.ai_summary_draft_routes import register_ai_summary_draft_routes
+
+    router = APIRouter()
+
+    async def run_in_threadpool(function, *args, **kwargs):
+        if dispatched is not None:
+            dispatched.append((function, args, kwargs))
+        return result
+
+    register_ai_summary_draft_routes(router, object(), run_in_threadpool, __import__("psycopg2"))
+    app = FastAPI()
+    app.include_router(router)
+
+    @app.middleware("http")
+    async def add_operator_session(request, call_next):
+        request.state.operator_session = SimpleNamespace(
+            operator=SimpleNamespace(operator_id=OPERATOR_ID)
+        )
+        return await call_next(request)
+
+    return app
+
+
+def _valid_draft_result(**overrides):
+    result = {
+        "summary_id": SUMMARY_ID,
+        "location_id": LOCATION_ID,
+        "summary_type": "operations",
+        "content": "Synthetic summary",
+        "source_tables": ["harvest_event"],
+        "source_references": {
+            "harvest_event": {
+                "record_ids": ["e0000000-0000-4000-8000-000000000001"],
+                "row_count": 1,
+                "truncated": False,
+                "scope": "location",
+            }
+        },
+        "model_version": "rules-v1",
+        "created_at": None,
+        "resulting_status": "draft",
+        "replayed": False,
+    }
+    result.update(overrides)
+    return result
+
+
+def test_draft_openapi_publishes_strict_request_and_response_contract():
+    app = _draft_route_app(None, _valid_draft_result())
+    operation = app.openapi()["paths"][
+        "/operator/api/ai-summaries/{location_id}/drafts"
+    ]["post"]
+    request_schema = operation["requestBody"]["content"]["application/json"]["schema"]
+    response_schema = operation["responses"]["200"]["content"]["application/json"]["schema"]
+
+    assert request_schema["additionalProperties"] is False
+    assert set(request_schema["required"]) == {"summary_type", "request_id"}
+    assert set(response_schema["$ref"].split("/")[-1:]) == {"AiSummaryDraftResponse"}
+    assert operation["responses"]["201"]["content"]["application/json"]["schema"] == response_schema
+    assert operation["responses"]["500"]["headers"]["Cache-Control"]["schema"]["example"] == "no-store"
+
+
+def test_combined_summary_can_return_twenty_registered_source_references(monkeypatch):
+    source_tables = [f"source_{index:02d}" for index in range(20)]
+    source_references = {
+        table: {"record_ids": [], "row_count": 0, "truncated": False}
+        for table in source_tables
+    }
+    result = _valid_draft_result(
+        summary_type="combined",
+        source_tables=source_tables,
+        source_references=source_references,
+    )
+    app = _draft_route_app(monkeypatch, result)
+    response = TestClient(app).post(
+        f"/operator/api/ai-summaries/{LOCATION_ID}/drafts",
+        json={"summary_type": "combined", "request_id": REQUEST_ID},
+    )
+
+    assert response.status_code == 201
+    assert len(response.json()["source_references"]) == 20
+
+
+@pytest.mark.parametrize(
+    ("body", "location_id"),
+    [
+        ({"summary_type": "unsupported", "request_id": REQUEST_ID}, LOCATION_ID),
+        ({"summary_type": "operations", "request_id": "not-a-uuid"}, LOCATION_ID),
+        ({"summary_type": "operations", "request_id": REQUEST_ID, "operator_id": OPERATOR_ID}, LOCATION_ID),
+        ({"summary_type": "operations", "request_id": REQUEST_ID}, "not-a-location-uuid"),
+    ],
+)
+def test_invalid_request_contract_fails_before_service_dispatch(monkeypatch, body, location_id):
+    dispatched = []
+    app = _draft_route_app(monkeypatch, _valid_draft_result(), dispatched=dispatched)
+    response = TestClient(app).post(
+        f"/operator/api/ai-summaries/{location_id}/drafts",
+        json=body,
+    )
+
+    assert response.status_code == 400
+    assert response.headers["cache-control"] == "no-store"
+    assert dispatched == []
+
+
+@pytest.mark.parametrize(
+    "malformed_result",
+    [
+        _valid_draft_result(location_id=str(uuid4())),
+        _valid_draft_result(summary_type="financial"),
+        _valid_draft_result(resulting_status="executed"),
+        _valid_draft_result(replayed="false"),
+        _valid_draft_result(operator_id=OPERATOR_ID),
+        _valid_draft_result(
+            source_references={
+                "harvest_event": {
+                    "record_ids": ["e0000000-0000-4000-8000-000000000001"],
+                    "row_count": 2,
+                    "truncated": False,
+                }
+            }
+        ),
+        _valid_draft_result(source_tables=["harvest_event", "harvest_event"]),
+    ],
+)
+def test_malformed_draft_response_fails_closed_without_store(monkeypatch, malformed_result):
+    app = _draft_route_app(monkeypatch, malformed_result)
+    response = TestClient(app).post(
+        f"/operator/api/ai-summaries/{LOCATION_ID}/drafts",
+        json={"summary_type": "operations", "request_id": REQUEST_ID},
+    )
+
+    assert response.status_code == 500
+    assert response.json() == {"error": "AI summary draft generation unavailable"}
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["vary"] == "Cookie"

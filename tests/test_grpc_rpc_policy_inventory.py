@@ -47,7 +47,7 @@ SERVICES = {
             "Batch": "ecocredit:batch:read",
             "BatchesByClass": "ecocredit:batch:read",
             "BatchesByProject": "ecocredit:batch:read",
-            "CreateBatch": "ecocredit:batch:write",
+            "CreateBatch": "location:ecocredit_batch:create",
             "Balance": "ecocredit:balance:read",
             "Balances": "ecocredit:balance:read",
             "BalancesByBatch": "ecocredit:balance:read",
@@ -72,7 +72,7 @@ SERVICES = {
             "BridgeOut": "ecocredit:bridge:write",
             "BridgeIn": "ecocredit:bridge:write",
             "BridgeComplete": "ecocredit:bridge:write",
-            "ApplyToClass": "ecocredit:class:write",
+            "ApplyToClass": "location:ecocredit_enrollment:apply",
             "EvaluateApplication": "ecocredit:class:write",
             "ListEnrollments": "ecocredit:class:read",
             "CreditTypes": "ecocredit:class:read",
@@ -95,12 +95,20 @@ def _method_policy(method: ast.FunctionDef) -> tuple[str, int] | None:
     calls = [
         node
         for node in ast.walk(method)
-        if isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id == "require_scope"
+        if isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Name)
+        and node.func.id in {"require_scope", "require_location_scope"}
     ]
     assert len(calls) <= 1, f"{method.name} must have at most one scope declaration"
     if not calls:
         return None
     call = calls[0]
+    if call.func.id == "require_location_scope":
+        resource = next(keyword.value for keyword in call.keywords if keyword.arg == "resource")
+        action = next(keyword.value for keyword in call.keywords if keyword.arg == "action")
+        assert isinstance(resource, ast.Constant) and isinstance(resource.value, str)
+        assert isinstance(action, ast.Constant) and isinstance(action.value, str)
+        return f"location:{resource.value}:{action.value}", call.lineno
     resource, action = call.args[1:3]
     assert isinstance(resource, ast.Constant) and isinstance(resource.value, str)
     assert isinstance(action, ast.Constant) and isinstance(action.value, str)

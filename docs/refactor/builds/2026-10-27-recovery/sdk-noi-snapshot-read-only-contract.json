@@ -1,0 +1,46 @@
+{
+  "date": "2026-10-27",
+  "contract": "The Python and TypeScript SDKs expose calculated NOI snapshots as read-only list, detail, and crop-cycle-filtered data.",
+  "source_of_truth": [
+    "schemas/postgres/004_finance.sql::noi_snapshot",
+    "schemas/postgres/425_signed_noi_snapshot_worker.sql",
+    "services/metrics/noi_snapshot_worker.py",
+    "services/metrics/cli.py::--reconcile-noi-snapshots",
+    "extensions/kokonut-hooks/src/metrics-calculator.ts::storeNoiSnapshot"
+  ],
+  "findings": [
+    "noi_snapshot stores calculated financial outputs and their calculation version, timestamp, and source inputs.",
+    "The location-scoped signed snapshot worker reconciles eligible rows from v_crop_cycle_noi.",
+    "No repository callsite uses SDK noi.create/createMany/update/delete methods.",
+    "Generic SDK writes permit callers to supply calculated outputs and provenance fields without running the snapshot calculation."
+  ],
+  "change": "Removed GenericMethods mutation inheritance and create/createMany/update/delete from both NoiMethods surfaces. Preserved list/get/listByCropCycle with authoritative crop-cycle filter merging. Documented the service/worker boundary.",
+  "validation": {
+    "python_tests": {
+      "command": "python3 -m pytest tests/test_sdk.py tests/test_sdk_method_parity.py tests/test_report_governance.py -q",
+      "result": "passed",
+      "passed": 111
+    },
+    "javascript_tests": {
+      "command": "npm test",
+      "working_directory": "sdk/javascript",
+      "result": "passed",
+      "passed": 55
+    },
+    "typescript_build": {
+      "command": "npm run build",
+      "working_directory": "sdk/javascript",
+      "result": "passed"
+    },
+    "static_checks": [
+      "Ruff passed",
+      "Python compilation passed"
+    ]
+  },
+  "scope_limits": [
+    "SDK calls were mocked; no database, provider, candidate, or legacy service was used.",
+    "Existing CLI, signed-worker, and Directus-extension snapshot writers were not changed or runtime-validated in this slice.",
+    "This does not establish universal tenant isolation or change capability/MAN-CAP acceptance."
+  ],
+  "rollback": "Restore SDK mutation methods only after all write paths enforce calculated snapshot provenance, location scope, and explicit reconciliation semantics."
+}

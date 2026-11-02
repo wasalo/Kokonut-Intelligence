@@ -1,0 +1,37 @@
+{
+  "result": "passed",
+  "date": "2026-10-29",
+  "scope": "migration-271 strategy advantage fit view readers",
+  "tests": {
+    "command": "python3 -m pytest tests/test_strategy_advantage_fit_projection.py -q",
+    "passed": 3,
+    "failed": 0
+  },
+  "view": {
+    "migration": "271_advantage_fit_links.sql",
+    "columns": [
+      "advantage_id",
+      "strategy_plan_id",
+      "name",
+      "defensibility_score",
+      "status",
+      "link_count",
+      "capability_link_count",
+      "choice_link_count",
+      "investment_link_count",
+      "fit_status"
+    ]
+  },
+  "acceptance": [
+    "strategy coherence, competitive report, and fit dashboard select the exact ordered ten-column view contract",
+    "all three readers retain strategy-plan scope; report and dashboard preserve defensibility ordering",
+    "existing output/finding serialization remains unchanged"
+  ],
+  "environment": {
+    "database": "not used",
+    "provider": "not used",
+    "candidate": "untouched",
+    "legacy": "untouched"
+  },
+  "rollback": "Revert the three projection queries, focused mock-cursor tests, and this evidence file; no database rollback is required."
+}

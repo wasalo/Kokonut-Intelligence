@@ -1,0 +1,84 @@
+{
+  "date": "2026-10-30",
+  "source_revision": "2b4597df",
+  "working_tree_dirty": true,
+  "result": "passed",
+  "capability": "CAP-035",
+  "routes": [
+    "GET /operator/api/solution-lifecycle/{location_id}/funding/review",
+    "GET /operator/api/solution-lifecycle/{location_id}/funding/{funding_case_id}/review"
+  ],
+  "migration": 490,
+  "response_fields": {
+    "queue_page": [
+      "location_id",
+      "offset",
+      "funding_cases",
+      "has_more",
+      "next_offset"
+    ],
+    "queue_item": [
+      "funding_case_id",
+      "solution_name",
+      "solution_type",
+      "solution_stage",
+      "capital_stage",
+      "funding_instrument",
+      "requested_amount",
+      "currency",
+      "created_at",
+      "submitted_at",
+      "tranche_count",
+      "submitter_attributed",
+      "is_self_authored"
+    ],
+    "case_detail": [
+      "funding_case_id",
+      "solution_name",
+      "solution_type",
+      "solution_stage",
+      "capital_stage",
+      "funding_instrument",
+      "requested_amount",
+      "minimum_viable_amount",
+      "maximum_authorized_amount",
+      "currency",
+      "risk_adjusted_expected_value",
+      "public_goods_value",
+      "community_share",
+      "downside_exposure",
+      "decision_status",
+      "rationale",
+      "evidence",
+      "created_at",
+      "submitted_at",
+      "tranches",
+      "submitter_attributed",
+      "is_self_authored"
+    ]
+  },
+  "checks": {
+    "strict_openapi_models": true,
+    "exact_migration_projection_fields": true,
+    "location_and_pagination_request_binding": true,
+    "funding_case_path_binding": true,
+    "sql_order_and_duplicate_validation": true,
+    "reviewer_identity_excluded": true,
+    "finite_bounded_json_and_numeric_fields": true,
+    "offset_10000_does_not_advertise_invalid_continuation": true,
+    "malformed_output_sanitized": true,
+    "no_store_preserved": true,
+    "review_authorization_policy_unchanged": true
+  },
+  "test_command": "python3 -m pytest tests/test_gateway_solution_lifecycle_funding_proposals.py -q -k 'funding_review_queue or funding_review_detail or funding_review_routes or funding_routes_have_exact_read_and_create_location_policies or funding_review_tenant_denial_maps_to_forbidden'",
+  "tests_passed": 23,
+  "static_checks": {
+    "ruff": "passed",
+    "python_compile": "passed",
+    "git_diff_check": "passed",
+    "capability_matrix": "passed"
+  },
+  "database_or_provider_accessed": false,
+  "candidate_or_legacy_state_changed": false,
+  "migration_applied": false
+}

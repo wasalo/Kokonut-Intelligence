@@ -1,0 +1,42 @@
+{
+  "workflow": "CI",
+  "run_id": 41213042814,
+  "run_number": 1019,
+  "pull_request": 71,
+  "head_sha": "fb4cc883bf24dc9181ae39208a34ebac678943a3",
+  "date": "2026-10-31",
+  "attempts": [
+    {
+      "attempt": 1,
+      "full_ci_job_id": 124571915582,
+      "kernel_image_job_id": 124571915359,
+      "kernel_image": "success",
+      "migration_replay": "696 applied; 0 failed",
+      "seed_replay": "28 applied; 0 failed",
+      "metric_computation": "Adelphi and Genesis each computed 20 metrics with 0 errors",
+      "full_python_suite_started_at": "2026-10-31T15:14:30Z",
+      "runner_shutdown_at": "2026-10-31T15:15:05Z",
+      "full_ci": "failed after runner shutdown terminated the suite"
+    },
+    {
+      "attempt": 2,
+      "full_ci_job_id": 124578074269,
+      "kernel_image_job_id": 124578075453,
+      "kernel_image": "success",
+      "migration_replay": "696 applied; 0 failed",
+      "seed_replay": "28 applied; 0 failed",
+      "metric_computation": "Adelphi and Genesis each computed 20 metrics with 0 errors",
+      "full_python_suite_started_at": "2026-10-31T15:38:19Z",
+      "runner_shutdown_at": "2026-10-31T15:38:50Z",
+      "full_ci": "failed after runner shutdown terminated the suite"
+    }
+  ],
+  "observed_result": "No full-suite assertion failure was logged before either hosted runner shutdown. The current code batch passes 215 focused tests locally; hosted validation of the new commit remains open.",
+  "user_linked_run": {
+    "run_id": 41172853331,
+    "run_number": 1014,
+    "head_sha": "aa6a01ab053ff48f886766e19212096528b41d6d",
+    "attempt_1": "marked failed; GitHub Actions job log endpoint returned BlobNotFound",
+    "attempt_2": "cancelled during Buildx before ci-check.sh"
+  }
+}

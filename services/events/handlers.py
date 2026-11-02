@@ -13,47 +13,59 @@ logger = get_logger("events.handlers")
 
 def handle_alert_notification(event_type: str, payload: dict, *, event_id: str | None = None) -> None:
     """Persist configured alert notifications before acknowledging the event."""
-    from services.common.database import get_connection
-    from services.core.features import is_enabled
+    from services.core.features import require_feature
     from services.events.notification_outbox import (
         _notification_payloads,
-        enqueue_event_notification,
         enqueue_event_notification_isolated,
     )
 
+    if not isinstance(payload, dict):
+        raise ValueError("notification payload must be a JSON object")
+    messages = _notification_payloads(event_type, payload)
     if not event_id:
-        if _notification_payloads(event_type, payload):
+        if messages:
             raise ValueError("configured alert notifications require their source event ID")
         logger.debug("No configured notification destination for event type %s", event_type)
         return
 
-    if is_enabled("isolated_notification_enqueue"):
-        from services.common.worker_database import get_worker_db
+    if not messages:
+        logger.debug("No configured notification destination for event type %s", event_type)
+        return
 
-        conn = get_worker_db("notification_enqueue")
+    from uuid import UUID
+
+    try:
+        event_id = str(UUID(str(event_id)))
+    except (ValueError, TypeError, AttributeError) as exc:
+        raise ValueError("a valid source event UUID is required for notification delivery") from exc
+    location_id = payload.get("location_id")
+    if location_id is not None:
         try:
-            queued = enqueue_event_notification_isolated(
-                conn,
-                event_id=event_id,
-                event_type=event_type,
-                payload=payload,
-                location_id=payload.get("location_id"),
-            )
-            conn.commit()
-        except Exception:
-            conn.rollback()
-            raise
-        finally:
-            conn.close()
-    else:
-        with get_connection() as conn:
-            queued = enqueue_event_notification(
-                conn,
-                event_id=event_id,
-                event_type=event_type,
-                payload=payload,
-                location_id=payload.get("location_id"),
-            )
+            location_id = str(UUID(str(location_id)))
+        except (ValueError, TypeError, AttributeError) as exc:
+            raise ValueError("location_id must be a valid UUID") from exc
+
+    # Never enqueue notification intents through the shared runtime login.
+    # Check the opt-in before obtaining any database connection so a disabled
+    # isolated worker fails closed without triggering a legacy fallback.
+    require_feature("isolated_notification_enqueue")
+    from services.common.worker_database import get_worker_db
+
+    conn = get_worker_db("notification_enqueue")
+    try:
+        queued = enqueue_event_notification_isolated(
+            conn,
+            event_id=event_id,
+            event_type=event_type,
+            payload=payload,
+            location_id=location_id,
+        )
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        conn.close()
     logger.info("Queued %d alert notification deliveries for event %s", queued, event_id)
 
 

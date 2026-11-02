@@ -1,18 +1,23 @@
-# KI Production — bootstrap runbook
+# Legacy Compose production runbook (not the Kernel Standard profile)
 
-Production runs on a dedicated VPS managed via Coolify (Traefik for TLS).
-This runbook takes a fresh host to a deployed, healthy KI production stack.
+This document describes the legacy integration stack only. The current
+production target is the Kernel deployment at `hub.kokonut.network`; production
+has not passed its deployment and operational acceptance gates. Use the
+[current architecture and implementation guide](../../docs/refactor/current-state-and-implementation.md)
+for the current profile status.
 
-**Everything else is already built** — deploy scripts, GitHub Actions
-promotion workflow, backup policy. This document covers the one-time host
-provisioning.
+The `deploy-production.yml` workflow and `deploy/scripts/deploy-production.sh`
+still deploy the legacy Compose files (`docker-compose.yml`,
+`docker-compose.prod.yml`, and `docker-compose.traefik.yml`). They do not
+deploy the Kernel Standard profile. Their presence does not mean the production
+host, secret delivery, backups, recovery, or health gates have been accepted.
 
 ## Prerequisites
 
-- A VPS (Wasabi provisions; recommend 4 vCPU / 8 GB minimum — ClickHouse
-  alone wants 4G)
-- DNS: `kokonut.network` + `metabase.kokonut.network` A records → host IP
-  (or Cloudflare-proxied)
+- A VPS sized and secured for the legacy Compose stack (the old resource
+  suggestions below are not Kernel sizing guidance)
+- Legacy DNS only: `kokonut.network` and `metabase.kokonut.network`; the current
+  Kernel application hostname selected by the owner is `hub.kokonut.network`
 - SSH access as root during provisioning
 
 ## 1. Base host setup
@@ -42,29 +47,22 @@ chmod 600 /home/kokonut-deploy/.ssh/authorized_keys
 chown -R kokonut-deploy:kokonut-deploy /home/kokonut-deploy/.ssh
 ```
 
-## 3. Checkout + secrets
+## 3. Checkout + secret-delivery gate
 
 ```bash
 sudo -u kokonut-deploy git clone \
   https://github.com/wasalo/Kokonut-Intelligence.git /opt/ki-prod
 cd /opt/ki-prod
 
-# age keypair for production secrets (NEVER reuse staging's)
-age-keygen -o /opt/ki-prod/.age-key && chmod 600 /opt/ki-prod/.age-key
-age-keygen -y /opt/ki-prod/.age-key   # public key → put in .sops.yaml
-
-# Create .sops.yaml with the prod public key, then:
-cp deploy/production/.env.production.example deploy/production/.env.production
-# edit: fill all replace-with-strong-* values
-cd deploy/production && sops -e -i .env.production && rm -f .env.production
-git add .sops.yaml .env.production.sops
-git switch -c chore/production-sops-setup
-git commit -m "chore(prod): production secrets"
-git push -u origin chore/production-sops-setup
-# Open a GitHub pull request and merge through the protected main branch.
+# The production workflow does not decrypt or load
+# deploy/production/.env.production.sops. The remote Compose invocation also
+# needs the required environment at the host; the current workflow does not
+# provision it. Secret-delivery wiring is an open release gate.
+# Do not follow the ignored sample's SOPS instructions and assume the file is
+# consumed. Implement and review secret injection before enabling deployment.
 ```
 
-## 4. First deployment
+## 4. Legacy deployment workflow
 
 From the repository's GitHub Actions page, dispatch
 `.github/workflows/deploy-production.yml` from `main`, select `yes`, and
@@ -72,21 +70,24 @@ approve the `production` environment if it is configured with required
 reviewers. Configure the environment values described in
 [GitHub Actions setup](../../docs/github-actions.md).
 
-The script: backs up (no-op checkpoint on first run), pulls, composes up
-with `docker-compose.prod.yml` + `traefik.yml`, verifies health.
+The script attempts a pre-deployment backup, pulls the selected `main` commit,
+and runs the legacy Compose stack with `docker-compose.prod.yml` plus
+`docker-compose.traefik.yml`, then checks health. The production host must
+already have its required runtime environment available to the root Compose
+project; this workflow does not consume `deploy/production/.env.production.sops`.
+The runbook has not been accepted as a Kernel production procedure.
 
 ## 5. Post-deploy verification
 
-- [ ] `https://kokonut.network` serves Directus login over valid TLS
-- [ ] `https://metabase.kokonut.network` serves Metabase
-- [ ] Gateway health: `curl https://kokonut.network/health`
+- [ ] Legacy Directus URL and TLS are explicitly approved for any legacy deployment
+- [ ] Optional Metabase exposure and its source access are explicitly reviewed
+- [ ] Legacy Gateway health path is checked against the selected Caddy/Traefik routes
 - [ ] `PUBLIC_RESTRICT=true` confirmed: unauthenticated data endpoints return 401/403
 - [ ] Backups: first nightly checkpoint appears in `/opt/ki-prod/backups`
 - [ ] GitHub Actions `deploy-production` promotion tested (dry-run shape)
 
-## 6. Go-live data ingestion
+## 6. Legacy data-ingestion caution
 
-Once verified, ingest the historical Kokonut data per the data team's
-plan. **Do not skip the backup verification step before ingesting** —
-the first real backup must exist and restore-test clean before the
-database holds irreplaceable data.
+Do not ingest owner-held farm data through this legacy runbook. Data migration,
+the Kernel profile, backup/restore rehearsal, and cutover require their own
+reviewed procedures and rollback evidence before production use.

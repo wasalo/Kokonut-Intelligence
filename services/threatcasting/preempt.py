@@ -158,7 +158,7 @@ def plan_preemptive_actions(
         WHERE tf.status <> 'critical'
     """
     params: List[Any] = []
-    if location_id:
+    if location_id is not None:
         sql += " AND t.location_id = %s"
         params.append(location_id)
     sql += " ORDER BY t.location_id, tf.threat_id, tf.flag_name"
@@ -237,7 +237,9 @@ def plan_preemptive_actions(
             continue
         if _flag_status(flag, value) != "warning":
             continue
-        companions = _find_companion_threats(conn, flag.get("threat_id"))
+        companions = _find_companion_threats(
+            conn, flag.get("threat_id"), location_id=location_id
+        )
         for comp in companions:
             double_checks.append({
                 "status": "draft",
@@ -273,7 +275,12 @@ def plan_preemptive_actions(
     }
 
 
-def _find_companion_threats(conn, threat_id: Optional[str]) -> List[Dict[str, Any]]:
+def _find_companion_threats(
+    conn,
+    threat_id: Optional[str],
+    *,
+    location_id: Optional[str] = None,
+) -> List[Dict[str, Any]]:
     """Return enabled cross-impact relations that reveal a latent threat.
 
     Mirrors the "discovered attack" tactic: moving one piece (a warning flag)
@@ -282,9 +289,14 @@ def _find_companion_threats(conn, threat_id: Optional[str]) -> List[Dict[str, An
     """
     if not threat_id:
         return []
+    location_filter = ""
+    params: List[Any] = [threat_id]
+    if location_id is not None:
+        location_filter = " AND t.location_id = %s"
+        params.append(location_id)
     with conn.cursor(cursor_factory=RealDictCursor) as cur:
         cur.execute(
-            """
+            f"""
             SELECT ci.target_threat_id, ci.impact_type, ci.impact_magnitude,
                    t.threat_name AS target_threat_name
             FROM threat_cross_impact ci
@@ -292,9 +304,10 @@ def _find_companion_threats(conn, threat_id: Optional[str]) -> List[Dict[str, An
             WHERE ci.source_threat_id = %s
               AND ci.is_enabled = TRUE
               AND ci.impact_type IN ('amplifies', 'triggers')
+              {location_filter}
             ORDER BY ci.impact_magnitude DESC NULLS LAST
             """,
-            (threat_id,),
+            params,
         )
         return [dict(r) for r in cur.fetchall()]
 

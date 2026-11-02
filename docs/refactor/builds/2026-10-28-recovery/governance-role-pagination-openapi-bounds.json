@@ -1,0 +1,28 @@
+{
+  "date": "2026-10-28",
+  "slice": "governance_role_lists_pagination_openapi_bounds",
+  "result": "passed",
+  "routes": [
+    "/operator/api/governance/{location_id}/roles",
+    "/operator/api/governance/{location_id}/assignment-proposals",
+    "/operator/api/governance/{location_id}/assignment-review-queue",
+    "/operator/api/governance/{location_id}/tactical-items",
+    "/operator/api/governance/{location_id}/tactical-sessions",
+    "/operator/api/governance/{location_id}/tensions"
+  ],
+  "contract": {
+    "limit_default": 50,
+    "limit_minimum": 1,
+    "limit_maximum": 100,
+    "invalid_limit_rejected_by_fastapi_before_service_access": [0, 101]
+  },
+  "verification": {
+    "pytest_command": "python3 -m pytest tests/test_gateway_governance_role_pagination_openapi.py tests/test_gateway_governance_roles.py -q",
+    "pytest_result": "8 passed",
+    "ruff": "passed",
+    "py_compile": "passed",
+    "git_diff_check": "passed"
+  },
+  "scope": "Synthetic OpenAPI and mocked service-boundary checks only; no database, provider, network, candidate, or legacy service was used.",
+  "rollback": "Revert the six Query parameter annotations and focused contract test; no schema or persisted data changed."
+}

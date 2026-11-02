@@ -1,0 +1,20 @@
+{
+  "date": "2026-10-28",
+  "result": "passed",
+  "scope": "Pollinator Gateway pagination contract for review queue, habitats, and hives",
+  "service_bounds": {
+    "review_queue": {"limit_default": 25, "limit_minimum": 1, "limit_maximum": 50, "offset_default": 0, "offset_minimum": 0, "offset_maximum": 10000},
+    "habitats": {"limit_default": 50, "limit_minimum": 1, "limit_maximum": 50, "offset_default": 0, "offset_minimum": 0, "offset_maximum": 10000},
+    "hives": {"limit_default": 50, "limit_minimum": 1, "limit_maximum": 50, "offset_default": 0, "offset_minimum": 0, "offset_maximum": 10000}
+  },
+  "change": "FastAPI Query metadata now publishes each existing service bound in OpenAPI and rejects invalid limit/offset values before calling the service.",
+  "checks": {
+    "pytest_command": "python3 -m pytest tests/test_gateway_pollinator_pagination_openapi.py tests/test_gateway_pollinator_habitat_lifecycle.py tests/test_gateway_pollinator_hive_lifecycle.py tests/test_gateway_pollinator_review.py -q",
+    "pytest_result": "74 passed",
+    "ruff": "passed",
+    "py_compile": "passed"
+  },
+  "external_access": {"database": false, "provider": false, "network": false},
+  "rollback": "Revert the route Query bounds and focused OpenAPI regression; no schema or persisted data changed.",
+  "limitations": ["Checks cover in-process FastAPI validation and OpenAPI only; they do not establish live proxy or database behavior."]
+}

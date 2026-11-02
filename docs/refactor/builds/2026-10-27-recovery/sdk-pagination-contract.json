@@ -1,0 +1,21 @@
+{
+  "date": "2026-10-27",
+  "scope": "C2 Python and JavaScript list pagination parity",
+  "contract": {
+    "offset_with_limit": "Use offset and ignore page when both are supplied.",
+    "offset_without_limit": "Drop offset and use page when page is supplied.",
+    "zero_limit_with_offset": "Reject before issuing a request."
+  },
+  "verification": {
+    "python": "python3 -m pytest tests/test_sdk.py -q: 99 passed",
+    "javascript": "npm test: 57 passed across 3 files",
+    "typescript": "npm --prefix sdk/javascript run build: passed",
+    "ruff": "ruff check sdk/python/kokonut/client.py tests/test_sdk.py: passed",
+    "python_compile": "python3 -m py_compile sdk/python/kokonut/client.py tests/test_sdk.py: passed",
+    "sdk_schema_parity": "109 models, 2,150 canonical columns, and all declared scalar/PostGIS/JSONB/enum/CHECK literal shapes passed"
+  },
+  "limits": [
+    "All request checks use mocked transports; no database or provider was contacted.",
+    "This closes pagination serialization only; route authorization, error/runtime parity, live OIDC, and populated acceptance remain open."
+  ]
+}

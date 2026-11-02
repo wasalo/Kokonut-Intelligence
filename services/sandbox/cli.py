@@ -13,7 +13,20 @@ from __future__ import annotations
 
 import argparse
 import sys
+from uuid import UUID
+
 from services.common.cli import print_json
+
+
+def _preflight_location_id(parser: argparse.ArgumentParser, args) -> None:
+    """Validate optional location scope before environment DB access."""
+    if args.location_id is None:
+        return
+    try:
+        args.location_id = str(UUID(args.location_id))
+    except (AttributeError, TypeError, ValueError):
+        parser.error("--location-id must be a valid UUID")
+
 
 def cmd_create(args):
     from services.sandbox.environment import AnalysisEnvironment
@@ -120,6 +133,7 @@ def main():
     if args.create:
         if not args.location_id:
             parser.error("--create requires --location-id")
+        _preflight_location_id(parser, args)
         rc = cmd_create(args)
     elif args.destroy:
         if not args.env_id:
@@ -130,6 +144,7 @@ def main():
             parser.error("--run requires --env-id and --module")
         rc = cmd_run(args)
     elif args.list:
+        _preflight_location_id(parser, args)
         rc = cmd_list(args)
     elif args.runs:
         rc = cmd_runs(args)

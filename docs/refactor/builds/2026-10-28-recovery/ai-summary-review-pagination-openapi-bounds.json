@@ -1,0 +1,21 @@
+{
+  "date": "2026-10-28",
+  "result": "passed",
+  "slice": "Gateway AI summary review pagination contract",
+  "source_revision": "753b4645",
+  "route": "/operator/api/ai-summaries/{location_id}/reviews",
+  "service_contract": {
+    "limit": {"minimum": 1, "maximum": 50, "default": 50},
+    "offset": {"minimum": 0, "maximum": 10000, "default": 0}
+  },
+  "change": "FastAPI now publishes and enforces the same page bounds used by the review service; invalid values are rejected before service invocation.",
+  "verification": {
+    "command": "python3 -m pytest tests/test_gateway_ai_summary_review.py -q",
+    "result": "28 passed",
+    "ruff": "passed",
+    "py_compile": "passed",
+    "git_diff_check": "passed"
+  },
+  "scope": "OpenAPI and mocked in-process request validation only; no database, provider, or network was used.",
+  "rollback": "Revert the Query parameter bounds and regression assertion; no migration or persisted state changed."
+}

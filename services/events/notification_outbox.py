@@ -20,11 +20,8 @@ from services.common.smtp import send_message, validate_settings
 
 logger = get_logger("events.notification_outbox")
 
-MAX_ATTEMPTS = 8
 LEASE_SECONDS = 300
 MAX_BATCH_SIZE = 500
-RETRY_BASE_SECONDS = 15
-RETRY_MAX_SECONDS = 3600
 DESTINATION_KEY = "primary"
 DEFAULT_STORAGE_WARN_BYTES = 256 * 1024 * 1024
 DEFAULT_STORAGE_CRITICAL_BYTES = 512 * 1024 * 1024
@@ -40,6 +37,32 @@ class NotificationIdempotencyConflict(NotificationOutboxError):
 
 class NotificationConfigurationError(NotificationOutboxError):
     """A persisted notification has no currently configured destination."""
+
+
+def _webhook_configured_for_enqueue(environment: dict[str, str]) -> bool:
+    """Check endpoint presence or the Standard API's non-secret presence flag."""
+    if environment.get("ALERT_WEBHOOK_URL", "").strip():
+        return True
+    return environment.get("KOKONUT_NOTIFICATION_WEBHOOK_CONFIGURED", "").strip().lower() == "true"
+
+
+def _directus_configured_for_enqueue(environment: dict[str, str]) -> bool:
+    """Check Directus delivery without forwarding its admin token to dispatchers."""
+    return bool(environment.get("DIRECTUS_ADMIN_TOKEN", "").strip()) or (
+        environment.get("KOKONUT_NOTIFICATION_DIRECTUS_CONFIGURED", "").strip().lower()
+        == "true"
+    )
+
+
+def _email_configured_for_enqueue(environment: dict[str, str]) -> bool:
+    """Check email delivery through non-secret configuration or a presence flag."""
+    return bool(
+        environment.get("ALERT_SMTP_HOST", "").strip()
+        and environment.get("ALERT_EMAIL_TO", "").strip()
+    ) or (
+        environment.get("KOKONUT_NOTIFICATION_EMAIL_CONFIGURED", "").strip().lower()
+        == "true"
+    )
 
 
 def _notification_payloads(
@@ -58,7 +81,7 @@ def _notification_payloads(
     message = str(payload.get("message") or f"{metric} = {value} (threshold: {threshold})")
     destinations: list[tuple[str, str, dict[str, Any]]] = []
 
-    if environment.get("ALERT_WEBHOOK_URL", "").strip():
+    if _webhook_configured_for_enqueue(environment):
         if event_type == "sensor_alert":
             webhook_payload = {
                 "text": f"[{severity.upper()}] {message}",
@@ -104,7 +127,7 @@ def _notification_payloads(
     from services.core.providers import ProviderSettings
 
     if (ProviderSettings.from_environment(environment).directus
-            and environment.get("DIRECTUS_ADMIN_TOKEN", "").strip()):
+            and _directus_configured_for_enqueue(environment)):
         if event_type == "sensor_alert":
             destinations.append((
                 "directus",
@@ -124,9 +147,7 @@ def _notification_payloads(
                 {"message": message, "severity": severity},
             ))
 
-    if (event_type in {"sensor_alert", "data_stale"}
-            and environment.get("ALERT_SMTP_HOST", "").strip()
-            and environment.get("ALERT_EMAIL_TO", "").strip()):
+    if event_type in {"sensor_alert", "data_stale"} and _email_configured_for_enqueue(environment):
         if event_type == "sensor_alert":
             sensor_name = str(payload.get("sensor_name") or "Unknown")
             sensor_type = str(payload.get("sensor_type") or "unknown")
@@ -341,96 +362,6 @@ def _prepare_event_notification(
     return stable_event_id, event_type, location_id, messages
 
 
-def _recover_expired_leases(conn) -> None:
-    with conn.cursor() as cur:
-        cur.execute(
-            """
-            UPDATE notification_outbox_attempt a
-            SET status = 'lease_lost', finished_at = NOW(),
-                error_class = COALESCE(a.error_class, 'LeaseExpired')
-            FROM notification_outbox o
-            WHERE a.outbox_id = o.id AND a.lease_token = o.lease_token
-              AND a.status = 'processing' AND o.status = 'processing'
-              AND o.lease_expires_at < NOW()
-            """
-        )
-        cur.execute(
-            """
-            UPDATE notification_outbox
-            SET status = CASE WHEN retry_cycle_attempts >= %s THEN 'dead_letter' ELSE 'retryable' END,
-                lease_owner = NULL, lease_token = NULL, lease_expires_at = NULL,
-                available_at = NOW(), updated_at = NOW(),
-                last_error_class = COALESCE(last_error_class, 'LeaseExpired')
-            WHERE status = 'processing' AND lease_expires_at < NOW()
-            """,
-            (MAX_ATTEMPTS,),
-        )
-
-
-def claim_batch(
-    conn,
-    worker_id: str,
-    limit: int = 100,
-    *,
-    lease_seconds: int = LEASE_SECONDS,
-) -> list[dict[str, Any]]:
-    """Claim a bounded batch and commit durable leases before any network I/O."""
-    if not isinstance(worker_id, str) or not worker_id.strip() or len(worker_id) > 150:
-        raise ValueError("worker_id must contain 1 to 150 characters")
-    if not isinstance(limit, int) or not 1 <= limit <= MAX_BATCH_SIZE:
-        raise ValueError(f"limit must be between 1 and {MAX_BATCH_SIZE}")
-    if not isinstance(lease_seconds, int) or not 30 <= lease_seconds <= 3600:
-        raise ValueError("lease_seconds must be between 30 and 3600")
-
-    channels = _configured_channels()
-    if not channels:
-        _recover_expired_leases(conn)
-        conn.commit()
-        return []
-
-    lease_token = str(uuid.uuid4())
-    _recover_expired_leases(conn)
-    with conn.cursor() as cur:
-        cur.execute(
-            """
-            WITH candidates AS (
-                SELECT id
-                FROM notification_outbox
-                WHERE status IN ('pending', 'retryable') AND available_at <= NOW()
-                  AND channel = ANY(%s)
-                ORDER BY available_at, created_at, id
-                FOR UPDATE SKIP LOCKED
-                LIMIT %s
-            )
-            UPDATE notification_outbox o
-            SET status = 'processing', attempt_count = o.attempt_count + 1,
-                retry_cycle_attempts = o.retry_cycle_attempts + 1,
-                lease_owner = %s, lease_token = %s,
-                lease_expires_at = NOW() + (%s * INTERVAL '1 second'),
-                updated_at = NOW()
-            FROM candidates c
-            WHERE o.id = c.id
-            RETURNING o.id, o.source_event_id, o.event_type, o.channel,
-                      o.destination_key, o.payload, o.attempt_count,
-                      o.lease_owner, o.lease_token
-            """,
-            (channels, limit, worker_id, lease_token, lease_seconds),
-        )
-        names = [item[0] for item in cur.description]
-        rows = [dict(zip(names, row)) for row in cur.fetchall()]
-        for row in rows:
-            cur.execute(
-                """
-                INSERT INTO notification_outbox_attempt
-                    (outbox_id, attempt_number, lease_owner, lease_token)
-                VALUES (%s, %s, %s, %s)
-                """,
-                (row["id"], row["attempt_count"], worker_id, row["lease_token"]),
-            )
-    conn.commit()
-    return rows
-
-
 def _deliver(row: dict[str, Any]) -> None:
     headers = {"Idempotency-Key": str(row["id"])}
     if row["channel"] == "webhook":
@@ -489,62 +420,12 @@ def _deliver(row: dict[str, Any]) -> None:
     response.raise_for_status()
 
 
-def _retry_delay_seconds(attempt_count: int) -> int:
-    exponent = min(max(attempt_count - 1, 0), 8)
-    return min(RETRY_MAX_SECONDS, RETRY_BASE_SECONDS * (2 ** exponent))
-
-
-def _finish_attempt(
-    conn,
-    row: dict[str, Any],
-    *,
-    success: bool,
-    error_class: str | None = None,
-) -> str:
-    """Acknowledge only while this process still owns the unexpired lease."""
-    delay = _retry_delay_seconds(int(row["attempt_count"]))
-    with conn.cursor() as cur:
-        cur.execute(
-            """
-            UPDATE notification_outbox
-            SET status = CASE WHEN %s THEN 'succeeded'
-                              WHEN retry_cycle_attempts >= %s THEN 'dead_letter'
-                              ELSE 'retryable' END,
-                available_at = CASE WHEN %s THEN available_at
-                                    ELSE NOW() + (%s * INTERVAL '1 second') END,
-                delivered_at = CASE WHEN %s THEN NOW() ELSE delivered_at END,
-                last_error_class = %s,
-                lease_owner = NULL, lease_token = NULL, lease_expires_at = NULL,
-                updated_at = NOW()
-            WHERE id = %s AND status = 'processing'
-              AND lease_owner = %s AND lease_token = %s
-              AND lease_expires_at > NOW()
-            RETURNING id
-            """,
-            (
-                success, MAX_ATTEMPTS, success, delay, success, error_class,
-                row["id"], row["lease_owner"], row["lease_token"],
-            ),
-        )
-        owned = cur.fetchone() is not None
-        attempt_status = ("succeeded" if success else "failed") if owned else "lease_lost"
-        cur.execute(
-            """
-            UPDATE notification_outbox_attempt
-            SET status = %s, error_class = %s, finished_at = NOW()
-            WHERE outbox_id = %s AND attempt_number = %s
-              AND lease_token = %s AND status = 'processing'
-            """,
-            (attempt_status, error_class, row["id"], row["attempt_count"], row["lease_token"]),
-        )
-    conn.commit()
-    return attempt_status
-
-
-def deliver_claimed_batch(rows, finish_callback) -> dict[str, int]:
+def deliver_claimed_batch(rows, finish_callback, *, progress_callback=None) -> dict[str, int]:
     """Deliver claimed rows through a caller-owned completion boundary."""
     stats = {"claimed": len(rows), "delivered": 0, "failed": 0, "lease_lost": 0}
     for row in rows:
+        if progress_callback is not None:
+            progress_callback()
         error_class = None
         try:
             _deliver(row)
@@ -557,6 +438,8 @@ def deliver_claimed_batch(rows, finish_callback) -> dict[str, int]:
                 row["id"], row["channel"], error_class,
             )
         status = finish_callback(row, success=success, error_class=error_class)
+        if progress_callback is not None:
+            progress_callback()
         if status == "succeeded":
             stats["delivered"] += 1
         elif status == "lease_lost":
@@ -567,12 +450,11 @@ def deliver_claimed_batch(rows, finish_callback) -> dict[str, int]:
 
 
 def deliver_batch(conn, worker_id: str, limit: int = 100) -> dict[str, int]:
-    """Deliver one batch with bounded retries; external sends remain at-least-once."""
-    rows = claim_batch(conn, worker_id, limit)
-    return deliver_claimed_batch(
-        rows,
-        lambda row, **kwargs: _finish_attempt(conn, row, **kwargs),
-    )
+    """Compatibility wrapper that delegates delivery to the isolated worker."""
+    del conn
+    from services.events.notification_delivery_worker import run_batches
+
+    return run_batches(worker_id, limit, LEASE_SECONDS)
 
 
 def _storage_thresholds() -> tuple[int, int]:

@@ -9,7 +9,8 @@ Usage:
 """
 
 import argparse
-import sys
+from uuid import UUID
+
 from services.common.cli import print_json
 
 DIMENSIONS = [
@@ -44,6 +45,10 @@ def main():
 
     if not args.location_id:
         parser.error("--location-id is required")
+    try:
+        args.location_id = str(UUID(args.location_id))
+    except (AttributeError, TypeError, ValueError):
+        parser.error("--location-id must be a valid UUID")
 
     if args.dimension:
         import importlib
@@ -85,7 +90,7 @@ def main():
 
 def _print_report(result):
     print(f"\n{'='*70}")
-    print(f"  REVENUE MULTIPLIER OPPORTUNITY MAP")
+    print("  REVENUE MULTIPLIER OPPORTUNITY MAP")
     print(f"  Location: {result.location_name}")
     print(f"  Overall Score: {result.overall_score}/100")
     print(f"  Total Opportunity: ${result.total_opportunity_usd:,.2f}/year")
@@ -119,7 +124,7 @@ def _print_dimension(result):
     print(f"  Current: {result.current_state}")
     print(f"  Recommendation: {result.recommendation}")
     if result.details:
-        print(f"  Details:")
+        print("  Details:")
         for k, v in result.details.items():
             print(f"    {k}: {v}")
 

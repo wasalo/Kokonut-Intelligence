@@ -1,0 +1,66 @@
+{
+  "date": "2026-10-28",
+  "source_revision": "a119c36f",
+  "working_tree_dirty": true,
+  "scope": "Strict success response contract for the private location-scoped emergency-response summary.",
+  "route": {
+    "method": "GET",
+    "path": "/operator/api/emergency-response/{location_id}/summary",
+    "response_model": "EmergencyResponseSummary",
+    "fields": [
+      "location_id",
+      "total_incidents",
+      "resolved_incidents",
+      "escalated_incidents",
+      "recovered_incidents",
+      "avg_response_time_days",
+      "deadline_assessed_incidents",
+      "deadline_met_incidents",
+      "deadline_compliance_pct",
+      "financial_impact_usd",
+      "avg_affected_area_pct",
+      "by_type",
+      "by_severity"
+    ],
+    "constraints": {
+      "extra_fields": "forbidden",
+      "counts": "strict nonnegative integers",
+      "incident_type": "database-check-constrained literal set",
+      "severity": "database-check-constrained literal set",
+      "percentages": "finite values from 0 through 100",
+      "by_type": "at most 10 groups",
+      "by_severity": "at most 4 groups",
+      "validation": "Explicitly validate service projection before returning JSONResponse"
+    }
+  },
+  "error_contract": {
+    "disabled_oidc": "existing 404 preserved",
+    "tenant_denial": "existing 403 preserved",
+    "invalid_input": "existing 400 preserved",
+    "database_failure": "existing sanitized 503 and Retry-After: 30 preserved",
+    "invalid_projection": "sanitized 500 with Cache-Control: no-store and Vary: Cookie"
+  },
+  "checks": [
+    {
+      "command": "python3 -m pytest tests/test_gateway_emergency_response.py -q",
+      "result": "passed",
+      "passed": 18
+    },
+    {
+      "command": "python3 -m ruff check services/gateway/emergency_response_routes.py tests/test_gateway_emergency_response.py",
+      "result": "passed"
+    },
+    {
+      "command": "python3 -m py_compile services/gateway/emergency_response_routes.py tests/test_gateway_emergency_response.py",
+      "result": "passed"
+    }
+  ],
+  "environment": {
+    "live_database_used": false,
+    "candidate_or_legacy_touched": false,
+    "provider_called": false
+  },
+  "limitations": [
+    "This closes one aggregate response-contract slice only; live OIDC behavior, populated-data parity, and broader tenant isolation remain separate gates."
+  ]
+}

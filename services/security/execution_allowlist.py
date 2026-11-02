@@ -22,12 +22,14 @@ ISOLATED_WORKER_MODULES = frozenset(
         "services.agents.worker_cli",
         "services.events.dispatch_worker",
         "services.events.notification_delivery_worker",
+        "services.export.report_snapshot_export_worker",
     }
 )
 ISOLATED_WORKER_ENTRYPOINTS = {
     "services.agents.worker_cli": "main",
     "services.events.dispatch_worker": "run_once",
     "services.events.notification_delivery_worker": "run_once",
+    "services.export.report_snapshot_export_worker": "run_once",
 }
 
 # Exact in-process functions used by Gateway and first-party agents to perform
@@ -53,9 +55,9 @@ ALLOWED_SCHEDULED_MODULES = frozenset(
         # reconcile them; new Kernel plans use the signed worker module.
         "services.ingestion.weather",
         "services.ingestion.weather_worker",
-        # Keep the pre-isolation module available for persisted tasks until
-        # active schedules have been reconciled. New Kernel plans use the
-        # signed worker module below.
+        # Keep the compatibility wrapper available for persisted tasks. It
+        # forwards writes to the isolated market-data login; new Kernel plans
+        # use the worker module below.
         "services.ingestion.weather_forecast",
         "services.ingestion.weather_forecast_worker",
         "services.ingestion.market_data",
@@ -72,7 +74,6 @@ ALLOWED_SCHEDULED_MODULES = frozenset(
         "services.ingestion.baal_worker",
         "services.ingestion.freshness_worker",
         "services.ingestion.sensor_anomaly_scan_worker",
-        "services.ingestion.anomaly_detector",
         "services.metrics",
         "services.metrics.noi_snapshot_worker",
         "services.ingestion.data_freshness",

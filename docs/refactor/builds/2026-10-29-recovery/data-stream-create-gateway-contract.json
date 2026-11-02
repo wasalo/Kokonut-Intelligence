@@ -1,0 +1,27 @@
+{
+  "date": "2026-10-29",
+  "scope": "Strict Data Stream draft-create Gateway request and response contract",
+  "focused_test_command": "python3 -m pytest tests/test_gateway_data_stream_create_contract.py tests/test_gateway_auth.py -q",
+  "focused_test_result": {
+    "passed": 39,
+    "failed": 0
+  },
+  "additional_checks": {
+    "ruff": "passed",
+    "python_compilation": "passed",
+    "capability_matrix": "passed",
+    "git_diff_check": "passed"
+  },
+  "checks_cover": [
+    "OpenAPI request properties and the 15 post types stay aligned with the domain service",
+    "location, title, content, expiry, and undeclared-field validation happens before the service call",
+    "caller-supplied creator, lifecycle, metadata, and source lineage fields are not accepted",
+    "successful response exposes only the canonical post UUID and returns no-store",
+    "malformed service identifiers fail with a generic no-store response",
+    "existing API-key, capability-token, scope, and tenant-denial behavior remains intact"
+  ],
+  "database_or_provider_used": false,
+  "candidate_database_touched": false,
+  "legacy_database_touched": false,
+  "production_or_external_state_used": false
+}

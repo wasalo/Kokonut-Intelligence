@@ -531,12 +531,136 @@ def _set_operator_cookies(client, *, csrf=False):
         )
 
 
+def _mobile_disposition_inventory_row(collection_id="22222222-2222-4222-8222-222222222222"):
+    return {
+        "collection_id": collection_id,
+        "location_id": LOCATION_ID,
+        "eligible_for_use": False,
+        "eligibility_reason": "review_required",
+        "inventory_scope": "known_direct_lineage_only",
+        "collection": {
+            "sync_status": "synced",
+            "form_id": "field_note_v1",
+            "form_version": "1.1.0",
+            "has_participant_link": True,
+            "has_collection_consent_reference": True,
+            "has_sync_consent_reference": False,
+            "payload_bytes": 72,
+            "payload_field_count": 4,
+            "photo_reference_count": 1,
+            "has_coordinates": True,
+        },
+        "private_media": {
+            "object_count": 1,
+            "total_bytes": 2048,
+            "by_status": {"attached": 1},
+        },
+        "canonical_activity": {
+            "total": 1,
+            "by_status": {"verified": 1},
+        },
+        "workflow_event_count": 0,
+        "review_event_count": 1,
+    }
+
+
+def test_operator_list_routes_publish_and_enforce_pagination_bounds_before_service(
+    monkeypatch,
+):
+    class _ScopedProvider(_FakeProvider):
+        def has_scope(self, operator_id, _resource, _action, location_id):
+            return operator_id == OPERATOR_ID and location_id == LOCATION_ID
+
+    provider = _ScopedProvider()
+    monkeypatch.setattr(operator_auth, "create_provider", lambda: provider)
+    monkeypatch.setattr("services.gateway.audit.GatewayAudit.log", lambda *_args, **_kwargs: None)
+
+    service_paths = (
+        "services.gateway.operator_review.list_submitted_reports",
+        "services.gateway.operator_mobile_review.list_mobile_collections",
+        "services.gateway.farm_activity_workflow.list_farm_activity_intake",
+        "services.gateway.farm_activity_lifecycle.list_farm_activities",
+        "services.gateway.operator_mobile_review.get_mobile_operations_inventory",
+    )
+    services = {
+        path: MagicMock(side_effect=AssertionError("invalid limit must fail before service access"))
+        for path in service_paths
+    }
+    for path, service in services.items():
+        monkeypatch.setattr(path, service)
+
+    route_cases = (
+        ("/operator/api/report-review-queue", "/operator/api/report-review-queue", "limit"),
+        (
+            "/operator/api/mobile-collection-review-queue",
+            "/operator/api/mobile-collection-review-queue",
+            "limit",
+        ),
+        (
+            "/operator/api/farm-activity-intake-queue",
+            "/operator/api/farm-activity-intake-queue",
+            "limit",
+        ),
+        ("/operator/api/farm-activities", "/operator/api/farm-activities", "limit"),
+        (
+            "/operator/api/farm-activities/published",
+            "/operator/api/farm-activities/published",
+            "limit",
+        ),
+        (
+            "/operator/api/mobile/locations/{location_id}/inventory",
+            f"/operator/api/mobile/locations/{LOCATION_ID}/inventory",
+            "device_limit",
+        ),
+    )
+
+    with TestClient(create_app()) as client:
+        _set_operator_cookies(client)
+        schema = client.app.openapi()
+        for schema_path, request_path, parameter_name in route_cases:
+            parameter = next(
+                item
+                for item in schema["paths"][schema_path]["get"]["parameters"]
+                if item["name"] == parameter_name
+            )
+            assert parameter["schema"]["minimum"] == 1, schema_path
+            assert parameter["schema"]["maximum"] == 100, schema_path
+            assert parameter["schema"]["default"] == 50, schema_path
+
+            params = {"location_id": LOCATION_ID} if parameter_name == "limit" else {}
+            for invalid_limit in (0, 101):
+                response = client.get(
+                    request_path,
+                    params={**params, parameter_name: invalid_limit},
+                )
+                assert response.status_code == 422, (
+                    request_path,
+                    invalid_limit,
+                    response.text,
+                )
+                assert response.json()["detail"][0]["loc"] == ["query", parameter_name]
+
+    for service in services.values():
+        service.assert_not_called()
+
+
 def test_farm_activity_intake_queue_uses_scoped_operator_and_no_store(monkeypatch):
     monkeypatch.setenv("KOKONUT_GATEWAY_CORS_ORIGINS", "https://operator.example")
     provider = _FarmActivityProvider(allowed_scopes={("farm_activity", "read")})
     monkeypatch.setattr(operator_auth, "create_provider", lambda: provider)
     monkeypatch.setattr("services.gateway.audit.GatewayAudit.log", lambda *_args, **_kwargs: None)
-    queue_reader = MagicMock(return_value=[{"id": "collection-id", "activity_type": "weeding"}])
+    queue_record = {
+        "id": "22222222-2222-4222-8222-222222222222",
+        "location_id": LOCATION_ID,
+        "form_id": "farm_activity_v1",
+        "form_version": "1.2.0",
+        "collected_at": "2026-10-28T10:00:00+00:00",
+        "synced_at": "2026-10-28T11:00:00+00:00",
+        "activity_type": "weeding",
+        "activity_date": "2026-10-27",
+        "eligible_for_use": True,
+    }
+    queue_reader = MagicMock(return_value=[queue_record])
     monkeypatch.setattr(
         "services.gateway.farm_activity_workflow.list_farm_activity_intake",
         queue_reader,
@@ -553,7 +677,7 @@ def test_farm_activity_intake_queue_uses_scoped_operator_and_no_store(monkeypatc
     assert response.status_code == 200, response.text
     assert response.headers["cache-control"] == "no-store"
     assert {value.strip() for value in response.headers["vary"].split(",")} == {"Cookie", "Origin"}
-    assert response.json()["data"] == [{"id": "collection-id", "activity_type": "weeding"}]
+    assert response.json()["data"] == [queue_record]
     queue_reader.assert_called_once_with(OPERATOR_ID, LOCATION_ID, 9)
     assert provider.scopes_seen == [(OPERATOR_ID, "farm_activity", "read", LOCATION_ID)]
 
@@ -1131,7 +1255,25 @@ def test_mobile_collection_queue_uses_location_scope_and_returns_no_store(monkey
         "services.gateway.audit.GatewayAudit.log",
         lambda _self, **record: audit_records.append(record),
     )
-    queue_reader = MagicMock(return_value=[{"id": "collection-id", "payload": None}])
+    queue_record = {
+        "id": "22222222-2222-4222-8222-222222222222",
+        "location_id": LOCATION_ID,
+        "form_id": "field_activity",
+        "form_version": "2.1.0",
+        "collection_type": "farm_activity",
+        "collected_at": "2026-10-28T10:00:00+00:00",
+        "synced_at": "2026-10-28T11:00:00+00:00",
+        "form_validation_status": "active",
+        "consent_validation_status": "granted",
+        "form_review_required": True,
+        "form_revision_id": "33333333-3333-4333-8333-333333333333",
+        "form_name": "Field Activity",
+        "form_revision_status": "active",
+        "eligible_for_use": False,
+        "eligibility_reason": "review_required",
+        "review_state": "pending_review",
+    }
+    queue_reader = MagicMock(return_value=[queue_record])
     monkeypatch.setattr(
         "services.gateway.operator_mobile_review.list_mobile_collections",
         queue_reader,
@@ -1154,7 +1296,7 @@ def test_mobile_collection_queue_uses_location_scope_and_returns_no_store(monkey
     assert response.headers["access-control-allow-credentials"] == "true"
     assert response.headers["cache-control"] == "no-store"
     assert {value.strip() for value in response.headers["vary"].split(",")} == {"Cookie", "Origin"}
-    assert response.json()["data"] == [{"id": "collection-id", "payload": None}]
+    assert response.json()["data"] == [queue_record]
     queue_reader.assert_called_once_with(OPERATOR_ID, LOCATION_ID, 7)
     assert provider.scopes_seen == [
         (OPERATOR_ID, "mobile_collection_review", "read", LOCATION_ID)
@@ -1178,8 +1320,22 @@ def test_mobile_operations_inventory_requires_both_grants_and_returns_no_store(m
     )
     inventory = {
         "location_id": LOCATION_ID,
-        "devices": [{"device_id": "collector-7", "status": "active"}],
-        "queue_summary": {"pending_sync_count": 2},
+        "devices": [
+            {
+                "device_id": "collector-7",
+                "status": "active",
+                "last_seen_at": "2026-10-28T10:00:00+00:00",
+                "last_sync_at": "2026-10-28T09:00:00+00:00",
+            }
+        ],
+        "queue_summary": {
+            "device_count": 2,
+            "active_device_count": 1,
+            "pending_sync_count": 2,
+            "synced_record_count": 8,
+            "form_review_required_count": 3,
+            "ineligible_synced_count": 1,
+        },
     }
     reader = MagicMock(return_value=inventory)
     monkeypatch.setattr(
@@ -1275,7 +1431,30 @@ def test_mobile_collection_detail_uses_separate_grant_and_is_audited(monkeypatch
         "services.gateway.audit.GatewayAudit.log",
         lambda _self, **record: audit_records.append(record),
     )
-    detail_reader = MagicMock(return_value={"id": "collection-id", "payload": {"note": "private"}})
+    detail_reader = MagicMock(
+        return_value={
+            "id": "22222222-2222-4222-8222-222222222222",
+            "location_id": LOCATION_ID,
+            "form_id": "field_activity",
+            "form_version": "2.1.0",
+            "collection_type": "farm_activity",
+            "collected_at": "2026-10-29T12:00:00+00:00",
+            "synced_at": "2026-10-29T12:01:00+00:00",
+            "form_validation_status": "active",
+            "consent_validation_status": "granted",
+            "form_review_required": True,
+            "form_revision_id": None,
+            "form_name": None,
+            "form_revision_status": None,
+            "consent_policy_status": "required",
+            "eligible_for_use": False,
+            "eligibility_reason": "review_required",
+            "review_state": "pending_review",
+            "photo_count": 0,
+            "payload": {"note": "private"},
+            "review_events": [],
+        }
+    )
     monkeypatch.setattr(
         "services.gateway.operator_mobile_review.get_mobile_collection",
         detail_reader,
@@ -1321,12 +1500,8 @@ def test_mobile_disposition_inventory_requires_both_grants_and_is_audited(monkey
         "services.gateway.audit.GatewayAudit.log",
         lambda _self, **record: audit_records.append(record),
     )
-    reader = MagicMock(
-        return_value={
-            "collection_id": "22222222-2222-4222-8222-222222222222",
-            "inventory_scope": "known_direct_lineage_only",
-        }
-    )
+    inventory_row = _mobile_disposition_inventory_row()
+    reader = MagicMock(return_value=inventory_row)
     monkeypatch.setattr(
         "services.gateway.operator_mobile_review.get_mobile_collection_disposition_inventory",
         reader,
@@ -1348,7 +1523,12 @@ def test_mobile_disposition_inventory_requires_both_grants_and_is_audited(monkey
     assert response.status_code == 200, response.text
     assert response.headers["cache-control"] == "no-store"
     assert {value.strip() for value in response.headers["vary"].split(",")} == {"Cookie", "Origin"}
-    assert response.json()["data"]["inventory_scope"] == "known_direct_lineage_only"
+    assert response.json() == {"data": inventory_row}
+    operation = create_app().openapi()["paths"][
+        "/operator/api/mobile-collection-review-queue/{collection_id}/disposition-inventory"
+    ]["get"]
+    response_schema = operation["responses"]["200"]["content"]["application/json"]["schema"]
+    assert response_schema["$ref"].endswith("MobileCollectionDispositionInventoryResponse")
     assert provider.scopes_seen == [
         (OPERATOR_ID, "mobile_collection_retention", "inventory", LOCATION_ID),
         (OPERATOR_ID, "mobile_collection_review", "read", LOCATION_ID),
@@ -1360,6 +1540,109 @@ def test_mobile_disposition_inventory_requires_both_grants_and_is_audited(monkey
     )
     assert audit_records[-1]["caller"] == f"operator:{OPERATOR_ID}"
     assert audit_records[-1]["location_id"] == LOCATION_ID
+
+
+@pytest.mark.parametrize(
+    "malformation",
+    [
+        "extra_sensitive_field",
+        "extra_nested_sensitive_field",
+        "media_count_mismatch",
+        "eligibility_mismatch",
+    ],
+)
+def test_mobile_disposition_inventory_sanitizes_malformed_service_response(
+    monkeypatch, malformation
+):
+    provider = _DispositionProvider(
+        allowed_scopes={
+            ("mobile_collection_retention", "inventory"),
+            ("mobile_collection_review", "read"),
+        }
+    )
+    monkeypatch.setattr(operator_auth, "create_provider", lambda: provider)
+    monkeypatch.setattr(
+        "services.gateway.audit.GatewayAudit.log",
+        lambda *_args, **_kwargs: None,
+    )
+    row = _mobile_disposition_inventory_row()
+    if malformation == "extra_sensitive_field":
+        row["payload"] = {"participant_name": "must not be returned"}
+    elif malformation == "extra_nested_sensitive_field":
+        row["collection"]["participant_link_id"] = "private-link-id"
+    elif malformation == "media_count_mismatch":
+        row["private_media"]["object_count"] = 2
+    else:
+        row["eligibility_reason"] = "eligible"
+    reader = MagicMock(return_value=row)
+    monkeypatch.setattr(
+        "services.gateway.operator_mobile_review.get_mobile_collection_disposition_inventory",
+        reader,
+    )
+
+    with TestClient(create_app()) as client:
+        _set_operator_cookies(client)
+        response = client.get(
+            "/operator/api/mobile-collection-review-queue/"
+            "22222222-2222-4222-8222-222222222222/disposition-inventory",
+            params={"location_id": LOCATION_ID},
+        )
+
+    assert response.status_code == 500
+    assert response.json() == {"error": "Mobile disposition inventory unavailable"}
+    assert response.headers["cache-control"] == "no-store"
+    assert {value.strip() for value in response.headers["vary"].split(",")} == {
+        "Cookie",
+        "Origin",
+    }
+    assert "must not be returned" not in response.text
+    assert "private-link-id" not in response.text
+    reader.assert_called_once()
+
+
+@pytest.mark.parametrize("mismatched_field", ["collection_id", "location_id"])
+def test_mobile_disposition_inventory_binds_success_to_requested_scope(
+    monkeypatch, mismatched_field
+):
+    provider = _DispositionProvider(
+        allowed_scopes={
+            ("mobile_collection_retention", "inventory"),
+            ("mobile_collection_review", "read"),
+        }
+    )
+    monkeypatch.setattr(operator_auth, "create_provider", lambda: provider)
+    monkeypatch.setattr(
+        "services.gateway.audit.GatewayAudit.log",
+        lambda *_args, **_kwargs: None,
+    )
+    row = _mobile_disposition_inventory_row()
+    row[mismatched_field] = (
+        "33333333-3333-4333-8333-333333333333"
+        if mismatched_field == "collection_id"
+        else "99999999-9999-4999-8999-999999999999"
+    )
+    reader = MagicMock(return_value=row)
+    monkeypatch.setattr(
+        "services.gateway.operator_mobile_review.get_mobile_collection_disposition_inventory",
+        reader,
+    )
+
+    with TestClient(create_app()) as client:
+        _set_operator_cookies(client)
+        response = client.get(
+            "/operator/api/mobile-collection-review-queue/"
+            "22222222-2222-4222-8222-222222222222/disposition-inventory",
+            params={"location_id": LOCATION_ID},
+        )
+
+    assert response.status_code == 500
+    assert response.json() == {"error": "Mobile disposition inventory unavailable"}
+    assert response.headers["cache-control"] == "no-store"
+    assert {value.strip() for value in response.headers["vary"].split(",")} == {
+        "Cookie",
+        "Origin",
+    }
+    reader.assert_called_once()
 
 
 def test_mobile_disposition_inventory_denies_when_grants_resolve_to_different_tenants(
@@ -1645,7 +1928,13 @@ def test_oidc_operator_can_issue_enrollment_only_with_session_scope_and_csrf(
     assert response.status_code == status, response.text
     if status == 201:
         assert response.headers["cache-control"] == "no-store"
-        assert len(response.json()["enrollment_code"]) >= 32
+        assert "Cookie" in {value.strip() for value in response.headers["vary"].split(",")}
+        assert set(response.json()) == {"enrollment_id", "enrollment_code", "expires_at"}
+        assert response.json()["enrollment_id"] == "33333333-3333-4333-8333-333333333333"
+        assert len(response.json()["enrollment_code"]) == 43
+        assert set(response.json()["enrollment_code"]) <= set(
+            "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_-"
+        )
         assert cursor.execute.call_args.args[1][1:5] == (
             "collector-17",
             LOCATION_ID,
@@ -1669,6 +1958,103 @@ def test_oidc_operator_can_issue_enrollment_only_with_session_scope_and_csrf(
     else:
         connection.cursor.assert_not_called()
         connection.commit.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "service_result",
+    [
+        {
+            "enrollment_id": "33333333-3333-4333-8333-333333333333",
+            "expires_at": "2030-01-01T00:00:00+00:00",
+        },
+        {
+            "enrollment_id": "33333333-3333-4333-8333-333333333333",
+            "enrollment_code": "a" * 43,
+            "expires_at": "2030-01-01T00:00:00+00:00",
+            "internal": "secret-marker",
+        },
+        {
+            "enrollment_id": "not-a-uuid",
+            "enrollment_code": "a" * 43,
+            "expires_at": "2030-01-01T00:00:00+00:00",
+        },
+        {
+            "enrollment_id": "33333333-3333-4333-8333-333333333333",
+            "enrollment_code": "secret-marker",
+            "expires_at": "2030-01-01T00:00:00+00:00",
+        },
+        {
+            "enrollment_id": "33333333-3333-4333-8333-333333333333",
+            "enrollment_code": "a" * 43,
+            "expires_at": "2030-01-01T00:00:00",
+        },
+        {
+            "enrollment_id": "33333333-3333-4333-8333-333333333333",
+            "enrollment_code": "a" * 43,
+            "expires_at": "not-a-timestamp",
+        },
+    ],
+)
+def test_oidc_operator_rejects_malformed_enrollment_response_without_leaking_code(
+    monkeypatch, caplog, service_result
+):
+    async def create_enrollment(*_args, **_kwargs):
+        return service_result
+
+    provider = _FakeProvider()
+    monkeypatch.setattr(operator_auth, "create_provider", lambda: provider)
+    monkeypatch.setattr(mobile_api, "create_operator_enrollment", create_enrollment)
+    monkeypatch.setattr(
+        "services.gateway.audit.GatewayAudit.reserve_mutation",
+        lambda _self: "test-reservation",
+    )
+    monkeypatch.setattr(
+        "services.gateway.audit.GatewayAudit.release_mutation",
+        lambda _self, _reservation: None,
+    )
+    monkeypatch.setattr(
+        "services.gateway.audit.GatewayAudit.log",
+        lambda _self, **_record: None,
+    )
+
+    with TestClient(create_app()) as client:
+        client.cookies.set(
+            operator_auth.SESSION_COOKIE,
+            "valid-session",
+            path=operator_auth.SESSION_COOKIE_PATH,
+        )
+        client.cookies.set(
+            operator_auth.CSRF_COOKIE,
+            "valid-csrf",
+            path=operator_auth.SESSION_COOKIE_PATH,
+        )
+        response = client.post(
+            f"/operator/api/mobile/locations/{LOCATION_ID}/enrollments",
+            headers={"X-CSRF-Token": "valid-csrf"},
+            json={"user_id": "collector-17", "expires_in_minutes": 60},
+        )
+
+    assert response.status_code == 500
+    assert response.json() == {"error": "Mobile enrollment service unavailable"}
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["pragma"] == "no-cache"
+    assert "Cookie" in {value.strip() for value in response.headers["vary"].split(",")}
+    assert "secret-marker" not in response.text
+    assert "secret-marker" not in caplog.text
+
+
+def test_mobile_enrollment_openapi_declares_strict_success_response():
+    schema = create_app().openapi()
+    operation = schema["paths"][
+        "/operator/api/mobile/locations/{location_id}/enrollments"
+    ]["post"]
+
+    response_schema = operation["responses"]["201"]["content"]["application/json"]["schema"]
+    assert response_schema["$ref"].endswith("/MobileEnrollmentCreateResponse")
+    model = schema["components"]["schemas"]["MobileEnrollmentCreateResponse"]
+    assert model["additionalProperties"] is False
+    assert set(model["properties"]) == {"enrollment_id", "enrollment_code", "expires_at"}
+    assert set(model["required"]) == {"enrollment_id", "enrollment_code", "expires_at"}
 
 
 @pytest.mark.parametrize(

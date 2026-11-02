@@ -7,11 +7,13 @@ import csv
 import json
 from pathlib import Path
 from typing import Any, Iterable
+from uuid import UUID
 
 import psycopg2.extras
 
-from services.common.database import get_db
 from services.common.cli import print_json
+from services.common.database import get_db
+
 FARM_ACTIVITY_FIELDS = [
     "location_id",
     "plot_id",
@@ -295,6 +297,10 @@ def main() -> None:
     if args.export_file:
         if not args.location_id:
             parser.error("--export-file requires --location-id")
+        try:
+            UUID(args.location_id)
+        except ValueError:
+            parser.error("--location-id must be a valid UUID")
         conn = get_connection()
         try:
             print_json(export_farm_activity_csv(conn, args.export_file, args.location_id))

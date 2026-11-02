@@ -389,10 +389,42 @@ def test_gateway_file_list_sets_separate_context_and_omits_storage_locators(monk
     assert "post.location_id = :location_id" in sql
     assert "file.post_id = :post_id" in sql
     assert "file.deleted_at IS NULL" in sql
+    assert "LIMIT :limit OFFSET :offset" in sql
     assert "file_url" not in sql
     assert "directus_file_id" not in sql
     assert "metadata" not in sql
-    assert params == {"post_id": POST_ID, "location_id": LOCATION_ID}
+    assert params == {
+        "post_id": POST_ID,
+        "location_id": LOCATION_ID,
+        "limit": 50,
+        "offset": 0,
+    }
+
+
+@pytest.mark.parametrize(
+    ("limit", "offset", "message"),
+    [
+        (0, 0, "limit must be an integer between 1 and 100"),
+        (101, 0, "limit must be an integer between 1 and 100"),
+        (True, 0, "limit must be an integer between 1 and 100"),
+        (50, -1, "offset must be an integer between 0 and 5000"),
+        (50, 5001, "offset must be an integer between 0 and 5000"),
+        (50, False, "offset must be an integer between 0 and 5000"),
+    ],
+)
+def test_file_list_page_bounds_fail_before_database(limit, offset, message):
+    def factory():
+        raise AssertionError("database must not open for invalid paging")
+
+    with pytest.raises(ValueError, match=message):
+        list_gateway_data_stream_files(
+            POST_ID,
+            LOCATION_ID,
+            FILE_READ_AUTHORIZATION,
+            limit=limit,
+            offset=offset,
+            connection_factory=factory,
+        )
 
 
 def test_gateway_attestation_read_is_tenant_scoped_and_database_only(monkeypatch):

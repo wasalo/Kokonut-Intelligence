@@ -272,6 +272,14 @@ class TestFulfillPortability(unittest.TestCase):
         self.assertEqual(result["status"], "ready")
         self.assertEqual(result["output_url"], "/tmp/export.csv")
         self.assertEqual(result["record_count"], 150)
+        audit_insert = next(
+            call for call in self.mock_cursor.execute.call_args_list
+            if "INSERT INTO data_access_log" in call.args[0]
+        )
+        self.assertIn("'export'", audit_insert.args[0])
+        self.assertIn("'success'", audit_insert.args[0])
+        self.assertEqual(audit_insert.args[1], ("operator-1", "req-001"))
+        self.conn.commit.assert_called_once()
 
     def test_fulfill_portability_not_found(self):
         self.mock_cursor.fetchone.return_value = None

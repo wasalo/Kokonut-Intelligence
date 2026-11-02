@@ -1,0 +1,25 @@
+{
+  "date": "2026-10-28",
+  "result": "passed",
+  "scope": "Competitive-landscape Gateway page-size and offset contract",
+  "finding": "The reader enforces limit 1..50 and offset 0..10000, but its route exposed both controls as unbounded strings, so malformed and oversized pages reached application code and OpenAPI did not publish the contract.",
+  "change": "The route now uses integer FastAPI Query constraints matching the reader: limit defaults to 25 and is bounded 1..50; offset defaults to 0 and is bounded 0..10000. Invalid inputs receive HTTP 422 before service invocation.",
+  "checks": {
+    "focused_tests": {
+      "command": "python3 -m pytest tests/test_gateway_competitive_landscape_pagination_openapi.py tests/test_gateway_competitive_landscape_reads.py -q",
+      "result": "19 passed"
+    },
+    "ruff": "passed",
+    "python_compilation": "passed",
+    "diff_check": "passed"
+  },
+  "external_services": {
+    "database": false,
+    "network": false,
+    "provider": false
+  },
+  "rollback": "Revert the route Query constraints and the focused OpenAPI/input regression; no database or persisted state changed.",
+  "limitations": [
+    "The checks cover generated OpenAPI and in-process FastAPI validation only; they do not establish deployment proxy behavior or database availability."
+  ]
+}

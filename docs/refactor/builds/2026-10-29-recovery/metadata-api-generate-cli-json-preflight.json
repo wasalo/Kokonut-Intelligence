@@ -1,0 +1,35 @@
+{
+  "date": "2026-10-29",
+  "batch": "Metadata API generate CLI JSON preflight",
+  "source": {
+    "cli": "services/metadata_api/cli.py",
+    "resolver": "services/metadata_api/resolver.py",
+    "command": "python3 -m services.metadata_api.cli generate --metadata JSON"
+  },
+  "contract": {
+    "validation": "Parse metadata before importing/opening the database connection; reject malformed RFC JSON (including NaN/Infinity constants) and top-level values other than objects with exit status 2; pass valid objects unchanged to generate_iri_from_metadata.",
+    "database_behavior": "Invalid input fails before get_connection is called; valid object generation retains the existing resolver and output behavior.",
+    "provider_behavior": "No provider path was used or changed."
+  },
+  "verification": {
+    "focused_command": "python3 -m pytest tests/test_metadata_api_cli_preflight.py -q",
+    "focused_tests": 9,
+    "focused_result": "passed",
+    "ruff_default": "passed on changed source and tests",
+    "ruff_security_source": "passed on changed CLI source",
+    "python_compile": "passed on changed source and tests",
+    "git_diff_check": "passed",
+    "capability_matrix": "passed: 67 rows; 24 baseline-retained, 7 deployed, 36 prepared",
+    "runtime_sql_inventory": "current; unresolved-write review ledger current",
+    "report_generator_helper_scope_inventory": "current",
+    "provider_boundaries": "passed: 17 vendor import sites",
+    "dependency_groups": "passed: 14 groups, 33 requirements"
+  },
+  "environment": {
+    "database": "not used; connection acquisition was mocked",
+    "provider": "not used",
+    "candidate_or_legacy_state": "untouched",
+    "migration_applied": false
+  },
+  "rollback": "Revert the CLI preflight, focused tests, and progress/evidence records; no database rollback is needed."
+}

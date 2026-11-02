@@ -1,0 +1,36 @@
+{
+  "date": "2026-10-29",
+  "purpose": "Acceptance evidence for the grouped Kernel continuation covering Delphi response contracts, prediction CLI preflight, and explicit analytics projections.",
+  "command": "python3 -m pytest -q tests/test_gateway_delphi_study_drafts.py tests/test_gateway_delphi_consent_notices.py tests/test_gateway_delphi_recommendation_drafts.py tests/test_prediction_calibration.py tests/test_kernel_next_projection_contracts.py",
+  "result": {
+    "passed": 173,
+    "failed": 0,
+    "skipped": 0
+  },
+  "coverage": [
+    "Delphi study draft create/replay response schema, OpenAPI, request binding, and malformed-service rejection",
+    "Delphi consent notice create/replay and review decision response validation, lifecycle, and no-store failures",
+    "Delphi recommendation draft response fields, study binding, lifecycle, and sanitized malformed-output handling",
+    "Prediction CLI UUID, timestamp, finite numeric, precision/range, and text-bound checks before database acquisition",
+    "Exact migration-backed analytics view projections, filters, parameter order, sorting, and row serialization"
+  ],
+  "environment": {
+    "databases_used": false,
+    "candidate_or_legacy_services_used": false,
+    "external_providers_used": false,
+    "fixtures": "Synthetic rows, fake connections/cursors, and a synthetic OIDC provider only."
+  },
+  "static_checks": {
+    "ruff": "passed",
+    "python_compile": "passed",
+    "capability_matrix": "passed: 67 rows (24 baseline-retained, 7 deployed, 36 prepared)",
+    "directus_permission_inventory": "passed",
+    "report_generator_helper_scope_inventory": "passed",
+    "runtime_sql_inventory": "passed; 42 unresolved write candidates remain review-only",
+    "git_diff_check": "passed"
+  },
+  "notes": [
+    "The first grouped run found fixture expectations that did not match UTC Z serialization and an omitted optional CLI flag; the fixtures were corrected and the complete grouped selection then passed.",
+    "Hosted CI needs a fresh run on the pushed feature-branch head to confirm the refreshed inventory snapshots."
+  ]
+}

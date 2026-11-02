@@ -1,0 +1,30 @@
+{
+  "date": "2026-10-29",
+  "purpose": "Mock-only acceptance for operating-pilot resource-request draft create, revision, submission, and independent review response contracts.",
+  "command": "python3 -m pytest -q tests/test_gateway_operating_pilot_writes.py -k 'resource_draft_http_route or resource_draft_replay or resource_draft_rejects or resource_revision_http_route or resource_revision_replay or resource_revision_rejects or resource_submission_http_route or resource_submission_replay or resource_submission_rejects or resource_review_http_route or resource_review_replay or resource_review_rejects'",
+  "result": {
+    "passed": 27,
+    "failed": 0,
+    "deselected": 229
+  },
+  "coverage": [
+    "OpenAPI publishes exact strict create, revision, submission, and review responses",
+    "Location and draft/resource-request identities bind to the request path",
+    "Replacement IDs are distinct and first-time replacement remains a draft",
+    "Review result is reviewed with an approved/rejected decision; replay preserves the decision",
+    "Malformed, mismatched, or undeclared service output returns sanitized no-store 503",
+    "The documented create status is HTTP 201, matching runtime behavior"
+  ],
+  "environment": {
+    "database_used": false,
+    "provider_used": false,
+    "candidate_or_legacy_state_touched": false,
+    "fixtures": "Synthetic service dictionaries and in-process FastAPI TestClient."
+  },
+  "static_checks": {
+    "ruff": "passed",
+    "python_compile": "passed",
+    "capability_matrix": "passed",
+    "git_diff_check": "passed"
+  }
+}

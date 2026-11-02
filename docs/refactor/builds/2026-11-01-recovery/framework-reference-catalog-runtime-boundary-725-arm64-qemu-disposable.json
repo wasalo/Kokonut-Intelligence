@@ -1,0 +1,35 @@
+{
+  "databases": [
+    {
+      "checks": [
+        "role-absent-migration-does-not-create-role",
+        "role-bootstrap-followed-by-revocation",
+        "migration-replay",
+        "runtime-select-and-table-column-dml-denial",
+        "Directus-grants-unchanged",
+        "database-owner-seed-upserts-retained"
+      ],
+      "name": "framework_catalog_role_absent"
+    },
+    {
+      "checks": [
+        "role-present-apply-and-replay",
+        "runtime-select-and-table-column-dml-denial",
+        "Directus-grants-unchanged",
+        "database-owner-seed-upserts-retained"
+      ],
+      "name": "framework_catalog_role_present"
+    }
+  ],
+  "host_ports_published": false,
+  "image": "kokonut-kernel-postgis-arm64:local",
+  "migration": "725_runtime_framework_reference_catalogs_read_only.sql",
+  "network": "none",
+  "relations": [
+    "form_of_capital",
+    "sdg",
+    "pillar_of_value",
+    "regeneration_principle"
+  ],
+  "result": "passed"
+}

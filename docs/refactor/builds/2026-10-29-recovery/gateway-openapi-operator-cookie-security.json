@@ -1,0 +1,28 @@
+{
+  "date": "2026-10-29",
+  "scope": "mocked-gateway-openapi-contract",
+  "security_scheme": {
+    "name": "OperatorSessionCookie",
+    "type": "apiKey",
+    "in": "cookie",
+    "cookie_name": "kokonut_operator_session"
+  },
+  "protected_operations": [
+    "/operator/api/*",
+    "GET /operator/auth/session",
+    "POST /operator/auth/logout"
+  ],
+  "public_operations_without_cookie_requirement": [
+    "GET /operator/auth/login",
+    "GET /operator/auth/callback",
+    "GET /operator/",
+    "GET /api/drivers",
+    "GET /health"
+  ],
+  "focused_tests_passed": 16,
+  "ruff": "passed",
+  "python_compile": "passed",
+  "diff_check": "passed",
+  "database_contacted": false,
+  "external_identity_provider_contacted": false
+}

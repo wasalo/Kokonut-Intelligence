@@ -1,0 +1,34 @@
+{
+  "date": "2026-10-28",
+  "result": "passed",
+  "change": "The conservative runtime SQL inventory now resolves SQL held in one unambiguous local assignment when its template consists only of literal and f-string fragments. Dynamic table identifiers, reassigned variables, helper-returned SQL, and ambiguous expressions remain unresolved.",
+  "inventory": {
+    "execution_sites": 4935,
+    "source_files": 971,
+    "relation_candidates": 1223,
+    "write_target_relations": 588,
+    "single_local_assignment_templates_resolved": 53,
+    "sites_without_relation_candidates": 1225
+  },
+  "validation": {
+    "focused_tests": 12,
+    "runtime_privilege_and_candidate_inventory_tests": 27,
+    "ruff": "passed",
+    "python_compile": "passed",
+    "inventory_check": "passed"
+  },
+  "findings": {
+    "service_registry_write_sites": [
+      "services/analytics/service_catalog.py:110 INSERT",
+      "services/analytics/service_catalog.py:151 UPDATE"
+    ],
+    "process_benchmark": "No repository caller, seed, or Directus rule found; external import ownership remains unknown, so grants stay unchanged.",
+    "farm_task_framework_step": "Operational cascading task/framework-step edge without a direct location key; 20 of 41 historic links have unresolved scope, so grants stay unchanged.",
+    "grant_change": "none"
+  },
+  "limitations": [
+    "Static SQL inventory is not an authorization or reachability proof.",
+    "Unresolved dynamic SQL, ORM/provider access, Directus, external callers, and runtime grants require separate review.",
+    "No database, provider, candidate, or legacy service was accessed."
+  ]
+}

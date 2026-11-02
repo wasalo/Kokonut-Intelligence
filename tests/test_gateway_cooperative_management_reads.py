@@ -160,7 +160,7 @@ def test_cooperative_route_policy_is_exact_location_scoped_read_only():
     assert auth_route_policy("GET", f"{path}/extra", enabled=True) is None
 
 
-def _register_route(monkeypatch, summary):
+def _register_route(monkeypatch, summary, *, provider=object(), database_error=Exception):
     from services.gateway.cooperative_management_routes import (
         register_cooperative_management_routes,
     )
@@ -176,7 +176,7 @@ def _register_route(monkeypatch, summary):
         return function(*args, **kwargs)
 
     register_cooperative_management_routes(
-        router, object(), run_in_threadpool, SimpleNamespace(Error=Exception)
+        router, provider, run_in_threadpool, SimpleNamespace(Error=database_error)
     )
     app.include_router(router)
 
@@ -193,7 +193,21 @@ def _register_route(monkeypatch, summary):
 def test_http_summary_is_no_store_and_uses_operator_identity(monkeypatch):
     def summary(operator_id, location_id):
         assert operator_id == OPERATOR_ID
-        return {"location_id": location_id, "cooperatives": [], "assets": [], "bookings": []}
+        return {
+            "location_id": location_id,
+            "cooperatives": [{
+                "cooperative_type": "marketing",
+                "cooperative_status": "active",
+                "cooperative_count": 2,
+                "active_member_count": 5,
+            }],
+            "assets": [{
+                "asset_type": "tractor",
+                "asset_status": "available",
+                "asset_count": 1,
+            }],
+            "bookings": [{"booking_status": "confirmed", "booking_count": 3}],
+        }
 
     app = _register_route(monkeypatch, summary)
     with TestClient(app) as client:
@@ -201,7 +215,79 @@ def test_http_summary_is_no_store_and_uses_operator_identity(monkeypatch):
     assert response.status_code == 200
     assert response.headers["cache-control"] == "no-store"
     assert response.headers["vary"] == "Cookie"
-    assert response.json()["location_id"] == LOCATION_ID
+    assert response.json() == {
+        "location_id": LOCATION_ID,
+        "cooperatives": [{
+            "cooperative_type": "marketing",
+            "cooperative_status": "active",
+            "cooperative_count": 2,
+            "active_member_count": 5,
+        }],
+        "assets": [{
+            "asset_type": "tractor",
+            "asset_status": "available",
+            "asset_count": 1,
+        }],
+        "bookings": [{"booking_status": "confirmed", "booking_count": 3}],
+    }
+
+
+def test_cooperative_summary_openapi_publishes_strict_response_schema(monkeypatch):
+    app = _register_route(
+        monkeypatch,
+        lambda _operator_id, location_id: {
+            "location_id": location_id,
+            "cooperatives": [],
+            "assets": [],
+            "bookings": [],
+        },
+    )
+
+    operation = app.openapi()["paths"][
+        "/operator/api/cooperatives/{location_id}/summary"
+    ]["get"]
+    response_schema = operation["responses"]["200"]["content"][
+        "application/json"
+    ]["schema"]
+    assert response_schema == {
+        "$ref": "#/components/schemas/CooperativeManagementSummaryResponse"
+    }
+    summary_schema = app.openapi()["components"]["schemas"][
+        "CooperativeManagementSummaryResponse"
+    ]
+    assert summary_schema["additionalProperties"] is False
+    assert set(summary_schema["properties"]) == {
+        "location_id", "cooperatives", "assets", "bookings"
+    }
+    for name in (
+        "CooperativeGroupSummary",
+        "CooperativeAssetSummary",
+        "CooperativeBookingSummary",
+    ):
+        assert app.openapi()["components"]["schemas"][name][
+            "additionalProperties"
+        ] is False
+
+
+def test_http_summary_rejects_undeclared_projection_fields(monkeypatch):
+    def summary(_operator_id, location_id):
+        return {
+            "location_id": location_id,
+            "cooperatives": [],
+            "assets": [],
+            "bookings": [],
+            "private_source_rows": ["must-not-leak"],
+        }
+
+    app = _register_route(monkeypatch, summary)
+    with TestClient(app) as client:
+        response = client.get(f"/operator/api/cooperatives/{LOCATION_ID}/summary")
+
+    assert response.status_code == 500
+    assert response.json() == {"error": "Cooperative summary unavailable"}
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["vary"] == "Cookie"
+    assert "must-not-leak" not in response.text
 
 
 def test_http_summary_denies_missing_signed_grant(monkeypatch):
@@ -213,3 +299,47 @@ def test_http_summary_denies_missing_signed_grant(monkeypatch):
         response = client.get(f"/operator/api/cooperatives/{LOCATION_ID}/summary")
     assert response.status_code == 403
     assert response.headers["cache-control"] == "no-store"
+    assert response.headers["vary"] == "Cookie"
+
+
+def test_http_summary_preserves_disabled_oidc_error_contract(monkeypatch):
+    app = _register_route(monkeypatch, lambda *_args: {}, provider=None)
+    with TestClient(app) as client:
+        response = client.get(f"/operator/api/cooperatives/{LOCATION_ID}/summary")
+    assert response.status_code == 404
+    assert response.json() == {"error": "Operator OIDC is disabled"}
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["vary"] == "Cookie"
+
+
+def test_http_summary_preserves_invalid_input_error_contract(monkeypatch):
+    def invalid(*_args, **_kwargs):
+        raise ValueError("Invalid location identifier")
+
+    app = _register_route(monkeypatch, invalid)
+    with TestClient(app) as client:
+        response = client.get(f"/operator/api/cooperatives/{LOCATION_ID}/summary")
+    assert response.status_code == 400
+    assert response.json() == {"error": "Invalid location identifier"}
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["vary"] == "Cookie"
+
+
+def test_http_summary_preserves_database_unavailable_error_contract(monkeypatch):
+    class FakeDatabaseError(Exception):
+        pass
+
+    def unavailable(*_args, **_kwargs):
+        raise FakeDatabaseError("sensitive database detail")
+
+    app = _register_route(
+        monkeypatch, unavailable, database_error=FakeDatabaseError
+    )
+    with TestClient(app) as client:
+        response = client.get(f"/operator/api/cooperatives/{LOCATION_ID}/summary")
+    assert response.status_code == 503
+    assert response.json() == {"error": "Cooperative summary unavailable"}
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["vary"] == "Cookie"
+    assert response.headers["retry-after"] == "30"
+    assert "sensitive database detail" not in response.text

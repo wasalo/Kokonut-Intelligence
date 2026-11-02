@@ -236,18 +236,88 @@ def test_metadata_patch_route_returns_no_store_result(monkeypatch):
         "version": 3,
         "updated_at": UPDATED_AT,
         "replayed": False,
-        "changed_fields": ["canvas_name"],
+        "changed_fields": ["canvas_name", "description", "fiscal_year", "tags"],
     }
-    app = _app(monkeypatch, lambda *_args, **_kwargs: result)
+    calls = []
+    app = _app(
+        monkeypatch,
+        lambda *args, **kwargs: calls.append((args, kwargs)) or result,
+    )
+    path = f"/operator/api/business-planning/{LOCATION_ID}/canvases/{CANVAS_ID}/metadata"
     with TestClient(app) as client:
         response = client.patch(
-            f"/operator/api/business-planning/{LOCATION_ID}/canvases/{CANVAS_ID}/metadata",
-            json=_payload(canvas_name="Updated name"),
+            path,
+            json=_payload(),
         )
     assert response.status_code == 200
     assert response.headers["cache-control"] == "no-store"
     assert response.headers["vary"] == "Cookie"
-    assert response.json()["changed_fields"] == ["canvas_name"]
+    assert response.json() == {
+        **result,
+        "updated_at": "2026-10-19T12:00:00Z",
+    }
+    assert calls[0][0][1:3] == (LOCATION_ID, CANVAS_ID)
+    assert calls[0][0][3] == _payload()
+
+
+@pytest.mark.parametrize(
+    "mutate",
+    [
+        lambda result: result.update(location_id=str(uuid4())),
+        lambda result: result.update(canvas_id=str(uuid4())),
+        lambda result: result.update(status="verified"),
+        lambda result: result.update(version=2),
+        lambda result: result.update(updated_at="2026-10-19T12:00:00"),
+        lambda result: result.update(replayed="false"),
+        lambda result: result.update(changed_fields=["description", "canvas_name"]),
+        lambda result: result.update(changed_fields=["canvas_name", "canvas_name"]),
+        lambda result: result.update(changed_fields=["canvas_name", "unreviewed"]),
+        lambda result: result.update(changed_fields=["canvas_name"]),
+        lambda result: result.update(private_note="must not leak"),
+    ],
+)
+def test_metadata_patch_rejects_malformed_result_without_leaking(monkeypatch, mutate):
+    result = {
+        "location_id": LOCATION_ID,
+        "canvas_id": CANVAS_ID,
+        "status": "draft",
+        "version": 3,
+        "updated_at": UPDATED_AT,
+        "replayed": False,
+        "changed_fields": ["canvas_name", "description", "fiscal_year", "tags"],
+    }
+    mutate(result)
+    app = _app(monkeypatch, lambda *_args, **_kwargs: result)
+    path = f"/operator/api/business-planning/{LOCATION_ID}/canvases/{CANVAS_ID}/metadata"
+
+    with TestClient(app) as client:
+        response = client.patch(path, json=_payload())
+
+    assert response.status_code == 503
+    assert response.json() == {"error": "Business canvas edit unavailable"}
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["vary"] == "Cookie"
+    assert response.headers["retry-after"] == "30"
+    assert "must not leak" not in response.text
+
+
+def test_metadata_route_binds_result_version_to_expected_version(monkeypatch):
+    result = {
+        "location_id": LOCATION_ID,
+        "canvas_id": CANVAS_ID,
+        "status": "draft",
+        "version": 3,
+        "updated_at": UPDATED_AT,
+        "replayed": True,
+        "changed_fields": ["canvas_name", "description", "fiscal_year", "tags"],
+    }
+    app = _app(monkeypatch, lambda *_args, **_kwargs: result)
+    path = f"/operator/api/business-planning/{LOCATION_ID}/canvases/{CANVAS_ID}/metadata"
+    with TestClient(app) as client:
+        response = client.patch(path, json=_payload())
+    assert response.status_code == 200
+    assert response.json()["version"] == 3
+    assert response.json()["replayed"] is True
 
 
 def test_metadata_route_rejects_non_object_and_oidc_disabled(monkeypatch):

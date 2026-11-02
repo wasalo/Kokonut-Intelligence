@@ -1,0 +1,22 @@
+{
+  "result": "passed",
+  "date": "2026-10-30",
+  "scope": "Migration 491 solution funding case approval response contract",
+  "test_command": "python3 -m pytest tests/test_gateway_solution_lifecycle_funding_proposals.py -k funding_approval_route -q",
+  "tests_passed": 8,
+  "tests_failed": 0,
+  "tests_deselected": 63,
+  "coverage": [
+    "strict exact four-field approval response",
+    "new approval returns HTTP 201 and exact replay returns HTTP 200",
+    "funding case response is bound to the requested path identifier",
+    "malformed status, missing timestamp, naive timestamp, extra field, and mismatched case are sanitized",
+    "no-store and Cookie-vary headers are preserved",
+    "existing location-scoped solution_lifecycle review grant is preserved",
+    "approval denial remains HTTP 403 with no-store headers",
+    "OpenAPI documents the same response model for create and replay"
+  ],
+  "database_used": false,
+  "provider_used": false,
+  "candidate_or_legacy_touched": false
+}

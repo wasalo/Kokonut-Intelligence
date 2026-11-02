@@ -16,10 +16,18 @@ def compute_soil_input_retention(conn, location_id: str) -> dict[str, Any]:
         """
         SELECT input_type, input_name,
                SUM(quantity_kg) AS total_kg,
-               AVG(residual_pct) AS avg_residual_pct,
+               SUM(quantity_kg * residual_pct)
+                   FILTER (WHERE residual_pct IS NOT NULL)
+                   / NULLIF(
+                       SUM(quantity_kg) FILTER (WHERE residual_pct IS NOT NULL),
+                       0
+                   ) AS avg_residual_pct,
                COUNT(*) AS application_count,
                MIN(application_date) AS first_applied,
-               MAX(residual_measurement_date) AS last_measured
+               MAX(residual_measurement_date) AS last_measured,
+               SUM(quantity_kg) FILTER (WHERE residual_pct IS NOT NULL) AS measured_kg,
+               SUM(quantity_kg * residual_pct)
+                   FILTER (WHERE residual_pct IS NOT NULL) AS measured_residual_weighted_sum
         FROM soil_input_application
         WHERE location_id = %s AND status IN ('verified', 'published')
         GROUP BY input_type, input_name
@@ -30,24 +38,31 @@ def compute_soil_input_retention(conn, location_id: str) -> dict[str, Any]:
     rows = cur.fetchall()
     cur.close()
     inputs = []
+    measured_total_kg = 0.0
+    weighted_residual = 0.0
     for row in rows:
+        measured_kg = float(row[7] or 0)
+        measured_residual_weighted_sum = float(row[8] or 0)
+        measured_total_kg += measured_kg
+        weighted_residual += measured_residual_weighted_sum
         inputs.append({
             "input_type": row[0],
             "input_name": row[1],
             "total_kg": float(row[2] or 0),
-            "avg_residual_pct": round(float(row[3] or 0), 2),
+            "avg_residual_pct": round(float(row[3]), 2) if row[3] is not None else None,
             "application_count": row[4],
             "first_applied": str(row[5]) if row[5] else None,
             "last_measured": str(row[6]) if row[6] else None,
         })
     total_kg = sum(i["total_kg"] for i in inputs)
-    weighted_residual = sum(i["total_kg"] * i["avg_residual_pct"] for i in inputs)
-    overall_residual = weighted_residual / total_kg if total_kg > 0 else 0
+    overall_residual = (
+        weighted_residual / measured_total_kg if measured_total_kg > 0 else None
+    )
     return {
         "location_id": location_id,
         "inputs": inputs,
         "total_input_kg": round(total_kg, 2),
-        "weighted_avg_residual_pct": round(overall_residual, 2),
+        "weighted_avg_residual_pct": round(overall_residual, 2) if overall_residual is not None else None,
         "input_types_count": len(set(i["input_type"] for i in inputs)),
     }
 

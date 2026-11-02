@@ -11,18 +11,39 @@ Reads lifecycle_transition; persist_forecasts() may cache predictions.
 from __future__ import annotations
 
 import argparse
+import math
 import statistics
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Tuple
 
 import psycopg2
 import psycopg2.extras
 
-from services.common.database import get_db
-from services.analytics.process_mining import get_traces, load_model, goal_state
+from services.analytics.process_mining import get_traces, goal_state, load_model
 from services.common.cli import print_json
+from services.common.database import get_db
 
 MODEL_VERSION = "v2026.07"
+
+
+def _validate_cli_numbers(parser: argparse.ArgumentParser, args) -> None:
+    """Reject malformed prediction values before opening PostgreSQL."""
+    nonnegative = []
+    if args.command == "predict":
+        nonnegative.append(("--age-hours", args.age_hours))
+    if args.command in {"predict", "breaches", "persist"}:
+        nonnegative.append(("--sla-target-hours", args.sla_target_hours))
+
+    for option, value in nonnegative:
+        if value is None:
+            continue
+        if not math.isfinite(value) or value < 0:
+            parser.error(f"{option} must be a finite non-negative number")
+
+    if args.command == "breaches" and (
+        not math.isfinite(args.threshold) or not 0 <= args.threshold <= 1
+    ):
+        parser.error("--threshold must be finite and between 0 and 1")
 
 
 def _median(xs: List[float]) -> float:
@@ -250,6 +271,7 @@ def main() -> None:
     pe.add_argument("--entity-type", required=True)
     pe.add_argument("--sla-target-hours", type=float, default=None)
     args = parser.parse_args()
+    _validate_cli_numbers(parser, args)
     _cmd(args)
 
 

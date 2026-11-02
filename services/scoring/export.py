@@ -33,7 +33,11 @@ def export_public_scorecard(conn, scorecard_id: str) -> dict[str, Any]:
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     cur.execute(
         """
-        SELECT *
+        SELECT scorecard_id, location_id, location_name, farm_id, farm_name,
+               period_start, period_end, overall_score, overall_confidence,
+               rubric_version, evidence_maturity_level, evidence_maturity_label,
+               pillar_count, public_safe_pillar_count,
+               min_pillar_evidence_maturity, max_pillar_evidence_maturity, caveat
         FROM v_public_ebf_scorecard_summary
         WHERE scorecard_id = %s
         """,

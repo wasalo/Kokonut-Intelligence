@@ -1,0 +1,44 @@
+{
+  "date": "2026-10-28",
+  "source_revision": "23e5bf8c",
+  "working_tree_dirty": true,
+  "scope": "Strict success response contract for the private, location-scoped yield-monitoring summary.",
+  "route": {
+    "method": "GET",
+    "path": "/operator/api/yield-monitoring/{location_id}/summary",
+    "response_fields": ["location_id", "total_observations", "first_harvest", "last_harvest", "totals_by_yield_unit", "crops", "recent_harvests"],
+    "nested_response_models": ["YieldUnitSummary", "YieldCropSummary", "RecentHarvestSummary"],
+    "extra_fields": "forbidden",
+    "validation": "The bounded service projection is explicitly validated before constructing JSONResponse."
+  },
+  "error_contract": {
+    "authorization": "existing 403 behavior and no-store/Vary headers preserved",
+    "disabled_oidc": "existing 404 behavior and no-store/Vary headers preserved",
+    "invalid_input": "existing 400 behavior and no-store/Vary headers preserved",
+    "database_failure": "existing sanitized 503 and Retry-After: 30 preserved",
+    "invalid_projection": "sanitized 500 with no-store/Vary headers"
+  },
+  "checks": [
+    {
+      "command": "python3 -m pytest tests/test_gateway_yield_monitoring.py -q",
+      "result": "passed",
+      "passed": 14
+    },
+    {
+      "command": "python3 -m ruff check services/gateway/yield_monitoring_routes.py tests/test_gateway_yield_monitoring.py",
+      "result": "passed"
+    },
+    {
+      "command": "python3 -m py_compile services/gateway/yield_monitoring_routes.py tests/test_gateway_yield_monitoring.py",
+      "result": "passed"
+    }
+  ],
+  "environment": {
+    "live_database_used": false,
+    "candidate_or_legacy_touched": false,
+    "provider_called": false
+  },
+  "limitations": [
+    "This closes one Gateway response-contract slice only; it does not establish live OIDC behavior, populated-data parity, or broader tenant isolation."
+  ]
+}

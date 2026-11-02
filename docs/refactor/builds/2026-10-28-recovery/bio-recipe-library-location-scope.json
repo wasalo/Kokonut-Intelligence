@@ -1,0 +1,26 @@
+{
+  "result": "passed",
+  "date": "2026-10-28",
+  "source_revision": "753b4645",
+  "working_tree_dirty": true,
+  "scope": "Bio recipe library report direct-call location scope",
+  "change": "generate_bio_recipe_library now rejects missing or empty location_id before opening a cursor and uses only the selected-location query, retaining intentionally public global catalog rows.",
+  "checks": {
+    "command": "python3 -m pytest tests/test_bio_factory_operations.py tests/test_report_generator_query_scope_inventory.py tests/test_report_state_cursor_cleanup.py -q",
+    "result": "349 passed",
+    "query_scope_inventory": "passed; 174 direct sites, 173 statically counted positional bind sites, zero unresolved sites",
+    "ruff": "passed",
+    "python_compilation": "passed",
+    "diff_check": "passed"
+  },
+  "external_services": {
+    "provider": false,
+    "network": false,
+    "candidate_or_legacy": false
+  },
+  "rollback": "Revert the location guard and query simplification, restore the old cursor-failure cases, and regenerate the report query-scope inventory; no migration or persisted data changed.",
+  "limitations": [
+    "This is direct-call input and query-shape validation, not tenant authorization or RLS proof.",
+    "Populated recipe parity and owner review remain open."
+  ]
+}

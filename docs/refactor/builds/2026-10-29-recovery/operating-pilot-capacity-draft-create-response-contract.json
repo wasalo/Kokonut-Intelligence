@@ -1,0 +1,29 @@
+{
+  "date": "2026-10-29",
+  "purpose": "Mock-only acceptance for the private operating-pilot capacity-draft create response.",
+  "command": "python3 -m pytest -q tests/test_gateway_operating_pilot_writes.py -k capacity_draft",
+  "result": {
+    "passed": 20,
+    "failed": 0,
+    "deselected": 179
+  },
+  "coverage": [
+    "OpenAPI declares the strict four-field response for HTTP 201 create and HTTP 200 replay",
+    "Response binds location to the request path and validates profile UUID, source-defined lifecycle status, and replay flag",
+    "Idempotent replay preserves the existing profile status and returns HTTP 200",
+    "Malformed, mismatched, or undeclared service output returns sanitized no-store 503"
+  ],
+  "environment": {
+    "database_used": false,
+    "provider_used": false,
+    "candidate_or_legacy_state_touched": false,
+    "fixtures": "Synthetic service dictionaries and in-process FastAPI TestClient."
+  },
+  "static_checks": {
+    "ruff": "passed",
+    "python_compile": "passed",
+    "response_schema_generation": "passed",
+    "capability_matrix": "passed",
+    "git_diff_check": "passed"
+  }
+}

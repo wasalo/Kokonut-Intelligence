@@ -78,6 +78,12 @@ def get_roadmap(roadmap_id: str) -> Optional[Dict[str, Any]]:
 
 
 def list_roadmaps(*, status: Optional[str] = None, entity_type: Optional[str] = None) -> List[Dict[str, Any]]:
+    projection = (
+        "roadmap_id, name, entity_type, entity_id, planning_horizon_start, "
+        "planning_horizon_end, detail_level, sponsor, owner, status, "
+        "next_review_at, requirement_count, technology_area_count, driver_count, "
+        "alternative_count, selected_alternative_count, last_reviewed_at"
+    )
     clauses: List[str] = []
     params: List[Any] = []
     if status:
@@ -89,7 +95,7 @@ def list_roadmaps(*, status: Optional[str] = None, entity_type: Optional[str] = 
     where = " WHERE " + " AND ".join(clauses) if clauses else ""
     with _conn() as conn, conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
         cur.execute(
-            "SELECT * FROM v_technology_roadmap_overview" + where + " ORDER BY name",
+            f"SELECT {projection} FROM v_technology_roadmap_overview" + where + " ORDER BY name",
             params,
         )
         return [_row(row) for row in cur.fetchall()]

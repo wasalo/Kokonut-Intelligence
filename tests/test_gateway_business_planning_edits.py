@@ -82,6 +82,44 @@ def _payload(**overrides):
     return result
 
 
+def _version_page(*, location_id=LOCATION_ID, canvas_id=CANVAS_ID, offset=0, versions=None, has_more=False):
+    return {
+        "location_id": location_id,
+        "canvas_id": canvas_id,
+        "offset": offset,
+        "versions": [] if versions is None else versions,
+        "has_more": has_more,
+        "next_offset": offset + 5 if has_more else None,
+    }
+
+
+def _version_item():
+    return {
+        "canvas_id": CANVAS_ID,
+        "version": 2,
+        "snapshot": {
+            "canvas_name": "Primary Canvas",
+            "description": "Location operating model",
+            "fiscal_year": 2026,
+            "tags": ["reviewed"],
+            "blocks": {
+                "key_partners": [],
+                "key_activities": [],
+                "key_resources": [],
+                "value_propositions": [],
+                "customer_relationships": [],
+                "channels": [],
+                "customer_segments": [],
+                "revenue_streams": [],
+                "cost_structure": {},
+            },
+        },
+        "change_reason": "Initial review",
+        "changed_at": "2026-10-19T12:05:00+00:00",
+        "is_current": True,
+    }
+
+
 def test_block_edit_establishes_signed_update_context_and_commits_one_function_call():
     updated_at = datetime(2026, 10, 19, 12, 5, tzinfo=timezone.utc)
     connection = _Connection(
@@ -338,6 +376,119 @@ def test_patch_route_returns_no_store_draft_edit(monkeypatch):
     assert response.headers["cache-control"] == "no-store"
     assert response.headers["vary"] == "Cookie"
     assert response.json()["version"] == 2
+    assert response.json() == {
+        **monkeypatch_payload,
+        "updated_at": "2026-10-19T12:00:00Z",
+    }
+
+
+def test_block_edit_route_preserves_exact_replay_result(monkeypatch):
+    result = {
+        "location_id": LOCATION_ID,
+        "canvas_id": CANVAS_ID,
+        "block_name": "key_partners",
+        "status": "draft",
+        "version": 2,
+        "updated_at": EXPECTED_UPDATED_AT,
+        "replayed": True,
+    }
+    app = _app(monkeypatch, write=lambda *_a, **_k: result)
+    path = (
+        f"/operator/api/business-planning/{LOCATION_ID}/canvases/{CANVAS_ID}"
+        "/blocks/key_partners"
+    )
+    with TestClient(app) as client:
+        response = client.patch(path, json=_payload())
+    assert response.status_code == 200
+    assert response.json()["version"] == 2
+    assert response.json()["replayed"] is True
+
+
+@pytest.mark.parametrize(
+    "mutate",
+    [
+        lambda result: result.update(location_id=str(uuid4())),
+        lambda result: result.update(canvas_id=str(uuid4())),
+        lambda result: result.update(status="submitted"),
+        lambda result: result.update(version=1),
+        lambda result: result.update(updated_at="2026-10-19T12:00:00"),
+        lambda result: result.update(replayed="false"),
+        lambda result: result.update(block_name="channels"),
+        lambda result: result.update(private_note="must not leak"),
+    ],
+)
+def test_patch_route_rejects_malformed_write_result_without_leaking(monkeypatch, mutate):
+    result = {
+        "location_id": LOCATION_ID,
+        "canvas_id": CANVAS_ID,
+        "block_name": "key_partners",
+        "status": "draft",
+        "version": 2,
+        "updated_at": EXPECTED_UPDATED_AT,
+        "replayed": False,
+    }
+    mutate(result)
+    app = _app(monkeypatch, write=lambda *_a, **_k: result)
+    path = (
+        f"/operator/api/business-planning/{LOCATION_ID}/canvases/{CANVAS_ID}"
+        "/blocks/key_partners"
+    )
+
+    with TestClient(app) as client:
+        response = client.patch(path, json=_payload())
+
+    assert response.status_code == 503
+    assert response.json() == {"error": "Business canvas edit unavailable"}
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["vary"] == "Cookie"
+    assert response.headers["retry-after"] == "30"
+    assert "must not leak" not in response.text
+
+
+def test_canvas_edit_openapi_declares_exact_strict_write_models(monkeypatch):
+    app = _app(monkeypatch, write=lambda *_a, **_k: {})
+    paths = app.openapi()["paths"]
+    schemas = app.openapi()["components"]["schemas"]
+    block_operation = paths[
+        "/operator/api/business-planning/{location_id}/canvases/{canvas_id}/blocks/{block_name}"
+    ]["patch"]
+    metadata_operation = paths[
+        "/operator/api/business-planning/{location_id}/canvases/{canvas_id}/metadata"
+    ]["patch"]
+
+    assert block_operation["responses"]["200"]["content"]["application/json"]["schema"] == {
+        "$ref": "#/components/schemas/BusinessCanvasBlockEditResponse"
+    }
+    assert metadata_operation["responses"]["200"]["content"]["application/json"]["schema"] == {
+        "$ref": "#/components/schemas/BusinessCanvasMetadataEditResponse"
+    }
+    block_schema = schemas["BusinessCanvasBlockEditResponse"]
+    metadata_schema = schemas["BusinessCanvasMetadataEditResponse"]
+    common_fields = {"location_id", "canvas_id", "status", "version", "updated_at", "replayed"}
+    assert set(block_schema["properties"]) == common_fields | {"block_name"}
+    assert set(metadata_schema["properties"]) == common_fields | {"changed_fields"}
+    assert set(block_schema["required"]) == common_fields | {"block_name"}
+    assert set(metadata_schema["required"]) == common_fields | {"changed_fields"}
+    assert block_schema["additionalProperties"] is False
+    assert metadata_schema["additionalProperties"] is False
+    assert block_schema["properties"]["status"]["const"] == "draft"
+    assert block_schema["properties"]["block_name"]["enum"] == [
+        "key_partners",
+        "key_activities",
+        "key_resources",
+        "value_propositions",
+        "customer_relationships",
+        "channels",
+        "customer_segments",
+        "revenue_streams",
+        "cost_structure",
+    ]
+    assert metadata_schema["properties"]["changed_fields"]["items"]["enum"] == [
+        "canvas_name",
+        "description",
+        "fiscal_year",
+        "tags",
+    ]
 
 
 def test_patch_route_maps_invalid_body_and_tenant_denial(monkeypatch):
@@ -359,15 +510,115 @@ def test_patch_route_maps_invalid_body_and_tenant_denial(monkeypatch):
 def test_versions_route_returns_no_store_and_oidc_disabled_404(monkeypatch):
     app = _app(
         monkeypatch,
-        history=lambda *_a, **_k: {"versions": [], "has_more": False},
+        history=lambda *_a, **_k: _version_page(versions=[_version_item()]),
     )
     path = f"/operator/api/business-planning/{LOCATION_ID}/canvases/{CANVAS_ID}/versions"
     with TestClient(app) as client:
         response = client.get(path)
     assert response.status_code == 200
     assert response.headers["cache-control"] == "no-store"
+    assert response.json()["versions"][0]["version"] == 2
     app_disabled = _app(monkeypatch, provider=None)
     with TestClient(app_disabled) as client:
         disabled = client.get(path)
     assert disabled.status_code == 404
     assert disabled.headers["cache-control"] == "no-store"
+
+
+@pytest.mark.parametrize(
+    "mutate",
+    [
+        lambda result: result["versions"][0].update(created_by=OPERATOR_ID),
+        lambda result: result["versions"][0]["snapshot"].update(private_metadata={"secret": True}),
+        lambda result: result.update(canvas_id=str(uuid4())),
+        lambda result: result["versions"][0].update(canvas_id=str(uuid4())),
+        lambda result: result.update(offset=1),
+        lambda result: result.update(has_more=True),
+    ],
+)
+def test_versions_route_rejects_malformed_or_mismatched_projection(monkeypatch, mutate):
+    result = _version_page(versions=[_version_item()])
+    mutate(result)
+    app = _app(monkeypatch, history=lambda *_a, **_k: result)
+    path = f"/operator/api/business-planning/{LOCATION_ID}/canvases/{CANVAS_ID}/versions"
+
+    with TestClient(app) as client:
+        response = client.get(path)
+
+    assert response.status_code == 500
+    assert response.json() == {"error": "Business canvas history unavailable"}
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["vary"] == "Cookie"
+
+
+def test_versions_route_publishes_service_bounds_and_rejects_invalid_pages(monkeypatch):
+    calls = []
+    app = _app(
+        monkeypatch,
+        history=lambda *args, **kwargs: calls.append((args, kwargs))
+        or _version_page(),
+    )
+    path = f"/operator/api/business-planning/{LOCATION_ID}/canvases/{CANVAS_ID}/versions"
+    operation = app.openapi()["paths"][
+        "/operator/api/business-planning/{location_id}/canvases/{canvas_id}/versions"
+    ]["get"]
+    assert operation["responses"]["200"]["content"]["application/json"]["schema"] == {
+        "$ref": "#/components/schemas/BusinessCanvasVersionHistoryPage"
+    }
+    assert app.openapi()["components"]["schemas"][
+        "BusinessCanvasVersionHistoryPage"
+    ]["additionalProperties"] is False
+    parameters = {parameter["name"]: parameter for parameter in operation["parameters"]}
+
+    assert parameters["limit"]["schema"] == {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 5,
+        "default": 5,
+        "title": "Limit",
+    }
+    assert parameters["offset"]["schema"] == {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 10000,
+        "default": 0,
+        "title": "Offset",
+    }
+
+    with TestClient(app) as client:
+        for query in ("limit=0", "limit=6", "offset=-1", "offset=10001"):
+            response = client.get(f"{path}?{query}")
+            assert response.status_code == 422
+
+    assert calls == []
+
+
+@pytest.mark.parametrize(
+    ("offset", "expected_more"),
+    [(9995, True), (9996, False)],
+)
+def test_version_read_stops_continuation_at_supported_offset_ceiling(
+    monkeypatch, offset, expected_more
+):
+    columns = ("canvas_id", "version", "snapshot", "change_reason", "changed_at", "is_current")
+    connection = _Connection(
+        all_rows=[
+            (CANVAS_ID, version, {"blocks": {}}, None, "2026-10-19T12:05:00Z", version == 6)
+            for version in range(6, 0, -1)
+        ],
+        description=columns,
+    )
+    monkeypatch.setattr(reads, "set_operator_tenant_context", lambda *_a, **_k: None)
+
+    result = reads.list_location_business_model_canvas_versions(
+        OPERATOR_ID,
+        LOCATION_ID,
+        CANVAS_ID,
+        limit=5,
+        offset=offset,
+        connection_factory=lambda: connection,
+    )
+
+    assert len(result["versions"]) == 5
+    assert result["has_more"] is expected_more
+    assert result["next_offset"] == (offset + 5 if expected_more else None)

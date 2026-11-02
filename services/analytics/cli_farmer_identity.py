@@ -6,7 +6,10 @@ queries/business logic. Reachable via:
     python -m services.analytics.cli_farmer_identity --help
 """
 
+import argparse
+import sys
 from datetime import date, datetime
+from uuid import UUID
 
 from ..common.commands import CommandLine
 from .farmer_identity import (
@@ -34,12 +37,29 @@ from .farmer_identity import (
 cli = CommandLine("farmer_identity", "Farmer identity & access management")
 
 
+def _parse_iso_date(value: str) -> date:
+    """Parse an ISO date before a CLI command can open its database connection."""
+    try:
+        return date.fromisoformat(value)
+    except (TypeError, ValueError) as exc:
+        raise argparse.ArgumentTypeError(
+            "must be a valid ISO date (YYYY-MM-DD)"
+        ) from exc
+
+
+def _parse_iso_datetime(value: str) -> datetime:
+    """Parse an ISO datetime before a CLI command can open its database connection."""
+    try:
+        return datetime.fromisoformat(value)
+    except (TypeError, ValueError) as exc:
+        raise argparse.ArgumentTypeError("must be a valid ISO datetime") from exc
+
+
 def _cmd_create_profile(db, a):
-    dob = date.fromisoformat(a.dob) if a.dob else None
     return create_profile(
         db, a.first_name,
         last_name=a.last_name,
-        date_of_birth=dob,
+        date_of_birth=a.dob,
         gender=a.gender,
         phone=a.phone,
         email=a.email,
@@ -69,7 +89,7 @@ def _cmd_update_profile(db, a):
         if val is not None:
             updates[field] = val
     if a.dob:
-        updates["date_of_birth"] = date.fromisoformat(a.dob)
+        updates["date_of_birth"] = a.dob
     if a.farm_size is not None:
         updates["farm_size_ha"] = a.farm_size
     if a.crops is not None:
@@ -80,15 +100,13 @@ def _cmd_update_profile(db, a):
 
 
 def _cmd_add_credential(db, a):
-    issued = date.fromisoformat(a.issued_date) if a.issued_date else None
-    expiry = date.fromisoformat(a.expiry_date) if a.expiry_date else None
     return add_credential(
         db, a.farmer_id, a.credential_type, a.credential_name,
         issuing_authority=a.issuing_authority,
         credential_number=a.credential_number,
         credential_url=a.credential_url,
-        issued_date=issued,
-        expiry_date=expiry,
+        issued_date=a.issued_date,
+        expiry_date=a.expiry_date,
     )
 
 
@@ -114,13 +132,12 @@ def _cmd_verify_kyc(db, a):
 
 
 def _cmd_assign_role(db, a):
-    expires = datetime.fromisoformat(a.expires_at) if a.expires_at else None
     return assign_role(
         db, a.farmer_id, a.role,
         scope=a.scope,
         location_id=a.location_id,
         permissions=a.permissions,
-        expires_at=expires,
+        expires_at=a.expires_at,
         assigned_by=a.assigned_by,
     )
 
@@ -157,7 +174,7 @@ def _cmd_register_device(db, a):
 cli.subcommand("create-profile", "Create farmer profile") \
     .add("--first-name", required=True) \
     .add("--last-name") \
-    .add("--dob", help="Date of birth YYYY-MM-DD") \
+    .add("--dob", type=_parse_iso_date, help="Date of birth YYYY-MM-DD") \
     .add("--gender") \
     .add("--phone") \
     .add("--email") \
@@ -181,7 +198,7 @@ cli.subcommand("update-profile", "Update farmer profile") \
     .add("--farmer-id", required=True) \
     .add("--first-name") \
     .add("--last-name") \
-    .add("--dob", help="Date of birth YYYY-MM-DD") \
+    .add("--dob", type=_parse_iso_date, help="Date of birth YYYY-MM-DD") \
     .add("--gender") \
     .add("--phone") \
     .add("--email") \
@@ -221,8 +238,8 @@ cli.subcommand("add-credential", "Add credential") \
     .add("--issuing-authority") \
     .add("--number", dest="credential_number") \
     .add("--url", dest="credential_url") \
-    .add("--issued-date", help="Issued date YYYY-MM-DD") \
-    .add("--expiry-date", help="Expiry date YYYY-MM-DD") \
+    .add("--issued-date", type=_parse_iso_date, help="Issued date YYYY-MM-DD") \
+    .add("--expiry-date", type=_parse_iso_date, help="Expiry date YYYY-MM-DD") \
     .add("--json", action="store_true") \
     .run(_cmd_add_credential)
 
@@ -264,7 +281,7 @@ cli.subcommand("assign-role", "Assign role") \
     .add("--scope", default="location") \
     .add("--location-id") \
     .add("--permissions", nargs="+") \
-    .add("--expires-at", help="ISO datetime") \
+    .add("--expires-at", type=_parse_iso_datetime, help="ISO datetime") \
     .add("--assigned-by") \
     .add("--json", action="store_true") \
     .run(_cmd_assign_role)
@@ -320,7 +337,31 @@ cli.subcommand("directory", "Get farmer directory") \
 
 
 def main(argv=None):
-    cli.run(argv)
+    parser = cli.build_parser()
+    dispatch_argv = list(sys.argv[1:] if argv is None else argv)
+    args = parser.parse_args(dispatch_argv)
+    location_commands = {
+        "create-profile",
+        "list-farmers",
+        "assign-role",
+        "register-device",
+        "access-matrix",
+        "directory",
+    }
+    if args.command in location_commands and args.location_id is not None:
+        try:
+            canonical_location_id = str(UUID(args.location_id))
+        except (AttributeError, TypeError, ValueError):
+            parser.error("--location-id must be a valid UUID")
+        for index, token in enumerate(dispatch_argv):
+            option, separator, _value = token.partition("=")
+            if option.startswith("--") and "--location-id".startswith(option):
+                if separator:
+                    dispatch_argv[index] = f"{option}={canonical_location_id}"
+                elif index + 1 < len(dispatch_argv):
+                    dispatch_argv[index + 1] = canonical_location_id
+                break
+    return cli.run(dispatch_argv)
 
 
 if __name__ == "__main__":

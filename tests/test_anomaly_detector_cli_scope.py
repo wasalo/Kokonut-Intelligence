@@ -69,6 +69,7 @@ def test_scoped_scan_receives_canonical_location_uuid():
         sensor_id="sensor-1",
         since=None,
         location_id=LOCATION_ID,
+        all_locations=False,
     )
 
 
@@ -76,14 +77,16 @@ def test_explicit_all_locations_runs_default_anomaly_scan():
     with patch.object(anomaly_detector, "run_check") as run_check:
         anomaly_detector.main(["--all-locations"])
 
-    run_check.assert_called_once_with(sensor_id=None, since=None, location_id=None)
+    run_check.assert_called_once_with(
+        sensor_id=None, since=None, location_id=None, all_locations=True
+    )
 
 
 def test_baseline_check_requires_and_forwards_explicit_aggregate_scope():
     with patch.object(anomaly_detector, "run_baseline_check") as baseline:
         anomaly_detector.main(["--baseline-check", "--all-locations"])
 
-    baseline.assert_called_once_with(location_id=None)
+    baseline.assert_called_once_with(location_id=None, all_locations=True)
 
 
 def test_ml_check_uses_mocked_database_only_after_explicit_aggregate_scope():

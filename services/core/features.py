@@ -104,7 +104,7 @@ FEATURES: dict[str, dict[str, Any]] = {
         "enabled": os.getenv("KOKONUT_FEATURE_ISOLATED_EVENT_DISPATCH", "false").lower() == "true",
         "critical": False,
         "category": "security",
-        "description": "Use a dedicated login and bounded functions for global event dispatch",
+        "description": "Enable global event dispatch through a dedicated login and bounded functions; disabled isolation pauses dispatch",
     },
     "notification_delivery": {
         "enabled": os.getenv(
@@ -121,7 +121,15 @@ FEATURES: dict[str, dict[str, Any]] = {
         ).lower() == "true",
         "critical": False,
         "category": "security",
-        "description": "Use a dedicated database login and bounded function for event notification enqueue",
+        "description": "Enable notification enqueue through a dedicated login and bounded function; configured destinations fail closed while disabled",
+    },
+    "isolated_report_snapshot_export_worker": {
+        "enabled": os.getenv(
+            "KOKONUT_FEATURE_ISOLATED_REPORT_SNAPSHOT_EXPORT_WORKER", "false"
+        ).lower() == "true",
+        "critical": False,
+        "category": "security",
+        "description": "Use a dedicated database login and bounded functions for private report snapshot exports",
     },
     "isolated_notification_delivery": {
         "enabled": os.getenv(
@@ -129,7 +137,7 @@ FEATURES: dict[str, dict[str, Any]] = {
         ).lower() == "true",
         "critical": False,
         "category": "security",
-        "description": "Use a dedicated database login and bounded functions for notification delivery",
+        "description": "Enable notification delivery through a dedicated login and bounded functions; disabled isolation pauses delivery",
     },
     "event_retention_cleanup": {
         "enabled": os.getenv("KOKONUT_FEATURE_EVENT_RETENTION_CLEANUP", "false").lower() == "true",
@@ -181,7 +189,7 @@ FEATURES: dict[str, dict[str, Any]] = {
         ).lower() == "true",
         "critical": False,
         "category": "security",
-        "description": "Use a dedicated database login and bounded function for global World Bank price ingestion",
+        "description": "Use a dedicated database login and bounded functions for global World Bank, reference-seed, and manual marketplace price writes",
     },
     "isolated_eas_indexer_worker": {
         "enabled": os.getenv("KOKONUT_FEATURE_ISOLATED_EAS_INDEXER_WORKER", "false").lower() == "true",
@@ -215,7 +223,7 @@ FEATURES: dict[str, dict[str, Any]] = {
         "enabled": os.getenv("KOKONUT_FEATURE_ISOLATED_FRESHNESS_WORKER", "false").lower() == "true",
         "critical": False,
         "category": "security",
-        "description": "Use a dedicated database login and bounded functions for global data-freshness checks",
+        "description": "Enable global data-freshness checks through a dedicated login and bounded functions",
     },
     "isolated_sensor_anomaly_scan_worker": {
         "enabled": os.getenv(
@@ -237,7 +245,7 @@ FEATURES: dict[str, dict[str, Any]] = {
         "enabled": os.getenv("KOKONUT_FEATURE_ISOLATED_CLICKHOUSE_OUTBOX_WORKER", "false").lower() == "true",
         "critical": False,
         "category": "security",
-        "description": "Use a dedicated database login and bounded functions for ClickHouse projection delivery",
+        "description": "Enable ClickHouse projection delivery through a dedicated login and bounded functions",
     },
     "signed_sensor_ingestion_worker": {
         "enabled": os.getenv("KOKONUT_FEATURE_SIGNED_SENSOR_INGESTION_WORKER", "false").lower() == "true",

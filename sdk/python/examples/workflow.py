@@ -114,29 +114,15 @@ def main() -> None:
     })
     print(f"  Sale created: {sale['id']}\n")
 
-    # Step 6: Create attestation record
-    print("6. Creating attestation record...")
-    attestation = client.attestations.create({
-        "schema_id": "PLACEHOLDER_SCHEMA_ID",
-        "subject_type": "harvest_event",
-        "subject_id": harvest["id"],
-        "claim_type": "verified_harvest",
-        "claim_data": {
-            "crop_cycle_id": crop_cycle_id,
-            "quantity": 1420,
-            "unit": "kg",
-            "quality_grade": "A",
-            "loss_rate_pct": 5.33,
-            "verified_by": "field-supervisor-001",
-        },
-        "status": "draft",
-    })
-    print(f"  Attestation created: {attestation['id']}")
+    # Step 6: Read indexed attestations; submission uses the governed EAS flow.
+    print("6. Reading indexed attestation records...")
+    attestations = client.attestations.list_by_entity("harvest_event", harvest["id"])
+    print(f"  Indexed attestations: {len(attestations)}")
 
     print("\nWorkflow complete!")
     print(f"  Harvest:  {harvest['id']}")
     print(f"  Sale:     {sale['id']}")
-    print(f"  Attestation: {attestation['id']}")
+    print(f"  Indexed attestations: {len(attestations)}")
 
 
 if __name__ == "__main__":

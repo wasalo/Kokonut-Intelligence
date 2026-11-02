@@ -1,0 +1,28 @@
+{
+  "result": "passed",
+  "date": "2026-10-28",
+  "source_revision": "753b4645",
+  "working_tree_dirty": true,
+  "scope": "Delphi participant workspace route pagination contract",
+  "finding": "The authenticated participant workspace route read limit and offset as raw query strings, so OpenAPI omitted the service bounds and malformed or out-of-range paging reached service validation.",
+  "change": "The route now publishes limit 1..50 (default 50) and offset 0..10000 (default 0) in OpenAPI. FastAPI rejects malformed and out-of-range values before the handler invokes the workspace service.",
+  "checks": {
+    "command": "python3 -m pytest tests/test_gateway_delphi_participant_workspace.py -q",
+    "result": "22 passed",
+    "openapi_bounds": "passed",
+    "invalid_input_rejected_before_service": "passed",
+    "ruff": "passed",
+    "python_compilation": "passed",
+    "diff_check": "passed"
+  },
+  "external_services": {
+    "database": false,
+    "provider": false,
+    "network": false,
+    "candidate_or_legacy": false
+  },
+  "rollback": "Revert the route, focused tests, and this evidence file; no migration or persistent data changed.",
+  "limitations": [
+    "This publishes the existing service bounds and does not establish browser, live identity-provider, or database acceptance."
+  ]
+}

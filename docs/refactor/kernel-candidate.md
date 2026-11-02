@@ -1,5 +1,13 @@
 # Candidate Kernel image and isolated deployment
 
+> **Historical deployment record:** The local candidate facts below are dated
+> snapshots from October 2026, not a live deployment check. The current branch
+> contains migrations through 703, but no candidate, legacy, or production
+> migration rollout is claimed for this code batch. See the
+> [current refactor status guide](current-state-and-implementation.md) and
+> recheck the explicitly selected Compose project's health and migration
+> ledger before relying on any recorded local state.
+
 `Dockerfile.kernel` installs kernel, Web3, and exports dependency groups using
 the existing digest-pinned Python base. It retains non-root execution and checks
 the gateway's existing health route using Python rather than adding curl.
@@ -16,9 +24,9 @@ name:
 
 For local host tools that need a PostgreSQL connection, opt in to the
 loopback-only [`docker-compose.kernel-local-db.yml`](../../docker-compose.kernel-local-db.yml)
-override. It publishes the candidate database at `127.0.0.1:5433`; the active
-local candidate currently uses this mapping and passed a host authentication
-check and app health check on 16 October 2026 ([evidence](builds/2026-10-16-recovery/kernel-local-db-port.json)). Set
+override. It publishes the candidate database at `127.0.0.1:5433`; the local
+candidate used this mapping and passed a host authentication check and app
+health check on 16 October 2026 ([evidence](builds/2026-10-16-recovery/kernel-local-db-port.json)). Set
 `KOKONUT_KERNEL_PG_PORT` to another free host port if needed. The application
 continues to connect through Compose at `database:5432`. Keep the base
 candidate database private and do not use this development override in

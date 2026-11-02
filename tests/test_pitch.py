@@ -1,12 +1,13 @@
 """Tests for the Pitch & Presentation service."""
 
 import json
+import sys
 
-import pytest
 import psycopg2
+import pytest
 
-from services.ingestion.base import get_db
 from services.analytics import pitch
+from services.ingestion.base import get_db
 
 
 def _db():
@@ -95,6 +96,114 @@ def test_create_template_invalid_audience():
         pytest.skip("pitch_template table not present")
     finally:
         conn.close()
+
+
+@pytest.mark.parametrize(
+    "sections_json",
+    [
+        "{not-json",
+        "{}",
+        '[{"title":"Only title"}]',
+        '[{"title":3,"content":"Body"}]',
+        '[{"title":"Title","content":"Body","extra":1e999}]',
+    ],
+)
+def test_pitch_template_cli_rejects_invalid_sections_before_database(
+    monkeypatch, sections_json
+):
+    calls = []
+
+    def forbidden(*_args, **_kwargs):
+        calls.append("unexpected database or command access")
+        raise AssertionError("invalid sections must fail before database access")
+
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "pitch",
+            "templates",
+            "create",
+            "--audience",
+            "funders",
+            "--hook",
+            "Hook",
+            "--problem",
+            "Problem",
+            "--solution",
+            "Solution",
+            "--proof",
+            "Proof",
+            "--cta-label",
+            "Learn more",
+            "--cta-url",
+            "https://example.test",
+            "--sections",
+            sections_json,
+        ],
+    )
+    monkeypatch.setattr(pitch, "_cmd", forbidden)
+    monkeypatch.setattr(pitch, "get_db", forbidden)
+
+    with pytest.raises(SystemExit) as exc:
+        pitch.main()
+
+    assert exc.value.code == 2
+    assert calls == []
+
+
+def test_pitch_template_cli_forwards_valid_sections_without_database(
+    monkeypatch,
+):
+    expected_sections = [
+        {
+            "title": "Field evidence",
+            "content": "Observed outcomes and source links.",
+            "display": {"emphasis": "evidence"},
+        }
+    ]
+    calls = []
+
+    def capture(args):
+        calls.append(args)
+
+    def forbidden_database(*_args, **_kwargs):
+        raise AssertionError("patched command should not acquire a database")
+
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "pitch",
+            "templates",
+            "create",
+            "--audience",
+            "funders",
+            "--hook",
+            "Hook",
+            "--problem",
+            "Problem",
+            "--solution",
+            "Solution",
+            "--proof",
+            "Proof",
+            "--cta-label",
+            "Learn more",
+            "--cta-url",
+            "https://example.test",
+            "--sections",
+            json.dumps(expected_sections),
+        ],
+    )
+    monkeypatch.setattr(pitch, "_cmd", capture)
+    monkeypatch.setattr(pitch, "get_db", forbidden_database)
+
+    pitch.main()
+
+    assert len(calls) == 1
+    assert calls[0].command == "templates"
+    assert calls[0].templates_command == "create"
+    assert calls[0].sections == expected_sections
 
 
 def test_gather_evidence():

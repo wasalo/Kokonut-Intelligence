@@ -6,8 +6,9 @@ soil type, water availability, and market prices.
 """
 
 import psycopg2.extras
-from ..models import OpportunityDimension
+
 from ..config import get_config
+from ..models import OpportunityDimension
 
 
 def analyze(conn, location_id: str) -> OpportunityDimension:
@@ -27,6 +28,7 @@ def analyze(conn, location_id: str) -> OpportunityDimension:
         FROM crop_cycle cc
         JOIN crop c ON cc.crop_id = c.id
         JOIN plot p ON cc.plot_id = p.id
+        JOIN farm f ON f.id = p.farm_id AND f.location_id = cc.location_id
         WHERE cc.location_id = %s AND cc.status = 'completed'
     """, (location_id,))
     cycles = [dict(r) for r in cur.fetchall()]
@@ -35,7 +37,9 @@ def analyze(conn, location_id: str) -> OpportunityDimension:
     cur.execute("""
         SELECT ns.*, c.name as crop_name
         FROM noi_snapshot ns
-        JOIN crop_cycle cc ON ns.crop_cycle_id = cc.id
+        JOIN crop_cycle cc
+          ON ns.crop_cycle_id = cc.id
+         AND cc.location_id = ns.location_id
         JOIN crop c ON cc.crop_id = c.id
         WHERE ns.location_id = %s
     """, (location_id,))

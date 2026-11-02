@@ -1,0 +1,70 @@
+{
+  "date": "2026-10-29",
+  "batch": "CAP-035 completion detail, EBF projection, and CLI JSON preflight",
+  "slices": [
+    {
+      "name": "replication completion review detail",
+      "source": [
+        "schemas/postgres/497_location_solution_replication_completion_proposal.sql",
+        "schemas/postgres/498_location_solution_replication_completion_review.sql",
+        "services/gateway/solution_lifecycle_routes.py",
+        "tests/test_gateway_solution_replication_completion_review.py"
+      ],
+      "route": "GET /operator/api/solution-lifecycle/{location_id}/replications/{replication_id}/completion-proposals/{proposal_id}/review",
+      "contract": "Strict exact 18-field OpenAPI/runtime projection. Both returned IDs bind to their path IDs. Enforces active replication, allowed outcomes, maturity 1-6, trimmed summary length 10-4000, evidence array <=100 elements and <=65,536 serialized bytes, aware creation timestamp, strict conflict flags, and SQL-nullable source_is_current. Preserves private exact-location review and signed tenant context; no proposer or reviewer identity is returned.",
+      "focused_command": "python3 -m pytest tests/test_gateway_solution_replication_completion_review.py -q",
+      "focused_tests": 25
+    },
+    {
+      "name": "public EBF scorecard summary projection",
+      "source": [
+        "schemas/postgres/032_ebf_scorecard.sql",
+        "services/scoring/export.py",
+        "tests/test_ebf_json_export.py"
+      ],
+      "contract": "Replace SELECT * with migration 032's exact ordered 17-column public summary projection; preserve scorecard binding, serialization, and the existing pillar export.",
+      "focused_command": "python3 -m pytest tests/test_ebf_json_export.py::test_public_scorecard_summary_uses_exact_migration_projection_and_payload -q",
+      "focused_tests": 1
+    },
+    {
+      "name": "process simulation CLI JSON preflight",
+      "source": [
+        "services/analytics/process_simulation.py",
+        "tests/test_process_simulation.py"
+      ],
+      "contract": "Parse --params before opening PostgreSQL; require an object and reject malformed, non-standard, NaN, or infinite values; pass a valid object unchanged to create_simulation and close its connection.",
+      "focused_command": "python3 -m pytest tests/test_process_simulation.py::test_create_cli_rejects_invalid_params_before_connection tests/test_process_simulation.py::test_create_cli_forwards_valid_params_and_closes_connection -q",
+      "focused_tests": 5
+    },
+    {
+      "name": "pitch template CLI sections preflight",
+      "source": [
+        "services/analytics/pitch.py",
+        "tests/test_pitch.py"
+      ],
+      "contract": "Parse --sections before command/database access; require an array of objects with string title/content fields, reject malformed/non-array/non-finite input, and pass valid JSON sections unchanged.",
+      "focused_command": "python3 -m pytest tests/test_pitch.py::test_pitch_template_cli_rejects_invalid_sections_before_database tests/test_pitch.py::test_pitch_template_cli_forwards_valid_sections_without_database -q",
+      "focused_tests": 6
+    }
+  ],
+  "verification": {
+    "combined_focused_tests": 37,
+    "combined_result": "passed",
+    "ruff_default": "passed on all changed source and test files",
+    "ruff_security": "passed on Gateway, scoring, and pitch changed sources. process_simulation.py has one pre-existing S608 warning in unchanged list_simulations SQL construction; the new preflight does not build SQL.",
+    "python_compile": "passed on all changed source and test files",
+    "git_diff_check": "passed",
+    "capability_matrix": "passed: 67 rows; 24 baseline-retained, 7 deployed, 36 prepared",
+    "runtime_sql_inventory": "refreshed and current",
+    "report_generator_helper_scope_inventory": "refreshed and current",
+    "provider_boundaries": "passed: 17 vendor import sites",
+    "dependency_groups": "passed: 14 groups, 33 requirements"
+  },
+  "environment": {
+    "database": "not used; tests use mocked route services, fake cursors, and fake CLI accessors",
+    "provider": "not used",
+    "candidate_or_legacy_state": "untouched",
+    "migration_applied": false
+  },
+  "rollback": "Revert the Gateway model/route, query projection, CLI preflight helpers, focused tests, refreshed source inventories, and progress/evidence records. No database rollback is needed."
+}

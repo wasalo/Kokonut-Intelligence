@@ -166,7 +166,13 @@ def list_sessions(conn, *, circle_id: Optional[str] = None, status: Optional[str
         params.append(status)
     where = " WHERE " + " AND ".join(clauses) if clauses else ""
     with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
-        cur.execute(f"SELECT * FROM v_governance_tactical_health{where} ORDER BY scheduled_at NULLS LAST", params)
+        cur.execute(
+            "SELECT session_id, circle_id, circle_key, session_type, title, scheduled_at, "
+            "session_status, item_count, open_item_count, disposed_item_count, "
+            "overdue_item_count "
+            f"FROM v_governance_tactical_health{where} ORDER BY scheduled_at NULLS LAST",
+            params,
+        )
         return [_row(row) for row in cur.fetchall()]
 
 

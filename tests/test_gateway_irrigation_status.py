@@ -16,6 +16,38 @@ from services.gateway.irrigation_status import get_location_irrigation_status  #
 from services.gateway.operator_auth import auth_route_policy  # noqa: E402
 
 
+def _irrigation_status_payload(location_id, *, limit=25, offset=0):
+    return {
+        "location_id": location_id,
+        "total_active_zones": 1,
+        "limit": limit,
+        "offset": offset,
+        "has_more": False,
+        "zones": [{
+            "zone_id": "22222222-2222-4222-8222-222222222222",
+            "name": "North",
+            "zone_code": "N-1",
+            "soil_type": "loam",
+            "area_m2": 1000.0,
+            "depth_cm": 30.0,
+            "zone_status": "active",
+            "current_moisture_pct": 38.5,
+            "last_moisture_reading": "2026-10-22T08:00:00",
+            "moisture_status": "below_target",
+            "target_min_pct": 40.0,
+            "target_max_pct": 60.0,
+            "irrigation_trigger_pct": 35.0,
+            "refill_to_pct": 65.0,
+            "growth_stage": "vegetative",
+            "next_irrigation_start": "2026-10-24T06:00:00",
+            "next_irrigation_volume_l": 120.0,
+            "next_irrigation_status": "pending",
+            "last_irrigation_at": "2026-10-20T07:00:00",
+            "last_irrigation_volume_l": 75.0,
+        }],
+    }
+
+
 def test_irrigation_status_policy_is_exact_location_read():
     location_id = str(uuid4())
     path = f"/operator/api/irrigation/{location_id}/status"
@@ -250,17 +282,109 @@ def test_irrigation_status_route_authenticates_and_returns_no_store(
     monkeypatch.setattr("services.gateway.operator_auth.create_provider", lambda: Provider())
     monkeypatch.setattr(
         "services.gateway.irrigation_status.get_location_irrigation_status",
-        lambda op, loc, **_kwargs: {
-            "location_id": loc, "total_active_zones": 0, "zones": []
-        },
+        lambda _op, loc, **_kwargs: _irrigation_status_payload(loc),
     )
     with TestClient(create_app(), cookies={"kokonut_operator_session": "synthetic-session"}) as client:
         response = client.get(f"/operator/api/irrigation/{location_id}/status")
 
     assert response.status_code == 200
-    assert response.json()["location_id"] == location_id
+    assert response.json() == _irrigation_status_payload(location_id)
     assert response.headers["cache-control"] == "no-store"
     assert "cookie" in {value.strip().lower() for value in response.headers["vary"].split(",")}
+
+
+def test_irrigation_status_openapi_publishes_strict_success_projection(
+    gateway_audit_spool,
+):
+    app = create_app()
+    openapi = app.openapi()
+    response_schema = openapi["paths"][
+        "/operator/api/irrigation/{location_id}/status"
+    ]["get"]["responses"]["200"]["content"]["application/json"]["schema"]
+    assert response_schema == {"$ref": "#/components/schemas/IrrigationStatusResponse"}
+    schemas = openapi["components"]["schemas"]
+    assert schemas["IrrigationStatusResponse"]["additionalProperties"] is False
+    assert schemas["IrrigationStatusResponse"]["properties"]["zones"]["maxItems"] == 50
+    zone = schemas["IrrigationZoneStatus"]
+    assert zone["additionalProperties"] is False
+    assert zone["properties"]["zone_status"]["const"] == "active"
+    assert zone["properties"]["next_irrigation_status"]["anyOf"][0]["const"] == "pending"
+
+
+@pytest.mark.parametrize(
+    "invalid_field",
+    [
+        "top_level_extra",
+        "nested_extra",
+        "invalid_moisture_status",
+        "negative_count",
+        "zone_limit",
+        "location_mismatch",
+        "limit_mismatch",
+        "offset_mismatch",
+        "too_many_for_limit",
+        "inconsistent_has_more",
+    ],
+)
+def test_irrigation_route_rejects_invalid_success_projection(
+    monkeypatch, gateway_audit_spool, invalid_field
+):
+    operator_id, location_id = str(uuid4()), str(uuid4())
+    payload = _irrigation_status_payload(location_id)
+    if invalid_field == "top_level_extra":
+        payload["sensor_device_id"] = str(uuid4())
+    elif invalid_field == "nested_extra":
+        payload["zones"][0]["metadata"] = {"private": True}
+    elif invalid_field == "invalid_moisture_status":
+        payload["zones"][0]["moisture_status"] = "unknown"
+    elif invalid_field == "negative_count":
+        payload["total_active_zones"] = -1
+    elif invalid_field == "zone_limit":
+        payload["zones"] = [dict(payload["zones"][0]) for _ in range(51)]
+    elif invalid_field == "location_mismatch":
+        payload["location_id"] = str(uuid4())
+    elif invalid_field == "limit_mismatch":
+        payload["limit"] = 24
+    elif invalid_field == "offset_mismatch":
+        payload["offset"] = 1
+    elif invalid_field == "too_many_for_limit":
+        payload["total_active_zones"] = 26
+        payload["zones"] = [dict(payload["zones"][0]) for _ in range(26)]
+    else:
+        payload["has_more"] = True
+
+    session = SimpleNamespace(
+        session_id=str(uuid4()), session_token_hash="f" * 64,
+        operator=SimpleNamespace(operator_id=operator_id),
+    )
+
+    class Provider:
+        settings = SimpleNamespace(state_secret="test-only-state-secret")
+
+        def authenticate_request(self, _request):
+            return session
+
+        def has_scope(self, op, resource, action, location):
+            return (op, resource, action, location) == (
+                operator_id, "precision_irrigation", "read", location_id
+            )
+
+    monkeypatch.setattr("services.gateway.operator_auth.create_provider", lambda: Provider())
+    monkeypatch.setattr(
+        "services.gateway.irrigation_status.get_location_irrigation_status",
+        lambda *_args, **_kwargs: payload,
+    )
+    with TestClient(
+        create_app(), cookies={"kokonut_operator_session": "synthetic-session"}
+    ) as client:
+        response = client.get(f"/operator/api/irrigation/{location_id}/status?limit=25&offset=0")
+
+    assert response.status_code == 500
+    assert response.json() == {"error": "Irrigation status unavailable"}
+    assert response.headers["cache-control"] == "no-store"
+    assert "cookie" in {
+        value.strip().lower() for value in response.headers["vary"].split(",")
+    }
 
 
 def test_irrigation_status_route_denies_missing_location_grant_before_handler(
@@ -298,4 +422,58 @@ def test_irrigation_status_route_denies_missing_location_grant_before_handler(
         response = client.get(f"/operator/api/irrigation/{location_id}/status")
 
     assert response.status_code == 403
+    assert called is False
+
+
+@pytest.mark.parametrize(
+    "query", ["limit=0", "limit=51", "offset=-1", "offset=10001"]
+)
+def test_irrigation_route_publishes_and_enforces_pagination_bounds(
+    monkeypatch, gateway_audit_spool, query
+):
+    operator_id, location_id = str(uuid4()), str(uuid4())
+    session = SimpleNamespace(
+        session_id=str(uuid4()),
+        session_token_hash="e" * 64,
+        operator=SimpleNamespace(operator_id=operator_id),
+    )
+
+    class Provider:
+        settings = SimpleNamespace(state_secret="test-only-state-secret")
+
+        def authenticate_request(self, _request):
+            return session
+
+        def has_scope(self, op, resource, action, location):
+            return (op, resource, action, location) == (
+                operator_id, "precision_irrigation", "read", location_id
+            )
+
+    monkeypatch.setattr("services.gateway.operator_auth.create_provider", lambda: Provider())
+    called = False
+
+    def unexpected_status(*_args, **_kwargs):
+        nonlocal called
+        called = True
+        raise AssertionError("invalid pagination must fail before service invocation")
+
+    monkeypatch.setattr(
+        "services.gateway.irrigation_status.get_location_irrigation_status",
+        unexpected_status,
+    )
+    app = create_app()
+    path = f"/operator/api/irrigation/{location_id}/status"
+    parameters = app.openapi()["paths"]["/operator/api/irrigation/{location_id}/status"]["get"]["parameters"]
+    by_name = {parameter["name"]: parameter["schema"] for parameter in parameters}
+    assert by_name["limit"]["default"] == 25
+    assert by_name["limit"]["minimum"] == 1
+    assert by_name["limit"]["maximum"] == 50
+    assert by_name["offset"]["default"] == 0
+    assert by_name["offset"]["minimum"] == 0
+    assert by_name["offset"]["maximum"] == 10_000
+
+    with TestClient(app, cookies={"kokonut_operator_session": "synthetic-session"}) as client:
+        response = client.get(f"{path}?{query}")
+
+    assert response.status_code == 422
     assert called is False

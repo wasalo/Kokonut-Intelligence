@@ -428,6 +428,7 @@ def test_http_capture_is_location_scoped_created_and_no_store(monkeypatch):
             "record_id": "33333333-3333-4333-8333-333333333333",
             "location_id": location,
             "status": "recorded",
+            "record_date": date.today().isoformat(),
             "replayed": False,
         },
         raising=False,

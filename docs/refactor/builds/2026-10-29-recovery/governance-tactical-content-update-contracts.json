@@ -1,0 +1,68 @@
+{
+  "date": "2026-10-29",
+  "slice": "governance tactical-item and tactical-session update contracts",
+  "routes": [
+    "PATCH /operator/api/governance/{location_id}/tactical-items/{item_id}",
+    "PATCH /operator/api/governance/{location_id}/tactical-sessions/{session_id}"
+  ],
+  "source_migration": "445",
+  "implementation": {
+    "request_contracts": "strict partial update schemas match migration allowlists; require request_id/reason plus at least one content field; validate UUIDs, bounds, enums, and timezone-aware timestamps; null is accepted only for source-nullable fields",
+    "action_result_fields": [
+      "event_id",
+      "operation",
+      "session_id",
+      "item_id",
+      "actor_party_id",
+      "created_at"
+    ],
+    "item_response_fields": [
+      "event_id",
+      "operation",
+      "session_id",
+      "item_id",
+      "created_at"
+    ],
+    "session_response_fields": [
+      "event_id",
+      "operation",
+      "session_id",
+      "item_id",
+      "created_at"
+    ],
+    "binding": "item edits require operation=update_item and returned item_id equal to path item_id; session edits require operation=update_session, returned session_id equal to path session_id, and item_id=null",
+    "privacy": "actor_party_id is validated internally and omitted from both public responses",
+    "authorization": "existing private exact-location governance_tactical:update policy and signed tenant context",
+    "status_and_replay": "HTTP 200 is preserved for updates and idempotent retries",
+    "cache": "no-store with Vary: Cookie on success and documented error responses"
+  },
+  "verification": {
+    "focused": {
+      "command": "python3 -m pytest tests/test_gateway_governance_operations.py -k 'tactical_content_update or tactical_item_update or tactical_session_update' -q",
+      "result": "19 passed, 57 deselected"
+    },
+    "module": {
+      "command": "python3 -m pytest tests/test_gateway_governance_operations.py -q",
+      "result": "76 passed"
+    },
+    "static": [
+      "ruff check services/gateway/governance_role_routes.py tests/test_gateway_governance_operations.py",
+      "python3 -m py_compile services/gateway/governance_role_routes.py tests/test_gateway_governance_operations.py",
+      "git diff --check"
+    ],
+    "repository_inventories": {
+      "capability_matrix": "67 rows valid: 24 baseline-retained, 7 deployed, 36 prepared",
+      "runtime_sql_inventory": "current; 42 unresolved write candidates remain explicitly unapproved",
+      "report_generator_helper_scope": "current",
+      "provider_boundaries": "passed; 17 vendor import sites",
+      "dependency_groups": "aligned; 14 groups, 33 requirements"
+    }
+  },
+  "isolation": {
+    "database": "none; mocked route/service checks only",
+    "provider": "none",
+    "candidate_or_legacy": "not accessed",
+    "migration_applied": false
+  },
+  "rollback": "Revert the two route request/response contracts, focused regression, evidence, and progress records; no data rollback is required."
+}

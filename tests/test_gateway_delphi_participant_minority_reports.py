@@ -189,7 +189,11 @@ def test_route_forwards_only_bounded_fields_and_returns_no_session_credentials()
             "replayed": len(calls) > 1,
         }
 
-    client = TestClient(_app(run_in_threadpool), base_url="https://testserver")
+    app = _app(run_in_threadpool)
+    schema = app.openapi()["paths"]["/api/participation/delphi/minority-reports"]["post"][
+        "responses"]["200"]["content"]["application/json"]["schema"]
+    assert schema["$ref"].endswith("DelphiParticipantMinorityReportResponse")
+    client = TestClient(app, base_url="https://testserver")
     client.cookies.set("kokonut_delphi_participant_session", SESSION,
                        path="/api/participation/delphi")
     client.cookies.set("kokonut_delphi_participant_csrf", CSRF,
@@ -206,6 +210,7 @@ def test_route_forwards_only_bounded_fields_and_returns_no_session_credentials()
     )
     assert response.status_code == 201 and replay.status_code == 200
     assert response.headers["cache-control"] == "no-store"
+    assert set(response.json()) == {"status", "report_id", "submitted_at", "replayed"}
     assert SESSION not in response.text and CSRF not in response.text
     assert calls[0][0] is reports.submit_location_delphi_participant_minority_report
     assert calls[0][1] == (SESSION, CSRF)
@@ -217,3 +222,33 @@ def test_route_forwards_only_bounded_fields_and_returns_no_session_credentials()
         "implications": None,
         "request_id": REQUEST,
     }
+
+
+def test_malformed_minority_report_success_is_sanitized_and_not_cached():
+    async def run_in_threadpool(*_args, **_kwargs):
+        return {
+            "status": "published",
+            "report_id": REPORT,
+            "submitted_at": "2026-10-25T12:00:00Z",
+            "replayed": False,
+            "private_participant_id": "participant-secret",
+        }
+
+    client = TestClient(_app(run_in_threadpool), base_url="https://testserver")
+    client.cookies.set(
+        "kokonut_delphi_participant_session", SESSION,
+        path="/api/participation/delphi",
+    )
+    client.cookies.set(
+        "kokonut_delphi_participant_csrf", CSRF,
+        path="/api/participation/delphi",
+    )
+    response = client.post(
+        "/api/participation/delphi/minority-reports",
+        headers={"X-Kokonut-CSRF": CSRF},
+        json=_payload(),
+    )
+    assert response.status_code == 503
+    assert response.json() == {"error": "Delphi participant service unavailable"}
+    assert response.headers["cache-control"] == "no-store"
+    assert "participant-secret" not in response.text

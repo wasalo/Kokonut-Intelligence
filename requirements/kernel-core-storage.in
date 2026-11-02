@@ -1,0 +1,3 @@
+# Optional encrypted local-media closure for the core image.
+-c kernel-core.lock
+-r storage.txt

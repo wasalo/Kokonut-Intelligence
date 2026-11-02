@@ -71,6 +71,29 @@ def _row(plan_id=PLAN_ID):
     )
 
 
+def _http_projection(location_id=LOCATION_ID, *, offset=0, plans=None, has_more=False, next_offset=None):
+    return {
+        "location_id": location_id,
+        "offset": offset,
+        "plans": plans if plans is not None else [{
+            "financial_plan_id": PLAN_ID,
+            "plan_status": "active",
+            "currency": "USD",
+            "period_start": date(2026, 1, 1),
+            "period_end": date(2026, 12, 31),
+            "has_objective": True,
+            "budget_line_count": 3,
+            "planned_amount": Decimal("1200.00"),
+            "verified_expense_amount": Decimal("475.25"),
+            "budget_variance": Decimal("724.75"),
+            "nonmatching_currency_expense_count": 1,
+            "planning_scenario_count": 2,
+        }],
+        "has_more": has_more,
+        "next_offset": next_offset,
+    }
+
+
 def test_budget_read_sets_exact_context_and_calls_the_bounded_projection():
     connection = _Connection([_row(), _row(str(uuid4()))])
     contexts = []
@@ -194,7 +217,7 @@ def test_http_budget_projection_is_no_store_and_location_scoped(monkeypatch):
 
     monkeypatch.setattr(
         "services.gateway.planning_budget_reads.list_location_budget_summaries",
-        lambda *_args, **_kwargs: {"location_id": LOCATION_ID, "plans": [], "has_more": False},
+        lambda *_args, **_kwargs: _http_projection(),
     )
     app = FastAPI()
     router = APIRouter()
@@ -219,3 +242,69 @@ def test_http_budget_projection_is_no_store_and_location_scoped(monkeypatch):
     assert response.headers["cache-control"] == "no-store"
     assert response.headers["vary"] == "Cookie"
     assert response.json()["location_id"] == LOCATION_ID
+    assert response.json()["plans"][0]["financial_plan_id"] == PLAN_ID
+    assert response.json()["plans"][0]["planned_amount"] == 1200.0
+
+
+def test_budget_read_stops_pagination_at_offset_ceiling():
+    connection = _Connection([_row(), _row(str(uuid4()))])
+    with patch.object(reads, "set_operator_tenant_context", lambda *_args, **_kwargs: None):
+        result = reads.list_location_budget_summaries(
+            OPERATOR_ID,
+            LOCATION_ID,
+            limit=1,
+            offset=10_000,
+            connection_factory=lambda: connection,
+        )
+
+    assert len(result["plans"]) == 1
+    assert result["offset"] == 10_000
+    assert result["has_more"] is False
+    assert result["next_offset"] is None
+    assert connection.closed
+
+
+@pytest.mark.parametrize(
+    "mutate",
+    [
+        lambda result: result["plans"][0].update(private_metadata={"secret": True}),
+        lambda result: result["plans"][0].update(plan_status="unrecognized"),
+        lambda result: result["plans"][0].update(budget_line_count=True),
+        lambda result: result["plans"][0].update(period_end=date(2025, 1, 1)),
+        lambda result: result.update(location_id=str(uuid4())),
+        lambda result: result.update(offset=1),
+        lambda result: result.update(has_more=True, next_offset=24),
+    ],
+)
+def test_http_budget_projection_rejects_malformed_or_mismatched_data(monkeypatch, mutate):
+    from services.gateway.planning_budget_routes import register_planning_budget_routes
+
+    result = _http_projection()
+    mutate(result)
+    monkeypatch.setattr(
+        "services.gateway.planning_budget_reads.list_location_budget_summaries",
+        lambda *_args, **_kwargs: result,
+    )
+    app = FastAPI()
+    router = APIRouter()
+
+    async def run_in_threadpool(function, *args, **kwargs):
+        return function(*args, **kwargs)
+
+    register_planning_budget_routes(router, object(), run_in_threadpool, SimpleNamespace(Error=Exception))
+    app.include_router(router)
+
+    @app.middleware("http")
+    async def add_operator(request, call_next):
+        request.state.operator_session = SimpleNamespace(
+            operator=SimpleNamespace(operator_id=OPERATOR_ID)
+        )
+        return await call_next(request)
+
+    with TestClient(app) as client:
+        response = client.get(f"/operator/api/planning/{LOCATION_ID}/budgets")
+
+    assert response.status_code == 500
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["vary"] == "Cookie"
+    assert response.json() == {"error": "Planning budget read unavailable"}

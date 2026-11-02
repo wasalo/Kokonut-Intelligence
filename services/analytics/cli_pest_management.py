@@ -6,7 +6,9 @@ focused on queries/business logic. Reachable via:
     python -m services.analytics.cli_pest_management record-scouting --location-id UUID ...
 """
 
+import argparse
 from datetime import date
+from uuid import UUID
 
 from ..common.commands import CommandLine
 from .pest_management import (
@@ -51,14 +53,31 @@ from .pest_management import (
 # CLI
 # ============================================================
 
+def _parse_location_id(value: str) -> str:
+    """Validate and canonicalize location scope during argument parsing."""
+    try:
+        return str(UUID(value))
+    except (TypeError, ValueError, AttributeError) as exc:
+        raise argparse.ArgumentTypeError("--location-id must be a valid UUID") from exc
+
+
+def _parse_iso_date(value: str) -> date:
+    """Parse an ISO date before a command can open its database connection."""
+    try:
+        return date.fromisoformat(value)
+    except (TypeError, ValueError) as exc:
+        raise argparse.ArgumentTypeError(
+            "must be a valid ISO date (YYYY-MM-DD)"
+        ) from exc
+
+
 def _cmd_record_scouting(db, a):
-    sd = date.fromisoformat(a.date) if a.date else None
     return record_scouting(
         db, a.location_id, a.pest,
         pest_type=a.pest_type, severity=a.severity,
         incidence_pct=a.incidence, damage_pct=a.damage,
         plot_id=a.plot_id, zone_id=a.zone_id,
-        scout_date=sd, beneficial_observed=a.beneficials,
+        scout_date=a.date, beneficial_observed=a.beneficials,
         notes=a.notes,
     )
 
@@ -79,19 +98,17 @@ def _cmd_check_threshold(db, a):
 
 
 def _cmd_record_intervention(db, a):
-    idate = date.fromisoformat(a.date) if a.date else None
     return record_intervention(
         db, a.location_id, a.intervention_type,
         scouting_record_id=a.scouting_id,
         method_name=a.method, target_pest=a.target_pest,
         application_rate=a.rate, application_unit=a.unit,
         area_ha=a.area, cost=a.cost,
-        notes=a.notes, intervention_date=idate,
+        notes=a.notes, intervention_date=a.date,
     )
 
 
 def _cmd_record_pesticide(db, a):
-    adate = date.fromisoformat(a.date) if a.date else None
     return record_pesticide_application(
         db, a.location_id, a.product,
         active_ingredient=a.ingredient,
@@ -100,23 +117,21 @@ def _cmd_record_pesticide(db, a):
         area_ha=a.area, total_volume=a.volume,
         volume_unit=a.volume_unit, target_pest=a.target_pest,
         rei_days=a.rei, phi_days=a.phi,
-        notes=a.notes, application_date=adate,
+        notes=a.notes, application_date=a.date,
     )
 
 
 def _cmd_record_resistance(db, a):
-    odate = date.fromisoformat(a.date) if a.date else None
     return record_resistance(
         db, a.location_id, a.pest, a.chemical_class,
-        a.level, observation_date=odate, notes=a.notes,
+        a.level, observation_date=a.date, notes=a.notes,
     )
 
 
 def _cmd_record_degree_day(db, a):
-    rdate = date.fromisoformat(a.date) if a.date else None
     return record_degree_day(
         db, a.location_id, a.pest,
-        record_date=rdate, base_temp=a.base,
+        record_date=a.date, base_temp=a.base,
         max_temp=a.max_temp, min_temp=a.min_temp,
         upper_temp=a.upper, source=a.source,
     )
@@ -163,13 +178,11 @@ def _cmd_list_references(db, a):
 
 
 def _cmd_create_schedule(db, a):
-    sd = date.fromisoformat(a.start_date) if a.start_date else None
-    ed = date.fromisoformat(a.end_date) if a.end_date else None
     return create_scouting_schedule(
         db, a.location_id, a.pest,
         frequency_days=a.frequency_days, crop_name=a.crop,
         method=a.method, sample_size=a.sample_size,
-        assigned_to=a.assigned_to, start_date=sd, end_date=ed,
+        assigned_to=a.assigned_to, start_date=a.start_date, end_date=a.end_date,
     )
 
 
@@ -178,10 +191,9 @@ def _cmd_due_scouting(db, a):
 
 
 def _cmd_record_compliance(db, a):
-    sd = date.fromisoformat(a.scout_date) if a.scout_date else None
     return record_scouting_completion(
         db, a.schedule_id, a.scouting_id,
-        scout_date=sd, notes=a.notes,
+        scout_date=a.scout_date, notes=a.notes,
     )
 
 
@@ -190,8 +202,7 @@ def _cmd_compliance_report(db, a):
 
 
 def _cmd_schedule_re_scout(db, a):
-    rsd = date.fromisoformat(a.re_scout_date)
-    return schedule_re_scout(db, a.intervention_id, rsd)
+    return schedule_re_scout(db, a.intervention_id, a.re_scout_date)
 
 
 def _cmd_evaluate_intervention(db, a):
@@ -202,9 +213,9 @@ def _cmd_evaluate_intervention(db, a):
 
 
 def _cmd_compliance_score(db, a):
-    ps = date.fromisoformat(a.period_start) if a.period_start else None
-    pe = date.fromisoformat(a.period_end) if a.period_end else None
-    return compute_ipm_compliance_score(db, a.location_id, ps, pe)
+    return compute_ipm_compliance_score(
+        db, a.location_id, a.period_start, a.period_end
+    )
 
 
 def _cmd_add_interaction(db, a):
@@ -228,19 +239,17 @@ def _cmd_recommend_for_crop(db, a):
 
 
 def _cmd_add_trap(db, a):
-    idate = date.fromisoformat(a.date) if a.date else None
     return add_trap(
         db, a.location_id, a.trap_name, a.trap_type,
         target_pest=a.target_pest, lure_type=a.lure,
         plot_id=a.plot_id, lat=a.lat, lon=a.lon,
-        install_date=idate,
+        install_date=a.date,
     )
 
 
 def _cmd_record_catch(db, a):
-    cd = date.fromisoformat(a.check_date) if a.check_date else None
     return record_trap_catch(
-        db, a.trap_id, check_date=cd,
+        db, a.trap_id, check_date=a.check_date,
         pest_count=a.pest_count, bycatch_count=a.bycatch,
         beneficial_count=a.beneficial,
         trap_condition=a.condition, notes=a.notes,
@@ -283,21 +292,19 @@ def _cmd_spray_windows(db, a):
 
 
 def _cmd_organic_pest_score(db, a):
-    ps = date.fromisoformat(a.period_start) if a.period_start else None
-    pe = date.fromisoformat(a.period_end) if a.period_end else None
-    return compute_organic_pest_score(db, a.location_id, ps, pe)
+    return compute_organic_pest_score(
+        db, a.location_id, a.period_start, a.period_end
+    )
 
 
 def _cmd_generate_audit(db, a):
-    ps = date.fromisoformat(a.period_start) if a.period_start else None
-    pe = date.fromisoformat(a.period_end) if a.period_end else None
-    return generate_ipm_audit(db, a.location_id, ps, pe)
+    return generate_ipm_audit(db, a.location_id, a.period_start, a.period_end)
 
 
 cli = CommandLine("pest_management", "Integrated Pest Management")
 
 cli.subcommand("record-scouting", "Record scouting observation") \
-    .add("--location-id", required=True) \
+    .add("--location-id", required=True, type=_parse_location_id) \
     .add("--pest", required=True) \
     .add("--type", dest="pest_type", choices=["insect", "weed", "disease", "nematode", "other"]) \
     .add("--severity", choices=["none", "low", "moderate", "high", "severe"]) \
@@ -305,14 +312,14 @@ cli.subcommand("record-scouting", "Record scouting observation") \
     .add("--damage", type=float, help="Damage percentage") \
     .add("--plot-id") \
     .add("--zone-id") \
-    .add("--date", help="Scout date YYYY-MM-DD") \
+    .add("--date", type=_parse_iso_date, help="Scout date YYYY-MM-DD") \
     .add("--beneficials", help="Beneficial insects observed") \
     .add("--notes") \
     .add("--json", action="store_true") \
     .run(_cmd_record_scouting)
 
 cli.subcommand("set-threshold", "Set action threshold") \
-    .add("--location-id", required=True) \
+    .add("--location-id", required=True, type=_parse_location_id) \
     .add("--pest", required=True) \
     .add("--crop") \
     .add("--eil", type=float, help="Economic injury level") \
@@ -323,7 +330,7 @@ cli.subcommand("set-threshold", "Set action threshold") \
     .run(_cmd_set_threshold)
 
 cli.subcommand("check-threshold", "Check threshold") \
-    .add("--location-id", required=True) \
+    .add("--location-id", required=True, type=_parse_location_id) \
     .add("--pest", required=True) \
     .add("--crop") \
     .add("--count", type=float, required=True, help="Current pest count") \
@@ -331,7 +338,7 @@ cli.subcommand("check-threshold", "Check threshold") \
     .run(_cmd_check_threshold)
 
 cli.subcommand("record-intervention", "Record intervention") \
-    .add("--location-id", required=True) \
+    .add("--location-id", required=True, type=_parse_location_id) \
     .add("--scouting-id") \
     .add("--type", dest="intervention_type", required=True,
          choices=["biological", "cultural", "mechanical", "chemical", "semiochemical", "genetic"]) \
@@ -341,13 +348,13 @@ cli.subcommand("record-intervention", "Record intervention") \
     .add("--unit") \
     .add("--area", type=float, help="Area in hectares") \
     .add("--cost", type=float) \
-    .add("--date", help="Intervention date YYYY-MM-DD") \
+    .add("--date", type=_parse_iso_date, help="Intervention date YYYY-MM-DD") \
     .add("--notes") \
     .add("--json", action="store_true") \
     .run(_cmd_record_intervention)
 
 cli.subcommand("record-pesticide", "Log pesticide application") \
-    .add("--location-id", required=True) \
+    .add("--location-id", required=True, type=_parse_location_id) \
     .add("--product", required=True) \
     .add("--ingredient") \
     .add("--class", dest="chemical_class") \
@@ -360,45 +367,45 @@ cli.subcommand("record-pesticide", "Log pesticide application") \
     .add("--rei", type=int, help="Re-entry interval days") \
     .add("--phi", type=int, help="Pre-harvest interval days") \
     .add("--notes") \
-    .add("--date", help="Application date YYYY-MM-DD") \
+    .add("--date", type=_parse_iso_date, help="Application date YYYY-MM-DD") \
     .add("--json", action="store_true") \
     .run(_cmd_record_pesticide)
 
 cli.subcommand("record-resistance", "Record resistance observation") \
-    .add("--location-id", required=True) \
+    .add("--location-id", required=True, type=_parse_location_id) \
     .add("--pest", required=True) \
     .add("--class", dest="chemical_class", required=True) \
     .add("--level", required=True, choices=["susceptible", "low", "moderate", "high", "confirmed"]) \
-    .add("--date", help="Observation date YYYY-MM-DD") \
+    .add("--date", type=_parse_iso_date, help="Observation date YYYY-MM-DD") \
     .add("--notes") \
     .add("--json", action="store_true") \
     .run(_cmd_record_resistance)
 
 cli.subcommand("record-degree-day", "Record temperature and compute degree days") \
-    .add("--location-id", required=True) \
+    .add("--location-id", required=True, type=_parse_location_id) \
     .add("--pest", required=True) \
     .add("--base", type=float, default=10.0, help="Base temperature") \
     .add("--max", type=float, dest="max_temp", help="Max temperature") \
     .add("--min", type=float, dest="min_temp", help="Min temperature") \
     .add("--upper", type=float, help="Upper developmental threshold") \
-    .add("--date", help="Record date YYYY-MM-DD") \
+    .add("--date", type=_parse_iso_date, help="Record date YYYY-MM-DD") \
     .add("--source", default="sensor") \
     .add("--json", action="store_true") \
     .run(_cmd_record_degree_day)
 
 cli.subcommand("summary", "Pest scouting summary") \
-    .add("--location-id", required=True) \
+    .add("--location-id", required=True, type=_parse_location_id) \
     .add("--json", action="store_true") \
     .run(_cmd_summary)
 
 cli.subcommand("pesticide-usage", "Chemical use totals") \
-    .add("--location-id", required=True) \
+    .add("--location-id", required=True, type=_parse_location_id) \
     .add("--days", type=int, default=30) \
     .add("--json", action="store_true") \
     .run(_cmd_pesticide_usage)
 
 cli.subcommand("degree-day-tracking", "Cumulative degree days and lifecycle stage") \
-    .add("--location-id", required=True) \
+    .add("--location-id", required=True, type=_parse_location_id) \
     .add("--pest", required=True) \
     .add("--json", action="store_true") \
     .run(_cmd_degree_day_tracking)
@@ -409,7 +416,7 @@ cli.subcommand("recommend", "Recommend IPM intervention") \
     .run(_cmd_recommend)
 
 cli.subcommand("dashboard", "Aggregated pest management dashboard") \
-    .add("--location-id", required=True) \
+    .add("--location-id", required=True, type=_parse_location_id) \
     .add("--json", action="store_true") \
     .run(_cmd_dashboard)
 
@@ -440,40 +447,40 @@ cli.subcommand("list-references", "List pest biology references") \
     .run(_cmd_list_references)
 
 cli.subcommand("create-schedule", "Create scouting schedule") \
-    .add("--location-id", required=True) \
+    .add("--location-id", required=True, type=_parse_location_id) \
     .add("--pest", required=True) \
     .add("--crop") \
     .add("--frequency", type=int, default=7, dest="frequency_days") \
     .add("--method") \
     .add("--sample-size", type=int) \
     .add("--assigned-to") \
-    .add("--start-date") \
-    .add("--end-date") \
+    .add("--start-date", type=_parse_iso_date) \
+    .add("--end-date", type=_parse_iso_date) \
     .add("--json", action="store_true") \
     .run(_cmd_create_schedule)
 
 cli.subcommand("due-scouting", "Get due/overdue scouting schedules") \
-    .add("--location-id", required=True) \
+    .add("--location-id", required=True, type=_parse_location_id) \
     .add("--json", action="store_true") \
     .run(_cmd_due_scouting)
 
 cli.subcommand("record-compliance", "Record scouting completion") \
     .add("--schedule-id", required=True) \
     .add("--scouting-id", required=True) \
-    .add("--date", dest="scout_date") \
+    .add("--date", dest="scout_date", type=_parse_iso_date) \
     .add("--notes") \
     .add("--json", action="store_true") \
     .run(_cmd_record_compliance)
 
 cli.subcommand("compliance-report", "Scouting compliance statistics") \
-    .add("--location-id", required=True) \
+    .add("--location-id", required=True, type=_parse_location_id) \
     .add("--days", type=int, default=30) \
     .add("--json", action="store_true") \
     .run(_cmd_compliance_report)
 
 cli.subcommand("schedule-re-scout", "Schedule follow-up re-scout") \
     .add("--intervention-id", required=True) \
-    .add("--date", required=True, dest="re_scout_date") \
+    .add("--date", required=True, dest="re_scout_date", type=_parse_iso_date) \
     .add("--json", action="store_true") \
     .run(_cmd_schedule_re_scout)
 
@@ -485,9 +492,9 @@ cli.subcommand("evaluate-intervention", "Evaluate intervention effectiveness") \
     .run(_cmd_evaluate_intervention)
 
 cli.subcommand("compliance-score", "Compute IPM compliance score") \
-    .add("--location-id", required=True) \
-    .add("--period-start") \
-    .add("--period-end") \
+    .add("--location-id", required=True, type=_parse_location_id) \
+    .add("--period-start", type=_parse_iso_date) \
+    .add("--period-end", type=_parse_iso_date) \
     .add("--json", action="store_true") \
     .run(_cmd_compliance_score)
 
@@ -514,7 +521,7 @@ cli.subcommand("recommend-for-crop", "Recommend management for crop/stage") \
     .run(_cmd_recommend_for_crop)
 
 cli.subcommand("add-trap", "Register monitoring trap") \
-    .add("--location-id", required=True) \
+    .add("--location-id", required=True, type=_parse_location_id) \
     .add("--name", required=True, dest="trap_name") \
     .add("--type", required=True, dest="trap_type",
          choices=["pheromone", "sticky", "light", "pitfall", "sweep_net"]) \
@@ -523,13 +530,13 @@ cli.subcommand("add-trap", "Register monitoring trap") \
     .add("--plot-id") \
     .add("--lat", type=float) \
     .add("--lon", type=float) \
-    .add("--date") \
+    .add("--date", type=_parse_iso_date) \
     .add("--json", action="store_true") \
     .run(_cmd_add_trap)
 
 cli.subcommand("record-catch", "Log trap catch") \
     .add("--trap-id", required=True) \
-    .add("--date", dest="check_date") \
+    .add("--date", dest="check_date", type=_parse_iso_date) \
     .add("--pest-count", type=int, default=0) \
     .add("--bycatch", type=int, default=0) \
     .add("--beneficial", type=int, default=0) \
@@ -562,41 +569,49 @@ cli.subcommand("add-moa", "Add mode of action reference") \
     .run(_cmd_add_moa)
 
 cli.subcommand("check-rotation", "Verify MoA rotation compliance") \
-    .add("--location-id", required=True) \
+    .add("--location-id", required=True, type=_parse_location_id) \
     .add("--class", dest="chemical_class", required=True) \
     .add("--min-days", type=int, default=14) \
     .add("--json", action="store_true") \
     .run(_cmd_check_rotation)
 
 cli.subcommand("rotation-history", "Chemical class usage timeline") \
-    .add("--location-id", required=True) \
+    .add("--location-id", required=True, type=_parse_location_id) \
     .add("--days", type=int, default=90) \
     .add("--json", action="store_true") \
     .run(_cmd_rotation_history)
 
 cli.subcommand("spray-windows", "Optimal spray windows from forecast") \
-    .add("--location-id", required=True) \
+    .add("--location-id", required=True, type=_parse_location_id) \
     .add("--pest", required=True) \
     .add("--days-ahead", type=int, default=7) \
     .add("--json", action="store_true") \
     .run(_cmd_spray_windows)
 
 cli.subcommand("organic-pest-score", "IPM score for organic certification") \
-    .add("--location-id", required=True) \
-    .add("--period-start") \
-    .add("--period-end") \
+    .add("--location-id", required=True, type=_parse_location_id) \
+    .add("--period-start", type=_parse_iso_date) \
+    .add("--period-end", type=_parse_iso_date) \
     .add("--json", action="store_true") \
     .run(_cmd_organic_pest_score)
 
 cli.subcommand("generate-audit", "Generate IPM audit report") \
-    .add("--location-id", required=True) \
-    .add("--period-start") \
-    .add("--period-end") \
+    .add("--location-id", required=True, type=_parse_location_id) \
+    .add("--period-start", type=_parse_iso_date) \
+    .add("--period-end", type=_parse_iso_date) \
     .add("--json", action="store_true") \
     .run(_cmd_generate_audit)
 
 
 def main(argv=None):
+    parser = cli.build_parser()
+    args = parser.parse_args(argv)
+    location_id = getattr(args, "location_id", None)
+    if location_id is not None:
+        try:
+            UUID(location_id)
+        except (TypeError, ValueError):
+            parser.error("--location-id must be a valid UUID")
     return cli.run(argv)
 
 

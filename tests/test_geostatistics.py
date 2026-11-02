@@ -1392,7 +1392,7 @@ class TestCLI:
     def test_cli_variogram_parser(self):
         """Variogram subcommand should parse arguments."""
         from services.geostatistics.cli import main
-        with patch("sys.argv", ["geostatistics", "variogram", "--location-id", "test-loc", "--property", "soil_carbon"]):
+        with patch("sys.argv", ["geostatistics", "variogram", "--location-id", "00000000-0000-4000-8000-000000000001", "--property", "soil_carbon"]):
             with patch("services.ingestion.base.get_db") as mock_db:
                 mock_conn = MagicMock()
                 mock_cursor = MagicMock()
@@ -1410,7 +1410,7 @@ class TestCLI:
         from services.geostatistics.variogram import VariogramAnalyzer
 
         argv = [
-            "geostatistics", "variogram", "--location-id", "test-loc",
+            "geostatistics", "variogram", "--location-id", "00000000-0000-4000-8000-000000000001",
             "--property", "soil_carbon", "--lag-distance", "20",
             "--lag-tolerance", "5", "--bandwidth", "200",
         ]
@@ -1422,7 +1422,7 @@ class TestCLI:
             main()
 
         fit_from_db.assert_called_once_with(
-            "test-loc", "soil_carbon", model_type=None,
+            "00000000-0000-4000-8000-000000000001", "soil_carbon", model_type=None,
             lag_distance=20.0, lag_tolerance=5.0, bandwidth=200.0,
         )
 
@@ -1430,7 +1430,7 @@ class TestCLI:
         from services.geostatistics.cli import main
 
         argv = [
-            "geostatistics", "variogram", "--location-id", "test-loc",
+            "geostatistics", "variogram", "--location-id", "00000000-0000-4000-8000-000000000001",
             "--property", "soil_carbon", "--lag-distance", "20",
             "--lag-tolerance", "10.1",
         ]
@@ -1446,7 +1446,7 @@ class TestCLI:
     def test_cli_kriging_parser(self):
         """Kriging subcommand should parse arguments."""
         from services.geostatistics.cli import main
-        with patch("sys.argv", ["geostatistics", "kriging", "--location-id", "test-loc", "--property", "soil_carbon", "--method", "ordinary"]):
+        with patch("sys.argv", ["geostatistics", "kriging", "--location-id", "00000000-0000-4000-8000-000000000001", "--property", "soil_carbon", "--method", "ordinary"]):
             with patch("services.ingestion.base.get_db") as mock_db:
                 mock_db.return_value = MagicMock()
                 with patch("sys.stdout"):
@@ -1460,7 +1460,7 @@ class TestCLI:
         from services.geostatistics.kriging import KrigingEngine
 
         argv = [
-            "geostatistics", "kriging", "--location-id", "test-loc",
+            "geostatistics", "kriging", "--location-id", "00000000-0000-4000-8000-000000000001",
             "--property", "soil_carbon", "--method", "ordinary",
             "--max-neighbors", "7", "--search-radius", "125.5",
         ]
@@ -1472,7 +1472,7 @@ class TestCLI:
             main()
 
         run_kriging.assert_called_once_with(
-            "test-loc", "soil_carbon", method="ordinary", resolution_m=10.0,
+            "00000000-0000-4000-8000-000000000001", "soil_carbon", method="ordinary", resolution_m=10.0,
             variogram_model_id=None, threshold=None, max_neighbors=7,
             search_radius=125.5,
         )
@@ -1480,9 +1480,9 @@ class TestCLI:
     @pytest.mark.parametrize(
         "argv",
         [
-            ["geostatistics", "kriging", "--location-id", "test-loc", "--property", "soil_carbon", "--search-radius", "0"],
-            ["geostatistics", "kriging", "--location-id", "test-loc", "--property", "soil_carbon", "--max-neighbors", "0"],
-            ["geostatistics", "kriging", "--location-id", "test-loc", "--property", "soil_carbon", "--method", "indicator"],
+            ["geostatistics", "kriging", "--location-id", "00000000-0000-4000-8000-000000000001", "--property", "soil_carbon", "--search-radius", "0"],
+            ["geostatistics", "kriging", "--location-id", "00000000-0000-4000-8000-000000000001", "--property", "soil_carbon", "--max-neighbors", "0"],
+            ["geostatistics", "kriging", "--location-id", "00000000-0000-4000-8000-000000000001", "--property", "soil_carbon", "--method", "indicator"],
         ],
     )
     def test_cli_kriging_rejects_invalid_controls_before_database(self, argv):
@@ -1500,7 +1500,7 @@ class TestCLI:
     def test_cli_simulate_parser(self):
         """Simulate subcommand should parse arguments."""
         from services.geostatistics.cli import main
-        with patch("sys.argv", ["geostatistics", "simulate", "--location-id", "test-loc", "--property", "soil_carbon", "--realizations", "10"]):
+        with patch("sys.argv", ["geostatistics", "simulate", "--location-id", "00000000-0000-4000-8000-000000000001", "--property", "soil_carbon", "--realizations", "10"]):
             with patch("services.ingestion.base.get_db") as mock_db:
                 mock_db.return_value = MagicMock()
                 with patch("sys.stdout"):
@@ -1514,7 +1514,7 @@ class TestCLI:
         from services.geostatistics.simulation import GeostatSimulator
 
         argv = [
-            "geostatistics", "--json", "simulate", "--location-id", "test-loc",
+            "geostatistics", "--json", "simulate", "--location-id", "00000000-0000-4000-8000-000000000001",
             "--property", "soil_carbon", "--realizations", "7",
             "--resolution", "125.5", "--seed", "44", "--mode-no", "128",
         ]
@@ -1526,7 +1526,7 @@ class TestCLI:
             main()
 
         run_simulation.assert_called_once_with(
-            "test-loc", "soil_carbon", n_realizations=7,
+            "00000000-0000-4000-8000-000000000001", "soil_carbon", n_realizations=7,
             grid_resolution_m=125.5, seed=44, mode_no=128,
             variogram_model_id=None,
         )
@@ -1534,13 +1534,13 @@ class TestCLI:
     @pytest.mark.parametrize(
         "argv",
         [
-            ["geostatistics", "simulate", "--location-id", "test-loc", "--property", "soil_carbon", "--realizations", "0"],
-            ["geostatistics", "simulate", "--location-id", "test-loc", "--property", "soil_carbon", "--realizations", "1001"],
-            ["geostatistics", "simulate", "--location-id", "test-loc", "--property", "soil_carbon", "--resolution", "0"],
-            ["geostatistics", "simulate", "--location-id", "test-loc", "--property", "soil_carbon", "--seed", "-1"],
-            ["geostatistics", "simulate", "--location-id", "test-loc", "--property", "soil_carbon", "--mode-no", "0"],
-            ["geostatistics", "simulate", "--location-id", "test-loc", "--property", "soil_carbon", "--mode-no", "1001"],
-            ["geostatistics", "simulate", "--location-id", "test-loc", "--property", "soil_nitrogen"],
+            ["geostatistics", "simulate", "--location-id", "00000000-0000-4000-8000-000000000001", "--property", "soil_carbon", "--realizations", "0"],
+            ["geostatistics", "simulate", "--location-id", "00000000-0000-4000-8000-000000000001", "--property", "soil_carbon", "--realizations", "1001"],
+            ["geostatistics", "simulate", "--location-id", "00000000-0000-4000-8000-000000000001", "--property", "soil_carbon", "--resolution", "0"],
+            ["geostatistics", "simulate", "--location-id", "00000000-0000-4000-8000-000000000001", "--property", "soil_carbon", "--seed", "-1"],
+            ["geostatistics", "simulate", "--location-id", "00000000-0000-4000-8000-000000000001", "--property", "soil_carbon", "--mode-no", "0"],
+            ["geostatistics", "simulate", "--location-id", "00000000-0000-4000-8000-000000000001", "--property", "soil_carbon", "--mode-no", "1001"],
+            ["geostatistics", "simulate", "--location-id", "00000000-0000-4000-8000-000000000001", "--property", "soil_nitrogen"],
         ],
     )
     def test_cli_simulation_rejects_invalid_settings_before_database(self, argv):
@@ -1558,7 +1558,7 @@ class TestCLI:
     def test_cli_autocorrelation_parser(self):
         """Autocorrelation subcommand should parse arguments."""
         from services.geostatistics.cli import main
-        with patch("sys.argv", ["geostatistics", "autocorrelation", "--location-id", "test-loc", "--property", "soil_carbon"]):
+        with patch("sys.argv", ["geostatistics", "autocorrelation", "--location-id", "00000000-0000-4000-8000-000000000001", "--property", "soil_carbon"]):
             with patch("services.ingestion.base.get_db") as mock_db:
                 mock_db.return_value = MagicMock()
                 with patch("sys.stdout"):
@@ -1570,7 +1570,7 @@ class TestCLI:
     def test_cli_json_flag(self):
         """--json flag should be accepted."""
         from services.geostatistics.cli import main
-        with patch("sys.argv", ["geostatistics", "--json", "variogram", "--location-id", "test-loc", "--property", "soil_carbon"]):
+        with patch("sys.argv", ["geostatistics", "--json", "variogram", "--location-id", "00000000-0000-4000-8000-000000000001", "--property", "soil_carbon"]):
             with patch("services.ingestion.base.get_db") as mock_db:
                 mock_db.return_value = MagicMock()
                 with patch("sys.stdout"):
@@ -1587,7 +1587,7 @@ class TestSOCIntegration:
         mock_cursor = MagicMock()
         mock_cursor.fetchall.return_value = []
         mock_conn.cursor.return_value = mock_cursor
-        result = residual_kriging_correction(mock_conn, "test-loc")
+        result = residual_kriging_correction(mock_conn, "00000000-0000-4000-8000-000000000001")
         assert "error" in result
 
     def test_spatial_block_cv_insufficient_data(self):
@@ -1596,5 +1596,5 @@ class TestSOCIntegration:
         mock_cursor = MagicMock()
         mock_cursor.fetchall.return_value = []
         mock_conn.cursor.return_value = mock_cursor
-        result = spatial_block_cv_for_soc(mock_conn, "test-loc")
+        result = spatial_block_cv_for_soc(mock_conn, "00000000-0000-4000-8000-000000000001")
         assert "error" in result

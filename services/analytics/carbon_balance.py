@@ -6,10 +6,11 @@ regenerative_practice_checklist, and climate_impact_summary to produce
 carbon balance, emissions breakdown, and regenerative practice reports.
 """
 
-from typing import Dict, Any, List, Optional
+from typing import Any, Dict, List
 
 import psycopg2
 import psycopg2.extras
+
 from services.common.database import query
 
 
@@ -138,14 +139,26 @@ def compute_carbon_balance(conn, location_id: str, year: int = None) -> Dict[str
     # Try climate_impact_summary first (authoritative annual record)
     if year:
         cur.execute("""
-            SELECT * FROM climate_impact_summary
+            SELECT above_ground_carbon_tonnes,
+                   below_ground_carbon_tonnes,
+                   total_sequestration_tonnes_co2e,
+                   total_emissions_tonnes_co2e,
+                   net_climate_impact_tonnes_co2e,
+                   reporting_year
+            FROM climate_impact_summary
             WHERE location_id = %s AND reporting_year = %s
             LIMIT 1
         """, (location_id, year))
         summary_row = cur.fetchone()
     else:
         cur.execute("""
-            SELECT * FROM climate_impact_summary
+            SELECT above_ground_carbon_tonnes,
+                   below_ground_carbon_tonnes,
+                   total_sequestration_tonnes_co2e,
+                   total_emissions_tonnes_co2e,
+                   net_climate_impact_tonnes_co2e,
+                   reporting_year
+            FROM climate_impact_summary
             WHERE location_id = %s
             ORDER BY reporting_year DESC
             LIMIT 1

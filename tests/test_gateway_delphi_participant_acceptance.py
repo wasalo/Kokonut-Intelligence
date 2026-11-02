@@ -1,6 +1,6 @@
 """Contracts for pseudonymous Delphi participant consent and withdrawal."""
 
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from uuid import uuid4
 
 import pytest
@@ -187,10 +187,36 @@ def test_preview_response_is_private_and_never_echoes_invite_token():
     client = TestClient(_app(run_in_threadpool), base_url="https://testserver")
     response = client.post("/api/participation/delphi/preview", json={"invite_token": INVITE_TOKEN})
     assert response.status_code == 200
-    assert response.json() == {**expected, "expires_at": NOW.isoformat()}
+    assert response.json() == {**expected, "expires_at": "2026-10-25T12:00:00Z"}
     assert response.headers["cache-control"] == "no-store"
     assert response.headers["referrer-policy"] == "no-referrer"
     assert INVITE_TOKEN not in response.text
+
+
+def test_preview_publishes_strict_schema_and_rejects_malformed_service_data():
+    async def run_in_threadpool(*_args, **_kwargs):
+        return {
+            "study_title": "Watershed priorities",
+            "notice_version": "v3",
+            "notice_text": "Notice text",
+            "notice_digest": NOTICE_DIGEST,
+            "expires_at": NOW,
+            "collection_scopes": ["questionnaire_responses"],
+            "participant_email": "private@example.test",
+        }
+
+    app = _app(run_in_threadpool)
+    schema = app.openapi()["paths"]["/api/participation/delphi/preview"]["post"][
+        "responses"]["200"]["content"]["application/json"]["schema"]
+    assert schema["$ref"].endswith("DelphiParticipantInvitePreviewResponse")
+    response = TestClient(app, base_url="https://testserver").post(
+        "/api/participation/delphi/preview", json={"invite_token": INVITE_TOKEN}
+    )
+    assert response.status_code == 503
+    assert response.json() == {"error": "Delphi participant service unavailable"}
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["retry-after"] == "30"
+    assert "private@example.test" not in response.text
 
 
 def test_accept_sets_secure_http_only_session_cookie_without_echoing_tokens():
@@ -198,7 +224,7 @@ def test_accept_sets_secure_http_only_session_cookie_without_echoing_tokens():
         "status": "accepted",
         "notice_version": "v3",
         "accepted_at": NOW,
-        "session_expires_at": NOW,
+        "session_expires_at": NOW + timedelta(days=1),
         "replayed": False,
     }
 
@@ -207,6 +233,45 @@ def test_accept_sets_secure_http_only_session_cookie_without_echoing_tokens():
         assert args == (INVITE_TOKEN, NOTICE_DIGEST, SESSION_TOKEN, CSRF_TOKEN, REQUEST_ID)
         assert kwargs == {"accepted": True}
         return expected
+
+    app = _app(run_in_threadpool)
+    schema = app.openapi()["paths"]["/api/participation/delphi/accept"]["post"][
+        "responses"]["200"]["content"]["application/json"]["schema"]
+    assert schema["$ref"].endswith("DelphiParticipantConsentAcceptanceResponse")
+    response = TestClient(app, base_url="https://testserver").post(
+        "/api/participation/delphi/accept",
+        json={
+            "invite_token": INVITE_TOKEN,
+            "notice_digest": NOTICE_DIGEST,
+            "session_token": SESSION_TOKEN,
+            "csrf_token": CSRF_TOKEN,
+            "request_id": REQUEST_ID,
+            "accepted": True,
+        },
+    )
+    assert response.status_code == 201
+    assert set(response.json()) == {
+        "status", "notice_version", "accepted_at", "session_expires_at", "replayed"
+    }
+    assert SESSION_TOKEN not in response.text and CSRF_TOKEN not in response.text
+    cookies = response.headers.get_list("set-cookie")
+    assert any("kokonut_delphi_participant_session=" in cookie and "HttpOnly" in cookie
+               and "Secure" in cookie and "SameSite=strict" in cookie for cookie in cookies)
+    assert any("kokonut_delphi_participant_csrf=" in cookie and "HttpOnly" not in cookie
+               and "Secure" in cookie and "SameSite=strict" in cookie for cookie in cookies)
+    assert response.headers["cache-control"] == "no-store"
+
+
+def test_accept_rejects_malformed_response_without_setting_session_cookies():
+    async def run_in_threadpool(*_args, **_kwargs):
+        return {
+            "status": "withdrawn",
+            "notice_version": "v3",
+            "accepted_at": NOW,
+            "session_expires_at": NOW + timedelta(days=1),
+            "replayed": False,
+            "private_detail": "internal",
+        }
 
     response = TestClient(_app(run_in_threadpool), base_url="https://testserver").post(
         "/api/participation/delphi/accept",
@@ -219,14 +284,11 @@ def test_accept_sets_secure_http_only_session_cookie_without_echoing_tokens():
             "accepted": True,
         },
     )
-    assert response.status_code == 201
-    assert SESSION_TOKEN not in response.text and CSRF_TOKEN not in response.text
-    cookies = response.headers.get_list("set-cookie")
-    assert any("kokonut_delphi_participant_session=" in cookie and "HttpOnly" in cookie
-               and "Secure" in cookie and "SameSite=strict" in cookie for cookie in cookies)
-    assert any("kokonut_delphi_participant_csrf=" in cookie and "HttpOnly" not in cookie
-               and "Secure" in cookie and "SameSite=strict" in cookie for cookie in cookies)
+    assert response.status_code == 503
+    assert response.json() == {"error": "Delphi participant service unavailable"}
     assert response.headers["cache-control"] == "no-store"
+    assert not response.headers.get_list("set-cookie")
+    assert "internal" not in response.text
 
 
 def test_accept_route_requires_literal_consent_and_exact_fields():
@@ -277,6 +339,41 @@ def test_withdraw_requires_double_submit_csrf_and_clears_cookies():
                for cookie in cookies)
     assert any("kokonut_delphi_participant_csrf=" in cookie and "Max-Age=0" in cookie
                for cookie in cookies)
+
+
+def test_withdraw_publishes_strict_schema_and_sanitizes_malformed_output():
+    async def run_in_threadpool(*_args, **_kwargs):
+        return {
+            "status": "active",
+            "withdrawn_at": NOW,
+            "replayed": False,
+            "session_id": "private",
+        }
+
+    app = _app(run_in_threadpool)
+    schema = app.openapi()["paths"]["/api/participation/delphi/withdraw"]["post"][
+        "responses"]["200"]["content"]["application/json"]["schema"]
+    assert schema["$ref"].endswith("DelphiParticipantWithdrawalResponse")
+    client = TestClient(app, base_url="https://testserver")
+    client.cookies.set(
+        "kokonut_delphi_participant_session",
+        SESSION_TOKEN,
+        path="/api/participation/delphi",
+    )
+    client.cookies.set(
+        "kokonut_delphi_participant_csrf",
+        CSRF_TOKEN,
+        path="/api/participation/delphi",
+    )
+    response = client.post(
+        "/api/participation/delphi/withdraw",
+        json={"request_id": REQUEST_ID},
+        headers={"x-kokonut-csrf": CSRF_TOKEN},
+    )
+    assert response.status_code == 503
+    assert response.json() == {"error": "Delphi participant service unavailable"}
+    assert response.headers["cache-control"] == "no-store"
+    assert "session_id" not in response.text
 
 
 def test_withdraw_csrf_mismatch_never_reaches_service():

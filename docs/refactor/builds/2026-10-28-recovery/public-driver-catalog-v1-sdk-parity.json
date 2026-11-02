@@ -1,0 +1,80 @@
+{
+  "date": "2026-10-28",
+  "source_revision": "23e5bf8c",
+  "working_tree_dirty": true,
+  "scope": "Versioned, read-only public driver catalog API and Python/TypeScript SDK parity.",
+  "route": {
+    "path": "/api/v1/drivers",
+    "method": "GET",
+    "operation_id": "listPublicDriversV1",
+    "policy": {
+      "resource": "driver",
+      "action": "read",
+      "public": true,
+      "location_scoped": false
+    },
+    "limit": {
+      "minimum": 1,
+      "maximum": 50,
+      "default": 50
+    },
+    "offset": {
+      "minimum": 0,
+      "maximum": 5000,
+      "default": 0
+    },
+    "response_fields": [
+      "driver_name",
+      "driver_version",
+      "driver_type"
+    ],
+    "catalog_filter": "enabled rows only",
+    "stable_order": [
+      "driver_type",
+      "driver_name"
+    ],
+    "continuation_field": "has_more",
+    "continuation_semantics": "true only when the next offset remains within the 5000 ceiling"
+  },
+  "failure_behavior": "Database read failures propagate to the Gateway's generic no-store 500 response instead of becoming a successful empty catalog page.",
+  "sdk": {
+    "python": "Typed PublicDriverCatalogPage and PublicDriverCatalogEntry; validates bounds before transport.",
+    "typescript": "Generated OpenAPI response types and drivers.list({limit, offset}); validates bounds before fetch.",
+    "openapi_snapshot": "docs/refactor/native-public-api-v1.openapi.json",
+    "generated_types_check": "passed"
+  },
+  "checks": [
+    {
+      "command": "python3 -m pytest tests/test_gateway_public_driver_catalog.py tests/test_gateway_route_policy_inventory.py tests/test_public_api_openapi.py tests/test_public_api_sdk.py -q",
+      "result": "passed",
+      "passed": 47
+    },
+    {
+      "command": "cd sdk/javascript && npm test -- --run src/__tests__/public-api.test.ts",
+      "result": "passed",
+      "passed": 25
+    },
+    {
+      "command": "cd sdk/javascript && npm test",
+      "result": "passed",
+      "passed": 73
+    },
+    {
+      "command": "cd sdk/javascript && npm run build",
+      "result": "passed"
+    },
+    {
+      "command": "python3 scripts/generate_public_api_sdk.py --check",
+      "result": "passed"
+    }
+  ],
+  "environment": {
+    "live_database_used": false,
+    "candidate_or_legacy_touched": false,
+    "provider_called": false
+  },
+  "limitations": [
+    "The catalog API and SDKs are covered with mocked/fake registry and transport behavior; no live Gateway deployment or external consumer compatibility was exercised.",
+    "This closes driver catalog contract parity only and does not close broader route, authorization, tenant-scope, or SDK parity."
+  ]
+}

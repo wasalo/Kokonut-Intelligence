@@ -1,0 +1,19 @@
+{
+  "date": "2026-10-28",
+  "source_revision": "753b4645",
+  "slice": "threatcasting backcast-plan list pagination",
+  "result": "passed",
+  "finding": "The read service enforced a limit from 1 through 100, defaulting to 50, but the Gateway route typed limit as an unbounded string, so OpenAPI did not publish the service contract and invalid input reached service validation.",
+  "change": "The route now exposes limit as an integer query parameter with default 50 and bounds 1..100. FastAPI rejects invalid values before service invocation.",
+  "verification": {
+    "pytest": {
+      "command": "python3 -m pytest tests/test_gateway_threatcasting_reads.py -q",
+      "result": "14 passed"
+    },
+    "ruff": "passed",
+    "py_compile": "passed",
+    "diff_check": "passed"
+  },
+  "scope": "Mocked FastAPI/OpenAPI and service-boundary checks only; no database, provider, network, candidate, or legacy service was used.",
+  "rollback": "Revert the route Query constraint, focused regression, and evidence artifact. No migration or persistent data changed."
+}

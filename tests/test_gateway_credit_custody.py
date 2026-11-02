@@ -207,7 +207,18 @@ def test_credit_custody_http_route_uses_scoped_handler_and_no_store_headers(
             )
 
     monkeypatch.setattr("services.gateway.operator_auth.create_provider", lambda: Provider())
-    summary = {"location_id": location_id, "total_credits": 0, "credit_totals": {}}
+    summary = {
+        "location_id": location_id,
+        "total_credits": 0,
+        "credit_totals": {
+            "issuable_tonnes": "0.0000",
+            "retired_tonnes": "0.0000",
+            "reserved_tonnes": "0.0000",
+            "available_tonnes": "0.0000",
+            "recorded_total_value_usd": "0.00",
+        },
+        "retirements_by_status": [],
+    }
     monkeypatch.setattr("services.gateway.credit_custody.get_credit_custody_summary", lambda *_args: summary)
     with TestClient(
         create_app(), cookies={"kokonut_operator_session": "synthetic-session"}
@@ -218,6 +229,58 @@ def test_credit_custody_http_route_uses_scoped_handler_and_no_store_headers(
     assert response.json() == summary
     assert response.headers["cache-control"] == "no-store"
     assert "cookie" in {value.strip().lower() for value in response.headers["vary"].split(",")}
+
+
+def test_credit_custody_openapi_documents_service_response_shape(
+    monkeypatch, isolated_audit
+):
+    operator_id, location_id = str(uuid4()), str(uuid4())
+    operator_session = SimpleNamespace(
+        session_id=str(uuid4()),
+        session_token_hash="e" * 64,
+        operator=SimpleNamespace(operator_id=operator_id),
+    )
+
+    class Provider:
+        settings = SimpleNamespace(state_secret="test-only-state-secret")
+
+        def authenticate_request(self, _request):
+            return operator_session
+
+        def has_scope(self, _operator, resource, action, scoped_location):
+            return (
+                resource in {"carbon_credit", "credit_retirement"}
+                and action == "read"
+                and scoped_location == location_id
+            )
+
+    monkeypatch.setattr("services.gateway.operator_auth.create_provider", lambda: Provider())
+    schema = create_app().openapi()
+    operation = schema["paths"][
+        "/operator/api/credit-custody/{location_id}/summary"
+    ]["get"]
+
+    response_schema = operation["responses"]["200"]["content"][
+        "application/json"
+    ]["schema"]
+    assert response_schema == {"$ref": "#/components/schemas/CreditCustodySummaryResponse"}
+    summary_schema = schema["components"]["schemas"]["CreditCustodySummaryResponse"]
+    assert set(summary_schema["properties"]) == {
+        "location_id",
+        "total_credits",
+        "credit_totals",
+        "retirements_by_status",
+    }
+    assert summary_schema["additionalProperties"] is False
+    assert set(
+        schema["components"]["schemas"]["CreditCustodyTotals"]["properties"]
+    ) == {
+        "issuable_tonnes",
+        "retired_tonnes",
+        "reserved_tonnes",
+        "available_tonnes",
+        "recorded_total_value_usd",
+    }
 
 
 def test_credit_custody_http_route_requires_retirement_scope_before_service(

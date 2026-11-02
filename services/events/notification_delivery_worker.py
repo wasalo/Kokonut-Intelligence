@@ -7,9 +7,14 @@ from typing import Any
 
 import psycopg2.extras
 
+from services.common.cli import print_json
 from services.common.worker_database import get_worker_db
 from services.core.features import require_feature
+from services.core.worker_progress import pulse_worker_progress
 from services.events.notification_outbox import _configured_channels, deliver_claimed_batch
+
+MAX_FUNCTION_BATCH_SIZE = 100
+MAX_CLI_BATCH_SIZE = 500
 
 
 def _validate(worker_id: str, limit: int, lease_seconds: int) -> None:
@@ -89,6 +94,71 @@ def run_once(
             lambda row, **kwargs: _finish(
                 connection, worker_id, row, **kwargs
             ),
+            progress_callback=pulse_worker_progress,
         )
     finally:
         connection.close()
+
+
+def run_batches(
+    worker_id: str = "notification-kernel-worker",
+    limit: int = 100,
+    lease_seconds: int = 300,
+) -> dict[str, int]:
+    """Deliver up to the CLI's 500-row bound in 100-row function batches."""
+    if (
+        isinstance(limit, bool)
+        or not isinstance(limit, int)
+        or not 1 <= limit <= MAX_CLI_BATCH_SIZE
+    ):
+        raise ValueError(
+            f"notification worker batch limit must be between 1 and {MAX_CLI_BATCH_SIZE}"
+        )
+
+    totals = {"claimed": 0, "delivered": 0, "failed": 0, "lease_lost": 0}
+    remaining = limit
+    while remaining:
+        requested = min(remaining, MAX_FUNCTION_BATCH_SIZE)
+        result = run_once(worker_id, requested, lease_seconds)
+        claimed = result.get("claimed")
+        if (
+            isinstance(claimed, bool)
+            or not isinstance(claimed, int)
+            or not 0 <= claimed <= requested
+        ):
+            raise RuntimeError("notification worker returned an invalid claimed count")
+        for key in ("delivered", "failed", "lease_lost"):
+            value = result.get(key)
+            if isinstance(value, bool) or not isinstance(value, int) or value < 0:
+                raise RuntimeError("notification worker returned invalid batch statistics")
+            totals[key] += value
+        if claimed != sum(result[key] for key in ("delivered", "failed", "lease_lost")):
+            raise RuntimeError("notification worker returned inconsistent batch statistics")
+        totals["claimed"] += claimed
+        remaining -= claimed
+        if claimed < requested:
+            break
+    return totals
+
+
+def main(argv: list[str] | None = None) -> None:
+    """Run one batch through the dedicated notification-delivery identity."""
+    import argparse
+
+    parser = argparse.ArgumentParser(
+        description="Deliver one bounded batch of durable notification intents"
+    )
+    parser.add_argument("--run-once", action="store_true", required=True)
+    parser.add_argument("--worker-id", default="notification-kernel-worker")
+    parser.add_argument("--limit", type=int, default=MAX_FUNCTION_BATCH_SIZE)
+    parser.add_argument("--lease-seconds", type=int, default=300)
+    args = parser.parse_args(argv)
+
+    result = run_once(args.worker_id, args.limit, args.lease_seconds)
+    print_json(result)
+    if result["failed"] or result["lease_lost"]:
+        raise SystemExit(1)
+
+
+if __name__ == "__main__":
+    main()

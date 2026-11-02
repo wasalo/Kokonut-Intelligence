@@ -1,0 +1,51 @@
+{
+  "date": "2026-10-29",
+  "batch": "yield monitoring preflight, nutrient summary ordering, pollinator habitat capture contract",
+  "scope": {
+    "yield_monitoring": {
+      "behavior": "record --date accepts a valid ISO calendar date and rejects malformed or impossible dates during argument parsing before database acquisition",
+      "omitted_date": "preserved as null and delegated to the existing service default",
+      "valid_value": "passed to the service as datetime.date"
+    },
+    "nutrient_budget": {
+      "source_migration": 601,
+      "behavior": "v_nutrient_input_summary rows are ordered by input_type, rate_unit, cost_currency_code to make currency and rate-unit groups deterministic",
+      "query_scope_and_payload": "unchanged"
+    },
+    "pollinator_habitat": {
+      "source_migrations": [
+        155,
+        621
+      ],
+      "success_fields": [
+        "habitat_id",
+        "location_id",
+        "habitat_type",
+        "area_m2",
+        "status",
+        "replayed"
+      ],
+      "behavior": "OpenAPI and runtime enforce the exact create/replay response; location, habitat type, and area match the request; creates return 201 and replays return 200; malformed writer output is sanitized and no-store"
+    }
+  },
+  "verification": {
+    "focused_command": "python3 -m pytest tests/test_yield_monitoring_cli_preflight.py tests/test_nutrient_budget_summary_order.py tests/test_gateway_pollinator_observation_capture.py -q",
+    "focused_tests": 134,
+    "focused_result": "passed",
+    "ruff_security_select": "passed",
+    "python_compile": "passed",
+    "capability_matrix": "passed: 67 rows; 24 baseline-retained, 7 deployed, 36 prepared",
+    "runtime_sql_inventory": "refreshed and check passed",
+    "provider_boundaries": "passed: 17 vendor import sites",
+    "dependency_groups": "passed: 14 groups, 33 requirements",
+    "git_diff_check": "passed",
+    "ruff_default_changed_files": "passed"
+  },
+  "environment": {
+    "database": "not used",
+    "provider": "not used",
+    "candidate_or_legacy_state": "untouched",
+    "migration_applied": false
+  },
+  "rollback": "Revert the source and test changes and restore the prior runtime SQL inventory and refactor records; no database rollback is required."
+}

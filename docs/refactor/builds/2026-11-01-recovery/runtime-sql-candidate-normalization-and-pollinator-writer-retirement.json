@@ -1,0 +1,62 @@
+{
+  "schema_version": 1,
+  "purpose": "C1 source inventory normalization and stale pollinator writer retirement",
+  "source_revision": "b0942d66443289b305ca14133fa9f3e4ce9c2c6d",
+  "source_dirty": true,
+  "source_changes": {
+    "postgres_identifier_normalization": "Unquoted relation identifiers are lowercased; quoted identifier case is preserved.",
+    "acl_report_join": "Explicit public-schema candidates are joined to the matching catalog relation; explicit non-public schemas are excluded.",
+    "retired_writer": "services.analytics.pest_management.auto_link_pollinator_impact now fails before accessing its connection; repository search found no callers and its former pollinator_pesticide_impact target is absent from ordered schema migrations.",
+    "replacement": "Authenticated, location-scoped pesticide-impact capture remains available through the Kokonut Gateway."
+  },
+  "verification": {
+    "pytest_command": "python3 -m pytest tests/test_worker_sql_inventory.py tests/test_runtime_sql_inventory.py tests/test_runtime_privilege_callsite_report.py tests/test_pest_management.py -q",
+    "pytest_result": "passed",
+    "pytest_passed": 179,
+    "ruff_result": "passed",
+    "python_compile_result": "passed",
+    "runtime_sql_inventory_fresh": true,
+    "worker_sql_inventory_fresh": true,
+    "runtime_role_attribution_fresh": true,
+    "analytics_write_candidate_inventory_regenerated": true,
+    "analytics_write_candidate_inventory": "docs/refactor/builds/2026-11-01-recovery/analytics-runtime-write-candidate-inventory-723.json"
+  },
+  "source_inventory_summary": {
+    "sql_execution_sites": 4956,
+    "write_candidate_sites": 1063,
+    "write_target_relation_names": 566,
+    "api_candidate_sites": 34,
+    "worker_candidate_sites": 367,
+    "shared_candidate_sites": 1,
+    "unresolved_attribution_sites": 4554
+  },
+  "acl_report": {
+    "probe": "docs/refactor/builds/2026-11-01-recovery/native-current-schema-723-operator-probe.json",
+    "probe_latest_migration": 723,
+    "probe_was_replayed_in_this_batch": false,
+    "public_relations": 1522,
+    "relations_with_effective_runtime_dml": 1309,
+    "tables_with_runtime_dml_and_rls_disabled": 925,
+    "dml_relations_without_candidate_sql_sites": 458,
+    "unprotected_dml_relations_without_candidate_sql_sites": 211,
+    "unprotected_dml_relations_without_candidate_write_targets": 372,
+    "migration_revoked_relations_with_matching_runtime_policy": 178,
+    "policy_mismatches": 0,
+    "scope": "The source/ACL join was refreshed from the already-recorded disposable migration-723 probe. ACL values did not change. Counts describe privilege reach and heuristic source coverage, not confirmed leaks or tenant isolation."
+  },
+  "remaining_inventory_findings": {
+    "sqlite_audit_spool_tables": [
+      "gateway_mutation_reservation",
+      "pending_gateway_audit"
+    ],
+    "sqlite_note": "These local audit-spool relations are driver-neutral SQL inventory entries, not PostgreSQL relations.",
+    "unmatched_postgresql_write_candidate": "credit_chain_mint",
+    "credit_chain_mint_note": "Application SQL references this name, but no ordered migration defines the relation; preserve it as an unresolved capability/schema issue before changing grants."
+  },
+  "not_performed": [
+    "No schema migration was added or applied.",
+    "No disposable database replay was run in this batch.",
+    "No candidate, legacy, or production database or role was accessed or changed.",
+    "No runtime ACL was modified."
+  ]
+}

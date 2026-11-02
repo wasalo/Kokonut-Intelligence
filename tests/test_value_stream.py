@@ -68,6 +68,30 @@ def test_report_generator_entrypoint():
         conn.close()
 
 
+@pytest.mark.parametrize("location_id", ["", "x", "not-a-uuid", "a0000000-0000-0000-0000-000000000001,all"])
+def test_report_entrypoint_rejects_malformed_location_before_database_access(location_id):
+    conn = MagicMock()
+
+    with pytest.raises(ValueError, match="value_stream_map requires a valid location_id"):
+        vs.generate_value_stream_map(conn, location_id)
+
+    conn.cursor.assert_not_called()
+
+
+def test_report_entrypoint_preserves_network_scope_when_location_is_omitted(monkeypatch):
+    calls = []
+
+    def current_state_map(conn, location_id, period_start, period_end):
+        calls.append((conn, location_id, period_start, period_end))
+        return {"scope": {"location_id": location_id}}
+
+    monkeypatch.setattr(vs, "current_state_map", current_state_map)
+    conn = object()
+
+    assert vs.generate_value_stream_map(conn) == {"scope": {"location_id": None}}
+    assert calls == [(conn, None, None, None)]
+
+
 def test_wip_query_keeps_pipeline_location_and_review_status_rules():
     cur = MagicMock()
     cur.fetchall.return_value = [{"entity_type": "farm_activity", "status": "draft", "wip": 2}]

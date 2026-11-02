@@ -1,0 +1,45 @@
+{
+  "bounded_operations": {
+    "gate": [
+      "approved exact-location gate transition",
+      "identical gate transition retry returned the original event"
+    ],
+    "lifecycle": [
+      "solution creation and exact retry",
+      "nonpromotion stage transition and exact retry",
+      "independent retirement, sunset, review, and exact retries"
+    ]
+  },
+  "candidate_or_legacy_modified": false,
+  "database_image": {
+    "name": "postgis/postgis:16-3.4@sha256:44126d872ac91993766c341e369c539e8196614321765d36a6f1bab0419a5fa5",
+    "postgres_major_version": 16
+  },
+  "database_scope": "two isolated disposable PostgreSQL clusters; synthetic fixtures only",
+  "directus_and_maintenance_grants_preserved": true,
+  "function_owner_write_grants_preserved": true,
+  "host_ports_published": false,
+  "migration": "727_runtime_solution_lifecycle_read_only.sql",
+  "migration_sha256": "06ba1cf626524420477453842242066dd518537e7ab0b1ad141d298004298e4e",
+  "migration_applied_and_replayed": true,
+  "network": "internal-only",
+  "runtime_function_execute_grants_preserved": true,
+  "runtime_provisioner_reapplied_after_compatibility_grants": true,
+  "runtime_select_preserved": true,
+  "runtime_table_privileges_denied": [
+    "INSERT",
+    "UPDATE",
+    "DELETE",
+    "TRUNCATE",
+    "REFERENCES",
+    "TRIGGER"
+  ],
+  "runtime_column_privileges_denied": [
+    "INSERT",
+    "UPDATE",
+    "REFERENCES"
+  ],
+  "tenant_isolation_established": false,
+  "timestamp": "2026-11-01T14:53:17Z",
+  "result": "passed"
+}

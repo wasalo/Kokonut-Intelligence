@@ -320,7 +320,7 @@ def get_location_pollinator_habitat_details(
                 (location_id, limit + 1, offset),
             )
             rows = _rows(cur)
-        has_more = len(rows) > limit
+        has_more = len(rows) > limit and offset + limit <= _MAX_HABITAT_OFFSET
         items = rows[:limit]
         for item in items:
             item["area_m2"] = _number(item["area_m2"])
@@ -389,7 +389,7 @@ def get_location_pollinator_hive_details(
                 (location_id, limit + 1, offset),
             )
             rows = _rows(cur)
-        has_more = len(rows) > limit
+        has_more = len(rows) > limit and offset + limit <= _MAX_HIVE_OFFSET
         items = rows[:limit]
         for item in items:
             item["inspection_date"] = _date(item["inspection_date"])
@@ -460,6 +460,13 @@ def list_location_pollinator_review_queue(
                 import json
 
                 result = json.loads(result)
+            if (
+                isinstance(result, dict)
+                and result.get("has_more") is True
+                and offset + limit > 10000
+            ):
+                result["has_more"] = False
+                result["next_offset"] = None
             if (
                 not isinstance(result, dict)
                 or str(result.get("location_id")) != location_id

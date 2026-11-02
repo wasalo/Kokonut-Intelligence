@@ -32,13 +32,14 @@ The feedback synthesis agent (`services/agents/feedback_agent.py`) uses public s
 
 ## 3. Feasible Data
 
-- Are source records available in PostgreSQL/Directus?
+- Are source records available in PostgreSQL through the authorized application surface?
 - Are source lineage fields populated?
 - Is evidence maturity appropriate for the intended use?
 
 ### Implementation context
 
-Source records must be canonical PostgreSQL/Directus rows. Key source tables:
+Source records must be canonical PostgreSQL rows. Read them through authorized
+Gateway/service contracts or, when deployed, the Directus adapter. Key tables:
 
 | Table | Role |
 |---|---|

@@ -172,7 +172,17 @@ def _route_app(monkeypatch, read_action, claim_action):
 
 
 def test_work_opportunity_and_claim_routes_are_protected_no_store_contracts(monkeypatch):
-    read_action = MagicMock(return_value={"items": [], "limit": 25, "offset": 0})
+    read_action = MagicMock(
+        return_value={
+            "location_id": LOCATION_ID,
+            "scope_configured": True,
+            "items": [],
+            "limit": 10,
+            "offset": 5,
+            "has_more": False,
+            "next_offset": None,
+        }
+    )
     claim_action = MagicMock(
         return_value={"work_item_id": WORK_ITEM_ID, "claim_id": CLAIM_ID, "status": "proposed", "replayed": False}
     )

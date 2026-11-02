@@ -1,0 +1,48 @@
+{
+  "date": "2026-10-28",
+  "base_commit": "1e1c0a94f94a462c617abdd32e0e7170bf0b50f5",
+  "scope": "Capital-efficiency composite contract, public wellbeing-view projections, and Python/TypeScript CRISP response parity",
+  "python_test_command": [
+    "python3",
+    "-m",
+    "pytest",
+    "tests/test_gateway_comprehensive_status_reads.py",
+    "tests/test_comprehensive_status.py",
+    "tests/test_capital_efficiency.py",
+    "tests/test_gnh_alignment.py",
+    "tests/test_gnh_alignment_report_scope.py",
+    "tests/test_cultural_preservation_report_scope.py",
+    "tests/test_renewable_energy_report_scope.py",
+    "tests/test_public_api_sdk.py",
+    "-q"
+  ],
+  "python_test_result": {"passed": 209, "failed": 0},
+  "javascript_test_command": [
+    "npm",
+    "test",
+    "--",
+    "--run",
+    "src/__tests__/public-api.test.ts"
+  ],
+  "javascript_working_directory": "sdk/javascript",
+  "javascript_test_result": {"passed": 75, "failed": 0},
+  "checks": {
+    "typescript_build": "passed with npm run build",
+    "ruff": "passed for changed Python source and tests",
+    "python_compile": "passed for changed Python source and tests",
+    "report_source_inventory": "passed",
+    "report_helper_scope_inventory": "passed",
+    "report_query_scope_inventory": "passed",
+    "capability_matrix": "passed; 67 rows (24 baseline-retained, 7 deployed, 36 prepared)",
+    "git_diff_check": "passed"
+  },
+  "contracts": {
+    "capital_efficiency": "Strict nested models mirror both public-view projections, enforce selected-location identity for each row, and preserve existing per-section error behavior and report content.",
+    "public_wellbeing_views": "GNH alignment selects all 14, cultural preservation all 16, and renewable energy all 18 ordered public-view columns; filters, period bindings, ordering, serializers, aggregates, and counts remain unchanged.",
+    "crisp_sdk": "Python and TypeScript require the exact Gateway response fields, valid UUIDs and dates, matching requested location, declared nullable enum/score/maturity values, published status, and a timezone-bearing computed timestamp. Invalid offset components are rejected."
+  },
+  "content_review": "Published summaries and metadata remain in the existing public payloads. This batch validates schemas and projection parity; it does not establish content-level privacy or populated-data parity.",
+  "candidate_or_legacy_database_touched": false,
+  "provider_or_production_service_touched": false,
+  "migration_added": false
+}

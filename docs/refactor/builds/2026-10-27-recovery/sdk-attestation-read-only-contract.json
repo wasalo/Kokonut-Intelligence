@@ -1,0 +1,57 @@
+{
+  "date": "2026-10-27",
+  "contract": "The Python and TypeScript SDKs expose attestation_record as governed read-only state, while EAS publication and revocation remain in the dedicated service and approved signing flow.",
+  "source_of_truth": [
+    "schemas/postgres/006_web3.sql::attestation_record",
+    "services/ingestion/eas_indexer.py::insert_attestation",
+    "services/ingestion/subgraph_indexer.py::insert_attestation",
+    "services/attestation/publisher.py",
+    "services/gateway/attestations.py::list_location_attestations"
+  ],
+  "findings": [
+    "attestation_record contains governed lifecycle, evidence, reviewer, and on-chain projection fields.",
+    "Chain indexers populate attestation_record from observed on-chain records.",
+    "The dedicated EAS service submits and revokes on-chain attestations; direct row creation does neither and bypasses the governed signing workflow.",
+    "The previous SDK examples created draft database rows with placeholder or mismatched fields and described those rows as attestations."
+  ],
+  "change": "Removed GenericMethods mutation inheritance and create/createMany/update/delete from both AttestationMethods surfaces. Preserved list/get/listPending/listByEntity. Updated Python and TypeScript workflow examples to read indexed attestations and documented the service boundary.",
+  "validation": {
+    "python_tests": {
+      "command": "python3 -m pytest tests/test_sdk.py tests/test_sdk_method_parity.py tests/test_report_governance.py -q",
+      "result": "passed",
+      "passed": 109
+    },
+    "javascript_tests": {
+      "command": "npm test",
+      "working_directory": "sdk/javascript",
+      "result": "passed",
+      "passed": 54
+    },
+    "typescript_build": {
+      "command": "npm run build",
+      "working_directory": "sdk/javascript",
+      "result": "passed"
+    },
+    "sdk_schema_parity": {
+      "command": "python3 scripts/check-sdk-schema-parity.py",
+      "result": "passed",
+      "models": 109,
+      "canonical_columns": 2150,
+      "scalar_types": 1987,
+      "postgis_types": 12,
+      "jsonb_shapes": 147,
+      "enum_fields": 23,
+      "check_literal_fields": 95
+    },
+    "static_checks": [
+      "Ruff passed",
+      "Python compilation passed"
+    ]
+  },
+  "scope_limits": [
+    "SDK calls were mocked; no database, provider, candidate, or legacy service was used.",
+    "This does not add a Gateway attestation-request lifecycle or replace the dedicated EAS service.",
+    "Capability classifications and MAN-CAP acceptance remain unchanged."
+  ],
+  "rollback": "Restore SDK mutation methods only after an authenticated attestation-request workflow is implemented with explicit lifecycle, audit, and on-chain execution linkage."
+}

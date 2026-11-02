@@ -1,0 +1,74 @@
+{
+  "date": "2026-10-28",
+  "scope": "Strict private response contract for the location-scoped planning-budget summary endpoint.",
+  "route": {
+    "method": "GET",
+    "path": "/operator/api/planning/{location_id}/budgets",
+    "response_model": "PlanningBudgetSummaryPage",
+    "source": "schemas/postgres/455_location_scoped_budget_summary.sql",
+    "page": [
+      "location_id",
+      "offset",
+      "plans[]",
+      "has_more",
+      "next_offset"
+    ],
+    "plan_projection": [
+      "financial_plan_id",
+      "plan_status",
+      "currency",
+      "period_start",
+      "period_end",
+      "has_objective",
+      "budget_line_count",
+      "planned_amount",
+      "verified_expense_amount",
+      "budget_variance",
+      "nonmatching_currency_expense_count",
+      "planning_scenario_count"
+    ],
+    "constraints": {
+      "extra_fields": "forbidden at page and plan levels",
+      "plan_status": ["draft", "approved", "active", "closed", "cancelled"],
+      "counts": "strict integers; budget_line_count is positive; all other counts are nonnegative",
+      "financial_values": "finite numbers; signed budget variance semantics are retained",
+      "privacy": "plan names/objectives, category labels, notes, vendor/counterparty, transaction identifiers, scenario assumptions, and evidence URLs are excluded",
+      "request_binding": "response location_id and offset must match the request; response list cannot exceed requested limit",
+      "pagination": "next_offset must equal offset plus limit when has_more; continuation stops at offset 10,000"
+    }
+  },
+  "error_contract": {
+    "disabled_oidc": "existing 404 preserved",
+    "tenant_denial": "existing 403 preserved",
+    "invalid_input": "existing 400 preserved",
+    "database_failure": "existing sanitized 503 and Retry-After preserved",
+    "invalid_projection": "sanitized 500 with Cache-Control: no-store and Vary: Cookie"
+  },
+  "checks": [
+    {
+      "command": "python3 -m pytest -q tests/test_gateway_planning_budget_reads.py tests/test_gateway_planning_budget_pagination_openapi.py",
+      "result": "passed",
+      "passed": 28
+    },
+    {
+      "command": "ruff check services/gateway/planning_budget_routes.py services/gateway/planning_budget_reads.py tests/test_gateway_planning_budget_reads.py tests/test_gateway_planning_budget_pagination_openapi.py",
+      "result": "passed"
+    },
+    {
+      "command": "python3 -m py_compile services/gateway/planning_budget_routes.py services/gateway/planning_budget_reads.py tests/test_gateway_planning_budget_reads.py tests/test_gateway_planning_budget_pagination_openapi.py",
+      "result": "passed"
+    },
+    {
+      "command": "git diff --check",
+      "result": "passed"
+    }
+  ],
+  "environment": {
+    "live_database_used": false,
+    "provider_called": false,
+    "candidate_or_legacy_touched": false
+  },
+  "limitations": [
+    "This source/API contract does not establish populated-data parity, live OIDC behavior, or broader tenant isolation."
+  ]
+}

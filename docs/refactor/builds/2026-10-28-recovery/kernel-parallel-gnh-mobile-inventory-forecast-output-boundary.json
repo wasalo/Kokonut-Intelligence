@@ -1,0 +1,57 @@
+{
+  "date": "2026-10-28",
+  "source_revision": "6360fc0c",
+  "working_tree_dirty": true,
+  "scope": "Parallel source-contract batch: GNH report scope preflight, strict private mobile operations inventory response, and Directus forecast_output tenant read boundary.",
+  "checks": [
+    {
+      "command": "python3 -m pytest tests/test_operator_auth.py tests/test_operator_mobile_review_contract.py tests/test_operator_farm_activity_intake_contract.py tests/test_operator_mobile_operations_inventory_contract.py tests/test_farm_activity_workflow.py tests/test_consent_privacy_p0.py tests/test_directus_permission_inventory.py tests/test_farm_summary_report_scope.py tests/test_report_state_cursor_cleanup.py tests/test_regenerative_outcomes_scope.py tests/test_regenerative_outcomes.py tests/test_gnh_alignment_report_scope.py tests/test_gnh_alignment.py -q",
+      "result": "passed",
+      "passed": 422
+    },
+    {
+      "command": "npm test",
+      "working_directory": "extensions/kokonut-hooks",
+      "result": "passed",
+      "passed": 138
+    },
+    {
+      "command": "npm run build",
+      "working_directory": "extensions/kokonut-hooks",
+      "result": "passed",
+      "details": "Directus extension build and TypeScript check"
+    },
+    {
+      "command": "Ruff check and Python compilation for modified report, Gateway, and test files",
+      "result": "passed"
+    },
+    {
+      "command": "python3 scripts/report_generator_source_inventory.py --check docs/refactor/report-generator-source-inventory.json",
+      "result": "passed"
+    },
+    {
+      "command": "python3 scripts/report_generator_query_scope_inventory.py --check docs/refactor/report-generator-query-scope-inventory.json",
+      "result": "passed"
+    },
+    {
+      "command": "python3 scripts/check-capability-matrix.py",
+      "result": "passed",
+      "matrix_rows": 67
+    },
+    {
+      "command": "git diff --check",
+      "result": "passed"
+    }
+  ],
+  "environment": {
+    "live_database_used": false,
+    "candidate_or_legacy_touched": false,
+    "provider_called": false,
+    "directus_runtime_used": false
+  },
+  "limitations": [
+    "The Directus forecast_output tenant policy is validated in the hook adapter, not against the running Directus API/runtime role.",
+    "Unassigned forecast_output rows fail closed; historical scenario and source lineage has not been reconciled.",
+    "The farm_summary broad-audience field allowlist and consistent lifecycle measures remain open."
+  ]
+}

@@ -25,7 +25,7 @@ message IRIInfo {
   string entity_id = 3;
   int32 version = 4;
   string content_hash = 5;
-  string content_hash_type = 6;
+  string hash_algorithm = 6;
 }
 
 message ContentHashEntry {

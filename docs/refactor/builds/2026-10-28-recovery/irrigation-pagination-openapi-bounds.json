@@ -1,0 +1,27 @@
+{
+  "result": "passed",
+  "date": "2026-10-28",
+  "source_revision": "753b4645",
+  "working_tree_dirty": true,
+  "scope": "Gateway irrigation-status pagination contract",
+  "finding": "The route's declared page-size maximum of 100 and unbounded offset exceeded the irrigation service validator limits of 50 rows and offset 10000.",
+  "change": "The route now declares limit default 25, minimum 1, maximum 50, and offset default 0, minimum 0, maximum 10000 to match the service validator. OpenAPI publishes those constraints, and requests outside them fail before service invocation.",
+  "checks": {
+    "focused_tests": {
+      "command": "python3 -m pytest tests/test_gateway_irrigation_status.py tests/test_gateway_crop_simulations.py -q",
+      "result": "40 passed"
+    },
+    "targeted_ruff": "passed",
+    "python_compilation": "passed",
+    "diff_check": "passed"
+  },
+  "external_services": {
+    "database": false,
+    "network": false,
+    "provider": false
+  },
+  "rollback": "Revert the Query bounds and focused regression; no migration or persisted data changed.",
+  "limitations": [
+    "The checks cover OpenAPI generation and in-process request validation only; they do not establish live proxy behavior or database/service availability."
+  ]
+}

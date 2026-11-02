@@ -778,6 +778,8 @@ def run_worker_delphi_facilitation(study_id: str, location_id: str) -> dict[str,
                     "Delphi study is unavailable under the signed location scope"
                 )
             result = dict(row)
+            if str(result.get("study_id")) != study_id:
+                raise PermissionError("Delphi source returned a mismatched study")
             if str(result.get("location_id")) != location_id:
                 raise PermissionError("Delphi source returned a mismatched location")
             result["source_scope"] = {

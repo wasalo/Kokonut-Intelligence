@@ -1,5 +1,6 @@
 """Tests for the location-scoped solution lifecycle Gateway projection."""
 
+from datetime import datetime, timezone
 from types import SimpleNamespace
 from unittest.mock import patch
 from uuid import uuid4
@@ -12,27 +13,125 @@ from services.gateway.operator_auth import auth_route_policy
 
 pytest.importorskip("fastapi")
 from fastapi import APIRouter, FastAPI  # noqa: E402
+from fastapi.encoders import jsonable_encoder  # noqa: E402
 from starlette.testclient import TestClient  # noqa: E402
 
 OPERATOR_ID = str(uuid4())
 LOCATION_ID = str(uuid4())
+RETIREMENT_ID = "d0000000-0000-4000-8000-000000000001"
+RETIREMENT_DETAIL = {
+    "location_id": LOCATION_ID,
+    "retirement_id": RETIREMENT_ID,
+    "solution_name": "Soil cover",
+    "solution_type": "practice",
+    "current_stage": "testing",
+    "solution_status": "active",
+    "retirement_type": "unsafe",
+    "retirement_status": "proposed",
+    "trigger_reason": "Observed erosion after planting",
+    "evidence_refs": [{"source": "case-42"}],
+    "migration_plan": None,
+    "replacement_solution_name": None,
+    "created_at": datetime(2026, 10, 20, 12, tzinfo=timezone.utc),
+    "proposer_attributed": True,
+    "is_self_authored": False,
+}
 SUMMARY = {
     "solution_count": 2,
-    "stage_counts": {"discovered": 1, "validated": 1},
-    "solution_status_counts": {"active": 2},
-    "stage_gate_status_counts": {"approved": 1},
+    "stage_counts": {
+        "discovered": 1, "triaged": 0, "framed": 0, "experiment_ready": 0,
+        "testing": 0, "validated": 1, "investment_ready": 0, "funded": 0,
+        "pilot_active": 0, "adoption_ready": 0, "adopting": 0, "scaled": 0,
+        "maintained": 0, "paused": 0, "superseded": 0, "retired": 0,
+        "failed": 0,
+    },
+    "solution_status_counts": {"active": 2, "paused": 0, "retired": 0, "superseded": 0},
+    "stage_gate_status_counts": {
+        "draft": 0, "ready": 0, "approved": 1, "failed": 0, "retired": 0,
+    },
     "latest_gate_evaluation_counts": {"passed": 1, "failed": 0},
-    "experiment_status_counts": {"active": 1},
-    "experiment_result_counts": {"validated": 1},
-    "replication_status_counts": {"proposed": 1},
-    "funding_decision_counts": {"submitted": 1},
-    "adoption_program_status_counts": {"active": 1},
-    "configuration_approval_counts": {"approved": 1},
-    "adopter_readiness_counts": {"ready": 1},
-    "scale_gate_status_counts": {"passed": 1},
-    "learning_decision_counts": {"accepted": 1},
-    "retirement_status_counts": {"proposed": 1},
+    "experiment_status_counts": {
+        "draft": 0, "submitted": 0, "protocol_approved": 0, "baseline_ready": 0,
+        "active": 1, "paused": 0, "completed": 0, "results_review": 0,
+        "validated": 0, "invalidated": 0, "inconclusive": 0,
+        "requires_replication": 0,
+    },
+    "experiment_result_counts": {
+        "validated": 1, "invalidated": 0, "inconclusive": 0,
+        "requires_replication": 0,
+    },
+    "replication_status_counts": {
+        "proposed": 1, "approved": 0, "active": 0, "completed": 0, "failed": 0,
+    },
+    "funding_decision_counts": {
+        "draft": 0, "submitted": 1, "approved": 0, "rejected": 0, "closed": 0,
+    },
+    "adoption_program_status_counts": {
+        "draft": 0, "community_review": 0, "enablement_ready": 0, "launch": 0,
+        "onboarding": 0, "active": 1, "paused": 0, "assessed": 0,
+        "expand": 0, "redesign": 0, "retired": 0,
+    },
+    "configuration_approval_counts": {
+        "draft": 0, "submitted": 0, "approved": 1, "rejected": 0,
+    },
+    "adopter_readiness_counts": {
+        "not_ready": 0, "remediating": 0, "ready": 1, "expired": 0,
+    },
+    "scale_gate_status_counts": {"pending": 0, "passed": 1, "failed": 0, "waived": 0},
+    "learning_decision_counts": {
+        "proposed": 0, "accepted": 1, "rejected": 0, "applied": 0,
+    },
+    "retirement_status_counts": {
+        "proposed": 1, "impact_review": 0, "approved": 0, "migration": 0,
+        "sunset": 0, "completed": 0, "rejected": 0,
+    },
 }
+
+
+def _gate_projection(
+    gate_id="e0000000-0000-4000-8000-000000000001",
+    created_at=datetime(2026, 10, 18, tzinfo=timezone.utc),
+):
+    return {
+        "solution_id": "c0000000-0000-4000-8000-000000000001",
+        "solution_name": "Soil cover",
+        "solution_type": "practice",
+        "current_stage": "testing",
+        "solution_status": "active",
+        "gate_id": gate_id,
+        "from_stage": "testing",
+        "to_stage": "validated",
+        "gate_criterion": "Independent field measurements support the expected outcome.",
+        "required_evidence_maturity": 3,
+        "required_experiment_count": 2,
+        "requires_human_approval": True,
+        "gate_status": "ready",
+        "gate_created_at": created_at,
+        "latest_evaluation_passed": True,
+        "latest_evaluated_at": datetime(2026, 10, 19, tzinfo=timezone.utc),
+    }
+
+
+def _experiment_projection():
+    return {
+        "solution_id": "c0000000-0000-4000-8000-000000000001",
+        "solution_name": "Soil cover",
+        "solution_type": "practice",
+        "current_stage": "testing",
+        "solution_status": "active",
+        "experiment_id": "f0000000-0000-4000-8000-000000000001",
+        "protocol_version": "v2",
+        "experiment_status": "completed",
+        "duration_days": 42,
+        "primary_metric_count": 2,
+        "secondary_metric_count": 1,
+        "experiment_created_at": datetime(2026, 10, 18, tzinfo=timezone.utc),
+        "experiment_updated_at": datetime(2026, 10, 19, tzinfo=timezone.utc),
+        "started_at": datetime(2026, 10, 1, tzinfo=timezone.utc),
+        "completed_at": datetime(2026, 10, 18, tzinfo=timezone.utc),
+        "latest_result_outcome": "validated",
+        "latest_result_reviewed_at": datetime(2026, 10, 19, tzinfo=timezone.utc),
+    }
 
 
 class _Connection:
@@ -315,7 +414,13 @@ def test_http_retirement_candidates_are_no_store_and_operator_authenticated(monk
 
     monkeypatch.setattr(
         "services.gateway.solution_lifecycle_reads.list_location_solution_retirement_candidates",
-        lambda *_args, **_kwargs: {"location_id": LOCATION_ID, "solutions": []},
+        lambda *_args, **_kwargs: {
+            "location_id": LOCATION_ID,
+            "offset": 0,
+            "solutions": [],
+            "has_more": False,
+            "next_offset": None,
+        },
     )
     app = FastAPI()
     router = APIRouter()
@@ -462,7 +567,7 @@ def test_http_retirement_review_routes_are_no_store_and_oidc_gated(monkeypatch):
     )
     monkeypatch.setattr(
         "services.gateway.solution_lifecycle_reads.get_location_solution_retirement_review_detail",
-        lambda *_args, **_kwargs: {"location_id": LOCATION_ID, "is_self_authored": False},
+        lambda *_args, **_kwargs: RETIREMENT_DETAIL,
     )
     app = FastAPI()
     router = APIRouter()
@@ -491,6 +596,93 @@ def test_http_retirement_review_routes_are_no_store_and_oidc_gated(monkeypatch):
     assert queue.status_code == detail.status_code == 200
     assert queue.headers["cache-control"] == detail.headers["cache-control"] == "no-store"
     assert queue.headers["vary"] == detail.headers["vary"] == "Cookie"
+    assert detail.json() == jsonable_encoder(RETIREMENT_DETAIL)
+    assert set(detail.json()) == {
+        "location_id", "retirement_id", "solution_name", "solution_type",
+        "current_stage", "solution_status", "retirement_type", "retirement_status",
+        "trigger_reason", "evidence_refs", "migration_plan",
+        "replacement_solution_name", "created_at", "proposer_attributed",
+        "is_self_authored",
+    }
+    openapi_path = (
+        "/operator/api/solution-lifecycle/{location_id}/retirements/review/"
+        "{retirement_id}"
+    )
+    operation = app.openapi()["paths"][openapi_path]["get"]
+    response_schema = operation["responses"]["200"]["content"][
+        "application/json"
+    ]["schema"]
+    schema_name = response_schema["$ref"].rsplit("/", 1)[-1]
+    model_schema = app.openapi()["components"]["schemas"][schema_name]
+    assert set(model_schema["properties"]) == set(detail.json())
+    assert model_schema["additionalProperties"] is False
+
+
+@pytest.mark.parametrize(
+    "changes",
+    [
+        {"location_id": str(uuid4())},
+        {"retirement_id": str(uuid4())},
+        {"solution_type": "unknown"},
+        {"current_stage": "unknown"},
+        {"solution_status": "proposed"},
+        {"retirement_type": "unknown"},
+        {"retirement_status": "approved"},
+        {"solution_name": "x" * 256},
+        {"trigger_reason": "x" * 2001},
+        {"migration_plan": "x" * 4001},
+        {"replacement_solution_name": "x" * 256},
+        {"evidence_refs": {}},
+        {"evidence_refs": ["x"] * 101},
+        {"evidence_refs": ["x" * 65537]},
+        {"evidence_refs": [{"value": float("nan")}]},
+        {"created_at": datetime(2026, 10, 20, 12)},
+        {"proposer_attributed": "true"},
+        {"is_self_authored": True, "proposer_attributed": False},
+        {"unexpected_private_field": "private reviewer data"},
+    ],
+)
+def test_http_retirement_review_detail_sanitizes_invalid_projections(
+    monkeypatch, changes
+):
+    from services.gateway.solution_lifecycle_routes import register_solution_lifecycle_routes
+
+    malformed = {**RETIREMENT_DETAIL, **changes}
+    monkeypatch.setattr(
+        "services.gateway.solution_lifecycle_reads.get_location_solution_retirement_review_detail",
+        lambda *_args, **_kwargs: malformed,
+    )
+    app = FastAPI()
+    router = APIRouter()
+
+    async def run_in_threadpool(function, *args, **kwargs):
+        return function(*args, **kwargs)
+
+    register_solution_lifecycle_routes(
+        router, object(), run_in_threadpool, SimpleNamespace(Error=Exception)
+    )
+    app.include_router(router)
+
+    @app.middleware("http")
+    async def add_operator(request, call_next):
+        request.state.operator_session = SimpleNamespace(
+            operator=SimpleNamespace(operator_id=OPERATOR_ID)
+        )
+        return await call_next(request)
+
+    with TestClient(app) as client:
+        response = client.get(
+            f"/operator/api/solution-lifecycle/{LOCATION_ID}/retirements/review/"
+            f"{RETIREMENT_ID}"
+        )
+
+    assert response.status_code == 500
+    assert response.json() == {
+        "error": "Solution retirement review detail unavailable"
+    }
+    assert "private reviewer data" not in response.text
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["vary"] == "Cookie"
 
 
 def test_http_retirement_review_detail_maps_missing_item_to_not_found(monkeypatch):
@@ -1003,12 +1195,7 @@ def test_adoption_route_policy_uses_the_exact_solution_location_read_grant():
 def test_gate_http_route_is_no_store_and_oidc_disabled_fails_closed(monkeypatch):
     from services.gateway.solution_lifecycle_routes import register_solution_lifecycle_routes
 
-    gate = {
-        "solution_id": "c0000000-0000-4000-8000-000000000001",
-        "solution_name": "Soil cover",
-        "gate_id": "e0000000-0000-4000-8000-000000000001",
-        "gate_status": "ready",
-    }
+    gate = _gate_projection()
     monkeypatch.setattr(
         "services.gateway.solution_lifecycle_reads.list_location_solution_gates",
         lambda *_args, **_kwargs: {
@@ -1040,6 +1227,27 @@ def test_gate_http_route_is_no_store_and_oidc_disabled_fails_closed(monkeypatch)
     assert response.headers["cache-control"] == "no-store"
     assert response.headers["vary"] == "Cookie"
     assert response.json()["gates"][0]["gate_status"] == "ready"
+    gate_schema = app.openapi()["paths"][
+        "/operator/api/solution-lifecycle/{location_id}/gates"
+    ]["get"]["responses"]["200"]
+    assert gate_schema["content"]["application/json"]["schema"]["$ref"].endswith(
+        "/SolutionLifecycleGatePageResponse"
+    )
+    schemas = app.openapi()["components"]["schemas"]
+    page_schema = schemas["SolutionLifecycleGatePageResponse"]
+    assert set(page_schema["properties"]) == {
+        "location_id", "offset", "gates", "has_more", "next_offset"
+    }
+    assert page_schema["additionalProperties"] is False
+    item_schema = schemas["SolutionLifecycleGateItemResponse"]
+    assert set(item_schema["properties"]) == {
+        "solution_id", "solution_name", "solution_type", "current_stage",
+        "solution_status", "gate_id", "from_stage", "to_stage",
+        "gate_criterion", "required_evidence_maturity",
+        "required_experiment_count", "requires_human_approval", "gate_status",
+        "gate_created_at", "latest_evaluation_passed", "latest_evaluated_at",
+    }
+    assert item_schema["additionalProperties"] is False
 
     disabled = FastAPI()
     disabled_router = APIRouter()
@@ -1052,15 +1260,187 @@ def test_gate_http_route_is_no_store_and_oidc_disabled_fails_closed(monkeypatch)
     assert no_oidc.headers["cache-control"] == "no-store"
 
 
+@pytest.mark.parametrize(
+    "mutation",
+    [
+        lambda page: page.update(location_id="d0000000-0000-4000-8000-000000000001"),
+        lambda page: page.update(offset=4),
+        lambda page: page.update(gates=[{}, {}]),
+        lambda page: page.update(
+            gates=[{**_gate_projection(), "required_evidence_maturity": 0}]
+        ),
+        lambda page: page.update(
+            gates=[{**_gate_projection(), "required_evidence_maturity": 7}]
+        ),
+        lambda page: page.update(unexpected="private"),
+        lambda page: page.update(
+            gates=[
+                _gate_projection(
+                    "e0000000-0000-4000-8000-000000000001",
+                    datetime(2026, 10, 18, tzinfo=timezone.utc),
+                ),
+                _gate_projection(
+                    "e0000000-0000-4000-8000-000000000002",
+                    datetime(2026, 10, 19, tzinfo=timezone.utc),
+                ),
+            ],
+            has_more=True,
+            next_offset=7,
+        ),
+        lambda page: page.update(
+            gates=[
+                _gate_projection(),
+                _gate_projection(
+                    created_at=datetime(2026, 10, 17, tzinfo=timezone.utc)
+                ),
+            ],
+            has_more=True,
+            next_offset=7,
+        ),
+        lambda page: page.update(
+            gates=[
+                _gate_projection("e0000000-0000-4000-8000-000000000002"),
+                _gate_projection("e0000000-0000-4000-8000-000000000001"),
+            ],
+            has_more=True,
+            next_offset=7,
+        ),
+    ],
+    ids=[
+        "wrong-location", "wrong-offset", "malformed-item", "low-maturity",
+        "high-maturity", "extra-field", "out-of-order", "tie-break-order",
+        "duplicate-gate-id",
+    ],
+)
+def test_gate_http_route_rejects_malformed_projection_with_generic_no_store_error(
+    monkeypatch, mutation
+):
+    from services.gateway.solution_lifecycle_routes import register_solution_lifecycle_routes
+
+    page = {
+        "location_id": LOCATION_ID,
+        "offset": 5,
+        "gates": [],
+        "has_more": False,
+        "next_offset": None,
+    }
+    mutation(page)
+    monkeypatch.setattr(
+        "services.gateway.solution_lifecycle_reads.list_location_solution_gates",
+        lambda *_args, **_kwargs: page,
+    )
+    router = APIRouter()
+
+    async def run_in_threadpool(function, *args, **kwargs):
+        return function(*args, **kwargs)
+
+    register_solution_lifecycle_routes(
+        router, object(), run_in_threadpool, SimpleNamespace(Error=Exception)
+    )
+    app = FastAPI()
+    app.include_router(router)
+
+    @app.middleware("http")
+    async def add_operator(request, call_next):
+        request.state.operator_session = SimpleNamespace(
+            operator=SimpleNamespace(operator_id=OPERATOR_ID)
+        )
+        return await call_next(request)
+
+    path = f"/operator/api/solution-lifecycle/{LOCATION_ID}/gates"
+    with TestClient(app) as client:
+        response = client.get(path, params={"limit": "2", "offset": "5"})
+
+    assert response.status_code == 500
+    assert response.json() == {"error": "Solution lifecycle gates unavailable"}
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["vary"] == "Cookie"
+
+
+def test_gate_http_route_binds_continuation_to_requested_limit(monkeypatch):
+    from services.gateway.solution_lifecycle_routes import register_solution_lifecycle_routes
+
+    gate = _gate_projection()
+    monkeypatch.setattr(
+        "services.gateway.solution_lifecycle_reads.list_location_solution_gates",
+        lambda *_args, **_kwargs: {
+            "location_id": LOCATION_ID,
+            "offset": 5,
+            "gates": [gate],
+            "has_more": True,
+            "next_offset": 7,
+        },
+    )
+    router = APIRouter()
+
+    async def run_in_threadpool(function, *args, **kwargs):
+        return function(*args, **kwargs)
+
+    register_solution_lifecycle_routes(
+        router, object(), run_in_threadpool, SimpleNamespace(Error=Exception)
+    )
+    app = FastAPI()
+    app.include_router(router)
+
+    @app.middleware("http")
+    async def add_operator(request, call_next):
+        request.state.operator_session = SimpleNamespace(
+            operator=SimpleNamespace(operator_id=OPERATOR_ID)
+        )
+        return await call_next(request)
+
+    path = f"/operator/api/solution-lifecycle/{LOCATION_ID}/gates"
+    with TestClient(app) as client:
+        response = client.get(path, params={"limit": "1", "offset": "5"})
+
+    assert response.status_code == 500
+    assert response.json() == {"error": "Solution lifecycle gates unavailable"}
+    assert response.headers["cache-control"] == "no-store"
+
+
+def test_gate_http_route_hides_unexpected_read_failure_and_sets_no_store(monkeypatch):
+    from services.gateway.solution_lifecycle_routes import register_solution_lifecycle_routes
+
+    def fail_read(*_args, **_kwargs):
+        raise RuntimeError("sensitive database detail")
+
+    monkeypatch.setattr(
+        "services.gateway.solution_lifecycle_reads.list_location_solution_gates",
+        fail_read,
+    )
+    router = APIRouter()
+
+    async def run_in_threadpool(function, *args, **kwargs):
+        return function(*args, **kwargs)
+
+    register_solution_lifecycle_routes(
+        router, object(), run_in_threadpool, SimpleNamespace(Error=Exception)
+    )
+    app = FastAPI()
+    app.include_router(router)
+
+    @app.middleware("http")
+    async def add_operator(request, call_next):
+        request.state.operator_session = SimpleNamespace(
+            operator=SimpleNamespace(operator_id=OPERATOR_ID)
+        )
+        return await call_next(request)
+
+    path = f"/operator/api/solution-lifecycle/{LOCATION_ID}/gates"
+    with TestClient(app) as client:
+        response = client.get(path)
+
+    assert response.status_code == 503
+    assert response.json() == {"error": "Solution lifecycle gates unavailable"}
+    assert "sensitive database detail" not in response.text
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["vary"] == "Cookie"
+
+
 def test_experiment_http_route_is_no_store_and_oidc_disabled_fails_closed(monkeypatch):
     from services.gateway.solution_lifecycle_routes import register_solution_lifecycle_routes
 
-    experiment = {
-        "solution_id": "c0000000-0000-4000-8000-000000000001",
-        "experiment_id": "f0000000-0000-4000-8000-000000000001",
-        "experiment_status": "completed",
-        "latest_result_outcome": "validated",
-    }
+    experiment = _experiment_projection()
     monkeypatch.setattr(
         "services.gateway.solution_lifecycle_reads.list_location_solution_experiments",
         lambda *_args, **_kwargs: {
@@ -1274,6 +1654,110 @@ def test_adoption_event_summary_http_route_is_no_store_and_oidc_disabled_fails_c
         no_oidc = client.get(path)
     assert no_oidc.status_code == 404
     assert no_oidc.headers["cache-control"] == "no-store"
+
+
+def test_adoption_event_summary_response_contract_is_strict_location_bound_and_suppressed(
+    monkeypatch,
+):
+    from services.gateway.solution_lifecycle_routes import register_solution_lifecycle_routes
+
+    program_id = "f4000000-0000-4000-8000-000000000001"
+    valid = {
+        "location_id": LOCATION_ID,
+        "program_id": program_id,
+        "engagement_reference_count": 8,
+        "commitment_reference_count": 5,
+        "use_reference_count": 6,
+        "advocacy_reference_count": 0,
+        "paused_or_abandoned_reference_count": 0,
+        "breakdown_suppressed": False,
+    }
+    result = {"value": valid}
+    monkeypatch.setattr(
+        "services.gateway.solution_lifecycle_reads.get_location_solution_adoption_event_summary",
+        lambda *_args, **_kwargs: result["value"],
+    )
+    app = FastAPI()
+    router = APIRouter()
+
+    async def run_in_threadpool(function, *args, **kwargs):
+        return function(*args, **kwargs)
+
+    register_solution_lifecycle_routes(router, object(), run_in_threadpool,
+                                        SimpleNamespace(Error=Exception))
+    app.include_router(router)
+
+    @app.middleware("http")
+    async def add_operator(request, call_next):
+        request.state.operator_session = SimpleNamespace(
+            operator=SimpleNamespace(operator_id=OPERATOR_ID)
+        )
+        return await call_next(request)
+
+    path_template = "/operator/api/solution-lifecycle/{location_id}/adoption/{program_id}/events"
+    path = f"/operator/api/solution-lifecycle/{LOCATION_ID}/adoption/{program_id}/events"
+    assert auth_route_policy("GET", path, enabled=True) == {
+        "resource": "solution_lifecycle",
+        "action": "read",
+        "public": False,
+        "location_id": LOCATION_ID,
+        "scope_required": True,
+        "operator_auth": True,
+    }
+    assert auth_route_policy("POST", path, enabled=True) is None
+    assert auth_route_policy("GET", path + "/extra", enabled=True) is None
+    operation = app.openapi()["paths"][path_template]["get"]
+    schema_ref = operation["responses"]["200"]["content"]["application/json"]["schema"]["$ref"]
+    schema_name = schema_ref.rsplit("/", 1)[-1]
+    response_schema = app.openapi()["components"]["schemas"][schema_name]
+    expected_fields = {
+        "location_id", "program_id", "engagement_reference_count",
+        "commitment_reference_count", "use_reference_count", "advocacy_reference_count",
+        "paused_or_abandoned_reference_count", "breakdown_suppressed",
+    }
+    assert set(response_schema["properties"]) == expected_fields
+    assert set(response_schema["required"]) == expected_fields
+    assert response_schema["additionalProperties"] is False
+
+    with TestClient(app) as client:
+        response = client.get(path)
+    assert response.status_code == 200
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["vary"] == "Cookie"
+    assert response.json() == valid
+
+    suppressed = {
+        **valid,
+        "engagement_reference_count": None,
+        "commitment_reference_count": None,
+        "use_reference_count": None,
+        "advocacy_reference_count": None,
+        "paused_or_abandoned_reference_count": None,
+        "breakdown_suppressed": True,
+    }
+    result["value"] = suppressed
+    with TestClient(app) as client:
+        response = client.get(path)
+    assert response.status_code == 200
+    assert response.json() == suppressed
+
+    malformed_results = [
+        {**valid, "engagement_reference_count": 4},
+        {**suppressed, "engagement_reference_count": 5},
+        {**valid, "commitment_reference_count": None},
+        {**valid, "use_reference_count": True},
+        {**valid, "location_id": str(uuid4())},
+        {**valid, "program_id": str(uuid4())},
+        {**valid, "adopter_ref": "private-reference"},
+    ]
+    for malformed in malformed_results:
+        result["value"] = malformed
+        with TestClient(app) as client:
+            rejected = client.get(path)
+        assert rejected.status_code == 500
+        assert rejected.headers["cache-control"] == "no-store"
+        assert rejected.headers["vary"] == "Cookie"
+        assert rejected.json() == {"error": "Solution adoption event summary unavailable"}
 
 
 def test_scale_gate_list_uses_signed_context_bounded_page_and_allowlisted_status():

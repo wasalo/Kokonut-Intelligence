@@ -13,97 +13,17 @@ from services.ingestion.remote_sensing_fetcher import (
 LOCATION_ID = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"
 
 
-def test_due_jobs_are_claimed_one_at_a_time_and_processed_before_next_claim():
-    jobs = [
-        {"id": "first", "provider": "gee", "location_id": LOCATION_ID},
-        {"id": "second", "provider": "copernicus", "location_id": LOCATION_ID},
-    ]
-    sequence = []
-
-    def claim(_conn, *, location_id):
-        assert location_id == LOCATION_ID
-        sequence.append("claim")
-        return [jobs.pop(0)] if jobs else []
-
-    def fetch(_conn, job, *, location_id):
-        assert location_id == LOCATION_ID
-        sequence.append(f"fetch:{job['id']}")
-        return {"job_id": job["id"], "status": "success"}
-
-    with (
-        patch("services.ingestion.remote_sensing_fetcher._claim_due_jobs", side_effect=claim),
-        patch("services.ingestion.remote_sensing_fetcher.fetch_job", side_effect=fetch),
-    ):
-        result = run_due_jobs(object(), limit=2, location_id=LOCATION_ID)
-
-    assert sequence == ["claim", "fetch:first", "claim", "fetch:second"]
-    assert result["executed"] == 2
-    assert result["success"] == 2
-    assert result["failed"] == 0
-
-
-def test_due_jobs_default_to_one_scoped_claim_and_stop_when_no_job_is_due():
-    conn = object()
-    with patch("services.ingestion.remote_sensing_fetcher._claim_due_jobs", return_value=[]) as claim:
-        result = run_due_jobs(conn, location_id=LOCATION_ID)
-
-        claim.assert_called_once_with(conn, location_id=LOCATION_ID)
-    assert result == {"status": "no_jobs_due", "executed": 0}
-
-
-def test_default_batch_does_not_claim_a_second_due_job():
-    conn = object()
-    jobs = [{"id": "first", "provider": "gee"}, {"id": "second", "provider": "copernicus"}]
-    with (
-        patch(
-            "services.ingestion.remote_sensing_fetcher._claim_due_jobs",
-            side_effect=lambda _conn, *, location_id: [jobs.pop(0)] if jobs else [],
-        ) as claim,
-        patch(
-            "services.ingestion.remote_sensing_fetcher.fetch_job",
-            return_value={"status": "success"},
-        ) as fetch,
-    ):
-        jobs[0]["location_id"] = LOCATION_ID
-        jobs[1]["location_id"] = LOCATION_ID
-        result = run_due_jobs(conn, location_id=LOCATION_ID)
-
-    claim.assert_called_once_with(conn, location_id=LOCATION_ID)
-    fetch.assert_called_once_with(
-        conn,
-        {"id": "first", "provider": "gee", "location_id": LOCATION_ID},
-        location_id=LOCATION_ID,
-    )
-    assert result["executed"] == 1
-    assert len(jobs) == 1
-
-
-@pytest.mark.parametrize("limit", [0, MAX_RUN_BATCH_SIZE + 1, True, 1.5, "1", None])
-def test_due_job_batch_limit_rejects_invalid_values_before_claim(limit):
-    with patch("services.ingestion.remote_sensing_fetcher._claim_due_jobs") as claim:
-        with pytest.raises(ValueError, match="limit must be an integer"):
-            run_due_jobs(object(), limit=limit, location_id=LOCATION_ID)
-
-    claim.assert_not_called()
-
-
-def test_due_job_claim_passes_exact_location_scope_to_sql():
-    from uuid import uuid4
-
-    location_id = str(uuid4())
+def test_legacy_due_job_claim_fails_before_database_access():
     conn = MagicMock()
-    cursor = conn.cursor.return_value
-    cursor.fetchall.return_value = []
 
-    assert _claim_due_jobs(conn, location_id=location_id) == []
+    with pytest.raises(RuntimeError, match="legacy remote-sensing due-job claims are disabled"):
+        _claim_due_jobs(conn, LOCATION_ID)
 
-    sql, params = cursor.execute.call_args.args
-    assert "location_id = %s::uuid" in sql
-    assert params[0] == location_id
-    assert params[1].startswith("remote-sensing-")
+    conn.cursor.assert_not_called()
+    conn.commit.assert_not_called()
 
 
-def test_direct_unscoped_claim_is_rejected_before_cursor_access():
+def test_unscoped_legacy_due_job_claim_fails_before_database_access():
     conn = MagicMock()
 
     with pytest.raises(ValueError, match="explicit location UUID"):
@@ -112,22 +32,37 @@ def test_direct_unscoped_claim_is_rejected_before_cursor_access():
     conn.cursor.assert_not_called()
 
 
-def test_run_due_jobs_forwards_location_scope_to_each_atomic_claim():
-    conn = object()
-    location_id = "6c02f16f-8853-4e77-bc2c-886b34b94412"
-    with patch("services.ingestion.remote_sensing_fetcher._claim_due_jobs", return_value=[]) as claim:
-        result = run_due_jobs(conn, location_id=location_id)
+@pytest.mark.parametrize("limit", [0, MAX_RUN_BATCH_SIZE + 1, True, 1.5, "1", None])
+def test_retired_due_job_runner_rejects_invalid_batch_before_access(limit):
+    conn = MagicMock()
+    with pytest.raises(ValueError, match="limit must be an integer"):
+        run_due_jobs(conn, limit=limit, location_id=LOCATION_ID)
 
-    claim.assert_called_once_with(conn, location_id=location_id)
-    assert result == {"status": "no_jobs_due", "executed": 0}
+    conn.cursor.assert_not_called()
+    conn.commit.assert_not_called()
 
 
-def test_run_due_jobs_requires_location_before_claiming():
-    with patch("services.ingestion.remote_sensing_fetcher._claim_due_jobs") as claim:
-        with pytest.raises(ValueError, match="explicit location UUID"):
-            run_due_jobs(object())
+def test_retired_due_job_runner_fails_before_database_or_provider_access():
+    conn = MagicMock()
+    with (
+        patch("services.ingestion.remote_sensing_fetcher.fetch_job") as fetch_job,
+        pytest.raises(RuntimeError, match="legacy remote-sensing due-job execution is disabled"),
+    ):
+        run_due_jobs(conn, location_id=LOCATION_ID)
 
-    claim.assert_not_called()
+    conn.cursor.assert_not_called()
+    conn.commit.assert_not_called()
+    fetch_job.assert_not_called()
+
+
+def test_retired_due_job_runner_requires_scope_without_database_access():
+    conn = MagicMock()
+
+    with pytest.raises(ValueError, match="explicit location UUID"):
+        run_due_jobs(conn)
+
+    conn.cursor.assert_not_called()
+    conn.commit.assert_not_called()
 
 
 def test_fetch_job_rejects_a_mismatched_location_before_bbox_or_provider_work():
@@ -215,8 +150,8 @@ def test_job_lookup_binds_location_scope_to_sql():
     assert parameters == (job_id, LOCATION_ID)
 
 
-def test_job_listing_and_due_claim_bind_location_scope():
-    from services.ingestion.remote_sensing_fetcher import _claim_due_jobs, list_jobs
+def test_job_listing_binds_location_scope():
+    from services.ingestion.remote_sensing_fetcher import list_jobs
 
     list_conn = MagicMock()
     list_cursor = list_conn.cursor.return_value
@@ -225,17 +160,6 @@ def test_job_listing_and_due_claim_bind_location_scope():
     list_sql, list_parameters = list_cursor.execute.call_args.args
     assert "location_id = %s" in list_sql
     assert list_parameters == (LOCATION_ID,)
-
-    claim_conn = MagicMock()
-    claim_cursor = claim_conn.cursor.return_value
-    claim_cursor.fetchall.return_value = []
-    _claim_due_jobs(claim_conn, LOCATION_ID)
-    claim_sql, claim_parameters = claim_cursor.execute.call_args.args
-    assert "location_id = %s::uuid" in claim_sql
-    assert claim_parameters[0] == LOCATION_ID
-    assert claim_parameters[1].startswith("remote-sensing-")
-    claim_conn.commit.assert_called_once()
-
 
 def test_fetch_job_rolls_back_and_propagates_outbox_failure(monkeypatch):
     from services.ingestion import remote_sensing_fetcher

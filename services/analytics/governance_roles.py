@@ -89,7 +89,13 @@ def list_circles(conn, *, status: Optional[str] = None, scope_type: Optional[str
         params.append(scope_type)
     where = " WHERE " + " AND ".join(clauses) if clauses else ""
     with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
-        cur.execute(f"SELECT * FROM v_governance_circle_registry{where} ORDER BY circle_key", params)
+        cur.execute(
+            "SELECT circle_id, circle_key, name, purpose, parent_circle_id, parent_circle_key, "
+            "scope_type, scope_id, status, review_due_at, active_role_count, "
+            "overdue_role_review_count "
+            f"FROM v_governance_circle_registry{where} ORDER BY circle_key",
+            params,
+        )
         return [_row(row) for row in cur.fetchall()]
 
 
@@ -141,7 +147,13 @@ def list_roles(conn, *, circle_id: Optional[str] = None, status: Optional[str] =
         params.append(status)
     where = " WHERE " + " AND ".join(clauses) if clauses else ""
     with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
-        cur.execute(f"SELECT * FROM v_governance_role_registry{where} ORDER BY circle_key, role_key", params)
+        cur.execute(
+            "SELECT role_id, circle_id, circle_key, circle_name, role_key, name, purpose, "
+            "status, effective_from, effective_until, review_due_at, accountability_count, "
+            "required_accountability_count "
+            f"FROM v_governance_role_registry{where} ORDER BY circle_key, role_key",
+            params,
+        )
         return [_row(row) for row in cur.fetchall()]
 
 
@@ -357,7 +369,14 @@ def list_assignments(conn, *, role_id: Optional[str] = None, party_id: Optional[
         params.append(status)
     where = " WHERE " + " AND ".join(clauses) if clauses else ""
     with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
-        cur.execute(f"SELECT * FROM v_governance_role_assignments{where} ORDER BY role_name, party_name", params)
+        cur.execute(
+            "SELECT assignment_id, role_id, role_key, role_name, circle_id, circle_key, "
+            "party_id, party_name, party_type, assignment_type, status, mandate, "
+            "recusal_status, effective_from, effective_until, review_due_at, "
+            "approved_by_party_id, approved_by_name "
+            f"FROM v_governance_role_assignments{where} ORDER BY role_name, party_name",
+            params,
+        )
         return [_row(row) for row in cur.fetchall()]
 
 

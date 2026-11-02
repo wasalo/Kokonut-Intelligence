@@ -1,0 +1,31 @@
+{
+  "work_item": "C3 Directus relation query boundary",
+  "date": "2026-10-28",
+  "status": "implemented_source_and_focused_tests",
+  "scope": {
+    "collections": "TENANT_SCOPED_COLLECTIONS",
+    "behavior": "Deny relation traversal in tenant-scoped read filters, sort, and groupBy until each relation has an explicit organization/location authorization contract.",
+    "preserved": [
+      "Scalar field filters and logical composition",
+      "Structured JSON containment predicates",
+      "Root-collection tenant filtering",
+      "Existing fail-closed relation expansion policy"
+    ]
+  },
+  "files": [
+    "extensions/kokonut-hooks/src/directus-authorization.ts",
+    "extensions/kokonut-hooks/src/directus-authorization.test.ts"
+  ],
+  "checks": {
+    "command": "npm test -- --run src/directus-authorization.test.ts",
+    "result": "passed",
+    "tests": 12,
+    "typescript": "npm exec tsc -- --noEmit passed",
+    "diff_check": "git diff --check passed"
+  },
+  "limitations": [
+    "No live Directus runtime, database, populated rows, or API credentials were used.",
+    "This closes source-level relation query oracles in the hook contract; it does not establish effective deployed Directus permissions or populated-data parity.",
+    "Nested object filters on JSON fields are rejected as ambiguous; scalar operators such as _contains remain available."
+  ]
+}

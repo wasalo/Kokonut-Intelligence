@@ -1,7 +1,1807 @@
 """OIDC routes for location-scoped solution lifecycle reads."""
 
+import json
+from datetime import datetime
+from decimal import Decimal
+from typing import Annotated, Any, Literal
+from uuid import UUID
+
+from pydantic import (
+    AwareDatetime,
+    BaseModel,
+    BeforeValidator,
+    ConfigDict,
+    Field,
+    ValidationError,
+    field_validator,
+    model_validator,
+)
+
+
+def _solution_response_uuid(value):
+    if isinstance(value, UUID):
+        return value
+    if isinstance(value, str):
+        try:
+            return UUID(value)
+        except ValueError as exc:
+            raise ValueError("UUID value is invalid") from exc
+    raise ValueError("UUID value is invalid")
+
+
+_SolutionResponseUUID = Annotated[UUID, BeforeValidator(_solution_response_uuid)]
+
+
+def _solution_response_decimal(value):
+    if isinstance(value, bool) or not isinstance(value, (Decimal, int, float)):
+        raise ValueError("numeric value is invalid")
+    try:
+        result = Decimal(str(value))
+    except (ValueError, TypeError) as exc:
+        raise ValueError("numeric value is invalid") from exc
+    if not result.is_finite():
+        raise ValueError("numeric value is invalid")
+    return result
+
+
+_SolutionResponseDecimal = Annotated[Decimal, BeforeValidator(_solution_response_decimal)]
+
+
+class SolutionRetirementCandidateItemResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    solution_id: _SolutionResponseUUID
+    solution_name: str = Field(max_length=255)
+    solution_type: str = Field(max_length=80)
+    current_stage: str = Field(max_length=80)
+    solution_status: str = Field(max_length=80)
+
+
+class SolutionRetirementCandidatesResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    location_id: _SolutionResponseUUID
+    offset: int = Field(ge=0, le=10000, strict=True)
+    solutions: list[SolutionRetirementCandidateItemResponse] = Field(max_length=50)
+    has_more: bool = Field(strict=True)
+    next_offset: int | None = Field(strict=True)
+
+    @model_validator(mode="after")
+    def validate_continuation(self):
+        if self.has_more:
+            if not self.solutions or self.next_offset != self.offset + len(self.solutions):
+                raise ValueError("Retirement candidate continuation is inconsistent")
+        elif self.next_offset is not None:
+            raise ValueError("Terminal retirement candidate page cannot continue")
+        return self
+
+
+class SolutionLifecycleCreateRequest(BaseModel):
+    """Strict write contract for adding a location-originated solution."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    request_id: _SolutionResponseUUID
+    canonical_key: str = Field(
+        min_length=2,
+        max_length=160,
+        pattern=r"^[a-z0-9][a-z0-9._:-]{1,159}$",
+        strict=True,
+    )
+    name: str = Field(min_length=1, max_length=255, strict=True)
+    solution_type: Literal[
+        "practice", "policy", "technology", "service", "governance",
+        "business_model", "ecological_intervention", "data_product", "other",
+    ]
+    problem_statement: str = Field(min_length=1, max_length=8000, strict=True)
+    rationale: str = Field(min_length=10, max_length=4000, strict=True)
+    evidence: list[Any] = Field(max_length=100)
+    acknowledged: bool = Field(strict=True)
+    theory_of_change: str | None = Field(default=None, max_length=4000, strict=True)
+    baseline_alternative: str | None = Field(default=None, max_length=4000, strict=True)
+    risk_class: Literal["low", "medium", "high", "critical"] = "medium"
+    reversibility: Literal["high", "medium", "low", "unknown"] = "medium"
+
+    @model_validator(mode="after")
+    def validate_location_solution_create(self):
+        text_values = (
+            self.canonical_key,
+            self.name,
+            self.problem_statement,
+            self.rationale,
+            self.theory_of_change,
+            self.baseline_alternative,
+        )
+        if any(value is not None and "\x00" in value for value in text_values):
+            raise ValueError("Location solution text cannot contain null characters")
+        if not 1 <= len(self.name.strip()) <= 255:
+            raise ValueError("Solution name must contain 1 to 255 characters")
+        if not 1 <= len(self.problem_statement.strip()) <= 8000:
+            raise ValueError("Problem statement must contain 1 to 8000 characters")
+        if not 10 <= len(self.rationale.strip()) <= 4000:
+            raise ValueError("Creation rationale must contain 10 to 4000 characters")
+        if self.acknowledged is not True:
+            raise ValueError("Solution creation requires explicit acknowledgement")
+        try:
+            encoded_evidence = json.dumps(
+                self.evidence,
+                ensure_ascii=False,
+                allow_nan=False,
+                separators=(",", ":"),
+            ).encode("utf-8")
+        except (TypeError, ValueError, UnicodeEncodeError) as exc:
+            raise ValueError("Creation evidence must be finite JSON data") from exc
+        if len(encoded_evidence) > 65_536:
+            raise ValueError("Creation evidence exceeds the 64 KiB limit")
+        return self
+
+
+class SolutionLifecycleCreateResponse(BaseModel):
+    """Exact response returned by migration 504's idempotent create function."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    solution_id: _SolutionResponseUUID
+    lifecycle_event_id: _SolutionResponseUUID
+    canonical_key: str = Field(
+        min_length=2,
+        max_length=160,
+        pattern=r"^[a-z0-9][a-z0-9._:-]{1,159}$",
+        strict=True,
+    )
+    solution_name: str = Field(min_length=1, max_length=255, strict=True)
+    solution_type: Literal[
+        "practice", "policy", "technology", "service", "governance",
+        "business_model", "ecological_intervention", "data_product", "other",
+    ]
+    current_stage: Literal["discovered"]
+    solution_status: Literal["active"]
+    created_at: AwareDatetime
+    replayed: bool = Field(strict=True)
+
+
+class SolutionLifecycleCreateError(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True)
+
+    error: str
+
+
+_SolutionStage = Literal[
+    "discovered", "triaged", "framed", "experiment_ready", "testing",
+    "validated", "investment_ready", "funded", "pilot_active",
+    "adoption_ready", "adopting", "scaled", "maintained", "paused",
+    "superseded", "retired", "failed",
+]
+
+
+class SolutionLifecycleGateCreateRequest(BaseModel):
+    """Strict create contract for a location-originated promotion gate."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    request_id: _SolutionResponseUUID
+    to_stage: Literal["validated", "funded", "adoption_ready", "scaled"]
+    criterion: str = Field(min_length=10, max_length=2000, strict=True)
+    required_evidence_maturity: int | None = Field(
+        default=None, ge=1, le=6, strict=True
+    )
+    required_experiment_count: int = Field(ge=0, le=100, strict=True)
+    acknowledged: Literal[True]
+
+    @model_validator(mode="after")
+    def validate_criterion(self):
+        if (
+            not 10 <= len(self.criterion.strip()) <= 2000
+            or "\x00" in self.criterion
+        ):
+            raise ValueError("Gate criterion must contain 10 to 2,000 characters")
+        try:
+            encoded = self.criterion.encode("utf-8")
+        except UnicodeEncodeError as exc:
+            raise ValueError("Gate criterion must be valid UTF-8 text") from exc
+        if len(encoded) > 4000:
+            raise ValueError("Gate criterion must fit within 4 KiB")
+        return self
+
+
+class SolutionLifecycleGateCreateResponse(BaseModel):
+    """Exact 12-field result returned by migration 505."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    gate_id: _SolutionResponseUUID
+    solution_id: _SolutionResponseUUID
+    from_stage: Literal["testing", "investment_ready", "pilot_active", "adopting"]
+    to_stage: Literal["validated", "funded", "adoption_ready", "scaled"]
+    gate_criterion: str = Field(min_length=10, max_length=2000, strict=True)
+    required_evidence_maturity: int | None = Field(
+        ge=1, le=6, strict=True
+    )
+    required_experiment_count: int = Field(ge=0, le=100, strict=True)
+    minimum_evaluation_count: Literal[1]
+    requires_human_approval: Literal[True]
+    gate_status: Literal["draft", "ready", "approved", "failed", "retired"]
+    gate_created_at: AwareDatetime
+    replayed: bool = Field(strict=True)
+
+    @field_validator("gate_criterion")
+    @classmethod
+    def validate_gate_criterion(cls, value):
+        if not 10 <= len(value.strip()) <= 2000 or "\x00" in value:
+            raise ValueError("Gate criterion is outside its text bounds")
+        try:
+            encoded = value.encode("utf-8")
+        except UnicodeEncodeError as exc:
+            raise ValueError("Gate criterion must be valid UTF-8 text") from exc
+        if len(encoded) > 4000:
+            raise ValueError("Gate criterion exceeds its byte limit")
+        return value
+
+    @field_validator("gate_created_at", mode="before")
+    @classmethod
+    def parse_gate_created_at(cls, value):
+        if isinstance(value, str):
+            try:
+                value = datetime.fromisoformat(value.replace("Z", "+00:00"))
+            except ValueError as exc:
+                raise ValueError("Gate creation timestamp is invalid") from exc
+        if not isinstance(value, datetime) or value.tzinfo is None or value.utcoffset() is None:
+            raise ValueError("Gate creation timestamp must include a timezone")
+        return value
+
+    @model_validator(mode="after")
+    def validate_gate_result(self):
+        expected_from_stage = {
+            "validated": "testing",
+            "funded": "investment_ready",
+            "adoption_ready": "pilot_active",
+            "scaled": "adopting",
+        }[self.to_stage]
+        if self.from_stage != expected_from_stage:
+            raise ValueError("Gate promotion stages are inconsistent")
+        if self.requires_human_approval is not True:
+            raise ValueError("Solution promotion gates require independent human approval")
+        if not self.replayed and self.gate_status != "draft":
+            raise ValueError("A newly created gate must remain draft")
+        return self
+
+
+class SolutionLifecycleExperimentCreateRequest(BaseModel):
+    """Strict outer contract for creating an immutable experiment protocol draft."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    request_id: _SolutionResponseUUID
+    protocol: dict[str, Any]
+    acknowledged: Literal[True]
+
+    @model_validator(mode="after")
+    def validate_protocol_envelope(self):
+        allowed = {
+            "hypothesis", "null_hypothesis", "baseline_definition",
+            "treatment_definition", "comparator_definition", "unit_of_analysis",
+            "sample_plan", "primary_metric_keys", "secondary_metric_keys",
+            "minimum_detectable_effect", "confidence_target", "duration_days",
+            "stopping_rules", "rollback_plan", "safety_boundaries",
+            "consent_requirements",
+        }
+        if not self.protocol or not set(self.protocol).issubset(allowed):
+            raise ValueError("Experiment protocol contains unsupported fields")
+        try:
+            encoded = json.dumps(
+                self.protocol,
+                ensure_ascii=False,
+                allow_nan=False,
+                separators=(",", ":"),
+            ).encode("utf-8")
+        except (TypeError, ValueError, UnicodeEncodeError) as exc:
+            raise ValueError("Experiment protocol must contain finite JSON data") from exc
+        if len(encoded) > 65_536:
+            raise ValueError("Experiment protocol exceeds the 64 KiB limit")
+        return self
+
+
+class SolutionLifecycleExperimentCreateResponse(BaseModel):
+    """Exact six-field result returned by migration 506."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    experiment_id: _SolutionResponseUUID
+    solution_id: _SolutionResponseUUID
+    protocol_version: str = Field(min_length=1, max_length=40, strict=True)
+    experiment_status: Literal[
+        "draft", "submitted", "protocol_approved", "baseline_ready", "active",
+        "paused", "completed", "results_review", "validated", "invalidated",
+        "inconclusive", "requires_replication",
+    ]
+    experiment_created_at: AwareDatetime
+    replayed: bool = Field(strict=True)
+
+    @field_validator("experiment_created_at", mode="before")
+    @classmethod
+    def parse_experiment_created_at(cls, value):
+        if isinstance(value, str):
+            try:
+                value = datetime.fromisoformat(value.replace("Z", "+00:00"))
+            except ValueError as exc:
+                raise ValueError("Experiment creation timestamp is invalid") from exc
+        if not isinstance(value, datetime) or value.tzinfo is None or value.utcoffset() is None:
+            raise ValueError("Experiment creation timestamp must include a timezone")
+        return value
+
+    @model_validator(mode="after")
+    def validate_new_experiment_draft(self):
+        if not self.replayed and (
+            self.protocol_version != "v1" or self.experiment_status != "draft"
+        ):
+            raise ValueError("A newly created experiment must use protocol v1 in draft")
+        return self
+
+_MAX_POSTGRES_BIGINT = 9_223_372_036_854_775_807
+_SOLUTION_LIFECYCLE_MAX_OFFSET = 10_000
+_SOLUTION_CONFIGURATION_COMPONENTS_MAX_BYTES = 65_536
+_SolutionLifecycleCount = Annotated[
+    int,
+    Field(ge=0, le=_MAX_POSTGRES_BIGINT, strict=True),
+]
+
+
+class _SolutionLifecycleCountSet(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+
+class SolutionLifecycleStageCounts(_SolutionLifecycleCountSet):
+    discovered: _SolutionLifecycleCount
+    triaged: _SolutionLifecycleCount
+    framed: _SolutionLifecycleCount
+    experiment_ready: _SolutionLifecycleCount
+    testing: _SolutionLifecycleCount
+    validated: _SolutionLifecycleCount
+    investment_ready: _SolutionLifecycleCount
+    funded: _SolutionLifecycleCount
+    pilot_active: _SolutionLifecycleCount
+    adoption_ready: _SolutionLifecycleCount
+    adopting: _SolutionLifecycleCount
+    scaled: _SolutionLifecycleCount
+    maintained: _SolutionLifecycleCount
+    paused: _SolutionLifecycleCount
+    superseded: _SolutionLifecycleCount
+    retired: _SolutionLifecycleCount
+    failed: _SolutionLifecycleCount
+
+
+class SolutionLifecycleStatusCounts(_SolutionLifecycleCountSet):
+    active: _SolutionLifecycleCount
+    paused: _SolutionLifecycleCount
+    retired: _SolutionLifecycleCount
+    superseded: _SolutionLifecycleCount
+
+
+class SolutionLifecycleGateStatusCounts(_SolutionLifecycleCountSet):
+    draft: _SolutionLifecycleCount
+    ready: _SolutionLifecycleCount
+    approved: _SolutionLifecycleCount
+    failed: _SolutionLifecycleCount
+    retired: _SolutionLifecycleCount
+
+
+class SolutionLifecycleLatestGateEvaluationCounts(_SolutionLifecycleCountSet):
+    passed: _SolutionLifecycleCount
+    failed: _SolutionLifecycleCount
+
+
+class SolutionLifecycleExperimentStatusCounts(_SolutionLifecycleCountSet):
+    draft: _SolutionLifecycleCount
+    submitted: _SolutionLifecycleCount
+    protocol_approved: _SolutionLifecycleCount
+    baseline_ready: _SolutionLifecycleCount
+    active: _SolutionLifecycleCount
+    paused: _SolutionLifecycleCount
+    completed: _SolutionLifecycleCount
+    results_review: _SolutionLifecycleCount
+    validated: _SolutionLifecycleCount
+    invalidated: _SolutionLifecycleCount
+    inconclusive: _SolutionLifecycleCount
+    requires_replication: _SolutionLifecycleCount
+
+
+class SolutionLifecycleExperimentResultCounts(_SolutionLifecycleCountSet):
+    validated: _SolutionLifecycleCount
+    invalidated: _SolutionLifecycleCount
+    inconclusive: _SolutionLifecycleCount
+    requires_replication: _SolutionLifecycleCount
+
+
+class SolutionLifecycleReplicationStatusCounts(_SolutionLifecycleCountSet):
+    proposed: _SolutionLifecycleCount
+    approved: _SolutionLifecycleCount
+    active: _SolutionLifecycleCount
+    completed: _SolutionLifecycleCount
+    failed: _SolutionLifecycleCount
+
+
+class SolutionLifecycleFundingDecisionCounts(_SolutionLifecycleCountSet):
+    draft: _SolutionLifecycleCount
+    submitted: _SolutionLifecycleCount
+    approved: _SolutionLifecycleCount
+    rejected: _SolutionLifecycleCount
+    closed: _SolutionLifecycleCount
+
+
+class SolutionLifecycleAdoptionProgramStatusCounts(_SolutionLifecycleCountSet):
+    draft: _SolutionLifecycleCount
+    community_review: _SolutionLifecycleCount
+    enablement_ready: _SolutionLifecycleCount
+    launch: _SolutionLifecycleCount
+    onboarding: _SolutionLifecycleCount
+    active: _SolutionLifecycleCount
+    paused: _SolutionLifecycleCount
+    assessed: _SolutionLifecycleCount
+    expand: _SolutionLifecycleCount
+    redesign: _SolutionLifecycleCount
+    retired: _SolutionLifecycleCount
+
+
+class SolutionLifecycleConfigurationApprovalCounts(_SolutionLifecycleCountSet):
+    draft: _SolutionLifecycleCount
+    submitted: _SolutionLifecycleCount
+    approved: _SolutionLifecycleCount
+    rejected: _SolutionLifecycleCount
+
+
+class SolutionLifecycleAdopterReadinessCounts(_SolutionLifecycleCountSet):
+    not_ready: _SolutionLifecycleCount
+    remediating: _SolutionLifecycleCount
+    ready: _SolutionLifecycleCount
+    expired: _SolutionLifecycleCount
+
+
+class SolutionLifecycleScaleGateStatusCounts(_SolutionLifecycleCountSet):
+    pending: _SolutionLifecycleCount
+    passed: _SolutionLifecycleCount
+    failed: _SolutionLifecycleCount
+    waived: _SolutionLifecycleCount
+
+
+class SolutionLifecycleLearningDecisionCounts(_SolutionLifecycleCountSet):
+    proposed: _SolutionLifecycleCount
+    accepted: _SolutionLifecycleCount
+    rejected: _SolutionLifecycleCount
+    applied: _SolutionLifecycleCount
+
+
+class SolutionLifecycleRetirementStatusCounts(_SolutionLifecycleCountSet):
+    proposed: _SolutionLifecycleCount
+    impact_review: _SolutionLifecycleCount
+    approved: _SolutionLifecycleCount
+    migration: _SolutionLifecycleCount
+    sunset: _SolutionLifecycleCount
+    completed: _SolutionLifecycleCount
+    rejected: _SolutionLifecycleCount
+
+
+class SolutionLifecycleSummaryResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    location_id: _SolutionResponseUUID
+    solution_count: _SolutionLifecycleCount
+    stage_counts: SolutionLifecycleStageCounts
+    solution_status_counts: SolutionLifecycleStatusCounts
+    stage_gate_status_counts: SolutionLifecycleGateStatusCounts
+    latest_gate_evaluation_counts: SolutionLifecycleLatestGateEvaluationCounts
+    experiment_status_counts: SolutionLifecycleExperimentStatusCounts
+    experiment_result_counts: SolutionLifecycleExperimentResultCounts
+    replication_status_counts: SolutionLifecycleReplicationStatusCounts
+    funding_decision_counts: SolutionLifecycleFundingDecisionCounts
+    adoption_program_status_counts: SolutionLifecycleAdoptionProgramStatusCounts
+    configuration_approval_counts: SolutionLifecycleConfigurationApprovalCounts
+    adopter_readiness_counts: SolutionLifecycleAdopterReadinessCounts
+    scale_gate_status_counts: SolutionLifecycleScaleGateStatusCounts
+    learning_decision_counts: SolutionLifecycleLearningDecisionCounts
+    retirement_status_counts: SolutionLifecycleRetirementStatusCounts
+
+    @model_validator(mode="after")
+    def validate_solution_count_totals(self):
+        if sum(self.stage_counts.model_dump().values()) != self.solution_count:
+            raise ValueError("Solution lifecycle stage totals are inconsistent")
+        if sum(self.solution_status_counts.model_dump().values()) != self.solution_count:
+            raise ValueError("Solution lifecycle status totals are inconsistent")
+        return self
+
+
+class SolutionAdoptionEventSummaryResponse(BaseModel):
+    """Private coarse counts for one exact-location adoption program."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    location_id: _SolutionResponseUUID
+    program_id: _SolutionResponseUUID
+    engagement_reference_count: int | None = Field(
+        ge=0, le=_MAX_POSTGRES_BIGINT, strict=True
+    )
+    commitment_reference_count: int | None = Field(
+        ge=0, le=_MAX_POSTGRES_BIGINT, strict=True
+    )
+    use_reference_count: int | None = Field(
+        ge=0, le=_MAX_POSTGRES_BIGINT, strict=True
+    )
+    advocacy_reference_count: int | None = Field(
+        ge=0, le=_MAX_POSTGRES_BIGINT, strict=True
+    )
+    paused_or_abandoned_reference_count: int | None = Field(
+        ge=0, le=_MAX_POSTGRES_BIGINT, strict=True
+    )
+    breakdown_suppressed: bool = Field(strict=True)
+
+    @model_validator(mode="after")
+    def validate_small_cohort_suppression(self):
+        counts = (
+            self.engagement_reference_count,
+            self.commitment_reference_count,
+            self.use_reference_count,
+            self.advocacy_reference_count,
+            self.paused_or_abandoned_reference_count,
+        )
+        if self.breakdown_suppressed:
+            if any(count is not None for count in counts):
+                raise ValueError("Suppressed adoption breakdown must omit all phase counts")
+        elif any(count is None or 0 < count < 5 for count in counts):
+            raise ValueError("Adoption phase counts violate the suppression threshold")
+        return self
+
+
+class SolutionLifecycleExperimentItemResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    solution_id: _SolutionResponseUUID
+    solution_name: str = Field(max_length=255)
+    solution_type: Literal[
+        "practice", "policy", "technology", "service", "governance",
+        "business_model", "ecological_intervention", "data_product", "other",
+    ]
+    current_stage: _SolutionStage
+    solution_status: Literal["active", "paused", "retired", "superseded"]
+    experiment_id: _SolutionResponseUUID
+    protocol_version: str = Field(max_length=40)
+    experiment_status: Literal[
+        "draft", "submitted", "protocol_approved", "baseline_ready", "active",
+        "paused", "completed", "results_review", "validated", "invalidated",
+        "inconclusive", "requires_replication",
+    ]
+    duration_days: int | None = Field(gt=0, le=2_147_483_647, strict=True)
+    primary_metric_count: int | None = Field(
+        ge=0, le=2_147_483_647, strict=True
+    )
+    secondary_metric_count: int | None = Field(
+        ge=0, le=2_147_483_647, strict=True
+    )
+    experiment_created_at: AwareDatetime
+    experiment_updated_at: AwareDatetime
+    started_at: AwareDatetime | None
+    completed_at: AwareDatetime | None
+    latest_result_outcome: Literal[
+        "validated", "invalidated", "inconclusive", "requires_replication"
+    ] | None
+    latest_result_reviewed_at: AwareDatetime | None
+
+    @model_validator(mode="after")
+    def validate_latest_result(self):
+        if (self.latest_result_outcome is None) != (
+            self.latest_result_reviewed_at is None
+        ):
+            raise ValueError("Latest experiment result fields are inconsistent")
+        return self
+
+
+class SolutionLifecycleExperimentPageResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    location_id: _SolutionResponseUUID
+    offset: int = Field(ge=0, le=10000, strict=True)
+    experiments: list[SolutionLifecycleExperimentItemResponse] = Field(max_length=50)
+    has_more: bool = Field(strict=True)
+    next_offset: int | None = Field(ge=0, le=10050, strict=True)
+
+    @model_validator(mode="after")
+    def validate_continuation_and_order(self):
+        if self.has_more:
+            if not self.experiments or self.next_offset is None:
+                raise ValueError("Solution experiment continuation is inconsistent")
+        elif self.next_offset is not None:
+            raise ValueError("Terminal solution experiment page cannot continue")
+        seen_experiment_ids = set()
+        previous = None
+        for experiment in self.experiments:
+            if experiment.experiment_id in seen_experiment_ids:
+                raise ValueError("Solution experiment page contains a duplicate item")
+            seen_experiment_ids.add(experiment.experiment_id)
+            if previous is not None and (
+                previous.experiment_created_at < experiment.experiment_created_at
+                or (
+                    previous.experiment_created_at == experiment.experiment_created_at
+                    and previous.experiment_id.int > experiment.experiment_id.int
+                )
+            ):
+                raise ValueError("Solution experiment page order is inconsistent")
+            previous = experiment
+        return self
+
+
+class SolutionLifecycleReplicationReviewDetailResponse(BaseModel):
+    """Exact private detail projection for independent replication review."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    replication_id: _SolutionResponseUUID
+    solution_name: str = Field(max_length=255, strict=True)
+    solution_type: Literal[
+        "practice", "policy", "technology", "service", "governance",
+        "business_model", "ecological_intervention", "data_product", "other",
+    ]
+    solution_stage: _SolutionStage
+    replication_status: Literal["proposed"]
+    target_context: str = Field(min_length=1, max_length=2000, strict=True)
+    adaptation_required: str | None = Field(min_length=1, max_length=4000, strict=True)
+    replication_protocol: dict[str, Any]
+    source_experiment_id: _SolutionResponseUUID
+    source_experiment_status: Literal[
+        "draft", "submitted", "protocol_approved", "baseline_ready", "active",
+        "paused", "completed", "results_review", "validated", "invalidated",
+        "inconclusive", "requires_replication",
+    ]
+    source_result_outcome: Literal[
+        "validated", "invalidated", "inconclusive", "requires_replication"
+    ] | None
+    source_result_reviewed_at: AwareDatetime | None
+    created_at: AwareDatetime
+    proposer_attributed: bool = Field(strict=True)
+    is_self_authored: bool = Field(strict=True)
+
+    @model_validator(mode="after")
+    def validate_review_projection(self):
+        if (self.source_result_outcome is None) != (
+            self.source_result_reviewed_at is None
+        ):
+            raise ValueError("Source result outcome and review timestamp are inconsistent")
+        if self.is_self_authored and not self.proposer_attributed:
+            raise ValueError("Self-authorship requires an attributed proposer")
+        try:
+            json.dumps(
+                self.replication_protocol,
+                ensure_ascii=False,
+                allow_nan=False,
+                separators=(",", ":"),
+            ).encode("utf-8")
+        except (TypeError, ValueError, UnicodeEncodeError) as exc:
+            raise ValueError("Replication protocol must be JSON data") from exc
+        return self
+
+
+class SolutionLifecycleReplicationCompletionReviewDetailResponse(BaseModel):
+    """Exact private detail projection for independent completion review."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    proposal_id: _SolutionResponseUUID
+    replication_id: _SolutionResponseUUID
+    solution_name: str = Field(max_length=255, strict=True)
+    solution_type: Literal[
+        "practice", "policy", "technology", "service", "governance",
+        "business_model", "ecological_intervention", "data_product", "other",
+    ]
+    solution_stage: _SolutionStage
+    replication_status: Literal["active"]
+    outcome: Literal["successful", "failed", "mixed", "inconclusive"]
+    evidence_maturity: int = Field(ge=1, le=6, strict=True)
+    outcome_summary: str = Field(min_length=10, max_length=4000, strict=True)
+    evidence: list[Any] = Field(max_length=100)
+    created_at: AwareDatetime
+    is_self_authored: bool = Field(strict=True)
+    is_self_started: bool = Field(strict=True)
+    is_initial_approver: bool = Field(strict=True)
+    source_is_current: bool | None = Field(strict=True)
+    is_source_owner: bool = Field(strict=True)
+    is_source_approver: bool = Field(strict=True)
+    is_source_result_reviewer: bool = Field(strict=True)
+
+    @model_validator(mode="after")
+    def validate_completion_review_projection(self):
+        if len(self.outcome_summary.strip(" ")) < 10:
+            raise ValueError("Completion outcome summary is below its stored minimum")
+        try:
+            encoded_evidence = json.dumps(
+                self.evidence,
+                ensure_ascii=False,
+                allow_nan=False,
+            ).encode("utf-8")
+        except (TypeError, ValueError, UnicodeEncodeError) as exc:
+            raise ValueError("Completion evidence must be JSON data") from exc
+        if len(encoded_evidence) > 65_536:
+            raise ValueError("Completion evidence exceeds its storage bound")
+        return self
+
+
+class SolutionLifecycleLearningReviewDetailResponse(BaseModel):
+    """Exact private projection for independent solution-learning review."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    location_id: _SolutionResponseUUID
+    learning_record_id: _SolutionResponseUUID
+    solution_name: str = Field(min_length=1, max_length=255, strict=True)
+    solution_type: Literal[
+        "practice", "policy", "technology", "service", "governance",
+        "business_model", "ecological_intervention", "data_product", "other",
+    ]
+    solution_stage: _SolutionStage
+    lesson_type: Literal[
+        "validated_assumption", "invalidated_assumption", "implementation",
+        "adoption", "safety", "economic", "equity", "context_transfer",
+    ]
+    finding: str = Field(min_length=1, max_length=4000, strict=True)
+    confidence: Literal["high", "moderate", "low", "insufficient_evidence"]
+    transferability: Literal["high", "medium", "low", "unknown"]
+    affected_assumptions: list[Any] = Field(max_length=100)
+    affected_metrics: list[Any] = Field(max_length=100)
+    recommended_action: str = Field(min_length=1, max_length=4000, strict=True)
+    evidence: list[Any] = Field(min_length=1, max_length=100)
+    created_at: AwareDatetime
+    source_is_current: Literal[True]
+    is_self_authored: bool = Field(strict=True)
+    is_self_starter: bool = Field(strict=True)
+    is_initial_approver: bool = Field(strict=True)
+    is_completion_reviewer: bool = Field(strict=True)
+    is_source_owner: bool = Field(strict=True)
+    is_source_approver: bool = Field(strict=True)
+    is_source_result_reviewer: bool = Field(strict=True)
+
+    @model_validator(mode="after")
+    def validate_learning_review_detail(self):
+        for value in (
+            self.affected_assumptions,
+            self.affected_metrics,
+            self.evidence,
+        ):
+            try:
+                encoded = json.dumps(
+                    value,
+                    ensure_ascii=False,
+                    allow_nan=False,
+                    separators=(",", ":"),
+                ).encode("utf-8")
+            except (TypeError, ValueError, UnicodeEncodeError) as exc:
+                raise ValueError("Learning review references must be JSON data") from exc
+            if len(encoded) > 65_536:
+                raise ValueError("Learning review references exceed their storage bound")
+        return self
+
+
+class SolutionLifecycleRetirementReviewDetailResponse(BaseModel):
+    """Exact private detail projection for independent retirement review."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    location_id: _SolutionResponseUUID
+    retirement_id: _SolutionResponseUUID
+    solution_name: str = Field(max_length=255, strict=True)
+    solution_type: Literal[
+        "practice", "policy", "technology", "service", "governance",
+        "business_model", "ecological_intervention", "data_product", "other",
+    ]
+    current_stage: _SolutionStage
+    solution_status: Literal["active", "paused", "retired", "superseded"]
+    retirement_type: Literal[
+        "unsafe", "ineffective", "too_costly", "superseded", "not_adopted",
+        "context_invalidated", "evidence_withdrawn", "maintenance_failure",
+        "governance_breach", "mission_complete",
+    ]
+    retirement_status: Literal["proposed", "impact_review"]
+    trigger_reason: str = Field(max_length=2000, strict=True)
+    evidence_refs: list[Any] = Field(max_length=100)
+    migration_plan: str | None = Field(max_length=4000, strict=True)
+    replacement_solution_name: str | None = Field(max_length=255, strict=True)
+    created_at: AwareDatetime
+    proposer_attributed: bool = Field(strict=True)
+    is_self_authored: bool = Field(strict=True)
+
+    @model_validator(mode="after")
+    def validate_retirement_review_projection(self):
+        if self.is_self_authored and not self.proposer_attributed:
+            raise ValueError("Self-authorship requires an attributed proposer")
+        try:
+            encoded_evidence = json.dumps(
+                self.evidence_refs,
+                ensure_ascii=False,
+                allow_nan=False,
+                separators=(",", ":"),
+            ).encode("utf-8")
+        except (TypeError, ValueError, UnicodeEncodeError) as exc:
+            raise ValueError("Retirement evidence references must be JSON data") from exc
+        if len(encoded_evidence) > 65_536:
+            raise ValueError("Retirement evidence references exceed their storage bound")
+        return self
+
+
+class SolutionLifecycleFundingTargetItemResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    solution_id: _SolutionResponseUUID
+    solution_name: str = Field(max_length=255)
+    solution_type: Literal[
+        "practice", "policy", "technology", "service", "governance",
+        "business_model", "ecological_intervention", "data_product", "other",
+    ]
+    current_stage: _SolutionStage
+    solution_status: Literal["active", "paused", "retired", "superseded"]
+
+
+class SolutionLifecycleFundingTargetsPageResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    location_id: _SolutionResponseUUID
+    offset: int = Field(ge=0, le=10000, strict=True)
+    solutions: list[SolutionLifecycleFundingTargetItemResponse] = Field(max_length=50)
+    has_more: bool = Field(strict=True)
+    next_offset: int | None = Field(ge=0, le=10050, strict=True)
+
+    @model_validator(mode="after")
+    def validate_continuation_and_identity(self):
+        if self.has_more:
+            if not self.solutions or self.next_offset is None:
+                raise ValueError("Funding-target continuation is inconsistent")
+        elif self.next_offset is not None:
+            raise ValueError("Terminal funding-target page cannot continue")
+        seen_solution_ids = set()
+        previous = None
+        for solution in self.solutions:
+            if solution.solution_id in seen_solution_ids:
+                raise ValueError("Funding-target page contains a duplicate solution")
+            seen_solution_ids.add(solution.solution_id)
+            if (
+                previous is not None
+                and previous.solution_name == solution.solution_name
+                and previous.solution_id.int > solution.solution_id.int
+            ):
+                raise ValueError("Funding-target name tie-break order is inconsistent")
+            previous = solution
+        return self
+
+
+class SolutionLifecycleFundingTrancheReviewDetailResponse(BaseModel):
+    """Exact private tranche-review projection from migration 492."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    funding_case_id: _SolutionResponseUUID
+    tranche_id: _SolutionResponseUUID
+    solution_name: str = Field(min_length=1, max_length=255, strict=True)
+    case_decision_status: Literal["draft", "submitted", "approved", "rejected", "closed"]
+    case_currency: str = Field(min_length=1, max_length=10, strict=True)
+    case_submitter_attributed: bool = Field(strict=True)
+    is_self_authored: bool = Field(strict=True)
+    is_case_approver: bool = Field(strict=True)
+    tranche_number: int = Field(ge=1, strict=True)
+    tranche_amount: _SolutionResponseDecimal = Field(
+        ge=Decimal("0"), le=Decimal("9999999999999.99"), strict=True
+    )
+    milestone_conditions: dict[str, Any]
+    tranche_status: Literal["proposed", "approved", "released", "blocked", "returned"]
+    tranche_approved_at: AwareDatetime | None
+    eligible_for_independent_approval: bool = Field(strict=True)
+
+    @model_validator(mode="after")
+    def validate_tranche_review(self):
+        if self.eligible_for_independent_approval and (
+            self.case_decision_status != "approved"
+            or self.tranche_status != "proposed"
+            or not self.case_submitter_attributed
+            or self.is_self_authored
+            or self.is_case_approver
+        ):
+            raise ValueError("Funding tranche eligibility is inconsistent")
+        try:
+            encoded = json.dumps(
+                self.milestone_conditions,
+                ensure_ascii=False,
+                allow_nan=False,
+                separators=(",", ":"),
+            ).encode("utf-8")
+        except (TypeError, ValueError, UnicodeEncodeError) as exc:
+            raise ValueError("Funding tranche terms must be finite JSON data") from exc
+        if len(encoded) > 8192:
+            raise ValueError("Funding tranche terms exceed their storage bound")
+        return self
+
+
+class SolutionLifecycleFundingReviewTrancheResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    tranche_number: int = Field(ge=1, strict=True)
+    amount: _SolutionResponseDecimal = Field(
+        ge=Decimal("0"), le=Decimal("9999999999999.99"), strict=True
+    )
+    milestone_conditions: dict[str, Any]
+    status: Literal["proposed", "approved", "released", "blocked", "returned"]
+
+    @field_validator("milestone_conditions")
+    @classmethod
+    def validate_milestone_json(cls, value):
+        try:
+            encoded = json.dumps(
+                value,
+                ensure_ascii=False,
+                allow_nan=False,
+                separators=(",", ":"),
+            ).encode("utf-8")
+        except (TypeError, ValueError, UnicodeEncodeError) as exc:
+            raise ValueError("Funding tranche terms must be finite JSON data") from exc
+        if len(encoded) > 8192:
+            raise ValueError("Funding tranche terms exceed their storage bound")
+        return value
+
+
+class SolutionLifecycleFundingReviewQueueItemResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    funding_case_id: _SolutionResponseUUID
+    solution_name: str = Field(max_length=255, strict=True)
+    solution_type: Literal[
+        "practice", "policy", "technology", "service", "governance",
+        "business_model", "ecological_intervention", "data_product", "other",
+    ]
+    solution_stage: _SolutionStage
+    capital_stage: Literal[
+        "discovery", "experiment", "pilot", "replication", "scale", "maintenance"
+    ]
+    funding_instrument: Literal[
+        "grant", "budget", "bounty", "loan", "investment", "community_fund", "in_kind"
+    ]
+    requested_amount: _SolutionResponseDecimal = Field(
+        ge=Decimal("0"), le=Decimal("9999999999999.99"), strict=True
+    )
+    currency: str = Field(max_length=10, strict=True)
+    created_at: AwareDatetime
+    submitted_at: AwareDatetime | None
+    tranche_count: int = Field(ge=0, strict=True)
+    submitter_attributed: bool = Field(strict=True)
+    is_self_authored: bool = Field(strict=True)
+
+    @model_validator(mode="after")
+    def validate_attribution(self):
+        if self.is_self_authored and not self.submitter_attributed:
+            raise ValueError("Funding self-authorship requires an attributed submitter")
+        return self
+
+
+class SolutionLifecycleFundingReviewQueueResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    location_id: _SolutionResponseUUID
+    offset: int = Field(ge=0, le=10000, strict=True)
+    funding_cases: list[SolutionLifecycleFundingReviewQueueItemResponse] = Field(
+        max_length=50
+    )
+    has_more: bool = Field(strict=True)
+    next_offset: int | None = Field(ge=0, le=10000, strict=True)
+
+    @model_validator(mode="after")
+    def validate_order_and_continuation(self):
+        if self.has_more:
+            if not self.funding_cases or self.next_offset is None:
+                raise ValueError("Funding review queue continuation is inconsistent")
+        elif self.next_offset is not None:
+            raise ValueError("Terminal funding review queue cannot continue")
+
+        seen_ids = set()
+        previous = None
+        for case in self.funding_cases:
+            if case.funding_case_id in seen_ids:
+                raise ValueError("Funding review queue contains a duplicate case")
+            seen_ids.add(case.funding_case_id)
+            if previous is not None:
+                if previous.submitted_at is None and case.submitted_at is not None:
+                    raise ValueError("Funding review queue order is inconsistent")
+                if (
+                    previous.submitted_at is not None
+                    and case.submitted_at is not None
+                    and previous.submitted_at < case.submitted_at
+                ):
+                    raise ValueError("Funding review queue order is inconsistent")
+                same_submission = previous.submitted_at == case.submitted_at
+                if same_submission and previous.created_at < case.created_at:
+                    raise ValueError("Funding review queue order is inconsistent")
+                if (
+                    same_submission
+                    and previous.created_at == case.created_at
+                    and previous.funding_case_id.int > case.funding_case_id.int
+                ):
+                    raise ValueError("Funding review queue ID tie-break is inconsistent")
+            previous = case
+        return self
+
+
+class SolutionLifecycleFundingReviewDetailResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    funding_case_id: _SolutionResponseUUID
+    solution_name: str = Field(max_length=255, strict=True)
+    solution_type: Literal[
+        "practice", "policy", "technology", "service", "governance",
+        "business_model", "ecological_intervention", "data_product", "other",
+    ]
+    solution_stage: _SolutionStage
+    capital_stage: Literal[
+        "discovery", "experiment", "pilot", "replication", "scale", "maintenance"
+    ]
+    funding_instrument: Literal[
+        "grant", "budget", "bounty", "loan", "investment", "community_fund", "in_kind"
+    ]
+    requested_amount: _SolutionResponseDecimal = Field(
+        ge=Decimal("0"), le=Decimal("9999999999999.99"), strict=True
+    )
+    minimum_viable_amount: _SolutionResponseDecimal | None = Field(
+        ge=Decimal("0"), le=Decimal("9999999999999.99"), strict=True
+    )
+    maximum_authorized_amount: _SolutionResponseDecimal | None = Field(
+        ge=Decimal("0"), le=Decimal("9999999999999.99"), strict=True
+    )
+    currency: str = Field(max_length=10, strict=True)
+    risk_adjusted_expected_value: _SolutionResponseDecimal | None = Field(
+        ge=Decimal("-9999999999999.99"), le=Decimal("9999999999999.99"), strict=True
+    )
+    public_goods_value: _SolutionResponseDecimal | None = Field(
+        ge=Decimal("-9999999999999.99"), le=Decimal("9999999999999.99"), strict=True
+    )
+    community_share: _SolutionResponseDecimal | None = Field(
+        ge=Decimal("-9999999999999.99"), le=Decimal("9999999999999.99"), strict=True
+    )
+    downside_exposure: _SolutionResponseDecimal | None = Field(
+        ge=Decimal("-9999999999999.99"), le=Decimal("9999999999999.99"), strict=True
+    )
+    decision_status: Literal["submitted"]
+    rationale: str = Field(max_length=4000, strict=True)
+    evidence: Any
+    created_at: AwareDatetime
+    submitted_at: AwareDatetime | None
+    tranches: list[SolutionLifecycleFundingReviewTrancheResponse] = Field(
+        max_length=50
+    )
+    submitter_attributed: bool = Field(strict=True)
+    is_self_authored: bool = Field(strict=True)
+
+    @model_validator(mode="after")
+    def validate_private_detail(self):
+        if self.is_self_authored and not self.submitter_attributed:
+            raise ValueError("Funding self-authorship requires an attributed submitter")
+        if (
+            self.maximum_authorized_amount is not None
+            and self.maximum_authorized_amount < self.requested_amount
+        ):
+            raise ValueError("Funding authorization amount is below the request")
+        if (
+            self.minimum_viable_amount is not None
+            and self.maximum_authorized_amount is not None
+            and self.minimum_viable_amount > self.maximum_authorized_amount
+        ):
+            raise ValueError("Funding amount bounds are inconsistent")
+        try:
+            encoded_evidence = json.dumps(
+                self.evidence,
+                ensure_ascii=False,
+                allow_nan=False,
+                separators=(",", ":"),
+            ).encode("utf-8")
+        except (TypeError, ValueError, UnicodeEncodeError) as exc:
+            raise ValueError("Funding evidence must be finite JSON data") from exc
+        if len(encoded_evidence) > 65_536:
+            raise ValueError("Funding evidence exceeds its storage bound")
+        return self
+
+
+class SolutionLifecycleFundingApprovalResponse(BaseModel):
+    """Exact new-approval and idempotent-replay result from migration 491."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    funding_case_id: _SolutionResponseUUID
+    decision_status: Literal["approved"]
+    approved_at: AwareDatetime
+    replayed: bool = Field(strict=True)
+
+
+class SolutionLifecycleGateItemResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    solution_id: _SolutionResponseUUID
+    solution_name: str = Field(max_length=255)
+    solution_type: Literal[
+        "practice", "policy", "technology", "service", "governance",
+        "business_model", "ecological_intervention", "data_product", "other",
+    ]
+    current_stage: _SolutionStage
+    solution_status: Literal["active", "paused", "retired", "superseded"]
+    gate_id: _SolutionResponseUUID
+    from_stage: _SolutionStage
+    to_stage: _SolutionStage
+    gate_criterion: str | None = Field(max_length=4000)
+    required_evidence_maturity: int | None = Field(
+        default=None, ge=1, le=6, strict=True
+    )
+    required_experiment_count: int = Field(ge=0, strict=True)
+    requires_human_approval: bool = Field(strict=True)
+    gate_status: Literal["draft", "ready", "approved", "failed", "retired"]
+    gate_created_at: AwareDatetime
+    latest_evaluation_passed: bool | None = Field(strict=True)
+    latest_evaluated_at: AwareDatetime | None
+
+    @model_validator(mode="after")
+    def validate_latest_evaluation(self):
+        if (self.latest_evaluation_passed is None) != (
+            self.latest_evaluated_at is None
+        ):
+            raise ValueError("Latest solution gate evaluation fields are inconsistent")
+        return self
+
+
+class SolutionLifecycleGatePageResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    location_id: _SolutionResponseUUID
+    offset: int = Field(ge=0, le=10000, strict=True)
+    gates: list[SolutionLifecycleGateItemResponse] = Field(max_length=50)
+    has_more: bool = Field(strict=True)
+    next_offset: int | None = Field(ge=0, le=10050, strict=True)
+
+    @model_validator(mode="after")
+    def validate_continuation(self):
+        if self.has_more:
+            if not self.gates or self.next_offset is None:
+                raise ValueError("Solution gate continuation is inconsistent")
+        elif self.next_offset is not None:
+            raise ValueError("Terminal solution gate page cannot continue")
+        seen_gate_ids = set()
+        previous = None
+        for gate in self.gates:
+            if gate.gate_id in seen_gate_ids:
+                raise ValueError("Solution gate page contains a duplicate gate")
+            seen_gate_ids.add(gate.gate_id)
+            if previous is not None and (
+                previous.gate_created_at < gate.gate_created_at
+                or (
+                    previous.gate_created_at == gate.gate_created_at
+                    and previous.gate_id.int > gate.gate_id.int
+                )
+            ):
+                raise ValueError("Solution gate page order is inconsistent")
+            previous = gate
+        return self
+
+
+class SolutionScaleGateAssessmentTargetResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    solution_id: _SolutionResponseUUID
+    solution_name: str = Field(max_length=255)
+    scale_gate_id: _SolutionResponseUUID
+    gate_type: Literal[
+        "impact",
+        "safety",
+        "financial_sustainability",
+        "operational_capacity",
+        "supply_chain",
+        "regulatory",
+        "community_acceptance",
+        "equity",
+        "data_quality",
+        "maintainability",
+        "replicability",
+    ]
+    requirement: str = Field(max_length=2000)
+    threshold: str | None = Field(max_length=1000)
+    metric_key: str | None = Field(max_length=120)
+    comparison_operator: Literal["lt", "lte", "eq", "gte", "gt"] | None
+    threshold_numeric: _SolutionResponseDecimal | None
+    unit: str | None = Field(max_length=50)
+    minimum_sample: int | None = Field(gt=0, le=2_147_483_647, strict=True)
+    gate_status: Literal["pending", "failed"]
+
+
+class SolutionScaleGateAssessmentTargetsPageResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    location_id: _SolutionResponseUUID
+    offset: int = Field(ge=0, le=10000, strict=True)
+    targets: list[SolutionScaleGateAssessmentTargetResponse] = Field(max_length=50)
+    has_more: bool = Field(strict=True)
+    next_offset: int | None = Field(ge=0, le=10050, strict=True)
+
+    @model_validator(mode="after")
+    def validate_continuation_and_order(self):
+        if self.has_more:
+            if not self.targets or self.next_offset is None:
+                raise ValueError("Scale-gate target continuation is inconsistent")
+        elif self.next_offset is not None:
+            raise ValueError("Terminal scale-gate target page cannot continue")
+
+        gate_ids = [target.scale_gate_id for target in self.targets]
+        if gate_ids != sorted(set(gate_ids), key=lambda gate_id: gate_id.int):
+            raise ValueError("Scale-gate target page order is inconsistent")
+        return self
+
+
+class SolutionScaleGateReviewDetailResponse(BaseModel):
+    """Exact private projection used for independent scale-gate review."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    location_id: _SolutionResponseUUID
+    assessment_id: _SolutionResponseUUID
+    gate_id: _SolutionResponseUUID
+    solution_name: str = Field(max_length=255, strict=True)
+    gate_type: Literal[
+        "impact",
+        "safety",
+        "financial_sustainability",
+        "operational_capacity",
+        "supply_chain",
+        "regulatory",
+        "community_acceptance",
+        "equity",
+        "data_quality",
+        "maintainability",
+        "replicability",
+    ]
+    requirement: str = Field(max_length=2000, strict=True)
+    threshold: str | None = Field(max_length=1000, strict=True)
+    metric_key: str | None = Field(strict=True)
+    comparison_operator: Literal["lt", "lte", "eq", "gte", "gt"] | None
+    threshold_numeric: _SolutionResponseDecimal | None
+    unit: str | None = Field(strict=True)
+    passed: bool = Field(strict=True)
+    measured_value: str = Field(min_length=1, max_length=1000, strict=True)
+    measured_numeric: _SolutionResponseDecimal | None
+    sample_size: int = Field(ge=1, le=10_000_000, strict=True)
+    evidence_refs: list[Any] = Field(min_length=1, max_length=100)
+    evaluator_conflict: bool = Field(strict=True)
+    submitted_at: AwareDatetime
+
+    @model_validator(mode="after")
+    def validate_evidence_and_threshold_projection(self):
+        if (self.comparison_operator is None) != (self.threshold_numeric is None):
+            raise ValueError("Scale-gate numeric threshold fields are inconsistent")
+        if self.comparison_operator is not None and (
+            self.metric_key is None or self.unit is None
+        ):
+            raise ValueError("Scale-gate numeric comparison fields are incomplete")
+        try:
+            encoded_evidence = json.dumps(
+                self.evidence_refs,
+                ensure_ascii=False,
+                allow_nan=False,
+                separators=(",", ":"),
+            ).encode("utf-8")
+        except (TypeError, ValueError, UnicodeEncodeError) as exc:
+            raise ValueError("Scale-gate evidence references are not JSON values") from exc
+        if len(encoded_evidence) > 65_536:
+            raise ValueError("Scale-gate evidence references exceed their storage bound")
+        return self
+
+
+class SolutionLifecycleStageTransitionTargetItemResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    solution_id: _SolutionResponseUUID
+    solution_name: str = Field(max_length=255)
+    solution_type: Literal[
+        "practice", "policy", "technology", "service", "governance",
+        "business_model", "ecological_intervention", "data_product", "other",
+    ]
+    current_stage: _SolutionStage
+    solution_status: Literal["active", "paused"]
+    updated_at: AwareDatetime
+
+
+class SolutionLifecycleStageTransitionTargetPageResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    location_id: _SolutionResponseUUID
+    offset: int = Field(ge=0, le=10000, strict=True)
+    solutions: list[SolutionLifecycleStageTransitionTargetItemResponse] = Field(
+        max_length=50
+    )
+    has_more: bool = Field(strict=True)
+    next_offset: int | None = Field(ge=0, le=10050, strict=True)
+
+    @model_validator(mode="after")
+    def validate_continuation(self):
+        if self.has_more:
+            if not self.solutions or self.next_offset is None:
+                raise ValueError("Stage-transition target continuation is inconsistent")
+        elif self.next_offset is not None:
+            raise ValueError("Terminal stage-transition target page cannot continue")
+        solution_ids = [solution.solution_id for solution in self.solutions]
+        if len(solution_ids) != len(set(solution_ids)):
+            raise ValueError("Stage-transition target page contains duplicate solutions")
+        return self
+
+
+class SolutionAdoptionProgramReviewQueueItemResponse(BaseModel):
+    """Exact migration-520 projection for an independent adoption-program reviewer."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    program_id: _SolutionResponseUUID
+    solution_id: _SolutionResponseUUID
+    solution_name: str = Field(min_length=1, max_length=255, strict=True)
+    program_status: Literal["community_review"]
+    adoption_pathway: str = Field(min_length=1, max_length=2000, strict=True)
+    local_adaptation_policy: str | None = Field(max_length=4000, strict=True)
+    submitted_at: AwareDatetime
+    consent_data_category: Literal["solution_adoption_participation"] | None
+    consent_purpose: str | None = Field(min_length=1, max_length=255, strict=True)
+    consent_version: str | None = Field(
+        min_length=1,
+        max_length=30,
+        pattern=r"^[A-Za-z0-9][A-Za-z0-9._:-]{0,29}$",
+        strict=True,
+    )
+
+    @model_validator(mode="after")
+    def validate_consent_policy(self):
+        consent_values = (
+            self.consent_data_category,
+            self.consent_purpose,
+            self.consent_version,
+        )
+        if any(value is None for value in consent_values) and any(
+            value is not None for value in consent_values
+        ):
+            raise ValueError("Adoption program consent policy projection is incomplete")
+        return self
+
+
+class SolutionAdoptionProgramReviewQueueResponse(BaseModel):
+    """Strict, location-bound page envelope for the migration-520 queue."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    location_id: _SolutionResponseUUID
+    limit: int = Field(ge=1, le=25, strict=True)
+    offset: int = Field(ge=0, le=_SOLUTION_LIFECYCLE_MAX_OFFSET, strict=True)
+    programs: list[SolutionAdoptionProgramReviewQueueItemResponse] = Field(max_length=25)
+    has_more: bool = Field(strict=True)
+    next_offset: int | None = Field(
+        ge=0, le=_SOLUTION_LIFECYCLE_MAX_OFFSET, strict=True
+    )
+    offset_limited: bool = Field(strict=True)
+
+    @model_validator(mode="after")
+    def validate_page(self):
+        if len(self.programs) > self.limit:
+            raise ValueError("Adoption program page exceeds its requested limit")
+        if self.offset_limited:
+            if (
+                self.has_more
+                or self.next_offset is not None
+                or len(self.programs) != self.limit
+                or self.offset + len(self.programs) <= _SOLUTION_LIFECYCLE_MAX_OFFSET
+            ):
+                raise ValueError("Adoption program offset-cap marker is inconsistent")
+        elif self.has_more:
+            if (
+                len(self.programs) != self.limit
+                or self.next_offset != self.offset + len(self.programs)
+                or self.next_offset > _SOLUTION_LIFECYCLE_MAX_OFFSET
+            ):
+                raise ValueError("Adoption program continuation is inconsistent")
+        elif self.next_offset is not None:
+            raise ValueError("Terminal adoption program page cannot continue")
+
+        program_ids = [program.program_id for program in self.programs]
+        if len(program_ids) != len(set(program_ids)):
+            raise ValueError("Adoption program page contains duplicate programs")
+        order = [(program.submitted_at, program.program_id) for program in self.programs]
+        if order != sorted(order):
+            raise ValueError("Adoption program page is not in SQL order")
+        return self
+
+
+class SolutionAdopterReadinessReviewQueueItemResponse(BaseModel):
+    """Exact migration-516 projection for an independently reviewable assessment."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    assessment_id: _SolutionResponseUUID
+    readiness_id: _SolutionResponseUUID
+    solution_id: _SolutionResponseUUID
+    current_level: _SolutionResponseDecimal = Field(
+        ge=Decimal("0"), le=Decimal("999.999")
+    )
+    required_level: _SolutionResponseDecimal = Field(
+        ge=Decimal("0"), le=Decimal("999.999")
+    )
+    remediation_plan: str | None = Field(min_length=1, max_length=4000, strict=True)
+    assessed_at: AwareDatetime
+
+    @model_validator(mode="after")
+    def validate_remediation_plan(self):
+        if self.remediation_plan is not None and (
+            "\x00" in self.remediation_plan
+            or len(self.remediation_plan.encode("utf-8")) > 8000
+        ):
+            raise ValueError("Readiness remediation plan exceeds its storage bounds")
+        return self
+
+
+class SolutionAdopterReadinessReviewQueuePageResponse(BaseModel):
+    """Strict, location-bound page envelope for the migration-516 review queue."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    location_id: _SolutionResponseUUID
+    limit: int = Field(ge=1, le=100, strict=True)
+    offset: int = Field(ge=0, le=_SOLUTION_LIFECYCLE_MAX_OFFSET, strict=True)
+    assessments: list[SolutionAdopterReadinessReviewQueueItemResponse] = Field(
+        max_length=100
+    )
+    has_more: bool = Field(strict=True)
+    next_offset: int | None = Field(
+        ge=0, le=_SOLUTION_LIFECYCLE_MAX_OFFSET, strict=True
+    )
+    offset_limited: bool = Field(strict=True)
+
+    @model_validator(mode="after")
+    def validate_page(self):
+        if len(self.assessments) > self.limit:
+            raise ValueError("Readiness review page exceeds its requested limit")
+        if self.offset_limited:
+            if (
+                self.has_more
+                or self.next_offset is not None
+                or len(self.assessments) != self.limit
+                or self.offset + len(self.assessments)
+                <= _SOLUTION_LIFECYCLE_MAX_OFFSET
+            ):
+                raise ValueError("Readiness review offset-cap marker is inconsistent")
+        elif self.has_more:
+            if (
+                len(self.assessments) != self.limit
+                or self.next_offset != self.offset + len(self.assessments)
+                or self.next_offset > _SOLUTION_LIFECYCLE_MAX_OFFSET
+            ):
+                raise ValueError("Readiness review continuation is inconsistent")
+        elif self.next_offset is not None:
+            raise ValueError("Terminal readiness review page cannot continue")
+
+        assessment_ids = [assessment.assessment_id for assessment in self.assessments]
+        if len(assessment_ids) != len(set(assessment_ids)):
+            raise ValueError("Readiness review page contains duplicate assessments")
+        order = [
+            (assessment.assessed_at, assessment.assessment_id.int)
+            for assessment in self.assessments
+        ]
+        if order != sorted(order, reverse=True):
+            raise ValueError("Readiness review page is not in SQL order")
+        return self
+
+
+class SolutionAdoptionProgramRedesignItemResponse(BaseModel):
+    """Exact migration-519 projection for an independently reviewed redesign."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    program_id: _SolutionResponseUUID
+    solution_id: _SolutionResponseUUID
+    solution_name: str = Field(min_length=1, max_length=255, strict=True)
+    adoption_pathway: str = Field(min_length=1, max_length=2000, strict=True)
+    local_adaptation_policy: str | None = Field(max_length=4000, strict=True)
+    next_revision_number: int = Field(ge=2, strict=True)
+    reviewed_at: AwareDatetime
+
+
+class SolutionAdoptionProgramRedesignPageResponse(BaseModel):
+    """Strict, location-bound page envelope for migration-519 redesigns."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    location_id: _SolutionResponseUUID
+    limit: int = Field(ge=1, le=50, strict=True)
+    offset: int = Field(ge=0, le=_SOLUTION_LIFECYCLE_MAX_OFFSET, strict=True)
+    programs: list[SolutionAdoptionProgramRedesignItemResponse] = Field(max_length=50)
+    has_more: bool = Field(strict=True)
+    next_offset: int | None = Field(
+        ge=0, le=_SOLUTION_LIFECYCLE_MAX_OFFSET, strict=True
+    )
+    offset_limited: bool = Field(strict=True)
+
+    @model_validator(mode="after")
+    def validate_page(self):
+        if len(self.programs) > self.limit:
+            raise ValueError("Adoption program redesign page exceeds its requested limit")
+        if self.offset_limited:
+            if (
+                self.has_more
+                or self.next_offset is not None
+                or len(self.programs) != self.limit
+                or self.offset + len(self.programs) <= _SOLUTION_LIFECYCLE_MAX_OFFSET
+            ):
+                raise ValueError("Adoption program redesign offset-cap marker is inconsistent")
+        elif self.has_more:
+            if (
+                len(self.programs) != self.limit
+                or self.next_offset != self.offset + len(self.programs)
+                or self.next_offset > _SOLUTION_LIFECYCLE_MAX_OFFSET
+            ):
+                raise ValueError("Adoption program redesign continuation is inconsistent")
+        elif self.next_offset is not None:
+            raise ValueError("Terminal adoption program redesign page cannot continue")
+
+        program_ids = [program.program_id for program in self.programs]
+        if len(program_ids) != len(set(program_ids)):
+            raise ValueError("Adoption program redesign page contains duplicate programs")
+        order = [(program.reviewed_at, -program.program_id.int) for program in self.programs]
+        if order != sorted(order, reverse=True):
+            raise ValueError("Adoption program redesign page is not in SQL order")
+        return self
+
+
+class SolutionAdoptionProgramDraftItemResponse(BaseModel):
+    """Exact migration-520 projection for an operator's own adoption draft."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    program_id: _SolutionResponseUUID
+    solution_id: _SolutionResponseUUID
+    solution_name: str = Field(min_length=1, max_length=255, strict=True)
+    program_status: Literal["draft"]
+    adoption_pathway: str = Field(min_length=1, max_length=2000, strict=True)
+    local_adaptation_policy: str | None = Field(max_length=4000, strict=True)
+    created_at: AwareDatetime
+    consent_data_category: Literal["solution_adoption_participation"] | None
+    consent_purpose: str | None = Field(min_length=1, max_length=255, strict=True)
+    consent_version: str | None = Field(
+        min_length=1,
+        max_length=30,
+        pattern=r"^[A-Za-z0-9][A-Za-z0-9._:-]{0,29}$",
+        strict=True,
+    )
+
+    @model_validator(mode="after")
+    def validate_consent_policy(self):
+        consent_values = (
+            self.consent_data_category,
+            self.consent_purpose,
+            self.consent_version,
+        )
+        if any(value is None for value in consent_values) and any(
+            value is not None for value in consent_values
+        ):
+            raise ValueError("Adoption program draft consent policy projection is incomplete")
+        return self
+
+
+class SolutionAdoptionProgramDraftPageResponse(BaseModel):
+    """Strict, location-bound page envelope for migration-520 own drafts."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    location_id: _SolutionResponseUUID
+    limit: int = Field(ge=1, le=25, strict=True)
+    offset: int = Field(ge=0, le=_SOLUTION_LIFECYCLE_MAX_OFFSET, strict=True)
+    drafts: list[SolutionAdoptionProgramDraftItemResponse] = Field(max_length=25)
+    has_more: bool = Field(strict=True)
+    next_offset: int | None = Field(
+        ge=0, le=_SOLUTION_LIFECYCLE_MAX_OFFSET, strict=True
+    )
+    offset_limited: bool = Field(strict=True)
+
+    @model_validator(mode="after")
+    def validate_page(self):
+        if len(self.drafts) > self.limit:
+            raise ValueError("Adoption program draft page exceeds its requested limit")
+        if self.offset_limited:
+            if (
+                self.has_more
+                or self.next_offset is not None
+                or len(self.drafts) != self.limit
+                or self.offset + len(self.drafts) <= _SOLUTION_LIFECYCLE_MAX_OFFSET
+            ):
+                raise ValueError("Adoption program draft offset-cap marker is inconsistent")
+        elif self.has_more:
+            if (
+                len(self.drafts) != self.limit
+                or self.next_offset != self.offset + len(self.drafts)
+                or self.next_offset > _SOLUTION_LIFECYCLE_MAX_OFFSET
+            ):
+                raise ValueError("Adoption program draft continuation is inconsistent")
+        elif self.next_offset is not None:
+            raise ValueError("Terminal adoption program draft page cannot continue")
+
+        program_ids = [draft.program_id for draft in self.drafts]
+        if len(program_ids) != len(set(program_ids)):
+            raise ValueError("Adoption program draft page contains duplicate programs")
+        order = [(draft.created_at, -draft.program_id.int) for draft in self.drafts]
+        if order != sorted(order, reverse=True):
+            raise ValueError("Adoption program draft page is not in SQL order")
+        return self
+
+
+class SolutionConfigurationDraftItemResponse(BaseModel):
+    """Exact migration-517 projection for the authenticated operator's draft."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    configuration_id: _SolutionResponseUUID
+    solution_id: _SolutionResponseUUID
+    version: int = Field(ge=1, le=2_147_483_647, strict=True)
+    comparability_class: Literal[
+        "comparable", "partially_comparable", "not_comparable",
+    ]
+    evidence_impact: str = Field(min_length=1, max_length=4000, strict=True)
+    proposed_at: AwareDatetime
+
+    @model_validator(mode="after")
+    def validate_evidence_impact(self):
+        if (
+            "\x00" in self.evidence_impact
+            or len(self.evidence_impact.encode("utf-8")) > 8000
+        ):
+            raise ValueError("Configuration draft evidence impact exceeds its storage bounds")
+        return self
+
+
+class SolutionConfigurationDraftPageResponse(BaseModel):
+    """Strict, location-bound page envelope for migration-517 own drafts."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    location_id: _SolutionResponseUUID
+    limit: int = Field(ge=1, le=25, strict=True)
+    offset: int = Field(ge=0, le=_SOLUTION_LIFECYCLE_MAX_OFFSET, strict=True)
+    drafts: list[SolutionConfigurationDraftItemResponse] = Field(max_length=25)
+    has_more: bool = Field(strict=True)
+    next_offset: int | None = Field(
+        ge=0, le=_SOLUTION_LIFECYCLE_MAX_OFFSET, strict=True
+    )
+    offset_limited: bool = Field(strict=True)
+
+    @model_validator(mode="after")
+    def validate_page(self):
+        if len(self.drafts) > self.limit:
+            raise ValueError("Configuration draft page exceeds its requested limit")
+        if self.offset_limited:
+            if (
+                self.has_more
+                or self.next_offset is not None
+                or len(self.drafts) != self.limit
+                or self.offset + len(self.drafts) <= _SOLUTION_LIFECYCLE_MAX_OFFSET
+            ):
+                raise ValueError("Configuration draft offset-cap marker is inconsistent")
+        elif self.has_more:
+            if (
+                len(self.drafts) != self.limit
+                or self.next_offset != self.offset + len(self.drafts)
+                or self.next_offset > _SOLUTION_LIFECYCLE_MAX_OFFSET
+            ):
+                raise ValueError("Configuration draft continuation is inconsistent")
+        elif self.next_offset is not None:
+            raise ValueError("Terminal configuration draft page cannot continue")
+
+        configuration_ids = [draft.configuration_id for draft in self.drafts]
+        if len(configuration_ids) != len(set(configuration_ids)):
+            raise ValueError("Configuration draft page contains duplicate configurations")
+        order = [
+            (draft.proposed_at, draft.configuration_id.int) for draft in self.drafts
+        ]
+        if order != sorted(order, reverse=True):
+            raise ValueError("Configuration draft page is not in SQL order")
+        return self
+
+
+class SolutionConfigurationReviewQueueItemResponse(BaseModel):
+    """Exact migration-517 projection for an independent configuration reviewer."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    configuration_id: _SolutionResponseUUID
+    solution_id: _SolutionResponseUUID
+    version: int = Field(ge=1, le=2_147_483_647, strict=True)
+    invariant_components: dict[str, Any]
+    configurable_components: dict[str, Any]
+    prohibited_components: dict[str, Any]
+    local_assumptions: dict[str, Any]
+    comparability_class: Literal[
+        "comparable", "partially_comparable", "not_comparable",
+    ]
+    evidence_impact: str = Field(min_length=1, max_length=4000, strict=True)
+    submitted_at: AwareDatetime
+
+    @model_validator(mode="after")
+    def validate_evidence_impact(self):
+        if (
+            "\x00" in self.evidence_impact
+            or len(self.evidence_impact.strip(" ")) == 0
+            or len(self.evidence_impact.encode("utf-8")) > 8000
+        ):
+            raise ValueError("Configuration review evidence impact exceeds its storage bounds")
+        component_payload = [
+            self.invariant_components,
+            self.configurable_components,
+            self.prohibited_components,
+            self.local_assumptions,
+        ]
+        try:
+            component_payload_bytes = len(
+                json.dumps(
+                    component_payload,
+                    ensure_ascii=False,
+                    allow_nan=False,
+                    separators=(", ", ": "),
+                ).encode("utf-8")
+            )
+        except (TypeError, ValueError, UnicodeEncodeError) as exc:
+            raise ValueError("Configuration review component payload is invalid") from exc
+        if component_payload_bytes > _SOLUTION_CONFIGURATION_COMPONENTS_MAX_BYTES:
+            raise ValueError("Configuration review component payload exceeds its storage bounds")
+        return self
+
+
+class SolutionConfigurationReviewQueuePageResponse(BaseModel):
+    """Strict, location-bound review page for migration-517 configurations."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    location_id: _SolutionResponseUUID
+    limit: int = Field(ge=1, le=25, strict=True)
+    offset: int = Field(ge=0, le=_SOLUTION_LIFECYCLE_MAX_OFFSET, strict=True)
+    configurations: list[SolutionConfigurationReviewQueueItemResponse] = Field(
+        max_length=25
+    )
+    has_more: bool = Field(strict=True)
+    next_offset: int | None = Field(
+        ge=0, le=_SOLUTION_LIFECYCLE_MAX_OFFSET, strict=True
+    )
+    offset_limited: bool = Field(strict=True)
+
+    @model_validator(mode="after")
+    def validate_page(self):
+        if len(self.configurations) > self.limit:
+            raise ValueError("Configuration review page exceeds its requested limit")
+        if self.offset_limited:
+            if (
+                self.has_more
+                or self.next_offset is not None
+                or len(self.configurations) != self.limit
+                or self.offset + len(self.configurations)
+                <= _SOLUTION_LIFECYCLE_MAX_OFFSET
+            ):
+                raise ValueError("Configuration review offset-cap marker is inconsistent")
+        elif self.has_more:
+            if (
+                len(self.configurations) != self.limit
+                or self.next_offset != self.offset + len(self.configurations)
+                or self.next_offset > _SOLUTION_LIFECYCLE_MAX_OFFSET
+            ):
+                raise ValueError("Configuration review continuation is inconsistent")
+        elif self.next_offset is not None:
+            raise ValueError("Terminal configuration review page cannot continue")
+
+        configuration_ids = [
+            configuration.configuration_id for configuration in self.configurations
+        ]
+        if len(configuration_ids) != len(set(configuration_ids)):
+            raise ValueError("Configuration review page contains duplicate configurations")
+        order = [
+            (configuration.submitted_at, configuration.configuration_id.int)
+            for configuration in self.configurations
+        ]
+        if order != sorted(order, reverse=True):
+            raise ValueError("Configuration review page is not in SQL order")
+        return self
+
 
 def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psycopg2):
+    from fastapi import Query
     from fastapi.encoders import jsonable_encoder
     from fastapi.responses import JSONResponse
     from starlette.requests import Request
@@ -98,7 +1898,96 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
 
     headers = {"Cache-Control": "no-store", "Vary": "Cookie"}
 
-    @router.post("/operator/api/solution-lifecycle/{location_id}/solutions")
+    create_error_responses = {
+        status: {
+            "model": SolutionLifecycleCreateError,
+            "description": description,
+            "headers": {
+                "Cache-Control": {"schema": {"type": "string", "example": "no-store"}},
+                "Vary": {"schema": {"type": "string", "example": "Cookie"}},
+            },
+        }
+        for status, description in {
+            400: "The location-solution create request is invalid.",
+            403: "The operator lacks a current exact-location create grant.",
+            404: "Operator OIDC is disabled.",
+            409: "The canonical key or retry identifier conflicts.",
+            500: "The solution create result failed its response contract.",
+            503: "Location-solution creation is unavailable.",
+        }.items()
+    }
+
+    gate_create_error_responses = {
+        status: {
+            "model": SolutionLifecycleCreateError,
+            "description": description,
+            "headers": {
+                "Cache-Control": {"schema": {"type": "string", "example": "no-store"}},
+                "Vary": {"schema": {"type": "string", "example": "Cookie"}},
+            },
+        }
+        for status, description in {
+            400: "The solution-gate create request is invalid.",
+            403: "The operator lacks a current exact-location create grant.",
+            404: "The location-origin active solution was not found or operator OIDC is disabled.",
+            409: "The request identifier conflicts or the solution stage changed.",
+            500: "The solution-gate result failed its response contract.",
+            503: "Solution-gate creation is unavailable.",
+        }.items()
+    }
+
+    experiment_create_error_responses = {
+        status: {
+            "model": SolutionLifecycleCreateError,
+            "description": description,
+            "headers": {
+                "Cache-Control": {"schema": {"type": "string", "example": "no-store"}},
+                "Vary": {"schema": {"type": "string", "example": "Cookie"}},
+            },
+        }
+        for status, description in {
+            400: "The experiment protocol create request is invalid.",
+            403: "The operator lacks a current exact-location create grant.",
+            404: "The location-origin solution was not found or operator OIDC is disabled.",
+            409: "The request identifier conflicts or the solution state changed.",
+            500: "The experiment result failed its response contract.",
+            503: "Experiment creation is unavailable.",
+        }.items()
+    }
+
+    @router.post(
+        "/operator/api/solution-lifecycle/{location_id}/solutions",
+        response_model=SolutionLifecycleCreateResponse,
+        responses={
+            200: {
+                "model": SolutionLifecycleCreateResponse,
+                "description": "Idempotent replay of the existing solution create request.",
+                "headers": {
+                    "Cache-Control": {"schema": {"type": "string", "example": "no-store"}},
+                    "Vary": {"schema": {"type": "string", "example": "Cookie"}},
+                },
+            },
+            201: {
+                "model": SolutionLifecycleCreateResponse,
+                "description": "A location-originated solution was created.",
+                "headers": {
+                    "Cache-Control": {"schema": {"type": "string", "example": "no-store"}},
+                    "Vary": {"schema": {"type": "string", "example": "Cookie"}},
+                },
+            },
+            **create_error_responses,
+        },
+        openapi_extra={
+            "requestBody": {
+                "required": True,
+                "content": {
+                    "application/json": {
+                        "schema": SolutionLifecycleCreateRequest.model_json_schema()
+                    }
+                },
+            }
+        },
+    )
     async def create_solution(request: Request, location_id: str):
         if provider is None:
             return JSONResponse(
@@ -110,18 +1999,10 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
             payload = await request.json()
         except Exception:
             return JSONResponse(status_code=400, content={"error": "Invalid JSON body"}, headers=headers)
-        required_fields = {
-            "request_id", "canonical_key", "name", "solution_type",
-            "problem_statement", "rationale", "evidence", "acknowledged",
-        }
-        optional_fields = {
-            "theory_of_change", "baseline_alternative", "risk_class", "reversibility",
-        }
-        if (
-            not isinstance(payload, dict)
-            or not required_fields.issubset(payload)
-            or not set(payload).issubset(required_fields | optional_fields)
-        ):
+        try:
+            create_request = SolutionLifecycleCreateRequest.model_validate(payload)
+            requested_location_id = UUID(location_id)
+        except (ValidationError, TypeError, ValueError):
             return JSONResponse(
                 status_code=400,
                 content={"error": "Location solution fields are invalid"},
@@ -131,19 +2012,19 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
             result = await run_in_threadpool(
                 create_location_solution,
                 request.state.operator_session.operator.operator_id,
-                location_id,
-                payload["request_id"],
-                payload["canonical_key"],
-                payload["name"],
-                payload["solution_type"],
-                payload["problem_statement"],
-                payload["rationale"],
-                payload["evidence"],
-                theory_of_change=payload.get("theory_of_change"),
-                baseline_alternative=payload.get("baseline_alternative"),
-                risk_class=payload.get("risk_class", "medium"),
-                reversibility=payload.get("reversibility", "medium"),
-                acknowledged=payload["acknowledged"],
+                str(requested_location_id),
+                str(create_request.request_id),
+                create_request.canonical_key,
+                create_request.name,
+                create_request.solution_type,
+                create_request.problem_statement,
+                create_request.rationale,
+                create_request.evidence,
+                theory_of_change=create_request.theory_of_change,
+                baseline_alternative=create_request.baseline_alternative,
+                risk_class=create_request.risk_class,
+                reversibility=create_request.reversibility,
+                acknowledged=create_request.acknowledged,
             )
         except TenantContextDenied:
             return JSONResponse(
@@ -179,14 +2060,65 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
                 content={"error": "Location solution creation unavailable"},
                 headers={**headers, "Retry-After": "30"},
             )
+        try:
+            response = SolutionLifecycleCreateResponse.model_validate(result)
+            if (
+                response.canonical_key != create_request.canonical_key.strip()
+                # PostgreSQL btrim() removes U+0020 by default; mirror that
+                # normalization exactly so Unicode whitespace remains bound.
+                or response.solution_name != create_request.name.strip(" ")
+                or response.solution_type != create_request.solution_type
+            ):
+                raise ValueError("solution create response does not match its request")
+        except (ValidationError, TypeError, ValueError) as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.solution_lifecycle").warning(
+                "Location solution create response rejected (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=500,
+                content={"error": "Location solution creation unavailable"},
+                headers=headers,
+            )
         return JSONResponse(
-            jsonable_encoder(result),
-            status_code=200 if result.get("replayed") else 201,
+            jsonable_encoder(response.model_dump(mode="python")),
+            status_code=200 if response.replayed else 201,
             headers=headers,
         )
 
     @router.post(
-        "/operator/api/solution-lifecycle/{location_id}/solutions/{solution_id}/gates"
+        "/operator/api/solution-lifecycle/{location_id}/solutions/{solution_id}/gates",
+        response_model=SolutionLifecycleGateCreateResponse,
+        responses={
+            200: {
+                "model": SolutionLifecycleGateCreateResponse,
+                "description": "Idempotent replay of the existing solution-gate request.",
+                "headers": {
+                    "Cache-Control": {"schema": {"type": "string", "example": "no-store"}},
+                    "Vary": {"schema": {"type": "string", "example": "Cookie"}},
+                },
+            },
+            201: {
+                "model": SolutionLifecycleGateCreateResponse,
+                "description": "A draft solution promotion gate was created.",
+                "headers": {
+                    "Cache-Control": {"schema": {"type": "string", "example": "no-store"}},
+                    "Vary": {"schema": {"type": "string", "example": "Cookie"}},
+                },
+            },
+            **gate_create_error_responses,
+        },
+        openapi_extra={
+            "requestBody": {
+                "required": True,
+                "content": {
+                    "application/json": {
+                        "schema": SolutionLifecycleGateCreateRequest.model_json_schema()
+                    }
+                },
+            }
+        },
     )
     async def create_solution_gate(request: Request, location_id: str, solution_id: str):
         if provider is None:
@@ -199,16 +2131,12 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
             payload = await request.json()
         except Exception:
             return JSONResponse(status_code=400, content={"error": "Invalid JSON body"}, headers=headers)
-        required_fields = {
-            "request_id", "to_stage", "criterion", "required_experiment_count",
-            "acknowledged",
-        }
-        optional_fields = {"required_evidence_maturity"}
-        if (
-            not isinstance(payload, dict)
-            or not required_fields.issubset(payload)
-            or not set(payload).issubset(required_fields | optional_fields)
-        ):
+        try:
+            gate_request = SolutionLifecycleGateCreateRequest.model_validate(payload)
+            operator_id = str(UUID(request.state.operator_session.operator.operator_id))
+            requested_location_id = str(UUID(location_id))
+            requested_solution_id = UUID(solution_id)
+        except (ValidationError, TypeError, ValueError, AttributeError):
             return JSONResponse(
                 status_code=400,
                 content={"error": "Location solution gate fields are invalid"},
@@ -217,15 +2145,15 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
         try:
             result = await run_in_threadpool(
                 create_location_solution_gate,
-                request.state.operator_session.operator.operator_id,
-                location_id,
-                solution_id,
-                payload["request_id"],
-                payload["to_stage"],
-                payload["criterion"],
-                payload.get("required_evidence_maturity"),
-                payload["required_experiment_count"],
-                payload["acknowledged"],
+                operator_id,
+                requested_location_id,
+                str(requested_solution_id),
+                str(gate_request.request_id),
+                gate_request.to_stage,
+                gate_request.criterion,
+                gate_request.required_evidence_maturity,
+                gate_request.required_experiment_count,
+                gate_request.acknowledged,
             )
         except TenantContextDenied:
             return JSONResponse(
@@ -271,14 +2199,72 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
                 content={"error": "Location solution gate creation unavailable"},
                 headers={**headers, "Retry-After": "30"},
             )
+        try:
+            response = SolutionLifecycleGateCreateResponse.model_validate(result)
+            expected_from_stage = {
+                "validated": "testing",
+                "funded": "investment_ready",
+                "adoption_ready": "pilot_active",
+                "scaled": "adopting",
+            }[gate_request.to_stage]
+            if (
+                response.solution_id != requested_solution_id
+                or response.from_stage != expected_from_stage
+                or response.to_stage != gate_request.to_stage
+                or response.gate_criterion != gate_request.criterion.strip()
+                or response.required_evidence_maturity != gate_request.required_evidence_maturity
+                or response.required_experiment_count != gate_request.required_experiment_count
+            ):
+                raise ValueError("Solution gate result does not match the request")
+        except (ValidationError, TypeError, ValueError) as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.solution_lifecycle").warning(
+                "Location solution gate response rejected (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=500,
+                content={"error": "Location solution gate creation unavailable"},
+                headers=headers,
+            )
         return JSONResponse(
-            jsonable_encoder(result),
-            status_code=200 if result.get("replayed") else 201,
+            jsonable_encoder(response.model_dump(mode="python")),
+            status_code=200 if response.replayed else 201,
             headers=headers,
         )
 
     @router.post(
-        "/operator/api/solution-lifecycle/{location_id}/solutions/{solution_id}/experiments"
+        "/operator/api/solution-lifecycle/{location_id}/solutions/{solution_id}/experiments",
+        response_model=SolutionLifecycleExperimentCreateResponse,
+        responses={
+            200: {
+                "model": SolutionLifecycleExperimentCreateResponse,
+                "description": "Idempotent replay of the existing experiment-create request.",
+                "headers": {
+                    "Cache-Control": {"schema": {"type": "string", "example": "no-store"}},
+                    "Vary": {"schema": {"type": "string", "example": "Cookie"}},
+                },
+            },
+            201: {
+                "model": SolutionLifecycleExperimentCreateResponse,
+                "description": "A v1 draft experiment protocol was created.",
+                "headers": {
+                    "Cache-Control": {"schema": {"type": "string", "example": "no-store"}},
+                    "Vary": {"schema": {"type": "string", "example": "Cookie"}},
+                },
+            },
+            **experiment_create_error_responses,
+        },
+        openapi_extra={
+            "requestBody": {
+                "required": True,
+                "content": {
+                    "application/json": {
+                        "schema": SolutionLifecycleExperimentCreateRequest.model_json_schema()
+                    }
+                },
+            }
+        },
     )
     async def create_solution_experiment(request: Request, location_id: str, solution_id: str):
         if provider is None:
@@ -291,12 +2277,12 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
             payload = await request.json()
         except Exception:
             return JSONResponse(status_code=400, content={"error": "Invalid JSON body"}, headers=headers)
-        required_fields = {"request_id", "protocol", "acknowledged"}
-        if (
-            not isinstance(payload, dict)
-            or not required_fields.issubset(payload)
-            or not set(payload).issubset(required_fields)
-        ):
+        try:
+            experiment_request = SolutionLifecycleExperimentCreateRequest.model_validate(payload)
+            operator_id = str(UUID(request.state.operator_session.operator.operator_id))
+            requested_location_id = str(UUID(location_id))
+            requested_solution_id = UUID(solution_id)
+        except (ValidationError, TypeError, ValueError, AttributeError):
             return JSONResponse(
                 status_code=400,
                 content={"error": "Experiment protocol fields are invalid"},
@@ -305,12 +2291,12 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
         try:
             result = await run_in_threadpool(
                 create_location_solution_experiment,
-                request.state.operator_session.operator.operator_id,
-                location_id,
-                solution_id,
-                payload["request_id"],
-                payload["protocol"],
-                payload["acknowledged"],
+                operator_id,
+                requested_location_id,
+                str(requested_solution_id),
+                str(experiment_request.request_id),
+                experiment_request.protocol,
+                experiment_request.acknowledged,
             )
         except TenantContextDenied:
             return JSONResponse(
@@ -362,9 +2348,24 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
                 content={"error": "Location solution experiment creation unavailable"},
                 headers={**headers, "Retry-After": "30"},
             )
+        try:
+            response = SolutionLifecycleExperimentCreateResponse.model_validate(result)
+            if response.solution_id != requested_solution_id:
+                raise ValueError("Experiment result does not match the requested solution")
+        except (ValidationError, TypeError, ValueError) as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.solution_lifecycle").warning(
+                "Location solution experiment response rejected (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=500,
+                content={"error": "Location solution experiment creation unavailable"},
+                headers=headers,
+            )
         return JSONResponse(
-            jsonable_encoder(result),
-            status_code=200 if result.get("replayed") else 201,
+            jsonable_encoder(response.model_dump(mode="python")),
+            status_code=200 if response.replayed else 201,
             headers=headers,
         )
 
@@ -810,7 +2811,10 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
             headers=headers,
         )
 
-    @router.get("/operator/api/solution-lifecycle/{location_id}/summary")
+    @router.get(
+        "/operator/api/solution-lifecycle/{location_id}/summary",
+        response_model=SolutionLifecycleSummaryResponse,
+    )
     async def location_solution_lifecycle_summary(request: Request, location_id: str):
         if provider is None:
             return JSONResponse(
@@ -849,7 +2853,24 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
                 content={"error": "Solution lifecycle summary unavailable"},
                 headers={**headers, "Retry-After": "30"},
             )
-        return JSONResponse(jsonable_encoder(result), headers=headers)
+        try:
+            validated = SolutionLifecycleSummaryResponse.model_validate(result)
+            if validated.location_id != UUID(location_id):
+                raise ValueError("Solution lifecycle summary does not match request location")
+        except (ValidationError, ValueError) as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.solution_lifecycle").warning(
+                "Solution lifecycle summary response rejected (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=500,
+                content={"error": "Solution lifecycle summary unavailable"},
+                headers=headers,
+            )
+        return JSONResponse(
+            jsonable_encoder(validated.model_dump(mode="python")), headers=headers
+        )
 
     @router.get(
         "/operator/api/solution-lifecycle/{location_id}/experiments/{experiment_id}/protocol-review"
@@ -1592,9 +3613,15 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
             headers=headers,
         )
 
-    @router.get("/operator/api/solution-lifecycle/{location_id}/adoption/programs/drafts")
+    @router.get(
+        "/operator/api/solution-lifecycle/{location_id}/adoption/programs/drafts",
+        response_model=SolutionAdoptionProgramDraftPageResponse,
+    )
     async def location_solution_adoption_program_drafts(
-        request: Request, location_id: str, limit: str = "10", offset: str = "0"
+        request: Request,
+        location_id: str,
+        limit: int = Query(default=10, ge=1, le=25),
+        offset: int = Query(default=0, ge=0, le=_SOLUTION_LIFECYCLE_MAX_OFFSET),
     ):
         if provider is None:
             return JSONResponse(status_code=404, content={"error": "Operator OIDC is disabled"}, headers=headers)
@@ -1621,11 +3648,54 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
                 "Solution adoption program drafts unavailable (%s)", type(exc).__name__
             )
             return JSONResponse(status_code=503, content={"error": "Solution adoption program drafts unavailable"}, headers={**headers, "Retry-After": "30"})
-        return JSONResponse(jsonable_encoder(result), headers=headers)
+        try:
+            if not isinstance(result, dict):
+                raise ValueError("Adoption program draft result is not an object")
+            page = {
+                **result,
+                "location_id": location_id,
+                "limit": limit,
+                "offset": offset,
+                "offset_limited": False,
+            }
+            next_offset = result.get("next_offset")
+            if (
+                result.get("has_more") is True
+                and type(next_offset) is int
+                and next_offset > _SOLUTION_LIFECYCLE_MAX_OFFSET
+            ):
+                drafts = result.get("drafts")
+                if (
+                    not isinstance(drafts, list)
+                    or len(drafts) != limit
+                    or next_offset != offset + len(drafts)
+                ):
+                    raise ValueError("Adoption program draft continuation is inconsistent")
+                page["has_more"] = False
+                page["next_offset"] = None
+                page["offset_limited"] = True
+            validated = SolutionAdoptionProgramDraftPageResponse.model_validate(page)
+        except (ValidationError, TypeError, ValueError) as exc:
+            from services.common.logging import get_logger
 
-    @router.get("/operator/api/solution-lifecycle/{location_id}/adoption/programs/redesigns")
+            get_logger("gateway.solution_lifecycle").warning(
+                "Solution adoption program draft response rejected (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=500,
+                content={"error": "Solution adoption program drafts unavailable"},
+                headers=headers,
+            )
+        return JSONResponse(
+            jsonable_encoder(validated.model_dump(mode="python")), headers=headers
+        )
+
+    @router.get(
+        "/operator/api/solution-lifecycle/{location_id}/adoption/programs/redesigns",
+        response_model=SolutionAdoptionProgramRedesignPageResponse,
+    )
     async def location_solution_adoption_program_redesigns(
-        request: Request, location_id: str, limit: str = "25", offset: str = "0"
+        request: Request, location_id: str, limit: int = Query(default=25, ge=1, le=50), offset: int = Query(default=0, ge=0, le=10000)
     ):
         if provider is None:
             return JSONResponse(status_code=404, content={"error": "Operator OIDC is disabled"}, headers=headers)
@@ -1652,7 +3722,55 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
                 "Solution adoption program redesigns unavailable (%s)", type(exc).__name__
             )
             return JSONResponse(status_code=503, content={"error": "Adoption program redesigns unavailable"}, headers={**headers, "Retry-After": "30"})
-        return JSONResponse(jsonable_encoder(result), headers=headers)
+        try:
+            if not isinstance(result, dict):
+                raise ValueError("Adoption program redesign result is not an object")
+            programs = result.get("programs")
+            next_offset = result.get("next_offset")
+            if (
+                not isinstance(programs, list)
+                or type(next_offset) is not int
+                or next_offset != offset + len(programs)
+            ):
+                raise ValueError("Adoption program redesign page cursor is inconsistent")
+            page = {
+                **result,
+                "location_id": location_id,
+                "limit": limit,
+                "offset": offset,
+                "offset_limited": False,
+            }
+            if (
+                result.get("has_more") is True
+                and type(next_offset) is int
+                and next_offset > _SOLUTION_LIFECYCLE_MAX_OFFSET
+            ):
+                if (
+                    len(programs) != limit
+                ):
+                    raise ValueError("Adoption program redesign continuation is inconsistent")
+                page["has_more"] = False
+                page["next_offset"] = None
+                page["offset_limited"] = True
+            elif result.get("has_more") is False:
+                # The service advances its cursor after every page; the public
+                # contract exposes a continuation only when more rows exist.
+                page["next_offset"] = None
+            validated = SolutionAdoptionProgramRedesignPageResponse.model_validate(page)
+        except (ValidationError, TypeError, ValueError):
+            from services.common.logging import get_logger
+
+            get_logger("gateway.solution_lifecycle").warning(
+                "Solution adoption program redesign response rejected"
+            )
+            return JSONResponse(
+                status_code=500,
+                content={"error": "Adoption program redesigns unavailable"},
+                headers=headers,
+            )
+        return JSONResponse(
+            jsonable_encoder(validated.model_dump(mode="python")), headers=headers
+        )
 
     @router.post("/operator/api/solution-lifecycle/{location_id}/adoption/programs/{program_id}/revise")
     async def revise_solution_adoption_program(request: Request, location_id: str, program_id: str):
@@ -1753,9 +3871,15 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
             return JSONResponse(status_code=503, content={"error": "Solution adoption program submission unavailable"}, headers={**headers, "Retry-After": "30"})
         return JSONResponse(jsonable_encoder(result), status_code=200 if result.get("replayed") else 201, headers=headers)
 
-    @router.get("/operator/api/solution-lifecycle/{location_id}/adoption/programs/review-queue")
+    @router.get(
+        "/operator/api/solution-lifecycle/{location_id}/adoption/programs/review-queue",
+        response_model=SolutionAdoptionProgramReviewQueueResponse,
+    )
     async def location_solution_adoption_program_review_queue(
-        request: Request, location_id: str, limit: str = "10", offset: str = "0"
+        request: Request,
+        location_id: str,
+        limit: int = Query(default=10, ge=1, le=25),
+        offset: int = Query(default=0, ge=0, le=_SOLUTION_LIFECYCLE_MAX_OFFSET),
     ):
         if provider is None:
             return JSONResponse(status_code=404, content={"error": "Operator OIDC is disabled"}, headers=headers)
@@ -1782,7 +3906,43 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
                 "Solution adoption program review queue unavailable (%s)", type(exc).__name__
             )
             return JSONResponse(status_code=503, content={"error": "Solution adoption program review queue unavailable"}, headers={**headers, "Retry-After": "30"})
-        return JSONResponse(jsonable_encoder(result), headers=headers)
+        try:
+            if not isinstance(result, dict):
+                raise ValueError("Adoption program review result is not an object")
+            page = {
+                **result,
+                "location_id": location_id,
+                "limit": limit,
+                "offset": offset,
+                "offset_limited": False,
+            }
+            next_offset = result.get("next_offset")
+            if result.get("has_more") is True and type(next_offset) is int and (
+                next_offset > _SOLUTION_LIFECYCLE_MAX_OFFSET
+            ):
+                programs = result.get("programs")
+                if (
+                    not isinstance(programs, list)
+                    or len(programs) != limit
+                    or next_offset != offset + len(programs)
+                ):
+                    raise ValueError("Adoption program continuation is inconsistent")
+                page["has_more"] = False
+                page["next_offset"] = None
+                page["offset_limited"] = True
+            validated = SolutionAdoptionProgramReviewQueueResponse.model_validate(page)
+        except (ValidationError, TypeError, ValueError) as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.solution_lifecycle").warning(
+                "Solution adoption program review response rejected (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=500,
+                content={"error": "Solution adoption program review queue unavailable"},
+                headers=headers,
+            )
+        return JSONResponse(jsonable_encoder(validated.model_dump(mode="python")), headers=headers)
 
     @router.post("/operator/api/solution-lifecycle/{location_id}/adoption/programs/{program_id}/review")
     async def review_solution_adoption_program(request: Request, location_id: str, program_id: str):
@@ -1881,9 +4041,12 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
             return JSONResponse(status_code=503, content={"error": "Solution adoption readiness submission unavailable"}, headers={**headers, "Retry-After": "30"})
         return JSONResponse(jsonable_encoder(result), status_code=200 if result.get("replayed") else 201, headers=headers)
 
-    @router.get("/operator/api/solution-lifecycle/{location_id}/adoption/readiness/review-queue")
+    @router.get(
+        "/operator/api/solution-lifecycle/{location_id}/adoption/readiness/review-queue",
+        response_model=SolutionAdopterReadinessReviewQueuePageResponse,
+    )
     async def solution_adopter_readiness_review_queue(
-        request: Request, location_id: str, limit: str = "25", offset: str = "0"
+        request: Request, location_id: str, limit: int = Query(default=25, ge=1, le=100), offset: int = Query(default=0, ge=0, le=10000)
     ):
         if provider is None:
             return JSONResponse(status_code=404, content={"error": "Operator OIDC is disabled"}, headers=headers)
@@ -1910,7 +4073,53 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
                 "Solution adoption readiness review queue unavailable (%s)", type(exc).__name__
             )
             return JSONResponse(status_code=503, content={"error": "Solution adoption readiness review queue unavailable"}, headers={**headers, "Retry-After": "30"})
-        return JSONResponse(jsonable_encoder(result), headers=headers)
+        try:
+            if not isinstance(result, dict) or set(result) != {
+                "assessments", "has_more", "next_offset",
+            }:
+                raise ValueError("Readiness review result fields are invalid")
+            assessments = result["assessments"]
+            has_more = result["has_more"]
+            next_offset = result["next_offset"]
+            if not isinstance(assessments, list) or type(has_more) is not bool:
+                raise ValueError("Readiness review result shape is invalid")
+            page = {
+                **result,
+                "location_id": location_id,
+                "limit": limit,
+                "offset": offset,
+                "offset_limited": False,
+            }
+            if has_more:
+                if (
+                    type(next_offset) is not int
+                    or next_offset != offset + len(assessments)
+                ):
+                    raise ValueError("Readiness review continuation is inconsistent")
+                if next_offset > _SOLUTION_LIFECYCLE_MAX_OFFSET:
+                    if len(assessments) != limit:
+                        raise ValueError("Readiness review offset-cap page is incomplete")
+                    page["has_more"] = False
+                    page["next_offset"] = None
+                    page["offset_limited"] = True
+            elif next_offset is not None:
+                raise ValueError("Terminal readiness review result has a cursor")
+            validated = SolutionAdopterReadinessReviewQueuePageResponse.model_validate(page)
+        except (ValidationError, TypeError, ValueError) as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.solution_lifecycle").warning(
+                "Solution adoption readiness review response rejected (%s)",
+                type(exc).__name__,
+            )
+            return JSONResponse(
+                status_code=500,
+                content={"error": "Solution adoption readiness review queue unavailable"},
+                headers=headers,
+            )
+        return JSONResponse(
+            jsonable_encoder(validated.model_dump(mode="python")), headers=headers
+        )
 
     @router.post("/operator/api/solution-lifecycle/{location_id}/adoption/readiness/{assessment_id}/review")
     async def review_solution_adopter_readiness(request: Request, location_id: str, assessment_id: str):
@@ -2011,9 +4220,12 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
             return JSONResponse(status_code=503, content={"error": "Solution configuration draft creation unavailable"}, headers={**headers, "Retry-After": "30"})
         return JSONResponse(jsonable_encoder(result), status_code=200 if result.get("replayed") else 201, headers=headers)
 
-    @router.get("/operator/api/solution-lifecycle/{location_id}/adoption/configurations/drafts")
+    @router.get(
+        "/operator/api/solution-lifecycle/{location_id}/adoption/configurations/drafts",
+        response_model=SolutionConfigurationDraftPageResponse,
+    )
     async def location_solution_configuration_drafts(
-        request: Request, location_id: str, limit: str = "10", offset: str = "0"
+        request: Request, location_id: str, limit: int = Query(default=10, ge=1, le=25), offset: int = Query(default=0, ge=0, le=10000)
     ):
         if provider is None:
             return JSONResponse(status_code=404, content={"error": "Operator OIDC is disabled"}, headers=headers)
@@ -2040,7 +4252,53 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
                 "Solution configuration draft list unavailable (%s)", type(exc).__name__
             )
             return JSONResponse(status_code=503, content={"error": "Solution configuration draft list unavailable"}, headers={**headers, "Retry-After": "30"})
-        return JSONResponse(jsonable_encoder(result), headers=headers)
+        try:
+            if not isinstance(result, dict) or set(result) != {
+                "drafts", "has_more", "next_offset",
+            }:
+                raise ValueError("Configuration draft result fields are invalid")
+            drafts = result["drafts"]
+            has_more = result["has_more"]
+            next_offset = result["next_offset"]
+            if not isinstance(drafts, list) or type(has_more) is not bool:
+                raise ValueError("Configuration draft result shape is invalid")
+            page = {
+                **result,
+                "location_id": location_id,
+                "limit": limit,
+                "offset": offset,
+                "offset_limited": False,
+            }
+            if has_more:
+                if (
+                    type(next_offset) is not int
+                    or next_offset != offset + len(drafts)
+                ):
+                    raise ValueError("Configuration draft continuation is inconsistent")
+                if next_offset > _SOLUTION_LIFECYCLE_MAX_OFFSET:
+                    if len(drafts) != limit:
+                        raise ValueError("Configuration draft offset-cap page is incomplete")
+                    page["has_more"] = False
+                    page["next_offset"] = None
+                    page["offset_limited"] = True
+            elif next_offset is not None:
+                raise ValueError("Terminal configuration draft result has a cursor")
+            validated = SolutionConfigurationDraftPageResponse.model_validate(page)
+        except (ValidationError, TypeError, ValueError) as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.solution_lifecycle").warning(
+                "Solution configuration draft response rejected (%s)",
+                type(exc).__name__,
+            )
+            return JSONResponse(
+                status_code=500,
+                content={"error": "Solution configuration draft list unavailable"},
+                headers=headers,
+            )
+        return JSONResponse(
+            jsonable_encoder(validated.model_dump(mode="python")), headers=headers
+        )
 
     @router.post("/operator/api/solution-lifecycle/{location_id}/adoption/configurations/{configuration_id}/submit")
     async def submit_solution_configuration(request: Request, location_id: str, configuration_id: str):
@@ -2083,9 +4341,12 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
             return JSONResponse(status_code=503, content={"error": "Solution configuration submission unavailable"}, headers={**headers, "Retry-After": "30"})
         return JSONResponse(jsonable_encoder(result), status_code=200 if result.get("replayed") else 201, headers=headers)
 
-    @router.get("/operator/api/solution-lifecycle/{location_id}/adoption/configurations/review-queue")
+    @router.get(
+        "/operator/api/solution-lifecycle/{location_id}/adoption/configurations/review-queue",
+        response_model=SolutionConfigurationReviewQueuePageResponse,
+    )
     async def location_solution_configuration_review_queue(
-        request: Request, location_id: str, limit: str = "10", offset: str = "0"
+        request: Request, location_id: str, limit: int = Query(default=10, ge=1, le=25), offset: int = Query(default=0, ge=0, le=10000)
     ):
         if provider is None:
             return JSONResponse(status_code=404, content={"error": "Operator OIDC is disabled"}, headers=headers)
@@ -2112,7 +4373,53 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
                 "Solution configuration review queue unavailable (%s)", type(exc).__name__
             )
             return JSONResponse(status_code=503, content={"error": "Solution configuration review queue unavailable"}, headers={**headers, "Retry-After": "30"})
-        return JSONResponse(jsonable_encoder(result), headers=headers)
+        try:
+            if not isinstance(result, dict) or set(result) != {
+                "configurations", "has_more", "next_offset",
+            }:
+                raise ValueError("Configuration review result fields are invalid")
+            configurations = result["configurations"]
+            has_more = result["has_more"]
+            next_offset = result["next_offset"]
+            if not isinstance(configurations, list) or type(has_more) is not bool:
+                raise ValueError("Configuration review result shape is invalid")
+            page = {
+                **result,
+                "location_id": location_id,
+                "limit": limit,
+                "offset": offset,
+                "offset_limited": False,
+            }
+            if has_more:
+                if (
+                    type(next_offset) is not int
+                    or next_offset != offset + len(configurations)
+                ):
+                    raise ValueError("Configuration review continuation is inconsistent")
+                if next_offset > _SOLUTION_LIFECYCLE_MAX_OFFSET:
+                    if len(configurations) != limit:
+                        raise ValueError("Configuration review offset-cap page is incomplete")
+                    page["has_more"] = False
+                    page["next_offset"] = None
+                    page["offset_limited"] = True
+            elif next_offset is not None:
+                raise ValueError("Terminal configuration review result has a cursor")
+            validated = SolutionConfigurationReviewQueuePageResponse.model_validate(page)
+        except (ValidationError, TypeError, ValueError) as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.solution_lifecycle").warning(
+                "Solution configuration review response rejected (%s)",
+                type(exc).__name__,
+            )
+            return JSONResponse(
+                status_code=500,
+                content={"error": "Solution configuration review queue unavailable"},
+                headers=headers,
+            )
+        return JSONResponse(
+            jsonable_encoder(validated.model_dump(mode="python")), headers=headers
+        )
 
     @router.post("/operator/api/solution-lifecycle/{location_id}/adoption/configurations/{configuration_id}/review")
     async def review_solution_configuration(request: Request, location_id: str, configuration_id: str):
@@ -2163,8 +4470,8 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
     async def location_solution_lifecycle_adoption(
         request: Request,
         location_id: str,
-        limit: str = "25",
-        offset: str = "0",
+        limit: int = Query(default=25, ge=1, le=50),
+        offset: int = Query(default=0, ge=0, le=10000),
     ):
         if provider is None:
             return JSONResponse(
@@ -2210,7 +4517,8 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
         return JSONResponse(jsonable_encoder(result), headers=headers)
 
     @router.get(
-        "/operator/api/solution-lifecycle/{location_id}/adoption/{program_id}/events"
+        "/operator/api/solution-lifecycle/{location_id}/adoption/{program_id}/events",
+        response_model=SolutionAdoptionEventSummaryResponse,
     )
     async def location_solution_lifecycle_adoption_event_summary(
         request: Request, location_id: str, program_id: str
@@ -2268,7 +4576,28 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
                 content={"error": "Solution adoption event summary unavailable"},
                 headers={**headers, "Retry-After": "30"},
             )
-        return JSONResponse(jsonable_encoder(result), headers=headers)
+        try:
+            validated = SolutionAdoptionEventSummaryResponse.model_validate(result)
+            if (
+                validated.location_id != UUID(location_id)
+                or validated.program_id != UUID(program_id)
+            ):
+                raise ValueError("Adoption event summary does not match request scope")
+        except (ValidationError, ValueError, TypeError) as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.solution_lifecycle").warning(
+                "Solution adoption event summary response rejected (%s)",
+                type(exc).__name__,
+            )
+            return JSONResponse(
+                status_code=500,
+                content={"error": "Solution adoption event summary unavailable"},
+                headers=headers,
+            )
+        return JSONResponse(
+            jsonable_encoder(validated.model_dump(mode="python")), headers=headers
+        )
 
     @router.post(
         "/operator/api/solution-lifecycle/{location_id}/adoption/programs/{program_id}/events"
@@ -2362,8 +4691,8 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
     async def location_solution_scale_gates(
         request: Request,
         location_id: str,
-        limit: str = "25",
-        offset: str = "0",
+        limit: int = Query(default=25, ge=1, le=50),
+        offset: int = Query(default=0, ge=0, le=10000),
     ):
         if provider is None:
             return JSONResponse(
@@ -2409,13 +4738,14 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
         return JSONResponse(jsonable_encoder(result), headers=headers)
 
     @router.get(
-        "/operator/api/solution-lifecycle/{location_id}/scale-gates/assessment-targets"
+        "/operator/api/solution-lifecycle/{location_id}/scale-gates/assessment-targets",
+        response_model=SolutionScaleGateAssessmentTargetsPageResponse,
     )
     async def location_solution_scale_gate_assessment_targets(
         request: Request,
         location_id: str,
-        limit: str = "25",
-        offset: str = "0",
+        limit: int = Query(default=25, ge=1, le=50),
+        offset: int = Query(default=0, ge=0, le=10000),
     ):
         if provider is None:
             return JSONResponse(status_code=404, content={"error": "Operator OIDC is disabled"}, headers=headers)
@@ -2442,7 +4772,37 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
                 "Scale-gate assessment targets unavailable (%s)", type(exc).__name__
             )
             return JSONResponse(status_code=503, content={"error": "Scale-gate assessment targets unavailable"}, headers={**headers, "Retry-After": "30"})
-        return JSONResponse(jsonable_encoder(result), headers=headers)
+        try:
+            validated = SolutionScaleGateAssessmentTargetsPageResponse.model_validate(
+                result
+            )
+            if (
+                validated.location_id != UUID(location_id)
+                or validated.offset != offset
+                or len(validated.targets) > limit
+                or (
+                    validated.has_more
+                    and (
+                        len(validated.targets) != limit
+                        or validated.next_offset != offset + limit
+                    )
+                )
+            ):
+                raise ValueError("Scale-gate targets do not match request scope or bounds")
+        except (ValidationError, TypeError, ValueError) as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.solution_lifecycle").warning(
+                "Scale-gate target response rejected (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=500,
+                content={"error": "Scale-gate assessment targets unavailable"},
+                headers=headers,
+            )
+        return JSONResponse(
+            jsonable_encoder(validated.model_dump(mode="python")), headers=headers
+        )
 
     @router.post(
         "/operator/api/solution-lifecycle/{location_id}/scale-gates/{gate_id}/evaluations"
@@ -2505,8 +4865,8 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
     async def location_solution_scale_gate_review_queue(
         request: Request,
         location_id: str,
-        limit: str = "25",
-        offset: str = "0",
+        limit: int = Query(default=25, ge=1, le=50),
+        offset: int = Query(default=0, ge=0, le=10000),
     ):
         if provider is None:
             return JSONResponse(status_code=404, content={"error": "Operator OIDC is disabled"}, headers=headers)
@@ -2536,7 +4896,8 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
         return JSONResponse(jsonable_encoder(result), headers=headers)
 
     @router.get(
-        "/operator/api/solution-lifecycle/{location_id}/scale-gates/review/{assessment_id}"
+        "/operator/api/solution-lifecycle/{location_id}/scale-gates/review/{assessment_id}",
+        response_model=SolutionScaleGateReviewDetailResponse,
     )
     async def location_solution_scale_gate_review_detail(
         request: Request, location_id: str, assessment_id: str
@@ -2567,7 +4928,27 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
                 "Scale-gate review detail unavailable (%s)", type(exc).__name__
             )
             return JSONResponse(status_code=503, content={"error": "Scale-gate review detail unavailable"}, headers={**headers, "Retry-After": "30"})
-        return JSONResponse(jsonable_encoder(result), headers=headers)
+        try:
+            validated = SolutionScaleGateReviewDetailResponse.model_validate(result)
+            if (
+                validated.location_id != UUID(location_id)
+                or validated.assessment_id != UUID(assessment_id)
+            ):
+                raise ValueError("Scale-gate review detail does not match request scope")
+        except (ValidationError, ValueError, TypeError) as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.solution_lifecycle").warning(
+                "Scale-gate review detail response rejected (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=500,
+                content={"error": "Scale-gate review detail unavailable"},
+                headers=headers,
+            )
+        return JSONResponse(
+            jsonable_encoder(validated.model_dump(mode="python")), headers=headers
+        )
 
     @router.post(
         "/operator/api/solution-lifecycle/{location_id}/scale-gates/review/{assessment_id}"
@@ -2625,8 +5006,8 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
     async def location_solution_replications(
         request: Request,
         location_id: str,
-        limit: str = "25",
-        offset: str = "0",
+        limit: int = Query(default=25, ge=1, le=50),
+        offset: int = Query(default=0, ge=0, le=10000),
     ):
         if provider is None:
             return JSONResponse(
@@ -2675,8 +5056,8 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
     async def location_solution_replication_review_queue(
         request: Request,
         location_id: str,
-        limit: str = "25",
-        offset: str = "0",
+        limit: int = Query(default=25, ge=1, le=50),
+        offset: int = Query(default=0, ge=0, le=10000),
     ):
         if provider is None:
             return JSONResponse(
@@ -2713,7 +5094,10 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
             )
         return JSONResponse(jsonable_encoder(result), headers=headers)
 
-    @router.get("/operator/api/solution-lifecycle/{location_id}/replications/{replication_id}/review")
+    @router.get(
+        "/operator/api/solution-lifecycle/{location_id}/replications/{replication_id}/review",
+        response_model=SolutionLifecycleReplicationReviewDetailResponse,
+    )
     async def location_solution_replication_review_detail(
         request: Request, location_id: str, replication_id: str
     ):
@@ -2751,7 +5135,25 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
                 content={"error": "Solution replication review detail unavailable"},
                 headers={**headers, "Retry-After": "30"},
             )
-        return JSONResponse(jsonable_encoder(result), headers=headers)
+        try:
+            validated = SolutionLifecycleReplicationReviewDetailResponse.model_validate(result)
+            if validated.replication_id != UUID(replication_id):
+                raise ValueError("Replication review detail does not match request ID")
+        except (ValidationError, ValueError, TypeError) as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.solution_lifecycle").warning(
+                "Solution replication review detail response rejected (%s)",
+                type(exc).__name__,
+            )
+            return JSONResponse(
+                status_code=500,
+                content={"error": "Solution replication review detail unavailable"},
+                headers=headers,
+            )
+        return JSONResponse(
+            jsonable_encoder(validated.model_dump(mode="python")), headers=headers
+        )
 
     @router.post("/operator/api/solution-lifecycle/{location_id}/replications/{replication_id}/review")
     async def review_solution_replication(request: Request, location_id: str, replication_id: str):
@@ -2816,8 +5218,8 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
     async def location_solution_replication_completion_review_queue(
         request: Request,
         location_id: str,
-        limit: str = "25",
-        offset: str = "0",
+        limit: int = Query(default=25, ge=1, le=50),
+        offset: int = Query(default=0, ge=0, le=10000),
     ):
         if provider is None:
             return JSONResponse(
@@ -2855,7 +5257,8 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
         return JSONResponse(jsonable_encoder(result), headers=headers)
 
     @router.get(
-        "/operator/api/solution-lifecycle/{location_id}/replications/{replication_id}/completion-proposals/{proposal_id}/review"
+        "/operator/api/solution-lifecycle/{location_id}/replications/{replication_id}/completion-proposals/{proposal_id}/review",
+        response_model=SolutionLifecycleReplicationCompletionReviewDetailResponse,
     )
     async def location_solution_replication_completion_review_detail(
         request: Request,
@@ -2898,7 +5301,28 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
                 content={"error": "Replication completion review detail unavailable"},
                 headers={**headers, "Retry-After": "30"},
             )
-        return JSONResponse(jsonable_encoder(result), headers=headers)
+        try:
+            validated = SolutionLifecycleReplicationCompletionReviewDetailResponse.model_validate(result)
+            if (
+                validated.replication_id != UUID(replication_id)
+                or validated.proposal_id != UUID(proposal_id)
+            ):
+                raise ValueError("Completion review detail does not match request IDs")
+        except (ValidationError, ValueError, TypeError) as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.solution_lifecycle").warning(
+                "Replication completion review detail response rejected (%s)",
+                type(exc).__name__,
+            )
+            return JSONResponse(
+                status_code=500,
+                content={"error": "Replication completion review detail unavailable"},
+                headers=headers,
+            )
+        return JSONResponse(
+            jsonable_encoder(validated.model_dump(mode="python")), headers=headers
+        )
 
     @router.post(
         "/operator/api/solution-lifecycle/{location_id}/replications/{replication_id}/completion-proposals/{proposal_id}/review"
@@ -3122,8 +5546,8 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
     async def location_solution_learning(
         request: Request,
         location_id: str,
-        limit: str = "25",
-        offset: str = "0",
+        limit: int = Query(default=25, ge=1, le=50),
+        offset: int = Query(default=0, ge=0, le=10000),
     ):
         if provider is None:
             return JSONResponse(
@@ -3260,8 +5684,8 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
     async def location_solution_learning_application_queue(
         request: Request,
         location_id: str,
-        limit: str = "25",
-        offset: str = "0",
+        limit: int = Query(default=25, ge=1, le=50),
+        offset: int = Query(default=0, ge=0, le=10000),
     ):
         if provider is None:
             return JSONResponse(
@@ -3365,8 +5789,8 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
     async def location_solution_learning_review_queue(
         request: Request,
         location_id: str,
-        limit: str = "25",
-        offset: str = "0",
+        limit: int = Query(default=25, ge=1, le=50),
+        offset: int = Query(default=0, ge=0, le=10000),
     ):
         if provider is None:
             return JSONResponse(
@@ -3404,7 +5828,8 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
         return JSONResponse(jsonable_encoder(result), headers=headers)
 
     @router.get(
-        "/operator/api/solution-lifecycle/{location_id}/learning/{learning_record_id}/review"
+        "/operator/api/solution-lifecycle/{location_id}/learning/{learning_record_id}/review",
+        response_model=SolutionLifecycleLearningReviewDetailResponse,
     )
     async def location_solution_learning_review_detail(
         request: Request, location_id: str, learning_record_id: str
@@ -3443,7 +5868,27 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
                 content={"error": "Solution learning review detail unavailable"},
                 headers={**headers, "Retry-After": "30"},
             )
-        return JSONResponse(jsonable_encoder(result), headers=headers)
+        try:
+            validated = SolutionLifecycleLearningReviewDetailResponse.model_validate(result)
+            if (
+                validated.location_id != UUID(location_id)
+                or validated.learning_record_id != UUID(learning_record_id)
+            ):
+                raise ValueError("Learning review detail does not match request scope")
+        except (ValidationError, ValueError, TypeError) as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.solution_lifecycle").warning(
+                "Solution learning review detail response rejected (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=500,
+                content={"error": "Solution learning review detail unavailable"},
+                headers=headers,
+            )
+        return JSONResponse(
+            jsonable_encoder(validated.model_dump(mode="python")), headers=headers
+        )
 
     @router.post(
         "/operator/api/solution-lifecycle/{location_id}/learning/{learning_record_id}/review"
@@ -3599,8 +6044,8 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
     async def location_solution_retirements(
         request: Request,
         location_id: str,
-        limit: str = "25",
-        offset: str = "0",
+        limit: int = Query(default=25, ge=1, le=50),
+        offset: int = Query(default=0, ge=0, le=10000),
     ):
         if provider is None:
             return JSONResponse(
@@ -3645,12 +6090,15 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
             )
         return JSONResponse(jsonable_encoder(result), headers=headers)
 
-    @router.get("/operator/api/solution-lifecycle/{location_id}/retirement-candidates")
+    @router.get(
+        "/operator/api/solution-lifecycle/{location_id}/retirement-candidates",
+        response_model=SolutionRetirementCandidatesResponse,
+    )
     async def location_solution_retirement_candidates(
         request: Request,
         location_id: str,
-        limit: str = "25",
-        offset: str = "0",
+        limit: int = Query(default=25, ge=1, le=50),
+        offset: int = Query(default=0, ge=0, le=10000),
     ):
         if provider is None:
             return JSONResponse(
@@ -3693,14 +6141,34 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
                 content={"error": "Solution retirement candidate read unavailable"},
                 headers={**headers, "Retry-After": "30"},
             )
+        try:
+            page = SolutionRetirementCandidatesResponse.model_validate(result)
+            if (
+                page.location_id != UUID(location_id)
+                or page.offset != offset
+                or len(page.solutions) > limit
+                or (page.has_more and len(page.solutions) != limit)
+            ):
+                raise ValueError("Retirement candidate page does not match request bounds")
+        except (ValidationError, ValueError, TypeError) as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.solution_lifecycle").warning(
+                "Solution retirement candidate response rejected (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=500,
+                content={"error": "Solution retirement candidate read unavailable"},
+                headers=headers,
+            )
         return JSONResponse(jsonable_encoder(result), headers=headers)
 
     @router.get("/operator/api/solution-lifecycle/{location_id}/retirements/review")
     async def location_solution_retirement_review_queue(
         request: Request,
         location_id: str,
-        limit: str = "25",
-        offset: str = "0",
+        limit: int = Query(default=25, ge=1, le=50),
+        offset: int = Query(default=0, ge=0, le=10000),
     ):
         if provider is None:
             return JSONResponse(
@@ -3746,7 +6214,8 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
         return JSONResponse(jsonable_encoder(result), headers=headers)
 
     @router.get(
-        "/operator/api/solution-lifecycle/{location_id}/retirements/review/{retirement_id}"
+        "/operator/api/solution-lifecycle/{location_id}/retirements/review/{retirement_id}",
+        response_model=SolutionLifecycleRetirementReviewDetailResponse,
     )
     async def location_solution_retirement_review_detail(
         request: Request, location_id: str, retirement_id: str
@@ -3803,7 +6272,28 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
                 content={"error": "Solution retirement review detail unavailable"},
                 headers={**headers, "Retry-After": "30"},
             )
-        return JSONResponse(jsonable_encoder(result), headers=headers)
+        try:
+            validated = SolutionLifecycleRetirementReviewDetailResponse.model_validate(result)
+            if (
+                validated.location_id != UUID(location_id)
+                or validated.retirement_id != UUID(retirement_id)
+            ):
+                raise ValueError("Retirement review detail does not match request IDs")
+        except (ValidationError, ValueError, TypeError) as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.solution_lifecycle").warning(
+                "Solution retirement review detail response rejected (%s)",
+                type(exc).__name__,
+            )
+            return JSONResponse(
+                status_code=500,
+                content={"error": "Solution retirement review detail unavailable"},
+                headers=headers,
+            )
+        return JSONResponse(
+            jsonable_encoder(validated.model_dump(mode="python")), headers=headers
+        )
 
     @router.post(
         "/operator/api/solution-lifecycle/{location_id}/solutions/{solution_id}/retirements"
@@ -4055,8 +6545,8 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
     async def location_solution_lifecycle_funding(
         request: Request,
         location_id: str,
-        limit: str = "25",
-        offset: str = "0",
+        limit: int = Query(default=25, ge=1, le=50),
+        offset: int = Query(default=0, ge=0, le=10000),
     ):
         if provider is None:
             return JSONResponse(
@@ -4101,12 +6591,15 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
             )
         return JSONResponse(jsonable_encoder(result), headers=headers)
 
-    @router.get("/operator/api/solution-lifecycle/{location_id}/funding/targets")
+    @router.get(
+        "/operator/api/solution-lifecycle/{location_id}/funding/targets",
+        response_model=SolutionLifecycleFundingTargetsPageResponse,
+    )
     async def location_solution_funding_targets(
         request: Request,
         location_id: str,
-        limit: str = "25",
-        offset: str = "0",
+        limit: int = Query(default=25, ge=1, le=50),
+        offset: int = Query(default=0, ge=0, le=10000),
     ):
         if provider is None:
             return JSONResponse(
@@ -4149,14 +6642,41 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
                 content={"error": "Solution funding targets unavailable"},
                 headers={**headers, "Retry-After": "30"},
             )
-        return JSONResponse(jsonable_encoder(result), headers=headers)
+        try:
+            validated = SolutionLifecycleFundingTargetsPageResponse.model_validate(result)
+            expected_location = UUID(location_id)
+            expected_next_offset = offset + limit if validated.has_more else None
+            if (
+                validated.location_id != expected_location
+                or validated.offset != offset
+                or validated.next_offset != expected_next_offset
+                or len(validated.solutions) > limit
+            ):
+                raise ValueError("Funding-target response does not match request bounds")
+        except (ValidationError, ValueError) as exc:
+            from services.common.logging import get_logger
 
-    @router.get("/operator/api/solution-lifecycle/{location_id}/funding/review")
+            get_logger("gateway.solution_lifecycle").warning(
+                "Solution funding target response rejected (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=500,
+                content={"error": "Solution funding targets unavailable"},
+                headers=headers,
+            )
+        return JSONResponse(
+            jsonable_encoder(validated.model_dump(mode="python")), headers=headers
+        )
+
+    @router.get(
+        "/operator/api/solution-lifecycle/{location_id}/funding/review",
+        response_model=SolutionLifecycleFundingReviewQueueResponse,
+    )
     async def location_solution_funding_review_queue(
         request: Request,
         location_id: str,
-        limit: str = "25",
-        offset: str = "0",
+        limit: int = Query(default=25, ge=1, le=50),
+        offset: int = Query(default=0, ge=0, le=10000),
     ):
         if provider is None:
             return JSONResponse(
@@ -4199,10 +6719,38 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
                 content={"error": "Solution funding review queue unavailable"},
                 headers={**headers, "Retry-After": "30"},
             )
-        return JSONResponse(jsonable_encoder(result), headers=headers)
+        try:
+            validated = SolutionLifecycleFundingReviewQueueResponse.model_validate(
+                result
+            )
+            expected_next_offset = offset + limit if validated.has_more else None
+            if (
+                validated.location_id != UUID(location_id)
+                or validated.offset != offset
+                or len(validated.funding_cases) > limit
+                or validated.next_offset != expected_next_offset
+                or (validated.has_more and len(validated.funding_cases) != limit)
+            ):
+                raise ValueError("Funding review page does not match request bounds")
+        except (ValidationError, ValueError) as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.solution_lifecycle").warning(
+                "Solution funding review queue response rejected (%s)",
+                type(exc).__name__,
+            )
+            return JSONResponse(
+                status_code=500,
+                content={"error": "Solution funding review queue unavailable"},
+                headers=headers,
+            )
+        return JSONResponse(
+            jsonable_encoder(validated.model_dump(mode="python")), headers=headers
+        )
 
     @router.get(
-        "/operator/api/solution-lifecycle/{location_id}/funding/{funding_case_id}/review"
+        "/operator/api/solution-lifecycle/{location_id}/funding/{funding_case_id}/review",
+        response_model=SolutionLifecycleFundingReviewDetailResponse,
     )
     async def location_solution_funding_review_detail(
         request: Request, location_id: str, funding_case_id: str
@@ -4252,10 +6800,30 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
                 content={"error": "Solution funding review detail unavailable"},
                 headers={**headers, "Retry-After": "30"},
             )
-        return JSONResponse(jsonable_encoder(result), headers=headers)
+        try:
+            validated = SolutionLifecycleFundingReviewDetailResponse.model_validate(
+                result
+            )
+            if validated.funding_case_id != UUID(funding_case_id):
+                raise ValueError("Funding review response does not match request")
+        except (ValidationError, ValueError) as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.solution_lifecycle").warning(
+                "Solution funding review detail rejected (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=500,
+                content={"error": "Solution funding review detail unavailable"},
+                headers=headers,
+            )
+        return JSONResponse(
+            jsonable_encoder(validated.model_dump(mode="python")), headers=headers
+        )
 
     @router.get(
-        "/operator/api/solution-lifecycle/{location_id}/funding/{funding_case_id}/tranches/{tranche_id}/review"
+        "/operator/api/solution-lifecycle/{location_id}/funding/{funding_case_id}/tranches/{tranche_id}/review",
+        response_model=SolutionLifecycleFundingTrancheReviewDetailResponse,
     )
     async def location_solution_funding_tranche_review_detail(
         request: Request, location_id: str, funding_case_id: str, tranche_id: str
@@ -4296,10 +6864,52 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
                 "Solution funding tranche review unavailable (%s)", type(exc).__name__
             )
             return JSONResponse(status_code=503, content={"error": "Solution funding tranche review unavailable"}, headers={**headers, "Retry-After": "30"})
-        return JSONResponse(jsonable_encoder(result), headers=headers)
+        try:
+            validated = SolutionLifecycleFundingTrancheReviewDetailResponse.model_validate(
+                result
+            )
+            if (
+                validated.funding_case_id != UUID(funding_case_id)
+                or validated.tranche_id != UUID(tranche_id)
+            ):
+                raise ValueError("Funding tranche review response does not match request")
+        except (ValidationError, ValueError) as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.solution_lifecycle").warning(
+                "Solution funding tranche review response rejected (%s)",
+                type(exc).__name__,
+            )
+            return JSONResponse(
+                status_code=500,
+                content={"error": "Solution funding tranche review unavailable"},
+                headers=headers,
+            )
+        return JSONResponse(
+            jsonable_encoder(validated.model_dump(mode="python")), headers=headers
+        )
 
     @router.post(
-        "/operator/api/solution-lifecycle/{location_id}/funding/{funding_case_id}/approve"
+        "/operator/api/solution-lifecycle/{location_id}/funding/{funding_case_id}/approve",
+        response_model=SolutionLifecycleFundingApprovalResponse,
+        responses={
+            200: {
+                "model": SolutionLifecycleFundingApprovalResponse,
+                "description": "An exact retry replayed the prior funding approval.",
+                "headers": {
+                    "Cache-Control": {"schema": {"type": "string", "example": "no-store"}},
+                    "Vary": {"schema": {"type": "string", "example": "Cookie"}},
+                },
+            },
+            201: {
+                "model": SolutionLifecycleFundingApprovalResponse,
+                "description": "An independent human approved the submitted funding case.",
+                "headers": {
+                    "Cache-Control": {"schema": {"type": "string", "example": "no-store"}},
+                    "Vary": {"schema": {"type": "string", "example": "Cookie"}},
+                },
+            },
+        },
     )
     async def approve_solution_funding(
         request: Request, location_id: str, funding_case_id: str
@@ -4365,9 +6975,24 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
                 content={"error": "Solution funding approval unavailable"},
                 headers={**headers, "Retry-After": "30"},
             )
+        try:
+            validated = SolutionLifecycleFundingApprovalResponse.model_validate(result)
+            if validated.funding_case_id != UUID(funding_case_id):
+                raise ValueError("Funding approval does not match the requested case")
+        except (ValidationError, TypeError, ValueError) as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.solution_lifecycle").warning(
+                "Solution funding approval response rejected (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=500,
+                content={"error": "Solution funding approval unavailable"},
+                headers=headers,
+            )
         return JSONResponse(
-            jsonable_encoder(result),
-            status_code=200 if result.get("replayed") else 201,
+            jsonable_encoder(validated.model_dump(mode="python")),
+            status_code=200 if validated.replayed else 201,
             headers=headers,
         )
 
@@ -4597,12 +7222,15 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
             )
         return JSONResponse(jsonable_encoder(result), headers=headers)
 
-    @router.get("/operator/api/solution-lifecycle/{location_id}/gates")
+    @router.get(
+        "/operator/api/solution-lifecycle/{location_id}/gates",
+        response_model=SolutionLifecycleGatePageResponse,
+    )
     async def location_solution_lifecycle_gates(
         request: Request,
         location_id: str,
-        limit: str = "25",
-        offset: str = "0",
+        limit: int = Query(default=25, ge=1, le=50),
+        offset: int = Query(default=0, ge=0, le=10000),
     ):
         if provider is None:
             return JSONResponse(
@@ -4645,16 +7273,52 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
                 content={"error": "Solution lifecycle gates unavailable"},
                 headers={**headers, "Retry-After": "30"},
             )
-        return JSONResponse(jsonable_encoder(result), headers=headers)
+        except Exception as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.solution_lifecycle").warning(
+                "Solution lifecycle gates unavailable (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=503,
+                content={"error": "Solution lifecycle gates unavailable"},
+                headers={**headers, "Retry-After": "30"},
+            )
+        try:
+            validated = SolutionLifecycleGatePageResponse.model_validate(result)
+            expected_location = UUID(location_id)
+            expected_next_offset = offset + limit if validated.has_more else None
+            if (
+                validated.location_id != expected_location
+                or validated.offset != offset
+                or validated.next_offset != expected_next_offset
+                or len(validated.gates) > limit
+            ):
+                raise ValueError("Solution gate response does not match request bounds")
+        except (ValidationError, ValueError) as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.solution_lifecycle").warning(
+                "Solution lifecycle gate response rejected (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=500,
+                content={"error": "Solution lifecycle gates unavailable"},
+                headers=headers,
+            )
+        return JSONResponse(
+            jsonable_encoder(validated.model_dump(mode="python")), headers=headers
+        )
 
     @router.get(
-        "/operator/api/solution-lifecycle/{location_id}/stage-transition-targets"
+        "/operator/api/solution-lifecycle/{location_id}/stage-transition-targets",
+        response_model=SolutionLifecycleStageTransitionTargetPageResponse,
     )
     async def location_solution_stage_transition_targets(
         request: Request,
         location_id: str,
-        limit: str = "25",
-        offset: str = "0",
+        limit: int = Query(default=25, ge=1, le=50),
+        offset: int = Query(default=0, ge=0, le=10000),
     ):
         if provider is None:
             return JSONResponse(
@@ -4697,14 +7361,46 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
                 content={"error": "Solution stage-transition targets unavailable"},
                 headers={**headers, "Retry-After": "30"},
             )
-        return JSONResponse(jsonable_encoder(result), headers=headers)
+        try:
+            validated = SolutionLifecycleStageTransitionTargetPageResponse.model_validate(
+                result
+            )
+            expected_location = UUID(location_id)
+            expected_next_offset = offset + limit if validated.has_more else None
+            if (
+                validated.location_id != expected_location
+                or validated.offset != offset
+                or validated.next_offset != expected_next_offset
+                or len(validated.solutions) > limit
+            ):
+                raise ValueError(
+                    "Stage-transition target response does not match request bounds"
+                )
+        except (ValidationError, ValueError) as exc:
+            from services.common.logging import get_logger
 
-    @router.get("/operator/api/solution-lifecycle/{location_id}/experiments")
+            get_logger("gateway.solution_lifecycle").warning(
+                "Solution stage-transition target response rejected (%s)",
+                type(exc).__name__,
+            )
+            return JSONResponse(
+                status_code=500,
+                content={"error": "Solution stage-transition targets unavailable"},
+                headers=headers,
+            )
+        return JSONResponse(
+            jsonable_encoder(validated.model_dump(mode="python")), headers=headers
+        )
+
+    @router.get(
+        "/operator/api/solution-lifecycle/{location_id}/experiments",
+        response_model=SolutionLifecycleExperimentPageResponse,
+    )
     async def location_solution_lifecycle_experiments(
         request: Request,
         location_id: str,
-        limit: str = "25",
-        offset: str = "0",
+        limit: int = Query(default=25, ge=1, le=50),
+        offset: int = Query(default=0, ge=0, le=10000),
     ):
         if provider is None:
             return JSONResponse(
@@ -4747,4 +7443,29 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
                 content={"error": "Solution lifecycle experiments unavailable"},
                 headers={**headers, "Retry-After": "30"},
             )
-        return JSONResponse(jsonable_encoder(result), headers=headers)
+        try:
+            validated = SolutionLifecycleExperimentPageResponse.model_validate(result)
+            expected_location = UUID(location_id)
+            expected_next_offset = offset + limit if validated.has_more else None
+            if (
+                validated.location_id != expected_location
+                or validated.offset != offset
+                or validated.next_offset != expected_next_offset
+                or len(validated.experiments) > limit
+            ):
+                raise ValueError("Solution experiment response does not match request bounds")
+        except (ValidationError, ValueError) as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.solution_lifecycle").warning(
+                "Solution lifecycle experiment response rejected (%s)",
+                type(exc).__name__,
+            )
+            return JSONResponse(
+                status_code=500,
+                content={"error": "Solution lifecycle experiments unavailable"},
+                headers=headers,
+            )
+        return JSONResponse(
+            jsonable_encoder(validated.model_dump(mode="python")), headers=headers
+        )

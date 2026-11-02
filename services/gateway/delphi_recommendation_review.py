@@ -95,7 +95,7 @@ def list_location_delphi_recommendation_reviews(
             "location_id": location_id,
             "offset": page_offset,
             "recommendations": reviews,
-            "has_more": len(rows) > page_size,
+            "has_more": len(rows) > page_size and page_offset + page_size <= 10_000,
         }
     except Exception:
         connection.rollback()

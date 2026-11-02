@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import math
 import sys
 
 from services.analytics.stakeholders import (
@@ -21,6 +22,17 @@ from services.common.database import get_db
 
 def _out(data):
     print_json(data)
+
+
+def _salience_score(value: str) -> float:
+    """Parse a finite stakeholder salience score before opening the database."""
+    try:
+        score = float(value)
+    except ValueError as exc:
+        raise argparse.ArgumentTypeError("score must be a number between 0 and 10") from exc
+    if not math.isfinite(score) or score < 0 or score > 10:
+        raise argparse.ArgumentTypeError("score must be a finite number between 0 and 10")
+    return score
 
 
 def main():
@@ -98,12 +110,12 @@ def main():
     salience = sub.add_parser("salience")
     salience.add_argument("party_id")
     salience.add_argument("--interest-id")
-    salience.add_argument("--power", type=float, default=0)
-    salience.add_argument("--legitimacy-score", type=float, default=0)
-    salience.add_argument("--urgency", type=float, default=0)
-    salience.add_argument("--vulnerability", type=float, default=0)
-    salience.add_argument("--harm-exposure", type=float, default=0)
-    salience.add_argument("--representation", type=float, default=0)
+    salience.add_argument("--power", type=_salience_score, default=0)
+    salience.add_argument("--legitimacy-score", type=_salience_score, default=0)
+    salience.add_argument("--urgency", type=_salience_score, default=0)
+    salience.add_argument("--vulnerability", type=_salience_score, default=0)
+    salience.add_argument("--harm-exposure", type=_salience_score, default=0)
+    salience.add_argument("--representation", type=_salience_score, default=0)
     salience.add_argument("--rationale", required=True)
     salience.set_defaults(func=lambda conn, a: assess_salience(
         conn, a.party_id, interest_id=a.interest_id, power=a.power,

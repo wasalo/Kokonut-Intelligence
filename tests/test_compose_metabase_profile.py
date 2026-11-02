@@ -20,6 +20,7 @@ TEST_ENV = {
     "ADMIN_EMAIL": "compose-test@example.invalid",
     "ADMIN_PASSWORD": "compose-test-only",
     "KOKONUT_OPERATOR_AUTH_PASSWORD": "compose-test-only-auth-password",
+    "KOKONUT_RUNTIME_USER": "kokonut_runtime",
     "KOKONUT_RUNTIME_PASSWORD": "compose-test-only-runtime-password",
     "CLICKHOUSE_PASSWORD": "compose-test-only",
     "CADDY_DOMAIN": "localhost",
@@ -141,13 +142,89 @@ def test_standard_kernel_profile_defaults_to_shared_postgres_limiter() -> None:
     assert config["services"]["app"]["environment"]["KOKONUT_RATE_LIMIT_PROVIDER"] == "postgres"
 
 
-def test_kernel_runtime_role_profile_has_no_orphan_agent_worker_service() -> None:
+def test_standard_runtime_api_and_worker_require_non_admin_role_without_auto_bootstrap() -> None:
+    files = (
+        "docker-compose.kernel-candidate.yml",
+        "docker-compose.kernel-standard.yml",
+        "docker-compose.kernel-runtime-role.yml",
+    )
+    admin_password = "compose-test-only-postgres-admin-password"
+    runtime_password = "compose-test-only-distinct-runtime-password"
     config = _compose_config(
-        "runtime-admin",
-        files=("docker-compose.kernel-candidate.yml", "docker-compose.kernel-runtime-role.yml")
+        files=files,
+        extra_env={
+            "POSTGRES_PASSWORD": admin_password,
+            "KOKONUT_DB_ADMIN_PASSWORD": admin_password,
+            "KOKONUT_RUNTIME_USER": "kokonut_runtime",
+            "KOKONUT_RUNTIME_PASSWORD": runtime_password,
+        },
     )
 
-    assert "runtime-role-bootstrap" in config["services"]
+    assert "runtime-role-bootstrap" not in config["services"]
+
+    for service_name in ("app", "worker"):
+        service = config["services"][service_name]
+        environment = service["environment"]
+        assert environment["PG_USER"] == "kokonut_runtime"
+        assert environment["PG_USER"] != "kokonut"
+        assert environment["PG_PASSWORD"] == runtime_password
+        assert environment["PG_PASSWORD"] != admin_password
+        assert "runtime-role-bootstrap" not in service.get("depends_on", {})
+        assert "KOKONUT_DB_ADMIN_PASSWORD" not in environment
+        assert "POSTGRES_PASSWORD" not in environment
+
+
+def test_standard_runtime_role_bootstrap_stays_explicit_and_admin_only() -> None:
+    config = _compose_config(
+        "runtime-admin",
+        files=(
+            "docker-compose.kernel-candidate.yml",
+            "docker-compose.kernel-standard.yml",
+            "docker-compose.kernel-runtime-role.yml",
+        ),
+    )
+
+    bootstrap = config["services"]["runtime-role-bootstrap"]
+    assert bootstrap["environment"]["KOKONUT_DB_ADMIN_USER"] == "kokonut"
+    assert bootstrap["environment"]["KOKONUT_DB_ADMIN_PASSWORD"] == TEST_ENV["POSTGRES_PASSWORD"]
+
+
+def test_standard_runtime_role_compose_requires_runtime_password() -> None:
+    command = ["docker", "compose", "--env-file", "/dev/null"]
+    for compose_file in (
+        "docker-compose.kernel-candidate.yml",
+        "docker-compose.kernel-standard.yml",
+        "docker-compose.kernel-runtime-role.yml",
+    ):
+        command.extend(["-f", compose_file])
+    command.extend(["config", "--quiet"])
+    environment = TEST_ENV | {"KOKONUT_RUNTIME_USER": "kokonut_runtime"}
+    environment.pop("KOKONUT_RUNTIME_PASSWORD", None)
+
+    result = subprocess.run(
+        command,
+        cwd=ROOT,
+        env=environment,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    assert result.returncode != 0
+    assert "KOKONUT_RUNTIME_PASSWORD must be set" in result.stderr
+
+
+def test_kernel_runtime_role_overlay_composes_app_and_worker_without_admin_bootstrap() -> None:
+    config = _compose_config(
+        files=(
+            "docker-compose.kernel-candidate.yml",
+            "docker-compose.kernel-standard.yml",
+            "docker-compose.kernel-runtime-role.yml",
+        ),
+    )
+
+    assert "runtime-role-bootstrap" not in config["services"]
+    assert "worker" in config["services"]
     assert "agent-summary-worker" not in config["services"]
 
 
@@ -179,6 +256,57 @@ def test_edge_kernel_profile_selects_local_private_media_and_resource_limits() -
     assert environment["MOBILE_MEDIA_PROVIDER"] == "local"
     assert environment["MOBILE_MEDIA_LOCAL_KEY"] == "compose-test-only-key"
     assert "kernel-private-media" in config["volumes"]
+
+
+def test_standard_edge_keeps_media_settings_on_api_and_preserves_worker_split() -> None:
+    files = (
+        "docker-compose.kernel-candidate.yml",
+        "docker-compose.kernel-standard.yml",
+        "docker-compose.kernel-runtime-role.yml",
+        "docker-compose.kernel-edge.yml",
+    )
+    config = _compose_config(
+        files=files,
+        extra_env={
+            "MOBILE_MEDIA_LOCAL_KEY": "compose-test-only-standard-edge-key",
+            "KOKONUT_RUNTIME_USER": "kokonut_runtime",
+            "KOKONUT_RUNTIME_PASSWORD": "compose-test-only-runtime-password",
+            "KOKONUT_OPERATOR_AUTH_PASSWORD": "compose-test-only-operator-auth-password",
+        },
+    )
+
+    assert set(config["services"]) == {"database", "app", "worker"}
+    database = config["services"]["database"]
+    app = config["services"]["app"]
+    worker = config["services"]["worker"]
+
+    assert database["mem_limit"] == str(1024**3)
+    assert database["cpus"] == 2.0
+    assert app["mem_limit"] == str(1024**3)
+    assert app["cpus"] == 2.0
+    assert app["command"] == [
+        "python3", "-m", "services.core.runtime", "--port", "8099",
+        "--require-schema", "--require-runtime-role",
+    ]
+    assert worker["command"] == [
+        "python3", "-m", "services.core.runtime", "--workers-only",
+        "--require-schema", "--require-runtime-role",
+    ]
+    assert app["environment"]["MOBILE_MEDIA_PROVIDER"] == "local"
+    assert app["environment"]["MOBILE_MEDIA_LOCAL_KEY"] == "compose-test-only-standard-edge-key"
+    assert any(
+        volume.get("target") == "/app/private-media"
+        for volume in app["volumes"]
+    )
+    assert "MOBILE_MEDIA_PROVIDER" not in worker["environment"]
+    assert "MOBILE_MEDIA_LOCAL_DIRECTORY" not in worker["environment"]
+    assert "MOBILE_MEDIA_LOCAL_KEY" not in worker["environment"]
+    assert all(
+        volume.get("target") != "/app/private-media"
+        for volume in worker.get("volumes", [])
+    )
+    assert "mem_limit" not in worker
+    assert "cpus" not in worker
 
 
 def test_analytics_kernel_profile_adds_private_clickhouse() -> None:

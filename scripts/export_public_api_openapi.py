@@ -16,7 +16,6 @@ from fastapi import FastAPI
 
 from services.gateway.router import get_route_policy, router
 
-
 _COMPONENT_REF = re.compile(r"^#/components/([^/]+)/(.+)$")
 
 
@@ -42,21 +41,26 @@ def build_public_api_spec() -> dict[str, Any]:
     )
     app.include_router(router, prefix="/api")
     source = app.openapi()
-    paths = {
-        path: operations
-        for path, operations in source.get("paths", {}).items()
-        if path == "/api/v1" or path.startswith("/api/v1/")
-    }
-    for path, operations in paths.items():
+    paths: dict[str, dict[str, Any]] = {}
+    for path, operations in source.get("paths", {}).items():
+        if path != "/api/v1" and not path.startswith("/api/v1/"):
+            continue
         policy_path = re.sub(r"\{[^/]+\}", "00000000-0000-0000-0000-000000000000", path)
         for method, operation in operations.items():
             policy = get_route_policy(method.upper(), policy_path)
+            if not policy["public"]:
+                continue
+            if method.lower() != "get" or policy["action"] != "read":
+                raise ValueError(
+                    f"Public API snapshot supports public reads only: {method.upper()} {path}"
+                )
             operation["x-kokonut-policy"] = {
                 "resource": policy["resource"],
                 "action": policy["action"],
                 "public": policy["public"],
                 "location_scoped": policy["location_id"] is not None,
             }
+            paths.setdefault(path, {})[method] = operation
 
     source_components = source.get("components", {})
     components: dict[str, dict[str, Any]] = {}

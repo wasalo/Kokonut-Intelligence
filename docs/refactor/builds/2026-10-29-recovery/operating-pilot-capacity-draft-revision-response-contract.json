@@ -1,0 +1,29 @@
+{
+  "date": "2026-10-29",
+  "purpose": "Mock-only acceptance for the private operating-pilot capacity-draft revision response.",
+  "command": "python3 -m pytest -q tests/test_gateway_operating_pilot_writes.py -k capacity_revision",
+  "result": {
+    "passed": 12,
+    "failed": 0,
+    "deselected": 193
+  },
+  "coverage": [
+    "OpenAPI declares the strict five-field HTTP 200 PUT response",
+    "Response binds location and replaced profile to request path and requires a distinct replacement profile",
+    "First revision must remain draft while idempotent replay preserves the existing lifecycle state",
+    "Malformed, mismatched, or undeclared service output returns sanitized no-store 503"
+  ],
+  "environment": {
+    "database_used": false,
+    "provider_used": false,
+    "candidate_or_legacy_state_touched": false,
+    "fixtures": "Synthetic service dictionaries and in-process FastAPI TestClient."
+  },
+  "static_checks": {
+    "ruff": "passed",
+    "python_compile": "passed",
+    "response_schema_generation": "passed",
+    "capability_matrix": "passed",
+    "git_diff_check": "passed"
+  }
+}

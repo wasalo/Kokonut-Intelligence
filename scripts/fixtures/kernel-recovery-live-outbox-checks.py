@@ -4,6 +4,7 @@ from unittest.mock import patch
 
 from services.common.database import get_db
 from services.ingestion import clickhouse_outbox as outbox
+from services.ingestion import clickhouse_outbox_worker as outbox_worker
 from services.ingestion.base import get_clickhouse
 
 
@@ -42,19 +43,23 @@ def main():
                            source_id=f'live-{index}', target_table='sensor_readings', columns=columns,
                            rows=payload, payload_hash=str(index) * 64)
         conn.commit()
-        with patch.object(outbox, '_finish', side_effect=RuntimeError('Synthetic crash after sink insert before ack')):
+        with patch.object(outbox_worker, '_finish', side_effect=RuntimeError('Synthetic crash after sink insert before ack')):
             try:
-                outbox.deliver_batch(conn, 'live-former-worker', 1)
+                outbox_worker.run_once('live-former-worker', 1)
             except RuntimeError:
                 pass
             else:
                 raise AssertionError('Crash injection did not execute')
         assert sink.query("SELECT count() FROM sensor_readings WHERE sensor_type='soil_moisture_live3'").result_rows == [(1,)]
         q("UPDATE clickhouse_outbox SET lease_expires_at=NOW()-INTERVAL '1 second' WHERE event_key LIKE 'kernel-recovery-live3:%' AND status='processing'")
-        assert outbox.deliver_batch(conn, 'live-recovery-worker', 3) == {'claimed': 3, 'delivered': 3, 'failed': 0}
+        assert outbox_worker.run_once('live-recovery-worker', 3) == {
+            'claimed': 3, 'delivered': 3, 'failed': 0,
+        }
         assert sink.query("SELECT count() FROM sensor_readings WHERE sensor_type='soil_moisture_live3'").result_rows == [(3,)]
         checks['insert_before_ack_crash_replay_deduplicated_within_window'] = True
-        assert outbox.deliver_batch(conn, 'live-recovery-worker', 3) == {'claimed': 0, 'delivered': 0, 'failed': 0}
+        assert outbox_worker.run_once('live-recovery-worker', 3) == {
+            'claimed': 0, 'delivered': 0, 'failed': 0,
+        }
         checks['successful_records_not_redelivered'] = True
         pg = q("SELECT count(*),avg((rows->0->5)::text::numeric),min((rows->0->5)::text::numeric),max((rows->0->5)::text::numeric) FROM clickhouse_outbox WHERE event_key LIKE 'kernel-recovery-live3:%'")[0]
         daily = sink.query("SELECT total_readings,avg_value,min_value,max_value,active_sensors,suspect_readings FROM v_daily_sensor_summary_v3 WHERE sensor_type='soil_moisture_live3'").result_rows

@@ -1,0 +1,46 @@
+{
+  "slice": "competitive_landscape_response_contract",
+  "date": "2026-10-28",
+  "files": [
+    "services/gateway/competitive_landscape_reads.py",
+    "services/gateway/competitive_landscape_routes.py",
+    "tests/test_gateway_competitive_landscape_reads.py",
+    "tests/test_gateway_competitive_landscape_response.py"
+  ],
+  "contract": {
+    "source": "schemas/postgres/453_location_scoped_competitive_landscape_read.sql",
+    "response_model": "CompetitiveLandscapeSummaryPage",
+    "private_fields_excluded": [
+      "party_id",
+      "actor_names",
+      "position_summary",
+      "evidence",
+      "signal_content",
+      "outcome_values"
+    ],
+    "runtime_validation": true,
+    "openapi_response_schema": true,
+    "maximum_start_offset": 10000,
+    "next_offset_never_exceeds_maximum": true,
+    "no_store_cache_behavior_preserved": true,
+    "auth_and_database_error_semantics_preserved": true
+  },
+  "checks": {
+    "command": "python3 -m pytest tests/test_gateway_competitive_landscape_reads.py tests/test_gateway_competitive_landscape_response.py tests/test_gateway_competitive_landscape_pagination_openapi.py tests/test_competitive_landscape.py tests/test_operator_console_competitive_landscape.py -q",
+    "result": "41 passed, 1 skipped",
+    "pagination_boundaries": [
+      {"offset": 9975, "limit": 25, "next_offset": 10000},
+      {"offset": 9976, "limit": 25, "next_offset": null},
+      {"offset": 9999, "limit": 1, "next_offset": 10000},
+      {"offset": 9999, "limit": 2, "next_offset": null},
+      {"offset": 10000, "limit": 25, "next_offset": null}
+    ]
+  },
+  "static_checks": {
+    "ruff": "passed",
+    "py_compile": "passed",
+    "git_diff_check": "passed"
+  },
+  "external_services_used": false,
+  "database_used": false
+}

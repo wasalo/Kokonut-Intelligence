@@ -1,5 +1,8 @@
 """Location-scoped funding draft and proposed-tranche Gateway contracts."""
 
+from copy import deepcopy
+from datetime import datetime, timezone
+from decimal import Decimal
 from types import SimpleNamespace
 from unittest.mock import patch
 from uuid import uuid4
@@ -13,6 +16,7 @@ from services.gateway.operator_auth import auth_route_policy
 
 pytest.importorskip("fastapi")
 from fastapi import APIRouter, FastAPI  # noqa: E402
+from fastapi.encoders import jsonable_encoder  # noqa: E402
 from starlette.testclient import TestClient  # noqa: E402
 
 OPERATOR_ID = str(uuid4())
@@ -45,6 +49,82 @@ TRANCHE_RESULT = {
     "tranche_status": "approved",
     "approved_at": "2026-10-20T12:00:00+00:00",
     "replayed": False,
+}
+TRANCHE_REVIEW_DETAIL = {
+    "funding_case_id": RESULT["funding_case_id"],
+    "tranche_id": TRANCHE_RESULT["tranche_id"],
+    "solution_name": "Watershed restoration",
+    "case_decision_status": "approved",
+    "case_currency": "cUSD",
+    "case_submitter_attributed": True,
+    "is_self_authored": False,
+    "is_case_approver": False,
+    "tranche_number": 1,
+    "tranche_amount": 300,
+    "milestone_conditions": {"step": "review"},
+    "tranche_status": "proposed",
+    "tranche_approved_at": None,
+    "eligible_for_independent_approval": True,
+}
+FUNDING_CREATED_AT = datetime(2026, 10, 20, 12, 0, tzinfo=timezone.utc)
+FUNDING_SUBMITTED_AT = datetime(2026, 10, 21, 12, 0, tzinfo=timezone.utc)
+FUNDING_APPROVED_AT = datetime(2026, 10, 22, 12, 0, tzinfo=timezone.utc)
+FUNDING_APPROVAL_ROUTE_RESULT = {
+    "funding_case_id": RESULT["funding_case_id"],
+    "decision_status": "approved",
+    "approved_at": FUNDING_APPROVED_AT,
+    "replayed": False,
+}
+FUNDING_REVIEW_QUEUE_ITEM = {
+    "funding_case_id": RESULT["funding_case_id"],
+    "solution_name": "Watershed restoration",
+    "solution_type": "practice",
+    "solution_stage": "investment_ready",
+    "capital_stage": "pilot",
+    "funding_instrument": "grant",
+    "requested_amount": Decimal("1000.00"),
+    "currency": "cUSD",
+    "created_at": FUNDING_CREATED_AT,
+    "submitted_at": FUNDING_SUBMITTED_AT,
+    "tranche_count": 1,
+    "submitter_attributed": True,
+    "is_self_authored": False,
+}
+FUNDING_REVIEW_QUEUE_PAGE = {
+    "location_id": LOCATION_ID,
+    "offset": 0,
+    "funding_cases": [FUNDING_REVIEW_QUEUE_ITEM],
+    "has_more": False,
+    "next_offset": None,
+}
+FUNDING_REVIEW_DETAIL = {
+    "funding_case_id": RESULT["funding_case_id"],
+    "solution_name": "Watershed restoration",
+    "solution_type": "practice",
+    "solution_stage": "investment_ready",
+    "capital_stage": "pilot",
+    "funding_instrument": "grant",
+    "requested_amount": Decimal("1000.00"),
+    "minimum_viable_amount": Decimal("500.00"),
+    "maximum_authorized_amount": Decimal("1200.00"),
+    "currency": "cUSD",
+    "risk_adjusted_expected_value": Decimal("900.00"),
+    "public_goods_value": Decimal("1100.00"),
+    "community_share": Decimal("100.00"),
+    "downside_exposure": Decimal("250.00"),
+    "decision_status": "submitted",
+    "rationale": "Synthetic independent review rationale",
+    "evidence": [{"ref": "private:budget"}],
+    "created_at": FUNDING_CREATED_AT,
+    "submitted_at": FUNDING_SUBMITTED_AT,
+    "tranches": [{
+        "tranche_number": 1,
+        "amount": Decimal("500.00"),
+        "milestone_conditions": {"milestone": "soil baseline reviewed"},
+        "status": "proposed",
+    }],
+    "submitter_attributed": True,
+    "is_self_authored": False,
 }
 PROPOSAL = {
     "capital_stage": "pilot",
@@ -379,6 +459,27 @@ def test_funding_review_queue_uses_same_connection_exact_review_context_and_boun
     assert connection.closed and connection.rolled_back and not connection.committed
 
 
+def test_funding_review_queue_does_not_advertise_offset_beyond_cap():
+    rows = [
+        {"funding_case_id": str(uuid4()), "requested_amount": "10.00"},
+        {"funding_case_id": str(uuid4()), "requested_amount": "20.00"},
+    ]
+    connection = _Connection(rows=rows)
+    with patch.object(reads, "set_operator_tenant_context", lambda *_a, **_k: None):
+        result = reads.list_location_solution_funding_review_queue(
+            OPERATOR_ID,
+            LOCATION_ID,
+            limit=1,
+            offset=10000,
+            connection_factory=lambda: connection,
+        )
+    assert result["funding_cases"] == rows[:1]
+    assert result["has_more"] is False
+    assert result["next_offset"] is None
+    assert connection.operations[-1][1] == (LOCATION_ID, 2, 10000)
+    assert connection.closed and connection.rolled_back and not connection.committed
+
+
 def test_funding_review_detail_is_exact_grant_context_read_only_and_private():
     row = {
         "funding_case_id": str(uuid4()),
@@ -527,12 +628,12 @@ def _app(
     monkeypatch.setattr(
         reads,
         "list_location_solution_funding_review_queue",
-        review_queue_action or (lambda *_a, **_k: {"funding_cases": []}),
+        review_queue_action or (lambda *_a, **_k: FUNDING_REVIEW_QUEUE_PAGE),
     )
     monkeypatch.setattr(
         reads,
         "get_location_solution_funding_review_detail",
-        review_detail_action or (lambda *_a, **_k: {"funding_case_id": RESULT["funding_case_id"]}),
+        review_detail_action or (lambda *_a, **_k: FUNDING_REVIEW_DETAIL),
     )
     monkeypatch.setattr(
         reads,
@@ -634,9 +735,13 @@ def test_funding_submission_route_requires_exact_body_and_returns_no_store(monke
 
 def test_funding_approval_route_requires_exact_body_and_returns_created_or_replayed(monkeypatch):
     approved = []
+    approval_results = [
+        dict(FUNDING_APPROVAL_ROUTE_RESULT),
+        {**FUNDING_APPROVAL_ROUTE_RESULT, "replayed": True},
+    ]
     app = _app(
         object(), monkeypatch, lambda *_args, **_kwargs: RESULT,
-        approval_action=lambda *args: approved.append(args) or APPROVAL_RESULT,
+        approval_action=lambda *args: approved.append(args) or approval_results.pop(0),
     )
 
     @app.middleware("http")
@@ -652,14 +757,89 @@ def test_funding_approval_route_requires_exact_body_and_returns_created_or_repla
     )
     with TestClient(app) as client:
         response = client.post(path, json={"request_id": REQUEST_ID, "acknowledged": True})
+        replay = client.post(path, json={"request_id": REQUEST_ID, "acknowledged": True})
         malformed = client.post(path, json={"request_id": REQUEST_ID, "acknowledged": True, "release": True})
     assert response.status_code == 201
-    assert response.json() == APPROVAL_RESULT
+    assert response.json() == {
+        **FUNDING_APPROVAL_ROUTE_RESULT,
+        "approved_at": "2026-10-22T12:00:00+00:00",
+    }
     assert response.headers["cache-control"] == "no-store"
+    assert response.headers["vary"] == "Cookie"
+    assert replay.status_code == 200
+    assert replay.json() == {
+        **FUNDING_APPROVAL_ROUTE_RESULT,
+        "approved_at": "2026-10-22T12:00:00+00:00",
+        "replayed": True,
+    }
+    assert replay.headers["cache-control"] == "no-store"
+    assert replay.headers["vary"] == "Cookie"
     assert approved == [(
         OPERATOR_ID, LOCATION_ID, RESULT["funding_case_id"], REQUEST_ID, True
-    )]
+    )] * 2
     assert malformed.status_code == 400
+
+
+@pytest.mark.parametrize(
+    "mutate",
+    [
+        lambda result: result.update(funding_case_id=str(uuid4())),
+        lambda result: result.update(decision_status="submitted"),
+        lambda result: result.pop("approved_at"),
+        lambda result: result.update(unexpected="private receipt detail"),
+        lambda result: result.update(approved_at="2026-10-20T12:00:00"),
+    ],
+)
+def test_funding_approval_route_rejects_malformed_service_output(monkeypatch, mutate):
+    malformed = dict(FUNDING_APPROVAL_ROUTE_RESULT)
+    mutate(malformed)
+    app = _app(
+        object(), monkeypatch, lambda *_args, **_kwargs: RESULT,
+        approval_action=lambda *_args, **_kwargs: malformed,
+    )
+
+    @app.middleware("http")
+    async def operator_context(request, call_next):
+        request.state.operator_session = SimpleNamespace(
+            operator=SimpleNamespace(operator_id=OPERATOR_ID)
+        )
+        return await call_next(request)
+
+    path = (
+        f"/operator/api/solution-lifecycle/{LOCATION_ID}/funding/"
+        f"{RESULT['funding_case_id']}/approve"
+    )
+    with TestClient(app) as client:
+        response = client.post(path, json={"request_id": REQUEST_ID, "acknowledged": True})
+
+    assert response.status_code == 500
+    assert response.json() == {"error": "Solution funding approval unavailable"}
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["vary"] == "Cookie"
+    assert "private receipt detail" not in response.text
+
+
+def test_funding_approval_route_declares_exact_create_and_replay_openapi_contract(monkeypatch):
+    app = _app(object(), monkeypatch, lambda *_args, **_kwargs: RESULT)
+    path = "/operator/api/solution-lifecycle/{location_id}/funding/{funding_case_id}/approve"
+    operation = app.openapi()["paths"][path]["post"]
+    components = app.openapi()["components"]["schemas"]
+
+    expected_schema = {
+        "$ref": "#/components/schemas/SolutionLifecycleFundingApprovalResponse"
+    }
+    assert operation["responses"]["200"]["content"]["application/json"]["schema"] == expected_schema
+    assert operation["responses"]["201"]["content"]["application/json"]["schema"] == expected_schema
+    assert set(
+        components["SolutionLifecycleFundingApprovalResponse"]["properties"]
+    ) == {"funding_case_id", "decision_status", "approved_at", "replayed"}
+    assert auth_route_policy(
+        "POST", f"/operator/api/solution-lifecycle/{LOCATION_ID}/funding/{RESULT['funding_case_id']}/approve",
+        enabled=True,
+    ) == {
+        "resource": "solution_lifecycle", "action": "review", "public": False,
+        "location_id": LOCATION_ID, "scope_required": True, "operator_auth": True,
+    }
 
 
 def test_funding_approval_route_maps_tenant_denial_to_forbidden(monkeypatch):
@@ -686,16 +866,10 @@ def test_funding_approval_route_maps_tenant_denial_to_forbidden(monkeypatch):
 
 
 def test_funding_tranche_review_and_approval_routes_are_private_and_exact(monkeypatch):
-    detail = {
-        "funding_case_id": RESULT["funding_case_id"],
-        "tranche_id": TRANCHE_RESULT["tranche_id"],
-        "tranche_status": "proposed",
-        "eligible_for_independent_approval": True,
-    }
     calls = []
     app = _app(
         object(), monkeypatch, lambda *_args, **_kwargs: RESULT,
-        tranche_detail_action=lambda *args: calls.append(("detail", args)) or detail,
+        tranche_detail_action=lambda *args: calls.append(("detail", args)) or TRANCHE_REVIEW_DETAIL,
         tranche_approval_action=lambda *args: calls.append(("approve", args)) or TRANCHE_RESULT,
     )
 
@@ -719,7 +893,7 @@ def test_funding_tranche_review_and_approval_routes_are_private_and_exact(monkey
             f"{base}/approve", json={"request_id": REQUEST_ID, "acknowledged": True, "amount": 300}
         )
     assert detail_response.status_code == 200
-    assert detail_response.json() == detail
+    assert detail_response.json() == TRANCHE_REVIEW_DETAIL
     assert detail_response.headers["cache-control"] == "no-store"
     assert approval_response.status_code == 201
     assert approval_response.json() == TRANCHE_RESULT
@@ -734,9 +908,60 @@ def test_funding_tranche_review_and_approval_routes_are_private_and_exact(monkey
     ]
 
 
+def test_funding_tranche_review_declares_exact_openapi_response(monkeypatch):
+    app = _app(object(), monkeypatch, lambda *_args, **_kwargs: RESULT)
+
+    response_schema = app.openapi()["paths"][
+        "/operator/api/solution-lifecycle/{location_id}/funding/{funding_case_id}/tranches/{tranche_id}/review"
+    ]["get"]["responses"]["200"]["content"]["application/json"]["schema"]
+
+    assert response_schema == {
+        "$ref": "#/components/schemas/SolutionLifecycleFundingTrancheReviewDetailResponse"
+    }
+    properties = app.openapi()["components"]["schemas"][
+        "SolutionLifecycleFundingTrancheReviewDetailResponse"
+    ]["properties"]
+    assert set(properties) == set(TRANCHE_REVIEW_DETAIL)
+
+
+@pytest.mark.parametrize(
+    "mutate",
+    [
+        lambda result: result.update(tranche_id=str(uuid4())),
+        lambda result: result.update(unexpected="private detail"),
+        lambda result: result.update(milestone_conditions={"invalid": float("nan")}),
+    ],
+)
+def test_funding_tranche_review_rejects_malformed_service_output(monkeypatch, mutate):
+    malformed = dict(TRANCHE_REVIEW_DETAIL)
+    mutate(malformed)
+    app = _app(
+        object(), monkeypatch, lambda *_args, **_kwargs: RESULT,
+        tranche_detail_action=lambda *_args: malformed,
+    )
+
+    @app.middleware("http")
+    async def operator_context(request, call_next):
+        request.state.operator_session = SimpleNamespace(
+            operator=SimpleNamespace(operator_id=OPERATOR_ID)
+        )
+        return await call_next(request)
+
+    path = (
+        f"/operator/api/solution-lifecycle/{LOCATION_ID}/funding/"
+        f"{RESULT['funding_case_id']}/tranches/{TRANCHE_RESULT['tranche_id']}/review"
+    )
+    with TestClient(app) as client:
+        response = client.get(path)
+
+    assert response.status_code == 500
+    assert response.json() == {"error": "Solution funding tranche review unavailable"}
+    assert response.headers["cache-control"] == "no-store"
+
+
 def test_funding_review_routes_are_private_no_store_and_call_review_readers(monkeypatch):
-    queue = {"location_id": LOCATION_ID, "funding_cases": []}
-    detail = {"funding_case_id": RESULT["funding_case_id"], "rationale": "private"}
+    queue = {**FUNDING_REVIEW_QUEUE_PAGE, "offset": 5}
+    detail = FUNDING_REVIEW_DETAIL
     calls = []
     app = _app(
         object(), monkeypatch, lambda *_args, **_kwargs: RESULT,
@@ -760,15 +985,145 @@ def test_funding_review_routes_are_private_no_store_and_call_review_readers(monk
         queue_response = client.get(queue_path)
         detail_response = client.get(detail_path)
     assert queue_response.status_code == 200
-    assert queue_response.json() == queue
+    assert queue_response.json() == jsonable_encoder(queue)
     assert detail_response.status_code == 200
-    assert detail_response.json() == detail
+    assert detail_response.json() == jsonable_encoder(detail)
     assert queue_response.headers["cache-control"] == "no-store"
     assert detail_response.headers["cache-control"] == "no-store"
     assert calls == [
-        ("queue", (OPERATOR_ID, LOCATION_ID), {"limit": "10", "offset": "5"}),
+        ("queue", (OPERATOR_ID, LOCATION_ID), {"limit": 10, "offset": 5}),
         ("detail", (OPERATOR_ID, LOCATION_ID, RESULT["funding_case_id"]), {}),
     ]
+
+
+def test_funding_review_routes_declare_exact_migration_490_openapi_contract(monkeypatch):
+    app = _app(object(), monkeypatch, lambda *_args, **_kwargs: RESULT)
+    paths = app.openapi()["paths"]
+    components = app.openapi()["components"]["schemas"]
+    queue_path = "/operator/api/solution-lifecycle/{location_id}/funding/review"
+    detail_path = (
+        "/operator/api/solution-lifecycle/{location_id}/funding/"
+        "{funding_case_id}/review"
+    )
+
+    assert paths[queue_path]["get"]["responses"]["200"]["content"][
+        "application/json"
+    ]["schema"] == {
+        "$ref": "#/components/schemas/SolutionLifecycleFundingReviewQueueResponse"
+    }
+    assert paths[detail_path]["get"]["responses"]["200"]["content"][
+        "application/json"
+    ]["schema"] == {
+        "$ref": "#/components/schemas/SolutionLifecycleFundingReviewDetailResponse"
+    }
+    assert set(components["SolutionLifecycleFundingReviewQueueResponse"]["properties"]) == {
+        "location_id", "offset", "funding_cases", "has_more", "next_offset"
+    }
+    assert set(
+        components["SolutionLifecycleFundingReviewQueueItemResponse"]["properties"]
+    ) == set(FUNDING_REVIEW_QUEUE_ITEM)
+    assert set(
+        components["SolutionLifecycleFundingReviewDetailResponse"]["properties"]
+    ) == set(FUNDING_REVIEW_DETAIL)
+    for name in (
+        "SolutionLifecycleFundingReviewQueueItemResponse",
+        "SolutionLifecycleFundingReviewDetailResponse",
+    ):
+        assert not {
+            "reviewer_operator_id", "reviewer_party_id", "reviewed_by_party_id"
+        } & set(components[name]["properties"])
+
+
+@pytest.mark.parametrize(
+    "mutate",
+    [
+        lambda page: page.update(location_id=str(uuid4())),
+        lambda page: page.update(offset=4),
+        lambda page: page.update(has_more=True, next_offset=999),
+        lambda page: page.update(funding_cases=[page["funding_cases"][0]] * 2),
+        lambda page: page.update(
+            funding_cases=[
+                {
+                    **deepcopy(FUNDING_REVIEW_QUEUE_ITEM),
+                    "funding_case_id": str(uuid4()),
+                    "created_at": datetime(2026, 10, 19, 12, 0, tzinfo=timezone.utc),
+                },
+                {
+                    **deepcopy(FUNDING_REVIEW_QUEUE_ITEM),
+                    "funding_case_id": str(uuid4()),
+                    "created_at": datetime(2026, 10, 20, 12, 0, tzinfo=timezone.utc),
+                },
+            ]
+        ),
+    ],
+)
+def test_funding_review_queue_rejects_malformed_or_unbound_pages(monkeypatch, mutate):
+    malformed = deepcopy(FUNDING_REVIEW_QUEUE_PAGE)
+    mutate(malformed)
+    app = _app(
+        object(),
+        monkeypatch,
+        lambda *_args, **_kwargs: RESULT,
+        review_queue_action=lambda *_args, **_kwargs: malformed,
+    )
+
+    @app.middleware("http")
+    async def operator_context(request, call_next):
+        request.state.operator_session = SimpleNamespace(
+            operator=SimpleNamespace(operator_id=OPERATOR_ID)
+        )
+        return await call_next(request)
+
+    with TestClient(app) as client:
+        response = client.get(
+            f"/operator/api/solution-lifecycle/{LOCATION_ID}/funding/review?limit=2"
+        )
+    assert response.status_code == 500
+    assert response.json() == {"error": "Solution funding review queue unavailable"}
+    assert response.headers["cache-control"] == "no-store"
+
+
+@pytest.mark.parametrize(
+    "mutate",
+    [
+        lambda detail: detail.update(funding_case_id=str(uuid4())),
+        lambda detail: detail.update(unexpected="private reviewer data"),
+        lambda detail: detail.update(evidence=[{"score": float("nan")}]),
+        lambda detail: detail.update(rationale="x" * 4001),
+        lambda detail: detail.update(
+            maximum_authorized_amount=Decimal("10000000000000.00")
+        ),
+        lambda detail: detail.update(maximum_authorized_amount=Decimal("900.00")),
+    ],
+)
+def test_funding_review_detail_rejects_malformed_or_unbound_results(
+    monkeypatch, mutate
+):
+    malformed = deepcopy(FUNDING_REVIEW_DETAIL)
+    mutate(malformed)
+    app = _app(
+        object(),
+        monkeypatch,
+        lambda *_args, **_kwargs: RESULT,
+        review_detail_action=lambda *_args, **_kwargs: malformed,
+    )
+
+    @app.middleware("http")
+    async def operator_context(request, call_next):
+        request.state.operator_session = SimpleNamespace(
+            operator=SimpleNamespace(operator_id=OPERATOR_ID)
+        )
+        return await call_next(request)
+
+    path = (
+        f"/operator/api/solution-lifecycle/{LOCATION_ID}/funding/"
+        f"{RESULT['funding_case_id']}/review"
+    )
+    with TestClient(app) as client:
+        response = client.get(path)
+    assert response.status_code == 500
+    assert response.json() == {"error": "Solution funding review detail unavailable"}
+    assert response.headers["cache-control"] == "no-store"
 
 
 def test_funding_review_tenant_denial_maps_to_forbidden(monkeypatch):

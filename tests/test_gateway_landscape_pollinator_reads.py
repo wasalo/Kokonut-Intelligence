@@ -110,6 +110,138 @@ class _Connection:
         self.closed = True
 
 
+def _landscape_summary_payload(location_id):
+    return {
+        "location_id": location_id,
+        "habitats": [{
+            "habitat_type": "riparian",
+            "status": "active",
+            "biodiversity_value": "high",
+            "record_count": 2,
+            "total_area_ha": 1.25,
+        }],
+        "corridors": [{
+            "condition": "good",
+            "status": "active",
+            "record_count": 1,
+            "total_length_m": 120.0,
+            "mean_width_m": 4.5,
+        }],
+        "hedgerows": [{
+            "condition": "fair",
+            "status": "active",
+            "record_count": 3,
+            "total_length_m": 90.0,
+            "mean_height_m": 1.8,
+        }],
+        "verified_buffer_checks": [{
+            "compliant": True,
+            "erosion_observed": False,
+            "record_count": 2,
+            "first_check_date": "2026-02-01",
+            "last_check_date": "2026-03-01",
+        }],
+        "verified_assessments": {
+            "assessment_count": 2,
+            "mean_species_richness": 18.5,
+            "mean_shannon_index": 1.2,
+            "mean_habitat_diversity_index": 1.5,
+            "mean_connectivity_score": 6.5,
+            "mean_overall_score": 7.0,
+            "first_assessment_date": "2026-01-01",
+            "last_assessment_date": "2026-04-01",
+        },
+        "dashboard_calculations": {
+            "active_habitats": {
+                "zone_count": 2,
+                "total_area_ha": 1.25,
+                "critical_habitats": 0,
+                "high_value_habitats": 2,
+            },
+            "active_corridors": {
+                "corridor_count": 1,
+                "healthy_corridors": 1,
+                "total_length_m": 120.0,
+                "mean_width_m": 4.5,
+            },
+            "verified_buffer_checks": {
+                "total_checks": 2,
+                "compliant_checks": 2,
+                "compliance_pct": 100.0,
+                "erosion_incidents": 0,
+            },
+            "legacy_connectivity_ratio_pct": 50.0,
+        },
+    }
+
+
+def _pollinator_summary_payload(location_id):
+    return {
+        "location_id": location_id,
+        "verified_observations": [{
+            "pollinator_type": "wild_bee",
+            "observation_method": "transect",
+            "status": "verified",
+            "record_count": 2,
+            "total_observed": 42.0,
+            "mean_duration_minutes": 15.0,
+            "first_observation_date": "2026-03-01",
+            "last_observation_date": "2026-03-20",
+        }],
+        "observation_trends": [{
+            "pollinator_type": "wild_bee",
+            "observation_count": 2,
+            "avg_count": 21.0,
+            "max_count": 30,
+            "first_observation_date": "2026-03-01",
+            "last_observation_date": "2026-03-20",
+            "total_count": 42.0,
+            "trend": "increasing",
+            "change_pct": 20.0,
+        }],
+        "habitat_inventory": [{
+            "habitat_type": "wildflower_strip",
+            "condition": "good",
+            "status": "active",
+            "record_count": 1,
+            "total_area_m2": 240.0,
+        }],
+        "verified_pesticide_impacts": [{
+            "toxicity_class": "moderate",
+            "pollinator_mortality_observed": False,
+            "record_count": 1,
+            "mean_mortality_pct": 0.0,
+            "first_application_date": "2026-03-04",
+            "last_application_date": "2026-03-04",
+        }],
+        "pesticide_risk_summary": {
+            "period_days": 90,
+            "total_applications": 1,
+            "overall_risk": "low",
+            "risk_distribution": {
+                "low": 0,
+                "moderate": 1,
+                "high": 0,
+                "very_high": 0,
+                "unknown": 0,
+            },
+            "mortality_events": 0,
+        },
+        "active_hives": [{
+            "colony_strength": "strong",
+            "queen_status": "present",
+            "hive_count": 2,
+            "total_honey_yield_kg": 12.0,
+            "mean_varroa_count": 0.5,
+            "last_inspection_date": "2026-03-19",
+        }],
+        "active_hive_summary": {
+            "total_hives": 2,
+            "avg_colony_strength_score": 8.5,
+        },
+    }
+
+
 @pytest.mark.parametrize(
     "path,resource",
     [
@@ -397,13 +529,13 @@ def gateway_audit_spool(tmp_path, monkeypatch):
             "/operator/api/landscape/{}/summary",
             "landscape_conservation",
             "services.gateway.landscape_conservation_reads.get_location_landscape_summary",
-            {"location_id": "{location}", "habitats": [], "corridors": [], "hedgerows": [], "verified_buffer_checks": [], "verified_assessments": {"assessment_count": 0}},
+            _landscape_summary_payload("{location}"),
         ),
         (
             "/operator/api/pollinators/{}/summary",
             "pollinator_health",
             "services.gateway.pollinator_health_reads.get_location_pollinator_summary",
-            {"location_id": "{location}", "verified_observations": [], "habitat_inventory": [], "verified_pesticide_impacts": [], "active_hives": []},
+            _pollinator_summary_payload("{location}"),
         ),
     ],
 )
@@ -436,6 +568,106 @@ def test_summary_routes_require_exact_scope_and_are_no_store(
     assert response.json() == expected
     assert response.headers["cache-control"] == "no-store"
     assert "cookie" in {value.strip().lower() for value in response.headers["vary"].split(",")}
+
+
+def test_landscape_summary_response_schema_is_published_and_strict(
+    monkeypatch, gateway_audit_spool
+):
+    monkeypatch.setattr("services.gateway.operator_auth.create_provider", lambda: None)
+    app = create_app()
+    operation = app.openapi()["paths"][
+        "/operator/api/landscape/{location_id}/summary"
+    ]["get"]
+    assert operation["responses"]["200"]["content"]["application/json"]["schema"] == {
+        "$ref": "#/components/schemas/LandscapeSummaryResponse"
+    }
+
+    schemas = app.openapi()["components"]["schemas"]
+    for name in (
+        "LandscapeSummaryResponse",
+        "LandscapeHabitatAggregate",
+        "LandscapeCorridorAggregate",
+        "LandscapeHedgerowAggregate",
+        "LandscapeBufferCheckAggregate",
+        "VerifiedLandscapeAssessments",
+        "LandscapeDashboardCalculations",
+    ):
+        assert schemas[name]["additionalProperties"] is False
+    summary = schemas["LandscapeSummaryResponse"]["properties"]
+    assert summary["habitats"]["maxItems"] == 200
+    assert summary["corridors"]["maxItems"] == 30
+    assert summary["hedgerows"]["maxItems"] == 25
+    assert summary["verified_buffer_checks"]["maxItems"] == 9
+    assert schemas["LandscapeHabitatAggregate"]["properties"]["habitat_type"]["enum"] == [
+        "wetland", "riparian", "forest_patch", "grassland", "hedgerow",
+        "orchard", "agroforestry", "other",
+    ]
+
+
+@pytest.mark.parametrize(
+    "invalid_field",
+    [
+        "top_level_extra",
+        "nested_extra",
+        "unknown_habitat_type",
+        "negative_count",
+        "non_finite",
+        "percentage",
+        "location_mismatch",
+    ],
+)
+def test_landscape_summary_rejects_invalid_projection_with_private_error(
+    monkeypatch, gateway_audit_spool, invalid_field
+):
+    operator_id, location_id = str(uuid4()), str(uuid4())
+    payload = _landscape_summary_payload(location_id)
+    if invalid_field == "top_level_extra":
+        payload["source_ids"] = [str(uuid4())]
+    elif invalid_field == "nested_extra":
+        payload["habitats"][0]["private_note"] = "must not be returned"
+    elif invalid_field == "unknown_habitat_type":
+        payload["habitats"][0]["habitat_type"] = "unknown"
+    elif invalid_field == "negative_count":
+        payload["habitats"][0]["record_count"] = -1
+    elif invalid_field == "non_finite":
+        payload["verified_assessments"]["mean_overall_score"] = float("nan")
+    elif invalid_field == "percentage":
+        payload["dashboard_calculations"]["verified_buffer_checks"]["compliance_pct"] = 101
+    else:
+        payload["location_id"] = str(uuid4())
+
+    session = SimpleNamespace(
+        session_id=str(uuid4()), session_token_hash="f" * 64,
+        operator=SimpleNamespace(operator_id=operator_id),
+    )
+
+    class Provider:
+        settings = SimpleNamespace(state_secret="test-only-state-secret")
+
+        def authenticate_request(self, _request):
+            return session
+
+        def has_scope(self, op, resource, action, scoped_location):
+            return (op, resource, action, scoped_location) == (
+                operator_id, "landscape_conservation", "read", location_id
+            )
+
+    monkeypatch.setattr("services.gateway.operator_auth.create_provider", lambda: Provider())
+    monkeypatch.setattr(
+        "services.gateway.landscape_conservation_reads.get_location_landscape_summary",
+        lambda *_args: payload,
+    )
+    with TestClient(
+        create_app(), cookies={"kokonut_operator_session": "synthetic-session"}
+    ) as client:
+        response = client.get(f"/operator/api/landscape/{location_id}/summary")
+
+    assert response.status_code == 500
+    assert response.json() == {"error": "Landscape summary unavailable"}
+    assert response.headers["cache-control"] == "no-store"
+    assert "cookie" in {
+        value.strip().lower() for value in response.headers["vary"].split(",")
+    }
 
 
 @pytest.mark.parametrize(

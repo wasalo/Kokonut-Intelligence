@@ -1,13 +1,18 @@
 # Kernel worker operation map
 
-**Reviewed:** 26 October 2026
+**Reviewed:** 1 November 2026 (isolated event/freshness/outbox source paths)
 
 **Status:** entrypoint inventory, scheduler argument contracts, static
 local-import closure, signed worker identity primitive, and transaction-bound
 Python adapter are implemented. Source integration now exists for the sensor
 anomaly handler, all four registered cache invalidation handlers, and the two
-global notification enqueue handlers. Signed cache invalidation, isolated notification enqueue, and isolated delivery
-remain opt-in. Migrations 418–419 and the runtime-role
+global notification enqueue handlers. Signed cache invalidation, isolated
+notification enqueue, event dispatch, notification delivery, freshness, and
+ClickHouse outbox delivery remain opt-in. Isolated event and notification
+workers now fail closed without shared-runtime fallbacks; migration 723 removes
+shared-role DML from their reviewed receipt/state tables while preserving read
+access. Disposable migration and worker checks remain required before the
+source batch is accepted. Migrations 418–419 and the runtime-role
 bootstrap enforce the mobile/worker ACL boundary. Default-off dedicated worker
 paths cover sensor anomaly, cache invalidation, notification enqueue and
 delivery, NOI snapshots, current weather, forecasts, climate, CSV sensor ingestion, remote
@@ -20,12 +25,13 @@ default-off global freshness worker with a dedicated identity and bounded
 functions; its disposable PostgreSQL acceptance passes, but it is not rolled
 out to the candidate. The legacy manual CLI remains available. Credentials
 and grants for live isolated workers remain unprovisioned. Candidate migration
-state is recorded in per-rollout evidence; earlier documentation that cited
-migration 433 is a historical checkpoint, not the current schema ledger. See the
+state is recorded in per-rollout evidence; use the [current state guide](current-state-and-implementation.md)
+for the latest ledger and distinguish source/disposable evidence from candidate
+rollout. See the
 [worker context contract](worker-tenant-context-contract.md).
 
 The machine-readable [operation inventory](worker-operation-map.json) covers
-the exact 32 modules in `ALLOWED_SCHEDULED_MODULES`, three isolated worker
+the exact 32 modules in `ALLOWED_SCHEDULED_MODULES`, four isolated worker
 entrypoints, seven in-process signed source-reader functions, and all seven
 pairs in `ALLOWED_EVENT_HANDLERS`. The signed source-reader functions are
 function-level roots, not new OS processes or scheduler entries. Notification
@@ -44,20 +50,24 @@ application-wide RLS or proof for other workers.
 
 ## What this establishes
 
-- Event dispatch and notification outbox sending now have separate CLI modes
-  and Kernel supervisor children; the legacy combined `--worker` mode remains
-  available. The handler child keeps service logs on stderr so its JSON result
-  stays isolated on stdout. This is process separation only, not a distinct
-  database identity.
-- Scheduler tasks and EventBus queue/receipt control still use the shared
-  runtime PostgreSQL identity. The anomaly handler and all four registered
+- Event dispatch and notification outbox sending have separate CLI modes and
+  Kernel supervisor children; the legacy combined `--worker` mode remains
+  available but uses isolated operation identities. Migration 648 bounds event
+  claims/receipts; migration 647 bounds notification delivery; migration 723
+  removes direct runtime DML from their reviewed receipt/state tables. Handler
+  logs stay on stderr while JSON remains on stdout.
+- The scheduler control plane still uses the shared runtime PostgreSQL identity.
+  Scheduled child environments receive only source-allowlisted worker
+  credentials. Event dispatch and notification delivery pause without their
+  dedicated identity and never fall back to shared DML. The anomaly handler and all four registered
   cache invalidators have exact source-controlled worker credential routing
   and dedicated connection paths; the cache path remains disabled by default.
-  The `data_stale` and `threshold_breached` handlers can opt into a distinct
-  notification-enqueue login and bounded function. That path also remains off
-  by default, with no shared-DSN fallback when enabled. No actual worker
-  credential or location grant is provisioned. Migrations through 433 have
-  been rolled out to the candidate, but the worker features remain disabled.
+  The `data_stale` and `threshold_breached` handlers require a distinct
+  notification-enqueue login and bounded function when destinations are
+  configured; missing/disabled enqueue fails closed so event delivery retries.
+  Isolated freshness and ClickHouse delivery also use dedicated bounded
+  functions. No actual worker credential or location grant is provisioned.
+  See current-state evidence before making candidate rollout claims.
 - Module-specific command schemas validate persisted `command_args` before
   schedule activation, `run-now`, generated plans, scheduler-allowlisted
   code-owned job runs, and subprocess creation.
@@ -278,11 +288,16 @@ continues to use only `SCHEDULED_SENSOR_DRIVER_TARGETS`.
   now routes through `services.ingestion.climate_worker`, which requires one
   explicit location, uses only the exact climate worker DSN/credential/GEE key
   path, and reaches location/bbox data and the five summary/audit writes only
-  through migration 429's signed bounded functions. The latitude proxy remains
-  explicit, and GEE requests remain external provider effects. All five source
-  writes, failure audit, retries, scope denial, and forced-RLS privilege
-  boundaries pass disposable PostGIS checks; no real provider, key, schedule,
-  or candidate database was used.
+  through signed bounded functions. Migration 713 keeps active locations
+  addressable without a centroid, so plot-only geometry still supports GEE
+  while WorldClim reports `no_centroid`; locations without either geometry or
+  coordinates skip safely. The compatibility `--all` result retains its
+  historical `worldclim`, `ncep`, `modis`, `smap`, and `sentinel1` keys. The
+  latitude proxy remains explicit, and GEE requests remain external provider
+  effects. Five summary writes, audit-hash and elapsed-time parity, retries,
+  plot-only/no-geometry lookup, scope denial, and forced-RLS privilege
+  boundaries pass disposable PostGIS checks through migration 713; no real
+  provider, key, schedule, candidate, legacy, or production database was used.
 - The carbon-credit job's `credit_adjustment` JobSpec uses a dedicated
   `services.analytics.carbon_credit_adjustment_check` entrypoint and requires
   one explicit `--location-id` at the CLI, schedule-plan, and scheduler-command
@@ -296,15 +311,20 @@ continues to use only `SCHEDULED_SENSOR_DRIVER_TARGETS`.
   Cadence, signed worker identity, output handling, and owner acceptance remain
   open.
 - The legacy schedule seed contains known mismatches: the sensor task has no
-  declared input source, and its empty argument list does not create a sensor
-  reading; the climate CLI requires one `--location-id`, while the old seed
-  supplies only `--all`; the event-cleanup seed invokes a retention-sensitive
-  delete operation. These commands now fail the Kernel argument contract. The
-  legacy seed remains excluded from normal Kernel bootstrap.
+  location or driver-instance input, and its empty argument list does not create
+  a sensor reading; the climate CLI requires one `--location-id`, while the old
+  seed supplies only `--all`; the event-cleanup seed invokes a
+  retention-sensitive delete operation. These legacy invocations remain
+  excluded from normal Kernel bootstrap. The native sensor and climate
+  JobSpecs have source/input contracts; existing persisted rows still require
+  owner-reviewed reconciliation before activation.
 - The generated [JobSpec/contract inventory](worker-job-contract-inventory.json)
-  compares all 22 shared job templates with the 30-module Kernel allowlist and
-  command validation. Nine no-input defaults pass and thirteen jobs require
-  validated runtime inputs; EAS and RPC each require one supported chain.
+  compares all 23 shared job templates with the 32-module Kernel allowlist and
+  command validation. Nine no-input defaults pass and fourteen jobs require
+  validated runtime inputs; EAS and RPC each require one supported chain. The
+  nine allowlisted modules without a shared JobSpec remain covered by the
+  operation map and their module-specific command
+  schemas; this catalog inventory does not inspect persisted task values.
   Scheduled sensor ingestion requires one
   `--location-id` and one `--driver-instance-id`; the registry accepts only an
   enabled sensor instance assigned to that exact location, and the loaded
@@ -352,11 +372,16 @@ continues to use only `SCHEDULED_SENSOR_DRIVER_TARGETS`.
   The projection
   contract rejects manual list/replay/disposal/reconcile actions. No task or
   provider is activated. This is the source catalog only; it does not
-  reconcile persisted tasks or external schedules. Check it with
+  reconcile persisted tasks or external schedules. The former “missing sensor
+  source contract” finding referred to the legacy seed's empty arguments. The
+  native scheduled sensor contract now requires one location and one registered
+  driver-instance ID, but an actual configured instance and active schedule
+  remain owner/runtime gates. Check the catalog with
   `python3 scripts/worker_job_contract_inventory.py --check
-  docs/refactor/worker-job-contract-inventory.json`. Keep the two rejected
-  defaults inactive until their source/input contracts are defined. Remote
-  sensing and climate workers remain disabled until their dedicated credentials,
+  docs/refactor/worker-job-contract-inventory.json`. Keep the known rejected
+  legacy seed invocations inactive; do not infer that the native source/input
+  contracts are missing. Remote sensing and climate workers remain disabled
+  until their dedicated credentials,
   signed location grants, provider configuration, and owner-reviewed schedules
   are provisioned. Neither disposable acceptance nor these source contracts
   prove live-provider parity or candidate deployment.

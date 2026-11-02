@@ -86,8 +86,17 @@ def record_benchmark(conn, strategy_plan_id: str, benchmark_type: str, subject_t
 
 def compare_benchmarks(conn, strategy_plan_id: str, benchmark_type: str, measure_name: str) -> list[Dict[str, Any]]:
     with conn.cursor(cursor_factory=RealDictCursor) as cur:
-        cur.execute("""SELECT * FROM strategy_competitive_benchmark
-            WHERE strategy_plan_id = %s::uuid AND benchmark_type = %s AND measure_name = %s
-              AND status IN ('submitted', 'verified', 'published')
-            ORDER BY observed_at DESC, subject_type, subject_name""", (strategy_plan_id, benchmark_type, measure_name))
+        cur.execute(
+            """SELECT id, strategy_plan_id, buyer_segment_id, benchmark_type,
+                      subject_type, subject_name, measure_name, unit, value,
+                      currency, observed_at, source_ref, confidence, status,
+                      evidence, created_at
+               FROM strategy_competitive_benchmark
+               WHERE strategy_plan_id = %s::uuid
+                 AND benchmark_type = %s
+                 AND measure_name = %s
+                 AND status IN ('submitted', 'verified', 'published')
+               ORDER BY observed_at DESC, subject_type, subject_name""",
+            (strategy_plan_id, benchmark_type, measure_name),
+        )
         return [_clean(row) for row in cur.fetchall()]

@@ -19,6 +19,7 @@ import psycopg2
 ROOT = Path(__file__).resolve().parents[1]
 FIXTURE = ROOT / "tests/fixtures/farm_activity_gateway_operations_disposable.sql"
 MIGRATION = ROOT / "schemas/postgres/404_gateway_farm_activity_operations.sql"
+SCOPE_MIGRATION = ROOT / "schemas/postgres/359_activity_scope_and_outputs.sql"
 DEFAULT_OUTPUT = (
     ROOT
     / "docs/refactor/builds/2026-10-16-recovery/gateway-farm-activity-operations-disposable.json"
@@ -28,6 +29,8 @@ ORG_B = "a0000000-0000-0000-0000-000000000702"
 LOCATION_A = "a0000000-0000-0000-0000-000000000001"
 LOCATION_B = "a0000000-0000-0000-0000-000000000002"
 PLOT_B = "a0000000-0000-0000-0000-000000000202"
+FARM_TASK_A = "a0000000-0000-0000-0000-000000000401"
+FARM_TASK_B = "a0000000-0000-0000-0000-000000000402"
 OPERATOR_1 = "a0000000-0000-0000-0000-000000000901"
 OPERATOR_2 = "a0000000-0000-0000-0000-000000000902"
 OPERATOR_3 = "a0000000-0000-0000-0000-000000000903"
@@ -117,7 +120,15 @@ def expect_database_error(operation, *, expected_code: str, message: str) -> Non
     raise AssertionError(f"{message}: statement unexpectedly succeeded")
 
 
-def create_record(host_port: int, *, operator_id: str, tenant_id: str, location_id: str, plot_id=None) -> str:
+def create_record(
+    host_port: int,
+    *,
+    operator_id: str,
+    tenant_id: str,
+    location_id: str,
+    plot_id=None,
+    farm_task_id=None,
+) -> str:
     connection = runtime_connection(
         host_port,
         operator_id=operator_id,
@@ -129,12 +140,12 @@ def create_record(host_port: int, *, operator_id: str, tenant_id: str, location_
         with connection.cursor() as cursor:
             cursor.execute(
                 """INSERT INTO farm_activity (
-                       location_id, plot_id, activity_type, activity_date,
+                       location_id, plot_id, farm_task_id, activity_type, activity_date,
                        schema_version, source_system, created_by, updated_by
-                   ) VALUES (%s::uuid, %s::uuid, 'weeding', DATE '2026-10-15',
+                   ) VALUES (%s::uuid, %s::uuid, %s::uuid, 'weeding', DATE '2026-10-15',
                              'gateway_v1', 'kokonut_gateway', %s::uuid, %s::uuid)
                    RETURNING id::text""",
-                (location_id, plot_id, operator_id, operator_id),
+                (location_id, plot_id, farm_task_id, operator_id, operator_id),
             )
             activity_id = cursor.fetchone()[0]
         connection.commit()
@@ -202,6 +213,39 @@ def assert_acceptance(host_port: int) -> list[str]:
         location_id=LOCATION_A,
     )
     checks.append("tenant-qualified create creates a Gateway-owned draft and audit event")
+
+    task_linked_activity_id = create_record(
+        host_port,
+        operator_id=OPERATOR_1,
+        tenant_id=ORG_A,
+        location_id=LOCATION_A,
+        farm_task_id=FARM_TASK_A,
+    )
+    with closing(connect(host_port)) as connection:
+        with connection.cursor() as cursor:
+            cursor.execute(
+                "SELECT farm_task_id::text FROM farm_activity WHERE id = %s::uuid",
+                (task_linked_activity_id,),
+            )
+            if cursor.fetchone() != (FARM_TASK_A,):
+                raise AssertionError("same-location farm task link was not preserved")
+    checks.append("same-location farm task links survive governed creation")
+
+    def wrong_location_task_create():
+        create_record(
+            host_port,
+            operator_id=OPERATOR_1,
+            tenant_id=ORG_A,
+            location_id=LOCATION_A,
+            farm_task_id=FARM_TASK_B,
+        )
+
+    expect_database_error(
+        wrong_location_task_create,
+        expected_code="P0001",
+        message="cross-location farm task references are rejected",
+    )
+    checks.append("migration 359 rejects cross-location farm task references")
 
     connection = connect(host_port)
     try:
@@ -457,6 +501,7 @@ def main() -> int:
         host_port = int(host_binding[0].rsplit(":", 1)[1])
 
         docker_sql(container, FIXTURE.read_text())
+        docker_sql(container, SCOPE_MIGRATION.read_text())
         docker_sql(container, MIGRATION.read_text())
         checks = assert_acceptance(host_port)
         server_version = docker_sql(container, "SELECT current_setting('server_version');")
@@ -464,7 +509,7 @@ def main() -> int:
             "status": "passed",
             "checked_at": datetime.now(timezone.utc).isoformat(),
             "postgres_version": server_version,
-            "migration": MIGRATION.name,
+            "migrations": [SCOPE_MIGRATION.name, MIGRATION.name],
             "database_scope": "fresh temporary PostgreSQL 16 container with no mounted volumes",
             "connection_scope": "random host port bound to 127.0.0.1 only",
             "tenant_context": "synthetic fixture function; signed-context cryptography is covered separately",

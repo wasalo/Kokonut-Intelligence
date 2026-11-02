@@ -1,0 +1,28 @@
+{
+  "date": "2026-10-28",
+  "result": "passed",
+  "slice": "stakeholder identity trust evidence pagination contract",
+  "route": "/operator/api/stakeholder-trust/{location_id}/parties/{party_id}/identity-evidence",
+  "downstream_contract": {
+    "limit_default": 50,
+    "limit_minimum": 1,
+    "limit_maximum": 50,
+    "source": "services/gateway/stakeholder_trust.py::_normalize_limit"
+  },
+  "change": "FastAPI now publishes and enforces the same integer limit range as the trust reader; invalid values are rejected before service invocation.",
+  "verification": {
+    "command": "python3 -m pytest tests/test_gateway_stakeholder_trust_pagination_openapi.py tests/test_gateway_stakeholder_trust.py -q",
+    "result": "13 passed",
+    "ruff": "passed",
+    "py_compile": "passed",
+    "git_diff_check": "passed"
+  },
+  "external_services": {
+    "database": false,
+    "provider": false,
+    "network": false
+  },
+  "baseline_head": "753b4645",
+  "working_tree_dirty": true,
+  "rollback": "Revert the FastAPI Query constraint and the focused route contract tests; no migration or persisted data changed."
+}

@@ -1,10 +1,14 @@
 """Prediction calibration, outside-view, and probability-resolution tests."""
 
+import sys
+from decimal import Decimal
 from pathlib import Path
+from unittest.mock import MagicMock
 
 import pytest
 
-from services.predictions.service import _domain_for_metric, _horizon_bucket, _MAX_CALIBRATION_AGE_DAYS
+from services.predictions import cli as prediction_cli
+from services.predictions.service import _MAX_CALIBRATION_AGE_DAYS, _domain_for_metric, _horizon_bucket
 from services.threatcasting.probability import brier_score
 
 
@@ -140,3 +144,121 @@ def test_outside_view_fit_dimensions_no_longer_hardcoded():
             assert "fit_status" in block
             assert "'good')" not in block.replace("fit_status", "")
             break
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [
+        ("--prediction-id", "invalid-uuid"),
+        ("--source-id", "invalid-uuid"),
+        ("--verified-by", "invalid-uuid"),
+        ("--actual-at", "2026-10-29T12:00:00"),
+        ("--actual-at", "not-a-timestamp"),
+        ("--actual-value", "NaN"),
+        ("--actual-value", "Infinity"),
+        ("--actual-value", "1000000000000"),
+        ("--actual-value", "999999999999.999999995"),
+        ("--source-table", " "),
+        ("--source-table", "x" * 101),
+        ("--unit", " "),
+        ("--unit", "x" * 51),
+    ],
+)
+def test_record_outcome_cli_rejects_invalid_values_before_database(
+    monkeypatch, field, value
+):
+    prediction_id = "a0000000-0000-0000-0000-000000000001"
+    source_id = "a0000000-0000-0000-0000-000000000002"
+    argv = [
+        "predictions",
+        "record-outcome",
+        "--prediction-id",
+        prediction_id,
+        "--source-table",
+        "harvest_event",
+        "--source-id",
+        source_id,
+        "--actual-at",
+        "2026-10-29T12:00:00+00:00",
+        "--actual-value",
+        "12.5",
+        "--unit",
+        "kg",
+        "--verified-by",
+        "a0000000-0000-0000-0000-000000000003",
+    ]
+    argv[argv.index(field) + 1] = value
+    monkeypatch.setattr(sys, "argv", argv)
+    get_db = MagicMock(side_effect=AssertionError("invalid input opened the database"))
+    monkeypatch.setattr(prediction_cli, "get_db", get_db)
+
+    with pytest.raises(SystemExit) as error:
+        prediction_cli.main()
+
+    assert error.value.code == 2
+    get_db.assert_not_called()
+
+
+def test_record_outcome_cli_canonicalizes_and_forwards_valid_bounded_values(monkeypatch):
+    prediction_id = "A0000000-0000-0000-0000-000000000001"
+    source_id = "A0000000-0000-0000-0000-000000000002"
+    verified_by = "A0000000-0000-0000-0000-000000000003"
+    argv = [
+        "predictions",
+        "record-outcome",
+        "--prediction-id",
+        prediction_id,
+        "--source-table",
+        "  harvest_event  ",
+        "--source-id",
+        source_id,
+        "--actual-at",
+        "2026-10-29T12:00:00+00:00",
+        "--actual-value",
+        "999999999999.99999999",
+        "--unit",
+        " kg ",
+        "--verified-by",
+        verified_by,
+    ]
+    monkeypatch.setattr(sys, "argv", argv)
+    get_db = MagicMock(return_value=object())
+    monkeypatch.setattr(prediction_cli, "get_db", get_db)
+    recorded = {}
+
+    class _PredictionService:
+        def __init__(self, connection):
+            recorded["connection"] = connection
+
+        def record_outcome(self, *args):
+            recorded["args"] = args
+            return {"status": "draft"}
+
+    monkeypatch.setattr(prediction_cli, "PredictionService", _PredictionService)
+    printed = []
+    monkeypatch.setattr(prediction_cli, "print_json", printed.append)
+
+    prediction_cli.main()
+
+    assert get_db.call_count == 1
+    assert recorded["args"][:3] == (
+        prediction_id.lower(),
+        "harvest_event",
+        source_id.lower(),
+    )
+    assert recorded["args"][3].tzinfo is not None
+    assert recorded["args"][4] == Decimal("999999999999.99999999")
+    assert recorded["args"][5:] == ("kg", verified_by.lower())
+    assert printed == [{"status": "draft"}]
+
+
+def test_record_forecast_cli_rejects_invalid_uuid_before_database(monkeypatch):
+    monkeypatch.setattr(sys, "argv", ["predictions", "record-forecast", "--output-id", "bad"])
+    get_db = MagicMock(side_effect=AssertionError("invalid UUID opened the database"))
+    monkeypatch.setattr(prediction_cli, "get_db", get_db)
+
+    with pytest.raises(SystemExit) as error:
+        prediction_cli.main()
+
+    assert error.value.code == 2
+    get_db.assert_not_called()

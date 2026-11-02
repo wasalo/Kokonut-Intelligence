@@ -1,0 +1,36 @@
+{
+  "result": "passed",
+  "source": "synthetic PostgreSQL database only",
+  "candidate_or_legacy_touched": false,
+  "network_mode": "none",
+  "host_ports_published": false,
+  "plaintext_dump_written_to_disk": false,
+  "age_identity_path_recorded": false,
+  "cleanup": {
+    "attempted": true,
+    "completed": true
+  },
+  "limitations": [
+    "Synthetic database only; no application schemas, cluster roles, external providers, media, or farm records are covered.",
+    "Checks the streaming pg_dump/age/pg_restore primitives, not scripts/kernel-checkpoint.sh, the full role-bootstrap restore procedure, or whole-platform recovery.",
+    "This does not establish R2 transfer, production credential custody, retention, or a coordinated multi-provider checkpoint."
+  ],
+  "image": {
+    "reference": "postgis/postgis:16-3.4@sha256:44126d872ac91993766c341e369c539e8196614321765d36a6f1bab0419a5fa5",
+    "platform": "linux/amd64",
+    "image_id": "sha256:44126d872ac91993766c341e369c539e8196614321765d36a6f1bab0419a5fa5"
+  },
+  "checkpoint": {
+    "bytes": 2090,
+    "sha256": "23399dab4fde51561813a3b208c24252e3055c26b585131102f770039099795f",
+    "age_encrypted": true,
+    "plaintext_dump_on_disk": false
+  },
+  "round_trip": {
+    "source_rows": 2,
+    "restored_rows": 2,
+    "contents_match": true,
+    "wrong_identity_rejected": true,
+    "restored_to_fresh_database": true
+  }
+}

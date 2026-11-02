@@ -1234,6 +1234,8 @@ def test_competency_review_console_is_grant_gated_private_and_retry_safe():
     assert "/competency-review-queue?${params}" in load
     assert 'credentials: "same-origin"' in load and 'cache: "no-store"' in load
     assert "next_offset" in load and "result.has_more === true" in load
+    assert "reachedOffsetLimit" in load
+    assert "10,000-offset limit; additional assessments remain" in load
     assert "item.evidence_note" in row
     assert "cell.textContent = operatingPilotDisplayValue(value)" in row
     assert '"verified"' in row and '"rejected"' in row

@@ -9,12 +9,18 @@
 
 This policy establishes Kokonut Intelligence's (KI) information security
 management system in support of SOC 2 Type I/II and ISO 27001:2022 readiness.
-It applies to all KI infrastructure, code, and data: the canonical Postgres+
-Directus+ClickHouse stack, the Gateway/GRPC services, GitHub Actions CI, and
-the staging environment on the dedicated self-hosted runner.
+It applies to KI source, services, data, and deployment components selected
+for an environment. PostgreSQL is the canonical data store; the Gateway and
+Python services provide native application paths. Directus and ClickHouse are
+adapters that are present in legacy Compose or selected Kernel profiles, not
+required components of every Kernel deployment. GitHub Actions is the current
+repository CI platform. The active hosting, runner, backup, and production
+environment controls require deployment evidence and policy-owner review;
+this source document does not establish that they are configured or operating.
 
 Out of scope: Kokonut-Agentic-Marketplace smart-contract logic (separate
-audit lineage) and production hosts not yet provisioned.
+audit lineage). Production environment controls and legal/operational scope
+require owner review and deployment evidence before audit use.
 
 ## 2. Information Security Objectives
 
@@ -38,14 +44,14 @@ audit lineage) and production hosts not yet provisioned.
 
 - **A.5 Organizational** — this policy, risk register, vendor register
 - **A.6 People** — role-based access, onboarding/offboarding
-- **A.7 Physical** — `cerberus` VPS hardened; co-hosted services isolated
+- **A.7 Physical** — production host and co-host isolation controls require current deployment evidence
 - **A.8 Technological** — gateway auth, SOPS, migration checksums, backup
 
 ## 5. Access Control
 
 - Least-privilege by default; agents propose, humans approve.
-- Secrets encrypted with SOPS+age; host key on `cerberus` only.
-- CI never sees production secrets; deploy re-wraps to host key per run.
+- Secrets are managed with SOPS+age; key custody and host deployment procedures require operator evidence for each environment.
+- CI should not receive production secrets; verify the active deployment workflow and permissions before treating this as an audited control.
 
 ## 6. Cryptographic Controls
 
@@ -59,8 +65,11 @@ invariants preserved, replay/disposal explicit. Severity → comms path defined.
 
 ## 8. Backup & Continuity
 
-Nightly verified backup (03:30) of staging DB; 7-day retention on-host,
-off-host copy per `deploy/production/backup-policy.md` at prod.
+Backup schedules, retention periods, off-host copies, restore drills, and
+legal holds are deployment policy decisions and are not established by this
+document. Confirm the active backup policy and evidence before claiming that
+any environment meets its recovery objective. Automated deletion remains
+disabled until an approved configurable retention policy is in place.
 
 ## 9. Compliance & Review
 

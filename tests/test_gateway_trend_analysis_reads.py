@@ -523,6 +523,153 @@ def test_trend_route_policy_is_exact_location_scoped_read_only():
     assert auth_route_policy("DELETE", forecast_path, enabled=True) is None
 
 
+def test_forecast_create_openapi_publishes_strict_request_and_created_reused_results(monkeypatch):
+    app = _register_route(monkeypatch, lambda *_args, **_kwargs: {})
+    operation = app.openapi()["paths"]["/operator/api/trends/{location_id}/forecast"]["post"]
+    request_schema = operation["requestBody"]["content"]["application/json"]["schema"]
+    responses = app.openapi()["components"]["schemas"]
+    result_schema = operation["responses"]["200"]["content"]["application/json"]["schema"]
+
+    assert request_schema["additionalProperties"] is False
+    assert set(request_schema["properties"]) == {
+        "metric_key", "forecast_horizon", "confidence"
+    }
+    assert request_schema["required"] == ["metric_key"]
+    assert request_schema["properties"]["forecast_horizon"]["minimum"] == 1
+    assert request_schema["properties"]["forecast_horizon"]["maximum"] == 100
+    assert request_schema["properties"]["confidence"]["enum"] == [0.9, 0.95, 0.99]
+    assert result_schema["discriminator"]["propertyName"] == "created"
+    assert {ref.rsplit("/", 1)[-1] for ref in result_schema["discriminator"]["mapping"].values()} == {
+        "TrendForecastCreatedResponse", "TrendForecastReusedResponse"
+    }
+    assert responses["TrendForecastCreatedResponse"]["additionalProperties"] is False
+    assert "forecast_at" in responses["TrendForecastCreatedResponse"]["properties"]
+    assert "forecast_at" not in responses["TrendForecastReusedResponse"]["properties"]
+    created_result_schema = operation["responses"]["201"]["content"]["application/json"]["schema"]
+    assert created_result_schema["oneOf"] == result_schema["oneOf"]
+    assert created_result_schema["discriminator"] == result_schema["discriminator"]
+
+
+@pytest.mark.parametrize(
+    ("created", "expected_status", "includes_forecast_at"),
+    [(True, 201, True), (False, 200, False)],
+)
+def test_forecast_create_preserves_created_and_reused_response_shapes(
+    monkeypatch, created, expected_status, includes_forecast_at
+):
+    forecast_id = "33333333-3333-4333-8333-333333333333"
+    result = {
+        "location_id": LOCATION_ID,
+        "metric_key": "soil_carbon",
+        "forecast_id": forecast_id,
+        "status": "active",
+        "created": created,
+        "forecast_horizon": 12,
+        "time_unit": "day",
+        "training_points": 3,
+    }
+    if includes_forecast_at:
+        result["forecast_at"] = "2026-10-29T12:00:00+00:00"
+    calls = []
+
+    def writer(*args, **kwargs):
+        calls.append((args, kwargs))
+        return result
+
+    app = _register_route(monkeypatch, lambda *_args, **_kwargs: {}, forecast_writer=writer)
+    with TestClient(app) as client:
+        response = client.post(
+            f"/operator/api/trends/{LOCATION_ID}/forecast",
+            json={"metric_key": "soil_carbon", "forecast_horizon": 12, "confidence": 0.95},
+        )
+
+    assert response.status_code == expected_status
+    assert response.headers["cache-control"] == "no-store"
+    expected = dict(result)
+    if includes_forecast_at:
+        expected["forecast_at"] = "2026-10-29T12:00:00Z"
+    assert response.json() == expected
+    assert calls == [
+        ((OPERATOR_ID, LOCATION_ID, "soil_carbon"), {"forecast_horizon": 12, "confidence": 0.95})
+    ]
+
+
+@pytest.mark.parametrize(
+    "payload",
+    [
+        {"forecast_horizon": 12},
+        {"metric_key": "soil_carbon", "forecast_horizon": 0},
+        {"metric_key": "soil_carbon", "forecast_horizon": 101},
+        {"metric_key": "soil_carbon", "forecast_horizon": True},
+        {"metric_key": "soil_carbon", "confidence": 0.93},
+        {"metric_key": "soil_carbon", "confidence": "0.95"},
+        {"metric_key": "soil_carbon", "confidence": True},
+        {"metric_key": " soil_carbon "},
+        {"metric_key": "soil_carbon", "unexpected": "field"},
+    ],
+)
+def test_invalid_forecast_create_request_fails_before_service(monkeypatch, payload):
+    calls = []
+
+    def writer(*args, **kwargs):
+        calls.append((args, kwargs))
+        return {}
+
+    app = _register_route(monkeypatch, lambda *_args, **_kwargs: {}, forecast_writer=writer)
+    with TestClient(app) as client:
+        response = client.post(
+            f"/operator/api/trends/{LOCATION_ID}/forecast", json=payload
+        )
+
+    assert response.status_code == 400
+    assert response.headers["cache-control"] == "no-store"
+    assert response.json() == {"error": "Forecast request is invalid"}
+    assert calls == []
+
+
+@pytest.mark.parametrize(
+    "result",
+    [
+        {"created": True},
+        {
+            "location_id": "99999999-9999-4999-8999-999999999999",
+            "metric_key": "soil_carbon",
+            "forecast_id": "33333333-3333-4333-8333-333333333333",
+            "status": "active",
+            "created": True,
+            "forecast_horizon": 12,
+            "time_unit": "day",
+            "training_points": 3,
+            "forecast_at": "2026-10-29T12:00:00+00:00",
+        },
+        {
+            "location_id": LOCATION_ID,
+            "metric_key": "soil_carbon",
+            "forecast_id": "33333333-3333-4333-8333-333333333333",
+            "status": "active",
+            "created": False,
+            "forecast_horizon": 12,
+            "time_unit": "day",
+            "training_points": 3,
+            "forecast_at": "2026-10-29T12:00:00+00:00",
+        },
+    ],
+)
+def test_malformed_or_mismatched_forecast_result_fails_closed(monkeypatch, result):
+    app = _register_route(
+        monkeypatch, lambda *_args, **_kwargs: {}, forecast_writer=lambda *_args, **_kwargs: result
+    )
+    with TestClient(app) as client:
+        response = client.post(
+            f"/operator/api/trends/{LOCATION_ID}/forecast",
+            json={"metric_key": "soil_carbon"},
+        )
+
+    assert response.status_code == 500
+    assert response.headers["cache-control"] == "no-store"
+    assert response.json() == {"error": "Trend forecast compute unavailable"}
+
+
 def _register_route(
     monkeypatch, reader, smoothing_reader=None, change_points_reader=None,
     decomposition_reader=None, forecast_reader=None, forecast_writer=None,
@@ -781,6 +928,10 @@ def test_forecast_compute_http_route_is_no_store_and_passes_bounded_request(monk
             "forecast_id": "33333333-3333-4333-8333-333333333333",
             "status": "active",
             "created": True,
+            "forecast_horizon": forecast_horizon,
+            "time_unit": "day",
+            "training_points": 3,
+            "forecast_at": "2026-10-29T12:00:00+00:00",
         }
 
     app = _register_route(
@@ -845,3 +996,254 @@ def test_forecast_compute_http_route_bounds_request_body_before_writer(monkeypat
         )
     assert response.status_code == 400
     assert "4 KiB" in response.json()["error"]
+
+
+def test_paged_trend_routes_publish_service_bounds_in_openapi(monkeypatch):
+    def reader(*_args, **_kwargs):
+        return {"location_id": LOCATION_ID, "items": [], "limit": 25, "offset": 0, "has_more": False}
+
+    app = _register_route(monkeypatch, reader)
+    openapi = app.openapi()["paths"]
+    expected = {
+        "/operator/api/trends/{location_id}/estimates": {
+            "limit": (25, 1, 50),
+            "offset": (0, 0, 10_000),
+        },
+        "/operator/api/trends/{location_id}/change-points": {
+            "limit": (100, 1, 100),
+        },
+        "/operator/api/trends/{location_id}/smoothing": {
+            "limit": (100, 1, 100),
+        },
+    }
+    for path, bounds in expected.items():
+        parameters = {
+            parameter["name"]: parameter["schema"]
+            for parameter in openapi[path]["get"]["parameters"]
+        }
+        for name, (default, minimum, maximum) in bounds.items():
+            assert parameters[name]["default"] == default
+            assert parameters[name]["minimum"] == minimum
+            assert parameters[name]["maximum"] == maximum
+
+
+@pytest.mark.parametrize(
+    ("path", "query"),
+    [
+        ("estimates", "limit=0"),
+        ("estimates", "limit=51"),
+        ("estimates", "offset=-1"),
+        ("estimates", "offset=10001"),
+        ("change-points", "metric_key=soil_carbon&limit=0"),
+        ("change-points", "metric_key=soil_carbon&limit=101"),
+        ("smoothing", "metric_key=soil_carbon&limit=0"),
+        ("smoothing", "metric_key=soil_carbon&limit=101"),
+    ],
+)
+def test_invalid_trend_page_bounds_fail_before_service(monkeypatch, path, query):
+    called = False
+
+    def should_not_run(*_args, **_kwargs):
+        nonlocal called
+        called = True
+        raise AssertionError("invalid pagination reached service")
+
+    app = _register_route(
+        monkeypatch,
+        should_not_run,
+        smoothing_reader=should_not_run,
+        change_points_reader=should_not_run,
+    )
+    with TestClient(app) as client:
+        response = client.get(f"/operator/api/trends/{LOCATION_ID}/{path}?{query}")
+    assert response.status_code == 422
+    assert not called
+
+
+_TREND_TIMESTAMP = "2026-03-03T12:00:00+00:00"
+_TREND_READ_PROJECTIONS = {
+    "estimates": {
+        "location_id": LOCATION_ID,
+        "items": [{
+            "metric_key": "soil_carbon",
+            "period_start": "2026-01-01T00:00:00+00:00",
+            "period_end": "2026-03-01T00:00:00+00:00",
+            "data_points": 10,
+            "slope": 0.1,
+            "intercept": 1.0,
+            "r_squared": 0.8,
+            "standard_error": 0.01,
+            "slope_p_value": 0.02,
+            "direction": "improving",
+            "confidence_level": "high",
+            "slope_ci_lower": 0.08,
+            "slope_ci_upper": 0.12,
+            "time_unit": "day",
+            "computed_at": _TREND_TIMESTAMP,
+        }],
+        "limit": 1,
+        "offset": 0,
+        "has_more": False,
+    },
+    "smoothing": {
+        "location_id": LOCATION_ID,
+        "metric_key": "soil_carbon",
+        "items": [{
+            "metric_key": "soil_carbon",
+            "smoothing_type": "exponential",
+            "timestamp": _TREND_TIMESTAMP,
+            "original_value": 4.0,
+            "smoothed_value": 3.5,
+            "computed_at": _TREND_TIMESTAMP,
+        }],
+    },
+    "change-points": {
+        "location_id": LOCATION_ID,
+        "metric_key": "soil_carbon",
+        "items": [{
+            "metric_key": "soil_carbon",
+            "detection_method": "cusum",
+            "change_point_index": 14,
+            "change_point_timestamp": _TREND_TIMESTAMP,
+            "magnitude": 0.7,
+            "direction": "increase",
+            "confidence": 0.9,
+            "segment_count": 2,
+            "status": "confirmed",
+            "detected_at": _TREND_TIMESTAMP,
+        }],
+    },
+    "decomposition": {
+        "location_id": LOCATION_ID,
+        "metric_key": "soil_carbon",
+        "item": {
+            "metric_key": "soil_carbon",
+            "decomposition_method": "stl",
+            "period": 12,
+            "trend_component": [1.0, 2.0, None],
+            "seasonal_component": [0.2, 0.3, 0.4],
+            "residual_component": [None, -0.1, None],
+            "seasonal_strength": 0.7,
+            "trend_strength": 0.8,
+            "residual_variance": 0.05,
+            "data_points": 240,
+            "trend_component_points": 240,
+            "seasonal_component_points": 240,
+            "residual_component_points": 240,
+            "truncated": True,
+            "computed_at": _TREND_TIMESTAMP,
+        },
+    },
+    "forecast": {
+        "location_id": LOCATION_ID,
+        "metric_key": "soil_carbon",
+        "item": {
+            "metric_key": "soil_carbon",
+            "model_type": "arima",
+            "forecast_values": [4.2],
+            "intervals": [{"step": 1, "forecast": 4.2, "lower": 3.8, "upper": 4.6}],
+            "interval_confidence": 0.95,
+            "forecast_horizon": 1,
+            "time_unit": "day",
+            "training_points": 30,
+            "status": "active",
+            "truncated": False,
+            "forecast_at": _TREND_TIMESTAMP,
+        },
+    },
+}
+
+
+def _trend_response_app(monkeypatch, route_name, result):
+    def empty_estimates(*_args, **_kwargs):
+        return {
+            "location_id": LOCATION_ID,
+            "items": [],
+            "limit": 25,
+            "offset": 0,
+            "has_more": False,
+        }
+
+    def selected(name):
+        def read(*_args, **_kwargs):
+            if route_name == name:
+                return result
+            if name == "estimates":
+                return empty_estimates()
+            return {
+                "location_id": LOCATION_ID,
+                "metric_key": "soil_carbon",
+                "items": [],
+            }
+
+        return read
+
+    return _register_route(
+        monkeypatch,
+        selected("estimates"),
+        smoothing_reader=selected("smoothing"),
+        change_points_reader=selected("change-points"),
+        decomposition_reader=selected("decomposition"),
+        forecast_reader=selected("forecast"),
+    )
+
+
+@pytest.mark.parametrize(
+    ("route_name", "query"),
+    [
+        ("estimates", "?limit=1&offset=0"),
+        ("smoothing", "?metric_key=soil_carbon&limit=1"),
+        ("change-points", "?metric_key=soil_carbon&limit=1"),
+        ("decomposition", "?metric_key=soil_carbon"),
+        ("forecast", "?metric_key=soil_carbon"),
+    ],
+)
+def test_saved_trend_read_response_models_accept_safe_projections(
+    monkeypatch, route_name, query
+):
+    app = _trend_response_app(monkeypatch, route_name, _TREND_READ_PROJECTIONS[route_name])
+    with TestClient(app) as client:
+        response = client.get(f"/operator/api/trends/{LOCATION_ID}/{route_name}{query}")
+    assert response.status_code == 200
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["vary"] == "Cookie"
+    assert response.json()["location_id"] == LOCATION_ID
+
+
+@pytest.mark.parametrize(
+    ("route_name", "query"),
+    [
+        ("estimates", "?limit=1&offset=0"),
+        ("smoothing", "?metric_key=soil_carbon&limit=1"),
+        ("change-points", "?metric_key=soil_carbon&limit=1"),
+        ("decomposition", "?metric_key=soil_carbon"),
+        ("forecast", "?metric_key=soil_carbon"),
+    ],
+)
+def test_saved_trend_read_rejects_unknown_projection_fields_without_leaking(
+    monkeypatch, route_name, query
+):
+    result = dict(_TREND_READ_PROJECTIONS[route_name])
+    result["unselected_private_payload"] = "must not be returned"
+    app = _trend_response_app(monkeypatch, route_name, result)
+    with TestClient(app) as client:
+        response = client.get(f"/operator/api/trends/{LOCATION_ID}/{route_name}{query}")
+    assert response.status_code == 500
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["vary"] == "Cookie"
+    expected_error = {
+        "estimates": "Trend estimates unavailable",
+        "smoothing": "Trend smoothing unavailable",
+        "change-points": "Trend change-point read unavailable",
+        "decomposition": "Trend decomposition unavailable",
+        "forecast": "Trend forecast unavailable",
+    }
+    assert response.json() == {"error": expected_error[route_name]}
+
+
+def test_saved_trend_get_routes_publish_success_models_in_openapi(monkeypatch):
+    app = _trend_response_app(monkeypatch, "estimates", _TREND_READ_PROJECTIONS["estimates"])
+    paths = app.openapi()["paths"]
+    for route_name in _TREND_READ_PROJECTIONS:
+        path = f"/operator/api/trends/{{location_id}}/{route_name}"
+        assert "schema" in paths[path]["get"]["responses"]["200"]["content"]["application/json"]

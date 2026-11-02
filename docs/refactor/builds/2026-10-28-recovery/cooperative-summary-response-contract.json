@@ -1,0 +1,47 @@
+{
+  "date": "2026-10-28",
+  "source_revision": "23e5bf8c",
+  "working_tree_dirty": true,
+  "scope": "Strict success response and OpenAPI contract for the private location-scoped cooperative management summary.",
+  "route": {
+    "method": "GET",
+    "path": "/operator/api/cooperatives/{location_id}/summary",
+    "response_fields": ["location_id", "cooperatives", "assets", "bookings"],
+    "extra_fields": "forbidden",
+    "validation": "The projection is explicitly validated before returning JSONResponse, since FastAPI does not validate Response subclasses."
+  },
+  "error_contract": {
+    "authorization": "existing 403 response and cache headers preserved",
+    "disabled_oidc": "existing 404 response and cache headers preserved",
+    "invalid_input": "existing 400 response and cache headers preserved",
+    "database_failure": "existing sanitized 503 response and Retry-After preserved",
+    "invalid_projection": "sanitized 500 with no-store and Vary: Cookie"
+  },
+  "checks": [
+    {
+      "command": "python3 -m pytest tests/test_gateway_cooperative_management_reads.py -q",
+      "result": "passed",
+      "passed": 10
+    },
+    {
+      "command": "python3 -m ruff check services/gateway/cooperative_management_routes.py tests/test_gateway_cooperative_management_reads.py",
+      "result": "passed"
+    },
+    {
+      "command": "python3 -m compileall -q services/gateway/cooperative_management_routes.py tests/test_gateway_cooperative_management_reads.py",
+      "result": "passed"
+    },
+    {
+      "command": "git diff --check",
+      "result": "passed"
+    }
+  ],
+  "environment": {
+    "live_database_used": false,
+    "candidate_or_legacy_touched": false,
+    "provider_called": false
+  },
+  "limitations": [
+    "This closes the private cooperative-summary response contract only; it does not establish live OIDC behavior, populated-data parity, or broader Gateway authorization parity."
+  ]
+}

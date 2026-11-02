@@ -1,14 +1,15 @@
 import re
-import sys
 from pathlib import Path
-from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
 import pytest
 
-from services.core.providers import ProviderSettings
-from services.ingestion import clickhouse_outbox
-from services.ingestion.clickhouse_outbox import OutboxEnqueueError, deliver_batch, enqueue
+from services.ingestion import clickhouse_outbox, clickhouse_outbox_worker
+from services.ingestion.clickhouse_outbox import (
+    OutboxEnqueueError,
+    deliver_claimed_batch,
+    enqueue,
+)
 
 
 def _row(row_id: str, attempt_count: int = 1) -> dict:
@@ -46,53 +47,43 @@ def test_retry_delay_rejects_non_integer_attempt_count(attempt_count):
 def test_finish_uses_the_computed_delay_and_commits_outcome():
     conn = MagicMock()
     cursor = conn.cursor.return_value.__enter__.return_value
-    cursor.rowcount = 1
+    cursor.fetchone.return_value = (True,)
 
-    assert clickhouse_outbox._finish(
+    assert clickhouse_outbox_worker._finish(
         conn,
-        "outbox-id",
         "worker-1",
-        "lease-token",
+        {"id": "outbox-id", "lease_token": "lease-token"},
         success=False,
         error="offline",
         retry_delay_seconds=480,
     )
 
     statement, params = cursor.execute.call_args.args
-    assert "(%s * INTERVAL '1 second')" in statement
-    assert "INTERVAL '1 minute'" not in statement
-    assert "WHEN %s THEN 'dead_letter'" in statement
-    assert params[4] == 480
+    assert "kokonut_security.finish_clickhouse_outbox_delivery" in statement
+    assert params == (
+        "outbox-id", "worker-1", "lease-token", False, "offline", 480, False
+    )
     conn.commit.assert_called_once()
 
 
 def test_finish_can_permanently_dead_letter_invalid_projection():
     conn = MagicMock()
     cursor = conn.cursor.return_value.__enter__.return_value
-    cursor.rowcount = 1
+    cursor.fetchone.return_value = (True,)
 
-    assert clickhouse_outbox._finish(
+    assert clickhouse_outbox_worker._finish(
         conn,
-        "outbox-id",
         "worker-1",
-        "lease-token",
+        {"id": "outbox-id", "lease_token": "lease-token"},
         success=False,
         error="projection contract rejected",
         permanent_failure=True,
     )
 
     statement, params = cursor.execute.call_args.args
-    assert "WHEN %s THEN 'dead_letter'" in statement
-    assert params[1] is True
+    assert "kokonut_security.finish_clickhouse_outbox_delivery" in statement
+    assert params[6] is True
     conn.commit.assert_called_once()
-
-
-def _enable_clickhouse(monkeypatch, enabled: bool = True) -> None:
-    monkeypatch.setattr(
-        ProviderSettings,
-        "from_environment",
-        classmethod(lambda _cls: SimpleNamespace(clickhouse=enabled)),
-    )
 
 
 def test_enqueue_is_idempotent_and_stays_in_caller_transaction():
@@ -149,71 +140,83 @@ def test_enqueue_failure_has_a_distinct_transactional_error(failure):
     conn.commit.assert_not_called()
 
 
-@patch("services.ingestion.clickhouse_outbox.get_clickhouse")
-def test_unavailable_clickhouse_does_not_claim_success(mock_client):
-    mock_client.return_value = None
-    conn = MagicMock()
-    conn.cursor.return_value.__enter__.return_value.description = []
-    conn.cursor.return_value.__enter__.return_value.fetchall.return_value = []
+def test_compatibility_delivery_wrapper_ignores_shared_connection_and_routes_to_worker(
+    monkeypatch,
+):
+    connection = MagicMock()
+    result = {"claimed": 2, "delivered": 1, "failed": 1}
+    run_once = MagicMock(return_value=result)
+    monkeypatch.setattr(clickhouse_outbox_worker, "run_once", run_once)
 
-    from services.ingestion.clickhouse_outbox import deliver_batch
+    assert clickhouse_outbox.deliver_batch(connection, "compat-worker", 12) == result
 
-    assert deliver_batch(conn, "worker-1") == {"claimed": 0, "delivered": 0, "failed": 0}
+    run_once.assert_called_once_with(worker_id="compat-worker", limit=12)
+    connection.cursor.assert_not_called()
+    connection.commit.assert_not_called()
 
 
-def test_disabled_clickhouse_does_not_claim_or_open_client(monkeypatch):
-    _enable_clickhouse(monkeypatch, enabled=False)
-    monkeypatch.setattr(clickhouse_outbox, "claim_batch", lambda *_args: pytest.fail("must not claim"))
-    monkeypatch.setattr(clickhouse_outbox, "get_clickhouse", lambda: pytest.fail("must not connect"))
+def test_empty_claimed_batch_does_not_open_clickhouse_or_finish(monkeypatch):
+    monkeypatch.setattr(
+        clickhouse_outbox,
+        "get_clickhouse",
+        lambda: pytest.fail("empty claimed batches must not open ClickHouse"),
+    )
+    finish = MagicMock()
 
-    assert deliver_batch(object(), "worker-disabled") == {
+    assert deliver_claimed_batch([], "worker-empty", finish) == {
         "claimed": 0,
         "delivered": 0,
         "failed": 0,
     }
+    finish.assert_not_called()
 
 
 def test_client_setup_failure_records_a_failed_outcome_for_each_claim(monkeypatch):
-    _enable_clickhouse(monkeypatch)
     rows = [_row("one"), _row("two", attempt_count=3)]
     finished = []
-    monkeypatch.setattr(clickhouse_outbox, "claim_batch", lambda *_args: rows)
     monkeypatch.setattr(clickhouse_outbox, "get_clickhouse", lambda: (_ for _ in ()).throw(OSError("offline")))
-    monkeypatch.setattr(
-        clickhouse_outbox,
-        "_finish",
-        lambda _conn, row_id, worker, token, *, success, error, retry_delay_seconds: finished.append(
-            (row_id, worker, token, success, error, retry_delay_seconds)
-        ) or True,
-    )
 
-    result = deliver_batch(object(), "worker-setup")
+    result = deliver_claimed_batch(
+        rows,
+        "worker-setup",
+        lambda row, **kwargs: finished.append((row["id"], kwargs)) or True,
+    )
 
     assert result == {"claimed": 2, "delivered": 0, "failed": 2}
     assert finished == [
-        ("one", "worker-setup", "lease-one", False, "client setup failed: OSError", 60),
-        ("two", "worker-setup", "lease-two", False, "client setup failed: OSError", 240),
+        ("one", {
+            "success": False,
+            "error": "client setup failed: OSError",
+            "retry_delay_seconds": 60,
+        }),
+        ("two", {
+            "success": False,
+            "error": "client setup failed: OSError",
+            "retry_delay_seconds": 240,
+        }),
     ]
 
 
 def test_missing_client_after_enabled_provider_records_setup_failure(monkeypatch):
-    _enable_clickhouse(monkeypatch)
     row = _row("one")
     finished = []
-    monkeypatch.setattr(clickhouse_outbox, "claim_batch", lambda *_args: [row])
     monkeypatch.setattr(clickhouse_outbox, "get_clickhouse", lambda: None)
-    monkeypatch.setattr(
-        clickhouse_outbox,
-        "_finish",
-        lambda _conn, row_id, _worker, _token, *, success, error, retry_delay_seconds: finished.append(
-            (row_id, success, error, retry_delay_seconds)
-        ) or True,
+
+    result = deliver_claimed_batch(
+        [row],
+        "worker-no-client",
+        lambda got_row, **kwargs: finished.append((got_row["id"], kwargs)) or True,
     )
 
-    result = deliver_batch(object(), "worker-no-client")
-
     assert result == {"claimed": 1, "delivered": 0, "failed": 1}
-    assert finished == [("one", False, "client setup failed: RuntimeError", 60)]
+    assert finished == [(
+        "one",
+        {
+            "success": False,
+            "error": "client setup failed: RuntimeError",
+            "retry_delay_seconds": 60,
+        },
+    )]
 
 
 @pytest.mark.parametrize(
@@ -229,30 +232,26 @@ def test_missing_client_after_enabled_provider_records_setup_failure(monkeypatch
 def test_invalid_projection_is_dead_lettered_without_opening_clickhouse(
     monkeypatch, field, value
 ):
-    _enable_clickhouse(monkeypatch)
     row = _row("invalid")
     row[field] = value
     finished = []
-    monkeypatch.setattr(clickhouse_outbox, "claim_batch", lambda *_args: [row])
     monkeypatch.setattr(
         clickhouse_outbox,
         "get_clickhouse",
         lambda: pytest.fail("invalid projections must not open ClickHouse"),
     )
-    monkeypatch.setattr(
-        clickhouse_outbox,
-        "_finish",
-        lambda _conn, row_id, worker, token, **kwargs: finished.append(
-            (row_id, worker, token, kwargs)
-        ) or True,
+
+    result = deliver_claimed_batch(
+        [row],
+        "worker-invalid",
+        lambda got_row, **kwargs: finished.append((got_row, kwargs)) or True,
     )
 
-    result = deliver_batch(object(), "worker-invalid")
-
     assert result == {"claimed": 1, "delivered": 0, "failed": 1}
-    assert finished[0][:3] == ("invalid", "worker-invalid", "lease-invalid")
-    assert finished[0][3]["permanent_failure"] is True
-    assert finished[0][3]["error"] == "projection contract rejected"
+    assert finished == [(
+        row,
+        {"success": False, "error": "projection contract rejected", "permanent_failure": True},
+    )]
 
 
 @pytest.mark.parametrize(
@@ -303,48 +302,41 @@ def test_projection_contract_columns_exist_in_clickhouse_schema():
 
 
 def test_setup_outcome_database_failure_propagates_without_retrying_finish(monkeypatch):
-    _enable_clickhouse(monkeypatch)
     rows = [_row("one"), _row("two")]
     finishes = []
-    monkeypatch.setattr(clickhouse_outbox, "claim_batch", lambda *_args: rows)
     monkeypatch.setattr(
         clickhouse_outbox,
         "get_clickhouse",
         lambda: (_ for _ in ()).throw(OSError("offline")),
     )
 
-    def fail_finish(_conn, row_id, *_args, **_kwargs):
-        finishes.append(row_id)
+    def fail_finish(row, **_kwargs):
+        finishes.append(row["id"])
         raise RuntimeError("database unavailable")
 
-    monkeypatch.setattr(clickhouse_outbox, "_finish", fail_finish)
-
     with pytest.raises(RuntimeError, match="database unavailable"):
-        deliver_batch(object(), "worker-setup")
+        deliver_claimed_batch(rows, "worker-setup", fail_finish)
 
     assert finishes == ["one"]
 
 
 def test_partial_batch_sanitizes_delivery_errors_and_keeps_independent_outcomes(monkeypatch):
-    _enable_clickhouse(monkeypatch)
     rows = [_row("success"), _row("failure")]
     client = MagicMock()
     secret = "clickhouse-provider-secret"
     client.raw_insert.side_effect = [None, ConnectionError(f"https://ch.example/?token={secret}")]
     finished = []
     logger = MagicMock()
-    monkeypatch.setattr(clickhouse_outbox, "claim_batch", lambda *_args: rows)
     monkeypatch.setattr(clickhouse_outbox, "get_clickhouse", lambda: client)
     monkeypatch.setattr(clickhouse_outbox.logger, "warning", logger.warning)
-    monkeypatch.setattr(
-        clickhouse_outbox,
-        "_finish",
-        lambda _conn, row_id, _worker, _token, *, success, error, retry_delay_seconds: finished.append(
-            (row_id, success, error, retry_delay_seconds)
+
+    result = deliver_claimed_batch(
+        rows,
+        "worker-partial",
+        lambda row, *, success, error, retry_delay_seconds: finished.append(
+            (row["id"], success, error, retry_delay_seconds)
         ) or True,
     )
-
-    result = deliver_batch(object(), "worker-partial")
 
     assert result == {"claimed": 2, "delivered": 1, "failed": 1}
     assert [outcome[:2] for outcome in finished] == [("success", True), ("failure", False)]
@@ -357,20 +349,16 @@ def test_partial_batch_sanitizes_delivery_errors_and_keeps_independent_outcomes(
 
 
 def test_completion_database_error_propagates_after_insert_without_second_finish(monkeypatch):
-    _enable_clickhouse(monkeypatch)
     client = MagicMock()
     finishes = []
-    monkeypatch.setattr(clickhouse_outbox, "claim_batch", lambda *_args: [_row("one")])
     monkeypatch.setattr(clickhouse_outbox, "get_clickhouse", lambda: client)
 
-    def fail_finish(_conn, row_id, *_args, **_kwargs):
-        finishes.append(row_id)
+    def fail_finish(row, **_kwargs):
+        finishes.append(row["id"])
         raise RuntimeError("completion database failed")
 
-    monkeypatch.setattr(clickhouse_outbox, "_finish", fail_finish)
-
     with pytest.raises(RuntimeError, match="completion database failed"):
-        deliver_batch(object(), "worker-completion")
+        deliver_claimed_batch([_row("one")], "worker-completion", fail_finish)
 
     assert client.raw_insert.call_count == 1
     assert finishes == ["one"]
@@ -378,14 +366,11 @@ def test_completion_database_error_propagates_after_insert_without_second_finish
 
 
 def test_successful_insert_with_lost_fence_counts_as_failed(monkeypatch):
-    _enable_clickhouse(monkeypatch)
     client = MagicMock()
-    monkeypatch.setattr(clickhouse_outbox, "claim_batch", lambda *_args: [_row("one")])
     monkeypatch.setattr(clickhouse_outbox, "get_clickhouse", lambda: client)
     finish = MagicMock(return_value=False)
-    monkeypatch.setattr(clickhouse_outbox, "_finish", finish)
 
-    result = deliver_batch(object(), "stale-worker")
+    result = deliver_claimed_batch([_row("one")], "stale-worker", finish)
 
     assert result == {"claimed": 1, "delivered": 0, "failed": 1}
     assert finish.call_args.kwargs["success"] is True
@@ -393,47 +378,43 @@ def test_successful_insert_with_lost_fence_counts_as_failed(monkeypatch):
 
 
 def test_client_close_failure_propagates_after_outcome_is_recorded(monkeypatch):
-    _enable_clickhouse(monkeypatch)
     client = MagicMock()
     client.close.side_effect = RuntimeError("client close failed")
     finish = MagicMock(return_value=True)
-    monkeypatch.setattr(clickhouse_outbox, "claim_batch", lambda *_args: [_row("one")])
     monkeypatch.setattr(clickhouse_outbox, "get_clickhouse", lambda: client)
-    monkeypatch.setattr(clickhouse_outbox, "_finish", finish)
 
     with pytest.raises(RuntimeError, match="client close failed"):
-        deliver_batch(object(), "worker-close")
+        deliver_claimed_batch([_row("one")], "worker-close", finish)
 
     assert finish.call_args.kwargs["success"] is True
     client.close.assert_called_once()
 
 
-def test_run_once_cli_exits_nonzero_when_any_projection_failed(monkeypatch, capsys):
-    conn = object()
-    database_context = MagicMock()
-    database_context.__enter__.return_value = conn
-    monkeypatch.setattr(sys, "argv", ["clickhouse_outbox", "--run-once", "--worker-id", "worker-cli"])
-    with (
-        patch.object(clickhouse_outbox, "get_connection", return_value=database_context),
-        patch.object(clickhouse_outbox, "deliver_batch", return_value={"claimed": 1, "delivered": 0, "failed": 1}),
-    ):
+def test_run_once_cli_exits_nonzero_when_any_projection_failed(capsys):
+    with patch.object(
+        clickhouse_outbox_worker,
+        "run_once",
+        return_value={"claimed": 1, "delivered": 0, "failed": 1},
+    ) as run_once:
         with pytest.raises(SystemExit) as exc_info:
-            clickhouse_outbox.main()
+            clickhouse_outbox_worker.main(
+                ["--run-once", "--worker-id", "worker-cli"]
+            )
 
     assert exc_info.value.code == 1
     assert '"failed": 1' in capsys.readouterr().out
-    database_context.__exit__.assert_called_once()
+    run_once.assert_called_once_with("worker-cli", 100)
 
 
-def test_run_once_cli_accepts_empty_or_successful_batch(monkeypatch, capsys):
-    database_context = MagicMock()
-    database_context.__enter__.return_value = object()
-    monkeypatch.setattr(sys, "argv", ["clickhouse_outbox", "--run-once", "--worker-id", "worker-cli"])
-    with (
-        patch.object(clickhouse_outbox, "get_connection", return_value=database_context),
-        patch.object(clickhouse_outbox, "deliver_batch", return_value={"claimed": 0, "delivered": 0, "failed": 0}),
-    ):
-        assert clickhouse_outbox.main() is None
+def test_run_once_cli_accepts_empty_or_successful_batch(capsys):
+    with patch.object(
+        clickhouse_outbox_worker,
+        "run_once",
+        return_value={"claimed": 0, "delivered": 0, "failed": 0},
+    ) as run_once:
+        assert clickhouse_outbox_worker.main(
+            ["--run-once", "--worker-id", "worker-cli"]
+        ) is None
 
     assert '"failed": 0' in capsys.readouterr().out
-    database_context.__exit__.assert_called_once()
+    run_once.assert_called_once_with("worker-cli", 100)

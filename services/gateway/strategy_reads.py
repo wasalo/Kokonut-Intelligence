@@ -8,7 +8,8 @@ from uuid import UUID
 
 from services.common.tenant_context import set_operator_tenant_context
 
-_MAX_PAGE_SIZE = 100
+MAX_STRATEGY_PAGE_SIZE = 50
+MAX_STRATEGY_OFFSET = 10_000
 
 
 class StrategyReadInvalid(ValueError):
@@ -57,8 +58,8 @@ def list_location_strategy_plan_summaries(
     """List bounded plan metadata and execution counts for one granted location."""
     operator_id = _normalize_uuid(operator_id, "operator")
     location_id = _normalize_uuid(location_id, "location")
-    page_size = _page_value(limit, "Limit", 1, _MAX_PAGE_SIZE)
-    page_offset = _page_value(offset, "Offset", 0, 10000)
+    page_size = _page_value(limit, "Limit", 1, MAX_STRATEGY_PAGE_SIZE)
+    page_offset = _page_value(offset, "Offset", 0, MAX_STRATEGY_OFFSET)
 
     connection = (connection_factory or _connection_factory())()
     try:
@@ -82,7 +83,8 @@ def list_location_strategy_plan_summaries(
             )
             rows = [_mapping(cursor, row) for row in cursor.fetchall()]
 
-        has_more = len(rows) > page_size
+        can_continue = page_offset + page_size <= MAX_STRATEGY_OFFSET
+        has_more = len(rows) > page_size and can_continue
         plans = rows[:page_size]
         return {
             "location_id": location_id,

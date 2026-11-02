@@ -4,19 +4,24 @@
 blocking worker loops in the ASGI event loop. It launches the API and, with
 `--with-workers`, the enabled PostgreSQL scheduler, event dispatcher, and
 notification delivery worker. Event dispatch and outbox delivery use separate
-child processes. `KOKONUT_FEATURE_NOTIFICATION_DELIVERY` controls the delivery
-child; it defaults to the event-bus feature value and can enable delivery when
-event dispatch is disabled. This separates process responsibility only: event
-handlers still use the shared runtime database identity and destination
-configuration when creating durable intents. Vendor feature switches and domain
-code remain
-unchanged. Workers do not run unless
-that command flag is supplied; feature flags alone do not start processes.
+child processes. The Standard supervisor gives the dispatcher and delivery
+child only their operation-specific credentials; their isolation flags default
+off. When an isolated operation is not provisioned, it pauses without opening a
+shared database connection. Event handlers that enqueue notifications use the
+separate migration-417 function path when configured; configured destinations
+fail closed if that enqueue path is unavailable. The API and general worker
+still share `kokonut_runtime`; these child boundaries do not complete C1.
+Vendor feature switches and domain code remain unchanged. Workers do not run
+unless that command flag is supplied; feature flags alone do not start processes.
 
 The subsequent [standard overlay](standard-profile.md) adds `--workers-only`
 for a separate worker container. Each supervisor lifetime now generates unique
 scheduler/event/notification identities instead of fixed names. Empty worker
-roles fail startup. The running combined candidate predates this source change.
+roles fail startup. The scheduler retains its shared control-plane login while
+forwarding only the exact allowlisted worker DSN for each scheduled operation.
+Event and notification child environments remove shared PostgreSQL variables
+and carry a deny marker that prevents legacy dotenv loading from restoring
+them. The running combined candidate predates this source change.
 
 The candidate Dockerfile now uses this entry point. Its Compose app uses an init
 process for orphan reaping and a 40-second shutdown grace period, exceeding the

@@ -1,0 +1,101 @@
+{
+  "batch": "public-report-projections-and-sdk-response-contracts",
+  "date": "2026-10-29",
+  "base_commit": "98a2766c",
+  "scope": [
+    "Replace six commons report SELECT wildcards with fixed schema-backed projections.",
+    "Replace strategy report wildcards across roadmap, stakeholder, grievance, trust, value-stream, and governance reads.",
+    "Align public metric-summary and attestation-count invariants across Gateway, Python SDK, and JavaScript SDK.",
+    "Normalize TypeScript DataService gRPC unary and streaming responses to declared SDK shapes."
+  ],
+  "source_contracts": {
+    "commons_public_views": "schemas/postgres/041_kokonut_commons_governance.sql",
+    "commons_land_stewardship": "schemas/postgres/037_land_stewardship_commons.sql",
+    "strategy_views": [
+      "schemas/postgres/212_technology_roadmap.sql",
+      "schemas/postgres/213_stakeholder_foundation.sql",
+      "schemas/postgres/216_stakeholder_engagement.sql",
+      "schemas/postgres/217_stakeholder_engagement_scope_view.sql",
+      "schemas/postgres/218_stakeholder_grievance.sql",
+      "schemas/postgres/221_stakeholder_reputation.sql",
+      "schemas/postgres/222_stakeholder_ecosystem.sql",
+      "schemas/postgres/223_stakeholder_value_streams.sql",
+      "schemas/postgres/226_governance_coordination.sql",
+      "schemas/postgres/244_stakeholder_trust_evidence.sql",
+      "schemas/postgres/246_party_trust_profile.sql",
+      "schemas/postgres/248_governance_cockpit.sql",
+      "schemas/postgres/249_governance_coordination_health.sql",
+      "schemas/postgres/528_location_scoped_stakeholder_landscape.sql"
+    ],
+    "public_summary": [
+      "services/analytics/public_summary.py",
+      "schemas/postgres/018_public_views.sql",
+      "schemas/postgres/377_location_public_attestation_counts.sql"
+    ],
+    "grpc_contract": [
+      "proto/data/v1/service.proto",
+      "proto/data/v1/types.proto",
+      "services/grpc/data_service.py"
+    ]
+  },
+  "focused_checks": [
+    {
+      "command": "python3 -m pytest tests/test_kokonut_commons_governance.py::test_commons_public_view_helpers_select_exact_ordered_columns_and_preserve_rows tests/test_commons_liberation.py::test_land_stewardship_uses_exact_view_projection_and_preserves_scope_and_payload -q",
+      "passed": 2,
+      "boundary": "Synthetic fixtures and fake cursors only; no database or provider."
+    },
+    {
+      "command": "python3 -m pytest tests/test_report_generator_cli.py -k 'roadmap_and_stakeholder_engagement or additional_strategy_projections' -q",
+      "passed": 2,
+      "boundary": "Synthetic fixtures and fake cursors only; no database or provider."
+    },
+    {
+      "command": "python3 -m pytest tests/test_gateway_public_models.py -q",
+      "passed": 8,
+      "coverage": "Consistent metric count/timestamp pairs, published count equal to or below total, and rejection of inconsistent pairs."
+    },
+    {
+      "command": "python3 -m pytest tests/test_public_api_sdk.py -k 'location_summary or driver_catalog' -q",
+      "passed": 47,
+      "boundary": "Mock HTTP responses only; includes strict response validation and driver-pagination bounds."
+    },
+    {
+      "command": "npm test -- --run src/__tests__/public-api.test.ts -t 'location summaries|driver catalog'",
+      "passed": 45,
+      "boundary": "Mock fetch responses only; includes strict response validation and driver-pagination bounds."
+    },
+    {
+      "command": "npx vitest run src/__tests__/sdk.test.ts",
+      "passed": 25,
+      "coverage": "DataService unary mappings, malformed responses, stream ordering/end/error/cancellation, bounded buffering, and int32 validation."
+    },
+    {
+      "command": "python3 -m pytest tests/test_grpc_data_service_contract.py -q",
+      "passed": 1,
+      "coverage": "FindIRIByHash serializes the Python handler's hash_algorithm into IRIInfo and round-trips the response through the generated protobuf type; mocked connection only."
+    }
+  ],
+  "static_checks": {
+    "ruff": "passed",
+    "typescript_sdk_lint": "passed",
+    "javascript_sdk_typescript_check": "passed",
+    "capability_matrix": "passed: 67 rows; 24 baseline-retained, 7 deployed, 36 prepared",
+    "report_source_inventory": "regenerated",
+    "report_query_scope_inventory": "regenerated; no unresolved direct query sites and zero bind mismatches",
+    "report_helper_scope_inventory": "regenerated; 159/169 helper SQL sites resolve statically, 10 are unresolved because fixed view/column allowlist selection is runtime-dynamic",
+    "pinned_python_proto_generator_check": "passed in isolated pinned grpcio-tools/protobuf environment",
+    "git_diff_check": "passed"
+  },
+  "result": "Report queries now select only declared schema fields while retaining their existing report filters, order, scope, and serialized payloads. Public summary validators reject source-inconsistent counts. TypeScript DataService maps protobuf snake_case responses to its documented camelCase result types; IRIInfo field 6 now correctly represents hash_algorithm. Stream consumption uses a 32-item high-water mark and resumes at 16, and locally triggered cancellation keeps the error listener until close.",
+  "limitations": [
+    "No populated database report parity or live gRPC route was exercised.",
+    "The report helper AST inventory cannot statically resolve the allowlisted dynamic projection helper; its 10 unresolved sites remain reported as such.",
+    "No candidate or legacy database, provider, or production environment was accessed."
+  ],
+  "rollback": "Revert the report projections, SDK validators, gRPC proto/stubs, response adapters, focused tests, and this evidence entry; regenerate the three report inventories. No database migration or data rollback is required.",
+  "tracked_progress": {
+    "checklist": "1606 complete / 25 open (1631 total)",
+    "todo": "301 checked / 16 open",
+    "capability_matrix": "67 rows; 24 baseline-retained, 7 deployed, 36 prepared; MAN-CAP acceptance remains separately gated"
+  }
+}

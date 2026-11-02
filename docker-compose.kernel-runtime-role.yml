@@ -1,6 +1,6 @@
-# Optional least-privilege app credentials. Combine after the candidate and any
-# selected Kernel overlays. The one-shot admin service is enabled only for the
-# explicit runtime-admin profile and is run with `docker compose run --rm`.
+# Least-privilege application credentials. Standard includes this overlay, but
+# runtime-role-bootstrap remains an explicit one-shot operation because its
+# compatibility grants must be reviewed after every schema change.
 services:
   runtime-role-bootstrap:
     profiles: [runtime-admin]
@@ -41,6 +41,8 @@ services:
       KOKONUT_FRESHNESS_PASSWORD: ${KOKONUT_FRESHNESS_PASSWORD:-}
       KOKONUT_CLICKHOUSE_OUTBOX_USER: ${KOKONUT_CLICKHOUSE_OUTBOX_USER:-kokonut_clickhouse_outbox_login}
       KOKONUT_CLICKHOUSE_OUTBOX_PASSWORD: ${KOKONUT_CLICKHOUSE_OUTBOX_PASSWORD:-}
+      KOKONUT_REPORT_SNAPSHOT_EXPORT_USER: ${KOKONUT_REPORT_SNAPSHOT_EXPORT_USER:-kokonut_report_snapshot_export_login}
+      KOKONUT_REPORT_SNAPSHOT_EXPORT_PASSWORD: ${KOKONUT_REPORT_SNAPSHOT_EXPORT_PASSWORD:-}
       KOKONUT_NOTIFICATION_DELIVERY_USER: ${KOKONUT_NOTIFICATION_DELIVERY_USER:-kokonut_notification_delivery_login}
       KOKONUT_NOTIFICATION_DELIVERY_PASSWORD: ${KOKONUT_NOTIFICATION_DELIVERY_PASSWORD:-}
       KOKONUT_EVENT_DISPATCH_USER: ${KOKONUT_EVENT_DISPATCH_USER:-kokonut_event_dispatch_login}
@@ -51,12 +53,19 @@ services:
       KOKONUT_REMOTE_SENSING_PASSWORD: ${KOKONUT_REMOTE_SENSING_PASSWORD:-}
       KOKONUT_SENSOR_ANOMALY_ML_SOURCE_USER: ${KOKONUT_SENSOR_ANOMALY_ML_SOURCE_USER:-kokonut_sensor_anomaly_ml_source_login}
       KOKONUT_SENSOR_ANOMALY_ML_SOURCE_PASSWORD: ${KOKONUT_SENSOR_ANOMALY_ML_SOURCE_PASSWORD:-}
+      KOKONUT_RATE_LIMIT_MAINTENANCE_USER: ${KOKONUT_RATE_LIMIT_MAINTENANCE_USER:-kokonut_rate_limit_maintenance_login}
+      KOKONUT_RATE_LIMIT_MAINTENANCE_PASSWORD: ${KOKONUT_RATE_LIMIT_MAINTENANCE_PASSWORD:-}
     networks:
       - kernel
 
   app:
     environment:
-      PG_USER: ${KOKONUT_RUNTIME_USER:-kokonut_runtime}
+      PG_USER: ${KOKONUT_RUNTIME_USER:?KOKONUT_RUNTIME_USER must be set}
       PG_PASSWORD: ${KOKONUT_RUNTIME_PASSWORD:?KOKONUT_RUNTIME_PASSWORD must be set}
       KOKONUT_OPERATOR_AUTH_USER: ${KOKONUT_OPERATOR_AUTH_USER:-kokonut_operator_auth}
       KOKONUT_OPERATOR_AUTH_PASSWORD: ${KOKONUT_OPERATOR_AUTH_PASSWORD:?KOKONUT_OPERATOR_AUTH_PASSWORD must be set}
+
+  worker:
+    environment:
+      PG_USER: ${KOKONUT_RUNTIME_USER:?KOKONUT_RUNTIME_USER must be set}
+      PG_PASSWORD: ${KOKONUT_RUNTIME_PASSWORD:?KOKONUT_RUNTIME_PASSWORD must be set}

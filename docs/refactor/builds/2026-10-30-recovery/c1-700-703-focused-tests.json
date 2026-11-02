@@ -1,0 +1,24 @@
+{
+  "date": "2026-10-31",
+  "source_revision": "29bea9cf4e951c697eeefe2b828784d453470941",
+  "working_tree_dirty": true,
+  "result": "passed",
+  "passed": 216,
+  "failed": 0,
+  "duration_seconds": 393.37,
+  "suite": "focused migration 700-703 Gateway, console, source/ACL, migration, and replay-parser regressions",
+  "test_files": [
+    "tests/test_gateway_governance_tension_actions.py",
+    "tests/test_gateway_metric_value_kernel.py",
+    "tests/test_gateway_extension_learning_writes.py",
+    "tests/test_operator_console_extension_learning.py",
+    "tests/test_operator_console_governance_tensions.py",
+    "tests/test_landscape_conservation.py",
+    "tests/test_runtime_role_boundary.py",
+    "tests/test_migration.py",
+    "tests/test_arm64_schema_replay.py"
+  ],
+  "candidate_database_touched": false,
+  "legacy_database_touched": false,
+  "production_database_touched": false
+}

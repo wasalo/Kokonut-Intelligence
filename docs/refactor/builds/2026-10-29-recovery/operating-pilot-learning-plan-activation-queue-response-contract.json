@@ -1,0 +1,58 @@
+{
+  "date": "2026-10-29",
+  "batch": "operating-pilot learning-plan activation queue response contract",
+  "source": {
+    "schema_and_lifecycle": [
+      "schemas/postgres/252_operating_competencies_learning.sql",
+      "schemas/postgres/606_location_operating_pilot_learning_plan_draft.sql",
+      "schemas/postgres/607_location_operating_pilot_learning_plan_revision.sql",
+      "schemas/postgres/610_location_operating_pilot_learning_plan_review_decision.sql"
+    ],
+    "queue": "schemas/postgres/629_location_operating_pilot_learning_plan_activation.sql"
+  },
+  "contract": {
+    "route": "GET /operator/api/operating-pilot/{location_id}/learning-plan-activation-queue",
+    "item_fields": [
+      "learning_plan_id",
+      "title",
+      "competency_goals",
+      "support_requested",
+      "target_date",
+      "status",
+      "submitted_at",
+      "approved_at"
+    ],
+    "page_fields": [
+      "location_id",
+      "items",
+      "limit",
+      "offset",
+      "has_more",
+      "next_offset",
+      "total"
+    ],
+    "validation": "Strict migration-backed OpenAPI/runtime fields; requested location and pagination binding; source-defined title and JSON array bounds; submitted-only eligible status; aware submitted/approved timestamps with approval not before submission; exact row count and continuation; unique learning-plan IDs; offset-10,000 cap. The migration regression pins ORDER BY updated_at DESC, id DESC; updated_at is intentionally absent from the public projection, so runtime order cannot be inferred from response fields.",
+    "authorization": "Separate exact operating_pilot:activate location grant and signed tenant context are unchanged. Activation queue remains read-only; the response excludes party IDs and review feedback."
+  },
+  "verification": {
+    "focused_command": "python3 -m pytest tests/test_gateway_operating_pilot_learning_activation_queue_contracts.py tests/test_gateway_operating_pilot_reads.py -k learning_plan_activation_queue -q",
+    "focused_tests": 30,
+    "focused_result": "passed",
+    "ruff_default": "passed on changed source and tests",
+    "ruff_security_source": "passed",
+    "python_compile": "passed",
+    "capability_matrix": "passed: 67 rows; 24 baseline-retained, 7 deployed, 36 prepared",
+    "runtime_sql_inventory": "current; unresolved-write review ledger current",
+    "report_generator_helper_scope_inventory": "current",
+    "provider_boundaries": "passed: 17 vendor import sites",
+    "dependency_groups": "passed: 14 groups, 33 requirements",
+    "git_diff_check": "passed"
+  },
+  "environment": {
+    "database": "not used",
+    "provider": "not used",
+    "candidate_or_legacy_state": "untouched",
+    "migration_applied": false
+  },
+  "rollback": "Revert the Gateway response model/route, focused tests, fixture update, and refactor progress/evidence records; no database rollback is needed."
+}

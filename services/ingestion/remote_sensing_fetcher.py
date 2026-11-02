@@ -5,8 +5,9 @@ Supports Google Earth Engine (primary) and Copernicus Data Space (fallback).
 
 Usage:
     python3 -m services.ingestion.remote_sensing_fetcher --location-id UUID
-    python3 -m services.ingestion.remote_sensing_fetcher --run-jobs --location-id UUID
     python3 -m services.ingestion.remote_sensing_fetcher --list-jobs --location-id UUID
+
+Due jobs run through ``services.ingestion.remote_sensing_worker``.
 """
 
 from __future__ import annotations
@@ -110,43 +111,17 @@ def _fallback_provider(provider: str, job: Dict[str, Any]) -> Optional[str]:
 
 
 def _claim_due_jobs(conn, location_id: Optional[str] = None) -> List[Dict[str, Any]]:
-    """Claim one due job for a required location, keeping leases bounded."""
-    location_id = _canonical_location_id(location_id)
-    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-    worker = f"remote-sensing-{uuid.uuid4()}"
-    try:
-        cur.execute(
-            """
-            WITH due AS (
-            SELECT id
-            FROM remote_sensing_job
-            WHERE status = 'active'
-              AND (next_run_at IS NULL OR next_run_at <= NOW())
-              AND (lease_expires_at IS NULL OR lease_expires_at <= NOW())
-              AND location_id = %s::uuid
-            ORDER BY next_run_at NULLS FIRST
-            LIMIT 1
-            FOR UPDATE SKIP LOCKED
-        )
-        UPDATE remote_sensing_job j
-        SET lease_owner = %s,
-            lease_expires_at = NOW() + INTERVAL '30 minutes',
-            attempt_count = COALESCE(j.attempt_count, 0) + 1,
-            updated_at = NOW()
-        FROM due
-        WHERE j.id = due.id
-        RETURNING j.*
-        """,
-            (location_id, worker),
-        )
-        rows = [dict(r) for r in cur.fetchall()]
-        conn.commit()
-        return rows
-    except Exception:
-        conn.rollback()
-        raise
-    finally:
-        cur.close()
+    """Reject the retired shared-role claim path before touching the connection.
+
+    Due-job claims now run through ``remote_sensing_worker`` and migration 432's
+    signed ``claim_remote_sensing_job`` function. Keep this private helper as a
+    fail-closed compatibility shim for callers that imported it directly.
+    """
+    _canonical_location_id(location_id)
+    raise RuntimeError(
+        "legacy remote-sensing due-job claims are disabled; "
+        "use services.ingestion.remote_sensing_worker"
+    )
 
 
 def _query_job(conn, job_id: str, location_id: str) -> Optional[Dict[str, Any]]:
@@ -409,31 +384,18 @@ def fetch_job(conn, job: Dict[str, Any], *, location_id: str) -> Dict[str, Any]:
 
 
 def run_due_jobs(conn, limit: int = 1, *, location_id: Optional[str] = None) -> Dict[str, Any]:
-    """Run a bounded number of due jobs for one explicit location."""
+    """Reject the retired shared-role runner before database/provider access.
+
+    Use ``services.ingestion.remote_sensing_worker`` for due-job execution; it
+    claims and completes jobs through migration 432's signed functions.
+    """
     if isinstance(limit, bool) or not isinstance(limit, int) or not 1 <= limit <= MAX_RUN_BATCH_SIZE:
         raise ValueError(f"limit must be an integer between 1 and {MAX_RUN_BATCH_SIZE}")
-    location_id = _canonical_location_id(location_id)
-
-    results = []
-    for _ in range(limit):
-        jobs = _claim_due_jobs(conn, location_id=location_id)
-        if not jobs:
-            break
-        job = jobs[0]
-        logger.info("Running job %s (provider=%s)", str(job["id"])[:8], job.get("provider"))
-        results.append(fetch_job(conn, job, location_id=location_id))
-
-    if not results:
-        return {"status": "no_jobs_due", "executed": 0}
-
-    success = sum(1 for r in results if r.get("status") == "success")
-    return {
-        "status": "completed",
-        "executed": len(results),
-        "success": success,
-        "failed": len(results) - success,
-        "results": results,
-    }
+    _canonical_location_id(location_id)
+    raise RuntimeError(
+        "legacy remote-sensing due-job execution is disabled; "
+        "use services.ingestion.remote_sensing_worker"
+    )
 
 
 def list_jobs(conn, location_id: str) -> List[Dict[str, Any]]:
@@ -457,16 +419,20 @@ def main(argv: list[str] | None = None) -> None:
     import argparse
 
     parser = argparse.ArgumentParser(description="Remote sensing fetch orchestrator")
-    parser.add_argument("--run-jobs", action="store_true", help="Run a bounded batch of due jobs")
+    parser.add_argument(
+        "--run-jobs",
+        action="store_true",
+        help="Retired; use services.ingestion.remote_sensing_worker",
+    )
     parser.add_argument(
         "--limit",
         type=int,
         default=1,
-        help=f"Maximum due jobs to run sequentially (1-{MAX_RUN_BATCH_SIZE}; default: 1)",
+        help=f"Retired due-job batch limit (1-{MAX_RUN_BATCH_SIZE}; default: 1)",
     )
     parser.add_argument("--list-jobs", action="store_true", help="List all jobs")
     parser.add_argument("--job-id", help="Run a specific job by ID")
-    parser.add_argument("--location-id", help="Location UUID to scope due jobs or to create a new job")
+    parser.add_argument("--location-id", help="Location UUID for job inventory, manual execution, or creation")
     parser.add_argument("--provider", choices=["gee", "copernicus"], default="gee")
     parser.add_argument("--cadence-days", type=int, default=7)
     args = parser.parse_args(argv)
@@ -489,12 +455,16 @@ def main(argv: list[str] | None = None) -> None:
     except ValueError as exc:
         parser.error(str(exc))
 
+    if args.run_jobs:
+        parser.error(
+            "legacy due-job execution is disabled; use "
+            "python -m services.ingestion.remote_sensing_worker "
+            f"--location-id {location_id} --limit {args.limit}"
+        )
+
     conn = get_db()
     try:
-        if args.run_jobs:
-            result = run_due_jobs(conn, limit=args.limit, location_id=location_id)
-            print_json(result)
-        elif args.list_jobs:
+        if args.list_jobs:
             result = list_jobs(conn, location_id)
             print_json(result)
         elif args.job_id:

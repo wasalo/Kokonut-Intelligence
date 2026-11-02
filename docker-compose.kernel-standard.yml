@@ -2,18 +2,24 @@
 # Explicit environment duplication keeps both roles on the same provider policy.
 services:
   app:
-    command: ["python3", "-m", "services.core.runtime", "--port", "8099", "--require-schema"]
+    command: ["python3", "-m", "services.core.runtime", "--port", "8099", "--require-schema", "--require-runtime-role"]
     environment:
       KOKONUT_RATE_LIMIT_PROVIDER: ${KOKONUT_RATE_LIMIT_PROVIDER:-postgres}
       KOKONUT_FEATURE_DIRECTUS: ${KOKONUT_FEATURE_DIRECTUS:-false}
       KOKONUT_FEATURE_LEGACY_DATASET_SQL: ${KOKONUT_FEATURE_LEGACY_DATASET_SQL:-false}
       DIRECTUS_URL: ${DIRECTUS_URL:-http://directus:8055}
       DIRECTUS_ADMIN_TOKEN: ${DIRECTUS_ADMIN_TOKEN:-}
+      # The API creates intents from a non-secret presence flag; only the
+      # delivery worker receives the endpoint itself.
+      ALERT_WEBHOOK_URL: ""
+      KOKONUT_NOTIFICATION_WEBHOOK_CONFIGURED: ${ALERT_WEBHOOK_URL:+true}
       ALERT_SMTP_HOST: ${ALERT_SMTP_HOST:-}
       ALERT_SMTP_PORT: ${ALERT_SMTP_PORT:-587}
       ALERT_SMTP_TLS_MODE: ${ALERT_SMTP_TLS_MODE:-starttls}
-      ALERT_SMTP_USER: ${ALERT_SMTP_USER:-}
-      ALERT_SMTP_PASSWORD: ${ALERT_SMTP_PASSWORD:-}
+      # Compose merges this overlay with the candidate app environment. Clear
+      # inherited SMTP credentials so only the delivery worker receives them.
+      ALERT_SMTP_USER: ""
+      ALERT_SMTP_PASSWORD: ""
       ALERT_EMAIL_FROM: ${ALERT_EMAIL_FROM:-alerts@kokonut.network}
       ALERT_EMAIL_TO: ${ALERT_EMAIL_TO:-}
       KOKONUT_NOTIFICATION_OUTBOX_WARN_BYTES: ${KOKONUT_NOTIFICATION_OUTBOX_WARN_BYTES:-268435456}
@@ -22,15 +28,18 @@ services:
   worker:
     init: true
     stop_grace_period: 40s
+    image: ${KOKONUT_KERNEL_APP_IMAGE:-kokonut-kernel-candidate:local}
     build:
       context: .
       dockerfile: Dockerfile.kernel
     restart: unless-stopped
-    command: ["python3", "-m", "services.core.runtime", "--workers-only", "--require-schema"]
-    # The inherited HTTP probe applies only to an API role.
-    # Worker progress must be observed through durable run/delivery records.
+    command: ["python3", "-m", "services.core.runtime", "--workers-only", "--require-schema", "--require-runtime-role"]
     healthcheck:
-      disable: true
+      test: ["CMD", "python3", "-m", "services.core.worker_progress", "--check"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
     depends_on:
       database:
         condition: service_healthy
@@ -38,9 +47,9 @@ services:
       PG_HOST: database
       PG_PORT: "5432"
       PG_DB: kokonut_intelligence
-      PG_USER: ${KOKONUT_RUNTIME_USER:-kokonut}
+      PG_USER: ${KOKONUT_RUNTIME_USER:?KOKONUT_RUNTIME_USER must be set}
       KOKONUT_ENV: production
-      PG_PASSWORD: ${KOKONUT_RUNTIME_PASSWORD:-${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}}
+      PG_PASSWORD: ${KOKONUT_RUNTIME_PASSWORD:?KOKONUT_RUNTIME_PASSWORD must be set}
       KOKONUT_SENSOR_ANOMALY_DATABASE_URL: ${KOKONUT_SENSOR_ANOMALY_DATABASE_URL:-}
       KOKONUT_SENSOR_ANOMALY_WORKER_CREDENTIAL: ${KOKONUT_SENSOR_ANOMALY_WORKER_CREDENTIAL:-}
       KOKONUT_CACHE_INVALIDATION_DATABASE_URL: ${KOKONUT_CACHE_INVALIDATION_DATABASE_URL:-}
@@ -56,6 +65,7 @@ services:
       KOKONUT_FEATURE_SIGNED_CREDIT_ADJUSTMENT_WORKER: ${KOKONUT_FEATURE_SIGNED_CREDIT_ADJUSTMENT_WORKER:-false}
       KOKONUT_WEATHER_FORECAST_DATABASE_URL: ${KOKONUT_WEATHER_FORECAST_DATABASE_URL:-}
       KOKONUT_WEATHER_FORECAST_WORKER_CREDENTIAL: ${KOKONUT_WEATHER_FORECAST_WORKER_CREDENTIAL:-}
+      KOKONUT_WEATHER_FORECAST_OPENWEATHERMAP_API_KEY: ${KOKONUT_WEATHER_FORECAST_OPENWEATHERMAP_API_KEY:-}
       KOKONUT_FEATURE_SIGNED_WEATHER_FORECAST_WORKER: ${KOKONUT_FEATURE_SIGNED_WEATHER_FORECAST_WORKER:-false}
       KOKONUT_WEATHER_DATABASE_URL: ${KOKONUT_WEATHER_DATABASE_URL:-}
       KOKONUT_WEATHER_WORKER_CREDENTIAL: ${KOKONUT_WEATHER_WORKER_CREDENTIAL:-}
@@ -84,6 +94,8 @@ services:
       KOKONUT_FEATURE_ISOLATED_CLICKHOUSE_OUTBOX_WORKER: ${KOKONUT_FEATURE_ISOLATED_CLICKHOUSE_OUTBOX_WORKER:-false}
       KOKONUT_EVENT_DISPATCH_DATABASE_URL: ${KOKONUT_EVENT_DISPATCH_DATABASE_URL:-}
       KOKONUT_FEATURE_ISOLATED_EVENT_DISPATCH: ${KOKONUT_FEATURE_ISOLATED_EVENT_DISPATCH:-false}
+      KOKONUT_NOTIFICATION_DELIVERY_DATABASE_URL: ${KOKONUT_NOTIFICATION_DELIVERY_DATABASE_URL:-}
+      KOKONUT_FEATURE_ISOLATED_NOTIFICATION_DELIVERY: ${KOKONUT_FEATURE_ISOLATED_NOTIFICATION_DELIVERY:-false}
       KOKONUT_SENSOR_INGESTION_DATABASE_URL: ${KOKONUT_SENSOR_INGESTION_DATABASE_URL:-}
       KOKONUT_SENSOR_INGESTION_WORKER_CREDENTIAL: ${KOKONUT_SENSOR_INGESTION_WORKER_CREDENTIAL:-}
       KOKONUT_FEATURE_SIGNED_SENSOR_INGESTION_WORKER: ${KOKONUT_FEATURE_SIGNED_SENSOR_INGESTION_WORKER:-false}
@@ -120,6 +132,10 @@ services:
       ALERT_EMAIL_TO: ${ALERT_EMAIL_TO:-}
       KOKONUT_NOTIFICATION_OUTBOX_WARN_BYTES: ${KOKONUT_NOTIFICATION_OUTBOX_WARN_BYTES:-268435456}
       KOKONUT_NOTIFICATION_OUTBOX_CRITICAL_BYTES: ${KOKONUT_NOTIFICATION_OUTBOX_CRITICAL_BYTES:-536870912}
+      KOKONUT_WORKER_PROGRESS_STALE_SECONDS: ${KOKONUT_WORKER_PROGRESS_STALE_SECONDS:-300}
+      KOKONUT_WORKER_PROGRESS_BACKLOG_SECONDS: ${KOKONUT_WORKER_PROGRESS_BACKLOG_SECONDS:-900}
+      KOKONUT_WORKER_PROGRESS_HEARTBEAT_SECONDS: ${KOKONUT_WORKER_PROGRESS_HEARTBEAT_SECONDS:-60}
+      KOKONUT_WORKER_PROGRESS_HEARTBEAT_FILE: /var/lib/kokonut/worker-progress/supervisor.json
     networks:
       - kernel
     volumes:

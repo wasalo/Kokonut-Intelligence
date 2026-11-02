@@ -141,12 +141,14 @@ The pinned Metabase image must start with `MB_ENCRYPTION_SECRET_KEY` set before
 any source credentials are registered.
 
 This command is inappropriate for a PostgreSQL cluster shared with unrelated
-applications: instance-wide PUBLIC database privileges are changed. The current
-local candidate had 16 extension-owned relations with `PUBLIC SELECT`, eight
-were visible to the analytics login, and 1,165 extension functions remained
-executable through inherited grants. None of the public-executable extension
-functions was SECURITY DEFINER. No application relation outside the three
-reporting views was readable. See the [candidate evidence](../../docs/refactor/builds/2026-10-11-recovery/candidate-analytics-role.json)
+applications: instance-wide PUBLIC database privileges are changed. A
+historical candidate audit captured on 2026-10-11 found 16 extension-owned
+relations with `PUBLIC SELECT`, eight visible to the analytics login, and 1,165
+extension functions executable through inherited grants. None of the
+public-executable extension functions was SECURITY DEFINER; no application
+relation outside the three reporting views was readable. These counts describe
+that dated audit only, not a current database. See the
+[candidate evidence](../../docs/refactor/builds/2026-10-11-recovery/candidate-analytics-role.json)
 and [role policy](../../docs/refactor/optional-database-roles.md).
 
 ## Apply and failure semantics
@@ -174,4 +176,4 @@ reviewed execution policy exists.
 
 ## Files
 
-4 Python modules
+6 Python modules

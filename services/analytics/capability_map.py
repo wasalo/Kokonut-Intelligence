@@ -9,7 +9,7 @@ introduced in migration 207_capability_map.sql.
 from __future__ import annotations
 
 import uuid as uuid_mod
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import Any, Dict, List, Optional
 
 import psycopg2
@@ -273,6 +273,11 @@ def get_capability_dashboard(
     *, guild_key: Optional[str] = None,
 ) -> List[Dict[str, Any]]:
     """Get the capability dashboard view with optional guild filter."""
+    projection = (
+        "capability_id, capability_name, capability_type, guild_key, maturity_level, "
+        "owner_role, status, parent_id, parent_name, process_count, service_count, "
+        "child_count, latest_maturity_score, created_at, updated_at"
+    )
     clauses: List[str] = []
     params: List[Any] = []
     if guild_key:
@@ -282,7 +287,7 @@ def get_capability_dashboard(
     with _conn() as conn:
         with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
             cur.execute(
-                f"SELECT * FROM v_capability_dashboard{where} "
+                f"SELECT {projection} FROM v_capability_dashboard{where} "
                 "ORDER BY guild_key, capability_type, capability_name",
                 params,
             )

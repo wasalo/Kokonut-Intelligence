@@ -1,0 +1,93 @@
+{
+  "acceptance": "Standard profile startup, runtime-role, and database recovery",
+  "date": "2026-10-31",
+  "result": "passed",
+  "project": "kokonut-standard-recovery-abac3b34da",
+  "database_image": "postgis/postgis:16-3.4@sha256:44126d872ac91993766c341e369c539e8196614321765d36a6f1bab0419a5fa5",
+  "isolation": {
+    "synthetic_only": true,
+    "network_internal": true,
+    "host_ports_published": false,
+    "seed_rows": 0,
+    "candidate_legacy_production_touched": false
+  },
+  "schema_replay": {
+    "schemas_expected": 701,
+    "schemas_applied": 701,
+    "schemas_failed": 0,
+    "latest_schema_migration": "schema:710_runtime_cache_invalidation_rule_read_only.sql",
+    "seeds_applied": 0
+  },
+  "readiness": {
+    "missing_schema_fails_closed_before_child_start": true,
+    "unsafe_admin_login_rejected_before_child_start": true,
+    "unsafe_admin_error_code": "runtime_role_unsafe"
+  },
+  "runtime_role": {
+    "bootstrap_profile": "runtime-admin",
+    "bootstrap_explicitly_run_after_schema_replay": true,
+    "provisioner_reapplied": true,
+    "app_current_user": "kokonut_runtime",
+    "worker_current_user": "kokonut_runtime",
+    "attributes": {
+      "login": true,
+      "inherit": false,
+      "superuser": false,
+      "create_database": false,
+      "create_role": false,
+      "replication": false,
+      "bypass_rls": false,
+      "owns_database": false,
+      "member_of_database_owner": false,
+      "has_role_memberships": false
+    },
+    "schema_version_insert_denied_after_initial_provision": true,
+    "schema_version_insert_denied_after_provisioner_reapply": true,
+    "role_attributes_preserved_after_reapply": true
+  },
+  "startup": {
+    "api_healthy": true,
+    "worker_healthy": true,
+    "proxy_running": true,
+    "worker_probe_healthy": true,
+    "worker_children_alive": true,
+    "supervisor_heartbeat": {
+      "directory_private": true,
+      "file_private": true,
+      "shape_valid": true
+    }
+  },
+  "database_outage_recovery": {
+    "worker_unhealthy_observed_during_outage": true,
+    "database_healthy_after_restart": true,
+    "api_healthy_after_restart": true,
+    "worker_healthy_after_restart": true,
+    "worker_restart_count": 0,
+    "private_supervisor_heartbeat_valid_after_restart": true
+  },
+  "shutdown": {
+    "worker_container_stopped_cleanly": true,
+    "supervisor_heartbeat_removed": true,
+    "active_work_leases_after_shutdown": 0
+  },
+  "cleanup": {
+    "verified": true,
+    "matching_containers_remaining": 0,
+    "matching_volumes_remaining": 0,
+    "matching_networks_remaining": 0
+  },
+  "verification": {
+    "docker_acceptance_command": "python3 scripts/check-kernel-standard-recovery-disposable.py",
+    "focused_test_command": "python3 -m pytest -q tests/test_kernel_standard_recovery_disposable.py",
+    "focused_tests": "26 passed",
+    "python_compile": "passed",
+    "ruff": "passed",
+    "diff_check": "passed"
+  },
+  "limitations": [
+    "This is a short disposable recovery check; it does not provide 24-hour endurance, concurrency, or scale acceptance.",
+    "The database outage/restart check uses an internal-only network with no external providers or production services.",
+    "The seed-free run verifies no active leases remain after shutdown; it does not exercise cancellation or reclamation of a live lease held by a long-running handler.",
+    "Worker health and heartbeat checks establish process and child liveness, not business-handler output parity or detection of a live-but-hung child."
+  ]
+}

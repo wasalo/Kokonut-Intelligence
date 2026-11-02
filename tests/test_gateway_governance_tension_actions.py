@@ -38,6 +38,27 @@ def _payload(**updates):
     return result
 
 
+def _action_result(*, status: str, tension_id: str = TENSION_ID, operator_id: str = OPERATOR_ID):
+    return {
+        "tension_id": tension_id,
+        "tension_key": f"gateway:{operator_id}:{REQUEST_ID}",
+        "title": "Unclear harvest accountability",
+        "description": "The current record does not identify who confirms the harvest count.",
+        "tension_type": "unclear_accountability",
+        "severity": 3,
+        "urgency": 2,
+        "status": status,
+        "created_at": "2026-10-18T00:00:00Z",
+    }
+
+
+def _public_action_result(result):
+    return {
+        **{key: value for key, value in result.items() if key != "tension_key"},
+        "created_at": result["created_at"].replace("Z", "+00:00"),
+    }
+
+
 class _Cursor:
     def __init__(self, connection):
         self.connection = connection
@@ -243,8 +264,8 @@ def test_tension_routes_require_exact_oidc_scope_and_never_accept_party_identity
             return None
 
     monkeypatch.setattr("services.gateway.operator_auth.create_provider", lambda: Provider())
-    created = {"tension_id": TENSION_ID, "status": "draft"}
-    submitted = {"tension_id": TENSION_ID, "status": "submitted"}
+    created = _action_result(status="draft")
+    submitted = _action_result(status="submitted")
     create_mock = patch(
         "services.gateway.governance_tension_actions.report_governance_tension",
         return_value=created,
@@ -254,6 +275,155 @@ def test_tension_routes_require_exact_oidc_scope_and_never_accept_party_identity
         return_value=submitted,
     )
     with create_mock as create_call, submit_mock as submit_call:
+        with TestClient(create_app(), base_url="https://operator.example") as client:
+            client.cookies.set("kokonut_operator_session", "synthetic-session", path="/operator")
+            client.cookies.set("kokonut_operator_csrf", "synthetic-csrf", path="/operator")
+            invalid_request_response = client.post(
+                f"/operator/api/governance/{LOCATION_ID}/tensions",
+                json=_payload(party_id=str(uuid4())),
+                headers={"x-csrf-token": "synthetic-csrf"},
+            )
+            other_location_id = str(uuid4())
+            denied_response = client.post(
+                f"/operator/api/governance/{other_location_id}/tensions",
+                json=_payload(),
+                headers={"x-csrf-token": "synthetic-csrf"},
+            )
+            create_response = client.post(
+                f"/operator/api/governance/{LOCATION_ID}/tensions",
+                json=_payload(),
+                headers={"x-csrf-token": "synthetic-csrf"},
+            )
+            create_replay_response = client.post(
+                f"/operator/api/governance/{LOCATION_ID}/tensions",
+                json=_payload(),
+                headers={"x-csrf-token": "synthetic-csrf"},
+            )
+            submit_response = client.post(
+                f"/operator/api/governance/{LOCATION_ID}/tensions/{TENSION_ID}/submit",
+                headers={"x-csrf-token": "synthetic-csrf"},
+            )
+            submit_replay_response = client.post(
+                f"/operator/api/governance/{LOCATION_ID}/tensions/{TENSION_ID}/submit",
+                headers={"x-csrf-token": "synthetic-csrf"},
+            )
+
+    assert invalid_request_response.status_code == 400
+    assert invalid_request_response.headers["cache-control"] == "no-store"
+    assert denied_response.status_code == 403
+    for response in (create_response, create_replay_response):
+        assert response.status_code == 201
+        assert response.headers["cache-control"] == "no-store"
+        assert "cookie" in {
+            value.strip().lower() for value in response.headers["vary"].split(",")
+        }
+        assert response.json() == _public_action_result(created)
+        assert "tension_key" not in response.json()
+    for response in (submit_response, submit_replay_response):
+        assert response.status_code == 200
+        assert response.headers["cache-control"] == "no-store"
+        assert "cookie" in {
+            value.strip().lower() for value in response.headers["vary"].split(",")
+        }
+        assert response.json() == _public_action_result(submitted)
+        assert "tension_key" not in response.json()
+    assert create_call.call_count == 2
+    assert all(
+        call.args == (OPERATOR_ID, LOCATION_ID, _payload()) and not call.kwargs
+        for call in create_call.call_args_list
+    )
+    assert submit_call.call_count == 2
+    assert all(
+        call.args == (OPERATOR_ID, LOCATION_ID, TENSION_ID) and not call.kwargs
+        for call in submit_call.call_args_list
+    )
+
+    schema = client.app.openapi()
+    paths = schema["paths"]
+    create_operation = paths["/operator/api/governance/{location_id}/tensions"]["post"]
+    submit_operation = paths[
+        "/operator/api/governance/{location_id}/tensions/{tension_id}/submit"
+    ]["post"]
+    create_request = create_operation["requestBody"]["content"]["application/json"]["schema"]
+    assert create_request["additionalProperties"] is False
+    assert set(create_request["required"]) == {
+        "request_id", "title", "description", "tension_type", "severity", "urgency"
+    }
+    assert "requestBody" not in submit_operation
+    assert create_operation["responses"]["201"]["content"]["application/json"]["schema"] == {
+        "$ref": "#/components/schemas/GovernanceTensionMutationResponse"
+    }
+    assert submit_operation["responses"]["200"]["content"]["application/json"]["schema"] == {
+        "$ref": "#/components/schemas/GovernanceTensionSubmittedResponse"
+    }
+    public_create_schema = schema["components"]["schemas"]["GovernanceTensionMutationResponse"]
+    public_submit_schema = schema["components"]["schemas"]["GovernanceTensionSubmittedResponse"]
+    assert "tension_key" not in public_create_schema["properties"]
+    assert "tension_key" not in public_submit_schema["properties"]
+    assert public_submit_schema["properties"]["status"]["const"] == "submitted"
+
+
+def test_tension_mutation_routes_sanitize_malformed_action_results(monkeypatch):
+    class InMemoryAudit:
+        def __init__(self):
+            pass
+
+        def replay_pending(self, _limit=100):
+            return 0
+
+        def log(self, **_event):
+            return None
+
+        def capture_status(self):
+            return "ok"
+
+        def reserve_mutation(self):
+            return object()
+
+        def release_mutation(self, _reservation):
+            return None
+
+    session = SimpleNamespace(
+        session_id=str(uuid4()),
+        session_token_hash="e" * 64,
+        operator=SimpleNamespace(operator_id=OPERATOR_ID),
+    )
+
+    class Provider:
+        settings = SimpleNamespace(state_secret="test-only-state-secret")
+
+        def authenticate_request(self, _request):
+            return session
+
+        def csrf_valid(self, *_args):
+            return True
+
+        def has_scope(self, operator_id, resource, action, location_id):
+            return (operator_id, resource, action, location_id) in {
+                (OPERATOR_ID, "governance_tension", "create", LOCATION_ID),
+                (OPERATOR_ID, "governance_tension", "submit", LOCATION_ID),
+            }
+
+        def list_scopes(self, _operator_id):
+            return []
+
+        def revoke_session(self, _session_id):
+            return None
+
+    monkeypatch.setattr("services.gateway.audit.GatewayAudit", InMemoryAudit)
+    monkeypatch.setattr("services.gateway.operator_auth.create_provider", lambda: Provider())
+    malformed_create = _action_result(status="draft", operator_id=str(uuid4()))
+    malformed_submit = _action_result(status="submitted", tension_id=str(uuid4()))
+    with (
+        patch(
+            "services.gateway.governance_tension_actions.report_governance_tension",
+            return_value=malformed_create,
+        ),
+        patch(
+            "services.gateway.governance_tension_actions.submit_governance_tension",
+            return_value=malformed_submit,
+        ),
+    ):
         with TestClient(create_app(), base_url="https://operator.example") as client:
             client.cookies.set("kokonut_operator_session", "synthetic-session", path="/operator")
             client.cookies.set("kokonut_operator_csrf", "synthetic-csrf", path="/operator")
@@ -267,13 +437,15 @@ def test_tension_routes_require_exact_oidc_scope_and_never_accept_party_identity
                 headers={"x-csrf-token": "synthetic-csrf"},
             )
 
-    assert create_response.status_code == 201
-    assert create_response.headers["cache-control"] == "no-store"
-    assert create_response.json() == created
-    assert submit_response.status_code == 200
-    assert submit_response.json() == submitted
-    create_call.assert_called_once_with(OPERATOR_ID, LOCATION_ID, _payload())
-    submit_call.assert_called_once_with(OPERATOR_ID, LOCATION_ID, TENSION_ID)
+    for response in (create_response, submit_response):
+        assert response.status_code == 500, response.text
+        assert response.json() == {"error": "Governance tension action unavailable"}
+        assert response.headers["cache-control"] == "no-store"
+        assert "cookie" in {
+            value.strip().lower() for value in response.headers["vary"].split(",")
+        }
+        assert "tension_key" not in response.text
+        assert OPERATOR_ID not in response.text
 
 
 def test_tension_routes_have_only_exact_location_scopes():

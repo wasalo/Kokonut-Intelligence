@@ -7,6 +7,7 @@ import psycopg2
 import psycopg2.extras
 
 from .common import (
+    _looks_like_uuid,
     _serialize_rows,
     _serialize_value,
 )
@@ -14,22 +15,61 @@ from .common import (
 
 def generate_farm_summary(conn, location_id: str, period_start: str = None, period_end: str = None) -> dict:
     """Generate a farm summary report for a location."""
+    if not _looks_like_uuid(location_id):
+        raise ValueError("farm_summary requires an explicit location_id")
+
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     try:
         # Location info
-        cur.execute("SELECT * FROM location WHERE id = %s", (location_id,))
+        cur.execute(
+            """
+            SELECT id, name, slug, description, country, region, sub_region,
+                   timezone, latitude, longitude, baseline_revenue,
+                   baseline_asset_value, baseline_cash_flow, baseline_cost,
+                   baseline_assumptions, baseline_source, baseline_date, status,
+                   metadata, created_at, updated_at, created_by, updated_by,
+                   project_url, project_start_date, project_end_date, bioregion,
+                   biome_type, watershed, sub_watershed, schema_version,
+                   organization_id, baseline_recorded_at
+            FROM location
+            WHERE id = %s
+            """,
+            (location_id,),
+        )
         location = cur.fetchone()
         if not location:
             raise ValueError(f"Location {location_id} not found")
 
         # Farms
-        cur.execute("SELECT * FROM farm WHERE location_id = %s", (location_id,))
+        cur.execute(
+            """
+            SELECT id, location_id, name, slug, description, farm_type,
+                   total_area, area_unit,
+                   ST_AsGeoJSON(boundary)::jsonb AS boundary,
+                   ST_AsGeoJSON(center)::jsonb AS center, status, metadata,
+                   created_at, updated_at, created_by, updated_by, property_id,
+                   schema_version, logo_url, logo_file_id, traditional_name,
+                   languages, global_standard_certifications, economic_sectors,
+                   credits_registries, data_privacy_status,
+                   data_privacy_standard, data_privacy_criteria
+            FROM farm
+            WHERE location_id = %s
+            """,
+            (location_id,),
+        )
         farms = [dict(r) for r in cur.fetchall()]
 
         # Plots
         cur.execute(
             """
-            SELECT p.*, f.name as farm_name
+            SELECT p.id, p.farm_id, p.name, p.slug, p.description, p.area,
+                   p.area_unit,
+                   ST_AsGeoJSON(p.boundary)::jsonb AS boundary,
+                   ST_AsGeoJSON(p.center)::jsonb AS center, p.soil_type,
+                   p.water_source, p.elevation_m, p.slope_pct, p.aspect,
+                   p.status, p.metadata, p.created_at, p.updated_at,
+                   p.created_by, p.updated_by, p.schema_version, p.bed_count,
+                   p.bed_area_sqm, f.name AS farm_name
             FROM plot p JOIN farm f ON p.farm_id = f.id
             WHERE f.location_id = %s
         """,
@@ -40,10 +80,20 @@ def generate_farm_summary(conn, location_id: str, period_start: str = None, peri
         # Active crop cycles
         cur.execute(
             """
-            SELECT cc.*, c.name as crop_name, p.name as plot_name
+            SELECT cc.id, cc.plot_id, cc.crop_id, cc.location_id,
+                   cc.cycle_name, cc.season, cc.planting_date,
+                   cc.expected_harvest_date, cc.actual_harvest_date,
+                   cc.expected_yield, cc.expected_yield_unit, cc.actual_yield,
+                   cc.actual_yield_unit, cc.expected_price_per_unit,
+                   cc.expected_revenue, cc.actual_revenue, cc.planting_density,
+                   cc.planting_density_unit, cc.area_planted, cc.area_unit,
+                   cc.status, cc.failure_reason, cc.metadata, cc.schema_version,
+                   cc.created_at, cc.updated_at, cc.created_by, cc.updated_by,
+                   c.name AS crop_name, p.name AS plot_name
             FROM crop_cycle cc
             JOIN crop c ON cc.crop_id = c.id
             JOIN plot p ON cc.plot_id = p.id
+            JOIN farm f ON f.id = p.farm_id AND f.location_id = cc.location_id
             WHERE cc.location_id = %s
         """,
             (location_id,),
@@ -55,12 +105,15 @@ def generate_farm_summary(conn, location_id: str, period_start: str = None, peri
         cur.execute(
             """
             WITH filtered_harvest AS (
-                SELECT quantity, unit, crop_cycle_id
-                FROM harvest_event
-                WHERE location_id = %s
-                  AND status IN ('verified', 'published')
-                  AND (%s::date IS NULL OR harvest_date >= %s::date)
-                  AND (%s::date IS NULL OR harvest_date <= %s::date)
+                SELECT he.quantity, he.unit, he.crop_cycle_id
+                FROM harvest_event he
+                JOIN crop_cycle cc
+                  ON cc.id = he.crop_cycle_id
+                 AND cc.location_id = he.location_id
+                WHERE he.location_id = %s
+                  AND he.status IN ('verified', 'published')
+                  AND (%s::date IS NULL OR he.harvest_date >= %s::date)
+                  AND (%s::date IS NULL OR he.harvest_date <= %s::date)
             ), unit_totals AS (
                 SELECT unit, SUM(quantity) AS total_quantity
                 FROM filtered_harvest
@@ -192,6 +245,9 @@ def generate_farm_summary(conn, location_id: str, period_start: str = None, peri
 
 def generate_crop_noi(conn, location_id: str, period_start: str = None, period_end: str = None) -> dict:
     """Generate a crop NOI report from the canonical crop-cycle NOI view."""
+    if not _looks_like_uuid(location_id):
+        raise ValueError("crop_noi requires an explicit location_id")
+
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     try:
         cur.execute(
@@ -217,9 +273,12 @@ def generate_crop_noi(conn, location_id: str, period_start: str = None, period_e
                 v.operating_margin_pct,
                 v.loss_rate_pct
             FROM v_crop_cycle_noi v
-            JOIN crop_cycle cc ON cc.id = v.crop_cycle_id
+            JOIN crop_cycle cc
+              ON cc.id = v.crop_cycle_id
+             AND cc.location_id = v.location_id
             JOIN crop c ON cc.crop_id = c.id
             JOIN plot p ON cc.plot_id = p.id
+            JOIN farm f ON f.id = p.farm_id AND f.location_id = cc.location_id
             WHERE v.location_id = %s
               AND (%s::date IS NULL OR cc.planting_date >= %s::date)
               AND (%s::date IS NULL OR COALESCE(cc.actual_harvest_date, cc.expected_harvest_date) <= %s::date)
@@ -300,6 +359,9 @@ def generate_crop_noi(conn, location_id: str, period_start: str = None, period_e
 
 def generate_environmental(conn, location_id: str, period_start: str = None, period_end: str = None) -> dict:
     """Generate an environmental impact report."""
+    if not _looks_like_uuid(location_id):
+        raise ValueError("environmental requires an explicit location_id")
+
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     try:
         # Soil carbon measurements
@@ -371,6 +433,9 @@ def generate_environmental(conn, location_id: str, period_start: str = None, per
 
 def generate_revenue_multiplier(conn, location_id: str, period_start: str = None, period_end: str = None) -> dict:
     """Generate a revenue multiplier opportunity map report."""
+    if not _looks_like_uuid(location_id):
+        raise ValueError("revenue_multiplier requires an explicit location_id")
+
     from dataclasses import asdict
 
     from ...revenue_multiplier.analyzer import analyze_location
@@ -389,6 +454,9 @@ def generate_revenue_multiplier(conn, location_id: str, period_start: str = None
 
 def generate_forecast_summary(conn, location_id: str, period_start: str = None, period_end: str = None) -> dict:
     """Generate a forecast summary report across all scenarios."""
+    if not _looks_like_uuid(location_id):
+        raise ValueError("forecast requires an explicit location_id")
+
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     try:
         # Get all scenarios for this location
@@ -419,7 +487,9 @@ def generate_forecast_summary(conn, location_id: str, period_start: str = None, 
                 fo.period_end,
                 fo.calculated_at
             FROM forecast_output fo
-            JOIN forecast_scenario fs ON fo.scenario_id = fs.id
+            JOIN forecast_scenario fs
+              ON fo.scenario_id = fs.id
+             AND fs.location_id = fo.location_id
             WHERE fo.location_id = %s
             ORDER BY fs.scenario_type, fo.metric_name
         """,
@@ -468,6 +538,8 @@ def generate_forecast_summary(conn, location_id: str, period_start: str = None, 
 
 def generate_climate_impact(conn, location_id: str, period_start: str = None, period_end: str = None) -> dict:
     """Generate a climate-impact report for a location and year."""
+    if not _looks_like_uuid(location_id):
+        raise ValueError("climate_impact requires an explicit location_id")
     # Determine reporting year from period_start or current year
     from datetime import datetime as _dt
 
@@ -493,7 +565,18 @@ def generate_climate_impact(conn, location_id: str, period_start: str = None, pe
         # Climate impact summary (if stored)
         cur.execute(
             """
-            SELECT * FROM climate_impact_summary
+            SELECT id, location_id, reporting_year,
+                   above_ground_carbon_tonnes, below_ground_carbon_tonnes,
+                   total_sequestration_tonnes_co2e,
+                   transport_emissions_tonnes_co2e,
+                   machinery_emissions_tonnes_co2e,
+                   input_emissions_tonnes_co2e,
+                   total_emissions_tonnes_co2e,
+                   net_climate_impact_tonnes_co2e, species_count, shannon_index,
+                   regenerative_score_total, methodology_version,
+                   data_quality_score, status, reviewed_by, reviewed_at, notes,
+                   source_system, source_id, created_at, updated_at
+            FROM climate_impact_summary
             WHERE location_id = %s AND reporting_year = %s
             LIMIT 1
         """,

@@ -4,7 +4,9 @@ from __future__ import annotations
 
 import contextvars
 import hashlib
+import re
 from datetime import datetime, timezone
+from uuid import UUID
 
 import grpc
 
@@ -15,6 +17,8 @@ logger = get_logger("grpc.auth")
 
 # Context variable to propagate auth info to downstream handlers
 grpc_auth_context: contextvars.ContextVar[dict | None] = contextvars.ContextVar("grpc_auth_context", default=None)
+_SCOPE_COMPONENT_RE = re.compile(r"^[a-z][a-z0-9_]{0,62}$")
+_SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
 
 
 class APIKeyInterceptor(grpc.ServerInterceptor):
@@ -95,6 +99,7 @@ class APIKeyInterceptor(grpc.ServerInterceptor):
         # Propagate auth context via contextvars
         auth_info = {
             "api_key_id": str(result["id"]),
+            "credential_hash": key_hash,
             "role_name": result.get("role_name"),
             "scopes": result.get("scopes") or [],
         }
@@ -132,6 +137,76 @@ def require_scope(context, resource: str, action: str) -> None:
         grpc.StatusCode.PERMISSION_DENIED,
         f"Scope '{resource}:{action}' required but not granted",
     )
+
+
+def require_location_scope(
+    context,
+    *,
+    resource: str,
+    action: str,
+    location_id: str,
+) -> tuple[str, str]:
+    """Validate an exact API-key location grant before opening a DB connection.
+
+    Global and wildcard scopes cannot authorize this path. Returns the
+    normalized location and credential hash for the transaction-local database
+    check that must run on the same connection as the write.
+    """
+    auth = get_current_auth()
+    if auth is None:
+        context.abort(grpc.StatusCode.UNAUTHENTICATED, "Not authenticated")
+        return "", ""
+
+    if not _SCOPE_COMPONENT_RE.fullmatch(resource) or not _SCOPE_COMPONENT_RE.fullmatch(action):
+        raise ValueError("location scope resource and action must be lowercase identifiers")
+    try:
+        normalized_location_id = str(UUID(str(location_id)))
+    except (TypeError, ValueError, AttributeError):
+        context.abort(grpc.StatusCode.INVALID_ARGUMENT, "location_id must be a UUID")
+        return "", ""
+
+    scopes = auth.get("scopes") or []
+    if not isinstance(scopes, (list, tuple)):
+        scopes = []
+    exact_scope = f"{resource}:{action}:{normalized_location_id}"
+    if exact_scope not in scopes:
+        context.abort(
+            grpc.StatusCode.PERMISSION_DENIED,
+            f"Location-scoped grant '{resource}:{action}' required",
+        )
+        return "", ""
+
+    credential_hash = auth.get("credential_hash")
+    if not isinstance(credential_hash, str) or not _SHA256_RE.fullmatch(credential_hash):
+        context.abort(grpc.StatusCode.UNAUTHENTICATED, "API-key proof unavailable")
+        return "", ""
+
+    return normalized_location_id, credential_hash
+
+
+def set_location_tenant_context(
+    context,
+    connection,
+    *,
+    resource: str,
+    action: str,
+    location_id: str,
+    credential_hash: str,
+) -> None:
+    """Revalidate the scoped credential and sign context on the write transaction."""
+    from services.common.tenant_context import TenantContextDenied, set_gateway_tenant_context
+
+    try:
+        set_gateway_tenant_context(
+            connection,
+            credential_type="api_key",
+            credential_hash=credential_hash,
+            location_id=location_id,
+            resource=resource,
+            action=action,
+        )
+    except (TenantContextDenied, ValueError):
+        context.abort(grpc.StatusCode.PERMISSION_DENIED, "Location-scoped API-key grant is no longer active")
 
 
 def _authenticated_handler(handler, auth_info):

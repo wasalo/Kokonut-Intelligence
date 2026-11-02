@@ -73,7 +73,7 @@ def test_verify_snapshot_closes_cursor_when_query_fails(capsys):
     conn = _Connection(cursor)
 
     with pytest.raises(RuntimeError, match="synthetic snapshot execute failure"):
-        context._verify_snapshot(conn, "snapshot-1")
+        context._verify_snapshot(conn, "00000000-0000-4000-8000-000000000001")
 
     assert cursor.closed
     assert capsys.readouterr().out == ""

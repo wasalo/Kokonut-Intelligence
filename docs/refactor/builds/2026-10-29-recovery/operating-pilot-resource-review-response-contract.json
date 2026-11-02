@@ -1,0 +1,44 @@
+{
+  "date": "2026-10-29",
+  "batch": "operating-pilot resource-review queue response contract",
+  "source": {
+    "schema_and_lifecycle": [
+      "schemas/postgres/253_operating_coaching_resources.sql",
+      "schemas/postgres/567_location_operating_pilot_resource_request_draft.sql",
+      "schemas/postgres/570_location_operating_pilot_resource_draft_submission.sql"
+    ],
+    "reader": "schemas/postgres/571_location_operating_pilot_resource_review_queue.sql"
+  },
+  "contract": {
+    "route": "GET /operator/api/operating-pilot/{location_id}/resource-review-queue",
+    "item_fields": [
+      "resource_request_id", "resource_type", "description", "urgency", "requested_by"
+    ],
+    "page_fields": [
+      "location_id", "items", "limit", "offset", "has_more", "next_offset", "total"
+    ],
+    "validation": "Exact migration-backed OpenAPI/runtime projection; source-defined resource type, description and urgency bounds; date validation; location/page binding; exact row count and continuation; unique request IDs; requested_by DESC, id DESC ordering; continuation stops at the Gateway's 10,000-offset ceiling; requester identity and receipt data are excluded.",
+    "authorization": "Existing operating_pilot:review exact-location grant and signed tenant context are unchanged."
+  },
+  "verification": {
+    "focused_command": "python3 -m pytest tests/test_gateway_operating_pilot_resource_review_contracts.py tests/test_gateway_operating_pilot_reads.py -k resource_review -q",
+    "focused_tests": 35,
+    "focused_result": "passed",
+    "ruff_default": "passed on changed source and tests",
+    "ruff_security_source": "passed",
+    "python_compile": "passed",
+    "capability_matrix": "passed: 67 rows; 24 baseline-retained, 7 deployed, 36 prepared",
+    "runtime_sql_inventory": "current; unresolved-write review ledger current",
+    "report_generator_helper_scope_inventory": "current",
+    "provider_boundaries": "passed: 17 vendor import sites",
+    "dependency_groups": "passed: 14 groups, 33 requirements",
+    "git_diff_check": "passed"
+  },
+  "environment": {
+    "database": "not used",
+    "provider": "not used",
+    "candidate_or_legacy_state": "untouched",
+    "migration_applied": false
+  },
+  "rollback": "Revert the Gateway source, focused tests, and refactor progress/evidence updates; no database rollback is needed."
+}

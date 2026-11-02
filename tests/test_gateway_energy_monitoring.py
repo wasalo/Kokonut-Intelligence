@@ -9,10 +9,15 @@ from uuid import uuid4
 import pytest
 
 pytest.importorskip("fastapi")
+from fastapi import APIRouter, FastAPI  # noqa: E402
 from starlette.testclient import TestClient  # noqa: E402
 
+from services.common.tenant_context import TenantContextDenied  # noqa: E402
 from services.gateway.app import create_app  # noqa: E402
 from services.gateway.energy_monitoring import get_location_energy_summary  # noqa: E402
+from services.gateway.energy_monitoring_routes import (  # noqa: E402
+    register_energy_monitoring_routes,
+)
 from services.gateway.operator_auth import auth_route_policy  # noqa: E402
 
 
@@ -472,6 +477,12 @@ def test_energy_route_requires_grant_and_returns_no_store_summary(monkeypatch, g
             "trend_7d": [],
             "reviewed_efficiency_history": [],
             "active_sources_by_type": [],
+            "energy_costs": {
+                "period_days": 30,
+                "by_currency": [],
+                "unclassified_cost_reading_count": 0,
+                "comparable_total": None,
+            },
         },
     }
     monkeypatch.setattr(
@@ -485,6 +496,242 @@ def test_energy_route_requires_grant_and_returns_no_store_summary(monkeypatch, g
     assert response.json() == expected
     assert response.headers["cache-control"] == "no-store"
     assert "cookie" in {value.strip().lower() for value in response.headers["vary"].split(",")}
+
+
+def _energy_summary_payload(location_id):
+    return {
+        "location_id": location_id,
+        "unit": "kWh",
+        "verified_reading_count": 1,
+        "groups": [{
+            "reading_type": "consumption",
+            "source_type": "solar",
+            "activity_type": "irrigation",
+            "reading_count": 1,
+            "total_kwh": 10.5,
+            "first_reading_date": "2026-10-27",
+            "last_reading_date": "2026-10-27",
+        }],
+        "dashboard_calculations": {
+            "period_days": 30,
+            "total_consumption_kwh": 10.5,
+            "total_production_kwh": 0.0,
+            "net_energy_kwh": -10.5,
+            "renewable_consumption_kwh": 10.5,
+            "renewable_share_pct": 100.0,
+            "legacy_carbon_estimate": {
+                "model": "legacy_source_type_factors_v1",
+                "total_emissions_kg_co2e": 0.0,
+                "intensity_kg_co2e_per_kwh": 0.0,
+                "monthly_carbon_offset_kg": 0.0,
+                "net_monthly_emissions_kg": 0.0,
+                "by_source_type": [{
+                    "source_type": "solar",
+                    "consumption_kwh": 10.5,
+                    "emission_factor_kg_co2e_per_kwh": 0.0,
+                    "estimated_emissions_kg_co2e": 0.0,
+                }],
+            },
+            "registered_renewables": {
+                "period_days": 365,
+                "active_sources": 0,
+                "total_capacity_kw": 0.0,
+                "annual_generation_kwh": 0.0,
+                "registered_carbon_offset_kg": 0.0,
+                "annual_verified_consumption_kwh": 10.5,
+                "legacy_generation_coverage_pct": 0.0,
+                "by_type": [],
+            },
+            "trend_7d": [{
+                "reading_date": "2026-10-27",
+                "consumption_kwh": 10.5,
+                "production_kwh": 0.0,
+            }],
+            "reviewed_efficiency_history": [{
+                "log_date": "2026-10-27",
+                "period": "daily",
+                "total_consumption_kwh": 10.5,
+                "total_production_kwh": 0.0,
+                "net_energy_kwh": -10.5,
+                "renewable_pct": 100.0,
+                "carbon_intensity_kg_kwh": 0.0,
+            }],
+            "active_sources_by_type": [{
+                "source_type": "solar",
+                "source_count": 1,
+                "capacity_kw": 4.0,
+            }],
+            "energy_costs": {
+                "period_days": 30,
+                "by_currency": [{
+                    "currency_code": "USD",
+                    "total_cost": 2.5,
+                    "costed_kwh": 10.5,
+                    "effective_cost_per_kwh": 0.2381,
+                    "reading_count": 1,
+                }],
+                "unclassified_cost_reading_count": 0,
+                "comparable_total": {
+                    "currency_code": "USD",
+                    "total_cost": 2.5,
+                    "effective_cost_per_kwh": 0.2381,
+                },
+            },
+        },
+    }
+
+
+def _energy_route_test_app(provider, database_error_type):
+    app = FastAPI()
+    router = APIRouter()
+
+    async def run_in_threadpool(function, *args, **kwargs):
+        return function(*args, **kwargs)
+
+    register_energy_monitoring_routes(
+        router, provider, run_in_threadpool, SimpleNamespace(Error=database_error_type)
+    )
+    app.include_router(router)
+
+    @app.middleware("http")
+    async def add_operator(request, call_next):
+        request.state.operator_session = SimpleNamespace(
+            operator=SimpleNamespace(operator_id=str(uuid4()))
+        )
+        return await call_next(request)
+
+    return app
+
+
+def test_energy_summary_openapi_contract_is_strict_and_bounded():
+    app = _energy_route_test_app(object(), Exception)
+    openapi = app.openapi()
+    response_schema = openapi["paths"][
+        "/operator/api/energy/{location_id}/summary"
+    ]["get"]["responses"]["200"]["content"]["application/json"]["schema"]
+    assert response_schema == {
+        "$ref": "#/components/schemas/EnergyMonitoringSummaryResponse"
+    }
+
+    schemas = openapi["components"]["schemas"]
+    for name in (
+        "EnergyMonitoringSummaryResponse",
+        "EnergyDashboardCalculations",
+        "EnergyReadingGroup",
+        "EnergyCostByCurrency",
+    ):
+        assert schemas[name]["additionalProperties"] is False
+    summary = schemas["EnergyMonitoringSummaryResponse"]["properties"]
+    assert summary["groups"]["maxItems"] == 98
+    calculation = schemas["EnergyDashboardCalculations"]["properties"]
+    assert calculation["trend_7d"]["maxItems"] == 8
+    assert calculation["reviewed_efficiency_history"]["maxItems"] == 12
+    assert calculation["active_sources_by_type"]["maxItems"] == 7
+    assert calculation["renewable_share_pct"]["minimum"] == 0
+    assert calculation["renewable_share_pct"]["maximum"] == 100
+    assert schemas["EnergyCostByCurrency"]["properties"]["currency_code"]["pattern"] == "^[A-Z]{3}$"
+
+
+@pytest.mark.parametrize(
+    "invalid_field",
+    [
+        "extra",
+        "nested_extra",
+        "invalid_source_type",
+        "negative_count",
+        "non_finite",
+        "percentage",
+        "group_limit",
+        "currency_code",
+        "missing_energy_costs",
+        "location_mismatch",
+    ],
+)
+def test_energy_summary_rejects_invalid_projection_with_private_error(
+    monkeypatch, invalid_field
+):
+    location_id = str(uuid4())
+    payload = _energy_summary_payload(location_id)
+    if invalid_field == "extra":
+        payload["source_name"] = "private"
+    elif invalid_field == "nested_extra":
+        payload["groups"][0]["notes"] = "private"
+    elif invalid_field == "invalid_source_type":
+        payload["groups"][0]["source_type"] = "unmapped"
+    elif invalid_field == "negative_count":
+        payload["verified_reading_count"] = -1
+    elif invalid_field == "non_finite":
+        payload["dashboard_calculations"]["total_consumption_kwh"] = float("nan")
+    elif invalid_field == "percentage":
+        payload["dashboard_calculations"]["renewable_share_pct"] = 101.0
+    elif invalid_field == "group_limit":
+        payload["groups"] = [dict(payload["groups"][0]) for _ in range(99)]
+    elif invalid_field == "currency_code":
+        payload["dashboard_calculations"]["energy_costs"]["by_currency"][0]["currency_code"] = "usd"
+    elif invalid_field == "missing_energy_costs":
+        del payload["dashboard_calculations"]["energy_costs"]
+    else:
+        payload["location_id"] = str(uuid4())
+
+    monkeypatch.setattr(
+        "services.gateway.energy_monitoring.get_location_energy_summary",
+        lambda *_args: payload,
+    )
+    app = _energy_route_test_app(object(), Exception)
+    with TestClient(app) as client:
+        response = client.get(f"/operator/api/energy/{location_id}/summary")
+
+    assert response.status_code == 500
+    assert response.json() == {"error": "Energy summary unavailable"}
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["vary"] == "Cookie"
+
+
+class _SyntheticEnergyDatabaseError(Exception):
+    pass
+
+
+@pytest.mark.parametrize(
+    ("provider", "error", "status_code", "body", "retry_after"),
+    [
+        (None, None, 404, {"error": "Operator OIDC is disabled"}, None),
+        (
+            object(), TenantContextDenied("denied"), 403,
+            {"error": "Tenant-qualified operator access is required"}, None,
+        ),
+        (
+            object(), ValueError("Invalid operator or location identifier"), 400,
+            {"error": "Invalid operator or location identifier"}, None,
+        ),
+        (
+            object(), _SyntheticEnergyDatabaseError("failure"), 503,
+            {"error": "Energy summary unavailable"}, "30",
+        ),
+    ],
+)
+def test_energy_summary_preserves_existing_error_contracts(
+    monkeypatch, provider, error, status_code, body, retry_after
+):
+    if error is not None:
+        def fail_summary(*_args):
+            raise error
+
+        monkeypatch.setattr(
+            "services.gateway.energy_monitoring.get_location_energy_summary",
+            fail_summary,
+        )
+    app = _energy_route_test_app(provider, _SyntheticEnergyDatabaseError)
+    with TestClient(app) as client:
+        response = client.get(f"/operator/api/energy/{uuid4()}/summary")
+
+    assert response.status_code == status_code
+    assert response.json() == body
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["vary"] == "Cookie"
+    if retry_after is None:
+        assert "retry-after" not in response.headers
+    else:
+        assert response.headers["retry-after"] == retry_after
 
 
 def test_energy_route_denies_missing_location_grant_before_query(monkeypatch, gateway_audit_spool):

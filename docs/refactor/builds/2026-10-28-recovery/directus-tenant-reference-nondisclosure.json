@@ -1,0 +1,49 @@
+{
+  "date": "2026-10-28",
+  "source_revision": "6c84b4aa",
+  "working_tree_dirty": true,
+  "scope": "Optional Directus create/update tenant-reference validation contract.",
+  "behavior": {
+    "lookups_scoped_by_requested_location": [
+      "farm_id",
+      "plot_id through owning farm",
+      "crop_cycle_id",
+      "harvest_id",
+      "staff assignments and farm memberships",
+      "parent_scenario_id",
+      "infrastructure_asset_id"
+    ],
+    "invalid_missing_and_foreign_valid_uuid_references": "same field-specific unavailable response",
+    "malformed_uuid_preflight": "rejected before database lookup"
+  },
+  "checks": [
+    {
+      "command": "cd extensions/kokonut-hooks && npm test",
+      "result": "passed",
+      "passed": 124
+    },
+    {
+      "command": "cd extensions/kokonut-hooks && npm test -- --run src/tenant-validation.test.ts",
+      "result": "passed",
+      "passed": 14
+    },
+    {
+      "command": "cd extensions/kokonut-hooks && npm run build",
+      "result": "passed"
+    }
+  ],
+  "assertions": [
+    "Farm, plot, crop-cycle, harvest, scenario, and infrastructure lookups include the requested location predicate.",
+    "Foreign-location and missing valid UUID references return the same generic unavailable result.",
+    "Malformed location and reference values fail before querying."
+  ],
+  "environment": {
+    "live_directus_used": false,
+    "database_used": false,
+    "candidate_or_legacy_touched": false
+  },
+  "limitations": [
+    "This closes a source-level reference lookup and disclosure issue only; effective Directus role, field, row, and hook parity remains open.",
+    "Populated-data behavior and the pinned Directus runtime were not exercised."
+  ]
+}

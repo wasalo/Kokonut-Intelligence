@@ -58,6 +58,7 @@ def _list_options_with_filter(options: Optional[ListOptions], required_filter: D
         offset=options.offset if options else None,
         page=options.page if options else None,
         meta=options.meta if options else None,
+        extra_params=options.extra_params if options else None,
     )
 
 
@@ -553,27 +554,27 @@ class WalletProfileMethods(GenericMethods):
         return results[0] if results else None
 
 
-class AttestationMethods(GenericMethods):
+class AttestationMethods:
+    """Read stored attestation records; publication is handled by EAS flows.
+
+    A row in ``attestation_record`` is a projection of governed workflow or
+    indexed chain state. Direct SDK writes can make database state look like
+    an attestation without an on-chain submission or governed signing workflow.
+    """
+
     def __init__(self, client: KokonutClient) -> None:
-        super().__init__(client, "attestation_record")
+        self._client = client
 
     def list(self, options: Optional[ListOptions] = None) -> List[AttestationRecord]:
-        return super().list(options)
+        return self._client.list_items("attestation_record", options)
 
     def get(self, item_id: str, fields: Optional[List[str]] = None) -> AttestationRecord:
-        return super().get(item_id, fields)
-
-    def create(self, data: Dict[str, Any]) -> AttestationRecord:
-        return super().create(data)
-
-    def create_many(self, data: List[Dict[str, Any]]) -> List[AttestationRecord]:
-        return super().create_many(data)
-
-    def update(self, item_id: str, data: Dict[str, Any]) -> AttestationRecord:
-        return super().update(item_id, data)
+        return self._client.get_item("attestation_record", item_id, fields)
 
     def list_pending(self, options: Optional[ListOptions] = None) -> List[AttestationRecord]:
-        return super().list(_list_options_with_filter(options, {"status": {"_in": ["draft", "submitted"]}}))
+        return self.list(
+            _list_options_with_filter(options, {"status": {"_in": ["draft", "submitted"]}})
+        )
 
     def list_by_entity(self, subject_type: str, subject_id: str) -> List[AttestationRecord]:
         return self._client.list_items(
@@ -582,80 +583,61 @@ class AttestationMethods(GenericMethods):
         )
 
 
-class ReportMethods(GenericMethods):
+class ReportMethods:
+    """Read-only access to generated report snapshots.
+
+    Snapshot generation and governed lifecycle transitions belong to the
+    report generator and authorized review surfaces, not generic SDK CRUD.
+    """
+
     def __init__(self, client: KokonutClient) -> None:
-        super().__init__(client, "report_snapshot")
+        self._client = client
 
     def list(self, options: Optional[ListOptions] = None) -> List[ReportSnapshot]:
-        return super().list(options)
+        return self._client.list_items("report_snapshot", options)
 
     def get(self, item_id: str, fields: Optional[List[str]] = None) -> ReportSnapshot:
-        return super().get(item_id, fields)
-
-    def create(self, data: Dict[str, Any]) -> ReportSnapshot:
-        return super().create(data)
-
-    def create_many(self, data: List[Dict[str, Any]]) -> List[ReportSnapshot]:
-        return super().create_many(data)
-
-    def update(self, item_id: str, data: Dict[str, Any]) -> ReportSnapshot:
-        return super().update(item_id, data)
+        return self._client.get_item("report_snapshot", item_id, fields)
 
     def list_by_type(self, report_type: str, options: Optional[ListOptions] = None) -> List[ReportSnapshot]:
-        return super().list(_list_options_with_filter(options, {"report_type": {"_eq": report_type}}))
-
-
-class ExportMethods(GenericMethods):
-    def __init__(self, client: KokonutClient) -> None:
-        super().__init__(client, "export_log")
-
-    def list(self, options: Optional[ListOptions] = None) -> List[ExportLog]:
-        return super().list(options)
-
-    def get(self, item_id: str, fields: Optional[List[str]] = None) -> ExportLog:
-        return super().get(item_id, fields)
-
-    def create_export(
-        self,
-        export_type: str,
-        format: Optional[str] = None,
-        entity_type: Optional[str] = None,
-        entity_ids: Optional[List[str]] = None,
-        target_table: Optional[str] = None,
-        filters: Optional[Dict[str, Any]] = None,
-    ) -> ExportLog:
-        return super().create(
-            {
-                "export_type": export_type,
-                "format": format,
-                "entity_type": entity_type,
-                "entity_ids": entity_ids,
-                "target_table": target_table,
-                "filters": filters,
-                "status": "pending",
-                "requested_by": "sdk",
-            }
+        return self._client.list_items(
+            "report_snapshot",
+            _list_options_with_filter(options, {"report_type": {"_eq": report_type}}),
         )
 
 
-class NoiMethods(GenericMethods):
+class ExportMethods:
+    """Read-only access to export audit records.
+
+    Export generation is performed by the exporter service. The canonical
+    ``export_log`` table is an audit record, not a durable request queue, so
+    SDK clients must not create, mutate, or delete rows directly.
+    """
+
     def __init__(self, client: KokonutClient) -> None:
-        super().__init__(client, "noi_snapshot")
+        self._client = client
+
+    def list(self, options: Optional[ListOptions] = None) -> List[ExportLog]:
+        return self._client.list_items("export_log", options)
+
+    def get(self, item_id: str, fields: Optional[List[str]] = None) -> ExportLog:
+        return self._client.get_item("export_log", item_id, fields)
+
+
+class NoiMethods:
+    """Read calculated NOI snapshots; reconciliation belongs to workers."""
+
+    def __init__(self, client: KokonutClient) -> None:
+        self._client = client
 
     def list(self, options: Optional[ListOptions] = None) -> List[NoiSnapshot]:
-        return super().list(options)
+        return self._client.list_items("noi_snapshot", options)
 
     def get(self, item_id: str, fields: Optional[List[str]] = None) -> NoiSnapshot:
-        return super().get(item_id, fields)
-
-    def create(self, data: Dict[str, Any]) -> NoiSnapshot:
-        return super().create(data)
-
-    def create_many(self, data: List[Dict[str, Any]]) -> List[NoiSnapshot]:
-        return super().create_many(data)
-
-    def update(self, item_id: str, data: Dict[str, Any]) -> NoiSnapshot:
-        return super().update(item_id, data)
+        return self._client.get_item("noi_snapshot", item_id, fields)
 
     def list_by_crop_cycle(self, crop_cycle_id: str, options: Optional[ListOptions] = None) -> List[NoiSnapshot]:
-        return super().list(_list_options_with_filter(options, {"crop_cycle_id": {"_eq": crop_cycle_id}}))
+        return self._client.list_items(
+            "noi_snapshot",
+            _list_options_with_filter(options, {"crop_cycle_id": {"_eq": crop_cycle_id}}),
+        )

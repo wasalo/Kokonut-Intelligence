@@ -8,15 +8,17 @@ Usage:
 """
 
 import argparse
-import sys
+from uuid import UUID
 
-from .calculator import calculate_all_farms, get_farm_metrics, calculate_score
 from services.common.cli import print_json
+
+from .calculator import calculate_all_farms, calculate_score, get_farm_metrics
+
 
 def print_score_table(results):
     """Print formatted score table."""
     print(f"\n{'='*90}")
-    print(f"  KOKONUT INTELLIGENCE — FORTUNE 500 FARM RANKINGS")
+    print("  KOKONUT INTELLIGENCE — FORTUNE 500 FARM RANKINGS")
     print(f"{'='*90}")
     print(f"\n{'Rank':<6} {'Farm':<35} {'Financial':>10} {'Ecology':>10} {'Governance':>11} {'Growth':>8} {'TOTAL':>8} {'Tier':<10}")
     print("-" * 90)
@@ -34,8 +36,8 @@ def print_score_table(results):
         )
 
     print(f"\n{'='*90}")
-    print(f"  Scores: 0-1000 | Tiers: Platinum (800+) | Gold (600+) | Silver (400+) | Bronze (200+) | Developing")
-    print(f"  Weights: Financial 45% | Ecological 25% | Governance 15% | Growth 15%")
+    print("  Scores: 0-1000 | Tiers: Platinum (800+) | Gold (600+) | Silver (400+) | Bronze (200+) | Developing")
+    print("  Weights: Financial 45% | Ecological 25% | Governance 15% | Growth 15%")
     print(f"{'='*90}\n")
 
 
@@ -47,7 +49,7 @@ def print_detailed(result):
     print(f"\n  Composite Score: {result['composite_score']:.1f} / 1000 ({result['tier']})")
     print(f"  Rank: #{result['rank']} | Percentile: {result['percentile']}%")
 
-    print(f"\n  Score Breakdown:")
+    print("\n  Score Breakdown:")
     print(f"  {'Financial:':<25} {result['financial_score']:>6.1f} / 1000  (weight: 45%)")
     print(f"  {'Ecological:':<25} {result['ecological_score']:>6.1f} / 1000  (weight: 25%)")
     print(f"  {'Governance:':<25} {result['governance_score']:>6.1f} / 1000  (weight: 15%)")
@@ -55,7 +57,7 @@ def print_detailed(result):
 
     inputs = result.get("breakdown", {}).get("inputs", {})
     if inputs:
-        print(f"\n  Key Inputs:")
+        print("\n  Key Inputs:")
         print(f"  {'Revenue/ha:':<25} ${inputs.get('revenue_per_ha', 0):>10,.2f}")
         print(f"  {'Operating Margin:':<25} {inputs.get('operating_margin_pct', 0):>10.1f}%")
         print(f"  {'Loss Rate:':<25} {inputs.get('loss_rate_pct', 0):>10.1f}%")
@@ -75,8 +77,16 @@ def main():
     parser.add_argument("--json", action="store_true", help="Output as JSON")
     args = parser.parse_args()
 
-    # Handle legacy --farm alias
-    location_id = args.location_id or args.farm
+    # Handle the legacy --farm alias. Validate every supplied spelling before
+    # the calculator opens PostgreSQL, and normalize the effective scope.
+    for option, value in (("--location-id", args.location_id), ("--farm", args.farm)):
+        if value is not None:
+            try:
+                setattr(args, "location_id" if option == "--location-id" else "farm", str(UUID(value)))
+            except (AttributeError, TypeError, ValueError):
+                parser.error(f"{option} must be a valid UUID")
+
+    location_id = args.location_id if args.location_id is not None else args.farm
     if location_id:
         metrics = get_farm_metrics(location_id)
         score = calculate_score(metrics)

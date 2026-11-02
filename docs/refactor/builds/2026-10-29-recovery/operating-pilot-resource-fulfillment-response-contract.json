@@ -1,0 +1,29 @@
+{
+  "date": "2026-10-29",
+  "purpose": "Mock-only acceptance for the private operating-pilot resource-fulfillment response contract.",
+  "command": "python3 -m pytest -q tests/test_gateway_operating_pilot_writes.py -k 'resource_fulfillment_http_route_is_exact or resource_fulfillment_replay or resource_fulfillment_rejects_malformed_response or resource_fulfillment_http_route_rejects_extra_payload_fields'",
+  "result": {
+    "passed": 7,
+    "failed": 0,
+    "deselected": 316
+  },
+  "coverage": [
+    "OpenAPI declares the strict five-field fulfillment response",
+    "Location and resource-request identities bind to the request path",
+    "Only the closed/fulfilled state is accepted and exact replay is preserved",
+    "Malformed, mismatched, or undeclared output returns sanitized no-store 503",
+    "The route still accepts only a request ID and returns HTTP 200"
+  ],
+  "environment": {
+    "database_used": false,
+    "provider_used": false,
+    "candidate_or_legacy_state_touched": false,
+    "fixtures": "Synthetic service dictionaries and in-process FastAPI TestClient."
+  },
+  "static_checks": {
+    "ruff": "passed",
+    "python_compile": "passed",
+    "capability_matrix": "passed",
+    "git_diff_check": "passed"
+  }
+}

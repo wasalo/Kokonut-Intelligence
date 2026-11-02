@@ -1,0 +1,63 @@
+{
+  "result": "passed",
+  "date": "2026-10-26",
+  "source_revision": "020a5279",
+  "working_tree_dirty": false,
+  "runtime_architecture": "linux/amd64",
+  "execution": "native Docker host",
+  "database_image": {
+    "name": "postgis/postgis:16-3.4",
+    "platform": "linux/amd64",
+    "image_id": "sha256:44126d872ac91993766c341e369c539e8196614321765d36a6f1bab0419a5fa5"
+  },
+  "isolated_compose_project": "kokonut-arm64-schema-20261026-14e21d1a",
+  "schema_files_expected": 642,
+  "schema_files_applied": 642,
+  "schema_files_pending": 0,
+  "schema_files_failed": 0,
+  "latest_migration": "651_dashboard_dataset_query_registry",
+  "network_mode": "none",
+  "host_ports_published": false,
+  "seeds_applied": 0,
+  "farm_data_loaded": false,
+  "candidate_or_legacy_touched": false,
+  "cleanup": {
+    "attempted": true,
+    "completed": true
+  },
+  "latest_applied_migration": "schema:651_dashboard_dataset_query_registry.sql",
+  "schema_status": {
+    "seeds": 0,
+    "failed": 0,
+    "latest": "651_dashboard_dataset_query_registry",
+    "applied": 642,
+    "pending": 0,
+    "pg_stat_public_select": false
+  },
+  "pg_stat_statements_public_select": false,
+  "container_architecture": "x86_64",
+  "operator_scope_probe": {
+    "result": "passed",
+    "checks": [
+      "runtime and operator-auth logins cannot bypass RLS or create roles or databases",
+      "two synthetic tenant/location/identity/grant sets were created",
+      "both restricted logins are denied direct operator-session reads",
+      "operator-auth login created two sessions through the bounded function",
+      "each real runtime login context sees only its synthetic tenant under forced RLS",
+      "wrong-location denial clears context and tenant-probe visibility",
+      "tenant context is cleared at transaction end",
+      "revoked grant and revoked session both fail closed"
+    ],
+    "synthetic_tenant_count": 2,
+    "synthetic_location_count": 2,
+    "synthetic_operator_count": 2,
+    "runtime_public_tables_with_dml_and_rls_disabled": 1101,
+    "scope_limit": "Forced RLS is enabled only on a synthetic probe table. The count includes public tables reachable through table-level DML and is not a complete column, view, worker, Directus, or production authorization audit."
+  },
+  "operator_scope_probe_image": {
+    "name": "kokonut-kernel-candidate-app:latest",
+    "platform": "linux/amd64",
+    "image_id": "sha256:4f5094ed9f5f246c6b6368d08935b287541db1e9a21eb97b0678837b2171b279"
+  },
+  "elapsed_seconds": 540.1
+}

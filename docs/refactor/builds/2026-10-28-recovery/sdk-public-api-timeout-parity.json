@@ -1,0 +1,35 @@
+{
+  "date": "2026-10-28",
+  "scope": "Source-level timeout parity between the Python and JavaScript native Gateway clients.",
+  "finding": {
+    "python_default_timeout_seconds": 10,
+    "javascript_before_change": "No request deadline; a stalled Fetch request could remain pending indefinitely.",
+    "javascript_after_change": "Defaults to timeoutMs=10000 and passes an AbortSignal to Fetch; callers can set a finite positive timeoutMs."
+  },
+  "changes": [
+    "Add a configurable JavaScript public API request deadline with a 10-second default matching Python.",
+    "Abort stalled Fetch requests and clear the deadline timer after completion.",
+    "Reject non-finite or non-positive timeoutMs values.",
+    "Document the default and override in the JavaScript SDK README."
+  ],
+  "verification": {
+    "javascript_public_api_tests": {
+      "command": "cd sdk/javascript && npx vitest run src/__tests__/public-api.test.ts",
+      "result": "passed",
+      "tests": 13
+    },
+    "javascript_build": {
+      "command": "cd sdk/javascript && npm run build",
+      "result": "passed"
+    },
+    "python_public_api_parity_tests": {
+      "command": "python3 -m pytest -q tests/test_public_api_sdk.py",
+      "result": "passed",
+      "tests": 8
+    }
+  },
+  "limitations": [
+    "All requests were mocked; no Gateway, database, provider, or network call was made.",
+    "Custom fetch implementations must honor the supplied AbortSignal for the timeout to interrupt their pending operation."
+  ]
+}

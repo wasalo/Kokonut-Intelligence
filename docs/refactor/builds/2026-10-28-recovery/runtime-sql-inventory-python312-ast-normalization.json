@@ -1,0 +1,56 @@
+{
+  "date": "2026-10-28",
+  "tested_commit": "7d2e0653b4e853b4feaaca741e92a019f4a5021b",
+  "scope": "Diagnose and fix Python-version-dependent unresolved-write fingerprints in the runtime SQL inventory gate.",
+  "reproduction": {
+    "source": "Before-fix reproduction used the clean archive; after-fix checks copied only the patched scanner into that archive. The inventory, unresolved-write ledger, service tree, and pinned digest remained from tested_commit.",
+    "before_fix": {
+      "python_3_11": "passed",
+      "python_3_12": "failed with stale and new fingerprint candidates"
+    },
+    "cause": "Python 3.12 adds type_params=[] to function and class AST dumps. The fingerprint used ast.dump output for the complete lexical scope, so the version-only empty field changed every affected hash and made the unchanged review set appear both stale and new."
+  },
+  "change": {
+    "files": [
+      "scripts/runtime_sql_inventory.py",
+      "tests/test_runtime_sql_inventory.py"
+    ],
+    "normalization": "Fingerprint AST dumps omit only empty type_params fields, preserving the pre-existing Python 3.11 ast.dump representation. Non-empty type_params remain included. ASTs are copied before normalization.",
+    "ledger_mutated": false,
+    "pinned_digest_mutated": false
+  },
+  "after_fix": {
+    "python_3_11": {
+      "command": "python3.11 scripts/runtime_sql_inventory.py --check docs/refactor/runtime-sql-inventory.json",
+      "result": "passed",
+      "tracked_candidates": 37
+    },
+    "python_3_12": {
+      "command": "python3.12 scripts/runtime_sql_inventory.py --check docs/refactor/runtime-sql-inventory.json",
+      "result": "passed",
+      "tracked_candidates": 37
+    },
+    "python_3_12_ast_regression_smoke": {
+      "command": "Python 3.12 direct assertions for empty-field removal, fingerprint generation, and preservation of non-empty type_params",
+      "result": "passed"
+    },
+    "focused_tests": {
+      "command": "python3.11 -m pytest tests/test_runtime_sql_inventory.py -q",
+      "result": "passed",
+      "passed": 24
+    },
+    "ruff": "passed",
+    "py_compile": "passed under Python 3.11 and 3.12",
+    "diff_check": "passed"
+  },
+  "environment": {
+    "archive_checkout": "/private/tmp/ki-runtime-sql-ci-cYlamn",
+    "live_database_used": false,
+    "candidate_or_legacy_touched": false,
+    "provider_called": false
+  },
+  "limitations": [
+    "The repository's Python 3.12 interpreter does not have pytest installed; the same inventory gate itself was run successfully under Python 3.12, while the focused pytest suite ran under Python 3.11.",
+    "The shared working tree contains unrelated concurrent route/test changes; cross-version gate results above use the clean archive of the exact failed commit."
+  ]
+}

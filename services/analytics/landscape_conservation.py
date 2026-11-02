@@ -19,14 +19,20 @@ Usage:
 """
 
 import json
-import uuid
-from datetime import date, timezone
-from typing import Optional
+from datetime import date
 
 from services.common.commands import CommandLine
+
 from ..common.logging import get_logger
 
 logger = get_logger("analytics.landscape_conservation")
+
+
+def _retired_landscape_writer() -> None:
+    raise RuntimeError(
+        "Unscoped landscape-conservation writes are retired; use the authenticated "
+        "Kokonut Gateway landscape capture form with a location create grant."
+    )
 
 
 # ============================================================
@@ -45,39 +51,8 @@ def create_habitat_zone(
     gps_boundary: str = None,
     metadata: dict = None,
 ) -> dict:
-    """Create a habitat zone record."""
-    cur = conn.cursor()
-    zone_id = str(uuid.uuid4())
-
-    cur.execute(
-        """
-        INSERT INTO habitat_zone
-            (id, location_id, zone_name, habitat_type, area_ha,
-             perimeter_m, description, biodiversity_value, gps_boundary,
-             metadata, status)
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s::jsonb, %s::jsonb, 'active')
-        RETURNING id
-        """,
-        (
-            zone_id, location_id, zone_name, habitat_type, area_ha,
-            perimeter_m, description, biodiversity_value,
-            gps_boundary,
-            json.dumps(metadata or {}),
-        ),
-    )
-    conn.commit()
-    cur.close()
-
-    logger.info("Created habitat zone %s at %s", zone_id[:8], location_id[:8])
-
-    return {
-        "zone_id": zone_id,
-        "location_id": location_id,
-        "zone_name": zone_name,
-        "habitat_type": habitat_type,
-        "area_ha": area_ha,
-        "biodiversity_value": biodiversity_value,
-    }
+    """Retired legacy writer; use the signed, location-scoped Gateway capture."""
+    _retired_landscape_writer()
 
 
 # ============================================================
@@ -96,41 +71,8 @@ def create_corridor(
     notes: str = None,
     metadata: dict = None,
 ) -> dict:
-    """Create a wildlife corridor record."""
-    cur = conn.cursor()
-    corridor_id = str(uuid.uuid4())
-
-    cur.execute(
-        """
-        INSERT INTO wildlife_corridor
-            (id, location_id, corridor_name, source_habitat_id,
-             target_habitat_id, width_m, length_m, vegetation_type,
-             notes, metadata, condition, status)
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s::jsonb, 'fair', 'active')
-        RETURNING id
-        """,
-        (
-            corridor_id, location_id, corridor_name,
-            source_habitat_id, target_habitat_id,
-            width_m, length_m, vegetation_type,
-            notes,
-            json.dumps(metadata or {}),
-        ),
-    )
-    conn.commit()
-    cur.close()
-
-    logger.info("Created corridor %s at %s", corridor_id[:8], location_id[:8])
-
-    return {
-        "corridor_id": corridor_id,
-        "location_id": location_id,
-        "corridor_name": corridor_name,
-        "source_habitat_id": source_habitat_id,
-        "target_habitat_id": target_habitat_id,
-        "width_m": width_m,
-        "length_m": length_m,
-    }
+    """Retired legacy writer; use the signed, location-scoped Gateway capture."""
+    _retired_landscape_writer()
 
 
 # ============================================================
@@ -150,41 +92,8 @@ def record_hedgerow(
     notes: str = None,
     metadata: dict = None,
 ) -> dict:
-    """Record a hedgerow or windbreak."""
-    cur = conn.cursor()
-    hedgerow_id = str(uuid.uuid4())
-
-    cur.execute(
-        """
-        INSERT INTO hedgerow_record
-            (id, location_id, hedgerow_name, species_mix, length_m,
-             height_m, age_years, planting_date, purpose,
-             notes, metadata, condition, status)
-        VALUES (%s, %s, %s, %s::jsonb, %s, %s, %s, %s, %s::jsonb, %s, %s::jsonb, 'fair', 'active')
-        RETURNING id
-        """,
-        (
-            hedgerow_id, location_id, hedgerow_name,
-            json.dumps(species_mix or []),
-            length_m, height_m, age_years, planting_date,
-            json.dumps(purpose or []),
-            notes,
-            json.dumps(metadata or {}),
-        ),
-    )
-    conn.commit()
-    cur.close()
-
-    logger.info("Recorded hedgerow %s at %s", hedgerow_id[:8], location_id[:8])
-
-    return {
-        "hedgerow_id": hedgerow_id,
-        "location_id": location_id,
-        "hedgerow_name": hedgerow_name,
-        "species_mix": species_mix or [],
-        "length_m": length_m,
-        "purpose": purpose or [],
-    }
+    """Retired legacy writer; use the signed, location-scoped Gateway capture."""
+    _retired_landscape_writer()
 
 
 # ============================================================
@@ -203,49 +112,8 @@ def record_buffer_check(
     check_date: date = None,
     metadata: dict = None,
 ) -> dict:
-    """Record a buffer zone compliance check."""
-    cur = conn.cursor()
-    check_id = str(uuid.uuid4())
-
-    check_date = check_date or date.today()
-    compliant = None
-    if buffer_width_m is not None and minimum_required_m is not None:
-        compliant = buffer_width_m >= minimum_required_m
-
-    cur.execute(
-        """
-        INSERT INTO buffer_zone_monitoring
-            (id, location_id, habitat_zone_id, check_date,
-             buffer_width_m, minimum_required_m, compliant,
-             vegetation_coverage_pct, erosion_observed,
-             notes, metadata, status)
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s::jsonb, 'recorded')
-        RETURNING id
-        """,
-        (
-            check_id, location_id, habitat_zone_id, check_date,
-            buffer_width_m, minimum_required_m, compliant,
-            vegetation_coverage_pct, erosion_observed,
-            notes,
-            json.dumps(metadata or {}),
-        ),
-    )
-    conn.commit()
-    cur.close()
-
-    logger.info("Recorded buffer check %s at %s", check_id[:8], location_id[:8])
-
-    return {
-        "check_id": check_id,
-        "location_id": location_id,
-        "habitat_zone_id": habitat_zone_id,
-        "check_date": check_date.isoformat(),
-        "buffer_width_m": buffer_width_m,
-        "minimum_required_m": minimum_required_m,
-        "compliant": compliant,
-        "vegetation_coverage_pct": vegetation_coverage_pct,
-        "erosion_observed": erosion_observed,
-    }
+    """Retired legacy writer; use the signed, location-scoped Gateway capture."""
+    _retired_landscape_writer()
 
 
 # ============================================================
@@ -265,44 +133,8 @@ def record_biodiversity_score(
     assessment_date: date = None,
     metadata: dict = None,
 ) -> dict:
-    """Record a landscape biodiversity assessment."""
-    cur = conn.cursor()
-    score_id = str(uuid.uuid4())
-
-    assessment_date = assessment_date or date.today()
-
-    cur.execute(
-        """
-        INSERT INTO landscape_biodiversity_score
-            (id, location_id, assessment_date, species_richness,
-             shannon_index, habitat_diversity_index, connectivity_score,
-             overall_score, assessor, notes, metadata, status)
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s::jsonb, 'recorded')
-        RETURNING id
-        """,
-        (
-            score_id, location_id, assessment_date,
-            species_richness, shannon_index,
-            habitat_diversity_index, connectivity_score,
-            overall_score, assessor, notes,
-            json.dumps(metadata or {}),
-        ),
-    )
-    conn.commit()
-    cur.close()
-
-    logger.info("Recorded biodiversity score %s at %s", score_id[:8], location_id[:8])
-
-    return {
-        "score_id": score_id,
-        "location_id": location_id,
-        "assessment_date": assessment_date.isoformat(),
-        "species_richness": species_richness,
-        "shannon_index": shannon_index,
-        "habitat_diversity_index": habitat_diversity_index,
-        "connectivity_score": connectivity_score,
-        "overall_score": overall_score,
-    }
+    """Retired legacy writer; use the signed, location-scoped Gateway capture."""
+    _retired_landscape_writer()
 
 
 # ============================================================
@@ -538,63 +370,26 @@ def _render(result, args, human):
 
 
 def _cmd_create_habitat(db, a):
-    return create_habitat_zone(
-        db, a.location_id, a.name, a.type, a.area,
-        biodiversity_value=a.biodiversity,
-        perimeter_m=a.perimeter, description=a.description,
-    )
+    _retired_landscape_writer()
 
 
 def _cmd_create_corridor(db, a):
-    return create_corridor(
-        db, a.location_id, a.name,
-        source_habitat_id=a.source,
-        target_habitat_id=a.target,
-        width_m=a.width, length_m=a.length,
-        vegetation_type=a.vegetation,
-    )
+    _retired_landscape_writer()
 
 
 def _cmd_record_hedgerow(db, a):
-    species = json.loads(a.species) if a.species else []
-    purpose = json.loads(a.purpose) if a.purpose else []
-    pd = date.fromisoformat(a.planting_date) if a.planting_date else None
-    return record_hedgerow(
-        db, a.location_id, hedgerow_name=a.name,
-        species_mix=species, length_m=a.length,
-        height_m=a.height, age_years=a.age,
-        planting_date=pd, purpose=purpose,
-    )
+    _retired_landscape_writer()
 
 
 def _cmd_record_buffer_check(db, a):
-    cd = date.fromisoformat(a.check_date) if a.check_date else None
-    return record_buffer_check(
-        db, a.location_id,
-        habitat_zone_id=a.habitat_zone,
-        buffer_width_m=a.buffer_width,
-        minimum_required_m=a.minimum_required,
-        vegetation_coverage_pct=a.vegetation_pct,
-        erosion_observed=a.erosion,
-        check_date=cd,
-    )
+    _retired_landscape_writer()
 
 
 def _cmd_record_biodiversity(db, a):
-    ad = date.fromisoformat(a.date) if a.date else None
-    return record_biodiversity_score(
-        db, a.location_id,
-        species_richness=a.richness,
-        shannon_index=a.shannon,
-        habitat_diversity_index=a.habitat_diversity,
-        connectivity_score=a.connectivity,
-        overall_score=a.overall,
-        assessor=a.assessor,
-        assessment_date=ad,
-    )
+    _retired_landscape_writer()
 
 
-cli.subcommand("create-habitat", "Create habitat zone") \
+cli.subcommand("create-habitat", "Retired; use authenticated Gateway landscape capture") \
     .add("--location-id", required=True) \
     .add("--name", required=True) \
     .add("--type", required=True, choices=[
@@ -606,10 +401,10 @@ cli.subcommand("create-habitat", "Create habitat zone") \
     .add("--perimeter", type=float, help="Perimeter in metres") \
     .add("--description") \
     .add("--json", action="store_true") \
-    .run(_cmd_create_habitat) \
+    .run(_cmd_create_habitat, needs_db=False) \
     .render_with(lambda r, a: _render(r, a, _format_habitat))
 
-cli.subcommand("create-corridor", "Create wildlife corridor") \
+cli.subcommand("create-corridor", "Retired; use authenticated Gateway landscape capture") \
     .add("--location-id", required=True) \
     .add("--name", required=True) \
     .add("--source", help="Source habitat zone ID") \
@@ -618,10 +413,10 @@ cli.subcommand("create-corridor", "Create wildlife corridor") \
     .add("--length", type=float, help="Length in metres") \
     .add("--vegetation", help="Vegetation type") \
     .add("--json", action="store_true") \
-    .run(_cmd_create_corridor) \
+    .run(_cmd_create_corridor, needs_db=False) \
     .render_with(lambda r, a: _render(r, a, _format_corridor))
 
-cli.subcommand("record-hedgerow", "Record hedgerow") \
+cli.subcommand("record-hedgerow", "Retired; use authenticated Gateway landscape capture") \
     .add("--location-id", required=True) \
     .add("--name") \
     .add("--species", help="JSON array of species") \
@@ -631,10 +426,10 @@ cli.subcommand("record-hedgerow", "Record hedgerow") \
     .add("--planting-date", help="Planting date YYYY-MM-DD") \
     .add("--purpose", help="JSON array of purposes") \
     .add("--json", action="store_true") \
-    .run(_cmd_record_hedgerow) \
+    .run(_cmd_record_hedgerow, needs_db=False) \
     .render_with(lambda r, a: _render(r, a, _format_hedgerow))
 
-cli.subcommand("record-buffer-check", "Record buffer zone check") \
+cli.subcommand("record-buffer-check", "Retired; use authenticated Gateway landscape capture") \
     .add("--location-id", required=True) \
     .add("--habitat-zone", help="Habitat zone ID") \
     .add("--buffer-width", type=float, help="Buffer width in metres") \
@@ -643,10 +438,10 @@ cli.subcommand("record-buffer-check", "Record buffer zone check") \
     .add("--erosion", action="store_true", help="Erosion observed") \
     .add("--check-date", help="Check date YYYY-MM-DD") \
     .add("--json", action="store_true") \
-    .run(_cmd_record_buffer_check) \
+    .run(_cmd_record_buffer_check, needs_db=False) \
     .render_with(lambda r, a: _render(r, a, _format_buffer))
 
-cli.subcommand("record-biodiversity", "Record biodiversity assessment") \
+cli.subcommand("record-biodiversity", "Retired; use authenticated Gateway landscape capture") \
     .add("--location-id", required=True) \
     .add("--richness", type=int, help="Species richness") \
     .add("--shannon", type=float, help="Shannon index") \
@@ -656,7 +451,7 @@ cli.subcommand("record-biodiversity", "Record biodiversity assessment") \
     .add("--assessor") \
     .add("--date", help="Assessment date YYYY-MM-DD") \
     .add("--json", action="store_true") \
-    .run(_cmd_record_biodiversity) \
+    .run(_cmd_record_biodiversity, needs_db=False) \
     .render_with(lambda r, a: _render(r, a, _format_biodiversity))
 
 cli.subcommand("habitat-summary", "Habitat zone summary") \

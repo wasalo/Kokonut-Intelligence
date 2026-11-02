@@ -1,0 +1,27 @@
+{
+  "date": "2026-10-29",
+  "source_commit": "e7b9a80b",
+  "scope": "Public Gateway location IRI JSON-LD response contract",
+  "focused_test_command": "python3 -m pytest tests/test_gateway_public_iri.py -q",
+  "focused_test_result": {
+    "passed": 13,
+    "failed": 0
+  },
+  "additional_checks": {
+    "ruff": "passed",
+    "python_compilation": "passed",
+    "git_diff_check": "passed"
+  },
+  "checks_cover": [
+    "strict JSON-LD context, type, identity, location projection, version, predecessor, digest, and algorithm contract",
+    "projection digest verification and immediately preceding same-location version validation",
+    "OpenAPI application/ld+json success schema and exact field set",
+    "no-store success, sanitized malformed-document failure, and nonrevealing 404 behavior",
+    "existing public location-only database projection remains unchanged"
+  ],
+  "database_or_provider_used": false,
+  "candidate_database_touched": false,
+  "legacy_database_touched": false,
+  "live_oidc_or_browser_used": false,
+  "capability_classification_changed": false
+}

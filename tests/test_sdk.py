@@ -35,6 +35,20 @@ def test_kokonut_types_import():
     assert opts.limit == 10
 
 
+def test_list_options_meta_typing_matches_directus_contract():
+    from typing import get_args, get_type_hints
+
+    from kokonut.types import DirectusListMeta, ListOptions
+
+    assert DirectusListMeta.__args__ == ("total_count", "filter_count")
+    meta_hint = get_type_hints(ListOptions)["meta"]
+    assert DirectusListMeta in get_args(meta_hint)
+    assert ListOptions(limit=25, meta="filter_count").to_params() == {
+        "limit": 25,
+        "meta": "filter_count",
+    }
+
+
 def test_carbon_credit_ledger_types_are_read_models_with_sql_lifecycles():
     from decimal import Decimal
 
@@ -272,6 +286,11 @@ def test_farm_task_relationship_models_preserve_composite_keys_and_source_identi
     assert (dependency.task_id, dependency.prerequisite_task_id) == ("task-1", "task-0")
     assert dependency.source_related_row_id == 70
     assert (framework_step.task_id, framework_step.framework_step_id) == ("task-1", "step-1")
+    assert framework_step.location_id is None
+    scoped_framework_step = FarmTaskFrameworkStep(
+        task_id="task-1", framework_step_id="step-1", location_id="location-1"
+    )
+    assert scoped_framework_step.location_id == "location-1"
     assert (weekly_plan.task_id, weekly_plan.weekly_plan_id) == ("task-1", "week-1")
 
 
@@ -1191,6 +1210,42 @@ def test_list_options_preserve_exact_non_page_aligned_offset():
     assert options.to_params() == {"limit": 25, "offset": 10}
 
 
+def test_typed_location_lists_forward_extension_queries_without_losing_scope():
+    from kokonut import KokonutClient
+    from kokonut.types import ListOptions
+
+    client = KokonutClient("http://localhost:8055")
+    response = Mock()
+    response.ok = True
+    response.json.return_value = {"data": []}
+    client.session.get = Mock(return_value=response)
+
+    client.field_notes.list_by_location(
+        "location-1",
+        ListOptions(
+            filter={"status": {"_eq": "submitted"}},
+            limit=25,
+            extra_params={
+                "aggregate": {"count": "*"},
+                "groupBy": ["location_id"],
+                # Extension parameters cannot override scoped/typed controls.
+                "filter": {"location_id": {"_eq": "other-location"}},
+                "limit": 999,
+            },
+        ),
+    )
+
+    client.session.get.assert_called_once_with(
+        "http://localhost:8055/items/field_note",
+        params={
+            "filter": '{"status": {"_eq": "submitted"}, "location_id": {"_eq": "location-1"}}',
+            "limit": 25,
+            "aggregate": '{"count": "*"}',
+            "groupBy": "location_id",
+        },
+    )
+
+
 def test_crop_cycle_sdk_type_exposes_schema_aligned_yield_fields():
     from kokonut.types import CropCycle
 
@@ -1464,12 +1519,97 @@ def test_report_snapshot_type_exposes_location_freeze_and_public_fields():
     assert report.negative_findings == [{"finding": "finding-1"}]
 
 
+def test_report_methods_are_read_only_and_preserve_typed_queries_without_network_calls():
+    from kokonut import KokonutClient
+    from kokonut.types import ListOptions
+
+    client = KokonutClient("http://localhost:8055")
+    client.list_items = Mock(return_value=[{"id": "report-1"}])
+    client.get_item = Mock(return_value={"id": "report-1", "status": "submitted"})
+
+    assert client.reports.list_by_type(
+        "impact", ListOptions(filter={"status": {"_eq": "submitted"}}, limit=5)
+    ) == [{"id": "report-1"}]
+    assert client.reports.get("report-1", fields=["id", "status"]) == {
+        "id": "report-1", "status": "submitted"
+    }
+    client.list_items.assert_called_once_with(
+        "report_snapshot",
+        ListOptions(filter={"status": {"_eq": "submitted"}, "report_type": {"_eq": "impact"}}, limit=5),
+    )
+    client.get_item.assert_called_once_with("report_snapshot", "report-1", ["id", "status"])
+
+    assert not hasattr(client.reports, "create")
+    assert not hasattr(client.reports, "create_many")
+    assert not hasattr(client.reports, "update")
+    assert not hasattr(client.reports, "delete")
+
+
+def test_attestation_methods_are_read_only_and_preserve_governed_reads_without_network_calls():
+    from kokonut import KokonutClient
+    from kokonut.types import ListOptions
+
+    client = KokonutClient("http://localhost:8055")
+    client.list_items = Mock(return_value=[{"id": "attestation-1"}])
+    client.get_item = Mock(return_value={"id": "attestation-1", "status": "published"})
+
+    assert client.attestations.list_pending(
+        ListOptions(filter={"chain": {"_eq": "celo"}}, limit=5)
+    ) == [{"id": "attestation-1"}]
+    assert client.attestations.get("attestation-1", fields=["id", "status"]) == {
+        "id": "attestation-1", "status": "published"
+    }
+    client.list_items.assert_called_once_with(
+        "attestation_record",
+        ListOptions(
+            filter={"chain": {"_eq": "celo"}, "status": {"_in": ["draft", "submitted"]}},
+            limit=5,
+        ),
+    )
+    client.get_item.assert_called_once_with("attestation_record", "attestation-1", ["id", "status"])
+
+    for name in ("create", "create_many", "update", "delete"):
+        assert not hasattr(client.attestations, name)
+
+
+def test_noi_methods_are_read_only_and_preserve_calculated_snapshot_reads_without_network_calls():
+    from kokonut import KokonutClient
+    from kokonut.types import ListOptions
+
+    client = KokonutClient("http://localhost:8055")
+    client.list_items = Mock(return_value=[{"id": "noi-1"}])
+    client.get_item = Mock(return_value={"id": "noi-1", "noi": 1250.0})
+
+    assert client.noi.list_by_crop_cycle(
+        "cycle-1", ListOptions(filter={"location_id": {"_eq": "location-1"}}, limit=5)
+    ) == [{"id": "noi-1"}]
+    assert client.noi.get("noi-1", fields=["id", "noi"]) == {"id": "noi-1", "noi": 1250.0}
+    client.list_items.assert_called_once_with(
+        "noi_snapshot",
+        ListOptions(
+            filter={"location_id": {"_eq": "location-1"}, "crop_cycle_id": {"_eq": "cycle-1"}},
+            limit=5,
+        ),
+    )
+    client.get_item.assert_called_once_with("noi_snapshot", "noi-1", ["id", "noi"])
+
+    for name in ("create", "create_many", "update", "delete"):
+        assert not hasattr(client.noi, name)
+
+
 def test_export_log_type_exposes_canonical_export_table_fields():
+    from dataclasses import fields
+
     from kokonut.types import ExportLog
+
+    assert {field.name for field in fields(ExportLog)} == {
+        "id", "user_id", "export_type", "target_table", "filters",
+        "row_count", "file_size_bytes", "file_url", "status", "created_at",
+    }
 
     export_log = ExportLog(
         id="export-1",
-        export_type="farm_data",
+        export_type="csv",
         user_id="user-1",
         target_table="harvest_event",
         filters={"status": "published"},
@@ -2131,64 +2271,24 @@ def test_kokonut_methods_import():
     assert HarvestEventMethods is not None
 
 
-def test_export_creation_preserves_target_table_without_network_calls():
+def test_export_methods_expose_only_read_access_without_network_calls():
     from kokonut import KokonutClient
 
     client = KokonutClient("http://localhost:8055")
-    client.create_item = Mock(return_value={"id": "export-1"})
+    client.list_items = Mock(return_value=[{"id": "export-1"}])
+    client.get_item = Mock(return_value={"id": "export-1", "status": "completed"})
 
-    result = client.exports.create_export(
-        "farm_data",
-        entity_type="location",
-        entity_ids=["location-1"],
-        target_table="harvest_event",
-        filters={"status": "published"},
-    )
+    assert client.exports.list() == [{"id": "export-1"}]
+    assert client.exports.get("export-1", fields=["id", "status"]) == {
+        "id": "export-1", "status": "completed"
+    }
+    client.list_items.assert_called_once_with("export_log", None)
+    client.get_item.assert_called_once_with("export_log", "export-1", ["id", "status"])
 
-    assert result == {"id": "export-1"}
-    client.create_item.assert_called_once_with(
-        "export_log",
-        {
-            "export_type": "farm_data",
-            "format": None,
-            "entity_type": "location",
-            "entity_ids": ["location-1"],
-            "target_table": "harvest_event",
-            "filters": {"status": "published"},
-            "status": "pending",
-            "requested_by": "sdk",
-        },
-    )
-
-
-def test_export_creation_accepts_positional_optional_fields_without_network_calls():
-    from kokonut import KokonutClient
-
-    client = KokonutClient("http://localhost:8055")
-    client.create_item = Mock(return_value={"id": "export-1"})
-
-    client.exports.create_export(
-        "farm_data",
-        "csv",
-        "location",
-        ["location-1"],
-        "harvest_event",
-        {"status": "published"},
-    )
-
-    client.create_item.assert_called_once_with(
-        "export_log",
-        {
-            "export_type": "farm_data",
-            "format": "csv",
-            "entity_type": "location",
-            "entity_ids": ["location-1"],
-            "target_table": "harvest_event",
-            "filters": {"status": "published"},
-            "status": "pending",
-            "requested_by": "sdk",
-        },
-    )
+    assert not hasattr(client.exports, "create")
+    assert not hasattr(client.exports, "create_many")
+    assert not hasattr(client.exports, "update")
+    assert not hasattr(client.exports, "delete")
 
 
 def test_login_returns_directus_auth_payload_and_stores_access_token_without_network_calls():
@@ -2261,6 +2361,7 @@ def test_directus_http_errors_map_status_and_preserve_server_message(status, err
         ["unexpected JSON array"],
         {"errors": {"message": "unexpected object"}},
         {"errors": [{"message": None}]},
+        {"errors": [{"message": ""}]},
         {"errors": []},
     ],
 )
@@ -2276,7 +2377,7 @@ def test_directus_http_errors_fall_back_for_malformed_error_envelopes(body):
     response.json.return_value = body
     client.session.get = Mock(return_value=response)
 
-    with pytest.raises(NotFoundError, match="fallback response text"):
+    with pytest.raises(NotFoundError, match="HTTP 404"):
         client.get_item("location", "missing-location")
 
 
@@ -2292,7 +2393,7 @@ def test_directus_http_errors_fall_back_for_invalid_json():
     response.json.side_effect = ValueError("invalid json")
     client.session.get = Mock(return_value=response)
 
-    with pytest.raises(NotFoundError, match="not json"):
+    with pytest.raises(NotFoundError, match="HTTP 404"):
         client.get_item("location", "missing-location")
 
 
@@ -2350,6 +2451,30 @@ def test_list_items_preserves_extra_directus_query_parameters_without_network_ca
     )
 
 
+def test_list_items_normalizes_pagination_precedence_like_javascript_sdk():
+    from unittest.mock import call
+
+    from kokonut import KokonutClient
+
+    client = KokonutClient("http://localhost:8055")
+    response = Mock()
+    response.ok = True
+    response.json.return_value = {"data": []}
+    client.session.get = Mock(return_value=response)
+
+    client.list_items("farm", offset=10)
+    client.list_items("farm", offset=10, page=3)
+    client.list_items("farm", limit=25, offset=10, page=3)
+    with pytest.raises(ValueError, match="non-zero limit"):
+        client.list_items("farm", limit=0, offset=10)
+
+    assert client.session.get.call_args_list == [
+        call("http://localhost:8055/items/farm", params={}),
+        call("http://localhost:8055/items/farm", params={"page": 3}),
+        call("http://localhost:8055/items/farm", params={"limit": 25, "offset": 10}),
+    ]
+
+
 def test_generic_crud_helpers_use_directus_item_routes_and_unwrap_data_without_network_calls():
     from unittest.mock import call
 
@@ -2399,20 +2524,109 @@ def test_generic_crud_helpers_use_directus_item_routes_and_unwrap_data_without_n
     )
 
 
-def test_export_create_many_delegates_to_directus_batch_without_network_calls():
+@pytest.mark.parametrize(
+    "collection",
+    ["report_snapshot", "noi_snapshot", "attestation_record", "export_log"],
+)
+def test_generic_crud_rejects_mutations_to_read_only_projection_collections(collection):
+    from kokonut import KokonutClient, ValidationError
+
+    client = KokonutClient("http://localhost:8055")
+    client.session.post = Mock()
+    client.session.patch = Mock()
+    client.session.delete = Mock()
+
+    with pytest.raises(ValidationError, match="read-only collection"):
+        client.create_item(collection, {"status": "published"})
+    with pytest.raises(ValidationError, match="read-only collection"):
+        client.create_items(collection, [{"status": "published"}])
+    with pytest.raises(ValidationError, match="read-only collection"):
+        client.update_item(collection, "synthetic-id", {"status": "published"})
+    with pytest.raises(ValidationError, match="read-only collection"):
+        client.delete_item(collection, "synthetic-id")
+
+    client.session.post.assert_not_called()
+    client.session.patch.assert_not_called()
+    client.session.delete.assert_not_called()
+
+
+def test_read_only_projection_collections_remain_readable_and_generic_writes_remain_available():
     from kokonut import KokonutClient
 
     client = KokonutClient("http://localhost:8055")
-    client.create_items = Mock(return_value=[{"id": "export-1"}, {"id": "export-2"}])
-    requests = [
-        {"export_type": "farm_data", "status": "pending"},
-        {"export_type": "metric_data", "status": "pending"},
+
+    def response(data):
+        result = Mock()
+        result.ok = True
+        result.json.return_value = {"data": data}
+        return result
+
+    client.session.get = Mock(side_effect=[response([{"id": "report-1"}]), response({"id": "noi-1"})])
+    client.session.post = Mock(return_value=response({"id": "location-1"}))
+
+    assert client.list_items("report_snapshot") == [{"id": "report-1"}]
+    assert client.get_item("noi_snapshot", "noi-1") == {"id": "noi-1"}
+    assert client.create_item("location", {"name": "Synthetic"}) == {"id": "location-1"}
+
+    client.session.post.assert_called_once_with(
+        "http://localhost:8055/items/location", json={"name": "Synthetic"}
+    )
+
+
+def test_generic_crud_helpers_encode_untrusted_path_segments_before_request():
+    from unittest.mock import call
+
+    from kokonut import KokonutClient
+
+    client = KokonutClient("http://localhost:8055")
+    response = Mock()
+    response.ok = True
+    response.json.return_value = {"data": []}
+    client.session.get = Mock(return_value=response)
+    client.session.post = Mock(return_value=response)
+    client.session.patch = Mock(return_value=response)
+    client.session.delete = Mock(return_value=response)
+
+    client.list_items("farm/../../auth")
+    client.get_item("location", "farm/../../auth?token=x#fragment%")
+    client.create_item("farm/../../auth", {})
+    client.create_items("farm/../../auth", [])
+    client.update_item("location", "farm/../../auth", {})
+    client.delete_item("location", "farm/../../auth")
+    client.aggregate("farm/../../auth", aggregate={"count": "*"})
+
+    collection_url = "http://localhost:8055/items/farm%2F..%2F..%2Fauth"
+    item_url = "http://localhost:8055/items/location/farm%2F..%2F..%2Fauth"
+    query_item_url = (
+        "http://localhost:8055/items/location/"
+        "farm%2F..%2F..%2Fauth%3Ftoken%3Dx%23fragment%25"
+    )
+    assert client.session.get.call_args_list == [
+        call(collection_url, params={}),
+        call(query_item_url, params={}),
+        call(collection_url, params={"aggregate": '{"count": "*"}'}),
     ]
+    assert client.session.post.call_args_list == [
+        call(collection_url, json={}),
+        call(collection_url, json=[]),
+    ]
+    client.session.patch.assert_called_once_with(item_url, json={})
+    client.session.delete.assert_called_once_with(item_url)
 
-    result = client.exports.create_many(requests)
 
-    assert result == [{"id": "export-1"}, {"id": "export-2"}]
-    client.create_items.assert_called_once_with("export_log", requests)
+@pytest.mark.parametrize("segment", ["", ".", ".."])
+def test_generic_crud_helpers_reject_empty_and_dot_path_segments_before_request(segment):
+    from kokonut import KokonutClient
+
+    client = KokonutClient("http://localhost:8055")
+    client.session.get = Mock()
+
+    with pytest.raises(ValueError, match="path segment"):
+        client.get_item("location", segment)
+    with pytest.raises(ValueError, match="path segment"):
+        client.list_items(segment)
+
+    client.session.get.assert_not_called()
 
 
 def test_scoped_list_filter_wins_and_preserves_list_options_without_network_calls():

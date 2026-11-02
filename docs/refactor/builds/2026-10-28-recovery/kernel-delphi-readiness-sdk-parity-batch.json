@@ -1,0 +1,55 @@
+{
+  "date": "2026-10-28",
+  "batch": "Delphi study-open-readiness contract and native REST SDK parity",
+  "changes": {
+    "private_gateway_response_contracts_added": 1,
+    "strict_private_gateway_response_endpoints_total": 57,
+    "sdk_parity": "JavaScript PublicApiError retains the received response, matching Python; response-less transport failures remain unchanged."
+  },
+  "verification": {
+    "python_delphi_route_policy_sdk_tests": {
+      "result": "passed",
+      "count": 67
+    },
+    "javascript_rest_sdk_tests": {
+      "result": "passed",
+      "count": 28
+    },
+    "javascript_typescript_build": "passed",
+    "ruff": "passed",
+    "python_compilation": "passed",
+    "git_diff_check": "passed",
+    "runtime_sql_inventory": {
+      "python_3_11": "current",
+      "python_3_12": "current",
+      "unresolved_write_candidates": 37
+    },
+    "capability_matrix": {
+      "result": "valid",
+      "rows": 67,
+      "baseline_retained": 24,
+      "deployed": 7,
+      "prepared": 36,
+      "strict_private_gateway_response_endpoints": 57
+    },
+    "checklist": {
+      "complete": 1431,
+      "open": 25
+    },
+    "todo_ledger": {
+      "complete": 138,
+      "open": 16
+    }
+  },
+  "c1_candidate_audit": {
+    "candidate": "public.bio_ingredient_composition_reference",
+    "result": "no migration",
+    "reason": "The table has a governed lifecycle and is included in the agent-write allowlist; the absence of a first-party Python writer does not prove Directus/admin mutation is absent."
+  },
+  "scope_limits": [
+    "No migration or database was used.",
+    "No provider, candidate, or legacy service was used.",
+    "No runtime grants or capability classifications changed.",
+    "MAN-CAP acceptance remains unchanged."
+  ]
+}

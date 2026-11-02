@@ -292,7 +292,12 @@ def add_knowledge_exchange(alliance_id: str, from_party_id: str, topic: str, exc
 
 
 def get_coordination_health(alliance_id: Optional[str] = None) -> List[Dict[str, Any]]:
-    query = "SELECT * FROM v_coordination_health"
+    query = (
+        "SELECT alliance_id, name, coordination_type, status, "
+        "active_participant_count, active_objective_count, contribution_count, "
+        "benefit_count, open_risk_count, completed_exchange_count, latest_review_end "
+        "FROM v_coordination_health"
+    )
     params: List[Any] = []
     if alliance_id:
         query += " WHERE alliance_id = %s::uuid"

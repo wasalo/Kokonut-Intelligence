@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Exercise migration 429's signed climate boundary on disposable PostGIS."""
+"""Exercise the signed climate boundary through migration 713 on disposable PostGIS."""
 
 from __future__ import annotations
 
@@ -24,12 +24,16 @@ MIGRATION_CONTEXT = ROOT / "schemas/postgres/405_signed_worker_tenant_context.sq
 MIGRATION_ACL = ROOT / "schemas/postgres/419_private_worker_context_functions.sql"
 MIGRATION_IDEMPOTENCY = ROOT / "schemas/postgres/428_climate_summary_idempotency.sql"
 MIGRATION_CLIMATE = ROOT / "schemas/postgres/429_signed_climate_worker.sql"
-DEFAULT_OUTPUT = ROOT / "docs/refactor/builds/2026-10-17-recovery/climate-worker-disposable.json"
+MIGRATION_AUDIT_PARITY = ROOT / "schemas/postgres/713_signed_climate_summary_audit_parity.sql"
+MIGRATION_V1_RETIREMENT = ROOT / "schemas/postgres/716_retire_climate_summary_v1_worker_grant.sql"
+DEFAULT_OUTPUT = ROOT / "docs/refactor/builds/2026-11-01-recovery/climate-worker-716-disposable.json"
 
 WORKER_ID = "a0000000-0000-0000-0000-000000000951"
 TENANT_ID = "a0000000-0000-0000-0000-000000000801"
 LOCATION_A = "a0000000-0000-0000-0000-000000000001"
 LOCATION_B = "a0000000-0000-0000-0000-000000000002"
+LOCATION_PLOT_ONLY = "a0000000-0000-0000-0000-000000000003"
+LOCATION_NO_GEOMETRY = "a0000000-0000-0000-0000-000000000004"
 RAW_CREDENTIAL = "synthetic-climate-worker-credential-for-disposable-check"
 CREDENTIAL_HASH = hashlib.sha256(RAW_CREDENTIAL.encode("utf-8")).hexdigest()
 
@@ -108,18 +112,48 @@ def set_scope(connection, location_id: str = LOCATION_A) -> None:
 
 
 def store(connection, summary: dict, source: str | None = None) -> str | None:
+    source_key = source or summary["source_key"]
+    audit_text = json.dumps(legacy_audit_payload(summary), sort_keys=True, default=str)
     set_scope(connection)
     with connection.cursor() as cursor:
         cursor.execute(
-            "SELECT kokonut_security.store_climate_summary(%s::uuid, %s, %s::jsonb, %s, %s)",
-            (LOCATION_A, source or summary["source_key"], json.dumps(summary), 17, None),
+            "SELECT kokonut_security.store_climate_summary_v2(%s::uuid, %s, %s::jsonb, %s, %s, %s)",
+            (LOCATION_A, source_key, json.dumps(summary), audit_text, 37, None),
         )
         result = cursor.fetchone()[0]
     connection.commit()
     return str(result) if result is not None else None
 
 
+def legacy_audit_payload(summary: dict) -> dict:
+    source = summary["source_key"]
+    values = summary["values"]
+    if source == "worldclim":
+        return summary["metadata"]["estimated_bioclimatic_variables"]
+    if source == "era5_land":
+        return {
+            "soil_moisture_6m_volume_fraction": values["soil_moisture_6m"],
+            "mean_temp_6m_c": values["mean_temp_6m"],
+            "max_temp_6m_c": values["max_temp_6m"],
+            "min_temp_6m_c": values["min_temp_6m"],
+            "precipitation_6m_mm": values["precipitation_6m"],
+        }
+    if source == "modis_lst":
+        return {
+            "lst_day_mean_6m_c": values["lst_day_mean_6m"],
+            "lst_night_mean_6m_c": values["lst_night_mean_6m"],
+        }
+    if source == "smap_moisture":
+        return {"soil_moisture_6m_volume_fraction": values["soil_moisture_6m"]}
+    return {"vh_median_6m_db": values["vh_median_6m"], "vv_median_6m_db": values["vv_median_6m"]}
+
+
 def sample_summaries() -> list[dict]:
+    bioclim = {f"bio_{number}": float(number) for number in range(1, 20)}
+    bioclim.update({
+        "bio_1": 12, "bio_4": 75, "bio_5": 28, "bio_6": 12, "bio_7": 18,
+        "bio_12": 1000, "bio_15": 60, "bio_16": 300, "bio_17": 100,
+    })
     return [
         {
             "source_key": "worldclim", "target_date": None, "resolution_m": None,
@@ -130,7 +164,10 @@ def sample_summaries() -> list[dict]:
                 "bio5_max_temp_warmest_month": 28, "bio6_min_temp_coldest_month": 12,
                 "temp_range": 18,
             },
-            "metadata": {"estimation_method": "latitude_proxy_v1"},
+            "metadata": {
+                "estimation_method": "latitude_proxy_v1",
+                "estimated_bioclimatic_variables": bioclim,
+            },
         },
         {
             "source_key": "era5_land", "target_date": "2026-10-17", "resolution_m": 11132,
@@ -194,7 +231,43 @@ def main() -> int:
         migration = MIGRATION_CLIMATE.read_text(encoding="utf-8")
         docker_sql(docker, container, migration)
         docker_sql(docker, container, migration)
-        checks.append("migrations 405, 419, 428, and 429 apply in order; migration 429 replays cleanly")
+        audit_migration = MIGRATION_AUDIT_PARITY.read_text(encoding="utf-8")
+        docker_sql(docker, container, audit_migration)
+        docker_sql(docker, container, audit_migration)
+        docker_sql(
+            docker,
+            container,
+            """
+            CREATE ROLE kokonut_directus_runtime NOLOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE;
+            GRANT EXECUTE ON FUNCTION kokonut_security.store_climate_summary(
+                UUID, TEXT, JSONB, INTEGER, TEXT
+            ) TO kokonut_directus_runtime;
+            DO $$
+            BEGIN
+                IF NOT has_function_privilege(
+                    'kokonut_worker_execution',
+                    'kokonut_security.store_climate_summary(uuid,text,jsonb,integer,text)',
+                    'EXECUTE'
+                ) OR NOT has_function_privilege(
+                    'kokonut_directus_runtime',
+                    'kokonut_security.store_climate_summary(uuid,text,jsonb,integer,text)',
+                    'EXECUTE'
+                ) THEN
+                    RAISE EXCEPTION 'legacy climate execute grants were not present before retirement';
+                END IF;
+            END;
+            $$;
+            """,
+        )
+        retirement_migration = MIGRATION_V1_RETIREMENT.read_text(encoding="utf-8")
+        docker_sql(docker, container, retirement_migration)
+        docker_sql(docker, container, retirement_migration)
+        checks.append(
+            "migrations 405, 419, 428, 429, 713, and 716 apply in order; legacy and retirement migrations replay cleanly"
+        )
+        checks.append(
+            "migration 716 revokes the old v1 writer grant from worker, runtime, Directus, and PUBLIC while preserving v2"
+        )
 
         stage = "synthetic worker grants"
         docker_sql(
@@ -214,6 +287,11 @@ def main() -> int:
             ), (
                 '{WORKER_ID}', 'a0000000-0000-0000-0000-000000000802',
                 '{LOCATION_B}', 'climate', 'ingest', 'disposable fixture'
+            ), (
+                '{WORKER_ID}', '{TENANT_ID}', '{LOCATION_PLOT_ONLY}', 'climate', 'ingest', 'disposable fixture'
+            ), (
+                '{WORKER_ID}', 'a0000000-0000-0000-0000-000000000802',
+                '{LOCATION_NO_GEOMETRY}', 'climate', 'ingest', 'disposable fixture'
             );
             """,
         )
@@ -223,6 +301,20 @@ def main() -> int:
         port = int(port_rows[0].rsplit(":", 1)[1])
         admin = connect(port, "postgres", admin_password)
         worker = worker_connection(port)
+
+        stage = "legacy v1 function denial"
+        set_scope(worker)
+        with worker.cursor() as cursor:
+            try:
+                cursor.execute(
+                    "SELECT kokonut_security.store_climate_summary(%s::uuid, 'modis_lst', "
+                    "%s::jsonb, 1, NULL)",
+                    (LOCATION_A, json.dumps({"source_key": "modis_lst", "values": {}})),
+                )
+                raise AssertionError("worker execution role still called the retired v1 climate writer")
+            except errors.InsufficientPrivilege:
+                worker.rollback()
+        checks.append("worker login cannot call legacy v1 writer after selecting its execution role")
 
         stage = "signed location read"
         set_scope(worker)
@@ -245,7 +337,27 @@ def main() -> int:
         worker.commit()
         if fallback != (-70.05, 18.95, -69.95, 19.05):
             raise AssertionError(f"coordinate fallback bbox was unexpected: {fallback}")
-        checks.append("signed location lookup returns only the grant scope and bounded plot/fallback coordinates")
+        set_scope(worker, LOCATION_PLOT_ONLY)
+        with worker.cursor() as cursor:
+            cursor.execute(
+                "SELECT latitude, longitude, west, south, east, north "
+                "FROM kokonut_security.climate_location(%s::uuid)", (LOCATION_PLOT_ONLY,),
+            )
+            plot_only = cursor.fetchone()
+        worker.commit()
+        if plot_only != (None, None, -72.0, 16.0, -71.0, 17.0):
+            raise AssertionError(f"plot-only location lookup returned unexpected values: {plot_only}")
+        set_scope(worker, LOCATION_NO_GEOMETRY)
+        with worker.cursor() as cursor:
+            cursor.execute(
+                "SELECT latitude, longitude, west, south, east, north "
+                "FROM kokonut_security.climate_location(%s::uuid)", (LOCATION_NO_GEOMETRY,),
+            )
+            no_geometry = cursor.fetchone()
+        worker.commit()
+        if no_geometry != (None, None, None, None, None, None):
+            raise AssertionError(f"empty location lookup returned unexpected values: {no_geometry}")
+        checks.append("signed location lookup supports plot-only, coordinate-fallback, and empty geometry scopes")
 
         stage = "direct table denial"
         try:
@@ -262,7 +374,45 @@ def main() -> int:
             ids[summary["source_key"]] = store(worker, summary)
         if not all(ids.values()):
             raise AssertionError("one or more canonical summaries returned no ID")
-        checks.append("all five whitelisted source summaries and ingestion audit rows commit through bounded functions")
+        checks.append("all five whitelisted source summaries and ingestion audit rows commit through the v2 bounded function")
+
+        stage = "audit payload and duration parity"
+        expected_audits = {
+            summary["source_key"]: (
+                hashlib.sha256(
+                    json.dumps(
+                        legacy_audit_payload(summary), sort_keys=True, default=str
+                    ).encode("utf-8")
+                ).hexdigest(),
+                37,
+            )
+            for summary in sample_summaries()
+        }
+        with admin.cursor() as cursor:
+            cursor.execute(
+                "SELECT source_id, payload_hash, processing_time_ms, execution_duration_ms "
+                "FROM public.ingestion_log WHERE location_id = %s::uuid AND status = 'success' "
+                "ORDER BY source_id",
+                (LOCATION_A,),
+            )
+            audit_rows = cursor.fetchall()
+        admin.commit()
+        if len(audit_rows) != 5:
+            raise AssertionError(f"expected five success audit rows, received {len(audit_rows)}")
+        for source_id, payload_hash, processing_ms, duration_ms in audit_rows:
+            # `source_id` is canonical provider provenance, not the source key.
+            source_key = {
+                "latitude_proxy_v1": "worldclim",
+                "ECMWF/ERA5_LAND/DAILY_AGGR": "era5_land",
+                "MODIS/061/MOD11A2": "modis_lst",
+                "NASA/SMAP/SPL3SMP_E/006": "smap_moisture",
+                "COPERNICUS/S1_GRD": "sentinel1_sar",
+            }.get(source_id)
+            if source_key is None or (payload_hash, duration_ms) != expected_audits[source_key]:
+                raise AssertionError(f"success audit hash or execution duration mismatched: {source_id}")
+            if processing_ms != 0:
+                raise AssertionError("legacy success processing_time_ms did not preserve its zero value")
+        checks.append("v2 audit hashes match the legacy serialized payload; legacy success timing remains zero and elapsed duration is separate")
 
         stage = "idempotent replay and payload rejection"
         modis = next(item for item in sample_summaries() if item["source_key"] == "modis_lst")
@@ -285,8 +435,9 @@ def main() -> int:
         with worker.cursor() as cursor:
             try:
                 cursor.execute(
-                    "SELECT kokonut_security.store_climate_summary(%s::uuid, 'modis_lst', %s::jsonb, 1, NULL)",
-                    (LOCATION_B, json.dumps(modis)),
+                    "SELECT kokonut_security.store_climate_summary_v2(%s::uuid, 'modis_lst', "
+                    "%s::jsonb, %s, 1, NULL)",
+                    (LOCATION_B, json.dumps(modis), json.dumps(legacy_audit_payload(modis), sort_keys=True)),
                 )
                 raise AssertionError("signed climate write accepted a different location")
             except errors.InsufficientPrivilege:
@@ -297,7 +448,8 @@ def main() -> int:
         set_scope(worker)
         with worker.cursor() as cursor:
             cursor.execute(
-                "SELECT kokonut_security.store_climate_summary(%s::uuid, 'smap_moisture', NULL, 23, %s)",
+                "SELECT kokonut_security.store_climate_summary_v2(%s::uuid, 'smap_moisture', "
+                "NULL, NULL, 23, %s)",
                 (LOCATION_A, "synthetic provider failure"),
             )
         worker.commit()
@@ -319,19 +471,59 @@ def main() -> int:
                 SELECT has_table_privilege('kokonut_worker_login', 'public.worldclim_climate', 'INSERT'),
                        has_table_privilege('kokonut_worker_execution', 'public.worldclim_climate', 'INSERT'),
                        has_function_privilege('kokonut_worker_login',
-                           'kokonut_security.store_climate_summary(uuid,text,jsonb,integer,text)', 'EXECUTE'),
+                           'kokonut_security.store_climate_summary_v2(uuid,text,jsonb,text,integer,text)', 'EXECUTE'),
                        has_function_privilege('kokonut_worker_execution',
-                           'kokonut_security.store_climate_summary(uuid,text,jsonb,integer,text)', 'EXECUTE')
+                           'kokonut_security.store_climate_summary_v2(uuid,text,jsonb,text,integer,text)', 'EXECUTE'),
+                       has_function_privilege('kokonut_worker_execution',
+                           'kokonut_security.store_climate_summary(uuid,text,jsonb,integer,text)', 'EXECUTE'),
+                       has_function_privilege('kokonut_directus_runtime',
+                           'kokonut_security.store_climate_summary(uuid,text,jsonb,integer,text)', 'EXECUTE'),
+                       has_table_privilege('kokonut_runtime', 'public.worldclim_climate', 'INSERT'),
+                       has_table_privilege('kokonut_runtime', 'public.ncep_weather_summary', 'UPDATE'),
+                       has_table_privilege('kokonut_runtime', 'public.modis_lst_summary', 'DELETE'),
+                       has_table_privilege('kokonut_runtime', 'public.smap_soil_moisture', 'INSERT'),
+                       has_table_privilege('kokonut_runtime', 'public.sentinel1_sar_summary', 'UPDATE')
             """)
             privileges = cursor.fetchone()
         admin.commit()
-        if privileges != (False, False, False, True):
+        if privileges != (False, False, False, True, False, False, False, False, False, False, False):
             raise AssertionError(f"climate worker privilege boundary is unexpected: {privileges}")
-        checks.append("only the non-login worker execution role can call bounded climate functions; direct DML stays denied")
+        checks.append(
+            "v2 remains executable by worker execution while v1 is denied to worker and Directus; runtime climate DML stays denied"
+        )
+        with admin.cursor() as cursor:
+            cursor.execute("""
+                SELECT EXISTS (
+                    SELECT 1
+                      FROM pg_catalog.pg_proc AS procedure
+                      CROSS JOIN LATERAL pg_catalog.aclexplode(
+                          COALESCE(
+                              procedure.proacl,
+                              pg_catalog.acldefault('f', procedure.proowner)
+                          )
+                      ) AS privilege
+                     WHERE procedure.oid =
+                           'kokonut_security.store_climate_summary(uuid,text,jsonb,integer,text)'::regprocedure
+                       AND privilege.grantee = 0
+                       AND privilege.privilege_type = 'EXECUTE'
+                ),
+                has_function_privilege(
+                    'kokonut_climate_owner',
+                    'kokonut_security.store_climate_summary(uuid,text,jsonb,integer,text)',
+                    'EXECUTE'
+                )
+            """)
+            public_and_owner = cursor.fetchone()
+        admin.commit()
+        if public_and_owner != (False, True):
+            raise AssertionError(
+                f"legacy function PUBLIC/owner privileges are unexpected: {public_and_owner}"
+            )
+        checks.append("PUBLIC cannot execute legacy v1 while its bounded NOLOGIN owner retains ownership execution")
 
         output.parent.mkdir(parents=True, exist_ok=True)
         output.write_text(
-            json.dumps({"migration": MIGRATION_CLIMATE.name, "checks": checks}, indent=2) + "\n",
+            json.dumps({"migration": MIGRATION_V1_RETIREMENT.name, "checks": checks}, indent=2) + "\n",
             encoding="utf-8",
         )
         print(json.dumps({"status": "passed", "checks": checks, "evidence": str(output)}, indent=2))

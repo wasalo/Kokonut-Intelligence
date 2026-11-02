@@ -1,0 +1,36 @@
+{
+  "date": "2026-10-28",
+  "base_commit": "00a93e1cc36de4290d9a20dcaa1e59b57cc2f651",
+  "scope": "Strict location-governance summary response and explicit operational report projections",
+  "python_test_command": [
+    "python3",
+    "-m",
+    "pytest",
+    "tests/test_gateway_governance_roles.py",
+    "tests/test_ecological_modeling_v2.py",
+    "tests/test_resource_efficiency_report_scope.py",
+    "tests/test_operations_report_scope.py",
+    "tests/test_report_state_cursor_cleanup.py",
+    "-q"
+  ],
+  "python_test_result": {"passed": 386, "failed": 0},
+  "checks": {
+    "ruff": "passed for changed source and tests; two pre-existing F841 findings in tests/test_ecological_modeling_v2.py were excluded",
+    "python_compile": "passed for changed source and tests",
+    "report_source_inventory": "passed",
+    "report_helper_scope_inventory": "passed",
+    "report_query_scope_inventory": "passed",
+    "capability_matrix": "passed; 67 rows (24 baseline-retained, 7 deployed, 36 prepared)",
+    "git_diff_check": "passed"
+  },
+  "contracts": {
+    "location_governance_summary": "Exact location-scoped summary shape and OpenAPI fields are validated. Circle identity/status and nonnegative counts, plus aggregate tension/tactical counts, are checked; malformed, extra, negative, or mismatched output yields a sanitized no-store 500. The query remains location-scoped and exposes no people or free-text content.",
+    "resource_efficiency": "Explicit projection of all 16 current public-view columns; existing location/date binds, order, aggregate, serialization, and payload are preserved.",
+    "revenue_streams": "Explicit projection of all 16 current public-view columns; existing location filters, order, aggregates, and payload are preserved.",
+    "prediction_accuracy": "Explicit projection of all 19 current public-view columns; existing location filter, order, feature payload, and serialized metrics are preserved."
+  },
+  "content_review": "This source-level projection and response-contract batch does not validate public note content, populated-data parity, tenant isolation beyond the existing route contract, or live OIDC behavior.",
+  "candidate_or_legacy_database_touched": false,
+  "provider_or_production_service_touched": false,
+  "migration_added": false
+}

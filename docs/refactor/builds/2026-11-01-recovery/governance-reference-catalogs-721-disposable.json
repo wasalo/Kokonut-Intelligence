@@ -1,0 +1,29 @@
+{
+  "databases": [
+    {
+      "checks": [
+        "migration_skips_absent_role_without_creating_it",
+        "bootstrap_grants_then_replay",
+        "repeat_replay",
+        "runtime_select_and_table_column_dml_denial",
+        "directus_grants_unchanged",
+        "seed_upserts_and_nullable_retention"
+      ],
+      "name": "gov_catalog_role_absent"
+    },
+    {
+      "checks": [
+        "role_present_apply_and_replay",
+        "runtime_select_and_table_column_dml_denial",
+        "directus_grants_unchanged",
+        "seed_upserts_and_nullable_retention"
+      ],
+      "name": "gov_catalog_role_present"
+    }
+  ],
+  "host_ports_published": false,
+  "image": "postgis/postgis:16-3.4@sha256:44126d872ac91993766c341e369c539e8196614321765d36a6f1bab0419a5fa5",
+  "migration": "721_runtime_governance_reference_catalogs_read_only.sql",
+  "network": "none",
+  "result": "passed"
+}

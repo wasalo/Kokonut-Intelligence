@@ -20,6 +20,14 @@ OBJECTION_TYPES = (
     "evidence_failure", "representation_gap", "operational_risk",
     "legal_or_policy_conflict", "minority_view",
 )
+_PROPOSAL_LINEAGE_PROJECTION = (
+    "proposal_id, proposal_key, circle_id, circle_key, proposal_type, title, status, "
+    "tension_id, proposed_by_party_id, proposer_name, proposed_by_role_id, "
+    "proposer_role_key, harm_review_status, minority_review_status, "
+    "approved_by_party_id, approver_name, approved_at, implementation_work_item_id, "
+    "review_due_at, objection_count, open_objection_count, "
+    "open_material_objection_count, review_count, created_at"
+)
 
 
 def _value(value: Any) -> Any:
@@ -79,7 +87,11 @@ def create_proposal(
 
 def get_proposal(conn, proposal_id: str) -> Optional[Dict[str, Any]]:
     with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
-        cur.execute("SELECT * FROM v_governance_proposal_lineage WHERE proposal_id = %s::uuid", (proposal_id,))
+        cur.execute(
+            f"SELECT {_PROPOSAL_LINEAGE_PROJECTION} "
+            "FROM v_governance_proposal_lineage WHERE proposal_id = %s::uuid",
+            (proposal_id,),
+        )
         result = _row(cur.fetchone())
         if result:
             cur.execute("SELECT * FROM governance_proposal_objection WHERE proposal_id = %s::uuid ORDER BY created_at", (proposal_id,))
@@ -102,7 +114,11 @@ def list_proposals(conn, *, circle_id: Optional[str] = None, status: Optional[st
         params.append(status)
     where = " WHERE " + " AND ".join(clauses) if clauses else ""
     with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
-        cur.execute(f"SELECT * FROM v_governance_proposal_lineage{where} ORDER BY created_at", params)
+        cur.execute(
+            f"SELECT {_PROPOSAL_LINEAGE_PROJECTION} "
+            f"FROM v_governance_proposal_lineage{where} ORDER BY created_at",
+            params,
+        )
         return [_row(row) for row in cur.fetchall()]
 
 

@@ -90,8 +90,19 @@ def main() -> int:
             cursor.execute("SELECT id FROM location WHERE name = 'B'")
             location_b = str(cursor.fetchone()[0])
 
-        hive = pollinator_health.add_hive(conn, location_a, "H-1", colony_strength=8)
-        foreign_hive = pollinator_health.add_hive(conn, location_b, "H-B")
+        hive_record_id = str(uuid.uuid4())
+        foreign_hive_record_id = str(uuid.uuid4())
+        with conn.cursor() as cursor:
+            cursor.execute(
+                """INSERT INTO hive_record
+                       (id, location_id, hive_id, hive_type, colony_strength,
+                        queen_status, frame_count, status)
+                   VALUES (%s, %s, 'H-1', 'langstroth', 'strong', 'present', 10, 'active'),
+                          (%s, %s, 'H-B', 'langstroth', 'strong', 'present', 10, 'active')""",
+                (hive_record_id, location_a, foreign_hive_record_id, location_b),
+            )
+        hive = {"record_id": hive_record_id}
+        foreign_hive = {"record_id": foreign_hive_record_id}
         pollinator_health.record_observation(
             conn, location_a, "honeybee", 20, observation_date=date.today(),
             hive_record_id=hive["record_id"],
@@ -132,11 +143,23 @@ def main() -> int:
             raise AssertionError("pesticide write/read lost current risk or mortality fields")
         assertions += 1
 
-        inspection = pollinator_health.record_hive_inspection(
-            conn, location_a, "H-1", colony_strength="moderate", queen_status="present", varroa_count=4,
-        )
+        inspection_id = str(uuid.uuid4())
         with conn.cursor() as cursor:
-            cursor.execute("UPDATE pollinator_hive_inspection SET status = 'verified' WHERE id = %s", (inspection["inspection_id"],))
+            cursor.execute(
+                """INSERT INTO pollinator_hive_inspection
+                       (id, location_id, hive_record_id, inspection_date,
+                        colony_strength, queen_status, varroa_count, status)
+                   VALUES (%s, %s, %s, CURRENT_DATE, 'moderate', 'present', 4, 'verified')""",
+                (inspection_id, location_a, hive_record_id),
+            )
+            cursor.execute(
+                """UPDATE hive_record
+                      SET colony_strength = 'moderate', colony_strength_score = NULL,
+                          queen_status = 'present', varroa_count = 4,
+                          inspection_date = CURRENT_DATE, updated_at = NOW()
+                    WHERE id = %s AND location_id = %s""",
+                (hive_record_id, location_a),
+            )
         conn.commit()
         hive_status = pollinator_health.get_hive_status(conn, location_a)
         if (

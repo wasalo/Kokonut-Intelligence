@@ -1,0 +1,70 @@
+{
+  "date": "2026-10-28",
+  "source_revision": "79a99de0",
+  "working_tree_dirty": true,
+  "scope": "Parallel code-only batch: pre-database location UUID validation for direct reports and ten CLI entry points; strict private Governance tactical-item and Data Stream attestation response contracts; read-only Directus tenant scope for digital_lego_usage; refreshed report source/query inventories.",
+  "checks": [
+    {
+      "command": "python3 -m pytest tests/test_operations_report_scope.py tests/test_report_state_cursor_cleanup.py tests/test_comprehensive_status.py tests/test_remaining_gaps.py tests/test_overjustification.py tests/test_report_embedded_error_redaction.py tests/test_report_generator_inventory.py tests/test_report_generator_helper_scope_inventory.py tests/test_report_generator_query_scope_inventory.py tests/test_ecological_report_scope.py tests/test_trophic_pyramid_report_scope.py tests/test_adaptive_stewardship_report_scope.py tests/test_ecological_modeling_v2.py tests/test_cli_cooperative_scope.py tests/test_credit_class_cli_scope.py tests/test_spreadsheet_bridge_cli_scope.py tests/test_cli_energy_monitoring_scope.py tests/test_cli_digital_finance_scope.py tests/test_marketplace_cli_scope.py tests/test_extension_cli_scope.py tests/test_pest_management_cli_scope.py tests/test_data_governance_cli_scope.py tests/test_cli_farmer_identity_scope.py tests/test_gateway_governance_tactical_item_response.py tests/test_gateway_data_stream_attestation_response.py tests/test_gateway_auth.py tests/test_gateway_governance_role_detail_response.py tests/test_gateway_governance_role_response_contract.py tests/test_gateway_governance_roles.py tests/test_gateway_governance_operations.py tests/test_gateway_data_stream.py tests/test_gateway_route_policy_inventory.py tests/test_directus_tenant_permissions.py -q",
+      "result": "passed",
+      "passed": 715
+    },
+    {
+      "command": "npm test",
+      "working_directory": "extensions/kokonut-hooks",
+      "result": "passed",
+      "passed": 143
+    },
+    {
+      "command": "npm run build",
+      "working_directory": "extensions/kokonut-hooks",
+      "result": "passed",
+      "details": "Directus extension bundle and TypeScript no-emit check"
+    },
+    {
+      "command": "Ruff check changed Python implementation and test files; E741 ignored for the pre-existing ambiguous name in cli_marketplace.py",
+      "result": "passed"
+    },
+    {
+      "command": "python3 -m py_compile changed Python implementation files",
+      "result": "passed"
+    },
+    {
+      "command": "python3 scripts/report_generator_inventory.py --check docs/refactor/report-generator-source-inventory.json",
+      "result": "passed"
+    },
+    {
+      "command": "python3 scripts/report_generator_query_scope_inventory.py --check docs/refactor/report-generator-query-scope-inventory.json",
+      "result": "passed"
+    },
+    {
+      "command": "python3 scripts/check-capability-matrix.py",
+      "result": "passed",
+      "matrix_rows": 67
+    },
+    {
+      "command": "git diff --check",
+      "result": "passed"
+    }
+  ],
+  "progress": {
+    "checklist_complete": 1487,
+    "checklist_open": 25,
+    "capability_rows": 67,
+    "strict_private_gateway_response_endpoints": 75,
+    "directus_location_scoped_collections": 28
+  },
+  "environment": {
+    "live_database_used": false,
+    "candidate_or_legacy_touched": false,
+    "provider_called": false,
+    "directus_runtime_used": false,
+    "live_network_used": false
+  },
+  "limitations": [
+    "CLI and direct-report UUID guards reject malformed scope before database dispatch; they do not replace service authorization or tenant isolation.",
+    "Gateway response contracts were checked through focused source/ASGI tests; no live OIDC provider, Gateway database, or populated deployment was used.",
+    "The Directus digital_lego_usage boundary is source/unit tested only; effective runtime permission and populated-data parity remain open.",
+    "Ruff excluded the pre-existing E741 finding in cli_marketplace.py; no unrelated source cleanup was included."
+  ]
+}

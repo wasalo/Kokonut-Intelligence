@@ -1,0 +1,49 @@
+{
+  "date": "2026-10-28",
+  "source_revision": "caa1ba4a",
+  "working_tree_dirty": true,
+  "scope": "Combined source/API regression selection for C1 SQL-write review, ARM64 replay preflight, seven private Gateway response-contract routes, Gateway policy, OpenAPI, and public Python SDK parity.",
+  "checks": [
+    {
+      "command": "python3 -m pytest tests/test_runtime_sql_inventory.py tests/test_arm64_schema_replay.py tests/test_gateway_cooperative_management_reads.py tests/test_gateway_yield_monitoring.py tests/test_gateway_coordination_reads.py tests/test_gateway_emergency_response.py tests/test_gateway_comprehensive_status_reads.py tests/test_gateway_energy_monitoring.py tests/test_gateway_true_cost.py tests/test_gateway_public_driver_catalog.py tests/test_gateway_route_policy_inventory.py tests/test_public_api_openapi.py tests/test_public_api_sdk.py -q",
+      "result": "passed",
+      "passed": 208
+    },
+    {
+      "command": "Ruff check and Python compilation for all modified Python source and test files",
+      "result": "passed"
+    },
+    {
+      "command": "python3 scripts/runtime_sql_inventory.py --check docs/refactor/runtime-sql-inventory.json",
+      "result": "passed",
+      "tracked_unresolved_write_candidates": 37
+    },
+    {
+      "command": "python3 scripts/check-capability-matrix.py",
+      "result": "passed",
+      "matrix_rows": 67
+    },
+    {
+      "command": "python3 scripts/generate_public_api_sdk.py --check",
+      "result": "passed"
+    },
+    {
+      "command": "python3 scripts/worker_job_contract_inventory.py --check docs/refactor/worker-job-contract-inventory.json",
+      "result": "passed",
+      "catalog_jobs": 23
+    },
+    {
+      "command": "bash -n scripts/ci-check.sh; git diff --check; parse recovery JSON evidence",
+      "result": "passed"
+    }
+  ],
+  "environment": {
+    "live_database_used": false,
+    "candidate_or_legacy_touched": false,
+    "provider_called": false
+  },
+  "limitations": [
+    "Comprehensive Status section bodies are JSON-compatible and not field-by-field strict pending generator audits.",
+    "Source/API checks do not establish live OIDC behavior, populated-data parity, Directus runtime parity, or broader tenant isolation."
+  ]
+}

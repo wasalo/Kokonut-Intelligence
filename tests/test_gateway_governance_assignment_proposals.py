@@ -192,7 +192,7 @@ def test_route_policy_allows_only_exact_scoped_proposal_post():
     assert auth_route_policy("POST", path, enabled=False) is None
 
 
-def test_http_proposal_route_requires_csrf_scope_and_returns_no_store(monkeypatch):
+def _operator_proposal_client(monkeypatch, *, create_allowed=True, csrf_allowed=True):
     class InMemoryAudit:
         def replay_pending(self, _limit=100):
             return 0
@@ -212,7 +212,7 @@ def test_http_proposal_route_requires_csrf_scope_and_returns_no_store(monkeypatc
     monkeypatch.setattr("services.gateway.audit.GatewayAudit", InMemoryAudit)
     session = SimpleNamespace(
         session_id=str(uuid4()),
-        session_token_hash="d" * 64,
+        session_token_hash="a" * 64,
         operator=SimpleNamespace(operator_id=OPERATOR_ID),
     )
 
@@ -223,10 +223,10 @@ def test_http_proposal_route_requires_csrf_scope_and_returns_no_store(monkeypatc
             return session
 
         def csrf_valid(self, *_args):
-            return True
+            return csrf_allowed
 
         def has_scope(self, operator_id, resource, action, location_id):
-            return (operator_id, resource, action, location_id) == (
+            return create_allowed and (operator_id, resource, action, location_id) == (
                 OPERATOR_ID, "governance_roles", "create", LOCATION_ID
             )
 
@@ -234,19 +234,29 @@ def test_http_proposal_route_requires_csrf_scope_and_returns_no_store(monkeypatc
             return []
 
     monkeypatch.setattr("services.gateway.operator_auth.create_provider", lambda: Provider())
+    client = TestClient(create_app(), base_url="https://operator.example")
+    client.cookies.set("kokonut_operator_session", "synthetic-session", path="/operator")
+    client.cookies.set("kokonut_operator_csrf", "synthetic-csrf", path="/operator")
+    return client
+
+
+def _assert_varies_by_cookie(response):
+    assert "Cookie" in {value.strip() for value in response.headers.get("vary", "").split(",")}
+
+
+def test_http_proposal_route_requires_csrf_scope_and_returns_no_store(monkeypatch):
     created = {
         "assignment_id": ASSIGNMENT_ID,
         "role_id": ROLE_ID,
         "assignment_type": "primary",
         "status": "proposed",
+        "created_at": CREATED_AT,
     }
     with patch(
         "services.gateway.governance_assignment_proposals.propose_governance_role_assignment",
         return_value=created,
     ) as propose_call:
-        with TestClient(create_app(), base_url="https://operator.example") as client:
-            client.cookies.set("kokonut_operator_session", "synthetic-session", path="/operator")
-            client.cookies.set("kokonut_operator_csrf", "synthetic-csrf", path="/operator")
+        with _operator_proposal_client(monkeypatch) as client:
             response = client.post(
                 f"/operator/api/governance/{LOCATION_ID}/roles/{ROLE_ID}/assignments",
                 json=_payload(),
@@ -255,47 +265,148 @@ def test_http_proposal_route_requires_csrf_scope_and_returns_no_store(monkeypatc
 
     assert response.status_code == 201
     assert response.headers["cache-control"] == "no-store"
-    assert response.json() == created
+    _assert_varies_by_cookie(response)
+    assert set(response.json()) == {
+        "assignment_id", "role_id", "assignment_type", "status", "created_at"
+    }
+    assert response.json()["assignment_id"] == ASSIGNMENT_ID
+    assert response.json()["role_id"] == ROLE_ID
+    assert response.json()["assignment_type"] == "primary"
+    assert response.json()["status"] == "proposed"
+    assert datetime.fromisoformat(response.json()["created_at"].replace("Z", "+00:00")) == CREATED_AT
+    assert "operator_id" not in response.json()
+    assert "party_id" not in response.json()
     propose_call.assert_called_once_with(OPERATOR_ID, LOCATION_ID, ROLE_ID, _payload())
 
 
 def test_http_proposal_route_denies_missing_create_grant_before_service(monkeypatch):
-    class InMemoryAudit:
-        def replay_pending(self, _limit=100):
-            return 0
-
-        def log(self, **_event):
-            return None
-
-        def capture_status(self):
-            return "ok"
-
-    monkeypatch.setattr("services.gateway.audit.GatewayAudit", InMemoryAudit)
-    session = SimpleNamespace(
-        session_id=str(uuid4()),
-        session_token_hash="e" * 64,
-        operator=SimpleNamespace(operator_id=OPERATOR_ID),
-    )
-
-    class Provider:
-        settings = SimpleNamespace(state_secret="test-only-state-secret")
-
-        def authenticate_request(self, _request):
-            return session
-
-        def has_scope(self, *_scope):
-            return False
-
-    monkeypatch.setattr("services.gateway.operator_auth.create_provider", lambda: Provider())
     with patch(
         "services.gateway.governance_assignment_proposals.propose_governance_role_assignment",
         side_effect=AssertionError("unauthorized request must not reach the service"),
-    ):
-        with TestClient(create_app(), base_url="https://operator.example") as client:
-            client.cookies.set("kokonut_operator_session", "synthetic-session", path="/operator")
-            response = client.post(
-                f"/operator/api/governance/{LOCATION_ID}/roles/{ROLE_ID}/assignments",
-                json=_payload(),
-            )
+    ), _operator_proposal_client(monkeypatch, create_allowed=False) as client:
+        response = client.post(
+            f"/operator/api/governance/{LOCATION_ID}/roles/{ROLE_ID}/assignments",
+            json=_payload(),
+            headers={"x-csrf-token": "synthetic-csrf"},
+        )
 
     assert response.status_code == 403
+
+
+def test_http_proposal_route_denies_invalid_csrf_before_service(monkeypatch):
+    with patch(
+        "services.gateway.governance_assignment_proposals.propose_governance_role_assignment",
+        side_effect=AssertionError("CSRF denial must not reach the service"),
+    ), _operator_proposal_client(monkeypatch, csrf_allowed=False) as client:
+        response = client.post(
+            f"/operator/api/governance/{LOCATION_ID}/roles/{ROLE_ID}/assignments",
+            json=_payload(),
+            headers={"x-csrf-token": "synthetic-csrf"},
+        )
+
+    assert response.status_code == 403
+    assert response.headers["cache-control"] == "no-store"
+    assert response.json()["reason"] == "csrf_validation_failed"
+
+
+@pytest.mark.parametrize(
+    "mutate",
+    [
+        lambda payload: payload.update(operator_id=OPERATOR_ID),
+        lambda payload: payload.pop("mandate"),
+        lambda payload: payload.update(request_id="not-a-uuid"),
+        lambda payload: payload.update(party_id="not-a-uuid"),
+        lambda payload: payload.update(assignment_type="observer"),
+        lambda payload: payload.update(assignment_type="delegate", mandate=None),
+        lambda payload: payload.update(mandate="x" * 2001),
+    ],
+    ids=["extra-identity-field", "missing-required-field", "bad-request-id", "bad-party-id", "bad-assignment-type", "delegate-without-mandate", "mandate-too-long"],
+)
+def test_http_proposal_route_rejects_invalid_request_before_service(monkeypatch, mutate):
+    payload = _payload()
+    mutate(payload)
+    with patch(
+        "services.gateway.governance_assignment_proposals.propose_governance_role_assignment",
+        side_effect=AssertionError("invalid request must not reach the service"),
+    ), _operator_proposal_client(monkeypatch) as client:
+        response = client.post(
+            f"/operator/api/governance/{LOCATION_ID}/roles/{ROLE_ID}/assignments",
+            json=payload,
+            headers={"x-csrf-token": "synthetic-csrf"},
+        )
+
+    assert response.status_code == 400
+    assert response.headers["cache-control"] == "no-store"
+    _assert_varies_by_cookie(response)
+    assert response.json() == {"error": "Role nomination request or path is invalid"}
+
+
+@pytest.mark.parametrize(
+    "mutate",
+    [
+        lambda result: result.update(operator_id=OPERATOR_ID),
+        lambda result: result.update(role_id=str(uuid4())),
+        lambda result: result.update(assignment_type="delegate"),
+        lambda result: result.update(status="active"),
+        lambda result: result.pop("created_at"),
+        lambda result: result.update(created_at="2026-10-18T00:00:00"),
+        lambda result: result.update(created_at="not-a-timestamp"),
+    ],
+    ids=["extra-identity-field", "wrong-role", "wrong-assignment-type", "not-proposed", "missing-timestamp", "naive-timestamp", "invalid-timestamp"],
+)
+def test_http_proposal_route_rejects_malformed_result_without_store(monkeypatch, mutate):
+    result = {
+        "assignment_id": ASSIGNMENT_ID,
+        "role_id": ROLE_ID,
+        "assignment_type": "primary",
+        "status": "proposed",
+        "created_at": CREATED_AT,
+    }
+    mutate(result)
+
+    with patch(
+        "services.gateway.governance_assignment_proposals.propose_governance_role_assignment",
+        return_value=result,
+    ), _operator_proposal_client(monkeypatch) as client:
+        response = client.post(
+            f"/operator/api/governance/{LOCATION_ID}/roles/{ROLE_ID}/assignments",
+            json=_payload(),
+            headers={"x-csrf-token": "synthetic-csrf"},
+        )
+
+    assert response.status_code == 500
+    assert response.headers["cache-control"] == "no-store"
+    _assert_varies_by_cookie(response)
+    assert response.json() == {"error": "Governance role nomination unavailable"}
+
+
+def test_http_proposal_route_openapi_declares_exact_request_and_response_contract(monkeypatch):
+    with _operator_proposal_client(monkeypatch) as client:
+        operation = client.app.openapi()["paths"][
+            "/operator/api/governance/{location_id}/roles/{role_id}/assignments"
+        ]["post"]
+
+    request_schema = operation["requestBody"]["content"]["application/json"]["schema"]
+    assert set(request_schema["properties"]) == {
+        "request_id", "party_id", "assignment_type", "mandate"
+    }
+    assert set(request_schema["required"]) == {
+        "request_id", "party_id", "assignment_type", "mandate"
+    }
+    assert request_schema["additionalProperties"] is False
+    assert request_schema["properties"]["assignment_type"]["enum"] == [
+        "primary", "delegate", "representative", "interim"
+    ]
+    assert operation["responses"]["201"]["description"]
+    response_schema = operation["responses"]["201"]["content"]["application/json"]["schema"]
+    assert response_schema["$ref"].endswith("/GovernanceAssignmentProposalResponse")
+    response_contract = client.app.openapi()["components"]["schemas"][
+        "GovernanceAssignmentProposalResponse"
+    ]
+    assert set(response_contract["properties"]) == {
+        "assignment_id", "role_id", "assignment_type", "status", "created_at"
+    }
+    assert response_contract["additionalProperties"] is False
+    assert response_contract["properties"]["status"]["const"] == "proposed"
+    assert operation["responses"]["201"]["headers"]["Cache-Control"]["schema"]["example"] == "no-store"
+    assert operation["responses"]["201"]["headers"]["Vary"]["schema"]["example"] == "Cookie"

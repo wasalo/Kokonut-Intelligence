@@ -15,6 +15,8 @@ from unittest.mock import MagicMock
 import grpc
 import pytest
 
+TEST_CREDIT_LOCATION_ID = "a4b1b9e3-4d44-4df3-8d13-539c6cb2a5f0"
+
 
 class _Mappings:
     def __init__(self, row):
@@ -78,7 +80,7 @@ class _DatabaseFactory:
                 "id": "ecocredit-batch-writer-id",
                 "is_active": True,
                 "expires_at": None,
-                "scopes": ["ecocredit:batch:write"],
+                "scopes": [f"ecocredit_batch:create:{TEST_CREDIT_LOCATION_ID}"],
                 "role_name": "ecocredit-batch-writer",
                 "permissions": {},
             },
@@ -427,9 +429,11 @@ def test_create_batch_rpc_forwards_origin_transaction_reference(running_server, 
     channel, database_factory, _services = running_server
     create_batch = MagicMock(return_value={"id": "batch-1", "batch_code": "BATCH-1"})
     monkeypatch.setattr("services.credit_class.batch_manager.create_batch", create_batch)
+    set_location_context = MagicMock()
+    monkeypatch.setattr("services.grpc.credit_class_service.set_location_tenant_context", set_location_context)
     request = ecocredit_service_pb2.CreateBatchRequest(
         credit_class_id="class-1",
-        location_id="location-1",
+        location_id=TEST_CREDIT_LOCATION_ID,
         vintage_year=2026,
         total_quantity=10,
         origin_tx_id="0xorigin",
@@ -445,9 +449,13 @@ def test_create_batch_rpc_forwards_origin_transaction_reference(running_server, 
 
     assert response.batch_id == "batch-1"
     assert response.batch_code == "BATCH-1"
+    assert set_location_context.call_args.args[1] is database_factory.connections[-1]
+    assert set_location_context.call_args.kwargs["resource"] == "ecocredit_batch"
+    assert set_location_context.call_args.kwargs["action"] == "create"
+    assert set_location_context.call_args.kwargs["location_id"] == TEST_CREDIT_LOCATION_ID
     assert create_batch.call_args.kwargs == {
         "credit_class_id": "class-1",
-        "location_id": "location-1",
+        "location_id": TEST_CREDIT_LOCATION_ID,
         "vintage_year": 2026,
         "total_quantity": 10.0,
         "unit": "tonneCO2e",

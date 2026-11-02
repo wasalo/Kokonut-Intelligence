@@ -1,0 +1,28 @@
+{
+  "result": "passed",
+  "date": "2026-10-28",
+  "source_revision": "753b4645",
+  "working_tree_dirty": true,
+  "scope": "Notification outbox batch-size and lease-duration validation",
+  "finding": "Python bool values are integers, so claim_batch previously accepted True as a batch size of one or a one-second lease despite the documented lease minimum.",
+  "change": "claim_batch now explicitly rejects booleans for limit and lease_seconds, matching the isolated notification worker's validation.",
+  "checks": {
+    "focused_tests": {
+      "command": "python3 -m pytest tests/test_notification_outbox.py tests/test_notification_delivery_worker.py -q",
+      "result": "40 passed"
+    },
+    "targeted_ruff": "passed",
+    "python_compilation": "passed",
+    "diff_check": "passed"
+  },
+  "external_services": {
+    "database": false,
+    "provider": false,
+    "network": false,
+    "candidate_or_legacy": false
+  },
+  "rollback": "Revert the boolean type guards and the two parameterized regression cases; no migration or persisted state changed.",
+  "limitations": [
+    "This closes invalid direct-call bounds only; it does not prove live SMTP/webhook delivery, outage recovery, or long-duration worker behavior."
+  ]
+}

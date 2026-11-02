@@ -14,19 +14,41 @@ def compute_labor_efficiency(conn, location_id: str) -> dict[str, Any]:
     cur = conn.cursor()
     cur.execute(
         """
-        SELECT cc.id AS cycle_id,
-               cc.cycle_name,
-               c.name AS crop_name,
-               cc.actual_harvest_date,
-               SUM(he.quantity) AS harvest_kg,
-               SUM(le.hours_worked) AS labor_hours
-        FROM crop_cycle cc
-        JOIN crop c ON c.id = cc.crop_cycle_id
-        JOIN harvest_event he ON he.crop_cycle_id = cc.id AND he.status IN ('verified', 'published')
-        LEFT JOIN labor_event le ON le.crop_cycle_id = cc.id AND le.status IN ('verified', 'published')
-        WHERE cc.location_id = %s AND cc.status IN ('completed', 'harvested')
-        GROUP BY cc.id, cc.cycle_name, c.name, cc.actual_harvest_date
-        ORDER BY cc.actual_harvest_date
+        WITH scoped_cycles AS (
+            SELECT id, location_id, cycle_name, crop_id, actual_harvest_date
+            FROM crop_cycle
+            WHERE location_id = %s AND status IN ('completed', 'harvested')
+        ), harvest_by_cycle AS (
+            SELECT event.crop_cycle_id,
+                   SUM(event.quantity) AS harvest_kg
+            FROM harvest_event AS event
+            JOIN scoped_cycles AS cycle
+              ON cycle.id = event.crop_cycle_id
+             AND cycle.location_id = event.location_id
+            WHERE event.status IN ('verified', 'published')
+            GROUP BY event.crop_cycle_id
+        ), labor_by_cycle AS (
+            SELECT event.crop_cycle_id,
+                   SUM(event.hours_worked) AS labor_hours
+            FROM labor_event AS event
+            JOIN scoped_cycles AS cycle
+              ON cycle.id = event.crop_cycle_id
+             AND cycle.location_id = event.location_id
+            WHERE event.status IN ('verified', 'published')
+              AND event.crop_cycle_id IS NOT NULL
+            GROUP BY event.crop_cycle_id
+        )
+        SELECT cycle.id AS cycle_id,
+               cycle.cycle_name,
+               crop.name AS crop_name,
+               cycle.actual_harvest_date,
+               h.harvest_kg,
+               l.labor_hours
+        FROM scoped_cycles AS cycle
+        JOIN crop ON crop.id = cycle.crop_id
+        JOIN harvest_by_cycle AS h ON h.crop_cycle_id = cycle.id
+        LEFT JOIN labor_by_cycle AS l ON l.crop_cycle_id = cycle.id
+        ORDER BY cycle.actual_harvest_date
         """,
         (location_id,),
     )
@@ -78,7 +100,9 @@ def compute_resource_consumption_by_crop(conn, location_id: str) -> dict[str, An
                cc.id AS cycle_id, c.name AS crop_name,
                SUM(rc.quantity) AS total_quantity
         FROM resource_consumption rc
-        JOIN crop_cycle cc ON cc.id = rc.crop_cycle_id
+        JOIN crop_cycle cc
+          ON cc.id = rc.crop_cycle_id
+         AND cc.location_id = rc.location_id
         JOIN crop c ON c.id = cc.crop_id
         WHERE rc.location_id = %s AND rc.status IN ('verified', 'published')
         GROUP BY rc.resource_type, rc.unit, cc.id, c.name

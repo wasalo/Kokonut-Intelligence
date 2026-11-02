@@ -1,0 +1,26 @@
+{
+  "result": "passed",
+  "date": "2026-10-28",
+  "source_revision": "753b4645",
+  "working_tree_dirty": true,
+  "scope": "Location scope for stakeholder report generators and CLI",
+  "change": "stakeholder_landscape, stakeholder_engagement, stakeholder_grievance, and stakeholder_decision_lineage now reject missing location_id before opening a cursor, matching the location-scoped report registry and CLI contract.",
+  "checks": {
+    "command": "python3 -m pytest tests/test_open_source_capitalist_scaling.py tests/test_report_generator_query_scope_inventory.py tests/test_report_state_cursor_cleanup.py tests/test_stakeholder_foundation.py tests/test_report_generator_cli.py -q",
+    "result": "470 passed, 4 skipped",
+    "query_scope_inventory": "passed",
+    "ruff": "passed",
+    "python_compilation": "passed",
+    "diff_check": "passed"
+  },
+  "external_services": {
+    "provider": false,
+    "network": false,
+    "candidate_or_legacy": false
+  },
+  "rollback": "Revert the four pre-cursor location guards, their CLI/source regressions, and the generated inventory update; no migration or persisted data changed.",
+  "limitations": [
+    "Location input validation is not an authorization or tenant-isolation boundary.",
+    "Populated stakeholder data parity and accountable owner review remain open."
+  ]
+}

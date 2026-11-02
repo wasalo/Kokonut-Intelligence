@@ -34,6 +34,8 @@ ACTIVE_LISTING_WHERE = (
     "ml.status = 'published' AND ml.sold_at IS NULL "
     "AND (ml.expires_at IS NULL OR ml.expires_at > now())"
 )
+MAX_ACTIVE_LISTINGS_LIMIT = 100
+MAX_ACTIVE_LISTINGS_OFFSET = 10_000
 
 
 def _positive_market_value(name: str, value: float) -> float:
@@ -225,6 +227,15 @@ def list_active_listings(
     offset: int = 0,
 ) -> dict:
     """List active marketplace listings with optional filters."""
+    if isinstance(limit, bool) or not isinstance(limit, int) or not 1 <= limit <= MAX_ACTIVE_LISTINGS_LIMIT:
+        raise ValueError(
+            f"limit must be between 1 and {MAX_ACTIVE_LISTINGS_LIMIT}"
+        )
+    if isinstance(offset, bool) or not isinstance(offset, int) or not 0 <= offset <= MAX_ACTIVE_LISTINGS_OFFSET:
+        raise ValueError(
+            f"offset must be between 0 and {MAX_ACTIVE_LISTINGS_OFFSET}"
+        )
+
     cur = conn.cursor()
 
     where = ACTIVE_LISTING_WHERE
@@ -343,46 +354,28 @@ def record_price(
     source: str = "manual",
     metadata: dict = None,
 ) -> dict:
-    """Record a price observation from a market."""
+    """Record a global manual reference price through the isolated writer.
+
+    ``conn`` remains in the signature for source compatibility, but is never
+    used for persistence. The market-data login has no direct table access;
+    PostgreSQL validates and writes the explicit global/manual operation.
+    """
     price = _positive_market_value("price", price)
-    crop_id = _resolve_crop_id(conn, crop_name)
-    if not crop_id:
-        raise ValueError(f"crop not found: {crop_name}")
+    if source != "manual":
+        raise ValueError("manual price observations must use source='manual'")
+    from services.ingestion.market_data_worker import record_manual_price
 
-    cur = conn.cursor()
-    price_id = str(uuid.uuid4())
-
-    cur.execute(
-        """
-        INSERT INTO price_observation
-            (id, crop_id, market_name, price_per_unit, price_date,
-             unit, currency, source, location_id, quality_grade, metadata, created_at)
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s::jsonb, %s)
-        RETURNING id
-        """,
-        (
-            price_id, crop_id, market_name, price,
-            datetime.now(timezone.utc).date(),
-            unit, currency, source, None, quality_grade,
-            json.dumps(metadata or {}),
-            datetime.now(timezone.utc),
-        ),
+    result = record_manual_price(
+        crop_name,
+        market_name,
+        price,
+        quality_grade=quality_grade,
+        unit=unit,
+        currency=currency,
+        metadata=metadata,
     )
-    cur.fetchone()
-    conn.commit()
-    cur.close()
-
     logger.info("Recorded price %s %s/%s at %s", price, currency, unit, market_name)
-
-    return {
-        "price_id": price_id,
-        "crop_name": crop_name,
-        "market_name": market_name,
-        "price": price,
-        "currency": currency,
-        "unit": unit,
-        "quality_grade": quality_grade,
-    }
+    return result
 
 
 # ============================================================

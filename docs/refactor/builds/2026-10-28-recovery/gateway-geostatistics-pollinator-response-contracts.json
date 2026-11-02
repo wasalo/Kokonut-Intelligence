@@ -1,0 +1,68 @@
+{
+  "batch": "gateway-geostatistics-pollinator-response-contracts",
+  "date": "2026-10-28",
+  "scope": "Source-derived response contracts for private location-scoped Gateway reads.",
+  "geostatistics": {
+    "routes": [
+      "GET /operator/api/geostatistics/{location_id}/cross-validation",
+      "GET /operator/api/geostatistics/{location_id}/variogram-models",
+      "GET /operator/api/geostatistics/{location_id}/sensor-network-designs",
+      "GET /operator/api/geostatistics/{location_id}/kriging-summaries",
+      "GET /operator/api/geostatistics/{location_id}/kriging/{prediction_id}/points",
+      "GET /operator/api/geostatistics/{location_id}/realization-summaries",
+      "GET /operator/api/geostatistics/{location_id}/realizations/{realization_id}/points"
+    ],
+    "contracts": [
+      "Strict OpenAPI success schemas match fixed SQL/service projections and reject undeclared nested fields.",
+      "Returned location, run ID, and page bounds are bound to the request.",
+      "Enums and nullable finite numeric fields follow the source schemas; point coordinates are bounded to WGS84 ranges.",
+      "Kriging and realization point pages validate run metadata, point numbering, totals, and continuation consistency.",
+      "All seven list readers stop advertising has_more when the next page would exceed offset 10000."
+    ],
+    "privacy": "Existing exact-location tenant context and fixed projections are preserved; raw IDs, metadata, model identity, and point-level output remain limited to their existing route surfaces."
+  },
+  "pollinator": {
+    "routes": [
+      "GET /operator/api/pollinators/{location_id}/review-queue",
+      "GET /operator/api/pollinators/{location_id}/habitats",
+      "GET /operator/api/pollinators/{location_id}/hives"
+    ],
+    "contracts": [
+      "Review details use a discriminated union for observation, pesticide-impact, and hive-inspection records.",
+      "Habitat and hive detail projections have strict source-aligned fields and no-store sanitized failure responses.",
+      "Location and page metadata are request-bound; continuation is disabled beyond offset 10000."
+    ],
+    "privacy": "Existing separate location-scoped read/review grants and field projections remain in place; no free-form hive notes or metadata were added to hive detail responses."
+  },
+  "sql_inventory_review": {
+    "candidate_count": 37,
+    "changed_candidates": [
+      {
+        "scope": "list_location_kriging_summaries",
+        "finding": "The conservative WITH candidate is a SELECT-only bounded location page plus aggregate join; pagination clamping does not add DML."
+      },
+      {
+        "scope": "list_location_realization_summaries",
+        "finding": "The conservative WITH candidate is a SELECT-only bounded location page plus aggregate join; pagination clamping does not add DML."
+      }
+    ],
+    "ledger": "The two changed scope fingerprints were moved from the grandfathered legacy list into reviewed_sites. The review explicitly does not approve ACLs; no database grants changed."
+  },
+  "verification": {
+    "gateway_command": "python3 -m pytest tests/test_gateway_geostatistics_reads.py tests/test_gateway_pollinator_hive_lifecycle.py tests/test_gateway_pollinator_habitat_lifecycle.py tests/test_gateway_pollinator_review.py tests/test_gateway_pollinator_pagination_openapi.py tests/test_gateway_pollinator_detail_response.py -q",
+    "gateway_result": "158 passed",
+    "runtime_sql_test_command": "python3 -m pytest tests/test_runtime_sql_inventory.py -q",
+    "runtime_sql_test_result": "24 passed",
+    "runtime_sql_inventory_python311": "current; 37 tracked candidates",
+    "runtime_sql_inventory_python312": "current; 37 tracked candidates",
+    "capability_matrix": "valid: 67 rows; 24 baseline-retained, 7 deployed, 36 prepared",
+    "ruff": "passed",
+    "python_compilation": "passed",
+    "git_diff_check": "passed"
+  },
+  "not_verified": [
+    "No live database, provider, candidate, or legacy service was used.",
+    "No populated-data output parity, live OIDC/browser behavior, or broader tenant/RLS acceptance is claimed.",
+    "Capability classifications and MAN-CAP acceptance remain unchanged."
+  ]
+}

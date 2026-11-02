@@ -1,0 +1,57 @@
+{
+  "date": "2026-10-28",
+  "source_revision": "a5d047a2",
+  "working_tree_dirty": true,
+  "scope": "Parallel code-only batch: cultural-preservation report scope guard, crop-rotation CLI UUID preflight, solution-retirement candidate response contract, and read-only Directus capex_breakdown tenant boundary.",
+  "checks": [
+    {
+      "command": "python3 -m pytest tests/test_cultural_preservation_report_scope.py tests/test_report_state_cursor_cleanup.py tests/test_gnh_alignment.py tests/test_gnh_alignment_report_scope.py tests/test_capital_provider_utility_report_scope.py tests/test_cli_crop_rotation_scope.py tests/test_crop_rotation.py tests/test_gateway_solution_retirement_candidates_response.py tests/test_gateway_solution_lifecycle_reads.py tests/test_gateway_solution_lifecycle_pagination_openapi.py tests/test_gateway_solution_lifecycle_actions.py tests/test_operator_console_solution_lifecycle.py tests/test_operator_route_policy_inventory.py tests/test_gateway_solution_retirement_execution.py -q",
+      "result": "passed",
+      "passed": 551
+    },
+    {
+      "command": "npm test",
+      "working_directory": "extensions/kokonut-hooks",
+      "result": "passed",
+      "passed": 141
+    },
+    {
+      "command": "npm run build",
+      "working_directory": "extensions/kokonut-hooks",
+      "result": "passed",
+      "details": "Directus extension bundle and TypeScript no-emit check"
+    },
+    {
+      "command": "Ruff check and Python compilation for changed CLI, report, Gateway, and test files",
+      "result": "passed"
+    },
+    {
+      "command": "python3 scripts/report_generator_inventory.py --check docs/refactor/report-generator-source-inventory.json",
+      "result": "passed"
+    },
+    {
+      "command": "python3 scripts/report_generator_query_scope_inventory.py --check docs/refactor/report-generator-query-scope-inventory.json",
+      "result": "passed"
+    },
+    {
+      "command": "python3 scripts/check-capability-matrix.py",
+      "result": "passed",
+      "matrix_rows": 67
+    },
+    {
+      "command": "git diff --check",
+      "result": "passed"
+    }
+  ],
+  "environment": {
+    "live_database_used": false,
+    "candidate_or_legacy_touched": false,
+    "provider_called": false,
+    "directus_runtime_used": false
+  },
+  "limitations": [
+    "Directus capex_breakdown isolation is source/unit verified and is not live API, runtime-role, or PostgreSQL RLS acceptance.",
+    "No populated report or solution-lifecycle parity comparison was performed.",
+    "CLI tests prove malformed location IDs fail before database setup; they do not exercise live database operations."
+  ]
+}

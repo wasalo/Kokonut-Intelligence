@@ -1,0 +1,44 @@
+{
+  "date": "2026-10-30",
+  "branch": "chore/kernel-next-sprint-plan",
+  "scope": [
+    "Migration 442 governance circle and role lifecycle action contracts",
+    "Migration 506 solution experiment create response contract",
+    "Management work-item due/SLA timestamp preflight",
+    "Governance-role assignment review-deadline preflight"
+  ],
+  "governance_definition_actions": {
+    "contract": "Strict request and exact internal result models for five circle and six role lifecycle actions; route/entity/action/ID and state transition binding; public receipt omits actor_party_id",
+    "preserved_behavior": "Existing location grants, CSRF, HTTP 200 retry behavior, and no-store responses"
+  },
+  "solution_experiment_create": {
+    "contract": "Strict request envelope and exact six-field response bound to the requested solution",
+    "lifecycle": "New version-1 experiments must be draft and return HTTP 201; valid replays return the current experiment status with HTTP 200",
+    "preserved_behavior": "Existing exact-location create authorization, CSRF, and no-store responses"
+  },
+  "timestamp_preflight": {
+    "management": "CLI due_at/sla_at parse before connection acquisition; direct create_work_item(conn=None) also validates before opening PostgreSQL",
+    "governance_roles": "assignment-add review_due_at parses during argparse before connection acquisition",
+    "accepted_values": "Timezone-aware ISO timestamps become aware datetime values; omitted optional values remain None"
+  },
+  "verification": {
+    "focused_pytest": {
+      "command": "python3 -m pytest tests/test_gateway_governance_definition_action_contracts.py tests/test_gateway_solution_lifecycle_experiment_create.py tests/test_management_cli_location_preflight.py tests/test_cli_governance_roles_constraints.py -q",
+      "result": "79 passed in 82.28s"
+    },
+    "ruff": "Passed for changed implementation and focused test files",
+    "python_compile": "Passed for changed implementation and focused test files",
+    "diff_check": "Passed",
+    "capability_matrix": "Valid: 67 rows; 24 baseline-retained, 7 deployed, 36 prepared",
+    "runtime_sql_inventory": "Current; 42 unresolved write candidates remain review-only",
+    "provider_boundaries": "Passed: 17 vendor import sites",
+    "dependency_groups": "Aligned: 14 groups, 33 requirements"
+  },
+  "isolation": {
+    "database_access": false,
+    "provider_access": false,
+    "candidate_or_legacy_access": false,
+    "migration_applied": false
+  },
+  "rollback": "Revert the route/CLI changes, focused tests, runtime SQL inventory refresh, evidence, and progress updates; no data rollback is needed."
+}

@@ -119,6 +119,55 @@ def test_pending_event_inventory_uses_signed_location_and_bounded_function(monke
     assert connection.closed
 
 
+def test_sensor_specific_event_inventory_uses_location_and_sensor_bounded_function(monkeypatch):
+    created_at = datetime(2026, 10, 26, 12, tzinfo=timezone.utc)
+    connection = _Connection([("event-id", "sensor-id", created_at)])
+    monkeypatch.setattr(sensor_anomaly_worker, "get_worker_credential", lambda _key: "x" * 40)
+    monkeypatch.setattr(sensor_anomaly_worker, "get_worker_db", lambda _key: connection)
+    set_context = MagicMock()
+    monkeypatch.setattr(sensor_anomaly_worker, "set_worker_tenant_context", set_context)
+
+    since = created_at - timedelta(minutes=5)
+    sensor_id = "A0000000-0000-0000-0000-000000000011"
+    result = sensor_anomaly_worker.list_pending_sensor_reading_events(
+        location_id=LOCATION_ID.upper(),
+        sensor_id=sensor_id,
+        since=since,
+        batch_size=5,
+    )
+
+    set_context.assert_called_once_with(
+        connection,
+        credential="x" * 40,
+        location_id=LOCATION_ID,
+        resource="sensor_reading",
+        action="process",
+    )
+    assert "kokonut_security.list_sensor_anomaly_events_for_sensor_since" in connection.statement
+    assert connection.parameters == (LOCATION_ID, sensor_id.lower(), since, 5)
+    assert result == [{"event_id": "event-id", "sensor_id": "sensor-id", "created_at": created_at}]
+    assert connection.commits == 1
+    assert connection.rollbacks == 0
+    assert connection.closed
+
+
+def test_invalid_sensor_filter_fails_before_worker_credentials_or_database(monkeypatch):
+    credential = MagicMock(side_effect=AssertionError("credential read before preflight"))
+    get_db = MagicMock(side_effect=AssertionError("database opened before preflight"))
+    monkeypatch.setattr(sensor_anomaly_worker, "get_worker_credential", credential)
+    monkeypatch.setattr(sensor_anomaly_worker, "get_worker_db", get_db)
+
+    with pytest.raises(ValueError):
+        sensor_anomaly_worker.list_pending_sensor_reading_events(
+            location_id=LOCATION_ID,
+            sensor_id="not-a-uuid",
+            since=datetime.now(timezone.utc) - timedelta(hours=1),
+        )
+
+    credential.assert_not_called()
+    get_db.assert_not_called()
+
+
 def test_default_scan_window_is_the_database_maximum_recovery_horizon(monkeypatch):
     monkeypatch.setattr(sensor_anomaly_scan_worker, "require_feature", lambda _feature: None)
     since = datetime.now(timezone.utc)

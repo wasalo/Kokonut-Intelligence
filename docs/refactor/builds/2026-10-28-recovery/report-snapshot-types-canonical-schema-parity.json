@@ -1,0 +1,36 @@
+{
+  "result": "passed",
+  "date": "2026-10-28",
+  "source_revision": "753b4645",
+  "working_tree_dirty": true,
+  "scope": "TypeScript ReportSnapshot model parity with canonical PostgreSQL schema",
+  "source_of_truth": "schemas/postgres/007_modeled_outputs.sql::report_snapshot, including the ordered additive migrations",
+  "finding": "The TypeScript SDK exposed entity_type, entity_id, and generated_by although they are not columns on report_snapshot and are absent from the matching Python model.",
+  "change": "Removed the three unsupported TypeScript fields and added a regression that requires Python and TypeScript ReportSnapshot fields to match the canonical report_snapshot columns exactly.",
+  "checks": {
+    "focused_tests": {
+      "command": "python3 -m pytest tests/test_sdk_schema_parity.py -q",
+      "result": "13 passed"
+    },
+    "full_sdk_schema_parity": {
+      "command": "python3 scripts/check-sdk-schema-parity.py",
+      "result": "passed: 109 models, 2150 canonical columns, 1987 scalar types, 12 PostGIS types, 147 JSONB shapes, 23 enum fields, and 95 CHECK-literal fields per SDK"
+    },
+    "typescript_build": {
+      "command": "npm run build",
+      "working_directory": "sdk/javascript",
+      "result": "passed"
+    },
+    "targeted_ruff": "passed",
+    "diff_check": "passed"
+  },
+  "external_services": {
+    "database": false,
+    "network": false,
+    "provider": false
+  },
+  "rollback": "Restore the three TypeScript properties and remove the focused schema-parity regression; no migration or persisted data changed.",
+  "limitations": [
+    "This verifies the SDK model against repository SQL definitions; it does not establish live Directus metadata or authorization parity."
+  ]
+}

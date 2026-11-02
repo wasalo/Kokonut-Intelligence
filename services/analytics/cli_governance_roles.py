@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
+from datetime import datetime
 
 from services.analytics.governance_roles import (
     add_accountability,
@@ -25,6 +26,32 @@ from services.common.cli import print_json
 
 def _out(value):
     print_json(value)
+
+
+def _parse_json_object(value: str) -> dict:
+    """Parse a JSON object before the command opens PostgreSQL."""
+    try:
+        parsed = json.loads(value)
+    except (TypeError, ValueError) as exc:
+        raise argparse.ArgumentTypeError("--constraints must be a valid JSON object") from exc
+    if not isinstance(parsed, dict):
+        raise argparse.ArgumentTypeError("--constraints must be a valid JSON object")
+    return parsed
+
+
+def _parse_review_due_at(value: str) -> datetime:
+    """Parse TIMESTAMPTZ input before assignment-add opens PostgreSQL."""
+    try:
+        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except (AttributeError, TypeError, ValueError) as exc:
+        raise argparse.ArgumentTypeError(
+            "--review-due-at must be an ISO timestamp with an explicit timezone"
+        ) from exc
+    if parsed.tzinfo is None or parsed.utcoffset() is None:
+        raise argparse.ArgumentTypeError(
+            "--review-due-at must include an explicit timezone"
+        )
+    return parsed
 
 
 def _run_with_connection(operation) -> None:
@@ -103,12 +130,14 @@ def main() -> None:
     domain.add_argument("--scope-type", default="network")
     domain.add_argument("--scope-id")
     domain.add_argument("--authority-level", default="recommend", choices=["observe", "recommend", "decide", "execute"])
-    domain.add_argument("--constraints", default="{}")
+    domain.add_argument(
+        "--constraints", type=_parse_json_object, default=_parse_json_object("{}")
+    )
     domain.add_argument("--no-human-approval", action="store_true")
     domain.set_defaults(func=lambda a: _out(add_domain(
         _connection(), a.role_id, a.domain_type, a.domain_key,
         scope_type=a.scope_type, scope_id=a.scope_id,
-        authority_level=a.authority_level, constraints=json.loads(a.constraints),
+        authority_level=a.authority_level, constraints=a.constraints,
         requires_human_approval=not a.no_human_approval,
     )))
 
@@ -131,7 +160,7 @@ def main() -> None:
     assignment.add_argument("--type", dest="assignment_type", default="primary")
     assignment.add_argument("--assigned-by-party-id")
     assignment.add_argument("--mandate")
-    assignment.add_argument("--review-due-at")
+    assignment.add_argument("--review-due-at", type=_parse_review_due_at)
     assignment.set_defaults(func=lambda a: _out(assign_role(
         _connection(), a.role_id, a.party_id, assignment_type=a.assignment_type,
         assigned_by_party_id=a.assigned_by_party_id, mandate=a.mandate,

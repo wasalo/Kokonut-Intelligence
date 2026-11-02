@@ -1,6 +1,6 @@
 # RDF And SPARQL
 
-Kokonut Intelligence provides a native RDF-style triple store for semantic queries, provenance, linked-data exports, and cross-system interoperability. PostgreSQL and Directus remain the canonical record layer; RDF is a derived projection and does not replace governed source records or their lifecycle controls.
+Kokonut Intelligence provides a native RDF-style triple store for semantic queries, provenance, linked-data exports, and cross-system interoperability. PostgreSQL is the canonical record store; RDF is a derived projection and does not replace governed source records or their lifecycle controls. Directus is an optional compatibility and administration adapter.
 
 ## Architecture
 
@@ -209,7 +209,7 @@ This API is separate from the default gateway. It is not automatically routed th
 - Public or partner exports must apply the source record’s lifecycle, consent, evidence, registry, and privacy gates before serialization.
 - Do not treat a graph query result as permission to expose raw private stakeholder evidence.
 - Do not infer credit issuance, external registry recognition, or claim verification solely from a linked RDF edge.
-- JSON-LD and Turtle output are compatibility formats; PostgreSQL/Directus remains canonical.
+- JSON-LD and Turtle output are compatibility formats; PostgreSQL remains canonical.
 
 ## References And Verification
 

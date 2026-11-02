@@ -111,7 +111,7 @@ and incident rows in this run are synthetic fixtures. Migrations
 and linux/arm64 Docker/QEMU; QEMU is software portability evidence only, not
 physical Raspberry Pi acceptance. These checks do not exercise populated
 legacy outputs
-([runner](../scripts/check-waste-management-disposable.py);
+([runner](../../scripts/check-waste-management-disposable.py);
 [legacy evidence](builds/2026-10-24-recovery/cap-006-waste-management-disposable.json);
 [native capture evidence](builds/2026-10-24-recovery/cap-006-waste-incident-capture-disposable.json);
 [ARM64 capture evidence](builds/2026-10-24-recovery/cap-006-waste-incident-capture-arm64-disposable.json)).

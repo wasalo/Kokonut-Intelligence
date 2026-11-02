@@ -8,7 +8,7 @@ import sys
 from services.core.providers import ProviderSettings
 
 from .env import load_dotenv
-from .worker_environment import ISOLATED_WORKER_KEY_ENV
+from .worker_environment import DENY_SHARED_DATABASE_ENV, ISOLATED_WORKER_KEY_ENV
 
 _HELP_REQUESTED = any(argument in {"-h", "--help"} for argument in sys.argv[1:])
 if not _HELP_REQUESTED:
@@ -24,13 +24,15 @@ IS_DEV = KOKONUT_ENV in ("development", "dev", "local")
 def _require_secret(name: str) -> str:
     if _HELP_REQUESTED:
         return ""
+    if os.environ.get(ISOLATED_WORKER_KEY_ENV) or (
+        os.environ.get(DENY_SHARED_DATABASE_ENV, "").strip().lower() == "true"
+    ):
+        # The shared login is forbidden even if a stale or explicitly injected
+        # value is still present in the process environment.
+        return ""
     value = os.environ.get(name, "")
     if value:
         return value
-    if os.environ.get(ISOLATED_WORKER_KEY_ENV):
-        # Legacy config may be imported by a CLI parser, but an isolated
-        # worker must never inherit or synthesize the shared DB identity.
-        return ""
     if IS_DEV:
         return f"placeholder-{name.lower()}"
     raise RuntimeError(

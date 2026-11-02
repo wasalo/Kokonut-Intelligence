@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from datetime import datetime, timezone
 from unittest.mock import MagicMock, patch
 
@@ -53,6 +54,87 @@ def test_anomaly_detector_default_rules_have_required_keys():
         assert "operator" in rule
         assert "threshold_value" in rule
         assert "severity" in rule
+
+
+def test_ensure_alert_rules_uses_only_the_bounded_database_initializer():
+    from services.ingestion.anomaly_detector import ensure_alert_rules
+
+    connection = MagicMock()
+    cursor = connection.cursor.return_value.__enter__.return_value
+    cursor.fetchone.return_value = (10,)
+
+    ensure_alert_rules(connection)
+
+    cursor.execute.assert_called_once_with(
+        "SELECT kokonut_security.ensure_default_alert_rules()"
+    )
+    cursor.fetchone.assert_called_once_with()
+
+
+def test_sql_alert_rule_defaults_match_python_and_pilot_seed_stays_eight_rows():
+    from pathlib import Path
+
+    from services.ingestion.anomaly_detector import DEFAULT_ALERT_RULES
+
+    root = Path(__file__).resolve().parents[1]
+    migration = (root / "schemas/postgres/739_runtime_alert_rule_read_only.sql").read_text()
+    pilot_seed = (root / "schemas/seeds/003_pilot_environmental.sql").read_text()
+
+    values_match = re.search(
+        r"FROM \(VALUES(?P<rows>.*?)\) AS defaults\(", migration, re.DOTALL
+    )
+    assert values_match is not None
+    tuple_pattern = re.compile(
+        r"\('([^']+)',\s*'([^']+)',\s*'([^']+)',\s*'([^']+)',\s*"
+        r"(-?[0-9]+(?:\.[0-9]+)?),\s*'([^']+)',\s*(true|false),\s*"
+        r"(NULL|'[^']+')\)"
+    )
+    sql_rows = [
+        (
+            name,
+            sensor_type,
+            metric,
+            operator,
+            float(threshold),
+            severity,
+            enabled.lower() == "true",
+            None if claim_type == "NULL" else claim_type[1:-1],
+        )
+        for name, sensor_type, metric, operator, threshold, severity, enabled, claim_type
+        in tuple_pattern.findall(values_match.group("rows"))
+    ]
+    python_rows = [
+        (
+            rule["name"],
+            rule["sensor_type_name"],
+            rule["metric"],
+            rule["operator"],
+            float(rule["threshold_value"]),
+            rule["severity"],
+            bool(rule.get("auto_create_claim", False)),
+            rule.get("claim_type"),
+        )
+        for rule in DEFAULT_ALERT_RULES
+    ]
+    assert sql_rows == python_rows
+    assert len(sql_rows) == 10
+    assert "SELECT kokonut_security.ensure_default_alert_rules()" not in migration
+
+    pilot_rules = re.search(
+        r"-- Alert Rules\s*(INSERT INTO alert_rule.*?;)", pilot_seed, re.DOTALL
+    )
+    assert pilot_rules is not None
+    pilot_names = re.findall(r"'([A-Za-z][^']*)',\s*\(SELECT id FROM sensor_type", pilot_rules.group(1))
+    assert pilot_names == [
+        "Low Soil Moisture",
+        "Critical Soil Moisture",
+        "High Soil Temperature",
+        "Frost Risk",
+        "High Air Temperature",
+        "Low Humidity",
+        "Heavy Rainfall",
+        "Extreme Rainfall",
+    ]
 
 
 def test_anomaly_detector_evaluate_metric_value_type():
@@ -141,34 +223,22 @@ def test_worker_validates_event_location_and_sensor_before_loading_credentials()
     get_db.assert_not_called()
 
 
-def test_create_alert_records_the_authoritative_location_and_rejects_stale_device_scope():
+def test_direct_alert_writer_fails_closed_without_touching_database():
     from services.ingestion.anomaly_detector import create_alert
 
-    location_id = "a0000000-0000-0000-0000-000000000001"
     db = MagicMock()
-    cursor = db.cursor.return_value.__enter__.return_value
-    cursor.fetchone.return_value = ("alert-1",)
-
-    result = create_alert(
-        db, "device-1", "rule-1", "reading-1", "warning", "Synthetic alert",
-        12.5, 15.0, location_id=location_id,
-    )
-
-    assert result == "alert-1"
-    statement, parameters = cursor.execute.call_args.args
-    assert "COALESCE(%s::uuid, device.location_id)" in statement
-    assert "device.location_id = %s::uuid" in statement
-    assert "reading.sensor_id::text = device.id::text" in statement
-    assert "reading.location_id = device.location_id" in statement
-    assert parameters[0] == location_id
-    assert parameters[-4:] == (location_id, location_id, location_id, "reading-1")
-
-    cursor.fetchone.return_value = None
-    with pytest.raises(ValueError, match="not assigned to the source location"):
+    with pytest.raises(RuntimeError, match="signed anomaly worker"):
         create_alert(
-            db, "device-1", "rule-1", "reading-1", "warning", "Synthetic alert",
-            12.5, 15.0, location_id=location_id,
+            db,
+            "device-1",
+            "rule-1",
+            "reading-1",
+            "warning",
+            "Synthetic alert",
+            12.5,
+            15.0,
         )
+    db.cursor.assert_not_called()
 
 
 def test_ingestion_log_writer_persists_optional_location_lineage():
@@ -197,36 +267,22 @@ def test_ingestion_log_writer_persists_optional_location_lineage():
     db.close.assert_not_called()
 
 
-def test_anomaly_cooldown_query_can_be_scoped_to_location():
+def test_direct_cooldown_reader_fails_closed_without_touching_database():
     from services.ingestion.anomaly_detector import check_cooldown
 
     db = MagicMock()
-    cursor = db.cursor.return_value.__enter__.return_value
-    cursor.fetchone.return_value = None
-    location_id = "a0000000-0000-0000-0000-000000000001"
-
-    assert check_cooldown(db, "rule-1", "device-1", 30, location_id=location_id) is False
-
-    statement, parameters = cursor.execute.call_args.args
-    assert "location_id = %s::uuid" in statement
-    assert parameters == ("rule-1", "device-1", location_id, location_id)
+    with pytest.raises(RuntimeError, match="signed anomaly worker"):
+        check_cooldown(db, "rule-1", "device-1", 30)
+    db.cursor.assert_not_called()
 
 
-def test_interactive_run_check_keeps_default_alert_rule_bootstrap():
+def test_run_check_requires_explicit_scope_before_database_access():
     from services.ingestion.anomaly_detector import run_check
 
-    db = MagicMock()
-    cursor = db.cursor.return_value.__enter__.return_value
-    cursor.fetchall.return_value = []
-
-    with (
-        patch("services.ingestion.anomaly_detector.get_db", return_value=db),
-        patch("services.ingestion.anomaly_detector.ensure_alert_rules") as ensure_rules,
-    ):
-        run_check()
-
-    ensure_rules.assert_called_once_with(db)
-    db.close.assert_called_once()
+    with patch("services.ingestion.anomaly_detector.get_db") as get_db:
+        with pytest.raises(ValueError, match="require --location-id or --all-locations"):
+            run_check()
+    get_db.assert_not_called()
 
 
 def test_scoped_run_check_requires_a_valid_location_before_database_access():
@@ -239,97 +295,115 @@ def test_scoped_run_check_requires_a_valid_location_before_database_access():
     get_db.assert_not_called()
 
 
-def test_scoped_run_check_filters_readings_and_does_not_bootstrap_shared_rules():
+def test_run_check_delegates_to_signed_worker_with_canonical_scope():
     from services.ingestion.anomaly_detector import run_check
 
-    location_id = "a0000000-0000-0000-0000-000000000001"
-    db = MagicMock()
-    cursor = db.cursor.return_value.__enter__.return_value
-    cursor.fetchall.side_effect = [[("rule-1", "rule", "type-1", "soil_moisture", "value", "gt", 50.0,
-                                     None, "warning", 30, False, None)], []]
-
+    location_id = "A0000000-0000-0000-0000-000000000001"
+    sensor_id = "A0000000-0000-0000-0000-000000000011"
+    worker_result = {
+        "events_found": 1,
+        "events_processed": 1,
+        "rules": 2,
+        "reserved": 1,
+        "alerts": 1,
+        "claims": 0,
+        "notifications": 1,
+        "actuation_intents": 0,
+        "skipped": 1,
+    }
     with (
-        patch("services.ingestion.anomaly_detector.get_db", return_value=db),
-        patch("services.ingestion.anomaly_detector.ensure_alert_rules") as ensure_rules,
+        patch(
+            "services.ingestion.sensor_anomaly_worker.replay_recent_sensor_reading_events",
+            return_value=worker_result,
+        ) as replay,
+        patch("services.ingestion.anomaly_detector.get_db") as get_db,
     ):
-        run_check(location_id=location_id)
+        result = run_check(
+            location_id=location_id,
+            sensor_id=sensor_id,
+        )
 
-    reading_query, reading_parameters = cursor.execute.call_args_list[1].args
-    assert "sr.location_id = %s::uuid" in reading_query
-    assert reading_parameters[-2:] == (location_id, location_id)
-    ensure_rules.assert_not_called()
-    db.close.assert_called_once()
+    call = replay.call_args.kwargs
+    assert call["location_id"] == location_id.lower()
+    assert call["sensor_id"] == sensor_id.lower()
+    assert call["batch_size"] == 100
+    assert call["since"].tzinfo == timezone.utc
+    assert result["locations_processed"] == 1
+    assert result["events_processed"] == 1
+    get_db.assert_not_called()
 
 
-def test_scoped_baseline_check_filters_baselines_before_database_access():
+def test_baseline_check_delegates_to_signed_worker_without_shared_database():
     from services.ingestion.anomaly_detector import run_baseline_check
 
     location_id = "a0000000-0000-0000-0000-000000000001"
-    db = MagicMock()
-    cursor = db.cursor.return_value.__enter__.return_value
-    cursor.fetchall.return_value = []
+    worker_result = {
+        "baselines_checked": 1,
+        "alerts_triggered": 1,
+        "alerts_replayed": 0,
+        "notifications_enqueued": 1,
+    }
+    with (
+        patch(
+            "services.ingestion.sensor_baseline_worker.run_baseline_check",
+            return_value=worker_result,
+        ) as baseline,
+        patch("services.ingestion.anomaly_detector.get_db") as get_db,
+    ):
+        result = run_baseline_check(location_id)
 
-    with patch("services.ingestion.anomaly_detector.get_db", return_value=db):
-        run_baseline_check(location_id)
-
-    statement, parameters = cursor.execute.call_args.args
-    assert "eb.location_id = %s::uuid" in statement
-    assert parameters == (location_id, location_id)
-    db.close.assert_called_once()
+    baseline.assert_called_once_with(location_id)
+    assert result["locations_processed"] == 1
+    assert result["alerts_triggered"] == 1
+    get_db.assert_not_called()
 
 
-def test_all_location_baseline_alerts_keep_each_baselines_location_context():
-    from services.ingestion import anomaly_detector
+def test_replay_validates_sensor_and_window_before_resolving_all_locations():
+    from services.ingestion.anomaly_detector import run_check
+
+    with patch("services.core.jobs.kokonut_network_location_ids") as locations:
+        with pytest.raises(ValueError, match="sensor_id must be a valid UUID"):
+            run_check(sensor_id="not-a-uuid", all_locations=True)
+        with pytest.raises(ValueError, match="previous 24 hours"):
+            run_check(since="2020-01-01T00:00:00Z", all_locations=True)
+        with pytest.raises(ValueError, match="previous 24 hours"):
+            run_check(since="2999-01-01T00:00:00Z", all_locations=True)
+    locations.assert_not_called()
+
+
+def test_all_location_run_check_uses_explicit_network_location_inventory():
+    from services.ingestion.anomaly_detector import run_check
 
     location_a = "a0000000-0000-0000-0000-000000000001"
     location_b = "a0000000-0000-0000-0000-000000000002"
-    sensor_a = "a0000000-0000-0000-0000-000000000011"
-    sensor_b = "a0000000-0000-0000-0000-000000000012"
-    db = MagicMock()
-    cursor = db.cursor.return_value.__enter__.return_value
-    cursor.fetchall.side_effect = [
-        [
-            ("baseline-a", location_a, None, "soil_moisture", 100, "%", 12),
-            ("baseline-b", location_b, None, "soil_moisture", 100, "%", 12),
-        ],
-        [("reading-a", sensor_a, 200, None)],
-        [("reading-b", sensor_b, 200, None)],
-    ]
-    cursor.fetchone.side_effect = [
-        (sensor_a,), ("rule-a",),
-        (sensor_b,), ("rule-b",),
-    ]
-    event_bus = MagicMock()
-
+    empty_result = {
+        "events_found": 0,
+        "events_processed": 0,
+        "rules": 0,
+        "reserved": 0,
+        "alerts": 0,
+        "claims": 0,
+        "notifications": 0,
+        "actuation_intents": 0,
+        "skipped": 0,
+    }
     with (
-        patch.object(anomaly_detector, "get_db", return_value=db),
-        patch.object(anomaly_detector, "check_cooldown", return_value=False) as cooldown,
-        patch.object(anomaly_detector, "create_alert", side_effect=["alert-a", "alert-b"]) as create,
-        patch.object(
-            anomaly_detector,
-            "get_sensor_device_info",
-            side_effect=[{"location_id": location_a}, {"location_id": location_b}],
+        patch(
+            "services.core.jobs.kokonut_network_location_ids",
+            return_value=[location_a, location_b],
         ),
-        patch.object(anomaly_detector, "send_notifications"),
-        patch.object(anomaly_detector, "_get_event_bus", return_value=event_bus),
+        patch(
+            "services.ingestion.sensor_anomaly_worker.replay_recent_sensor_reading_events",
+            return_value=empty_result,
+        ) as replay,
     ):
-        anomaly_detector.run_baseline_check()
+        result = run_check(all_locations=True)
 
-    assert [call.kwargs["location_id"] for call in cooldown.call_args_list] == [
-        location_a, location_b,
+    assert [call.kwargs["location_id"] for call in replay.call_args_list] == [
+        location_a,
+        location_b,
     ]
-    assert [call.kwargs["location_id"] for call in create.call_args_list] == [
-        location_a, location_b,
-    ]
-    device_queries = [call for call in cursor.execute.call_args_list if "FROM sensor_device" in call.args[0]]
-    assert [call.args[1] for call in device_queries] == [
-        (sensor_a, location_a), (sensor_b, location_b),
-    ]
-    published_locations = [
-        call.args[1]["location_id"] for call in event_bus.publish.call_args_list
-    ]
-    assert published_locations == [location_a, location_b]
-    db.close.assert_called_once_with()
+    assert result["locations_processed"] == 2
 
 
 class _AnomalyWorkerCursor:

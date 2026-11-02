@@ -50,7 +50,7 @@ class _Cursor:
         self.conn.queries.append((query, params))
         self.conn.events.append("sql")
         if "SELECT COUNT(*)" in query:
-            self.one = (2,)
+            self.one = (getattr(self.conn, "total", 2),)
             return
 
         event_type = "inputs" if "FROM nutrient_input AS event" in query else "removals"
@@ -235,6 +235,30 @@ def test_nutrient_event_page_is_bounded_and_reports_more_rows(event_type):
     assert conn.rolled_back and conn.closed
 
 
+@pytest.mark.parametrize("event_type", ["inputs", "removals"])
+def test_nutrient_event_reader_stops_continuation_at_offset_ceiling(event_type):
+    operator_id, location_id = str(uuid4()), str(uuid4())
+    conn = _Connection()
+    conn.total = 10_002
+
+    with patch("services.gateway.nutrient_events.set_operator_tenant_context"):
+        result = get_location_nutrient_events(
+            operator_id,
+            location_id,
+            event_type,
+            limit=1,
+            offset=10_000,
+            connection_factory=lambda: conn,
+        )
+
+    assert conn.queries[-1][1] == (location_id, 2, 10_000)
+    assert result["total_events"] == 10_002
+    assert result["offset"] == 10_000
+    assert result["has_more"] is False
+    assert len(result["events"]) == 1
+    assert conn.rolled_back and conn.closed
+
+
 @pytest.mark.parametrize(
     ("location_id", "limit", "offset"),
     [("bad-location", 25, 0), (str(uuid4()), 0, 0), (str(uuid4()), 25, -1)],
@@ -301,7 +325,13 @@ def test_nutrient_event_route_returns_no_store(monkeypatch, gateway_audit_spool,
     monkeypatch.setattr(
         "services.gateway.nutrient_events.get_location_nutrient_events",
         lambda op, loc, kind, **_kwargs: {
-            "location_id": loc, "event_type": kind, "total_events": 0, "events": []
+            "location_id": loc,
+            "event_type": kind,
+            "total_events": 0,
+            "limit": 25,
+            "offset": 0,
+            "has_more": False,
+            "events": [],
         },
     )
     with TestClient(create_app(), cookies={"kokonut_operator_session": "synthetic-session"}) as client:

@@ -9,6 +9,33 @@ from typing import Any, Dict, List, Optional
 
 import psycopg2.extras
 
+# Keep in the exact order defined by migration 320's effective-consent view.
+_EFFECTIVE_CONSENT_PROJECTION = (
+    "consent_event_id",
+    "party_id",
+    "party_name",
+    "event_type",
+    "data_category",
+    "purpose",
+    "scope_type",
+    "scope_id",
+    "recipient_party_id",
+    "recipient_party_name",
+    "recipient_type",
+    "recipient_name",
+    "consent_method",
+    "legal_basis",
+    "consent_version",
+    "effective_at",
+    "expires_at",
+    "effective_status",
+    "consented",
+    "reason",
+    "evidence",
+    "source_system",
+    "source_record_id",
+    "created_at",
+)
 
 SCOPE_TYPES = (
     "network", "organization", "location", "farm", "cooperative",
@@ -92,9 +119,10 @@ def check_consent(
     recipient_type: str = "system",
 ) -> Dict[str, Any]:
     """Return the effective decision; missing records deny access."""
+    projection = ", ".join(_EFFECTIVE_CONSENT_PROJECTION)
     with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
         cur.execute(
-            """SELECT * FROM v_effective_stakeholder_consent
+            f"""SELECT {projection} FROM v_effective_stakeholder_consent
                WHERE party_id = %s::uuid
                  AND data_category = %s
                  AND purpose = %s
@@ -138,8 +166,13 @@ def list_effective_consent(
         clauses.append("effective_status = %s")
         params.append(effective_status)
     where = " WHERE " + " AND ".join(clauses) if clauses else ""
+    projection = ", ".join(_EFFECTIVE_CONSENT_PROJECTION)
     with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
-        cur.execute(f"SELECT * FROM v_effective_stakeholder_consent{where} ORDER BY party_name, data_category, purpose", params)
+        cur.execute(
+            f"SELECT {projection} FROM v_effective_stakeholder_consent{where} "
+            "ORDER BY party_name, data_category, purpose",
+            params,
+        )
         return [_row(row) for row in cur.fetchall()]
 
 

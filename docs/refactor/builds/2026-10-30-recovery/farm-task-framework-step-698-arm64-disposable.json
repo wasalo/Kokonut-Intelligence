@@ -1,0 +1,20 @@
+{
+  "candidate_legacy_or_production_touched": false,
+  "coordinated_same_scope_move_allowed": true,
+  "cross_location_insert_denied": true,
+  "elapsed_seconds": 29.499,
+  "farm_data_loaded": false,
+  "host_ports_published": false,
+  "image": "kokonut-kernel-postgis-arm64:local",
+  "matching_legacy_edge_backfilled": true,
+  "migration_applied_and_replayed": true,
+  "network_mode": "none",
+  "old_named_column_insert_shape_derives_location": true,
+  "platform": "linux/arm64",
+  "result": "passed",
+  "single_endpoint_move_denied": true,
+  "synthetic_unresolved_edges": 1,
+  "unresolved_endpoint_move_denied": true,
+  "unresolved_legacy_edge_edit_denied": true,
+  "unresolved_legacy_edge_preserved_null": true
+}

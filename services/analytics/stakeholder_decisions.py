@@ -9,6 +9,15 @@ from typing import Any, Dict, List, Optional
 
 import psycopg2.extras
 
+_DECISION_LINEAGE_PROJECTION = (
+    "decision_id, decision_key, title, decision_type, scope_type, scope_id, status, "
+    "approval_status, approval_actor_type, approval_role, material_harm_review_status, "
+    "minority_review_status, created_by_name, approved_by_name, approved_at, "
+    "decision_log_id, work_item_id, participant_count, participating_count, "
+    "minority_participant_count, tradeoff_count, unresolved_harm_count, evidence_count, "
+    "verified_evidence_count, outcome_count, last_outcome_at"
+)
+
 
 DECISION_TYPES = ("policy", "resource_allocation", "operational", "technology", "governance", "remedy", "other")
 PARTICIPANT_ROLES = ("affected", "consulted", "decision_maker", "steward", "observer", "proxy")
@@ -239,7 +248,11 @@ def record_outcome(conn, decision_id: str, outcome_type: str, summary: str, *,
 
 def get_decision(conn, decision_id: str) -> Optional[Dict[str, Any]]:
     with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
-        cur.execute("SELECT * FROM v_stakeholder_decision_lineage WHERE decision_id = %s::uuid", (decision_id,))
+        cur.execute(
+            f"SELECT {_DECISION_LINEAGE_PROJECTION} FROM v_stakeholder_decision_lineage "
+            "WHERE decision_id = %s::uuid",
+            (decision_id,),
+        )
         return _row(cur.fetchone())
 
 
@@ -253,5 +266,9 @@ def list_decisions(conn, *, status: Optional[str] = None, scope_id: Optional[str
         params.append(scope_id)
     where = " WHERE " + " AND ".join(clauses) if clauses else ""
     with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
-        cur.execute(f"SELECT * FROM v_stakeholder_decision_lineage{where} ORDER BY approved_at DESC NULLS LAST, decision_id", params)
+        cur.execute(
+            f"SELECT {_DECISION_LINEAGE_PROJECTION} FROM v_stakeholder_decision_lineage{where} "
+            "ORDER BY approved_at DESC NULLS LAST, decision_id",
+            params,
+        )
         return [_row(row) for row in cur.fetchall()]

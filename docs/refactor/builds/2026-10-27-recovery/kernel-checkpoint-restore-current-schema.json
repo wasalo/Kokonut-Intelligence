@@ -1,0 +1,56 @@
+{
+  "result": "passed",
+  "execution_source": {
+    "base_commit": "16c85015",
+    "working_tree_dirty_during_run": true,
+    "checked_file_sha256": {
+      "scripts/check-kernel-checkpoint-restore-disposable.py": "b98ce418b4004af46805dc724f8af62a3159cfad3f568f82a100e4865542c999",
+      "tests/test_kernel_checkpoint_restore.py": "5abae6027c52d93a6a9b80ba2af7075c7d68ac961007abe77636bb15616f43c5"
+    }
+  },
+  "candidate_or_legacy_touched": false,
+  "seeds_applied": 0,
+  "farm_data_loaded": false,
+  "source_network": "internal; no host port",
+  "restore_network": "internal; no host port",
+  "plaintext_dump_written_to_disk": false,
+  "age_identity_path_recorded": false,
+  "cleanup": {
+    "attempted": true,
+    "completed": true
+  },
+  "limitations": [
+    "Synthetic sentinel only; no populated farm records or external media/provider state is represented.",
+    "Database-only checkpoint excludes cluster roles and external volumes; the documented role prerequisites are applied separately.",
+    "This is a bounded restore rehearsal, not production RPO/RTO, R2, multi-provider, or 24-hour recovery acceptance."
+  ],
+  "expected_schema": {
+    "migration_count": 653,
+    "latest_migration": "schema:662_runtime_access_audit_log_append_only.sql"
+  },
+  "image": {
+    "platform": "linux/amd64",
+    "image_id": "sha256:b573e82124b3530c454ea6d5ae8aefce1fb7ee137467f66f75a5079f8569ee6b"
+  },
+  "source_schema": {
+    "applied": 653,
+    "migration_digest_md5": "fd95a4753fcd353ae939c321c372f371",
+    "latest": "schema:662_runtime_access_audit_log_append_only.sql"
+  },
+  "source_container": "kokonut-kernel-recovery-fixture-f5636db7-database-1",
+  "checkpoint": {
+    "bytes": 8426808,
+    "sha256": "480ef7354c58fe68cac80396cf31a9399f05f0de0bfdc9b27caa23dca79c3b33",
+    "age_encrypted": true,
+    "manifest_sha256_matches": true,
+    "scope": "Single PostgreSQL database; ownership/grants excluded. No roles, other databases, volumes or external media."
+  },
+  "restore": {
+    "database": "fresh template0-derived kokonut_restore",
+    "role_prerequisites_applied": true,
+    "schema_fingerprint_matches": true,
+    "migration_count": 653,
+    "latest_migration": "schema:662_runtime_access_audit_log_append_only.sql",
+    "synthetic_sentinel_matches": true
+  }
+}

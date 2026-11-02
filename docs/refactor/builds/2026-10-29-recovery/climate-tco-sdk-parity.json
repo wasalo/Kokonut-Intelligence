@@ -1,0 +1,55 @@
+{
+  "result": "passed",
+  "candidate_or_legacy_modified": false,
+  "database_or_provider_used": false,
+  "checks": {
+    "weekly_climate_prefect": {
+      "command": "python3 -m pytest tests/test_prefect_workflow.py -k scheduled_weekly -q",
+      "passed": 2,
+      "coverage": [
+        "default-off weekly composite skips before invoking climate flow",
+        "enabled signed worker preserves climate flow dispatch and result"
+      ]
+    },
+    "direct_climate_worker": {
+      "command": "python3 -m pytest tests/test_climate_worker.py::test_worker_fails_closed_when_feature_is_disabled -q",
+      "passed": 1,
+      "coverage": [
+        "direct worker remains fail-closed while its feature is disabled"
+      ]
+    },
+    "total_cost_of_ownership_projection": {
+      "command": "KOKONUT_ISOLATED_WORKER_KEY=prm_metrics_test python3 -m pytest tests/test_prm_metrics.py -k total_cost_of_ownership -q",
+      "passed": 4,
+      "coverage": [
+        "exact ordered migration-196 nine-column projection",
+        "unfiltered, location-only, process-only, and combined filter modes",
+        "UUID/process bind order, descending total-cost sorting, and row serialization",
+        "isolated fake connection; no database access"
+      ]
+    },
+    "python_public_sdk_timeout": {
+      "command": "python3 -m pytest tests/test_public_api_sdk.py -q",
+      "passed": 156,
+      "coverage": [
+        "default and ordinary timeout behavior preserved",
+        "finite values above JavaScript timer-safe maximum rejected before requests",
+        "maximum 2,147,483.647-second boundary accepted"
+      ]
+    },
+    "javascript_public_sdk_timeout": {
+      "command": "npm test -- src/__tests__/public-api.test.ts -t timeout",
+      "passed": 6,
+      "skipped": 135,
+      "coverage": [
+        "existing JavaScript timer-safe timeout boundary regressions"
+      ]
+    },
+    "static": {
+      "ruff_changed_files": "passed",
+      "python_compileall_changed_files": "passed",
+      "runtime_sql_inventory": "current",
+      "worker_sql_and_reachability_inventories": "current"
+    }
+  }
+}

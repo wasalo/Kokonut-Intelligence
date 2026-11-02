@@ -1,13 +1,17 @@
 # PostgreSQL Initialization Scripts
 
-SQL scripts that run on first container start (or via `scripts/seed.sh`).
+Legacy bootstrap SQL applied explicitly by `scripts/seed.sh`. These files are
+not mounted into the PostgreSQL container's automatic
+`/docker-entrypoint-initdb.d` directory. The Kernel candidate has a separate
+bootstrap and ordered migration procedure; see the [current implementation
+guide](../../docs/refactor/current-state-and-implementation.md).
 
 ## Files
 
 | File | Purpose | When Applied |
 |---|---|---|
-| `init.sql` | Extensions, schema, roles, Metabase DB | First container start (Docker entrypoint) |
-| `extensions.sql` | Optional/superuser extensions | Explicitly via `seed.sh` |
+| `init.sql` | Legacy foundational extensions, schema/search path, and Metabase DB | Explicitly through `scripts/seed.sh` |
+| `extensions.sql` | Historical repeat declaration for `pg_stat_statements` | Explicitly through `scripts/seed.sh` after `init.sql` |
 
 ## init.sql
 
@@ -20,42 +24,41 @@ Creates the foundational database objects:
 
 ## Migration source immutability
 
-`schemas/postgres/000_extensions.sql` records the originally deployed baseline
-and is checksum-tracked. Later extension additions belong in forward-only
-schema migrations (currently `schemas/postgres/378_optional_extensions.sql`),
-which remain idempotent alongside the first-boot declarations in `init.sql`.
-Do not edit an applied migration to add an extension; add a new ordered
-migration instead.
+`schemas/postgres/000_extensions.sql` records the baseline and is
+checksum-tracked. Later extension additions belong in forward-only schema
+migrations, including `schemas/postgres/315_btree_gist.sql` and the historical
+`schemas/postgres/378_optional_extensions.sql`. Do not edit an applied
+migration to add an extension; add a new ordered migration instead. The
+migration ledger and target database determine which migrations have actually
+been applied.
 
 ## extensions.sql
 
-Optional extensions that require superuser or are not critical:
-
-- `pg_stat_statements` — query analytics and performance monitoring
+This legacy file repeats the `pg_stat_statements` declaration already present
+in `init.sql` and the canonical extension migration. It does not represent a
+separate optional extension bundle.
 
 ## How They're Applied
 
-```bash
-# Via seed.sh (standard path)
-cat config/postgres/init.sql | docker exec -i kokonut-database psql -U kokonut -d kokonut_intelligence
-cat config/postgres/extensions.sql | docker exec -i kokonut-database psql -U kokonut -d kokonut_intelligence
-```
-
-Also applied automatically by the Postgres Docker entrypoint on first start.
+From the repository root, use `./scripts/seed.sh` after selecting the intended
+legacy Compose target and loading its secrets. The root Compose file does not
+mount either file into the Postgres image's first-boot entrypoint directory;
+the script explicitly sends them to the configured PostgreSQL service.
 
 ## Adding New Extensions
 
-1. **Standard extensions** (no superuser): Add to `init.sql`
-2. **Superuser extensions**: Add to `extensions.sql`
-3. Re-apply: `./scripts/seed.sh` or restart the database container
+1. For legacy bootstrap compatibility only, update `init.sql` or `extensions.sql` as appropriate.
+2. For a schema change, add a new ordered migration instead of changing an already-applied migration.
+3. Use the documented seed/migration runner for the explicitly selected target; restarting the database does not apply these files.
 
 ## Adding New Schemas
 
-Add to `init.sql`:
+For legacy bootstrap compatibility, add to `init.sql`:
 
 ```sql
 CREATE SCHEMA IF NOT EXISTS my_schema;
 GRANT USAGE ON SCHEMA my_schema TO kokonut;
 ```
 
-Then update `DB_SEARCH_PATH` in `docker-compose.yml` if needed.
+Apply with `./scripts/seed.sh`. Kernel schema changes belong in ordered
+migrations and must use the candidate rollout procedure.

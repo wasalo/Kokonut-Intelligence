@@ -1,7 +1,7 @@
 """Regression coverage for P0 consent and public-visibility gates."""
 
+import re
 from pathlib import Path
-
 
 ROOT = Path(__file__).resolve().parents[1]
 MIGRATION = (ROOT / "schemas/postgres/298_consent_privacy_p0.sql").read_text()
@@ -32,3 +32,35 @@ def test_analyst_feedback_permission_is_public_safe_only():
     assert '"is_public":{"_eq":true}' in PERMISSIONS
     assert '"consent_given":{"_eq":true}' in PERMISSIONS
     assert '"party_id":{"_nnull":true}' in PERMISSIONS
+
+    public_fields = (
+        "id,location_id,farm_id,feedback_type,stakeholder_group,feedback_date,"
+        "sentiment,themes,public_summary,evidence_maturity"
+    )
+    inserted = re.search(
+        r"\('stakeholder_feedback', 'read', '([^']+)', '\{\}', '([^']+)', "
+        r"'b1000000-0000-0000-0000-000000000005'\)",
+        PERMISSIONS,
+    )
+    assert inserted is not None
+    assert inserted.group(2) == public_fields
+
+    updated = re.search(
+        r"UPDATE directus_permissions\s+SET permissions = '([^']+)',\s+"
+        r"fields = '([^']+)'\s+WHERE policy = 'b1000000-0000-0000-0000-000000000005'\s+"
+        r"AND collection = 'stakeholder_feedback'\s+AND action = 'read';",
+        PERMISSIONS,
+    )
+    assert updated is not None
+    assert updated.group(2) == public_fields
+
+    for private_field in (
+        "feedback_text",
+        "stakeholder_name",
+        "feedback_audio_cid",
+        "harms_or_unintended_consequences",
+        "consent_notes",
+        "source_raw",
+        "party_id",
+    ):
+        assert private_field not in updated.group(2)

@@ -110,5 +110,110 @@ def test_sensor_ingester_ch_str_escapes():
     assert "\\\\" in result
 
 
+@pytest.mark.parametrize(
+    ("date_value", "time_value"),
+    [
+        ("2026-02-30", None),
+        ("not-a-date", "12:30:00"),
+        ("2026-10-29", "25:00:00"),
+        (None, ""),
+    ],
+)
+def test_single_sensor_reading_rejects_bad_date_or_time_before_database(
+    monkeypatch, date_value, time_value
+):
+    import services.ingestion.sensor_ingester as sensor_ingester
+
+    argv = [
+        "--sensor", "synthetic-sensor",
+        "--value", "12.5",
+        "--location-id", "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+    ]
+    if date_value is not None:
+        argv.extend(["--date", date_value])
+    if time_value is not None:
+        argv.extend(["--time", time_value])
+    monkeypatch.setattr(
+        sensor_ingester,
+        "run_single",
+        lambda *_args, **_kwargs: pytest.fail("invalid input reached database dispatch"),
+    )
+    monkeypatch.setattr(
+        sensor_ingester,
+        "get_db",
+        lambda *_args, **_kwargs: pytest.fail("invalid input opened PostgreSQL"),
+    )
+
+    with pytest.raises(SystemExit) as error:
+        sensor_ingester.main(argv)
+
+    assert error.value.code == 2
+
+
+def test_single_sensor_reading_forwards_valid_date_time_unchanged(monkeypatch):
+    import services.ingestion.sensor_ingester as sensor_ingester
+    from services.ingestion.field_validation import parse_reading_timestamp
+
+    calls = []
+    monkeypatch.setattr(
+        sensor_ingester, "run_single", lambda *args: calls.append(args)
+    )
+    monkeypatch.setattr(
+        sensor_ingester,
+        "get_db",
+        lambda *_args, **_kwargs: pytest.fail("mocked CLI must not open PostgreSQL"),
+    )
+
+    sensor_ingester.main(
+        [
+            "--sensor", "synthetic-sensor",
+            "--value", "12.5",
+            "--location-id", "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+            "--date", "2026-10-29",
+            "--time", "12:30:45",
+        ]
+    )
+
+    assert calls == [
+        (
+            "synthetic-sensor",
+            12.5,
+            "2026-10-29",
+            "12:30:45",
+            "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+        )
+    ]
+    assert parse_reading_timestamp("2026-10-29", "12:30:45").isoformat() == (
+        "2026-10-29T12:30:45+00:00"
+    )
+
+
+def test_single_sensor_reading_omitted_date_time_keep_service_defaults(monkeypatch):
+    import services.ingestion.sensor_ingester as sensor_ingester
+
+    calls = []
+    monkeypatch.setattr(
+        sensor_ingester, "run_single", lambda *args: calls.append(args)
+    )
+
+    sensor_ingester.main(
+        [
+            "--sensor", "synthetic-sensor",
+            "--value", "12.5",
+            "--location-id", "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+        ]
+    )
+
+    assert calls == [
+        (
+            "synthetic-sensor",
+            12.5,
+            None,
+            None,
+            "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+        )
+    ]
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

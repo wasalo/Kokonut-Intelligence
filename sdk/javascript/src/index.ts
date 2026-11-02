@@ -10,10 +10,14 @@ export {
 export { KokonutPublicApiClient, PublicApiError } from './public-api.js';
 export type {
   PublicApiClientOptions,
+  PublicDriverListOptions,
   PublicFetch,
   PublicFetchResponse,
   PublicAttestationCountsV1,
   PublicCrispAssessmentEnvelopeV1,
+  PublicDriverCatalogEntryV1,
+  PublicDriverCatalogEnvelopeV1,
+  PublicDriverCatalogResponseV1,
   PublicLocationV1,
   PublicLocationListResponseV1,
   PublicLocationResponseV1,
@@ -258,6 +262,5 @@ export type {
   AttestationMethods,
   ReportMethods,
   ExportMethods,
-  ExportCreateRequest,
   NoiMethods,
 } from './methods.js';

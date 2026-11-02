@@ -2,6 +2,8 @@
 
 from pathlib import Path
 
+import pytest
+
 SCHEMA = Path("schemas/postgres/063_statement_of_work.sql")
 FIX_MIGRATION = Path("schemas/postgres/320_consent_lifecycle_public_gates.sql")
 FINANCIAL_GATES_MIGRATION = Path("schemas/postgres/321_public_financial_governance.sql")
@@ -123,6 +125,210 @@ def test_report_type_registered() -> None:
     mod = importlib.import_module("services.export.report_generator")
     assert "statement_of_work" in mod.REPORT_GENERATORS
     assert hasattr(mod, "generate_statement_of_work")
+
+
+class _StatementOfWorkCursor:
+    def __init__(self, connection):
+        self.connection = connection
+        self.rows = []
+
+    def execute(self, query, params=None):
+        normalized = " ".join(query.split())
+        self.connection.queries.append((normalized, params))
+        if "FROM location" in normalized:
+            self.rows = [{"name": "Kokonut Genesis"}]
+        elif "FROM statement_of_work" in normalized:
+            self.rows = [self.connection.sow_row]
+        elif "FROM financial_sustainability_plan" in normalized:
+            self.rows = []
+        elif "FROM sow_deliverable" in normalized:
+            self.rows = self.connection.child_rows["sow_deliverable"]
+        elif "FROM sow_payment_schedule" in normalized:
+            self.rows = self.connection.child_rows["sow_payment_schedule"]
+        elif "FROM sow_change_request" in normalized:
+            self.rows = self.connection.child_rows["sow_change_request"]
+        elif any(
+            f"FROM {table}" in normalized
+            for table in (
+                "objective",
+                "farm_task",
+                "development_phase",
+                "framework_step",
+                "staff",
+                "partner",
+                "forecast_output",
+                "sow_deliverable",
+                "sow_payment_schedule",
+                "sow_change_request",
+            )
+        ):
+            self.rows = []
+        else:
+            raise AssertionError(f"unexpected Statement of Work query: {normalized}")
+
+    def fetchone(self):
+        return self.rows[0] if self.rows else None
+
+    def fetchall(self):
+        return self.rows
+
+    def close(self):
+        pass
+
+
+class _StatementOfWorkConnection:
+    def __init__(self, sow_row, child_rows=None):
+        self.sow_row = sow_row
+        self.child_rows = {
+            "sow_deliverable": [],
+            "sow_payment_schedule": [],
+            "sow_change_request": [],
+        }
+        self.child_rows.update(child_rows or {})
+        self.queries = []
+
+    def cursor(self, **_kwargs):
+        return _StatementOfWorkCursor(self)
+
+
+def test_report_projects_current_sow_columns_and_preserves_row_payload():
+    from services.export.reports.operations import generate_statement_of_work
+
+    columns = [
+        "id",
+        "location_id",
+        "sow_name",
+        "sow_version",
+        "effective_date",
+        "expiration_date",
+        "client_name",
+        "contractor_name",
+        "total_contract_value",
+        "currency",
+        "payment_terms",
+        "status",
+        "metadata",
+        "source_system",
+        "source_id",
+        "source_raw",
+        "created_at",
+        "updated_at",
+        "created_by",
+        "updated_by",
+    ]
+    sow_row = {column: f"value-{index}" for index, column in enumerate(columns)}
+    connection = _StatementOfWorkConnection(sow_row)
+
+    report = generate_statement_of_work(
+        connection, "11111111-1111-4111-8111-111111111111"
+    )
+
+    sow_query, sow_params = next(
+        (query, params)
+        for query, params in connection.queries
+        if "FROM statement_of_work" in query
+    )
+    projection = sow_query.split(" FROM ", maxsplit=1)[0]
+    assert projection == "SELECT " + ", ".join(columns)
+    assert sow_params == ("11111111-1111-4111-8111-111111111111",)
+    assert report["sow"] == sow_row
+
+
+@pytest.mark.parametrize(
+    ("table", "report_field", "ordering", "columns"),
+    [
+        (
+            "sow_deliverable",
+            "deliverables",
+            "due_date",
+            [
+                "id",
+                "sow_id",
+                "deliverable_name",
+                "description",
+                "acceptance_criteria",
+                "due_date",
+                "delivered_at",
+                "status",
+                "notes",
+                "metadata",
+                "source_system",
+                "source_id",
+                "source_raw",
+                "created_at",
+                "updated_at",
+            ],
+        ),
+        (
+            "sow_payment_schedule",
+            "payment_schedule",
+            "due_date",
+            [
+                "id",
+                "sow_id",
+                "milestone_name",
+                "amount",
+                "due_date",
+                "payment_status",
+                "invoice_number",
+                "paid_at",
+                "metadata",
+                "source_system",
+                "source_id",
+                "source_raw",
+                "created_at",
+                "updated_at",
+            ],
+        ),
+        (
+            "sow_change_request",
+            "change_requests",
+            "created_at",
+            [
+                "id",
+                "sow_id",
+                "change_name",
+                "description",
+                "impact_on_timeline",
+                "impact_on_budget",
+                "requested_by",
+                "status",
+                "decided_at",
+                "metadata",
+                "source_system",
+                "source_id",
+                "source_raw",
+                "created_at",
+                "updated_at",
+            ],
+        ),
+    ],
+)
+def test_report_projects_current_sow_child_columns_and_preserves_payload(
+    table, report_field, ordering, columns
+):
+    from services.export.reports.operations import generate_statement_of_work
+
+    child_row = {column: f"value-{index}" for index, column in enumerate(columns)}
+    connection = _StatementOfWorkConnection(
+        sow_row={"id": "sow-1"},
+        child_rows={table: [child_row]},
+    )
+
+    report = generate_statement_of_work(
+        connection, "11111111-1111-4111-8111-111111111111"
+    )
+
+    child_query, child_params = next(
+        (query, params)
+        for query, params in connection.queries
+        if f"FROM {table}" in query
+    )
+    projection = child_query.split(" FROM ", maxsplit=1)[0]
+    assert projection == "SELECT " + ", ".join(columns)
+    assert f"WHERE sow_id = %s ORDER BY {ordering}" in child_query
+    assert child_params == ("sow-1",)
+    assert report[report_field] == [child_row]
 
 
 # ---------------------------------------------------------------------------

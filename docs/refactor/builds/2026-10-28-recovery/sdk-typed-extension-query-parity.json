@@ -1,0 +1,52 @@
+{
+  "result": "passed",
+  "date": "2026-10-28",
+  "source_revision": "66c1152b",
+  "working_tree_dirty": true,
+  "scope": "Python and JavaScript/TypeScript Directus list-query extension parity through typed location readers",
+  "behavior": {
+    "python_option": "ListOptions.extra_params",
+    "javascript_option": "ListOptions.extraParams",
+    "extension_parameters": "Forwarded and serialized using existing Directus query conventions",
+    "scoped_filter": "Typed location helper overwrites conflicting location filters",
+    "standard_options": "Typed filter, sort, fields, limit, offset, page, and meta values cannot be overridden by extension parameters",
+    "authorization": "No authorization or tenant-isolation claim; query scoping is a client convenience only"
+  },
+  "checks": {
+    "python": {
+      "command": "python3 -m pytest tests/test_sdk.py tests/test_sdk_method_parity.py -q",
+      "result": "107 passed"
+    },
+    "javascript": {
+      "command": "npm test",
+      "result": "56 passed"
+    },
+    "typescript_build": {
+      "command": "npm run build",
+      "result": "passed"
+    },
+    "ruff": {
+      "command": "ruff check sdk/python/kokonut/types.py sdk/python/kokonut/methods.py tests/test_sdk.py",
+      "result": "passed"
+    },
+    "capability_matrix": {
+      "command": "python3 scripts/check-capability-matrix.py",
+      "result": "67 rows valid; 24 baseline-retained, 7 deployed, 36 prepared"
+    },
+    "diff_check": {
+      "command": "git diff --check",
+      "result": "passed"
+    }
+  },
+  "external_services": {
+    "database": false,
+    "provider": false,
+    "network": false,
+    "candidate_or_legacy": false
+  },
+  "rollback": "Revert the SDK, documentation, and regression-test changes; no migration or persisted data was changed.",
+  "limitations": [
+    "Broader SDK, route, live identity, and tenant/RLS parity remain open.",
+    "ARM64/QEMU full-schema replay through migration 679 is a separate in-progress check."
+  ]
+}

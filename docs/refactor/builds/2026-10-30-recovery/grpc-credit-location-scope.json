@@ -1,0 +1,39 @@
+{
+  "date": "2026-10-30",
+  "slice": "location-scoped credit gRPC writes",
+  "authorization_basis": "Owner confirmed there are no active gRPC clients for batch, marketplace, or bridge mutations and directed replacement of scoped writes first.",
+  "operations": [
+    {
+      "rpc": "CreateBatch",
+      "scope": "ecocredit_batch:create:<location-uuid>",
+      "context": "kokonut_security.set_gateway_tenant_context on the same write transaction"
+    },
+    {
+      "rpc": "ApplyToClass",
+      "scope": "ecocredit_enrollment:apply:<location-uuid>",
+      "context": "kokonut_security.set_gateway_tenant_context on the same write transaction"
+    }
+  ],
+  "security_properties": [
+    "Raw API keys are not propagated to RPC handlers; only SHA-256 key digests are retained.",
+    "Exact location grant validation occurs before service database acquisition.",
+    "Database revalidation checks active key, expiry, exact scope, active location, and current verified owner.",
+    "Legacy global and wildcard scopes do not authorize these two mutation RPCs."
+  ],
+  "checks": {
+    "mocked_pytest_command": "python3 -m pytest tests/test_grpc_location_scoped_credit_writes.py tests/test_grpc_rpc_policy_inventory.py -q",
+    "mocked_pytest_result": "13 passed",
+    "existing_auth_scope_command": "python3 -m pytest tests/test_grpc.py -k 'TestAPIKeyInterceptor or TestRequireScope' -q",
+    "existing_auth_scope_result": "13 passed, 23 deselected",
+    "loopback_pytest_command": "python3 -m pytest tests/test_grpc_enabled_transport.py::test_create_batch_rpc_forwards_origin_transaction_reference -q",
+    "loopback_pytest_result": "1 passed; ephemeral loopback server, synthetic API key, mocked database/domain writer",
+    "ruff": "passed",
+    "py_compile": "passed",
+    "git_diff_check": "passed"
+  },
+  "not_changed": [
+    "No database migration or candidate/legacy/production database was changed.",
+    "No credit-class table privilege was revoked.",
+    "Other gRPC mutation RPCs still need location/account or separate admin/worker authorization."
+  ]
+}

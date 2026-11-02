@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: Kokonut Intelligence Directus API
-  description: 'This specification describes the Directus REST and GraphQL surface for the Kokonut Intelligence Platform, not the optional Kokonut FastAPI gateway.
+  description: 'This specification describes the Directus REST and GraphQL adapter for the Kokonut Intelligence Platform, not the native Kokonut FastAPI Gateway.
 
     The platform is a comprehensive agricultural and environmental data management system.
 

@@ -1,0 +1,32 @@
+{
+  "date": "2026-10-29",
+  "scope": "mock-cursor-view-projection",
+  "view": "v_value_stream_performance",
+  "migration": 210,
+  "columns": [
+    "stream_id",
+    "stream_name",
+    "stakeholder_type",
+    "trigger_event",
+    "end_state",
+    "stream_status",
+    "stage_id",
+    "stage_name",
+    "sequence_order",
+    "process_key",
+    "target_lead_time_hours",
+    "target_fty_pct",
+    "observation_count",
+    "avg_lead_time_hours",
+    "avg_fty_pct",
+    "last_observed_at"
+  ],
+  "filter": "stream_id",
+  "ordering": "sequence_order",
+  "focused_tests_passed": 1,
+  "ruff": "passed",
+  "python_compile": "passed",
+  "diff_check": "passed",
+  "database_contacted": false,
+  "provider_contacted": false
+}

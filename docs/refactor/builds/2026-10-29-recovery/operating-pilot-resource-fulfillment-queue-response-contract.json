@@ -1,0 +1,56 @@
+{
+  "date": "2026-10-29",
+  "batch": "operating-pilot resource-fulfillment queue response contract",
+  "source": {
+    "schema_and_lifecycle": [
+      "schemas/postgres/253_operating_coaching_resources.sql",
+      "schemas/postgres/567_location_operating_pilot_resource_request_draft.sql",
+      "schemas/postgres/570_location_operating_pilot_resource_draft_submission.sql",
+      "schemas/postgres/572_location_operating_pilot_resource_review_decision.sql"
+    ],
+    "reader_and_fulfillment": "schemas/postgres/573_location_operating_pilot_resource_fulfillment.sql"
+  },
+  "contract": {
+    "route": "GET /operator/api/operating-pilot/{location_id}/resource-fulfillment-queue",
+    "item_fields": [
+      "resource_request_id",
+      "resource_type",
+      "description",
+      "urgency",
+      "requested_by"
+    ],
+    "page_fields": [
+      "location_id",
+      "items",
+      "limit",
+      "offset",
+      "has_more",
+      "next_offset",
+      "total"
+    ],
+    "validation": "Exact migration-backed OpenAPI/runtime projection; signed request location and pagination binding; source-defined resource type, description, urgency and date bounds; exact row count/continuation; unique IDs; requested_by DESC, id DESC ordering; continuation ends at offset 10,000; requester, fulfiller and private receipt fields are excluded.",
+    "authorization": "Exact operating_pilot:fulfill location grant and signed tenant context are unchanged; the route performs a bounded read only."
+  },
+  "verification": {
+    "focused_command": "python3 -m pytest tests/test_gateway_operating_pilot_resource_fulfillment_contracts.py tests/test_gateway_operating_pilot_reads.py -k resource_fulfillment -q",
+    "focused_tests": 33,
+    "focused_result": "passed",
+    "ruff_default": "passed on changed source and tests",
+    "ruff_security_source": "passed",
+    "python_compile": "passed",
+    "capability_matrix": "passed: 67 rows; 24 baseline-retained, 7 deployed, 36 prepared",
+    "runtime_sql_inventory": "current; unresolved-write review ledger current",
+    "report_generator_helper_scope_inventory": "current",
+    "provider_boundaries": "passed: 17 vendor import sites",
+    "dependency_groups": "passed: 14 groups, 33 requirements",
+    "git_diff_check": "passed",
+    "fixture_update": "Updated the prior fulfillment route fixture with the complete page metadata required by the strict response contract."
+  },
+  "environment": {
+    "database": "not used",
+    "provider": "not used",
+    "candidate_or_legacy_state": "untouched",
+    "migration_applied": false
+  },
+  "rollback": "Revert the Gateway response model/route, focused tests, fixture update, and refactor progress/evidence records; no database rollback is needed."
+}

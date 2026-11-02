@@ -1,5 +1,22 @@
 # Repository Guidelines
 
+## Current architecture and status source
+
+For the current Kernel architecture, deployment profiles, phase status,
+acceptance evidence, and remaining refactor gates, start with
+[`docs/refactor/current-state-and-implementation.md`](docs/refactor/current-state-and-implementation.md).
+The [refactor documentation map](docs/refactor/README.md) routes readers to the
+supporting records. The current-state guide is the canonical status summary;
+`docs/refactor/progress.md` is the dated historical ledger, while the capability
+matrix, batch checklist, and C1 plan hold detailed classifications and
+acceptance. Do not treat an old evidence entry as current deployment state.
+
+The repository still contains a legacy Compose stack as well as the isolated
+Kernel candidate. Current work targets the candidate's native Gateway and
+Python services. Distinguish legacy compatibility instructions from Kernel
+defaults, and distinguish source code, test/disposable acceptance, candidate
+rollout, and production acceptance.
+
 ## Contributing Workflow
 
 Feature work follows a branch → PR → merge flow through `develop`; reviewed releases are promoted from `develop` to `main`:
@@ -46,14 +63,63 @@ Commands:
 
 ## Project Shape
 
-- PostgreSQL and Directus are the canonical schema/API layer.
-- ClickHouse is the analytical event store.
+- PostgreSQL with PostGIS is the canonical operational schema and durable
+  state. The Kokonut Gateway and Python domain services are the native
+  application layer.
+- Directus remains an optional compatibility/admin adapter while field,
+  permission, tenant, and extension-hook parity is completed. Do not make it a
+  required dependency of the Kernel API path.
+- ClickHouse is an optional analytical projection. PostgreSQL remains the
+  operational source of truth; Metabase is optional and not required by the
+  Kernel base profile.
+- In the Standard profile, API and worker run as separate services but currently
+  connect with the shared `kokonut_runtime` database login. Do not describe
+  them as having distinct database identities; closing that C1 boundary is
+  still open.
+- The Standard supervisor launches the Gateway API as a child process. Its
+  environment must preserve the API's configured `PG_*` runtime connection
+  while filtering unrelated worker DSNs and credentials; never apply the
+  default-off worker shared-database deny marker to the API child.
+- Standard's event dispatcher and notification-delivery child require their
+  dedicated migration-backed logins and explicit isolation flags. Global
+  freshness and ClickHouse outbox jobs also use dedicated worker paths when
+  enabled. Until those paths are configured, these operations pause or fail
+  closed; they must not fall back to shared-runtime writes. Notification
+  enqueue handlers run in filtered children and use the migration-417
+  bounded function when enabled. These operation identities do not separate
+  the API from the general worker, which still share `kokonut_runtime`.
+- Isolated subprocesses carry `KOKONUT_DENY_SHARED_DATABASE=true`; dotenv
+  loading and the canonical shared connector must honor that marker even when
+  no worker-specific identity is enabled. Never weaken it by changing Docker
+  socket permissions or passing the shared database login to an isolated
+  child.
+- Runtime-role bootstrap applies its broad legacy compatibility table/sequence
+  grant only to a newly created login or a fresh migration-created placeholder
+  explicitly marked for its first provisioning. It marks that one-time
+  compatibility step complete. A pre-existing unmarked role is not widened;
+  later reprovisioning preserves existing grants and does not grant access to
+  relations created afterward. This guard does not remove broad grants from
+  existing tables; C1 remains open until those writer cohorts are reviewed and
+  migrated.
+- Standard can select Edge settings with the planner's `standard --edge`
+  option. This composes the encrypted local-media provider and
+  private-media volume onto the API, plus Edge resource limits on PostgreSQL
+  and the API; the worker receives no media key or volume and no copied resource
+  limits. This is source-level composition support, not physical Raspberry Pi
+  or production acceptance. See
+  [`docs/refactor/standard-profile.md`](docs/refactor/standard-profile.md).
+- Redis, Prefect, Mosquitto, gRPC, and Caddy are selectable or replaceable
+  adapters/overlays. The native durable scheduler and worker state are the
+  owned orchestration path; optionality must be demonstrated before an old
+  service is retired.
 - Python services live under `services/` and should be runnable with `python3 -m ...`.
 - SQL schemas live under `schemas/postgres/`; seed data lives under `schemas/seeds/`.
 - Directus hooks live under `extensions/kokonut-hooks/`.
 - Solidity contracts live under `contracts/` (Foundry project).
 - Foundry dependencies (`contracts/lib/`) are committed to the repo. Do not add `lib/` to `.gitignore`.
-- Celo is the primary EAS attestation chain. EAS v1.3.0 is deployed on Celo mainnet.
+- Celo is the configured primary EAS attestation target. Verify current chain
+  state and deployment addresses against live sources before making deployment
+  claims.
 - The KokonutResolver (`0x6E1502c7a14b45aba5FC420dC92C1E3b38BD79Ad`) gates attestation to allowed attesters.
 - Resolver ownership is on the Kokonut multisig (`0x03779B674CbCBfc0B801c4cAc9DFaC8aACbbD5c5`).
 - Kokonut Adelphi (`kokonut-adelphi`) is the canonical pilot/demo farm. Do not reintroduce the old Kisumu demo identity as source of truth.
@@ -71,11 +137,26 @@ Commands:
 
 - In the Codex restricted shell, direct access to Docker Desktop's user socket (`~/.docker/run/docker.sock`) is blocked by the command sandbox even when Docker is healthy. Run Docker CLI commands through the approved host-access/elevated command path; do not change socket ownership or make it world-writable, since that cannot remove the sandbox restriction and would weaken host security.
 - Metric computation creates draft, unverified `metric_value` rows. Never describe `--compute` or `compute-metrics.sh` as verification; a human must run `--verify-value` separately.
+- Environmental-baseline sensor alerts and mock-sensor cleanup use signed, exact-location worker functions. Baseline alerts and their event/notification intents are transactional and retry-safe; cleanup requires an explicit UUID and only removes data whose sensor remains marked as a demo device. Do not restore direct `sensor_alert` DML to the shared runtime role.
 - Base Compose keeps PostgreSQL and ClickHouse private. Use Compose service names for database access; do not document host ports unless an explicit override publishes them.
+- ClickHouse retention is not configured. Keep automated TTL pruning disabled in source DDL. The legacy seed runner applies schema 011 through `scripts/apply-clickhouse-retention.py`, which checks table metadata and removes a TTL only when one exists; use that helper for an existing Kernel analytics target before enabling ingestion. Do not create a fixed retention rule without an owner-approved configurable policy that respects jurisdiction and legal holds.
+- Validate the ClickHouse no-prune bootstrap/upgrade and repeat apply with `python3 scripts/check-clickhouse-retention-disposable.py`; it uses a network-disabled temporary server and synthetic data.
 - `compute-metrics.sh` runs metrics once and exits. With the Compose database running it uses an ephemeral `kokonut-worker` via `docker compose run --rm`; it is not a persistent metrics service.
 - Migrations are ordered and checksummed. Do not edit an applied migration or bypass drift detection; add a new migration and preserve transactional failure behavior.
 - Gateway public access is explicit opt-in. Unknown routes remain protected, and new routes require deliberate resource/action/public policy plus authorization tests.
 - Scheduler claims, run state, event delivery, notification delivery, retries, and dead-letter disposition are durable database state. Preserve leases, idempotency, bounded retries, and explicit operator replay/disposal.
+- Migrations 719–723 retain runtime reads while narrowing writes on three
+  non-updatable public aggregate views, moving thesaurus mutations behind
+  bounded security-definer functions, making governance reference catalogs
+  read-only, making the migration ledger read-only to the application login,
+  and removing direct runtime writes from isolated worker-owned event,
+  freshness, and notification tables. Keep each policy aligned across migration, runtime-role
+  reprovisioning, source ACL reporting, and disposable acceptance; these
+  changes do not establish tenant isolation.
+- Treat aggregate ACL and source-inventory counts as privilege reach and
+  review coverage, not counts of confirmed data leaks. Source absence alone is
+  not grounds to revoke a writer; use the current C1 evidence and reviewed
+  caller map before changing a grant.
 - Credit writes must preserve batch/account custody and supply invariants. Retirement reserves quantity atomically and requires an independent human confirmation before final balance mutation or certificate use.
 - Threatcasting/backcasting outputs and Delphi facilitator recommendations are advisory. Preserve governed lifecycle, evidence links, and human approval boundaries.
 - Focused platform-integrity tests: `python3 -m pytest tests/test_migration.py tests/test_gateway_auth.py tests/test_scheduler_durability.py tests/test_kgp_worker_durability.py tests/test_event_worker_recovery.py tests/test_event_bus_durability.py tests/test_directus_tenant_permissions.py tests/test_carbon_credits.py tests/test_threatcasting.py tests/test_backcasting_enhancements.py tests/test_delphi.py -v`
@@ -85,6 +166,17 @@ Commands:
 - Check Kernel dependency group alignment: `python3 scripts/check-requirement-groups.py`
 - Check optional provider import boundaries: `python3 scripts/check-provider-boundaries.py`
 - Check runtime-role boundaries in disposable PostgreSQL: `python3 scripts/check-operator-session-role-disposable.py`
+- Check migration-declared runtime table/column denials in disposable PostgreSQL: `python3 scripts/check-runtime-scoped-write-boundary-disposable.py`
+- Check the migration-741 `quality_grade` reference-catalog ACL in disposable PostgreSQL: `python3 scripts/check-quality-grade-runtime-boundary-disposable.py`
+- Check the migration-742 `readiness_dimension` catalog ACL in disposable PostgreSQL: `python3 scripts/check-readiness-dimension-runtime-boundary-disposable.py`
+- Check the migration-743 public EBF scorecard view ACL in disposable PostgreSQL: `python3 scripts/check-public-ebf-scorecard-runtime-boundary-disposable.py`
+- Check signed sensor baseline, event inventory, demo cleanup, and the `sensor_alert` runtime ACL in disposable PostgreSQL: `python3 scripts/check-sensor-anomaly-alert-write-disposable.py`
+- Check the migration-720 thesaurus function boundary in disposable PostgreSQL: `python3 scripts/check-thesaurus-runtime-boundary-disposable.py`
+- Check the migration-721 governance reference-catalog boundary in disposable PostgreSQL: `python3 scripts/check-governance-reference-catalog-runtime-boundary-disposable.py`
+- Check migration 723's isolated event/freshness/notification write boundary in disposable PostgreSQL: `python3 scripts/check-isolated-worker-runtime-write-boundary-disposable.py`
+- Check migration 725's framework reference-catalog read boundary, migration replay, runtime-provisioner behavior, and preserved owner/Directus rights in disposable PostgreSQL: `python3 scripts/check-framework-reference-catalog-runtime-boundary-disposable.py`
+- Check the migration-647 notification-delivery worker boundary in disposable PostgreSQL: `python3 scripts/check-notification-delivery-worker-disposable.py`
+- Check the complete Standard profile migration, health, outage/recovery, and cleanup path in a portless disposable deployment: `KOKONUT_STANDARD_RECOVERY_TIMEOUT=900 python3 scripts/check-kernel-standard-recovery-disposable.py`
 - Check worker source import closure: `python3 scripts/worker_source_closure.py --check docs/refactor/worker-source-closure.json`
 - Check worker direct function reachability: `python3 scripts/worker_function_reachability.py --check docs/refactor/worker-function-reachability.json`
 - Check worker SQL/function reachability: `python3 scripts/worker_sql_reachability.py --check docs/refactor/worker-sql-reachability.json`
@@ -113,7 +205,9 @@ Commands:
 - Run attestation tests: `python3 -m tests.test_attestation`
 - Run Directus metadata tests: `python3 -m tests.test_directus_metadata`
 - Verify platform definition of done: `./scripts/verify-platform.sh`
-- Run CI checks: `./scripts/ci-check.sh` (also runs on push via `.github/workflows/ci.yml`). CI exposes PostgreSQL/ClickHouse to localhost via the `docker-compose.ci.yml` override so host-run DB checks execute; `ci-check.sh` fails loudly if the database cannot be brought up (no silent skip).
+- Run local fast-fail CI checks and the clean database bootstrap: `./scripts/ci-check.sh` or `make ci`. The GitHub workflow in `.github/workflows/ci.yml` runs dependency-free preflight first, then parallel source/security/static/contract, database integration, and multi-architecture image gates; required `CI / ci` is an aggregate over all of them. Integration uses the `docker-compose.ci.yml` override and loopback-only database ports, fails loudly if the database cannot start, and uploads failure diagnostics for seven days. See [`docs/ci.md`](docs/ci.md) for local/full workflow distinctions and log retrieval.
+- Print the Standard immutable-image pull/start command: `python3 scripts/kernel-profile.py standard --action release-up`. It requires reviewed digest-pinned image references and prints `docker compose pull` plus `up --no-build`; it does not execute them or migrate the database. See [`docs/refactor/standard-profile.md`](docs/refactor/standard-profile.md) before a release.
+- Inspect Standard with Edge settings: `python3 scripts/kernel-profile.py standard --edge --action config`. Load the encrypted environment, including `MOBILE_MEDIA_LOCAL_KEY`, before executing the separately reviewed Compose command; the planner does not start services.
 - Build Solidity contracts: `cd contracts && forge build`
 - Run Solidity tests: `cd contracts && forge test`
 - Format Solidity: `cd contracts && forge fmt`
@@ -193,6 +287,7 @@ Commands:
 - Anomaly detection (all locations): `python3 -m services.ingestion.anomaly_detector --all-locations`
 - Anomaly detection (sensor): `python3 -m services.ingestion.anomaly_detector --location-id UUID --sensor UUID`
 - Baseline check: `python3 -m services.ingestion.anomaly_detector --baseline-check --all-locations`
+- Mock sensor cleanup (exact location required): `python3 -m services.ingestion.mock_sensors --cleanup --location-id UUID`
 - Alert rules list: `python3 -m services.ingestion.anomaly_detector --list-rules`
 - AI summary: `python3 -m services.agents.ai_summary --location-id UUID --summary-type combined`
 - AI summary (store draft): `python3 -m services.agents.ai_summary --location-id UUID --summary-type combined --store`
@@ -1201,7 +1296,7 @@ Commands:
 - Public aggregate views require a verified or published `farm_registry_record` before exposing a location.
 - Public attestation summaries join `attestation_record` to `location` through `subject_type = 'location'` and `subject_id`.
 - Public attestation summaries are scoped to Celo.
-- CIDS v3.2.0 Essential Tier export is implemented in `services/registry/cids_export.py`; keep PostgreSQL/Directus canonical and treat CIDS as compatibility/export mapping.
+- CIDS v3.2.0 Essential Tier export is implemented in `services/registry/cids_export.py`; keep PostgreSQL/PostGIS canonical and treat CIDS as a replaceable compatibility/export mapping.
 - Portfolio ClickHouse views live in `schemas/clickhouse/005_portfolio_views.sql` and should use existing analytical mirrors instead of creating a separate portfolio ranking model.
 - Portfolio Python summaries live in `services/analytics/portfolio.py`; summarize by theme/confidence and do not rank farms as interchangeable units.
 - Green Paper review dashboards live in `dashboards/metabase/20_evidence_gap_dashboard.json` and `dashboards/metabase/21_stakeholder_feedback_dashboard.json` with SQL under `dashboards/metabase/sql/`.
@@ -1263,11 +1358,11 @@ Commands:
   empty by default; wildcard origins are ignored. Same-origin Gateway clients
   need no CORS entry.
 - `.env.example` uses placeholder warnings (`replace-with-strong-password-min-24-chars`), not real defaults.
-- Python ingestion services are CLI tools, not Docker services. Use the worker container (`docker-compose.worker.yml` + `Dockerfile.worker`) or host-based cron for scheduling.
+- **Legacy integration stack only:** most ingestion modules remain CLI entry points; the legacy worker image (`docker-compose.worker.yml` + `Dockerfile.worker`) includes a crontab compatibility layer. Kernel candidate/standard deployments use `services.core.runtime` and the durable database-backed scheduler/worker defined by their profile manifests; do not substitute host cron without a reviewed profile decision.
 - Health monitoring: `scripts/health-check.sh` supports `--json` and `--alert` flags. `scripts/health-alert.sh` is the cron wrapper.
 - Alert channels: `ALERT_WEBHOOK_URL` (Slack/Discord/Teams), `ALERT_SMTP_*` + `ALERT_EMAIL_TO` (email).
 - `DISK_THRESHOLD` and `MEM_THRESHOLD` control health-check alert thresholds (default: 90%).
-- Worker crontab lives in `config/worker/crontab` and covers weather, market data, EAS/RPC indexers, sensor ingester, anomaly detection, metrics, health checks, backups, and dataset refresh.
+- `config/worker/crontab` is the **legacy worker** schedule: only `scripts/health-alert.sh` is active. The weather, market, indexer, anomaly, metrics, freshness, and dataset-refresh examples are commented deprecated fallbacks managed by the database scheduler when configured; sensor ingestion is source-driven. The file does not schedule backups.
 
 ### Enforced security & supply-chain gates
 
@@ -1276,10 +1371,10 @@ Commands:
 - **Python lint/security**: `ruff` is configured with `S` (flake8-bandit), `BLE`, and `RUF` selectors in `pyproject.toml`. `ruff` and `pip-audit` are mandatory CI gates (enforced by `scripts/verify-ci-toolchain.sh` and `scripts/ci-check.sh`); a run that skips them is not a passing build. Run `ruff check --select S,BLE services/` locally and review findings.
 - **Dependency hygiene**: generate a hash-pinned `requirements.lock` (`pip-compile --generate-hashes`) and install with `--require-hashes`. Keep dependency versions resolvable (avoid conflicts like `numpy>=2` vs `prophet<2`). `renovate.json` automates dependency + base-image digest updates.
 - **Directus hooks**: never trust client-supplied `payload._accountability` — accountability comes only from the server `meta.accountability` (`roles.ts`). Agent-safety enforcement keys off **resolved role slugs** (`resolveUserRoles`), never the raw role UUID. All human-governed stakeholder collections in `STAKEHOLDER_HUMAN_REVIEW_COLLECTIONS` are protected by create/update filters.
-- **Directus hook schema validation**: `extensions/kokonut-hooks` validates request payloads with Zod (`src/schemas/`) for governed collections (`agent_task`, `ai_summary`, `agent_action_log`, `impact_claim`, `stakeholder_feedback`, `expense_event`, `sales_event`, `revenue_event`) ahead of governance/lifecycle checks — full validation on create, partial on update, unknown keys preserved. `zod` is a runtime dependency; extend `src/schemas/` when adding validated collections. Hook suite stays at 52/52 tests.
+- **Directus hook schema validation**: `extensions/kokonut-hooks` validates request payloads with Zod (`src/schemas/`) for governed collections (`agent_task`, `ai_summary`, `agent_action_log`, `impact_claim`, `stakeholder_feedback`, `expense_event`, `sales_event`, `revenue_event`) ahead of governance/lifecycle checks — full validation on create, partial on update, unknown keys preserved. `zod` is a runtime dependency; extend `src/schemas/` when adding validated collections. The hook tests cover these validation behaviors; use the package test command for the current runtime count.
 - **Gateway authz**: API keys are scope-enforced (fail-closed) via `KOKONUT_API_KEY_SCOPES`; the Directus admin token is the only full-access key. Service keys are constant-time compared.
 - **Solidity**: zero-address validation in constructors, `whenNotPaused` on `reverseAward`, timelock `getUpgrade` readable by `DEFAULT_ADMIN_ROLE`. Run `forge test` before any contract change.
-- **Containers**: `Dockerfile.worker` / `Dockerfile.grpc` run as non-root `appuser`. All `FROM` directives and Compose `image:` references are pinned to `@sha256` digests (Python 3.11-slim, Postgres/PostGIS 16 & 14, Redis 7, Directus 12.1.1, Metabase v0.62.4, ClickHouse 25.8, Caddy 2, Mosquitto 2). CI fails on unpinned images via `scripts/check-image-digests.sh`.
+- **Legacy container stack**: the legacy `Dockerfile.worker` / `Dockerfile.grpc` images run as non-root `appuser`; the legacy Compose `FROM`/`image:` references are pinned to `@sha256` digests and checked by `scripts/check-image-digests.sh`. Those pins describe the legacy integration stack, not the minimum Kernel profile. Kernel candidate images and optional overlays are governed by their own manifests and profile checks.
 
 ## Blockchain Indexing
 
@@ -1306,7 +1401,7 @@ Commands:
 - Agents can draft, submit, or reject their own outputs, but cannot verify or publish them. Enforce this in DB constraints, Directus hooks, and `services/agents/safety.py`.
 - Agent high-risk actions (`publish`, `attest`, `onchain_submit`, `delete`, `bulk_update`, `financial_write`, `status_change_to_published`) must be logged with human approval required.
 - `dashboard_dataset` refresh executes stored SQL queries from `dashboard_dataset.sql_query`.
-- `report_snapshot` `--auto` flag generates all 42 report types in one run.
+- `report_snapshot --auto` generates every report type registered in `services/export/reports/` in one run.
 
 ## Deployment
 

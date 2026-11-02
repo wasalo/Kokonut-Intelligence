@@ -1,9 +1,2059 @@
 """OIDC routes for location-scoped operating-pilot reads and private drafts."""
 
+import json
+import math
+from datetime import date, datetime
+from decimal import Decimal
+from typing import Annotated, ClassVar, Literal
+from uuid import UUID
+
+from pydantic import (
+    AwareDatetime,
+    BaseModel,
+    BeforeValidator,
+    ConfigDict,
+    Field,
+    JsonValue,
+    ValidationError,
+    field_validator,
+    model_validator,
+)
+
+
+def _response_uuid(value):
+    if isinstance(value, UUID):
+        return value
+    if isinstance(value, str):
+        try:
+            return UUID(value)
+        except ValueError as exc:
+            raise ValueError("UUID value is invalid") from exc
+    raise ValueError("UUID value is invalid")
+
+
+_ResponseUUID = Annotated[UUID, BeforeValidator(_response_uuid)]
+
+
+def _response_date(value):
+    if isinstance(value, date) and not isinstance(value, datetime):
+        return value
+    if isinstance(value, str):
+        try:
+            return date.fromisoformat(value)
+        except ValueError as exc:
+            raise ValueError("date value is invalid") from exc
+    raise ValueError("date value is invalid")
+
+
+def _response_datetime(value):
+    if isinstance(value, datetime):
+        return value
+    if isinstance(value, str):
+        try:
+            return datetime.fromisoformat(value.replace("Z", "+00:00"))
+        except ValueError as exc:
+            raise ValueError("timestamp value is invalid") from exc
+    raise ValueError("timestamp value is invalid")
+
+
+_ResponseDate = Annotated[date, BeforeValidator(_response_date)]
+_ResponseDateTime = Annotated[AwareDatetime, BeforeValidator(_response_datetime)]
+_COMPETENCY_REVIEW_MAX_OFFSET = 10_000
+
+
+class OperatingPilotCoachingSessionCreateResponse(BaseModel):
+    """Minimal response for a private, consent-bound coaching write."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    location_id: _ResponseUUID
+    session_id: _ResponseUUID
+    status: Literal["completed"]
+    privacy_level: Literal["private"]
+    session_date: _ResponseDate
+    replayed: bool
+
+
+class OperatingPilotCapacityDraftCreateResponse(BaseModel):
+    """Minimal response for a private capacity-profile draft write."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    location_id: _ResponseUUID
+    profile_id: _ResponseUUID
+    status: Literal["draft", "submitted", "approved", "rejected", "superseded"]
+    replayed: bool
+
+
+class OperatingPilotCapacityDraftSubmissionResponse(BaseModel):
+    """Minimal response for submitting a private capacity-profile draft."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    location_id: _ResponseUUID
+    profile_id: _ResponseUUID
+    status: Literal["submitted", "approved", "rejected", "superseded"]
+    replayed: bool
+
+    @model_validator(mode="after")
+    def validate_submission(self):
+        if not self.replayed and self.status != "submitted":
+            raise ValueError("A new capacity submission must remain submitted")
+        return self
+
+
+class OperatingPilotCapacityDraftRevisionResponse(BaseModel):
+    """Minimal response for replacing a private capacity-profile draft."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    location_id: _ResponseUUID
+    profile_id: _ResponseUUID
+    replaced_profile_id: _ResponseUUID
+    status: Literal["draft", "submitted", "approved", "rejected", "superseded"]
+    replayed: bool
+
+    @model_validator(mode="after")
+    def validate_replacement(self):
+        if self.profile_id == self.replaced_profile_id:
+            raise ValueError("Capacity revision must produce a replacement profile")
+        if not self.replayed and self.status != "draft":
+            raise ValueError("A new capacity revision must remain a draft")
+        return self
+
+
+class OperatingPilotCapacityReviewDecisionResponse(BaseModel):
+    """Minimal response for an independent capacity-profile review."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    location_id: _ResponseUUID
+    profile_id: _ResponseUUID
+    status: Literal["approved", "rejected"]
+    decision: Literal["approved", "rejected"]
+    replayed: bool
+
+    @model_validator(mode="after")
+    def validate_decision(self):
+        if self.status != self.decision:
+            raise ValueError("Capacity review status must match the decision")
+        return self
+
+
+class OperatingPilotDemandDraftCreateResponse(BaseModel):
+    """Minimal response for creating or replaying an operating demand draft."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    location_id: _ResponseUUID
+    signal_id: _ResponseUUID
+    status: Literal[
+        "draft", "submitted", "approved", "rejected", "fulfilled", "cancelled", "superseded"
+    ]
+    replayed: bool
+
+    @model_validator(mode="after")
+    def validate_creation(self):
+        if not self.replayed and self.status != "draft":
+            raise ValueError("A new demand draft must remain a draft")
+        return self
+
+
+class OperatingPilotDemandDraftRevisionResponse(BaseModel):
+    """Minimal response for replacing a private demand draft."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    location_id: _ResponseUUID
+    signal_id: _ResponseUUID
+    replaced_signal_id: _ResponseUUID
+    status: Literal[
+        "draft", "submitted", "approved", "rejected", "fulfilled", "cancelled", "superseded"
+    ]
+    replayed: bool
+
+    @model_validator(mode="after")
+    def validate_replacement(self):
+        if self.signal_id == self.replaced_signal_id:
+            raise ValueError("Demand revision must produce a replacement signal")
+        if not self.replayed and self.status != "draft":
+            raise ValueError("A new demand revision must remain a draft")
+        return self
+
+
+class OperatingPilotDemandDraftSubmissionResponse(BaseModel):
+    """Minimal response for submitting a private demand draft."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    location_id: _ResponseUUID
+    signal_id: _ResponseUUID
+    status: Literal["submitted", "approved", "rejected", "fulfilled", "cancelled", "superseded"]
+    replayed: bool
+
+    @model_validator(mode="after")
+    def validate_submission(self):
+        if not self.replayed and self.status != "submitted":
+            raise ValueError("A new demand submission must remain submitted")
+        return self
+
+
+class OperatingPilotDemandReviewDecisionResponse(BaseModel):
+    """Minimal response for an independent demand review."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    location_id: _ResponseUUID
+    signal_id: _ResponseUUID
+    status: Literal["approved", "rejected"]
+    decision: Literal["approved", "rejected"]
+    replayed: bool
+
+    @model_validator(mode="after")
+    def validate_decision(self):
+        if self.status != self.decision:
+            raise ValueError("Demand review status must match the decision")
+        return self
+
+
+class OperatingPilotResourceDraftCreateResponse(BaseModel):
+    """Minimal response for creating or replaying a resource-request draft."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    location_id: _ResponseUUID
+    draft_id: _ResponseUUID
+    status: Literal["draft"]
+    replayed: bool
+
+
+class OperatingPilotResourceDraftRevisionResponse(BaseModel):
+    """Minimal response for replacing a private resource-request draft."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    location_id: _ResponseUUID
+    draft_id: _ResponseUUID
+    replaced_draft_id: _ResponseUUID
+    status: Literal["draft", "submitted", "superseded"]
+    replayed: bool
+
+    @model_validator(mode="after")
+    def validate_replacement(self):
+        if self.draft_id == self.replaced_draft_id:
+            raise ValueError("Resource revision must produce a replacement draft")
+        if not self.replayed and self.status != "draft":
+            raise ValueError("A new resource revision must remain a draft")
+        return self
+
+
+class OperatingPilotResourceDraftSubmissionResponse(BaseModel):
+    """Minimal response for submitting a private resource-request draft."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    location_id: _ResponseUUID
+    draft_id: _ResponseUUID
+    status: Literal["submitted"]
+    replayed: bool
+
+
+class OperatingPilotResourceReviewDecisionResponse(BaseModel):
+    """Minimal response for an independent resource-request review."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    location_id: _ResponseUUID
+    resource_request_id: _ResponseUUID
+    status: Literal["reviewed"]
+    decision: Literal["approved", "rejected"]
+    replayed: bool
+
+
+class OperatingPilotResourceFulfillmentResponse(BaseModel):
+    """Minimal response for independently confirmed resource fulfillment."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    location_id: _ResponseUUID
+    resource_request_id: _ResponseUUID
+    status: Literal["closed"]
+    decision: Literal["fulfilled"]
+    replayed: bool
+
+
+class OperatingPilotCompetencyDraftCreateResponse(BaseModel):
+    """Minimal response for creating or replaying a private competency draft."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    location_id: _ResponseUUID
+    draft_id: _ResponseUUID
+    status: Literal["draft", "submitted", "rejected", "verified", "superseded"]
+    replayed: bool
+
+    @model_validator(mode="after")
+    def validate_creation(self):
+        if not self.replayed and self.status != "draft":
+            raise ValueError("A new competency assessment must remain a draft")
+        return self
+
+
+class OperatingPilotCompetencyDraftRevisionResponse(BaseModel):
+    """Minimal response for replacing a private competency assessment draft."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    location_id: _ResponseUUID
+    draft_id: _ResponseUUID
+    status: Literal["draft", "submitted", "rejected", "verified", "superseded"]
+    replayed: bool
+
+    @model_validator(mode="after")
+    def validate_revision(self):
+        if not self.replayed and self.status != "draft":
+            raise ValueError("A new competency revision must remain a draft")
+        return self
+
+
+class OperatingPilotCompetencyDraftSubmissionResponse(BaseModel):
+    """Minimal response for submitting a private competency assessment."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    location_id: _ResponseUUID
+    draft_id: _ResponseUUID
+    status: Literal["draft", "submitted", "rejected", "verified", "superseded"]
+    replayed: bool
+
+    @model_validator(mode="after")
+    def validate_submission(self):
+        if not self.replayed and self.status != "submitted":
+            raise ValueError("A new competency submission must remain submitted")
+        return self
+
+
+class OperatingPilotCompetencyReviewDecisionResponse(BaseModel):
+    """Minimal response for an independent competency assessment review."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    location_id: _ResponseUUID
+    draft_id: _ResponseUUID
+    status: Literal["verified", "rejected"]
+    decision: Literal["verified", "rejected"]
+    replayed: bool
+
+    @model_validator(mode="after")
+    def validate_decision(self):
+        if self.status != self.decision:
+            raise ValueError("Competency review status must match the decision")
+        return self
+
+
+class OperatingPilotLearningPlanReviewDecisionResponse(BaseModel):
+    """Minimal response for an independent learning-plan review decision."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    location_id: _ResponseUUID
+    learning_plan_id: _ResponseUUID
+    decision: Literal["approved", "rejected"]
+    status: Literal["submitted", "draft"]
+    replayed: bool
+
+    @model_validator(mode="after")
+    def validate_decision(self):
+        expected_status = "submitted" if self.decision == "approved" else "draft"
+        if self.status != expected_status:
+            raise ValueError("Learning-plan review status must match its decision")
+        return self
+
+
+class OperatingPilotLearningPlanActivationResponse(BaseModel):
+    """Minimal response for activating an independently approved plan."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    location_id: _ResponseUUID
+    learning_plan_id: _ResponseUUID
+    status: Literal["active"]
+    replayed: bool
+
+
+class OperatingPilotLearningPlanDraftCreateResponse(BaseModel):
+    """Minimal response for creating or replaying an own learning-plan draft."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    location_id: _ResponseUUID
+    learning_plan_id: _ResponseUUID
+    status: Literal["draft", "submitted", "active", "completed", "paused", "cancelled"]
+    replayed: bool
+
+    @model_validator(mode="after")
+    def validate_creation(self):
+        if not self.replayed and self.status != "draft":
+            raise ValueError("A new learning-plan must remain a draft")
+        return self
+
+
+class OperatingPilotLearningPlanDraftRevisionResponse(BaseModel):
+    """Minimal response for revising an own learning-plan draft."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    location_id: _ResponseUUID
+    learning_plan_id: _ResponseUUID
+    status: Literal["draft", "submitted", "active", "completed", "paused", "cancelled"]
+    updated_at: _ResponseDateTime
+    replayed: bool
+
+    @model_validator(mode="after")
+    def validate_revision(self):
+        if not self.replayed and self.status != "draft":
+            raise ValueError("A new learning-plan revision must remain a draft")
+        return self
+
+
+class OperatingPilotLearningPlanDraftSubmissionResponse(BaseModel):
+    """Minimal response for submitting an own learning-plan draft."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    location_id: _ResponseUUID
+    learning_plan_id: _ResponseUUID
+    status: Literal["draft", "submitted", "active", "completed", "paused", "cancelled"]
+    replayed: bool
+
+    @model_validator(mode="after")
+    def validate_submission(self):
+        if not self.replayed and self.status != "submitted":
+            raise ValueError("A new learning-plan submission must remain submitted")
+        return self
+
+
+class OperatingPilotWorkClaimProposalResponse(BaseModel):
+    """Minimal response for a self-attributed work-claim proposal."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    location_id: _ResponseUUID
+    work_item_id: _ResponseUUID
+    claim_id: _ResponseUUID
+    status: Literal["proposed", "accepted", "rejected", "withdrawn"]
+    replayed: bool
+
+    @model_validator(mode="after")
+    def validate_proposal(self):
+        if not self.replayed and self.status != "proposed":
+            raise ValueError("A new work claim must remain proposed")
+        return self
+
+
+class OperatingPilotWorkClaimReviewResponse(BaseModel):
+    """Minimal response for an independent work-claim decision."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    location_id: _ResponseUUID
+    claim_id: _ResponseUUID
+    status: Literal["accepted", "rejected"]
+    replayed: bool
+
+
+class OperatingPilotWorkClaimAllocationResponse(BaseModel):
+    """Minimal response for separately allocating an accepted work claim."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    location_id: _ResponseUUID
+    claim_id: _ResponseUUID
+    work_item_id: _ResponseUUID
+    allocation_status: Literal["allocated"]
+    replayed: bool
+
+
+def _response_decimal(value):
+    if isinstance(value, bool) or not isinstance(value, (Decimal, int, float)):
+        raise ValueError("numeric value is invalid")
+    try:
+        result = Decimal(str(value))
+    except (ValueError, TypeError) as exc:
+        raise ValueError("numeric value is invalid") from exc
+    if not result.is_finite() or max(0, -result.as_tuple().exponent) > 2:
+        raise ValueError("numeric value is invalid")
+    return result
+
+
+_ResponseDecimal = Annotated[Decimal, BeforeValidator(_response_decimal)]
+
+
+def _operating_pilot_summary_number(value):
+    number = float(_response_decimal(value))
+    if not math.isfinite(number):
+        raise ValueError("numeric value is invalid")
+    return number
+
+
+_OperatingPilotSummaryNumber = Annotated[
+    float,
+    BeforeValidator(_operating_pilot_summary_number),
+]
+
+
+_OPERATING_PILOT_SUMMARY_MAX_COUNT = 9_223_372_036_854_775_807
+_OperatingPilotSummaryCount = Annotated[
+    int,
+    Field(ge=0, le=_OPERATING_PILOT_SUMMARY_MAX_COUNT, strict=True),
+]
+
+
+class _OperatingPilotSuppressedSummary(BaseModel):
+    """Shared suppression/nullability invariant for aggregate-only sections."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    _suppression_fields: ClassVar[tuple[str, ...]] = ()
+    suppressed: bool = Field(strict=True)
+
+    @model_validator(mode="after")
+    def validate_suppressed_values(self):
+        values = [getattr(self, name) for name in self._suppression_fields]
+        if self.suppressed and any(value is not None for value in values):
+            raise ValueError("suppressed operating-pilot aggregates must be null")
+        if not self.suppressed and any(value is None for value in values):
+            raise ValueError("unsuppressed operating-pilot aggregates must be present")
+        return self
+
+
+class OperatingPilotCapacitySummary(_OperatingPilotSuppressedSummary):
+    _suppression_fields: ClassVar[tuple[str, ...]] = (
+        "draft",
+        "submitted",
+        "approved",
+        "superseded",
+        "available_hours",
+        "committed_hours",
+        "protected_hours",
+    )
+
+    as_of_date: _ResponseDate
+    draft: _OperatingPilotSummaryCount | None
+    submitted: _OperatingPilotSummaryCount | None
+    approved: _OperatingPilotSummaryCount | None
+    superseded: _OperatingPilotSummaryCount | None
+    available_hours: _OperatingPilotSummaryNumber | None = Field(ge=0, strict=True)
+    committed_hours: _OperatingPilotSummaryNumber | None = Field(ge=0, strict=True)
+    protected_hours: _OperatingPilotSummaryNumber | None = Field(ge=0, strict=True)
+
+
+class OperatingPilotDemandSummary(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    as_of_date: _ResponseDate
+    draft: _OperatingPilotSummaryCount
+    submitted: _OperatingPilotSummaryCount
+    approved: _OperatingPilotSummaryCount
+    fulfilled: _OperatingPilotSummaryCount
+    cancelled: _OperatingPilotSummaryCount
+    required_hours: _OperatingPilotSummaryNumber = Field(ge=0, strict=True)
+
+
+class OperatingPilotWorkItemSummary(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    total: _OperatingPilotSummaryCount
+    open: _OperatingPilotSummaryCount
+    claimed: _OperatingPilotSummaryCount
+    allocated: _OperatingPilotSummaryCount
+    paused: _OperatingPilotSummaryCount
+    closed: _OperatingPilotSummaryCount
+
+
+class OperatingPilotWorkClaimSummary(_OperatingPilotSuppressedSummary):
+    _suppression_fields: ClassVar[tuple[str, ...]] = (
+        "proposed",
+        "accepted",
+        "rejected",
+        "withdrawn",
+    )
+
+    proposed: _OperatingPilotSummaryCount | None
+    accepted: _OperatingPilotSummaryCount | None
+    rejected: _OperatingPilotSummaryCount | None
+    withdrawn: _OperatingPilotSummaryCount | None
+
+
+class OperatingPilotCompetencyReviewSummary(_OperatingPilotSuppressedSummary):
+    _suppression_fields: ClassVar[tuple[str, ...]] = (
+        "submitted",
+        "verified",
+        "open_gap",
+    )
+
+    submitted: _OperatingPilotSummaryCount | None
+    verified: _OperatingPilotSummaryCount | None
+    open_gap: _OperatingPilotSummaryCount | None
+
+
+class OperatingPilotLearningPlanSummary(_OperatingPilotSuppressedSummary):
+    _suppression_fields: ClassVar[tuple[str, ...]] = (
+        "draft",
+        "submitted",
+        "active",
+        "completed",
+        "paused",
+        "cancelled",
+    )
+
+    draft: _OperatingPilotSummaryCount | None
+    submitted: _OperatingPilotSummaryCount | None
+    active: _OperatingPilotSummaryCount | None
+    completed: _OperatingPilotSummaryCount | None
+    paused: _OperatingPilotSummaryCount | None
+    cancelled: _OperatingPilotSummaryCount | None
+
+
+class OperatingPilotResourceRequestSummary(_OperatingPilotSuppressedSummary):
+    _suppression_fields: ClassVar[tuple[str, ...]] = (
+        "pending",
+        "approved",
+        "partially_approved",
+        "declined",
+        "fulfilled",
+    )
+
+    pending: _OperatingPilotSummaryCount | None
+    approved: _OperatingPilotSummaryCount | None
+    partially_approved: _OperatingPilotSummaryCount | None
+    declined: _OperatingPilotSummaryCount | None
+    fulfilled: _OperatingPilotSummaryCount | None
+
+
+class OperatingPilotAggregateCoachingSummary(_OperatingPilotSuppressedSummary):
+    _suppression_fields: ClassVar[tuple[str, ...]] = ("count",)
+
+    count: _OperatingPilotSummaryCount | None
+
+
+class OperatingPilotSummaryResponse(BaseModel):
+    """Exact location-scoped, aggregate-only migration-461 summary shape."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    location_id: _ResponseUUID
+    scope_configured: bool = Field(strict=True)
+    capacity_profiles: OperatingPilotCapacitySummary
+    demand_signals: OperatingPilotDemandSummary
+    work_items: OperatingPilotWorkItemSummary
+    work_claims: OperatingPilotWorkClaimSummary
+    competency_reviews: OperatingPilotCompetencyReviewSummary
+    learning_plans: OperatingPilotLearningPlanSummary
+    resource_requests: OperatingPilotResourceRequestSummary
+    aggregate_only_coaching_sessions: OperatingPilotAggregateCoachingSummary
+
+
+def _response_competency_level(value):
+    level = _response_decimal(value)
+    if not 0 <= level <= 5:
+        raise ValueError("competency level is outside its allowed range")
+    return float(level)
+
+
+_ResponseCompetencyLevel = Annotated[
+    float,
+    BeforeValidator(_response_competency_level),
+]
+
+
+class OperatingPilotCompetencyReviewQueueItem(BaseModel):
+    """Submitted, private competency projection for an independent reviewer."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    draft_id: _ResponseUUID
+    competency_key: str = Field(
+        min_length=1,
+        max_length=120,
+        pattern=r"^[a-z][a-z0-9_.-]{0,119}$",
+        strict=True,
+    )
+    current_level: _ResponseCompetencyLevel = Field(
+        ge=0, le=5, strict=True, json_schema_extra={"multipleOf": 0.01}
+    )
+    target_level: _ResponseCompetencyLevel = Field(
+        ge=0, le=5, strict=True, json_schema_extra={"multipleOf": 0.01}
+    )
+    evidence_note: str | None = Field(max_length=2000, strict=True)
+    status: Literal["submitted"]
+    updated_at: _ResponseDateTime
+
+    @model_validator(mode="after")
+    def validate_levels(self):
+        if self.target_level < self.current_level:
+            raise ValueError("competency target level cannot be below current level")
+        return self
+
+
+class OperatingPilotCompetencyReviewQueueResponse(BaseModel):
+    """Strict, bounded competency-review page from migration 577."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    location_id: _ResponseUUID
+    limit: int = Field(ge=1, le=50, strict=True)
+    offset: int = Field(ge=0, le=_COMPETENCY_REVIEW_MAX_OFFSET, strict=True)
+    items: list[OperatingPilotCompetencyReviewQueueItem] = Field(max_length=50)
+    has_more: bool = Field(strict=True)
+    next_offset: int | None = Field(
+        ge=0, le=_COMPETENCY_REVIEW_MAX_OFFSET, strict=True
+    )
+    total: int = Field(ge=0, strict=True)
+
+    @model_validator(mode="after")
+    def validate_review_page(self):
+        expected_item_count = min(self.limit, max(self.total - self.offset, 0))
+        if len(self.items) != expected_item_count:
+            raise ValueError("competency review item count does not match total and page")
+        next_page_offset = self.offset + self.limit
+        expected_more = (
+            self.total > next_page_offset
+            and next_page_offset <= _COMPETENCY_REVIEW_MAX_OFFSET
+        )
+        if self.has_more != expected_more:
+            raise ValueError("competency review continuation does not match total and page")
+        if self.has_more and self.next_offset != self.offset + self.limit:
+            raise ValueError("competency review next offset does not match page")
+        if not self.has_more and self.next_offset is not None:
+            raise ValueError("terminal competency review page cannot continue")
+
+        draft_ids = [item.draft_id for item in self.items]
+        if len(draft_ids) != len(set(draft_ids)):
+            raise ValueError("competency review page contains duplicate drafts")
+        order = [(item.updated_at, item.draft_id) for item in self.items]
+        if order != sorted(order, reverse=True):
+            raise ValueError("competency review page is not in SQL order")
+        return self
+
+
+class OperatingPilotLearningPlanReviewQueueItem(BaseModel):
+    """Submitted learning-plan projection for an independent reviewer."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    learning_plan_id: _ResponseUUID
+    title: str = Field(min_length=1, max_length=255, strict=True)
+    competency_goals: list[JsonValue] = Field(max_length=50)
+    support_requested: list[JsonValue] = Field(max_length=50)
+    target_date: _ResponseDate | None
+    status: Literal["submitted"]
+    updated_at: _ResponseDateTime
+    submitted_at: _ResponseDateTime
+
+    @model_validator(mode="after")
+    def validate_source_bounds(self):
+        if "\x00" in self.title or self.title != self.title.strip():
+            raise ValueError("learning-plan title is outside its source bounds")
+        encoded_fields = []
+        try:
+            for value in (self.competency_goals, self.support_requested):
+                encoded = json.dumps(
+                    value,
+                    ensure_ascii=False,
+                    separators=(",", ":"),
+                    allow_nan=False,
+                ).encode("utf-8")
+                if len(encoded) > 8_000:
+                    raise ValueError("learning-plan JSON field exceeds its source bound")
+                encoded_fields.append(encoded)
+        except (TypeError, ValueError, RecursionError, UnicodeEncodeError) as exc:
+            raise ValueError("learning-plan JSON field is invalid") from exc
+        if sum(map(len, encoded_fields)) > 12_000:
+            raise ValueError("learning-plan JSON fields exceed their combined source bound")
+        return self
+
+
+class OperatingPilotLearningPlanReviewQueueResponse(BaseModel):
+    """Strict bounded reviewer page returned by migration 610."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    location_id: _ResponseUUID
+    limit: int = Field(ge=1, le=50, strict=True)
+    offset: int = Field(ge=0, le=_COMPETENCY_REVIEW_MAX_OFFSET, strict=True)
+    items: list[OperatingPilotLearningPlanReviewQueueItem] = Field(max_length=50)
+    has_more: bool = Field(strict=True)
+    next_offset: int | None = Field(
+        ge=0, le=_COMPETENCY_REVIEW_MAX_OFFSET, strict=True
+    )
+    total: int = Field(ge=0, le=_OPERATING_PILOT_SUMMARY_MAX_COUNT, strict=True)
+
+    @model_validator(mode="after")
+    def validate_page(self):
+        expected_item_count = min(self.limit, max(self.total - self.offset, 0))
+        if len(self.items) != expected_item_count:
+            raise ValueError("learning-plan review item count does not match page total")
+
+        next_page_offset = self.offset + self.limit
+        expected_more = (
+            self.total > next_page_offset
+            and next_page_offset <= _COMPETENCY_REVIEW_MAX_OFFSET
+        )
+        if self.has_more != expected_more:
+            raise ValueError("learning-plan review continuation does not match total and page")
+        if self.has_more and self.next_offset != next_page_offset:
+            raise ValueError("learning-plan review next offset does not match page")
+        if not self.has_more and self.next_offset is not None:
+            raise ValueError("terminal learning-plan review page cannot continue")
+
+        learning_plan_ids = [item.learning_plan_id for item in self.items]
+        if len(learning_plan_ids) != len(set(learning_plan_ids)):
+            raise ValueError("learning-plan review page contains duplicate IDs")
+        order = [(item.updated_at, item.learning_plan_id.int) for item in self.items]
+        if order != sorted(order, reverse=True):
+            raise ValueError("learning-plan review page is not in SQL order")
+        return self
+
+
+class OperatingPilotLearningPlanActivationQueueItem(BaseModel):
+    """Migration-629 projection for an independently approved plan awaiting activation."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    learning_plan_id: _ResponseUUID
+    title: str = Field(min_length=1, max_length=255, strict=True)
+    competency_goals: list[JsonValue] = Field(max_length=50)
+    support_requested: list[JsonValue] = Field(max_length=50)
+    target_date: _ResponseDate | None
+    status: Literal["submitted"]
+    submitted_at: _ResponseDateTime
+    approved_at: _ResponseDateTime
+
+    @model_validator(mode="after")
+    def validate_source_bounds(self):
+        if "\x00" in self.title or self.title != self.title.strip():
+            raise ValueError("learning-plan title is outside its source bounds")
+        encoded_fields = []
+        try:
+            for value in (self.competency_goals, self.support_requested):
+                encoded = json.dumps(
+                    value,
+                    ensure_ascii=False,
+                    allow_nan=False,
+                ).encode("utf-8")
+                if len(encoded) > 8_000:
+                    raise ValueError("learning-plan JSON field exceeds its source bound")
+                encoded_fields.append(encoded)
+        except (TypeError, ValueError, RecursionError, UnicodeEncodeError) as exc:
+            raise ValueError("learning-plan JSON field is invalid") from exc
+        if sum(map(len, encoded_fields)) > 12_000:
+            raise ValueError("learning-plan JSON fields exceed their combined source bound")
+        if self.approved_at < self.submitted_at:
+            raise ValueError("learning-plan approval precedes its submission")
+        return self
+
+
+class OperatingPilotLearningPlanActivationQueueResponse(BaseModel):
+    """Strict bounded page of plans eligible for independent activation."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    location_id: _ResponseUUID
+    items: list[OperatingPilotLearningPlanActivationQueueItem] = Field(max_length=50)
+    limit: int = Field(ge=1, le=50, strict=True)
+    offset: int = Field(ge=0, le=_COMPETENCY_REVIEW_MAX_OFFSET, strict=True)
+    has_more: bool = Field(strict=True)
+    next_offset: int | None = Field(
+        ge=0, le=_COMPETENCY_REVIEW_MAX_OFFSET, strict=True
+    )
+    total: int = Field(ge=0, le=_OPERATING_PILOT_SUMMARY_MAX_COUNT, strict=True)
+
+    @model_validator(mode="after")
+    def validate_page(self):
+        expected_count = min(self.limit, max(self.total - self.offset, 0))
+        if len(self.items) != expected_count:
+            raise ValueError("learning-plan activation item count does not match page total")
+
+        next_page_offset = self.offset + self.limit
+        expected_more = (
+            self.total > next_page_offset
+            and next_page_offset <= _COMPETENCY_REVIEW_MAX_OFFSET
+        )
+        if self.has_more != expected_more:
+            raise ValueError("learning-plan activation continuation does not match page")
+        if self.has_more and self.next_offset != next_page_offset:
+            raise ValueError("learning-plan activation next offset does not match page")
+        if not self.has_more and self.next_offset is not None:
+            raise ValueError("terminal learning-plan activation page cannot continue")
+
+        learning_plan_ids = [item.learning_plan_id for item in self.items]
+        if len(learning_plan_ids) != len(set(learning_plan_ids)):
+            raise ValueError("learning-plan activation page contains duplicate IDs")
+        return self
+
+
+def _bound_competency_review_continuation(result):
+    """Hide a SQL continuation the Gateway will not accept as a next page."""
+    if not isinstance(result, dict):
+        return result
+    offset = result.get("offset")
+    limit = result.get("limit")
+    next_offset = result.get("next_offset")
+    if (
+        type(offset) is int
+        and type(limit) is int
+        and type(next_offset) is int
+        and result.get("has_more") is True
+        and next_offset == offset + limit
+        and next_offset > _COMPETENCY_REVIEW_MAX_OFFSET
+    ):
+        return {**result, "has_more": False, "next_offset": None}
+    return result
+
+
+def _bound_learning_plan_review_continuation(result):
+    """Hide a SQL continuation whose offset the Gateway will reject."""
+    if not isinstance(result, dict):
+        return result
+    offset = result.get("offset")
+    limit = result.get("limit")
+    next_offset = result.get("next_offset")
+    if (
+        type(offset) is int
+        and type(limit) is int
+        and type(next_offset) is int
+        and result.get("has_more") is True
+        and next_offset == offset + limit
+        and next_offset > _COMPETENCY_REVIEW_MAX_OFFSET
+    ):
+        return {**result, "has_more": False, "next_offset": None}
+    return result
+
+
+def _bound_learning_plan_activation_continuation(result):
+    """Hide a continuation the Gateway will not accept above offset 10,000."""
+    if not isinstance(result, dict):
+        return result
+    offset = result.get("offset")
+    limit = result.get("limit")
+    next_offset = result.get("next_offset")
+    if (
+        type(offset) is int
+        and type(limit) is int
+        and type(next_offset) is int
+        and result.get("has_more") is True
+        and next_offset == offset + limit
+        and next_offset > _COMPETENCY_REVIEW_MAX_OFFSET
+    ):
+        return {**result, "has_more": False, "next_offset": None}
+    return result
+
+
+class OperatingPilotWorkClaimReviewQueueItem(BaseModel):
+    """Identity-blind proposed-claim projection for independent reviewers."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    claim_id: _ResponseUUID
+    work_item_id: _ResponseUUID
+    title: str = Field(max_length=255, strict=True)
+    work_type: str = Field(max_length=50, strict=True)
+    priority: Literal["low", "medium", "high", "critical"]
+    estimated_effort_hours: _ResponseDecimal | None = Field(
+        ge=0, le=Decimal("99999999.99"), strict=True
+    )
+    proposed_effort_hours: _ResponseDecimal | None = Field(
+        ge=0, le=Decimal("99999999.99"), strict=True
+    )
+    due_at: _ResponseDateTime | None
+    created_at: _ResponseDateTime
+    decision_status: Literal["proposed"]
+
+
+class OperatingPilotWorkClaimReviewQueueResponse(BaseModel):
+    """Strict bounded page that never exposes claimant identity to reviewers."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    location_id: _ResponseUUID
+    scope_configured: Literal[True]
+    limit: int = Field(ge=1, le=50, strict=True)
+    offset: int = Field(ge=0, le=10000, strict=True)
+    items: list[OperatingPilotWorkClaimReviewQueueItem] = Field(max_length=50)
+    has_more: bool = Field(strict=True)
+    next_offset: int | None = Field(ge=0, le=10050, strict=True)
+
+    @model_validator(mode="after")
+    def validate_review_page(self):
+        if len(self.items) > self.limit:
+            raise ValueError("work-claim review page exceeds its limit")
+        if self.has_more:
+            if len(self.items) != self.limit or self.next_offset != self.offset + self.limit:
+                raise ValueError("work-claim review continuation does not match its page")
+        elif self.next_offset is not None:
+            raise ValueError("terminal work-claim review page cannot continue")
+
+        claim_ids = [item.claim_id for item in self.items]
+        if len(claim_ids) != len(set(claim_ids)):
+            raise ValueError("work-claim review page contains duplicate claims")
+        priority_rank = {"low": 1, "medium": 2, "high": 3, "critical": 4}
+        order = [
+            (
+                -priority_rank[item.priority],
+                item.due_at is None,
+                item.due_at,
+                item.work_item_id,
+                item.created_at,
+                item.claim_id,
+            )
+            for item in self.items
+        ]
+        if order != sorted(order):
+            raise ValueError("work-claim review page is not in SQL order")
+        return self
+
+
+class OperatingPilotWorkClaimAllocationQueueItem(BaseModel):
+    """Accepted claim eligible for allocation under the stronger allocate grant."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    claim_id: _ResponseUUID
+    work_item_id: _ResponseUUID
+    claimant_name: str = Field(max_length=255, strict=True)
+    title: str = Field(max_length=255, strict=True)
+    work_type: str = Field(max_length=50, strict=True)
+    priority: Literal["low", "medium", "high", "critical"]
+    estimated_effort_hours: _ResponseDecimal | None = Field(
+        ge=0, le=Decimal("99999999.99"), strict=True
+    )
+    proposed_effort_hours: _ResponseDecimal | None = Field(
+        ge=0, le=Decimal("99999999.99"), strict=True
+    )
+    due_at: _ResponseDateTime | None
+    accepted_at: _ResponseDateTime
+
+
+class OperatingPilotWorkClaimAllocationQueueResponse(BaseModel):
+    """Strict bounded page for accepted claims awaiting explicit allocation."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    location_id: _ResponseUUID
+    scope_configured: Literal[True]
+    limit: int = Field(ge=1, le=50, strict=True)
+    offset: int = Field(ge=0, le=10000, strict=True)
+    items: list[OperatingPilotWorkClaimAllocationQueueItem] = Field(max_length=50)
+    has_more: bool = Field(strict=True)
+    next_offset: int | None = Field(ge=0, le=10050, strict=True)
+
+    @model_validator(mode="after")
+    def validate_allocation_page(self):
+        if len(self.items) > self.limit:
+            raise ValueError("work-claim allocation page exceeds its limit")
+        if self.has_more:
+            if len(self.items) != self.limit or self.next_offset != self.offset + self.limit:
+                raise ValueError("work-claim allocation continuation does not match its page")
+        elif self.next_offset is not None:
+            raise ValueError("terminal work-claim allocation page cannot continue")
+
+        claim_ids = [item.claim_id for item in self.items]
+        if len(claim_ids) != len(set(claim_ids)):
+            raise ValueError("work-claim allocation page contains duplicate claims")
+        priority_rank = {"low": 1, "medium": 2, "high": 3, "critical": 4}
+        order = [
+            (
+                -priority_rank[item.priority],
+                item.due_at is None,
+                item.due_at,
+                item.accepted_at,
+                item.claim_id,
+            )
+            for item in self.items
+        ]
+        if order != sorted(order):
+            raise ValueError("work-claim allocation page is not in SQL order")
+        return self
+
+
+class OperatingPilotCapacityPeriodItem(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    period_start: _ResponseDate
+    period_end: _ResponseDate
+    suppressed: bool
+    available_hours: _ResponseDecimal | None = Field(ge=0, strict=True)
+    committed_hours: _ResponseDecimal | None = Field(ge=0, strict=True)
+    protected_hours: _ResponseDecimal | None = Field(ge=0, strict=True)
+
+    @model_validator(mode="after")
+    def validate_capacity_period(self):
+        if self.period_end < self.period_start:
+            raise ValueError("capacity period is reversed")
+        hours = (self.available_hours, self.committed_hours, self.protected_hours)
+        if self.suppressed and any(value is not None for value in hours):
+            raise ValueError("suppressed capacity hours must be hidden")
+        if not self.suppressed and any(value is None for value in hours):
+            raise ValueError("unsuppressed capacity hours must be present")
+        if not self.suppressed and self.committed_hours + self.protected_hours > self.available_hours:
+            raise ValueError("capacity commitments exceed available hours")
+        return self
+
+
+class OperatingPilotDemandSignalItem(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    work_type: str = Field(max_length=50, strict=True)
+    period_start: _ResponseDate
+    period_end: _ResponseDate
+    required_hours: _ResponseDecimal = Field(
+        ge=0, le=Decimal("99999999.99"), strict=True
+    )
+    priority: Literal["low", "medium", "high", "critical"]
+    status: Literal[
+        "draft", "submitted", "approved", "rejected", "fulfilled", "cancelled", "superseded"
+    ]
+
+    @model_validator(mode="after")
+    def validate_demand_period(self):
+        if self.period_end < self.period_start:
+            raise ValueError("demand period is reversed")
+        return self
+
+
+class OperatingPilotDemandSignalsPage(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    location_id: _ResponseUUID
+    scope_configured: bool = Field(strict=True)
+    limit: int = Field(ge=1, le=50, strict=True)
+    offset: int = Field(ge=0, le=10000, strict=True)
+    items: list[OperatingPilotDemandSignalItem] = Field(max_length=50)
+    has_more: bool = Field(strict=True)
+    next_offset: int | None = Field(ge=0, le=10050, strict=True)
+
+    @model_validator(mode="after")
+    def validate_demand_page(self):
+        if len(self.items) > self.limit:
+            raise ValueError("demand page exceeds its limit")
+        page_order = [
+            (
+                item.period_start,
+                item.period_end,
+                item.work_type,
+                item.priority,
+                item.status,
+                item.required_hours,
+            )
+            for item in self.items
+        ]
+        if page_order != sorted(page_order):
+            raise ValueError("demand page is not in projection order")
+        if self.has_more:
+            if len(self.items) != self.limit or self.next_offset != self.offset + self.limit:
+                raise ValueError("demand continuation does not match its page")
+        elif self.next_offset is not None:
+            raise ValueError("demand page has an unexpected continuation")
+        if not self.scope_configured and (self.items or self.has_more):
+            raise ValueError("unconfigured demand scope cannot contain signals")
+        return self
+
+
+class OperatingPilotCapacityPeriodsPage(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True)
+
+    location_id: _ResponseUUID
+    scope_configured: bool
+    limit: int = Field(ge=1, le=50, strict=True)
+    offset: int = Field(ge=0, le=10000, strict=True)
+    items: list[OperatingPilotCapacityPeriodItem] = Field(max_length=50)
+    has_more: bool = Field(strict=True)
+    next_offset: int | None = Field(ge=0, le=10050, strict=True)
+
+    @model_validator(mode="after")
+    def validate_page(self):
+        periods = [(item.period_start, item.period_end) for item in self.items]
+        if len(self.items) > self.limit or periods != sorted(set(periods)):
+            raise ValueError("capacity-period page is not ordered or bounded")
+        if self.has_more:
+            if len(self.items) != self.limit or self.next_offset != self.offset + self.limit:
+                raise ValueError("capacity-period continuation does not match its page")
+        elif self.next_offset is not None:
+            raise ValueError("capacity-period page has an unexpected continuation")
+        if not self.scope_configured and (self.items or self.has_more):
+            raise ValueError("unconfigured capacity scope cannot contain periods")
+        return self
+
+
+class OperatingPilotCapacityReviewItem(BaseModel):
+    """Exact submitted-capacity projection exposed to independent reviewers."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    profile_id: _ResponseUUID
+    period_start: _ResponseDate
+    period_end: _ResponseDate
+    available_hours: _ResponseDecimal = Field(
+        ge=0, le=Decimal("99999999.99"), strict=True
+    )
+    committed_hours: _ResponseDecimal = Field(
+        ge=0, le=Decimal("99999999.99"), strict=True
+    )
+    protected_hours: _ResponseDecimal = Field(
+        ge=0, le=Decimal("99999999.99"), strict=True
+    )
+    status: Literal["submitted"]
+    updated_at: _ResponseDateTime
+
+    @model_validator(mode="after")
+    def validate_submitted_capacity(self):
+        if self.period_end < self.period_start:
+            raise ValueError("capacity review period is reversed")
+        if self.committed_hours + self.protected_hours > self.available_hours:
+            raise ValueError("capacity commitments exceed available hours")
+        return self
+
+
+class OperatingPilotCapacityReviewPage(BaseModel):
+    """Strict response contract for the bounded independent-review queue."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    location_id: _ResponseUUID
+    items: list[OperatingPilotCapacityReviewItem] = Field(max_length=50)
+    limit: int = Field(ge=1, le=50, strict=True)
+    offset: int = Field(ge=0, le=10000, strict=True)
+    has_more: bool = Field(strict=True)
+    next_offset: int | None = Field(ge=0, le=10050, strict=True)
+    total: int = Field(ge=0, strict=True)
+
+    @model_validator(mode="after")
+    def validate_review_page(self):
+        if len(self.items) > self.limit:
+            raise ValueError("capacity review page exceeds its limit")
+        expected_items = min(self.limit, max(self.total - self.offset, 0))
+        if len(self.items) != expected_items:
+            raise ValueError("capacity review page length does not match its total and offset")
+        if self.has_more != (self.total > self.offset + self.limit):
+            raise ValueError("capacity review continuation does not match its total")
+        if self.has_more:
+            if len(self.items) != self.limit or self.next_offset != self.offset + self.limit:
+                raise ValueError("capacity review continuation does not match its page")
+        elif self.next_offset is not None:
+            raise ValueError("terminal capacity review page cannot continue")
+
+        profile_ids = [item.profile_id for item in self.items]
+        if len(profile_ids) != len(set(profile_ids)):
+            raise ValueError("capacity review page contains duplicate profile IDs")
+        if any(
+            previous.updated_at < current.updated_at
+            or (
+                previous.updated_at == current.updated_at
+                and previous.profile_id.int < current.profile_id.int
+            )
+            for previous, current in zip(self.items, self.items[1:])
+        ):
+            raise ValueError("capacity review page is not in descending SQL order")
+        return self
+
+
+class OperatingPilotDemandReviewQueueItem(BaseModel):
+    """Identity-free submitted demand projection for independent review."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    signal_id: _ResponseUUID
+    work_type: str = Field(min_length=1, max_length=50, strict=True)
+    period_start: _ResponseDate
+    period_end: _ResponseDate
+    required_hours: _ResponseDecimal = Field(
+        gt=Decimal("0"), le=Decimal("100000"), strict=True,
+        json_schema_extra={"multipleOf": 0.01},
+    )
+    priority: Literal["low", "medium", "high", "critical"]
+    status: Literal["submitted"]
+    updated_at: _ResponseDateTime
+
+    @field_validator("work_type")
+    @classmethod
+    def validate_work_type(cls, value: str) -> str:
+        if (
+            not value
+            or value != value.strip()
+            or not value[0].isalnum()
+            or any(not character.isalnum() and character not in " _./-" for character in value)
+        ):
+            raise ValueError("work type is outside its source bounds")
+        return value
+
+    @model_validator(mode="after")
+    def validate_period_and_effort(self):
+        if self.period_end < self.period_start:
+            raise ValueError("demand review period is reversed")
+        if (self.period_end - self.period_start).days > 366:
+            raise ValueError("demand review period exceeds its source bound")
+        if self.required_hours.as_tuple().exponent < -2:
+            raise ValueError("demand review hours exceed source precision")
+        return self
+
+
+class OperatingPilotDemandReviewQueueResponse(BaseModel):
+    """Strict bounded reviewer page returned by migration 560."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    location_id: _ResponseUUID
+    items: list[OperatingPilotDemandReviewQueueItem] = Field(max_length=50)
+    limit: int = Field(ge=1, le=50, strict=True)
+    offset: int = Field(ge=0, le=_COMPETENCY_REVIEW_MAX_OFFSET, strict=True)
+    has_more: bool = Field(strict=True)
+    next_offset: int | None = Field(
+        ge=0, le=_COMPETENCY_REVIEW_MAX_OFFSET, strict=True
+    )
+    total: int = Field(ge=0, le=_OPERATING_PILOT_SUMMARY_MAX_COUNT, strict=True)
+
+    @model_validator(mode="after")
+    def validate_review_page(self):
+        expected_count = min(self.limit, max(self.total - self.offset, 0))
+        if len(self.items) != expected_count:
+            raise ValueError("demand review item count does not match total and page")
+
+        next_page_offset = self.offset + self.limit
+        expected_more = (
+            self.total > next_page_offset
+            and next_page_offset <= _COMPETENCY_REVIEW_MAX_OFFSET
+        )
+        if self.has_more != expected_more:
+            raise ValueError("demand review continuation does not match total and page")
+        if self.has_more and self.next_offset != next_page_offset:
+            raise ValueError("demand review next offset does not match page")
+        if not self.has_more and self.next_offset is not None:
+            raise ValueError("terminal demand review page cannot continue")
+
+        signal_ids = [item.signal_id for item in self.items]
+        if len(signal_ids) != len(set(signal_ids)):
+            raise ValueError("demand review page contains duplicate signals")
+        order = [(item.updated_at, item.signal_id.int) for item in self.items]
+        if order != sorted(order, reverse=True):
+            raise ValueError("demand review page is not in SQL order")
+        return self
+
+
+def _bound_demand_review_continuation(result):
+    """Hide a SQL continuation whose offset the Gateway will reject."""
+    if not isinstance(result, dict):
+        return result
+    offset = result.get("offset")
+    limit = result.get("limit")
+    next_offset = result.get("next_offset")
+    if (
+        type(offset) is int
+        and type(limit) is int
+        and type(next_offset) is int
+        and result.get("has_more") is True
+        and next_offset == offset + limit
+        and next_offset > _COMPETENCY_REVIEW_MAX_OFFSET
+    ):
+        return {**result, "has_more": False, "next_offset": None}
+    return result
+
+
+class OperatingPilotResourceReviewQueueItem(BaseModel):
+    """Submitted Kernel resource request fields needed for independent review."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    resource_request_id: _ResponseUUID
+    resource_type: str = Field(
+        min_length=1,
+        max_length=50,
+        pattern=r"^[A-Za-z0-9][A-Za-z0-9 _./-]{0,49}$",
+        strict=True,
+    )
+    description: str = Field(min_length=1, max_length=2000, strict=True)
+    urgency: Literal["low", "medium", "high", "critical"]
+    requested_by: _ResponseDate
+
+    @field_validator("description")
+    @classmethod
+    def validate_description(cls, value: str) -> str:
+        if value != value.strip() or "\x00" in value:
+            raise ValueError("resource description is outside its source bounds")
+        return value
+
+
+class OperatingPilotResourceReviewQueueResponse(BaseModel):
+    """Strict bounded identity-blind review page returned by migration 571."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    location_id: _ResponseUUID
+    items: list[OperatingPilotResourceReviewQueueItem] = Field(max_length=50)
+    limit: int = Field(ge=1, le=50, strict=True)
+    offset: int = Field(ge=0, le=_COMPETENCY_REVIEW_MAX_OFFSET, strict=True)
+    has_more: bool = Field(strict=True)
+    next_offset: int | None = Field(
+        ge=0, le=_COMPETENCY_REVIEW_MAX_OFFSET, strict=True
+    )
+    total: int = Field(ge=0, le=_OPERATING_PILOT_SUMMARY_MAX_COUNT, strict=True)
+
+    @model_validator(mode="after")
+    def validate_review_page(self):
+        expected_count = min(self.limit, max(self.total - self.offset, 0))
+        if len(self.items) != expected_count:
+            raise ValueError("resource review item count does not match total and page")
+
+        next_page_offset = self.offset + self.limit
+        expected_more = (
+            self.total > next_page_offset
+            and next_page_offset <= _COMPETENCY_REVIEW_MAX_OFFSET
+        )
+        if self.has_more != expected_more:
+            raise ValueError("resource review continuation does not match total and page")
+        if self.has_more and self.next_offset != next_page_offset:
+            raise ValueError("resource review next offset does not match page")
+        if not self.has_more and self.next_offset is not None:
+            raise ValueError("terminal resource review page cannot continue")
+
+        request_ids = [item.resource_request_id for item in self.items]
+        if len(request_ids) != len(set(request_ids)):
+            raise ValueError("resource review page contains duplicate requests")
+        order = [(item.requested_by, item.resource_request_id.int) for item in self.items]
+        if order != sorted(order, reverse=True):
+            raise ValueError("resource review page is not in SQL order")
+        return self
+
+
+class OperatingPilotResourceFulfillmentQueueResponse(
+    OperatingPilotResourceReviewQueueResponse
+):
+    """Strict bounded page for approved requests awaiting fulfillment."""
+
+
+def _bound_resource_review_continuation(result):
+    """Hide a SQL continuation whose offset the Gateway will reject."""
+    if not isinstance(result, dict):
+        return result
+    offset = result.get("offset")
+    limit = result.get("limit")
+    next_offset = result.get("next_offset")
+    if (
+        type(offset) is int
+        and type(limit) is int
+        and type(next_offset) is int
+        and result.get("has_more") is True
+        and next_offset == offset + limit
+        and next_offset > _COMPETENCY_REVIEW_MAX_OFFSET
+    ):
+        return {**result, "has_more": False, "next_offset": None}
+    return result
+
+
+class OperatingPilotResourceCategoryItem(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True)
+
+    resource_category: Literal[
+        "equipment",
+        "tools",
+        "inputs",
+        "materials",
+        "infrastructure",
+        "transport",
+        "labor",
+        "training",
+        "funding",
+        "other",
+    ]
+    suppressed: bool
+    request_count: int | None = Field(ge=3, strict=True)
+
+    @model_validator(mode="after")
+    def validate_suppression(self):
+        if (self.suppressed and self.request_count is not None) or (
+            not self.suppressed and self.request_count is None
+        ):
+            raise ValueError("resource count does not match its suppression flag")
+        return self
+
+
+class OperatingPilotWorkClaimItem(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True)
+
+    work_type: Literal[
+        "general",
+        "planting",
+        "harvest",
+        "irrigation",
+        "monitoring",
+        "maintenance",
+        "tree-care",
+        "agroforestry",
+        "soil-health",
+        "water-management",
+        "other",
+    ]
+    suppressed: bool
+    claim_count: int | None = Field(ge=3, strict=True)
+
+    @model_validator(mode="after")
+    def validate_suppression(self):
+        if (self.suppressed and self.claim_count is not None) or (
+            not self.suppressed and self.claim_count is None
+        ):
+            raise ValueError("work claim count does not match its suppression flag")
+        return self
+
+
+class OperatingPilotWorkClaimsPage(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True)
+
+    location_id: _ResponseUUID
+    scope_configured: bool
+    limit: int = Field(ge=1, le=50, strict=True)
+    offset: int = Field(ge=0, le=10000, strict=True)
+    items: list[OperatingPilotWorkClaimItem] = Field(max_length=50)
+    has_more: bool = Field(strict=True)
+    next_offset: int | None = Field(ge=0, le=10050, strict=True)
+
+    @model_validator(mode="after")
+    def validate_page(self):
+        work_types = [item.work_type for item in self.items]
+        if len(self.items) > self.limit or work_types != sorted(set(work_types)):
+            raise ValueError("work-claim page is not ordered or bounded")
+        if self.has_more:
+            if len(self.items) != self.limit or self.next_offset != self.offset + self.limit:
+                raise ValueError("work-claim continuation does not match its page")
+        elif self.next_offset is not None:
+            raise ValueError("work-claim page has an unexpected continuation")
+        if not self.scope_configured and (self.items or self.has_more):
+            raise ValueError("unconfigured work-claim scope cannot contain claims")
+        return self
+
+
+class OperatingPilotWorkOpportunityItem(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    work_item_id: _ResponseUUID
+    title: str = Field(min_length=1, max_length=255, strict=True)
+    work_type: str = Field(min_length=1, max_length=50, strict=True)
+    priority: Literal["low", "medium", "high", "critical"]
+    status: Literal["draft", "assigned", "in_progress", "blocked"]
+    selection_mode: Literal["self_selected", "delegated", "volunteer", "rotational"]
+    estimated_effort_hours: _ResponseDecimal | None = Field(
+        ge=0, le=Decimal("99999999.99"), strict=True
+    )
+    due_at: _ResponseDateTime | None
+    allocation_status: Literal["open", "claimed"]
+    has_own_claim: bool = Field(strict=True)
+    own_claim_status: Literal["proposed", "accepted", "rejected", "withdrawn"] | None
+
+    @model_validator(mode="after")
+    def validate_own_claim_state(self):
+        if self.has_own_claim != (self.own_claim_status is not None):
+            raise ValueError("own-claim state does not match its status")
+        return self
+
+
+class OperatingPilotWorkOpportunitiesPage(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True)
+
+    location_id: _ResponseUUID
+    scope_configured: bool = Field(strict=True)
+    limit: int = Field(ge=1, le=50, strict=True)
+    offset: int = Field(ge=0, le=10000, strict=True)
+    items: list[OperatingPilotWorkOpportunityItem] = Field(max_length=50)
+    has_more: bool = Field(strict=True)
+    next_offset: int | None = Field(ge=0, le=10050, strict=True)
+
+    @model_validator(mode="after")
+    def validate_page(self):
+        if not self.scope_configured:
+            raise ValueError("work-opportunity scope must be configured")
+        rank = {"low": 1, "medium": 2, "high": 3, "critical": 4}
+        item_ids = [item.work_item_id for item in self.items]
+        page_order = [
+            (
+                -rank[item.priority],
+                item.due_at is None,
+                item.due_at,
+                item.work_item_id,
+            )
+            for item in self.items
+        ]
+        if (
+            len(self.items) > self.limit
+            or len(item_ids) != len(set(item_ids))
+            or page_order != sorted(page_order)
+        ):
+            raise ValueError("work-opportunity page is not ordered or bounded")
+        if self.has_more:
+            if len(self.items) != self.limit or self.next_offset != self.offset + self.limit:
+                raise ValueError("work-opportunity continuation does not match its page")
+        elif self.next_offset is not None:
+            raise ValueError("work-opportunity page has an unexpected continuation")
+        return self
+
+
+class OperatingPilotResourceCategoryPage(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True)
+
+    location_id: _ResponseUUID
+    scope_configured: bool
+    limit: int = Field(ge=1, le=50, strict=True)
+    offset: int = Field(ge=0, le=10000, strict=True)
+    items: list[OperatingPilotResourceCategoryItem] = Field(max_length=50)
+    has_more: bool
+    next_offset: int | None = Field(ge=0, le=10000, strict=True)
+
+    @model_validator(mode="after")
+    def validate_page(self):
+        categories = [item.resource_category for item in self.items]
+        if len(self.items) > self.limit or categories != sorted(set(categories)):
+            raise ValueError("resource category page is not ordered or bounded")
+        if self.has_more:
+            if len(self.items) != self.limit or self.next_offset != self.offset + self.limit:
+                raise ValueError("resource category continuation does not match its page")
+        elif self.next_offset is not None:
+            raise ValueError("resource category page has an unexpected continuation")
+        if not self.scope_configured and (self.items or self.has_more):
+            raise ValueError("unconfigured resource scope cannot contain categories")
+        return self
+
+
+class OperatingPilotOwnCapacityProfileResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    profile_id: _ResponseUUID
+    period_start: _ResponseDate
+    period_end: _ResponseDate
+    available_hours: float = Field(ge=0, strict=True)
+    committed_hours: float = Field(ge=0, strict=True)
+    protected_hours: float = Field(ge=0, strict=True)
+    notes: str | None
+    source: Literal["self_reported", "manager_reviewed", "system_derived", "field_coordinator"]
+    status: Literal["draft", "submitted", "approved", "superseded"]
+    created_at: _ResponseDateTime
+    updated_at: _ResponseDateTime
+
+    @model_validator(mode="after")
+    def validate_capacity(self):
+        if self.period_end < self.period_start:
+            raise ValueError("capacity profile period is reversed")
+        if self.committed_hours + self.protected_hours > self.available_hours:
+            raise ValueError("capacity commitments exceed available hours")
+        return self
+
+
+class OperatingPilotOwnCapacityProfilesPage(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    location_id: _ResponseUUID
+    limit: int = Field(ge=1, le=50, strict=True)
+    offset: int = Field(ge=0, le=10000, strict=True)
+    items: list[OperatingPilotOwnCapacityProfileResponse] = Field(max_length=50)
+    has_more: bool = Field(strict=True)
+    next_offset: int | None = Field(ge=0, le=10050, strict=True)
+
+    @model_validator(mode="after")
+    def validate_continuation(self):
+        if len(self.items) > self.limit:
+            raise ValueError("capacity profile page exceeds its limit")
+        if self.has_more:
+            if len(self.items) != self.limit or self.next_offset != self.offset + self.limit:
+                raise ValueError("capacity profile continuation does not match its page")
+        elif self.next_offset is not None:
+            raise ValueError("terminal capacity profile page cannot continue")
+        return self
+
+
+class OperatingPilotOwnCompetencyAssessmentResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    draft_id: _ResponseUUID
+    competency_key: str = Field(
+        min_length=1,
+        max_length=120,
+        pattern=r"^[a-z][a-z0-9_.-]{0,119}$",
+    )
+    current_level: float = Field(ge=0, le=5, strict=True)
+    target_level: float = Field(ge=0, le=5, strict=True)
+    evidence_note: str | None = Field(max_length=2000)
+    status: Literal["draft", "superseded", "submitted", "rejected", "verified"]
+    review_reason: str | None = Field(max_length=2000)
+    reviewed_at: _ResponseDateTime | None
+    created_at: _ResponseDateTime
+    updated_at: _ResponseDateTime
+
+    @model_validator(mode="after")
+    def validate_assessment(self):
+        if self.target_level < self.current_level:
+            raise ValueError("target competency level is below current level")
+        if self.status == "rejected" and not (self.review_reason or "").strip():
+            raise ValueError("rejected competency assessment requires a review reason")
+        return self
+
+
+class OperatingPilotOwnCompetencyAssessmentsPage(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    location_id: _ResponseUUID
+    limit: int = Field(ge=1, le=50, strict=True)
+    offset: int = Field(ge=0, le=10000, strict=True)
+    items: list[OperatingPilotOwnCompetencyAssessmentResponse] = Field(max_length=50)
+    has_more: bool = Field(strict=True)
+    next_offset: int | None = Field(ge=0, le=10050, strict=True)
+
+    @model_validator(mode="after")
+    def validate_page(self):
+        if len(self.items) > self.limit:
+            raise ValueError("own competency page exceeds its limit")
+        if self.has_more:
+            if len(self.items) != self.limit or self.next_offset != self.offset + self.limit:
+                raise ValueError("own competency continuation does not match its page")
+        elif self.next_offset is not None:
+            raise ValueError("terminal own competency page cannot continue")
+
+        draft_ids = [item.draft_id for item in self.items]
+        if len(draft_ids) != len(set(draft_ids)):
+            raise ValueError("own competency page contains duplicate draft IDs")
+        if any(
+            (previous.created_at, previous.draft_id.int)
+            < (current.created_at, current.draft_id.int)
+            for previous, current in zip(self.items, self.items[1:])
+        ):
+            raise ValueError("own competency page is not in descending SQL order")
+        return self
+
+
+class OperatingPilotOwnResourceRequestItemResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    draft_id: _ResponseUUID
+    resource_type: str = Field(
+        min_length=1,
+        max_length=50,
+        pattern=r"^[A-Za-z0-9][A-Za-z0-9 _./-]{0,49}$",
+    )
+    description: str = Field(min_length=1, max_length=2000)
+    urgency: Literal["low", "medium", "high", "critical"]
+    requested_by: _ResponseDate
+    status: Literal["draft", "superseded", "submitted"]
+    created_at: _ResponseDateTime
+    updated_at: _ResponseDateTime
+
+    @field_validator("description")
+    @classmethod
+    def _description_must_not_be_blank(cls, value: str) -> str:
+        if not value.strip():
+            raise ValueError("description must not be blank")
+        return value
+
+
+class OperatingPilotOwnResourceRequestsPage(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    location_id: _ResponseUUID
+    items: list[OperatingPilotOwnResourceRequestItemResponse] = Field(max_length=50)
+    limit: int = Field(ge=1, le=50, strict=True)
+    offset: int = Field(ge=0, le=10000, strict=True)
+    has_more: bool = Field(strict=True)
+    next_offset: int | None = Field(ge=0, le=10050, strict=True)
+    total: int = Field(ge=0, strict=True)
+
+    @model_validator(mode="after")
+    def validate_page(self):
+        if len(self.items) > self.limit:
+            raise ValueError("own resource page exceeds its limit")
+        if self.has_more != (self.total > self.offset + self.limit):
+            raise ValueError("own resource continuation does not match its total")
+        if self.has_more:
+            if len(self.items) != self.limit or self.next_offset != self.offset + self.limit:
+                raise ValueError("own resource continuation does not match its page")
+        elif self.next_offset is not None:
+            raise ValueError("terminal own resource page cannot continue")
+
+        ids = [item.draft_id for item in self.items]
+        if len(ids) != len(set(ids)):
+            raise ValueError("own resource page contains duplicate draft IDs")
+        if any(
+            (previous.updated_at, previous.draft_id.int)
+            < (current.updated_at, current.draft_id.int)
+            for previous, current in zip(self.items, self.items[1:])
+        ):
+            raise ValueError("own resource page is not in descending SQL order")
+        return self
+
+
+class OperatingPilotOwnLearningPlanItemResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    learning_plan_id: _ResponseUUID
+    title: str = Field(min_length=1, max_length=255, strict=True)
+    competency_goals: list[JsonValue] = Field(max_length=50)
+    support_requested: list[JsonValue] = Field(max_length=50)
+    target_date: _ResponseDate | None
+    status: Literal["draft", "submitted", "active", "completed", "paused", "cancelled"]
+    review_decision: Literal["approved", "rejected"] | None
+    review_reason: str | None = Field(max_length=2000)
+    reviewed_at: _ResponseDateTime | None
+    created_at: _ResponseDateTime
+    updated_at: _ResponseDateTime
+
+    @model_validator(mode="after")
+    def validate_review_feedback(self):
+        if self.review_decision is not None and self.reviewed_at is None:
+            raise ValueError("review decision requires a review timestamp")
+        if self.review_decision == "approved" and self.review_reason is not None:
+            raise ValueError("approved learning plan cannot include a review reason")
+        if self.review_decision == "rejected" and not (self.review_reason or "").strip():
+            raise ValueError("rejected learning plan requires a review reason")
+        if self.review_decision is None and (self.review_reason is not None or self.reviewed_at is not None):
+            raise ValueError("unreviewed learning plan cannot include review metadata")
+        return self
+
+
+class OperatingPilotOwnLearningPlansPage(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    location_id: _ResponseUUID
+    limit: int = Field(ge=1, le=50, strict=True)
+    offset: int = Field(ge=0, le=10000, strict=True)
+    items: list[OperatingPilotOwnLearningPlanItemResponse] = Field(max_length=50)
+    has_more: bool = Field(strict=True)
+    next_offset: int | None = Field(ge=0, le=10050, strict=True)
+
+    @model_validator(mode="after")
+    def validate_page(self):
+        if len(self.items) > self.limit:
+            raise ValueError("own learning-plan page exceeds its limit")
+        if self.has_more:
+            if len(self.items) != self.limit or self.next_offset != self.offset + self.limit:
+                raise ValueError("own learning-plan continuation does not match its page")
+        elif self.next_offset is not None:
+            raise ValueError("terminal own learning-plan page cannot continue")
+
+        ids = [item.learning_plan_id for item in self.items]
+        if len(ids) != len(set(ids)):
+            raise ValueError("own learning-plan page contains duplicate IDs")
+        if any(
+            (previous.created_at, previous.learning_plan_id.int)
+            < (current.created_at, current.learning_plan_id.int)
+            for previous, current in zip(self.items, self.items[1:])
+        ):
+            raise ValueError("own learning-plan page is not in descending SQL order")
+        return self
+
+
+class OperatingPilotCoachingParticipantItem(BaseModel):
+    """Minimal identity projection for a currently consented participant."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    participant_id: _ResponseUUID
+    display_name: str = Field(min_length=1, max_length=255, strict=True)
+
+    @field_validator("display_name")
+    @classmethod
+    def validate_display_name(cls, value: str) -> str:
+        if not value.strip():
+            raise ValueError("participant display name must not be blank")
+        return value
+
+
+class OperatingPilotCoachingParticipantsPage(BaseModel):
+    """Strict response contract for the consent-filtered coaching selector."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    location_id: _ResponseUUID
+    items: list[OperatingPilotCoachingParticipantItem] = Field(max_length=50)
+    has_more: bool = Field(strict=True)
+    next_offset: int | None = Field(ge=0, le=10050, strict=True)
+
+    @model_validator(mode="after")
+    def validate_page(self):
+        participant_ids = [item.participant_id for item in self.items]
+        if len(participant_ids) != len(set(participant_ids)):
+            raise ValueError("coaching participant page contains duplicate IDs")
+        return self
+
+
+class OperatingPilotOwnCoachingSessionItem(BaseModel):
+    """Exact private coaching-history projection from migration 611."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    session_id: _ResponseUUID
+    coachee_name: str | None = Field(max_length=255, strict=True)
+    session_date: _ResponseDate
+    focus: str = Field(min_length=1, max_length=255, strict=True)
+    commitments: list[Annotated[str, Field(min_length=1, max_length=500, strict=True)]] = Field(
+        max_length=20
+    )
+    wellbeing_check: str | None = Field(max_length=1000, strict=True)
+    notes: str | None = Field(max_length=4000, strict=True)
+    status: Literal["completed"]
+    created_at: _ResponseDateTime
+
+    @field_validator("focus")
+    @classmethod
+    def validate_focus(cls, value: str) -> str:
+        if not value.strip():
+            raise ValueError("coaching focus must not be blank")
+        return value
+
+    @field_validator("commitments")
+    @classmethod
+    def validate_commitments(cls, values: list[str]) -> list[str]:
+        if any(not value.strip() for value in values):
+            raise ValueError("coaching commitments must not be blank")
+        return values
+
+
+class OperatingPilotOwnCoachingSessionsPage(BaseModel):
+    """Strict private page contract for the signed-in coach's own sessions."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    location_id: _ResponseUUID
+    items: list[OperatingPilotOwnCoachingSessionItem] = Field(max_length=50)
+    limit: int = Field(ge=1, le=50, strict=True)
+    offset: int = Field(ge=0, le=10000, strict=True)
+    has_more: bool = Field(strict=True)
+    next_offset: int | None = Field(ge=0, le=10050, strict=True)
+
+    @model_validator(mode="after")
+    def validate_page(self):
+        if len(self.items) > self.limit:
+            raise ValueError("own coaching page exceeds its limit")
+        if self.has_more:
+            if len(self.items) != self.limit or self.next_offset != self.offset + self.limit:
+                raise ValueError("own coaching continuation does not match its page")
+        elif self.next_offset is not None:
+            raise ValueError("terminal own coaching page cannot continue")
+
+        session_ids = [item.session_id for item in self.items]
+        if len(session_ids) != len(set(session_ids)):
+            raise ValueError("own coaching page contains duplicate session IDs")
+        if any(
+            (previous.session_date, previous.session_id.int)
+            < (current.session_date, current.session_id.int)
+            for previous, current in zip(self.items, self.items[1:])
+        ):
+            raise ValueError("own coaching page is not in descending SQL order")
+        return self
+
+
+class OperatingPilotOwnDemandSignalItem(BaseModel):
+    """Exact private demand-signal projection emitted by migration 561."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    signal_id: _ResponseUUID
+    work_type: str = Field(min_length=1, max_length=50, strict=True)
+    period_start: _ResponseDate
+    period_end: _ResponseDate
+    required_hours: _ResponseDecimal = Field(
+        gt=Decimal("0"), le=Decimal("100000"), strict=True
+    )
+    priority: Literal["low", "medium", "high", "critical"]
+    description: str | None = Field(max_length=2000, strict=True)
+    status: Literal[
+        "draft", "submitted", "approved", "rejected", "fulfilled", "cancelled", "superseded"
+    ]
+    created_at: _ResponseDateTime
+    updated_at: _ResponseDateTime
+
+    @field_validator("work_type")
+    @classmethod
+    def validate_work_type(cls, value: str) -> str:
+        if not value.strip() or value != value.strip():
+            raise ValueError("work type must be nonblank and trimmed")
+        return value
+
+    @field_validator("description")
+    @classmethod
+    def validate_description(cls, value: str | None) -> str | None:
+        if value is not None and (not value.strip() or value != value.strip()):
+            raise ValueError("description must be nonblank and trimmed")
+        return value
+
+    @model_validator(mode="after")
+    def validate_period(self):
+        if self.period_end < self.period_start:
+            raise ValueError("demand signal period is reversed")
+        if (self.period_end - self.period_start).days > 366:
+            raise ValueError("demand signal period exceeds its source bound")
+        return self
+
+
+class OperatingPilotOwnDemandSignalsPage(BaseModel):
+    """Strict private page contract for the signed-in operator's own demand."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    location_id: _ResponseUUID
+    items: list[OperatingPilotOwnDemandSignalItem] = Field(max_length=50)
+    limit: int = Field(ge=1, le=50, strict=True)
+    offset: int = Field(ge=0, le=10000, strict=True)
+    has_more: bool = Field(strict=True)
+    next_offset: int | None = Field(ge=0, le=10000, strict=True)
+    total: int = Field(ge=0, strict=True)
+
+    @model_validator(mode="after")
+    def validate_page(self):
+        if len(self.items) > self.limit:
+            raise ValueError("own demand page exceeds its limit")
+        expected_count = min(self.limit, max(self.total - self.offset, 0))
+        if len(self.items) != expected_count:
+            raise ValueError("own demand item count does not match its total")
+        next_page_offset = self.offset + self.limit
+        expected_more = (
+            self.total > next_page_offset
+            and next_page_offset <= _COMPETENCY_REVIEW_MAX_OFFSET
+        )
+        if self.has_more != expected_more:
+            raise ValueError("own demand continuation does not match its total")
+        if self.has_more:
+            if len(self.items) != self.limit or self.next_offset != next_page_offset:
+                raise ValueError("own demand continuation does not match its page")
+        elif self.next_offset is not None:
+            raise ValueError("terminal own demand page cannot continue")
+
+        signal_ids = [item.signal_id for item in self.items]
+        if len(signal_ids) != len(set(signal_ids)):
+            raise ValueError("own demand page contains duplicate signal IDs")
+        if any(
+            (previous.updated_at, previous.signal_id.int)
+            < (current.updated_at, current.signal_id.int)
+            for previous, current in zip(self.items, self.items[1:])
+        ):
+            raise ValueError("own demand page is not in descending SQL order")
+        return self
+
+
+def _bound_own_demand_continuation(result):
+    """Stop a database page at the Gateway's maximum accepted offset."""
+    if not isinstance(result, dict):
+        return result
+    offset = result.get("offset")
+    limit = result.get("limit")
+    next_offset = result.get("next_offset")
+    if (
+        type(offset) is int
+        and type(limit) is int
+        and type(next_offset) is int
+        and result.get("has_more") is True
+        and next_offset == offset + limit
+        and next_offset > _COMPETENCY_REVIEW_MAX_OFFSET
+    ):
+        return {**result, "has_more": False, "next_offset": None}
+    return result
+
 
 def register_operating_pilot_routes(router, provider, run_in_threadpool, psycopg2):
-    import json
-
+    from fastapi import Query
     from fastapi.encoders import jsonable_encoder
     from fastapi.responses import JSONResponse
     from starlette.requests import Request
@@ -66,6 +2116,32 @@ def register_operating_pilot_routes(router, provider, run_in_threadpool, psycopg
 
     headers = {"Cache-Control": "no-store", "Vary": "Cookie"}
 
+    def work_claim_queue_response(result, response_model, location_id, limit, offset, queue_name):
+        try:
+            response = response_model.model_validate_json(
+                json.dumps(jsonable_encoder(result)), strict=True
+            )
+            if (
+                response.location_id != UUID(location_id)
+                or response.limit != limit
+                or response.offset != offset
+            ):
+                raise ValueError("Work-claim queue response does not match the request")
+        except (ValidationError, TypeError, ValueError, RecursionError) as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.operating_pilot").warning(
+                "Operating %s queue response rejected (%s)", queue_name, type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=503,
+                content={"error": f"Operating work-claim {queue_name} queue unavailable"},
+                headers={**headers, "Retry-After": "30"},
+            )
+        return JSONResponse(
+            jsonable_encoder(response.model_dump(mode="json")), headers=headers
+        )
+
     async def bounded_learning_plan_payload(request):
         body = bytearray()
         async for chunk in request.stream():
@@ -118,7 +2194,12 @@ def register_operating_pilot_routes(router, provider, run_in_threadpool, psycopg
             )
         return payload, None
 
-    @router.post("/operator/api/operating-pilot/{location_id}/coaching-sessions")
+    @router.post(
+        "/operator/api/operating-pilot/{location_id}/coaching-sessions",
+        response_model=OperatingPilotCoachingSessionCreateResponse,
+        status_code=201,
+        responses={200: {"model": OperatingPilotCoachingSessionCreateResponse}},
+    )
     async def create_operating_pilot_coaching_session(request: Request, location_id: str):
         if provider is None:
             return JSONResponse(
@@ -182,9 +2263,35 @@ def register_operating_pilot_routes(router, provider, run_in_threadpool, psycopg
                 content={"error": "Operating coaching-session write unavailable"},
                 headers={**headers, "Retry-After": "30"},
             )
-        return JSONResponse(jsonable_encoder(result), status_code=201, headers=headers)
+        try:
+            response = OperatingPilotCoachingSessionCreateResponse.model_validate_json(
+                json.dumps(jsonable_encoder(result)), strict=True
+            )
+            if response.location_id != UUID(location_id):
+                raise ValueError("Coaching response location does not match the request")
+        except (ValidationError, TypeError, ValueError) as exc:
+            from services.common.logging import get_logger
 
-    @router.post("/operator/api/operating-pilot/{location_id}/capacity-profiles")
+            get_logger("gateway.operating_pilot").warning(
+                "Operating coaching-session response rejected (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=503,
+                content={"error": "Operating coaching-session write unavailable"},
+                headers={**headers, "Retry-After": "30"},
+            )
+        return JSONResponse(
+            jsonable_encoder(response.model_dump(mode="json")),
+            status_code=200 if response.replayed else 201,
+            headers=headers,
+        )
+
+    @router.post(
+        "/operator/api/operating-pilot/{location_id}/capacity-profiles",
+        response_model=OperatingPilotCapacityDraftCreateResponse,
+        status_code=201,
+        responses={200: {"model": OperatingPilotCapacityDraftCreateResponse}},
+    )
     async def create_operating_pilot_capacity_draft(request: Request, location_id: str):
         if provider is None:
             return JSONResponse(
@@ -259,14 +2366,38 @@ def register_operating_pilot_routes(router, provider, run_in_threadpool, psycopg
                 content={"error": "Operating capacity draft unavailable"},
                 headers={**headers, "Retry-After": "30"},
             )
-        return JSONResponse(jsonable_encoder(result), status_code=201, headers=headers)
+        try:
+            response = OperatingPilotCapacityDraftCreateResponse.model_validate_json(
+                json.dumps(jsonable_encoder(result)), strict=True
+            )
+            if response.location_id != UUID(location_id):
+                raise ValueError("Capacity response location does not match the request")
+        except (ValidationError, TypeError, ValueError) as exc:
+            from services.common.logging import get_logger
 
-    @router.get("/operator/api/operating-pilot/{location_id}/work-claim-review-queue")
+            get_logger("gateway.operating_pilot").warning(
+                "Operating capacity-draft response rejected (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=503,
+                content={"error": "Operating capacity draft unavailable"},
+                headers={**headers, "Retry-After": "30"},
+            )
+        return JSONResponse(
+            jsonable_encoder(response.model_dump(mode="json")),
+            status_code=200 if response.replayed else 201,
+            headers=headers,
+        )
+
+    @router.get(
+        "/operator/api/operating-pilot/{location_id}/work-claim-review-queue",
+        response_model=OperatingPilotWorkClaimReviewQueueResponse,
+    )
     async def location_operating_pilot_work_claim_review_queue(
         request: Request,
         location_id: str,
-        limit: int = 25,
-        offset: int = 0,
+        limit: int = Query(default=25, ge=1, le=50),
+        offset: int = Query(default=0, ge=0, le=10000),
     ):
         if provider is None:
             return JSONResponse(
@@ -320,10 +2451,18 @@ def register_operating_pilot_routes(router, provider, run_in_threadpool, psycopg
                 content={"error": "Operating work-claim review queue unavailable"},
                 headers={**headers, "Retry-After": "30"},
             )
-        return JSONResponse(jsonable_encoder(result), headers=headers)
+        return work_claim_queue_response(
+            result,
+            OperatingPilotWorkClaimReviewQueueResponse,
+            location_id,
+            limit,
+            offset,
+            "review",
+        )
 
     @router.post(
-        "/operator/api/operating-pilot/{location_id}/work-claims/{claim_id}/review"
+        "/operator/api/operating-pilot/{location_id}/work-claims/{claim_id}/review",
+        response_model=OperatingPilotWorkClaimReviewResponse,
     )
     async def review_location_operating_pilot_work_claim_route(
         request: Request,
@@ -410,16 +2549,39 @@ def register_operating_pilot_routes(router, provider, run_in_threadpool, psycopg
                 content={"error": "Operating work-claim review unavailable"},
                 headers={**headers, "Retry-After": "30"},
             )
-        return JSONResponse(jsonable_encoder(result), headers=headers)
+        try:
+            response = OperatingPilotWorkClaimReviewResponse.model_validate_json(
+                json.dumps(jsonable_encoder(result)), strict=True
+            )
+            if (
+                response.location_id != UUID(location_id)
+                or response.claim_id != UUID(claim_id)
+            ):
+                raise ValueError("Work-claim review response does not match the request")
+        except (ValidationError, TypeError, ValueError) as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.operating_pilot").warning(
+                "Operating work-claim-review response rejected (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=503,
+                content={"error": "Operating work-claim review unavailable"},
+                headers={**headers, "Retry-After": "30"},
+            )
+        return JSONResponse(
+            jsonable_encoder(response.model_dump(mode="json")), headers=headers
+        )
 
     @router.get(
-        "/operator/api/operating-pilot/{location_id}/work-claim-allocation-queue"
+        "/operator/api/operating-pilot/{location_id}/work-claim-allocation-queue",
+        response_model=OperatingPilotWorkClaimAllocationQueueResponse,
     )
     async def location_operating_pilot_work_claim_allocation_queue(
         request: Request,
         location_id: str,
-        limit: int = 25,
-        offset: int = 0,
+        limit: int = Query(default=25, ge=1, le=50),
+        offset: int = Query(default=0, ge=0, le=10000),
     ):
         if provider is None:
             return JSONResponse(
@@ -473,10 +2635,18 @@ def register_operating_pilot_routes(router, provider, run_in_threadpool, psycopg
                 content={"error": "Operating work-claim allocation queue unavailable"},
                 headers={**headers, "Retry-After": "30"},
             )
-        return JSONResponse(jsonable_encoder(result), headers=headers)
+        return work_claim_queue_response(
+            result,
+            OperatingPilotWorkClaimAllocationQueueResponse,
+            location_id,
+            limit,
+            offset,
+            "allocation",
+        )
 
     @router.post(
-        "/operator/api/operating-pilot/{location_id}/work-claims/{claim_id}/allocate"
+        "/operator/api/operating-pilot/{location_id}/work-claims/{claim_id}/allocate",
+        response_model=OperatingPilotWorkClaimAllocationResponse,
     )
     async def allocate_location_operating_pilot_work_claim_route(
         request: Request,
@@ -556,9 +2726,34 @@ def register_operating_pilot_routes(router, provider, run_in_threadpool, psycopg
                 content={"error": "Operating work-claim allocation unavailable"},
                 headers={**headers, "Retry-After": "30"},
             )
-        return JSONResponse(jsonable_encoder(result), headers=headers)
+        try:
+            response = OperatingPilotWorkClaimAllocationResponse.model_validate_json(
+                json.dumps(jsonable_encoder(result)), strict=True
+            )
+            if (
+                response.location_id != UUID(location_id)
+                or response.claim_id != UUID(claim_id)
+            ):
+                raise ValueError("Work-claim allocation response does not match the request")
+        except (ValidationError, TypeError, ValueError) as exc:
+            from services.common.logging import get_logger
 
-    @router.put("/operator/api/operating-pilot/{location_id}/capacity-profiles/{profile_id}")
+            get_logger("gateway.operating_pilot").warning(
+                "Operating work-claim-allocation response rejected (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=503,
+                content={"error": "Operating work-claim allocation unavailable"},
+                headers={**headers, "Retry-After": "30"},
+            )
+        return JSONResponse(
+            jsonable_encoder(response.model_dump(mode="json")), headers=headers
+        )
+
+    @router.put(
+        "/operator/api/operating-pilot/{location_id}/capacity-profiles/{profile_id}",
+        response_model=OperatingPilotCapacityDraftRevisionResponse,
+    )
     async def revise_operating_pilot_capacity_draft(request: Request, location_id: str, profile_id: str):
         if provider is None:
             return JSONResponse(
@@ -634,10 +2829,33 @@ def register_operating_pilot_routes(router, provider, run_in_threadpool, psycopg
                 content={"error": "Operating capacity revision unavailable"},
                 headers={**headers, "Retry-After": "30"},
             )
-        return JSONResponse(jsonable_encoder(result), headers=headers)
+        try:
+            response = OperatingPilotCapacityDraftRevisionResponse.model_validate_json(
+                json.dumps(jsonable_encoder(result)), strict=True
+            )
+            if (
+                response.location_id != UUID(location_id)
+                or response.replaced_profile_id != UUID(profile_id)
+            ):
+                raise ValueError("Capacity revision response does not match the request")
+        except (ValidationError, TypeError, ValueError) as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.operating_pilot").warning(
+                "Operating capacity-revision response rejected (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=503,
+                content={"error": "Operating capacity revision unavailable"},
+                headers={**headers, "Retry-After": "30"},
+            )
+        return JSONResponse(
+            jsonable_encoder(response.model_dump(mode="json")), headers=headers
+        )
 
     @router.post(
-        "/operator/api/operating-pilot/{location_id}/capacity-profiles/{profile_id}/submit"
+        "/operator/api/operating-pilot/{location_id}/capacity-profiles/{profile_id}/submit",
+        response_model=OperatingPilotCapacityDraftSubmissionResponse,
     )
     async def submit_operating_pilot_capacity_draft(request: Request, location_id: str, profile_id: str):
         if provider is None:
@@ -712,9 +2930,32 @@ def register_operating_pilot_routes(router, provider, run_in_threadpool, psycopg
                 content={"error": "Operating capacity submission unavailable"},
                 headers={**headers, "Retry-After": "30"},
             )
-        return JSONResponse(jsonable_encoder(result), headers=headers)
+        try:
+            response = OperatingPilotCapacityDraftSubmissionResponse.model_validate_json(
+                json.dumps(jsonable_encoder(result)), strict=True
+            )
+            if response.location_id != UUID(location_id) or response.profile_id != UUID(profile_id):
+                raise ValueError("Capacity submission response does not match the request")
+        except (ValidationError, TypeError, ValueError) as exc:
+            from services.common.logging import get_logger
 
-    @router.post("/operator/api/operating-pilot/{location_id}/demand-signals")
+            get_logger("gateway.operating_pilot").warning(
+                "Operating capacity-submission response rejected (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=503,
+                content={"error": "Operating capacity submission unavailable"},
+                headers={**headers, "Retry-After": "30"},
+            )
+        return JSONResponse(
+            jsonable_encoder(response.model_dump(mode="json")), headers=headers
+        )
+
+    @router.post(
+        "/operator/api/operating-pilot/{location_id}/demand-signals",
+        status_code=201,
+        response_model=OperatingPilotDemandDraftCreateResponse,
+    )
     async def create_operating_pilot_demand_draft(request: Request, location_id: str):
         if provider is None:
             return JSONResponse(
@@ -787,9 +3028,32 @@ def register_operating_pilot_routes(router, provider, run_in_threadpool, psycopg
                 content={"error": "Operating demand draft unavailable"},
                 headers={**headers, "Retry-After": "30"},
             )
-        return JSONResponse(jsonable_encoder(result), status_code=201, headers=headers)
+        try:
+            response = OperatingPilotDemandDraftCreateResponse.model_validate_json(
+                json.dumps(jsonable_encoder(result)), strict=True
+            )
+            if response.location_id != UUID(location_id):
+                raise ValueError("Demand draft response does not match the request")
+        except (ValidationError, TypeError, ValueError) as exc:
+            from services.common.logging import get_logger
 
-    @router.post("/operator/api/operating-pilot/{location_id}/resource-requests")
+            get_logger("gateway.operating_pilot").warning(
+                "Operating demand-draft response rejected (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=503,
+                content={"error": "Operating demand draft unavailable"},
+                headers={**headers, "Retry-After": "30"},
+            )
+        return JSONResponse(
+            jsonable_encoder(response.model_dump(mode="json")), status_code=201, headers=headers
+        )
+
+    @router.post(
+        "/operator/api/operating-pilot/{location_id}/resource-requests",
+        status_code=201,
+        response_model=OperatingPilotResourceDraftCreateResponse,
+    )
     async def create_operating_pilot_resource_draft(request: Request, location_id: str):
         if provider is None:
             return JSONResponse(
@@ -864,9 +3128,32 @@ def register_operating_pilot_routes(router, provider, run_in_threadpool, psycopg
                 content={"error": "Operating resource draft unavailable"},
                 headers={**headers, "Retry-After": "30"},
             )
-        return JSONResponse(jsonable_encoder(result), status_code=201, headers=headers)
+        try:
+            response = OperatingPilotResourceDraftCreateResponse.model_validate_json(
+                json.dumps(jsonable_encoder(result)), strict=True
+            )
+            if response.location_id != UUID(location_id):
+                raise ValueError("Resource draft response does not match the request")
+        except (ValidationError, TypeError, ValueError) as exc:
+            from services.common.logging import get_logger
 
-    @router.post("/operator/api/operating-pilot/{location_id}/learning-plans")
+            get_logger("gateway.operating_pilot").warning(
+                "Operating resource-draft response rejected (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=503,
+                content={"error": "Operating resource draft unavailable"},
+                headers={**headers, "Retry-After": "30"},
+            )
+        return JSONResponse(
+            jsonable_encoder(response.model_dump(mode="json")), status_code=201, headers=headers
+        )
+
+    @router.post(
+        "/operator/api/operating-pilot/{location_id}/learning-plans",
+        status_code=201,
+        response_model=OperatingPilotLearningPlanDraftCreateResponse,
+    )
     async def create_operating_pilot_learning_plan_draft(request: Request, location_id: str):
         if provider is None:
             return JSONResponse(
@@ -930,10 +3217,30 @@ def register_operating_pilot_routes(router, provider, run_in_threadpool, psycopg
                 content={"error": "Operating learning-plan draft unavailable"},
                 headers={**headers, "Retry-After": "30"},
             )
-        return JSONResponse(jsonable_encoder(result), status_code=201, headers=headers)
+        try:
+            response = OperatingPilotLearningPlanDraftCreateResponse.model_validate_json(
+                json.dumps(jsonable_encoder(result)), strict=True
+            )
+            if response.location_id != UUID(location_id):
+                raise ValueError("Learning-plan draft response does not match the request")
+        except (ValidationError, TypeError, ValueError) as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.operating_pilot").warning(
+                "Operating learning-plan-draft response rejected (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=503,
+                content={"error": "Operating learning-plan draft unavailable"},
+                headers={**headers, "Retry-After": "30"},
+            )
+        return JSONResponse(
+            jsonable_encoder(response.model_dump(mode="json")), status_code=201, headers=headers
+        )
 
     @router.put(
-        "/operator/api/operating-pilot/{location_id}/learning-plans/{learning_plan_id}"
+        "/operator/api/operating-pilot/{location_id}/learning-plans/{learning_plan_id}",
+        response_model=OperatingPilotLearningPlanDraftRevisionResponse,
     )
     async def revise_operating_pilot_learning_plan_draft(
         request: Request, location_id: str, learning_plan_id: str
@@ -1001,10 +3308,33 @@ def register_operating_pilot_routes(router, provider, run_in_threadpool, psycopg
                 content={"error": "Operating learning-plan revision unavailable"},
                 headers={**headers, "Retry-After": "30"},
             )
-        return JSONResponse(jsonable_encoder(result), headers=headers)
+        try:
+            response = OperatingPilotLearningPlanDraftRevisionResponse.model_validate_json(
+                json.dumps(jsonable_encoder(result)), strict=True
+            )
+            if (
+                response.location_id != UUID(location_id)
+                or response.learning_plan_id != UUID(learning_plan_id)
+            ):
+                raise ValueError("Learning-plan revision response does not match the request")
+        except (ValidationError, TypeError, ValueError) as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.operating_pilot").warning(
+                "Operating learning-plan-revision response rejected (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=503,
+                content={"error": "Operating learning-plan revision unavailable"},
+                headers={**headers, "Retry-After": "30"},
+            )
+        return JSONResponse(
+            jsonable_encoder(response.model_dump(mode="json")), headers=headers
+        )
 
     @router.post(
-        "/operator/api/operating-pilot/{location_id}/learning-plans/{learning_plan_id}/submit"
+        "/operator/api/operating-pilot/{location_id}/learning-plans/{learning_plan_id}/submit",
+        response_model=OperatingPilotLearningPlanDraftSubmissionResponse,
     )
     async def submit_operating_pilot_learning_plan(
         request: Request, location_id: str, learning_plan_id: str
@@ -1076,20 +3406,35 @@ def register_operating_pilot_routes(router, provider, run_in_threadpool, psycopg
                 content={"error": "Operating learning-plan submission unavailable"},
                 headers={**headers, "Retry-After": "30"},
             )
-        result_plan_id = result.get("learning_plan_id")
-        if (
-            not isinstance(result_plan_id, str)
-            or result_plan_id.lower() != learning_plan_id.lower()
-            or result.get("status") not in {"draft", "submitted", "active", "completed", "paused", "cancelled"}
-        ):
-            return JSONResponse(
-                status_code=409,
-                content={"error": "The learning plan is no longer pending submission; refresh your history"},
-                headers=headers,
+        try:
+            response = OperatingPilotLearningPlanDraftSubmissionResponse.model_validate_json(
+                json.dumps(jsonable_encoder(result)), strict=True
             )
-        return JSONResponse(jsonable_encoder(result), headers=headers)
+            if (
+                response.location_id != UUID(location_id)
+                or response.learning_plan_id != UUID(learning_plan_id)
+            ):
+                raise ValueError("Learning-plan submission response does not match the request")
+        except (ValidationError, TypeError, ValueError) as exc:
+            from services.common.logging import get_logger
 
-    @router.post("/operator/api/operating-pilot/{location_id}/competency-assessments")
+            get_logger("gateway.operating_pilot").warning(
+                "Operating learning-plan-submission response rejected (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=503,
+                content={"error": "Operating learning-plan submission unavailable"},
+                headers={**headers, "Retry-After": "30"},
+            )
+        return JSONResponse(
+            jsonable_encoder(response.model_dump(mode="json")), headers=headers
+        )
+
+    @router.post(
+        "/operator/api/operating-pilot/{location_id}/competency-assessments",
+        status_code=201,
+        response_model=OperatingPilotCompetencyDraftCreateResponse,
+    )
     async def create_operating_pilot_competency_draft(request: Request, location_id: str):
         if provider is None:
             return JSONResponse(
@@ -1164,10 +3509,30 @@ def register_operating_pilot_routes(router, provider, run_in_threadpool, psycopg
                 content={"error": "Operating competency draft unavailable"},
                 headers={**headers, "Retry-After": "30"},
             )
-        return JSONResponse(jsonable_encoder(result), status_code=201, headers=headers)
+        try:
+            response = OperatingPilotCompetencyDraftCreateResponse.model_validate_json(
+                json.dumps(jsonable_encoder(result)), strict=True
+            )
+            if response.location_id != UUID(location_id):
+                raise ValueError("Competency draft response does not match the request")
+        except (ValidationError, TypeError, ValueError) as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.operating_pilot").warning(
+                "Operating competency-draft response rejected (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=503,
+                content={"error": "Operating competency draft unavailable"},
+                headers={**headers, "Retry-After": "30"},
+            )
+        return JSONResponse(
+            jsonable_encoder(response.model_dump(mode="json")), status_code=201, headers=headers
+        )
 
     @router.put(
-        "/operator/api/operating-pilot/{location_id}/competency-assessments/{draft_id}"
+        "/operator/api/operating-pilot/{location_id}/competency-assessments/{draft_id}",
+        response_model=OperatingPilotCompetencyDraftRevisionResponse,
     )
     async def revise_operating_pilot_competency_draft(
         request: Request, location_id: str, draft_id: str
@@ -1252,10 +3617,30 @@ def register_operating_pilot_routes(router, provider, run_in_threadpool, psycopg
                 content={"error": "Operating competency revision unavailable"},
                 headers={**headers, "Retry-After": "30"},
             )
-        return JSONResponse(jsonable_encoder(result), headers=headers)
+        try:
+            response = OperatingPilotCompetencyDraftRevisionResponse.model_validate_json(
+                json.dumps(jsonable_encoder(result)), strict=True
+            )
+            if response.location_id != UUID(location_id) or response.draft_id == UUID(draft_id):
+                raise ValueError("Competency revision response does not match the request")
+        except (ValidationError, TypeError, ValueError) as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.operating_pilot").warning(
+                "Operating competency-revision response rejected (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=503,
+                content={"error": "Operating competency revision unavailable"},
+                headers={**headers, "Retry-After": "30"},
+            )
+        return JSONResponse(
+            jsonable_encoder(response.model_dump(mode="json")), headers=headers
+        )
 
     @router.post(
-        "/operator/api/operating-pilot/{location_id}/competency-assessments/{draft_id}/submit"
+        "/operator/api/operating-pilot/{location_id}/competency-assessments/{draft_id}/submit",
+        response_model=OperatingPilotCompetencyDraftSubmissionResponse,
     )
     async def submit_operating_pilot_competency_draft(
         request: Request, location_id: str, draft_id: str
@@ -1332,9 +3717,31 @@ def register_operating_pilot_routes(router, provider, run_in_threadpool, psycopg
                 content={"error": "Operating competency submission unavailable"},
                 headers={**headers, "Retry-After": "30"},
             )
-        return JSONResponse(jsonable_encoder(result), headers=headers)
+        try:
+            response = OperatingPilotCompetencyDraftSubmissionResponse.model_validate_json(
+                json.dumps(jsonable_encoder(result)), strict=True
+            )
+            if response.location_id != UUID(location_id) or response.draft_id != UUID(draft_id):
+                raise ValueError("Competency submission response does not match the request")
+        except (ValidationError, TypeError, ValueError) as exc:
+            from services.common.logging import get_logger
 
-    @router.put("/operator/api/operating-pilot/{location_id}/resource-requests/{draft_id}")
+            get_logger("gateway.operating_pilot").warning(
+                "Operating competency-submission response rejected (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=503,
+                content={"error": "Operating competency submission unavailable"},
+                headers={**headers, "Retry-After": "30"},
+            )
+        return JSONResponse(
+            jsonable_encoder(response.model_dump(mode="json")), headers=headers
+        )
+
+    @router.put(
+        "/operator/api/operating-pilot/{location_id}/resource-requests/{draft_id}",
+        response_model=OperatingPilotResourceDraftRevisionResponse,
+    )
     async def revise_operating_pilot_resource_draft(request: Request, location_id: str, draft_id: str):
         if provider is None:
             return JSONResponse(
@@ -1416,10 +3823,33 @@ def register_operating_pilot_routes(router, provider, run_in_threadpool, psycopg
                 content={"error": "Operating resource revision unavailable"},
                 headers={**headers, "Retry-After": "30"},
             )
-        return JSONResponse(jsonable_encoder(result), headers=headers)
+        try:
+            response = OperatingPilotResourceDraftRevisionResponse.model_validate_json(
+                json.dumps(jsonable_encoder(result)), strict=True
+            )
+            if (
+                response.location_id != UUID(location_id)
+                or response.replaced_draft_id != UUID(draft_id)
+            ):
+                raise ValueError("Resource revision response does not match the request")
+        except (ValidationError, TypeError, ValueError) as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.operating_pilot").warning(
+                "Operating resource-revision response rejected (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=503,
+                content={"error": "Operating resource revision unavailable"},
+                headers={**headers, "Retry-After": "30"},
+            )
+        return JSONResponse(
+            jsonable_encoder(response.model_dump(mode="json")), headers=headers
+        )
 
     @router.post(
-        "/operator/api/operating-pilot/{location_id}/resource-requests/{draft_id}/submit"
+        "/operator/api/operating-pilot/{location_id}/resource-requests/{draft_id}/submit",
+        response_model=OperatingPilotResourceDraftSubmissionResponse,
     )
     async def submit_operating_pilot_resource_draft(
         request: Request, location_id: str, draft_id: str
@@ -1496,10 +3926,30 @@ def register_operating_pilot_routes(router, provider, run_in_threadpool, psycopg
                 content={"error": "Operating resource submission unavailable"},
                 headers={**headers, "Retry-After": "30"},
             )
-        return JSONResponse(jsonable_encoder(result), headers=headers)
+        try:
+            response = OperatingPilotResourceDraftSubmissionResponse.model_validate_json(
+                json.dumps(jsonable_encoder(result)), strict=True
+            )
+            if response.location_id != UUID(location_id) or response.draft_id != UUID(draft_id):
+                raise ValueError("Resource submission response does not match the request")
+        except (ValidationError, TypeError, ValueError) as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.operating_pilot").warning(
+                "Operating resource-submission response rejected (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=503,
+                content={"error": "Operating resource submission unavailable"},
+                headers={**headers, "Retry-After": "30"},
+            )
+        return JSONResponse(
+            jsonable_encoder(response.model_dump(mode="json")), headers=headers
+        )
 
     @router.post(
-        "/operator/api/operating-pilot/{location_id}/demand-signals/{signal_id}/submit"
+        "/operator/api/operating-pilot/{location_id}/demand-signals/{signal_id}/submit",
+        response_model=OperatingPilotDemandDraftSubmissionResponse,
     )
     async def submit_operating_pilot_demand_draft(
         request: Request, location_id: str, signal_id: str
@@ -1576,9 +4026,31 @@ def register_operating_pilot_routes(router, provider, run_in_threadpool, psycopg
                 content={"error": "Operating demand submission unavailable"},
                 headers={**headers, "Retry-After": "30"},
             )
-        return JSONResponse(jsonable_encoder(result), headers=headers)
+        try:
+            response = OperatingPilotDemandDraftSubmissionResponse.model_validate_json(
+                json.dumps(jsonable_encoder(result)), strict=True
+            )
+            if response.location_id != UUID(location_id) or response.signal_id != UUID(signal_id):
+                raise ValueError("Demand submission response does not match the request")
+        except (ValidationError, TypeError, ValueError) as exc:
+            from services.common.logging import get_logger
 
-    @router.put("/operator/api/operating-pilot/{location_id}/demand-signals/{signal_id}")
+            get_logger("gateway.operating_pilot").warning(
+                "Operating demand-submission response rejected (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=503,
+                content={"error": "Operating demand submission unavailable"},
+                headers={**headers, "Retry-After": "30"},
+            )
+        return JSONResponse(
+            jsonable_encoder(response.model_dump(mode="json")), headers=headers
+        )
+
+    @router.put(
+        "/operator/api/operating-pilot/{location_id}/demand-signals/{signal_id}",
+        response_model=OperatingPilotDemandDraftRevisionResponse,
+    )
     async def revise_operating_pilot_demand_draft(request: Request, location_id: str, signal_id: str):
         if provider is None:
             return JSONResponse(
@@ -1660,9 +4132,34 @@ def register_operating_pilot_routes(router, provider, run_in_threadpool, psycopg
                 content={"error": "Operating demand revision unavailable"},
                 headers={**headers, "Retry-After": "30"},
             )
-        return JSONResponse(jsonable_encoder(result), headers=headers)
+        try:
+            response = OperatingPilotDemandDraftRevisionResponse.model_validate_json(
+                json.dumps(jsonable_encoder(result)), strict=True
+            )
+            if (
+                response.location_id != UUID(location_id)
+                or response.replaced_signal_id != UUID(signal_id)
+            ):
+                raise ValueError("Demand revision response does not match the request")
+        except (ValidationError, TypeError, ValueError) as exc:
+            from services.common.logging import get_logger
 
-    @router.get("/operator/api/operating-pilot/{location_id}/summary")
+            get_logger("gateway.operating_pilot").warning(
+                "Operating demand-revision response rejected (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=503,
+                content={"error": "Operating demand revision unavailable"},
+                headers={**headers, "Retry-After": "30"},
+            )
+        return JSONResponse(
+            jsonable_encoder(response.model_dump(mode="json")), headers=headers
+        )
+
+    @router.get(
+        "/operator/api/operating-pilot/{location_id}/summary",
+        response_model=OperatingPilotSummaryResponse,
+    )
     async def location_operating_pilot_summary(request: Request, location_id: str):
         if provider is None:
             return JSONResponse(
@@ -1701,14 +4198,33 @@ def register_operating_pilot_routes(router, provider, run_in_threadpool, psycopg
                 content={"error": "Operating pilot summary unavailable"},
                 headers={**headers, "Retry-After": "30"},
             )
+        try:
+            response = OperatingPilotSummaryResponse.model_validate(result)
+            if response.location_id != UUID(location_id):
+                raise ValueError("Operating-pilot summary location does not match request")
+        except (ValidationError, TypeError, ValueError) as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.operating_pilot").warning(
+                "Operating pilot summary response rejected (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=503,
+                content={"error": "Operating pilot summary unavailable"},
+                headers={**headers, "Retry-After": "30"},
+            )
+        # Keep PostgreSQL's JSON numeric representation (numbers, not Decimal strings).
         return JSONResponse(jsonable_encoder(result), headers=headers)
 
-    @router.get("/operator/api/operating-pilot/{location_id}/demand-signals")
+    @router.get(
+        "/operator/api/operating-pilot/{location_id}/demand-signals",
+        response_model=OperatingPilotDemandSignalsPage,
+    )
     async def location_operating_pilot_demand_signals(
         request: Request,
         location_id: str,
-        limit: int = 25,
-        offset: int = 0,
+        limit: int = Query(default=25, ge=1, le=50),
+        offset: int = Query(default=0, ge=0, le=10000),
     ):
         if provider is None:
             return JSONResponse(
@@ -1747,14 +4263,32 @@ def register_operating_pilot_routes(router, provider, run_in_threadpool, psycopg
                 content={"error": "Operating demand read unavailable"},
                 headers={**headers, "Retry-After": "30"},
             )
+        try:
+            page = OperatingPilotDemandSignalsPage.model_validate(result)
+            if page.location_id != UUID(location_id) or page.limit != limit or page.offset != offset:
+                raise ValueError("Demand page does not match request scope or bounds")
+        except (ValidationError, TypeError, ValueError) as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.operating_pilot").warning(
+                "Operating demand response rejected (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=500,
+                content={"error": "Operating demand read unavailable"},
+                headers=headers,
+            )
         return JSONResponse(jsonable_encoder(result), headers=headers)
 
-    @router.get("/operator/api/operating-pilot/{location_id}/capacity-periods")
+    @router.get(
+        "/operator/api/operating-pilot/{location_id}/capacity-periods",
+        response_model=OperatingPilotCapacityPeriodsPage,
+    )
     async def location_operating_pilot_capacity_periods(
         request: Request,
         location_id: str,
-        limit: int = 25,
-        offset: int = 0,
+        limit: int = Query(default=25, ge=1, le=50),
+        offset: int = Query(default=0, ge=0, le=10000),
     ):
         if provider is None:
             return JSONResponse(
@@ -1795,14 +4329,37 @@ def register_operating_pilot_routes(router, provider, run_in_threadpool, psycopg
                 content={"error": "Operating capacity read unavailable"},
                 headers={**headers, "Retry-After": "30"},
             )
+        try:
+            page = OperatingPilotCapacityPeriodsPage.model_validate(result)
+            if (
+                page.location_id != UUID(location_id)
+                or page.limit != limit
+                or page.offset != offset
+            ):
+                raise ValueError("Capacity-period page does not match request scope or bounds")
+        except (ValidationError, TypeError, ValueError) as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.operating_pilot").warning(
+                "Operating capacity-period response rejected (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=500,
+                content={"error": "Operating capacity read unavailable"},
+                headers=headers,
+            )
+        # Keep PostgreSQL's JSON numeric representation (numbers, not Decimal strings).
         return JSONResponse(jsonable_encoder(result), headers=headers)
 
-    @router.get("/operator/api/operating-pilot/{location_id}/my-capacity-profiles")
+    @router.get(
+        "/operator/api/operating-pilot/{location_id}/my-capacity-profiles",
+        response_model=OperatingPilotOwnCapacityProfilesPage,
+    )
     async def location_operating_pilot_own_capacity_profiles(
         request: Request,
         location_id: str,
-        limit: int = 25,
-        offset: int = 0,
+        limit: int = Query(default=25, ge=1, le=50),
+        offset: int = Query(default=0, ge=0, le=10000),
     ):
         if provider is None:
             return JSONResponse(
@@ -1856,14 +4413,36 @@ def register_operating_pilot_routes(router, provider, run_in_threadpool, psycopg
                 content={"error": "Own operating capacity read unavailable"},
                 headers={**headers, "Retry-After": "30"},
             )
+        try:
+            page = OperatingPilotOwnCapacityProfilesPage.model_validate(result)
+            if (
+                page.location_id != UUID(location_id)
+                or page.limit != limit
+                or page.offset != offset
+            ):
+                raise ValueError("Own capacity page does not match request scope or bounds")
+        except (ValidationError, TypeError, ValueError) as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.operating_pilot").warning(
+                "Own operating capacity response rejected (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=500,
+                content={"error": "Own operating capacity read unavailable"},
+                headers=headers,
+            )
         return JSONResponse(jsonable_encoder(result), headers=headers)
 
-    @router.get("/operator/api/operating-pilot/{location_id}/my-competency-assessments")
+    @router.get(
+        "/operator/api/operating-pilot/{location_id}/my-competency-assessments",
+        response_model=OperatingPilotOwnCompetencyAssessmentsPage,
+    )
     async def location_operating_pilot_own_competency_drafts(
         request: Request,
         location_id: str,
-        limit: int = 25,
-        offset: int = 0,
+        limit: int = Query(default=25, ge=1, le=50),
+        offset: int = Query(default=0, ge=0, le=10000),
     ):
         if provider is None:
             return JSONResponse(
@@ -1917,14 +4496,36 @@ def register_operating_pilot_routes(router, provider, run_in_threadpool, psycopg
                 content={"error": "Own competency history unavailable"},
                 headers={**headers, "Retry-After": "30"},
             )
-        return JSONResponse(jsonable_encoder(result), headers=headers)
+        try:
+            page = OperatingPilotOwnCompetencyAssessmentsPage.model_validate(result)
+            if (
+                page.location_id != UUID(location_id)
+                or page.limit != limit
+                or page.offset != offset
+            ):
+                raise ValueError("Own competency page does not match request scope or bounds")
+        except (ValidationError, TypeError, ValueError) as exc:
+            from services.common.logging import get_logger
 
-    @router.get("/operator/api/operating-pilot/{location_id}/my-learning-plans")
+            get_logger("gateway.operating_pilot").warning(
+                "Own competency response rejected (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=500,
+                content={"error": "Own competency history unavailable"},
+                headers=headers,
+            )
+        return JSONResponse(jsonable_encoder(page), headers=headers)
+
+    @router.get(
+        "/operator/api/operating-pilot/{location_id}/my-learning-plans",
+        response_model=OperatingPilotOwnLearningPlansPage,
+    )
     async def location_operating_pilot_own_learning_plans(
         request: Request,
         location_id: str,
-        limit: int = 25,
-        offset: int = 0,
+        limit: int = Query(default=25, ge=1, le=50),
+        offset: int = Query(default=0, ge=0, le=10000),
     ):
         if provider is None:
             return JSONResponse(
@@ -1978,14 +4579,36 @@ def register_operating_pilot_routes(router, provider, run_in_threadpool, psycopg
                 content={"error": "Own learning-plan history unavailable"},
                 headers={**headers, "Retry-After": "30"},
             )
-        return JSONResponse(jsonable_encoder(result), headers=headers)
+        try:
+            page = OperatingPilotOwnLearningPlansPage.model_validate(result)
+            if (
+                page.location_id != UUID(location_id)
+                or page.limit != limit
+                or page.offset != offset
+            ):
+                raise ValueError("Own learning-plan page does not match request scope or bounds")
+        except (ValidationError, TypeError, ValueError) as exc:
+            from services.common.logging import get_logger
 
-    @router.get("/operator/api/operating-pilot/{location_id}/my-coaching-sessions")
+            get_logger("gateway.operating_pilot").warning(
+                "Own learning-plan response rejected (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=500,
+                content={"error": "Own learning-plan history unavailable"},
+                headers=headers,
+            )
+        return JSONResponse(jsonable_encoder(page), headers=headers)
+
+    @router.get(
+        "/operator/api/operating-pilot/{location_id}/my-coaching-sessions",
+        response_model=OperatingPilotOwnCoachingSessionsPage,
+    )
     async def location_operating_pilot_own_coaching_sessions(
         request: Request,
         location_id: str,
-        limit: int = 25,
-        offset: int = 0,
+        limit: int = Query(default=25, ge=1, le=50),
+        offset: int = Query(default=0, ge=0, le=10000),
     ):
         if provider is None:
             return JSONResponse(
@@ -2039,15 +4662,37 @@ def register_operating_pilot_routes(router, provider, run_in_threadpool, psycopg
                 content={"error": "Own coaching-session history unavailable"},
                 headers={**headers, "Retry-After": "30"},
             )
-        return JSONResponse(jsonable_encoder(result), headers=headers)
+        try:
+            page = OperatingPilotOwnCoachingSessionsPage.model_validate(result)
+            if (
+                page.location_id != UUID(location_id)
+                or page.limit != limit
+                or page.offset != offset
+            ):
+                raise ValueError("Own coaching page does not match request scope or bounds")
+        except (ValidationError, TypeError, ValueError) as exc:
+            from services.common.logging import get_logger
 
-    @router.get("/operator/api/operating-pilot/{location_id}/coaching-participants")
+            get_logger("gateway.operating_pilot").warning(
+                "Own coaching-session response rejected (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=500,
+                content={"error": "Own coaching-session history unavailable"},
+                headers=headers,
+            )
+        return JSONResponse(jsonable_encoder(page), headers=headers)
+
+    @router.get(
+        "/operator/api/operating-pilot/{location_id}/coaching-participants",
+        response_model=OperatingPilotCoachingParticipantsPage,
+    )
     async def location_operating_pilot_coaching_participants(
         request: Request,
         location_id: str,
         q: str | None = None,
-        limit: int = 25,
-        offset: int = 0,
+        limit: int = Query(default=25, ge=1, le=50),
+        offset: int = Query(default=0, ge=0, le=10000),
     ):
         if provider is None:
             return JSONResponse(
@@ -2102,14 +4747,39 @@ def register_operating_pilot_routes(router, provider, run_in_threadpool, psycopg
                 content={"error": "Coaching participant lookup unavailable"},
                 headers={**headers, "Retry-After": "30"},
             )
-        return JSONResponse(jsonable_encoder(result), headers=headers)
+        try:
+            page = OperatingPilotCoachingParticipantsPage.model_validate(result)
+            if page.location_id != UUID(location_id):
+                raise ValueError("Coaching participant page does not match request location")
+            if len(page.items) > limit:
+                raise ValueError("Coaching participant page exceeds its requested limit")
+            if page.has_more:
+                if len(page.items) != limit or page.next_offset != offset + limit:
+                    raise ValueError("Coaching participant continuation does not match its page")
+            elif page.next_offset is not None:
+                raise ValueError("Terminal coaching participant page cannot continue")
+        except (ValidationError, TypeError, ValueError) as exc:
+            from services.common.logging import get_logger
 
-    @router.get("/operator/api/operating-pilot/{location_id}/my-demand-signals")
+            get_logger("gateway.operating_pilot").warning(
+                "Coaching participant response rejected (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=500,
+                content={"error": "Coaching participant lookup unavailable"},
+                headers=headers,
+            )
+        return JSONResponse(jsonable_encoder(page), headers=headers)
+
+    @router.get(
+        "/operator/api/operating-pilot/{location_id}/my-demand-signals",
+        response_model=OperatingPilotOwnDemandSignalsPage,
+    )
     async def location_operating_pilot_own_demand_signals(
         request: Request,
         location_id: str,
-        limit: int = 25,
-        offset: int = 0,
+        limit: int = Query(default=25, ge=1, le=50),
+        offset: int = Query(default=0, ge=0, le=10000),
     ):
         if provider is None:
             return JSONResponse(
@@ -2163,14 +4833,41 @@ def register_operating_pilot_routes(router, provider, run_in_threadpool, psycopg
                 content={"error": "Own operating demand read unavailable"},
                 headers={**headers, "Retry-After": "30"},
             )
-        return JSONResponse(jsonable_encoder(result), headers=headers)
+        try:
+            page = OperatingPilotOwnDemandSignalsPage.model_validate(
+                _bound_own_demand_continuation(result)
+            )
+            if (
+                page.location_id != UUID(location_id)
+                or page.limit != limit
+                or page.offset != offset
+            ):
+                raise ValueError("Own demand page does not match request scope or bounds")
+        except (ValidationError, TypeError, ValueError) as exc:
+            from services.common.logging import get_logger
 
-    @router.get("/operator/api/operating-pilot/{location_id}/my-resource-requests")
+            get_logger("gateway.operating_pilot").warning(
+                "Own demand response rejected (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=500,
+                content={"error": "Own operating demand read unavailable"},
+                headers=headers,
+            )
+        return JSONResponse(
+            jsonable_encoder(page.model_dump(mode="python"), custom_encoder={Decimal: float}),
+            headers=headers,
+        )
+
+    @router.get(
+        "/operator/api/operating-pilot/{location_id}/my-resource-requests",
+        response_model=OperatingPilotOwnResourceRequestsPage,
+    )
     async def location_operating_pilot_own_resource_requests(
         request: Request,
         location_id: str,
-        limit: int = 25,
-        offset: int = 0,
+        limit: int = Query(default=25, ge=1, le=50),
+        offset: int = Query(default=0, ge=0, le=10000),
     ):
         if provider is None:
             return JSONResponse(
@@ -2224,14 +4921,36 @@ def register_operating_pilot_routes(router, provider, run_in_threadpool, psycopg
                 content={"error": "Own operating resource read unavailable"},
                 headers={**headers, "Retry-After": "30"},
             )
+        try:
+            page = OperatingPilotOwnResourceRequestsPage.model_validate(result)
+            if (
+                page.location_id != UUID(location_id)
+                or page.limit != limit
+                or page.offset != offset
+            ):
+                raise ValueError("Own resource page does not match request scope or bounds")
+        except (ValidationError, TypeError, ValueError) as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.operating_pilot").warning(
+                "Own operating resource response rejected (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=500,
+                content={"error": "Own operating resource read unavailable"},
+                headers=headers,
+            )
         return JSONResponse(jsonable_encoder(result), headers=headers)
 
-    @router.get("/operator/api/operating-pilot/{location_id}/capacity-review-queue")
+    @router.get(
+        "/operator/api/operating-pilot/{location_id}/capacity-review-queue",
+        response_model=OperatingPilotCapacityReviewPage,
+    )
     async def location_operating_pilot_capacity_review_queue(
         request: Request,
         location_id: str,
-        limit: int = 25,
-        offset: int = 0,
+        limit: int = Query(default=25, ge=1, le=50),
+        offset: int = Query(default=0, ge=0, le=10000),
     ):
         if provider is None:
             return JSONResponse(
@@ -2285,14 +5004,40 @@ def register_operating_pilot_routes(router, provider, run_in_threadpool, psycopg
                 content={"error": "Operating capacity review queue unavailable"},
                 headers={**headers, "Retry-After": "30"},
             )
-        return JSONResponse(jsonable_encoder(result), headers=headers)
+        try:
+            validated = OperatingPilotCapacityReviewPage.model_validate(result)
+            if (
+                validated.location_id != UUID(location_id)
+                or validated.limit != limit
+                or validated.offset != offset
+            ):
+                raise ValueError("Capacity review page does not match request scope or bounds")
+        except (ValidationError, TypeError, ValueError) as exc:
+            from services.common.logging import get_logger
 
-    @router.get("/operator/api/operating-pilot/{location_id}/competency-review-queue")
+            get_logger("gateway.operating_pilot").warning(
+                "Capacity review response rejected (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=500,
+                content={"error": "Operating capacity review queue unavailable"},
+                headers=headers,
+            )
+        return JSONResponse(
+            jsonable_encoder(validated.model_dump(mode="python")), headers=headers
+        )
+
+    @router.get(
+        "/operator/api/operating-pilot/{location_id}/competency-review-queue",
+        response_model=OperatingPilotCompetencyReviewQueueResponse,
+    )
     async def location_operating_pilot_competency_review_queue(
         request: Request,
         location_id: str,
-        limit: int = 25,
-        offset: int = 0,
+        limit: int = Query(default=25, ge=1, le=50),
+        offset: int = Query(
+            default=0, ge=0, le=_COMPETENCY_REVIEW_MAX_OFFSET
+        ),
     ):
         if provider is None:
             return JSONResponse(
@@ -2346,14 +5091,38 @@ def register_operating_pilot_routes(router, provider, run_in_threadpool, psycopg
                 content={"error": "Operating competency review queue unavailable"},
                 headers={**headers, "Retry-After": "30"},
             )
+        try:
+            result = _bound_competency_review_continuation(result)
+            validated = OperatingPilotCompetencyReviewQueueResponse.model_validate(result)
+            if (
+                validated.location_id != UUID(location_id)
+                or validated.limit != limit
+                or validated.offset != offset
+            ):
+                raise ValueError("Competency review page does not match the request")
+        except (ValidationError, TypeError, ValueError) as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.operating_pilot").warning(
+                "Operating competency review response rejected (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=500,
+                content={"error": "Operating competency review queue unavailable"},
+                headers=headers,
+            )
+        # Preserve JSONB numeric values as JSON numbers instead of Decimal strings.
         return JSONResponse(jsonable_encoder(result), headers=headers)
 
-    @router.get("/operator/api/operating-pilot/{location_id}/learning-plan-review-queue")
+    @router.get(
+        "/operator/api/operating-pilot/{location_id}/learning-plan-review-queue",
+        response_model=OperatingPilotLearningPlanReviewQueueResponse,
+    )
     async def location_operating_pilot_learning_plan_review_queue(
         request: Request,
         location_id: str,
-        limit: int = 25,
-        offset: int = 0,
+        limit: int = Query(default=25, ge=1, le=50),
+        offset: int = Query(default=0, ge=0, le=10000),
     ):
         if provider is None:
             return JSONResponse(
@@ -2407,14 +5176,38 @@ def register_operating_pilot_routes(router, provider, run_in_threadpool, psycopg
                 content={"error": "Operating learning-plan review queue unavailable"},
                 headers={**headers, "Retry-After": "30"},
             )
+        try:
+            result = _bound_learning_plan_review_continuation(result)
+            validated = OperatingPilotLearningPlanReviewQueueResponse.model_validate(result)
+            if (
+                validated.location_id != UUID(location_id)
+                or validated.limit != limit
+                or validated.offset != offset
+            ):
+                raise ValueError("Learning-plan review page does not match the request")
+        except (ValidationError, TypeError, ValueError, RecursionError) as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.operating_pilot").warning(
+                "Operating learning-plan review response rejected (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=503,
+                content={"error": "Operating learning-plan review queue unavailable"},
+                headers={**headers, "Retry-After": "30"},
+            )
+        # Preserve the JSONB arrays' source numbers as JSON numbers.
         return JSONResponse(jsonable_encoder(result), headers=headers)
 
-    @router.get("/operator/api/operating-pilot/{location_id}/learning-plan-activation-queue")
+    @router.get(
+        "/operator/api/operating-pilot/{location_id}/learning-plan-activation-queue",
+        response_model=OperatingPilotLearningPlanActivationQueueResponse,
+    )
     async def location_operating_pilot_learning_plan_activation_queue(
         request: Request,
         location_id: str,
-        limit: int = 25,
-        offset: int = 0,
+        limit: int = Query(default=25, ge=1, le=50),
+        offset: int = Query(default=0, ge=0, le=10000),
     ):
         if provider is None:
             return JSONResponse(
@@ -2468,10 +5261,34 @@ def register_operating_pilot_routes(router, provider, run_in_threadpool, psycopg
                 content={"error": "Operating learning-plan activation queue unavailable"},
                 headers={**headers, "Retry-After": "30"},
             )
-        return JSONResponse(jsonable_encoder(result), headers=headers)
+        try:
+            result = _bound_learning_plan_activation_continuation(result)
+            validated = OperatingPilotLearningPlanActivationQueueResponse.model_validate(result)
+            if (
+                validated.location_id != UUID(location_id)
+                or validated.limit != limit
+                or validated.offset != offset
+            ):
+                raise ValueError("Learning-plan activation page does not match the request")
+        except (ValidationError, TypeError, ValueError, RecursionError) as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.operating_pilot").warning(
+                "Operating learning-plan activation queue response rejected (%s)",
+                type(exc).__name__,
+            )
+            return JSONResponse(
+                status_code=503,
+                content={"error": "Operating learning-plan activation queue unavailable"},
+                headers={**headers, "Retry-After": "30"},
+            )
+        return JSONResponse(
+            jsonable_encoder(validated.model_dump(mode="python")), headers=headers
+        )
 
     @router.post(
-        "/operator/api/operating-pilot/{location_id}/learning-plans/{learning_plan_id}/review"
+        "/operator/api/operating-pilot/{location_id}/learning-plans/{learning_plan_id}/review",
+        response_model=OperatingPilotLearningPlanReviewDecisionResponse,
     )
     async def review_operating_pilot_learning_plan(
         request: Request, location_id: str, learning_plan_id: str
@@ -2551,10 +5368,33 @@ def register_operating_pilot_routes(router, provider, run_in_threadpool, psycopg
                 content={"error": "Operating learning-plan review decision unavailable"},
                 headers={**headers, "Retry-After": "30"},
             )
-        return JSONResponse(jsonable_encoder(result), headers=headers)
+        try:
+            response = OperatingPilotLearningPlanReviewDecisionResponse.model_validate_json(
+                json.dumps(jsonable_encoder(result)), strict=True
+            )
+            if (
+                response.location_id != UUID(location_id)
+                or response.learning_plan_id != UUID(learning_plan_id)
+            ):
+                raise ValueError("Learning-plan review response does not match the request")
+        except (ValidationError, TypeError, ValueError) as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.operating_pilot").warning(
+                "Operating learning-plan-review response rejected (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=503,
+                content={"error": "Operating learning-plan review decision unavailable"},
+                headers={**headers, "Retry-After": "30"},
+            )
+        return JSONResponse(
+            jsonable_encoder(response.model_dump(mode="json")), headers=headers
+        )
 
     @router.post(
-        "/operator/api/operating-pilot/{location_id}/learning-plans/{learning_plan_id}/activate"
+        "/operator/api/operating-pilot/{location_id}/learning-plans/{learning_plan_id}/activate",
+        response_model=OperatingPilotLearningPlanActivationResponse,
     )
     async def activate_operating_pilot_learning_plan(
         request: Request, location_id: str, learning_plan_id: str
@@ -2628,14 +5468,39 @@ def register_operating_pilot_routes(router, provider, run_in_threadpool, psycopg
                 content={"error": "Operating learning-plan activation unavailable"},
                 headers={**headers, "Retry-After": "30"},
             )
-        return JSONResponse(jsonable_encoder(result), headers=headers)
+        try:
+            response = OperatingPilotLearningPlanActivationResponse.model_validate_json(
+                json.dumps(jsonable_encoder(result)), strict=True
+            )
+            if (
+                response.location_id != UUID(location_id)
+                or response.learning_plan_id != UUID(learning_plan_id)
+            ):
+                raise ValueError("Learning-plan activation response does not match the request")
+        except (ValidationError, TypeError, ValueError) as exc:
+            from services.common.logging import get_logger
 
-    @router.get("/operator/api/operating-pilot/{location_id}/demand-review-queue")
+            get_logger("gateway.operating_pilot").warning(
+                "Operating learning-plan-activation response rejected (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=503,
+                content={"error": "Operating learning-plan activation unavailable"},
+                headers={**headers, "Retry-After": "30"},
+            )
+        return JSONResponse(
+            jsonable_encoder(response.model_dump(mode="json")), headers=headers
+        )
+
+    @router.get(
+        "/operator/api/operating-pilot/{location_id}/demand-review-queue",
+        response_model=OperatingPilotDemandReviewQueueResponse,
+    )
     async def location_operating_pilot_demand_review_queue(
         request: Request,
         location_id: str,
-        limit: int = 25,
-        offset: int = 0,
+        limit: int = Query(default=25, ge=1, le=50),
+        offset: int = Query(default=0, ge=0, le=10000),
     ):
         if provider is None:
             return JSONResponse(
@@ -2689,14 +5554,39 @@ def register_operating_pilot_routes(router, provider, run_in_threadpool, psycopg
                 content={"error": "Operating demand review queue unavailable"},
                 headers={**headers, "Retry-After": "30"},
             )
-        return JSONResponse(jsonable_encoder(result), headers=headers)
+        try:
+            result = _bound_demand_review_continuation(result)
+            validated = OperatingPilotDemandReviewQueueResponse.model_validate(result)
+            if (
+                validated.location_id != UUID(location_id)
+                or validated.limit != limit
+                or validated.offset != offset
+            ):
+                raise ValueError("Demand review page does not match the request")
+        except (ValidationError, TypeError, ValueError) as exc:
+            from services.common.logging import get_logger
 
-    @router.get("/operator/api/operating-pilot/{location_id}/resource-review-queue")
+            get_logger("gateway.operating_pilot").warning(
+                "Operating demand review response rejected (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=500,
+                content={"error": "Operating demand review queue unavailable"},
+                headers=headers,
+            )
+        return JSONResponse(
+            jsonable_encoder(validated.model_dump(mode="python")), headers=headers
+        )
+
+    @router.get(
+        "/operator/api/operating-pilot/{location_id}/resource-review-queue",
+        response_model=OperatingPilotResourceReviewQueueResponse,
+    )
     async def location_operating_pilot_resource_review_queue(
         request: Request,
         location_id: str,
-        limit: int = 25,
-        offset: int = 0,
+        limit: int = Query(default=25, ge=1, le=50),
+        offset: int = Query(default=0, ge=0, le=10000),
     ):
         if provider is None:
             return JSONResponse(
@@ -2750,14 +5640,39 @@ def register_operating_pilot_routes(router, provider, run_in_threadpool, psycopg
                 content={"error": "Operating resource review queue unavailable"},
                 headers={**headers, "Retry-After": "30"},
             )
-        return JSONResponse(jsonable_encoder(result), headers=headers)
+        try:
+            result = _bound_resource_review_continuation(result)
+            validated = OperatingPilotResourceReviewQueueResponse.model_validate(result)
+            if (
+                validated.location_id != UUID(location_id)
+                or validated.limit != limit
+                or validated.offset != offset
+            ):
+                raise ValueError("Resource review page does not match the request")
+        except (ValidationError, TypeError, ValueError) as exc:
+            from services.common.logging import get_logger
 
-    @router.get("/operator/api/operating-pilot/{location_id}/resource-fulfillment-queue")
+            get_logger("gateway.operating_pilot").warning(
+                "Operating resource review response rejected (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=500,
+                content={"error": "Operating resource review queue unavailable"},
+                headers=headers,
+            )
+        return JSONResponse(
+            jsonable_encoder(validated.model_dump(mode="python")), headers=headers
+        )
+
+    @router.get(
+        "/operator/api/operating-pilot/{location_id}/resource-fulfillment-queue",
+        response_model=OperatingPilotResourceFulfillmentQueueResponse,
+    )
     async def location_operating_pilot_resource_fulfillment_queue(
         request: Request,
         location_id: str,
-        limit: int = 25,
-        offset: int = 0,
+        limit: int = Query(default=25, ge=1, le=50),
+        offset: int = Query(default=0, ge=0, le=10000),
     ):
         if provider is None:
             return JSONResponse(
@@ -2811,10 +5726,33 @@ def register_operating_pilot_routes(router, provider, run_in_threadpool, psycopg
                 content={"error": "Operating resource fulfillment queue unavailable"},
                 headers={**headers, "Retry-After": "30"},
             )
-        return JSONResponse(jsonable_encoder(result), headers=headers)
+        try:
+            result = _bound_resource_review_continuation(result)
+            validated = OperatingPilotResourceFulfillmentQueueResponse.model_validate(result)
+            if (
+                validated.location_id != UUID(location_id)
+                or validated.limit != limit
+                or validated.offset != offset
+            ):
+                raise ValueError("Resource fulfillment page does not match the request")
+        except (ValidationError, TypeError, ValueError) as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.operating_pilot").warning(
+                "Operating resource fulfillment response rejected (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=500,
+                content={"error": "Operating resource fulfillment queue unavailable"},
+                headers=headers,
+            )
+        return JSONResponse(
+            jsonable_encoder(validated.model_dump(mode="python")), headers=headers
+        )
 
     @router.post(
-        "/operator/api/operating-pilot/{location_id}/resource-requests/{resource_request_id}/review"
+        "/operator/api/operating-pilot/{location_id}/resource-requests/{resource_request_id}/review",
+        response_model=OperatingPilotResourceReviewDecisionResponse,
     )
     async def review_operating_pilot_resource_request(
         request: Request, location_id: str, resource_request_id: str
@@ -2899,10 +5837,33 @@ def register_operating_pilot_routes(router, provider, run_in_threadpool, psycopg
                 content={"error": "Operating resource review decision unavailable"},
                 headers={**headers, "Retry-After": "30"},
             )
-        return JSONResponse(jsonable_encoder(result), headers=headers)
+        try:
+            response = OperatingPilotResourceReviewDecisionResponse.model_validate_json(
+                json.dumps(jsonable_encoder(result)), strict=True
+            )
+            if (
+                response.location_id != UUID(location_id)
+                or response.resource_request_id != UUID(resource_request_id)
+            ):
+                raise ValueError("Resource review response does not match the request")
+        except (ValidationError, TypeError, ValueError) as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.operating_pilot").warning(
+                "Operating resource-review response rejected (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=503,
+                content={"error": "Operating resource review decision unavailable"},
+                headers={**headers, "Retry-After": "30"},
+            )
+        return JSONResponse(
+            jsonable_encoder(response.model_dump(mode="json")), headers=headers
+        )
 
     @router.post(
-        "/operator/api/operating-pilot/{location_id}/resource-requests/{resource_request_id}/fulfill"
+        "/operator/api/operating-pilot/{location_id}/resource-requests/{resource_request_id}/fulfill",
+        response_model=OperatingPilotResourceFulfillmentResponse,
     )
     async def fulfill_operating_pilot_resource_request(
         request: Request, location_id: str, resource_request_id: str
@@ -2979,10 +5940,33 @@ def register_operating_pilot_routes(router, provider, run_in_threadpool, psycopg
                 content={"error": "Operating resource fulfillment unavailable"},
                 headers={**headers, "Retry-After": "30"},
             )
-        return JSONResponse(jsonable_encoder(result), headers=headers)
+        try:
+            response = OperatingPilotResourceFulfillmentResponse.model_validate_json(
+                json.dumps(jsonable_encoder(result)), strict=True
+            )
+            if (
+                response.location_id != UUID(location_id)
+                or response.resource_request_id != UUID(resource_request_id)
+            ):
+                raise ValueError("Resource fulfillment response does not match the request")
+        except (ValidationError, TypeError, ValueError) as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.operating_pilot").warning(
+                "Operating resource-fulfillment response rejected (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=503,
+                content={"error": "Operating resource fulfillment unavailable"},
+                headers={**headers, "Retry-After": "30"},
+            )
+        return JSONResponse(
+            jsonable_encoder(response.model_dump(mode="json")), headers=headers
+        )
 
     @router.post(
-        "/operator/api/operating-pilot/{location_id}/competency-assessments/{draft_id}/review"
+        "/operator/api/operating-pilot/{location_id}/competency-assessments/{draft_id}/review",
+        response_model=OperatingPilotCompetencyReviewDecisionResponse,
     )
     async def review_operating_pilot_competency_assessment(
         request: Request, location_id: str, draft_id: str
@@ -3067,10 +6051,30 @@ def register_operating_pilot_routes(router, provider, run_in_threadpool, psycopg
                 content={"error": "Operating competency review decision unavailable"},
                 headers={**headers, "Retry-After": "30"},
             )
-        return JSONResponse(jsonable_encoder(result), headers=headers)
+        try:
+            response = OperatingPilotCompetencyReviewDecisionResponse.model_validate_json(
+                json.dumps(jsonable_encoder(result)), strict=True
+            )
+            if response.location_id != UUID(location_id) or response.draft_id != UUID(draft_id):
+                raise ValueError("Competency review response does not match the request")
+        except (ValidationError, TypeError, ValueError) as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.operating_pilot").warning(
+                "Operating competency-review response rejected (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=503,
+                content={"error": "Operating competency review decision unavailable"},
+                headers={**headers, "Retry-After": "30"},
+            )
+        return JSONResponse(
+            jsonable_encoder(response.model_dump(mode="json")), headers=headers
+        )
 
     @router.post(
-        "/operator/api/operating-pilot/{location_id}/capacity-profiles/{profile_id}/review"
+        "/operator/api/operating-pilot/{location_id}/capacity-profiles/{profile_id}/review",
+        response_model=OperatingPilotCapacityReviewDecisionResponse,
     )
     async def review_operating_pilot_capacity_profile(
         request: Request, location_id: str, profile_id: str
@@ -3155,10 +6159,30 @@ def register_operating_pilot_routes(router, provider, run_in_threadpool, psycopg
                 content={"error": "Operating capacity review decision unavailable"},
                 headers={**headers, "Retry-After": "30"},
             )
-        return JSONResponse(jsonable_encoder(result), headers=headers)
+        try:
+            response = OperatingPilotCapacityReviewDecisionResponse.model_validate_json(
+                json.dumps(jsonable_encoder(result)), strict=True
+            )
+            if response.location_id != UUID(location_id) or response.profile_id != UUID(profile_id):
+                raise ValueError("Capacity review response does not match the request")
+        except (ValidationError, TypeError, ValueError) as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.operating_pilot").warning(
+                "Operating capacity-review response rejected (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=503,
+                content={"error": "Operating capacity review decision unavailable"},
+                headers={**headers, "Retry-After": "30"},
+            )
+        return JSONResponse(
+            jsonable_encoder(response.model_dump(mode="json")), headers=headers
+        )
 
     @router.post(
-        "/operator/api/operating-pilot/{location_id}/demand-signals/{signal_id}/review"
+        "/operator/api/operating-pilot/{location_id}/demand-signals/{signal_id}/review",
+        response_model=OperatingPilotDemandReviewDecisionResponse,
     )
     async def review_operating_pilot_demand_signal(
         request: Request, location_id: str, signal_id: str
@@ -3243,14 +6267,36 @@ def register_operating_pilot_routes(router, provider, run_in_threadpool, psycopg
                 content={"error": "Operating demand review decision unavailable"},
                 headers={**headers, "Retry-After": "30"},
             )
-        return JSONResponse(jsonable_encoder(result), headers=headers)
+        try:
+            response = OperatingPilotDemandReviewDecisionResponse.model_validate_json(
+                json.dumps(jsonable_encoder(result)), strict=True
+            )
+            if response.location_id != UUID(location_id) or response.signal_id != UUID(signal_id):
+                raise ValueError("Demand review response does not match the request")
+        except (ValidationError, TypeError, ValueError) as exc:
+            from services.common.logging import get_logger
 
-    @router.get("/operator/api/operating-pilot/{location_id}/work-claims")
+            get_logger("gateway.operating_pilot").warning(
+                "Operating demand-review response rejected (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=503,
+                content={"error": "Operating demand review decision unavailable"},
+                headers={**headers, "Retry-After": "30"},
+            )
+        return JSONResponse(
+            jsonable_encoder(response.model_dump(mode="json")), headers=headers
+        )
+
+    @router.get(
+        "/operator/api/operating-pilot/{location_id}/work-claims",
+        response_model=OperatingPilotWorkClaimsPage,
+    )
     async def location_operating_pilot_work_claims(
         request: Request,
         location_id: str,
-        limit: int = 25,
-        offset: int = 0,
+        limit: int = Query(default=25, ge=1, le=50),
+        offset: int = Query(default=0, ge=0, le=10000),
     ):
         if provider is None:
             return JSONResponse(
@@ -3291,14 +6337,36 @@ def register_operating_pilot_routes(router, provider, run_in_threadpool, psycopg
                 content={"error": "Operating work-claim read unavailable"},
                 headers={**headers, "Retry-After": "30"},
             )
-        return JSONResponse(jsonable_encoder(result), headers=headers)
+        try:
+            page = OperatingPilotWorkClaimsPage.model_validate(result)
+            if (
+                page.location_id != UUID(location_id)
+                or page.limit != limit
+                or page.offset != offset
+            ):
+                raise ValueError("Work-claim page does not match request scope or bounds")
+        except (ValidationError, TypeError, ValueError) as exc:
+            from services.common.logging import get_logger
 
-    @router.get("/operator/api/operating-pilot/{location_id}/resource-categories")
+            get_logger("gateway.operating_pilot").warning(
+                "Operating work-claim response rejected (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=500,
+                content={"error": "Operating work-claim read unavailable"},
+                headers=headers,
+            )
+        return JSONResponse(jsonable_encoder(page), headers=headers)
+
+    @router.get(
+        "/operator/api/operating-pilot/{location_id}/resource-categories",
+        response_model=OperatingPilotResourceCategoryPage,
+    )
     async def location_operating_pilot_resource_categories(
         request: Request,
         location_id: str,
-        limit: int = 25,
-        offset: int = 0,
+        limit: int = Query(default=25, ge=1, le=50),
+        offset: int = Query(default=0, ge=0, le=10000),
     ):
         if provider is None:
             return JSONResponse(
@@ -3339,14 +6407,38 @@ def register_operating_pilot_routes(router, provider, run_in_threadpool, psycopg
                 content={"error": "Operating resource read unavailable"},
                 headers={**headers, "Retry-After": "30"},
             )
-        return JSONResponse(jsonable_encoder(result), headers=headers)
+        try:
+            page = OperatingPilotResourceCategoryPage.model_validate(result)
+            if (
+                page.location_id != UUID(location_id)
+                or page.limit != limit
+                or page.offset != offset
+            ):
+                raise ValueError("Operating resource page does not match the request")
+        except (ValidationError, TypeError, ValueError) as exc:
+            from services.common.logging import get_logger
 
-    @router.get("/operator/api/operating-pilot/{location_id}/work-opportunities")
+            get_logger("gateway.operating_pilot").warning(
+                "Operating resource response rejected (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=500,
+                content={"error": "Operating resource read unavailable"},
+                headers=headers,
+            )
+        return JSONResponse(
+            jsonable_encoder(page.model_dump(mode="json")), headers=headers
+        )
+
+    @router.get(
+        "/operator/api/operating-pilot/{location_id}/work-opportunities",
+        response_model=OperatingPilotWorkOpportunitiesPage,
+    )
     async def location_operating_pilot_work_opportunities(
         request: Request,
         location_id: str,
-        limit: int = 25,
-        offset: int = 0,
+        limit: int = Query(default=25, ge=1, le=50),
+        offset: int = Query(default=0, ge=0, le=10000),
     ):
         if provider is None:
             return JSONResponse(
@@ -3400,10 +6492,32 @@ def register_operating_pilot_routes(router, provider, run_in_threadpool, psycopg
                 content={"error": "Operating work-opportunity read unavailable"},
                 headers={**headers, "Retry-After": "30"},
             )
+        try:
+            page = OperatingPilotWorkOpportunitiesPage.model_validate(result)
+            if (
+                page.location_id != UUID(location_id)
+                or page.limit != limit
+                or page.offset != offset
+            ):
+                raise ValueError("Work-opportunity page does not match request scope or bounds")
+        except (ValidationError, TypeError, ValueError) as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.operating_pilot").warning(
+                "Operating work-opportunity response rejected (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=500,
+                content={"error": "Operating work-opportunity read unavailable"},
+                headers=headers,
+            )
+        # Keep PostgreSQL's JSON numeric representation (numbers, not Decimal strings).
         return JSONResponse(jsonable_encoder(result), headers=headers)
 
     @router.post(
-        "/operator/api/operating-pilot/{location_id}/work-opportunities/{work_item_id}/claims"
+        "/operator/api/operating-pilot/{location_id}/work-opportunities/{work_item_id}/claims",
+        status_code=201,
+        response_model=OperatingPilotWorkClaimProposalResponse,
     )
     async def claim_location_operating_pilot_work_route(
         request: Request,
@@ -3490,4 +6604,26 @@ def register_operating_pilot_routes(router, provider, run_in_threadpool, psycopg
                 content={"error": "Operating work-claim proposal unavailable"},
                 headers={**headers, "Retry-After": "30"},
             )
-        return JSONResponse(jsonable_encoder(result), status_code=201, headers=headers)
+        try:
+            response = OperatingPilotWorkClaimProposalResponse.model_validate_json(
+                json.dumps(jsonable_encoder(result)), strict=True
+            )
+            if (
+                response.location_id != UUID(location_id)
+                or response.work_item_id != UUID(work_item_id)
+            ):
+                raise ValueError("Work-claim proposal response does not match the request")
+        except (ValidationError, TypeError, ValueError) as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.operating_pilot").warning(
+                "Operating work-claim-proposal response rejected (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=503,
+                content={"error": "Operating work-claim proposal unavailable"},
+                headers={**headers, "Retry-After": "30"},
+            )
+        return JSONResponse(
+            jsonable_encoder(response.model_dump(mode="json")), status_code=201, headers=headers
+        )

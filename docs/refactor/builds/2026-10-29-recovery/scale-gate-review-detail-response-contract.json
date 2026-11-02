@@ -1,0 +1,56 @@
+{
+  "date": "2026-10-29",
+  "batch": "scale-gate review detail response contract",
+  "source": {
+    "migration": "schemas/postgres/501_location_solution_scale_gate_evaluation_review.sql",
+    "gate_type_enum": "schemas/postgres/292_solution_scale_learning_retirement.sql",
+    "read_wrapper": "services/gateway/solution_lifecycle_reads.py",
+    "gateway": "services/gateway/solution_lifecycle_routes.py",
+    "route": "GET /operator/api/solution-lifecycle/{location_id}/scale-gates/review/{assessment_id}"
+  },
+  "contract": {
+    "fields": [
+      "location_id",
+      "assessment_id",
+      "gate_id",
+      "solution_name",
+      "gate_type",
+      "requirement",
+      "threshold",
+      "metric_key",
+      "comparison_operator",
+      "threshold_numeric",
+      "unit",
+      "passed",
+      "measured_value",
+      "measured_numeric",
+      "sample_size",
+      "evidence_refs",
+      "evaluator_conflict",
+      "submitted_at"
+    ],
+    "validation": "Strict exact-field OpenAPI/runtime model; location and assessment IDs bind to the route. Enforces migration-backed text, sample-size, evidence-array length/serialized-size, gate type, comparison operator and numeric-pair constraints. Evidence array elements are validated as JSON-serializable values without inventing an element schema.",
+    "authorization": "The existing private exact-location solution_lifecycle:review policy, signed tenant context, and active-human review requirements are unchanged. Evaluator identity is not projected; only the conflict boolean is returned."
+  },
+  "verification": {
+    "focused_command": "python3 -m pytest tests/test_gateway_solution_scale_gate_reviews.py -q",
+    "focused_tests": 21,
+    "focused_result": "passed",
+    "ruff_default": "passed on changed source and tests",
+    "ruff_security_source": "passed on changed Gateway source",
+    "python_compile": "passed on changed source and tests",
+    "git_diff_check": "passed",
+    "capability_matrix": "passed: 67 rows; 24 baseline-retained, 7 deployed, 36 prepared",
+    "runtime_sql_inventory": "current; unresolved-write review ledger current",
+    "report_generator_helper_scope_inventory": "current",
+    "provider_boundaries": "passed: 17 vendor import sites",
+    "dependency_groups": "passed: 14 groups, 33 requirements"
+  },
+  "environment": {
+    "database": "not used; tests use mocked service results and cursor helpers",
+    "provider": "not used",
+    "candidate_or_legacy_state": "untouched",
+    "migration_applied": false
+  },
+  "rollback": "Revert the response model/route, focused test, and progress/evidence records; no database rollback is needed."
+}

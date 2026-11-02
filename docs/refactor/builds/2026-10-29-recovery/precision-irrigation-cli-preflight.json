@@ -1,0 +1,30 @@
+{
+  "date": "2026-10-29",
+  "scope": "mock-only-cli-preflight",
+  "command_group": "services.analytics.cli_precision_irrigation",
+  "validation": {
+    "create_rule_priority": {"minimum": 0, "maximum": 100},
+    "eval_rules_readings": "valid JSON object",
+    "schedule_start": "ISO timestamp parsed before database acquisition"
+  },
+  "invalid_inputs_rejected_before_database": [
+    "priority:-1",
+    "priority:101",
+    "readings:malformed-json",
+    "readings:array",
+    "readings:null",
+    "start:invalid-iso-timestamp"
+  ],
+  "valid_inputs_forwarded": [
+    "priority:0",
+    "priority:100",
+    "readings:{}",
+    "start:2026-10-29T08:30:00+00:00"
+  ],
+  "focused_test_file_passed": 30,
+  "ruff": "passed",
+  "python_compile": "passed",
+  "diff_check": "passed",
+  "database_contacted": false,
+  "provider_contacted": false
+}

@@ -24,10 +24,9 @@ BBOX = {"west": -70.0, "south": 18.0, "east": -69.0, "north": 19.0}
         (gee_climate.fetch_era5_land, "ERA5 Land fetch failed (RuntimeError)"),
     ],
 )
-def test_provider_failure_is_sanitized_and_rolls_back(monkeypatch, fetcher, summary):
-    connection = MagicMock()
+def test_provider_failure_is_sanitized_without_opening_shared_database(monkeypatch, fetcher, summary):
     logger = MagicMock()
-    monkeypatch.setattr(gee_climate, "_get_gee_client", lambda: object())
+    monkeypatch.setattr(gee_climate, "_get_gee_client", lambda *, worker_credentials=False: object())
     monkeypatch.setattr(
         gee_climate,
         "_period",
@@ -37,12 +36,19 @@ def test_provider_failure_is_sanitized_and_rolls_back(monkeypatch, fetcher, summ
     )
     monkeypatch.setattr(gee_climate, "logger", logger)
 
-    result = fetcher(connection, "synthetic-location", BBOX)
+    persist = MagicMock()
+    result = fetcher(
+        None,
+        "11111111-1111-4111-8111-111111111111",
+        BBOX,
+        worker_credentials=True,
+        persist_summary=persist,
+    )
 
     assert result == {"status": "error", "message": summary}
     assert SECRET not in str(result)
     assert SECRET not in str(logger.error.call_args)
-    connection.rollback.assert_called_once_with()
+    persist.assert_not_called()
 
 
 def test_service_account_initialization_error_is_sanitized(monkeypatch):

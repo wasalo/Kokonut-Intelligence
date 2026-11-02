@@ -1,0 +1,41 @@
+{
+  "date": "2026-10-29",
+  "branch": "chore/kernel-next-sprint-plan",
+  "slices": [
+    "The Field Collector private collection-detail route now publishes a strict response envelope, binds collection and location to the request, permits flexible JSON form fields only within the 512 KiB payload bound, and rejects malformed review events/evidence with sanitized no-store responses.",
+    "The scheduler job-plan CLI now accepts and forwards a registered driver instance for sensor plans; missing inputs fail before any database access and generated plans remain disabled.",
+    "Resource-efficiency analytics now aggregates harvest and labor independently per cycle, joins crops through crop_cycle.crop_id, and includes only events whose location matches their target cycle."
+  ],
+  "focused_checks": {
+    "field_collector_gateway": {
+      "command": "python3 -m pytest tests/test_operator_mobile_review_contract.py tests/test_operator_mobile_review.py tests/test_operator_auth.py -k 'mobile_collection_queue or mobile_collection_detail or mobile_collection_review or mobile_collection_routes_require_tenant_qualified_context' -q",
+      "result": "32 passed; 76 deselected"
+    },
+    "scheduler_cli": {
+      "command": "python3 -m pytest tests/test_scheduler_job_plan_cli.py tests/test_scheduled_command_contracts.py -q",
+      "result": "155 passed"
+    },
+    "resource_efficiency": {
+      "command": "python3 scripts/check-resource-efficiency-disposable.py",
+      "result": "passed on disposable PostgreSQL 16",
+      "network_isolated": true,
+      "cleanup": "passed",
+      "assertions": [
+        "Two harvest and two labor rows for one cycle aggregate to 150 kg and 5 hours without join multiplication.",
+        "Cross-location event rows referencing the target cycle are excluded.",
+        "Crop names resolve through crop_cycle.crop_id.",
+        "Second target cycle and overall weighted totals are preserved."
+      ],
+      "evidence": "resource-efficiency-disposable.json"
+    }
+  },
+  "static_checks": {
+    "ruff": "passed",
+    "python_compileall": "passed",
+    "git_diff_check": "passed",
+    "capability_matrix": "67 rows valid; 24 baseline-retained, 7 deployed, 36 prepared"
+  },
+  "migration_required": false,
+  "candidate_or_legacy_database_touched": false,
+  "production_identity_or_provider_used": false
+}

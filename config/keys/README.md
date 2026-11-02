@@ -1,6 +1,7 @@
 # Service Account Keys
 
-Private credentials for external service integrations. This directory is fully gitignored — no files here are committed to the repository.
+Private credentials for external service integrations. Credential files are
+ignored by Git; this provisioning README is intentionally tracked.
 
 ## Contents
 
@@ -20,6 +21,6 @@ Private credentials for external service integrations. This directory is fully g
 
 ## Security
 
-- **Gitignored**: The entire `config/keys/` directory is in `.gitignore`
+- **Gitignored**: Credential files under `config/keys/` are in `.gitignore`; `README.md` is explicitly exempted so the provisioning instructions stay versioned.
 - **Never commit** private keys, API tokens, or service account JSON
 - **Rotate** compromised credentials immediately and history-scrub the repository

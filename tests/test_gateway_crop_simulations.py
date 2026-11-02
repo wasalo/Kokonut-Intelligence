@@ -12,11 +12,59 @@ pytest.importorskip("fastapi")
 from starlette.testclient import TestClient  # noqa: E402
 
 from services.gateway.app import create_app  # noqa: E402
+from services.gateway.crop_simulation_routes import (  # noqa: E402
+    CropSimulationRunDetailResponse,
+    CropSimulationRunsResponse,
+)
 from services.gateway.crop_simulations import (  # noqa: E402
     get_location_crop_simulation_run_detail,
     get_location_crop_simulation_runs,
 )
 from services.gateway.operator_auth import auth_route_policy  # noqa: E402
+
+
+def _valid_run(run_id=None):
+    return {
+        "twin_id": str(uuid4()),
+        "twin_name": "North Plot Twin",
+        "run_id": run_id or str(uuid4()),
+        "started_at": "2026-10-20T08:00:00+00:00",
+        "completed_at": "2026-10-20T08:01:00+00:00",
+        "duration_ms": 60,
+        "final_yield": 4200.5,
+        "final_yield_unit": "kg/ha",
+        "total_water_mm": 85.25,
+        "total_nitrogen_kg": 32.5,
+        "avg_soil_carbon_pct": 1.72,
+    }
+
+
+def _valid_state():
+    return {
+        "day_number": 1,
+        "state_date": "2026-10-01",
+        "soil_moisture_pct": 35.5,
+        "soil_nitrogen_ppm": 17.25,
+        "soil_carbon_pct": 4.2,
+        "soil_temperature_c": 21.0,
+        "gdd_accumulated": 18.0,
+        "crop_biomass_kg_ha": 12.0,
+        "leaf_area_index": 0.8,
+        "crop_stage": "vegetative",
+        "root_depth_cm": 8.0,
+        "rainfall_mm": 1.5,
+        "irrigation_mm": 0.0,
+        "et_actual_mm": 2.1,
+        "drainage_mm": 0.0,
+        "temp_avg_c": 24.0,
+        "temp_min_c": 19.0,
+        "temp_max_c": 28.0,
+        "solar_radiation_mj": 17.0,
+        "humidity_pct": 65.0,
+        "wind_speed_kmh": 9.0,
+        "carbon_sequestered_kg_ha": 0.12,
+        "carbon_emitted_kg_ha": 0.01,
+    }
 
 
 def test_crop_simulation_runs_policy_is_exact_location_read():
@@ -64,7 +112,7 @@ class _Cursor:
         self.conn.queries.append((query, params))
         self.conn.events.append("sql")
         if "SELECT COUNT(*)" in query:
-            self.one = (2,)
+            self.one = (self.conn.total_count,)
             return
         self.description = [(name,) for name in (
             "twin_id", "twin_name", "run_id", "started_at", "completed_at",
@@ -96,11 +144,12 @@ class _Cursor:
 class _Connection:
     autocommit = False
 
-    def __init__(self):
+    def __init__(self, total_count=2):
         self.queries = []
         self.events = []
         self.rolled_back = False
         self.closed = False
+        self.total_count = total_count
 
     def cursor(self):
         return _Cursor(self)
@@ -159,6 +208,42 @@ def test_crop_simulation_runs_sets_context_before_location_scoped_queries():
     assert "parameters" not in result["runs"][0]
     assert "metadata" not in result["runs"][0]
     assert conn.rolled_back and conn.closed
+
+
+def test_crop_simulation_runs_stops_has_more_at_offset_ceiling():
+    conn = _Connection(total_count=20_000)
+    with patch("services.gateway.crop_simulations.set_operator_tenant_context"):
+        result = get_location_crop_simulation_runs(
+            str(uuid4()),
+            str(uuid4()),
+            limit=1,
+            offset=10_000,
+            connection_factory=lambda: conn,
+        )
+
+    assert result["offset"] == 10_000
+    assert result["has_more"] is False
+    assert len(result["runs"]) == 1
+
+
+@pytest.mark.parametrize(
+    ("offset", "limit", "has_more"),
+    [(9_975, 25, True), (9_976, 25, False), (10_000, 25, False)],
+)
+def test_crop_simulation_run_list_contract_respects_offset_ceiling(
+    offset, limit, has_more
+):
+    response = CropSimulationRunsResponse.model_validate(
+        {
+            "location_id": str(uuid4()),
+            "total_runs": 20_000,
+            "limit": limit,
+            "offset": offset,
+            "has_more": has_more,
+            "runs": [_valid_run() for _ in range(25)],
+        }
+    )
+    assert response.has_more is has_more
 
 
 @pytest.mark.parametrize(
@@ -241,7 +326,12 @@ def test_crop_simulation_runs_route_returns_no_store(monkeypatch, gateway_audit_
     monkeypatch.setattr(
         "services.gateway.crop_simulations.get_location_crop_simulation_runs",
         lambda op, loc, **_kwargs: {
-            "location_id": loc, "total_runs": 0, "runs": []
+            "location_id": loc,
+            "total_runs": 0,
+            "limit": 25,
+            "offset": 0,
+            "has_more": False,
+            "runs": [],
         },
     )
     with TestClient(create_app(), cookies={"kokonut_operator_session": "synthetic-session"}) as client:
@@ -291,6 +381,87 @@ def test_crop_simulation_runs_route_denies_missing_grant_before_handler(
     assert called is False
 
 
+def test_crop_simulation_routes_publish_service_pagination_bounds(
+    gateway_audit_spool,
+):
+    app = create_app()
+    paths = app.openapi()["paths"]
+    for path in (
+        "/operator/api/crop-simulations/{location_id}/runs",
+        "/operator/api/crop-simulations/{location_id}/runs/{run_id}",
+    ):
+        parameters = {
+            parameter["name"]: parameter["schema"]
+            for parameter in paths[path]["get"]["parameters"]
+        }
+        assert parameters["limit"]["default"] == 25
+        assert parameters["limit"]["minimum"] == 1
+        assert parameters["limit"]["maximum"] == 50
+        assert parameters["offset"]["default"] == 0
+        assert parameters["offset"]["minimum"] == 0
+        assert parameters["offset"]["maximum"] == 10_000
+    run_schema = paths[
+        "/operator/api/crop-simulations/{location_id}/runs"
+    ]["get"]["responses"]["200"]["content"]["application/json"]["schema"]
+    detail_schema = paths[
+        "/operator/api/crop-simulations/{location_id}/runs/{run_id}"
+    ]["get"]["responses"]["200"]["content"]["application/json"]["schema"]
+    assert run_schema["$ref"].endswith("/CropSimulationRunsResponse")
+    assert detail_schema["$ref"].endswith("/CropSimulationRunDetailResponse")
+
+
+@pytest.mark.parametrize(
+    "route_suffix",
+    ["runs", f"runs/{uuid4()}"],
+)
+@pytest.mark.parametrize(
+    "query", ["limit=0", "limit=51", "offset=-1", "offset=10001"]
+)
+def test_crop_simulation_routes_reject_invalid_pagination_before_service(
+    monkeypatch, gateway_audit_spool, route_suffix, query
+):
+    operator_id, location_id = str(uuid4()), str(uuid4())
+    session = SimpleNamespace(
+        session_id=str(uuid4()),
+        session_token_hash="a" * 64,
+        operator=SimpleNamespace(operator_id=operator_id),
+    )
+
+    class Provider:
+        settings = SimpleNamespace(state_secret="test-only-state-secret")
+
+        def authenticate_request(self, _request):
+            return session
+
+        def has_scope(self, op, resource, action, location):
+            return (op, resource, action, location) == (
+                operator_id, "digital_twin", "read", location_id
+            )
+
+    called = False
+
+    def unexpected_service_call(*_args, **_kwargs):
+        nonlocal called
+        called = True
+        raise AssertionError("invalid pagination must fail before service invocation")
+
+    monkeypatch.setattr("services.gateway.operator_auth.create_provider", lambda: Provider())
+    monkeypatch.setattr(
+        "services.gateway.crop_simulations.get_location_crop_simulation_runs",
+        unexpected_service_call,
+    )
+    monkeypatch.setattr(
+        "services.gateway.crop_simulations.get_location_crop_simulation_run_detail",
+        unexpected_service_call,
+    )
+    path = f"/operator/api/crop-simulations/{location_id}/{route_suffix}"
+    with TestClient(create_app(), cookies={"kokonut_operator_session": "synthetic-session"}) as client:
+        response = client.get(f"{path}?{query}")
+
+    assert response.status_code == 422
+    assert called is False
+
+
 class _DetailCursor:
     def __init__(self, conn):
         self.conn = conn
@@ -320,7 +491,7 @@ class _DetailCursor:
                 Decimal("1.72"),
             )
         elif "SELECT COUNT(*)" in query:
-            self.one = (2,)
+            self.one = (self.conn.total_count,)
         else:
             self.description = [(name,) for name in (
                 "day_number", "state_date", "soil_moisture_pct", "soil_nitrogen_ppm",
@@ -353,11 +524,12 @@ class _DetailCursor:
 class _DetailConnection:
     autocommit = False
 
-    def __init__(self):
+    def __init__(self, total_count=2):
         self.queries = []
         self.events = []
         self.rolled_back = False
         self.closed = False
+        self.total_count = total_count
 
     def cursor(self):
         return _DetailCursor(self)
@@ -419,6 +591,44 @@ def test_crop_simulation_detail_sets_context_and_returns_allowlisted_daily_state
     assert "total_cost_usd" not in result["run"]
     assert "run_label" not in result["run"]
     assert conn.rolled_back and conn.closed
+
+
+def test_crop_simulation_detail_stops_has_more_at_offset_ceiling():
+    conn = _DetailConnection(total_count=20_000)
+    with patch("services.gateway.crop_simulations.set_operator_tenant_context"):
+        result = get_location_crop_simulation_run_detail(
+            str(uuid4()),
+            str(uuid4()),
+            str(uuid4()),
+            limit=1,
+            offset=10_000,
+            connection_factory=lambda: conn,
+        )
+
+    assert result["offset"] == 10_000
+    assert result["has_more"] is False
+    assert len(result["states"]) == 1
+
+
+@pytest.mark.parametrize(
+    ("offset", "limit", "has_more"),
+    [(9_975, 25, True), (9_976, 25, False), (10_000, 25, False)],
+)
+def test_crop_simulation_detail_contract_respects_offset_ceiling(
+    offset, limit, has_more
+):
+    response = CropSimulationRunDetailResponse.model_validate(
+        {
+            "location_id": str(uuid4()),
+            "run": _valid_run(),
+            "total_states": 20_000,
+            "limit": limit,
+            "offset": offset,
+            "has_more": has_more,
+            "states": [_valid_state() for _ in range(25)],
+        }
+    )
+    assert response.has_more is has_more
 
 
 def test_crop_simulation_detail_hides_unavailable_run_without_reading_states():
@@ -502,7 +712,11 @@ def test_crop_simulation_detail_route_returns_private_response(monkeypatch, gate
         "services.gateway.crop_simulations.get_location_crop_simulation_run_detail",
         lambda op, loc, run, **_kwargs: {
             "location_id": loc,
-            "run": {"run_id": run},
+            "run": _valid_run(run),
+            "total_states": 0,
+            "limit": 25,
+            "offset": 0,
+            "has_more": False,
             "states": [],
         },
     )
@@ -513,6 +727,92 @@ def test_crop_simulation_detail_route_returns_private_response(monkeypatch, gate
 
     assert response.status_code == 200
     assert response.json()["run"]["run_id"] == run_id
+    assert response.headers["cache-control"] == "no-store"
+    assert "cookie" in {value.strip().lower() for value in response.headers["vary"].split(",")}
+
+
+def test_crop_simulation_runs_route_rejects_invalid_projection_without_leaking_details(
+    monkeypatch, gateway_audit_spool
+):
+    operator_id, location_id = str(uuid4()), str(uuid4())
+    session = SimpleNamespace(
+        session_id=str(uuid4()),
+        session_token_hash="b" * 64,
+        operator=SimpleNamespace(operator_id=operator_id),
+    )
+
+    class Provider:
+        settings = SimpleNamespace(state_secret="test-only-state-secret")
+
+        def authenticate_request(self, _request):
+            return session
+
+        def has_scope(self, op, resource, action, location):
+            return (op, resource, action, location) == (
+                operator_id, "digital_twin", "read", location_id
+            )
+
+    monkeypatch.setattr("services.gateway.operator_auth.create_provider", lambda: Provider())
+    monkeypatch.setattr(
+        "services.gateway.crop_simulations.get_location_crop_simulation_runs",
+        lambda _op, loc, **_kwargs: {
+            "location_id": loc,
+            "total_runs": 1,
+            "limit": 25,
+            "offset": 0,
+            "has_more": False,
+            "runs": [{**_valid_run(), "parameters": {"secret": "must-not-leak"}}],
+        },
+    )
+    with TestClient(create_app(), cookies={"kokonut_operator_session": "synthetic-session"}) as client:
+        response = client.get(f"/operator/api/crop-simulations/{location_id}/runs")
+
+    assert response.status_code == 500
+    assert response.json() == {"error": "Crop simulation read unavailable"}
+    assert "must-not-leak" not in response.text
+    assert response.headers["cache-control"] == "no-store"
+    assert "cookie" in {value.strip().lower() for value in response.headers["vary"].split(",")}
+
+
+def test_crop_simulation_detail_route_rejects_wrong_run_identity(monkeypatch, gateway_audit_spool):
+    operator_id, location_id, run_id = str(uuid4()), str(uuid4()), str(uuid4())
+    session = SimpleNamespace(
+        session_id=str(uuid4()),
+        session_token_hash="a" * 64,
+        operator=SimpleNamespace(operator_id=operator_id),
+    )
+
+    class Provider:
+        settings = SimpleNamespace(state_secret="test-only-state-secret")
+
+        def authenticate_request(self, _request):
+            return session
+
+        def has_scope(self, op, resource, action, location):
+            return (op, resource, action, location) == (
+                operator_id, "digital_twin", "read", location_id
+            )
+
+    monkeypatch.setattr("services.gateway.operator_auth.create_provider", lambda: Provider())
+    monkeypatch.setattr(
+        "services.gateway.crop_simulations.get_location_crop_simulation_run_detail",
+        lambda _op, loc, _run, **_kwargs: {
+            "location_id": loc,
+            "run": _valid_run(),
+            "total_states": 1,
+            "limit": 25,
+            "offset": 0,
+            "has_more": False,
+            "states": [_valid_state()],
+        },
+    )
+    with TestClient(create_app(), cookies={"kokonut_operator_session": "synthetic-session"}) as client:
+        response = client.get(
+            f"/operator/api/crop-simulations/{location_id}/runs/{run_id}"
+        )
+
+    assert response.status_code == 500
+    assert response.json() == {"error": "Crop simulation read unavailable"}
     assert response.headers["cache-control"] == "no-store"
     assert "cookie" in {value.strip().lower() for value in response.headers["vary"].split(",")}
 

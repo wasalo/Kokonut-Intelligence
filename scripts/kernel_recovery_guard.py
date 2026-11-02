@@ -2,10 +2,17 @@
 
 import hashlib
 import json
+import os
+import re
 import subprocess
 from pathlib import Path
 
-PROJECT = "kokonut-kernel-recovery-fixture"
+DEFAULT_PROJECT = "kokonut-kernel-recovery-fixture"
+PROJECT = os.environ.get("KOKONUT_RECOVERY_FIXTURE_PROJECT", DEFAULT_PROJECT)
+if PROJECT != DEFAULT_PROJECT and not re.fullmatch(
+    r"kokonut-kernel-recovery-fixture-[0-9a-f]{8}", PROJECT
+):
+    raise RuntimeError("Invalid disposable recovery fixture project")
 CONTAINER = PROJECT + "-database-1"
 IMAGE = "sha256:b573e82124b3530c454ea6d5ae8aefce1fb7ee137467f66f75a5079f8569ee6b"
 

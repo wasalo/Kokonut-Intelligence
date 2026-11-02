@@ -1,0 +1,116 @@
+{
+  "date": "2026-10-29",
+  "base_head": "5be6282f",
+  "scope": "Consent view projections and CLI UUID preflight, farmer-identity date preflight, digital-finance evidence JSON preflight, and adoption-readiness review queue contract",
+  "files": [
+    "services/analytics/consent_resolver.py",
+    "tests/test_stakeholder_consent.py",
+    "services/analytics/cli_consent.py",
+    "tests/test_cli_consent_uuid_preflight.py",
+    "services/analytics/cli_farmer_identity.py",
+    "tests/test_cli_farmer_identity_scope.py",
+    "services/analytics/cli_digital_finance.py",
+    "tests/test_cli_digital_finance_scope.py",
+    "services/gateway/solution_lifecycle_routes.py",
+    "apps/operator-console/index.html",
+    "tests/test_gateway_solution_lifecycle_adoption_readiness.py",
+    "tests/test_operator_console_solution_lifecycle.py",
+    "docs/refactor/runtime-sql-inventory.json"
+  ],
+  "source_migrations": [
+    "schemas/postgres/320_consent_lifecycle_public_gates.sql",
+    "schemas/postgres/516_location_solution_adoption_readiness_review.sql"
+  ],
+  "consent_view": {
+    "columns": [
+      "consent_event_id",
+      "party_id",
+      "party_name",
+      "event_type",
+      "data_category",
+      "purpose",
+      "scope_type",
+      "scope_id",
+      "recipient_party_id",
+      "recipient_party_name",
+      "recipient_type",
+      "recipient_name",
+      "consent_method",
+      "legal_basis",
+      "consent_version",
+      "effective_at",
+      "expires_at",
+      "effective_status",
+      "consented",
+      "reason",
+      "evidence",
+      "source_system",
+      "source_record_id",
+      "created_at"
+    ],
+    "preserved_behavior": [
+      "check reader filters, exact parameter order, and LIMIT 1",
+      "list reader optional party/status filters, parameter order, and party/category/purpose ordering",
+      "serialized row fields and current internal visibility boundary"
+    ]
+  },
+  "cli_preflight": {
+    "consent_uuid_arguments": [
+      "record party_id, scope_id, recipient_party_id",
+      "check party_id, scope_id, recipient_party_id",
+      "list party_id",
+      "withdraw consent_event_id"
+    ],
+    "farmer_identity_date_arguments": [
+      "create-profile --dob",
+      "update-profile --dob",
+      "add-credential --issued-date",
+      "add-credential --expiry-date",
+      "assign-role --expires-at"
+    ],
+    "digital_finance_argument": "file-claim --evidence",
+    "invariants": [
+      "malformed UUID, ISO date/datetime, or JSON values fail through argparse before PostgreSQL acquisition",
+      "valid UUID values are canonicalized, valid date values retain date/datetime types, and valid evidence JSON is decoded before handler dispatch",
+      "omitted optional values retain existing behavior"
+    ]
+  },
+  "adopter_readiness_review_queue": {
+    "item_fields": [
+      "assessment_id",
+      "readiness_id",
+      "solution_id",
+      "current_level",
+      "required_level",
+      "remediation_plan",
+      "assessed_at"
+    ],
+    "invariants": [
+      "strict OpenAPI/runtime item and page contract bound to the requested location and page",
+      "finite NUMERIC levels stay in the migration-supported 0–999.999 range",
+      "remediation text is nullable and within migration character/byte bounds",
+      "timestamps are aware, assessment IDs unique, and rows follow assessed_at DESC, assessment_id DESC",
+      "continuations beyond offset 10000 become a terminal offset_limited page",
+      "malformed output fails with sanitized no-store response and the console validates pages before rendering"
+    ]
+  },
+  "verification": {
+    "focused_tests_command": "python3 -m pytest tests/test_stakeholder_consent.py tests/test_cli_consent_uuid_preflight.py tests/test_cli_farmer_identity_scope.py tests/test_cli_digital_finance_scope.py tests/test_gateway_solution_lifecycle_adoption_readiness.py tests/test_operator_console_solution_lifecycle.py -q",
+    "focused_tests_passed": 157,
+    "focused_tests_skipped": 4,
+    "ruff": "passed",
+    "python_compileall": "passed",
+    "capability_matrix": "passed: 67 rows; 24 baseline-retained, 7 deployed, 36 prepared",
+    "runtime_sql_inventory": "refreshed and current; unresolved write review ledger current with 42 tracked candidates",
+    "provider_boundaries": "passed: 17 vendor import sites",
+    "dependency_groups": "passed: 14 groups, 33 requirements",
+    "git_diff_check": "passed"
+  },
+  "environment": {
+    "database_used": false,
+    "external_provider_used": false,
+    "candidate_or_legacy_state_changed": false,
+    "errors": 0
+  },
+  "rollback": "Revert the route/model and console validation, consent projections, CLI parsers, focused tests, evidence, and runtime SQL inventory snapshot. No schema migration or data rollback is required."
+}

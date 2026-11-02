@@ -42,6 +42,8 @@ _OPTIONS: dict[str, dict[str, str | None]] = {
     # Legacy persisted rows stay operable until schedule owners reconcile them.
     "services.ingestion.weather_forecast_worker": {"--location-id": "uuid"},
     "services.ingestion.weather_forecast": {"--location-id": "uuid"},
+    # Existing persisted rows are accepted by the compatibility adapter, but
+    # that adapter now requires the isolated market-data login for every write.
     "services.ingestion.market_data": {
         "--commodity": "commodity",
         "--source": "market_source",
@@ -87,12 +89,6 @@ _OPTIONS: dict[str, dict[str, str | None]] = {
         "--from-block": "block",
         "--to-block": "block",
     },
-    "services.ingestion.anomaly_detector": {
-        "--sensor": "uuid",
-        "--since": "datetime",
-        "--baseline-check": None,
-        "--location-id": "uuid",
-    },
     "services.metrics": {
         "--compute": None,
         "--metric": "metric_key",
@@ -114,7 +110,7 @@ _OPTIONS: dict[str, dict[str, str | None]] = {
     },
     "services.ingestion.sensor_anomaly_scan_worker": {
         "--location-id": "uuid",
-        "--since": "datetime",
+        "--since": "aware_datetime",
         "--batch-size": "anomaly_batch_size",
     },
     "services.export.dataset_refresh": {
@@ -130,7 +126,10 @@ _OPTIONS: dict[str, dict[str, str | None]] = {
         "--all": None,
         "--location-id": "uuid",
     },
-    "services.ingestion.climate_worker": {"--location-id": "uuid"},
+    "services.ingestion.climate_worker": {
+        "--location-id": "uuid",
+        "--source": "climate_source",
+    },
     "services.events": {
         "--process": None,
         "--notification-process": None,
@@ -141,6 +140,8 @@ _OPTIONS: dict[str, dict[str, str | None]] = {
     "services.analytics.carbon_credit_adjustment_check": {
         "--location-id": "uuid",
     },
+    # Keep old rows parseable so _validate_operation can reject this retired
+    # entrypoint explicitly instead of treating it as an unknown module.
     "services.ingestion.remote_sensing_fetcher": {
         "--run-jobs": None,
         "--limit": "small_batch_size",
@@ -152,7 +153,7 @@ _OPTIONS: dict[str, dict[str, str | None]] = {
     },
     "services.ingestion.clickhouse_outbox": {
         "--run-once": None,
-        "--limit": "batch_size",
+        "--limit": "outbox_batch_size",
     },
     "services.ingestion.clickhouse_outbox_worker": {
         "--run-once": None,
@@ -180,6 +181,9 @@ def _validate_value(kind: str, value: str) -> None:
     elif kind == "market_source":
         if value not in {"world_bank", "seed"}:
             raise _reject("market data source is not supported")
+    elif kind == "climate_source":
+        if value not in {"worldclim", "era5_land", "modis_lst", "smap_moisture", "sentinel1_sar"}:
+            raise _reject("climate source is not supported")
     elif kind == "eas_chain":
         if value not in EAS_SCHEDULE_CHAINS:
             raise _reject("EAS chain is not supported")
@@ -232,6 +236,13 @@ def _validate_value(kind: str, value: str) -> None:
             datetime.fromisoformat(value.replace("Z", "+00:00"))
         except ValueError:
             raise _reject("since must be an ISO-8601 datetime") from None
+    elif kind == "aware_datetime":
+        try:
+            parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+        except ValueError:
+            raise _reject("since must be an ISO-8601 datetime") from None
+        if parsed.tzinfo is None or parsed.utcoffset() is None:
+            raise _reject("since must include an explicit timezone")
     else:
         raise RuntimeError(f"Unknown scheduled argument value type: {kind}")
 
@@ -326,12 +337,6 @@ def _validate_operation(module_path: str, values: dict[str, str | bool]) -> None
         if has_start and int(str(values["--from-block"])) > int(str(values["--to-block"])):
             raise _reject("Baal block range start must not exceed its end")
 
-    elif module_path == "services.ingestion.anomaly_detector":
-        if "--location-id" not in options:
-            raise _reject("scheduled anomaly detection requires one explicit location")
-        if "--baseline-check" in options and options != {"--baseline-check", "--location-id"}:
-            raise _reject("baseline check cannot be combined with sensor-window options")
-
     elif module_path == "services.metrics":
         if "--compute" not in options:
             raise _reject("scheduled metric operation requires --compute")
@@ -351,7 +356,10 @@ def _validate_operation(module_path: str, values: dict[str, str | bool]) -> None
         if options != {"--location-id"}:
             raise _reject("scheduled NOI snapshot reconciliation requires one explicit location")
 
-    elif module_path == "services.ingestion.data_freshness":
+    elif module_path in {
+        "services.ingestion.data_freshness",
+        "services.ingestion.freshness_worker",
+    }:
         if "--check" not in options:
             raise _reject("scheduled freshness operation requires --check")
 
@@ -367,13 +375,18 @@ def _validate_operation(module_path: str, values: dict[str, str | bool]) -> None
             raise _reject("climate refresh requires exactly one provider or --all")
 
     elif module_path == "services.ingestion.climate_worker":
-        if options != {"--location-id"}:
-            raise _reject("signed climate ingestion requires one explicit location")
+        if "--location-id" not in options or options - {"--location-id", "--source"}:
+            raise _reject("signed climate ingestion requires one location and an optional source")
 
     elif module_path == "services.events":
         operations = options & {"--process", "--notification-process"}
         if len(operations) != 1:
             raise _reject("scheduled event command must select --process or --notification-process")
+        limit = int(values.get("--batch-size", "100"))
+        if "--process" in operations and limit > 100:
+            raise _reject("event dispatch batch limit must not exceed 100")
+        if "--notification-process" in operations and limit > 500:
+            raise _reject("notification delivery batch limit must not exceed 500")
 
     elif module_path == "services.analytics.carbon_credit_adjustment_check":
         if "--location-id" not in options:
@@ -384,12 +397,16 @@ def _validate_operation(module_path: str, values: dict[str, str | bool]) -> None
             raise _reject("signed carbon-credit check requires one explicit location")
 
     elif module_path == "services.ingestion.remote_sensing_fetcher":
-        if "--run-jobs" not in options:
-            raise _reject("scheduled remote-sensing operation must run due jobs")
-        if "--location-id" not in options:
-            raise _reject("scheduled remote-sensing operation requires one explicit location")
+        raise _reject(
+            "legacy remote-sensing due-job scheduling is disabled; "
+            "use services.ingestion.remote_sensing_worker"
+        )
 
     elif module_path == "services.ingestion.clickhouse_outbox":
+        if "--run-once" not in options:
+            raise _reject("scheduled projection operation must use one bounded delivery batch")
+
+    elif module_path == "services.ingestion.clickhouse_outbox_worker":
         if "--run-once" not in options:
             raise _reject("scheduled projection operation must use one bounded delivery batch")
 

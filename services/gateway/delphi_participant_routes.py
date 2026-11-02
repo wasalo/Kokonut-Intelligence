@@ -1,11 +1,183 @@
 """Public capability-token routes for pseudonymous Delphi participants."""
 
+from datetime import datetime
+from typing import Annotated, Literal
+from uuid import UUID
+
+from pydantic import (
+    AwareDatetime,
+    BaseModel,
+    BeforeValidator,
+    ConfigDict,
+    Field,
+    ValidationError,
+    model_validator,
+)
+
+
+def _strict_uuid(value):
+    if isinstance(value, UUID):
+        return value
+    if not isinstance(value, str):
+        raise ValueError("UUID values must be strings")
+    try:
+        return UUID(value)
+    except ValueError as exc:
+        raise ValueError("UUID value is invalid") from exc
+
+
+_StrictUuid = Annotated[UUID, BeforeValidator(_strict_uuid)]
+
+
+def _strict_response_datetime(value):
+    if isinstance(value, datetime):
+        return value
+    if isinstance(value, str):
+        try:
+            return datetime.fromisoformat(value.replace("Z", "+00:00"))
+        except ValueError as exc:
+            raise ValueError("timestamp value is invalid") from exc
+    raise ValueError("timestamp value is invalid")
+
+
+_ResponseDateTime = Annotated[AwareDatetime, BeforeValidator(_strict_response_datetime)]
+
+
+class _DelphiParticipantResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+
+class _DelphiParticipantWorkspaceStudy(_DelphiParticipantResponse):
+    study_id: _StrictUuid
+    title: str = Field(max_length=255)
+    status: Literal["draft", "open", "closed"]
+    opened_at: AwareDatetime | None
+    closed_at: AwareDatetime | None
+
+
+class _DelphiParticipantWorkspaceItem(_DelphiParticipantResponse):
+    item_id: _StrictUuid
+    label: str = Field(max_length=255)
+    description: str | None
+    item_type: Literal["issue", "goal", "option"]
+    scale: Literal[
+        "desirability",
+        "feasibility_technical",
+        "feasibility_political",
+        "probability",
+    ]
+    minimum: float | None = Field(strict=True)
+    maximum: float | None = Field(strict=True)
+    my_score: float | None = Field(strict=True, ge=-9999.9999, le=9999.9999)
+    my_reasoning: str | None
+    my_updated_at: AwareDatetime | None
+
+    @model_validator(mode="after")
+    def validate_scale_bounds(self):
+        if self.minimum is not None and self.maximum is not None:
+            if self.minimum >= self.maximum:
+                raise ValueError("Delphi item minimum must be less than maximum")
+        return self
+
+
+class _DelphiParticipantWorkspaceResponse(_DelphiParticipantResponse):
+    study: _DelphiParticipantWorkspaceStudy
+    items: list[_DelphiParticipantWorkspaceItem] = Field(max_length=50)
+    has_more: bool = Field(strict=True)
+    limit: int = Field(ge=1, le=50, strict=True)
+    offset: int = Field(ge=0, le=10_000, strict=True)
+    collection_scopes: list[Literal["questionnaire_responses", "minority_reports"]] = Field(
+        max_length=2
+    )
+
+    @model_validator(mode="after")
+    def validate_page(self):
+        if len(set(self.collection_scopes)) != len(self.collection_scopes):
+            raise ValueError("Delphi participant collection scopes must be unique")
+        if len(self.items) > self.limit:
+            raise ValueError("Delphi participant page exceeds its requested limit")
+        if self.has_more and len(self.items) != self.limit:
+            raise ValueError("Delphi participant continuation requires a full page")
+        return self
+
+    def validate_request(self, *, limit: int, offset: int):
+        if self.limit != limit or self.offset != offset:
+            raise ValueError("Delphi participant page does not match the request")
+        if self.has_more and offset + limit > 10_000:
+            # The next offset must remain within the database function's accepted
+            # range. The current page remains available at the terminal boundary.
+            return self.model_copy(update={"has_more": False})
+        return self
+
+
+class DelphiParticipantInvitePreviewResponse(_DelphiParticipantResponse):
+    study_title: str = Field(min_length=1, max_length=255)
+    notice_version: str = Field(
+        min_length=1,
+        max_length=40,
+        pattern=r"^[A-Za-z0-9][A-Za-z0-9._:-]*$",
+    )
+    notice_text: str = Field(min_length=1, max_length=12_000)
+    notice_digest: str = Field(pattern=r"^[0-9a-f]{64}$")
+    expires_at: _ResponseDateTime
+    collection_scopes: list[Literal["questionnaire_responses", "minority_reports"]] = Field(
+        max_length=2
+    )
+
+    @model_validator(mode="after")
+    def validate_scopes(self):
+        if not self.study_title.strip() or not self.notice_text.strip():
+            raise ValueError("Delphi invite preview text must not be blank")
+        if len(set(self.collection_scopes)) != len(self.collection_scopes):
+            raise ValueError("Delphi collection scopes must be unique")
+        return self
+
+
+class DelphiParticipantConsentAcceptanceResponse(_DelphiParticipantResponse):
+    status: Literal["accepted"]
+    notice_version: str = Field(
+        min_length=1,
+        max_length=40,
+        pattern=r"^[A-Za-z0-9][A-Za-z0-9._:-]*$",
+    )
+    accepted_at: _ResponseDateTime
+    session_expires_at: _ResponseDateTime
+    replayed: bool
+
+    @model_validator(mode="after")
+    def validate_session_window(self):
+        if self.session_expires_at <= self.accepted_at:
+            raise ValueError("Delphi participant session must expire after acceptance")
+        return self
+
+
+class DelphiParticipantWithdrawalResponse(_DelphiParticipantResponse):
+    status: Literal["withdrawn"]
+    withdrawn_at: _ResponseDateTime
+    replayed: bool
+
+
+class DelphiParticipantContributionResponse(_DelphiParticipantResponse):
+    status: Literal["submitted"]
+    item_id: _StrictUuid
+    contribution_id: _StrictUuid
+    updated_at: _ResponseDateTime
+    replayed: bool
+
+
+class DelphiParticipantMinorityReportResponse(_DelphiParticipantResponse):
+    status: Literal["submitted"]
+    report_id: _StrictUuid
+    submitted_at: _ResponseDateTime
+    replayed: bool
+
 
 def register_delphi_participant_routes(router, run_in_threadpool, psycopg2):
     import hmac
     import json
     from pathlib import Path
 
+    from fastapi import Query
     from fastapi.encoders import jsonable_encoder
     from fastapi.responses import FileResponse, JSONResponse
     from starlette.requests import Request
@@ -45,6 +217,29 @@ def register_delphi_participant_routes(router, run_in_threadpool, psycopg2):
         "X-Content-Type-Options": "nosniff",
         "X-Frame-Options": "DENY",
     }
+
+    def validate_success_response(model, result, label, *, fields=None):
+        try:
+            if fields is not None:
+                if not isinstance(result, dict) or not set(fields).issubset(result):
+                    raise ValueError("Delphi participant service result is incomplete")
+                result = {field: result[field] for field in fields}
+            payload = jsonable_encoder(result)
+            return model.model_validate_json(json.dumps(payload), strict=True)
+        except (ValidationError, TypeError, ValueError) as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.delphi_participant").warning(
+                "%s response violated its contract (%s)", label, type(exc).__name__
+            )
+            return None
+
+    def invalid_success_response():
+        return JSONResponse(
+            status_code=503,
+            content={"error": "Delphi participant service unavailable"},
+            headers={**headers, "Retry-After": "30"},
+        )
 
     @router.get("/participation/delphi")
     async def participant_page():
@@ -121,7 +316,10 @@ def register_delphi_participant_routes(router, run_in_threadpool, psycopg2):
             headers={**headers, "Retry-After": "30"},
         )
 
-    @router.post("/participation/delphi/preview")
+    @router.post(
+        "/participation/delphi/preview",
+        response_model=DelphiParticipantInvitePreviewResponse,
+    )
     async def preview_invite(request: Request):
         payload, error = await read_json_object(request)
         if error is not None:
@@ -141,9 +339,17 @@ def register_delphi_participant_routes(router, run_in_threadpool, psycopg2):
             return JSONResponse(status_code=400, content={"error": str(exc)}, headers=headers)
         except psycopg2.Error as exc:
             return database_error(exc)
-        return JSONResponse(jsonable_encoder(result), headers=headers)
+        response = validate_success_response(
+            DelphiParticipantInvitePreviewResponse, result, "Delphi invite preview"
+        )
+        if response is None:
+            return invalid_success_response()
+        return JSONResponse(jsonable_encoder(response.model_dump(mode="json")), headers=headers)
 
-    @router.post("/participation/delphi/accept")
+    @router.post(
+        "/participation/delphi/accept",
+        response_model=DelphiParticipantConsentAcceptanceResponse,
+    )
     async def accept_invite(request: Request):
         payload, error = await read_json_object(request)
         if error is not None:
@@ -181,15 +387,23 @@ def register_delphi_participant_routes(router, run_in_threadpool, psycopg2):
             return JSONResponse(status_code=400, content={"error": str(exc)}, headers=headers)
         except psycopg2.Error as exc:
             return database_error(exc)
+        response_payload = validate_success_response(
+            DelphiParticipantConsentAcceptanceResponse,
+            result,
+            "Delphi consent acceptance",
+            fields=(
+                "status",
+                "notice_version",
+                "accepted_at",
+                "session_expires_at",
+                "replayed",
+            ),
+        )
+        if response_payload is None:
+            return invalid_success_response()
         response = JSONResponse(
-            jsonable_encoder({
-                "status": result["status"],
-                "notice_version": result["notice_version"],
-                "accepted_at": result["accepted_at"],
-                "session_expires_at": result["session_expires_at"],
-                "replayed": result["replayed"],
-            }),
-            status_code=200 if result["replayed"] else 201,
+            jsonable_encoder(response_payload.model_dump(mode="json")),
+            status_code=200 if response_payload.replayed else 201,
             headers=headers,
         )
         # The browser creates both random values before submitting consent, so it
@@ -214,7 +428,10 @@ def register_delphi_participant_routes(router, run_in_threadpool, psycopg2):
         )
         return response
 
-    @router.post("/participation/delphi/withdraw")
+    @router.post(
+        "/participation/delphi/withdraw",
+        response_model=DelphiParticipantWithdrawalResponse,
+    )
     async def withdraw(request: Request):
         payload, error = await read_json_object(request)
         if error is not None:
@@ -249,7 +466,14 @@ def register_delphi_participant_routes(router, run_in_threadpool, psycopg2):
             return JSONResponse(status_code=400, content={"error": str(exc)}, headers=headers)
         except psycopg2.Error as exc:
             return database_error(exc)
-        response = JSONResponse(jsonable_encoder(result), headers=headers)
+        response_payload = validate_success_response(
+            DelphiParticipantWithdrawalResponse, result, "Delphi withdrawal"
+        )
+        if response_payload is None:
+            return invalid_success_response()
+        response = JSONResponse(
+            jsonable_encoder(response_payload.model_dump(mode="json")), headers=headers
+        )
         response.delete_cookie(
             session_cookie,
             path="/api/participation/delphi",
@@ -266,8 +490,15 @@ def register_delphi_participant_routes(router, run_in_threadpool, psycopg2):
         )
         return response
 
-    @router.get("/participation/delphi/workspace")
-    async def participant_workspace(request: Request):
+    @router.get(
+        "/participation/delphi/workspace",
+        response_model=_DelphiParticipantWorkspaceResponse,
+    )
+    async def participant_workspace(
+        request: Request,
+        limit: int = Query(default=50, ge=1, le=50),
+        offset: int = Query(default=0, ge=0, le=10000),
+    ):
         session_token = request.cookies.get(session_cookie, "")
         if not session_token:
             return JSONResponse(
@@ -279,16 +510,38 @@ def register_delphi_participant_routes(router, run_in_threadpool, psycopg2):
             result = await run_in_threadpool(
                 get_location_delphi_participant_workspace,
                 session_token,
-                limit=request.query_params.get("limit", "50"),
-                offset=request.query_params.get("offset", "0"),
+                limit=limit,
+                offset=offset,
             )
         except DelphiParticipantWorkspaceInvalid as exc:
             return JSONResponse(status_code=400, content={"error": str(exc)}, headers=headers)
         except psycopg2.Error as exc:
             return database_error(exc)
-        return JSONResponse(jsonable_encoder(result), headers=headers)
+        try:
+            response_payload = jsonable_encoder(result)
+            validated = _DelphiParticipantWorkspaceResponse.model_validate_json(
+                json.dumps(response_payload), strict=True
+            ).validate_request(limit=limit, offset=offset)
+        except (ValidationError, TypeError, ValueError) as exc:
+            from services.common.logging import get_logger
 
-    @router.post("/participation/delphi/contributions")
+            get_logger("gateway.delphi_participant").warning(
+                "Delphi participant workspace response violated its contract (%s)",
+                type(exc).__name__,
+            )
+            return JSONResponse(
+                status_code=503,
+                content={"error": "Delphi participant service unavailable"},
+                headers={**headers, "Retry-After": "30"},
+            )
+        if not validated.has_more and response_payload.get("has_more") is True:
+            response_payload["has_more"] = False
+        return JSONResponse(response_payload, headers=headers)
+
+    @router.post(
+        "/participation/delphi/contributions",
+        response_model=DelphiParticipantContributionResponse,
+    )
     async def submit_contribution(request: Request):
         payload, error = await read_json_object(request)
         if error is not None:
@@ -341,13 +594,27 @@ def register_delphi_participant_routes(router, run_in_threadpool, psycopg2):
             return JSONResponse(status_code=400, content={"error": str(exc)}, headers=headers)
         except psycopg2.Error as exc:
             return database_error(exc)
+        response_payload = validate_success_response(
+            DelphiParticipantContributionResponse,
+            result,
+            "Delphi contribution",
+        )
+        try:
+            request_item_id = UUID(payload["item_id"])
+        except (TypeError, ValueError):
+            request_item_id = None
+        if response_payload is None or response_payload.item_id != request_item_id:
+            return invalid_success_response()
         return JSONResponse(
-            jsonable_encoder(result),
-            status_code=200 if result["replayed"] else 201,
+            jsonable_encoder(response_payload.model_dump(mode="json")),
+            status_code=200 if response_payload.replayed else 201,
             headers=headers,
         )
 
-    @router.post("/participation/delphi/minority-reports")
+    @router.post(
+        "/participation/delphi/minority-reports",
+        response_model=DelphiParticipantMinorityReportResponse,
+    )
     async def submit_minority_report(request: Request):
         payload, error = await read_json_object(request)
         if error is not None:
@@ -410,8 +677,15 @@ def register_delphi_participant_routes(router, run_in_threadpool, psycopg2):
             return JSONResponse(status_code=400, content={"error": str(exc)}, headers=headers)
         except psycopg2.Error as exc:
             return database_error(exc)
+        response_payload = validate_success_response(
+            DelphiParticipantMinorityReportResponse,
+            result,
+            "Delphi minority report",
+        )
+        if response_payload is None:
+            return invalid_success_response()
         return JSONResponse(
-            jsonable_encoder(result),
-            status_code=200 if result["replayed"] else 201,
+            jsonable_encoder(response_payload.model_dump(mode="json")),
+            status_code=200 if response_payload.replayed else 201,
             headers=headers,
         )

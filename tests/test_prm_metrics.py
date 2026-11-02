@@ -5,15 +5,19 @@ queries, cost breakdown logic, and ROI computation.  Integration DB tests
 skip when the customer_satisfaction table is not available.
 """
 
+from datetime import datetime, timezone
+from decimal import Decimal
+from unittest.mock import MagicMock
+from uuid import UUID
+
 import pytest
 
+import services.analytics.prm_metrics as prm_metrics
 from services.analytics.prm_metrics import (
-    record_satisfaction,
     list_satisfaction,
+    record_satisfaction,
     satisfaction_summary,
     total_cost_of_ownership,
-    process_cost_breakdown,
-    improvement_roi,
 )
 
 
@@ -33,6 +37,73 @@ def _db_available():
 
 
 _db_skip = pytest.mark.skipif(not _db_available(), reason="customer_satisfaction table not available")
+
+
+@pytest.mark.parametrize(
+    ("location_id", "process_key", "expected_params"),
+    [
+        (None, None, ()),
+        ("11111111-1111-4111-8111-111111111111", None, (UUID("11111111-1111-4111-8111-111111111111"),)),
+        (None, "harvest", ("harvest",)),
+        (
+            "11111111-1111-4111-8111-111111111111",
+            "harvest",
+            (UUID("11111111-1111-4111-8111-111111111111"), "harvest"),
+        ),
+    ],
+)
+def test_total_cost_of_ownership_uses_exact_view_projection_and_preserves_rows(
+    monkeypatch, location_id, process_key, expected_params
+):
+    expected_columns = (
+        "process_key",
+        "process_name",
+        "process_type",
+        "location_id",
+        "period",
+        "instance_count",
+        "total_cost",
+        "cost_per_instance",
+        "currency",
+    )
+    source_row = {
+        "process_key": "harvest",
+        "process_name": "Harvest",
+        "process_type": "operational",
+        "location_id": UUID("11111111-1111-4111-8111-111111111111"),
+        "period": datetime(2026, 1, 1, tzinfo=timezone.utc),
+        "instance_count": 2,
+        "total_cost": Decimal("120.50"),
+        "cost_per_instance": Decimal("60.25"),
+        "currency": "USD",
+    }
+    connection = MagicMock()
+    connection.__enter__.return_value = connection
+    cursor_context = MagicMock()
+    cursor = cursor_context.__enter__.return_value
+    cursor.fetchall.return_value = [source_row]
+    connection.cursor.return_value = cursor_context
+    monkeypatch.setattr(prm_metrics, "_conn", lambda: connection)
+
+    result = prm_metrics.total_cost_of_ownership(
+        location_id=location_id,
+        process_key=process_key,
+    )
+
+    sql, params = cursor.execute.call_args.args
+    normalized_sql = " ".join(sql.split())
+    projection = normalized_sql.split(" FROM ", 1)[0].removeprefix("SELECT ")
+    assert tuple(column.strip() for column in projection.split(",")) == expected_columns
+    assert tuple(params) == expected_params
+    assert "ORDER BY total_cost DESC" in normalized_sql
+    assert result == [
+        {
+            **source_row,
+            "location_id": "11111111-1111-4111-8111-111111111111",
+            "period": "2026-01-01T00:00:00+00:00",
+        }
+    ]
+    cursor.execute.assert_called_once()
 
 
 # --- DB Integration Tests -----------------------------------------------------

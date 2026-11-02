@@ -1,5 +1,6 @@
 """Tests for independent CAP-035 completion-report review."""
 
+from datetime import datetime, timezone
 from types import SimpleNamespace
 from unittest.mock import patch
 from uuid import uuid4
@@ -8,6 +9,7 @@ import pytest
 
 pytest.importorskip("fastapi")
 from fastapi import APIRouter, FastAPI  # noqa: E402
+from fastapi.encoders import jsonable_encoder  # noqa: E402
 from starlette.testclient import TestClient  # noqa: E402
 
 from services.common.tenant_context import TenantContextDenied
@@ -35,9 +37,11 @@ QUEUE_ITEM = {
 }
 DETAIL = {
     **QUEUE_ITEM,
+    "solution_type": "practice",
     "replication_status": "active",
     "outcome_summary": "Synthetic report summary meets the minimum length.",
     "evidence": [{"evidence_ref": "synthetic://completion/1"}],
+    "created_at": datetime(2026, 10, 20, 12, tzinfo=timezone.utc),
     "source_is_current": True,
     "is_source_owner": False,
     "is_source_approver": False,
@@ -305,7 +309,7 @@ def test_completion_review_routes_are_no_store_and_reject_extra_fields(monkeypat
         assert response.headers["vary"] == "Cookie"
     assert queue.status_code == 200, queue.text
     assert queue.json()["items"] == [QUEUE_ITEM]
-    assert detail.status_code == 200 and detail.json() == DETAIL
+    assert detail.status_code == 200 and detail.json() == jsonable_encoder(DETAIL)
     assert decision.status_code == 200 and decision.json() == RESULT
     assert invalid.status_code == 400
     assert calls == [((OPERATOR_ID, LOCATION_ID, REPLICATION_ID, PROPOSAL_ID,
@@ -329,3 +333,87 @@ def test_completion_review_routes_fail_closed_without_oidc_or_tenant_context(mon
             json={"request_id": REQUEST_ID, "decision": "accepted", "acknowledged": True},
         )
     assert denied.status_code == 403
+
+
+def test_completion_review_detail_has_exact_openapi_projection_and_binds_path_ids(monkeypatch):
+    calls = []
+
+    def detail(*args):
+        calls.append(args)
+        return {**DETAIL, "source_is_current": None}
+
+    app = _app(monkeypatch, detail=detail)
+    path = _completion_detail_path()
+    with TestClient(app) as client:
+        response = client.get(path)
+
+    assert response.status_code == 200
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["vary"] == "Cookie"
+    assert response.json() == jsonable_encoder({**DETAIL, "source_is_current": None})
+    assert set(response.json()) == {
+        "proposal_id",
+        "replication_id",
+        "solution_name",
+        "solution_type",
+        "solution_stage",
+        "replication_status",
+        "outcome",
+        "evidence_maturity",
+        "outcome_summary",
+        "evidence",
+        "created_at",
+        "is_self_authored",
+        "is_self_started",
+        "is_initial_approver",
+        "source_is_current",
+        "is_source_owner",
+        "is_source_approver",
+        "is_source_result_reviewer",
+    }
+    assert calls == [(OPERATOR_ID, LOCATION_ID, REPLICATION_ID, PROPOSAL_ID)]
+
+    openapi_path = (
+        "/operator/api/solution-lifecycle/{location_id}/replications/"
+        "{replication_id}/completion-proposals/{proposal_id}/review"
+    )
+    operation = app.openapi()["paths"][openapi_path]["get"]
+    response_schema = operation["responses"]["200"]["content"]["application/json"]["schema"]
+    schema_name = response_schema["$ref"].rsplit("/", 1)[-1]
+    response_model_schema = app.openapi()["components"]["schemas"][schema_name]
+    assert set(response_model_schema["properties"]) == set(response.json())
+    assert response_model_schema["additionalProperties"] is False
+
+
+@pytest.mark.parametrize(
+    "changes",
+    [
+        {"proposal_id": str(uuid4())},
+        {"replication_id": str(uuid4())},
+        {"solution_type": "agroforestry"},
+        {"replication_status": "completed"},
+        {"outcome": "unknown"},
+        {"evidence_maturity": 7},
+        {"outcome_summary": "too short"},
+        {"outcome_summary": "x" * 4001},
+        {"evidence": {}},
+        {"evidence": ["x"] * 101},
+        {"evidence": ["x" * 65535]},
+        {"evidence": [{"value": float("nan")}]},
+        {"is_source_owner": "false"},
+        {"unexpected_private_field": "private reviewer data"},
+    ],
+)
+def test_completion_review_detail_sanitizes_malformed_service_results(monkeypatch, changes):
+    malformed = {**DETAIL, **changes}
+    app = _app(monkeypatch, detail=lambda *_args: malformed)
+    with TestClient(app) as client:
+        response = client.get(_completion_detail_path())
+
+    assert response.status_code == 500
+    assert response.json() == {
+        "error": "Replication completion review detail unavailable"
+    }
+    assert "private reviewer data" not in response.text
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["vary"] == "Cookie"

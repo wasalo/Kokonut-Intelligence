@@ -22,14 +22,37 @@ Scope strings now split at the last colon. `ecocredit:class:read` grants resourc
 nonstrings, and malformed scope containers grant nothing. There is no prefix
 matching or inference of parent-resource permissions.
 
+## Location-scoped credit writes
+
+Credit-batch creation and class enrollment now require exact
+`resource:action:location-uuid` entries in the database API-key record:
+`ecocredit_batch:create:<uuid>` and `ecocredit_enrollment:apply:<uuid>`.
+The interceptor carries only the SHA-256 key hash—not the submitted key—into
+handler context. Each RPC checks the exact scope before acquiring its write
+connection, then calls the existing
+`kokonut_security.set_gateway_tenant_context` through
+`set_gateway_tenant_context()` on that same non-autocommit connection before
+calling the domain writer. PostgreSQL rechecks credential status, expiry,
+scope, active location, and current verified owner and signs transaction-local
+context. Legacy global scopes and wildcards no longer authorize these two
+operations.
+
+This is the first scoped credit-write slice. The remaining credit-class
+mutation RPCs still need an equivalent location/account contract or a separate
+administrative boundary. Their existing paths and the broad credit-class table
+grants are not changed here; this slice does not close C1 or establish table-
+level tenant isolation.
+
 ## Compatibility and acceptance
 
 Review existing API-key scope records before transport adoption. Keys relying on
 the old incorrect first-two-component interpretation need deliberately reviewed
-scope changes; do not automatically broaden their grants. The baseline focused
-scope test using `ecocredit:class:read` to authorize `ecocredit`/`class` describes
-the old bug and will need updating when runtime verification is authorized.
-No tests were added, changed, or run in this slice.
+scope changes; do not automatically broaden their grants. The scope regression
+accepts `ecocredit:class:read` only for resource `ecocredit:class` and rejects it
+for the shorter resource `ecocredit`. The new scoped-write selection also
+verifies exact location grants, same-transaction context setup, and old global
+scope denial; 13 focused mock tests pass. The CreateBatch loopback acceptance
+passes with a synthetic key and fake database/domain writer.
 
 Pending runtime checks: identity visible in actual unary and streaming handlers,
 serializer/cardinality preservation, reset after success, exception, abort,

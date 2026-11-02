@@ -1,0 +1,48 @@
+{
+  "batch": "gateway-private-read-contracts-batch-4",
+  "date": "2026-10-28",
+  "scope": "Strict OpenAPI and runtime response contracts for six private location-scoped Gateway read routes.",
+  "contracts": [
+    {
+      "routes": ["GET /operator/api/ai-summaries/{location_id}/reviews"],
+      "details": "Validates review blockers, creator attribution, source-reference counts and scopes, location/page identity, and fixed content bounds. Supports migration-backed network/location source labels and worker_task_unregistered without exposing arbitrary fields."
+    },
+    {
+      "routes": ["GET /operator/api/business-planning/{location_id}/canvases/{canvas_id}/versions"],
+      "details": "Validates the canonical version snapshot blocks, canvas/location identity, timestamp, and bounded continuation; retains the 512 KiB response guard."
+    },
+    {
+      "routes": [
+        "GET /operator/api/sequential-evidence/{location_id}/summary",
+        "GET /operator/api/sequential-evidence/{location_id}/events"
+      ],
+      "details": "Validates migration-aligned summary counts, event statuses, timestamps, exact location, and request-bound pagination."
+    },
+    {
+      "routes": [
+        "GET /operator/api/nutrients/{location_id}/soil-tests",
+        "GET /operator/api/nutrients/{location_id}/events/{event_type}"
+      ],
+      "details": "Validates source-derived soil and input/removal projections, schema enums, finite quantities, cost classification, event-type consistency, exact location, totals, and terminal pagination."
+    }
+  ],
+  "verification": {
+    "gateway_command": "python3 -m pytest tests/test_gateway_ai_summary_review.py tests/test_gateway_business_planning_edits.py tests/test_gateway_sequential_decision_reads.py tests/test_gateway_nutrient_soil_tests.py tests/test_gateway_nutrient_events.py tests/test_gateway_nutrient_pagination_openapi.py tests/test_gateway_nutrient_detail_response_contracts.py -q",
+    "gateway_result": "157 passed",
+    "runtime_sql_command": "python3 -m pytest tests/test_runtime_sql_inventory.py -q",
+    "runtime_sql_result": "24 passed",
+    "runtime_sql_inventory_python311": "current; 37 tracked candidates",
+    "runtime_sql_inventory_python312": "current; 37 tracked candidates",
+    "capability_matrix": "valid: 67 rows; 24 baseline-retained, 7 deployed, 36 prepared",
+    "ruff": "passed",
+    "python311_compilation": "passed",
+    "python312_inventory_script_compilation": "passed",
+    "git_diff_check": "passed"
+  },
+  "not_verified": [
+    "No live database, candidate/legacy service, or provider was used.",
+    "These tests establish source/API behavior, not populated-data parity, live OIDC/browser behavior, or broader tenant/RLS acceptance.",
+    "The runtime SQL inventory only changed AI-summary source line references; all 37 unresolved-write candidates and the review ledger remain unchanged, and no database grants changed.",
+    "Capability classifications and MAN-CAP acceptance remain unchanged."
+  ]
+}

@@ -1,0 +1,61 @@
+{
+  "date": "2026-10-29",
+  "scope": "mocked-and-offline-source-contracts",
+  "capability_dashboard_projection": {
+    "view": "v_capability_dashboard",
+    "definition_migration": 207,
+    "columns": [
+      "capability_id",
+      "capability_name",
+      "capability_type",
+      "guild_key",
+      "maturity_level",
+      "owner_role",
+      "status",
+      "parent_id",
+      "parent_name",
+      "process_count",
+      "service_count",
+      "child_count",
+      "latest_maturity_score",
+      "created_at",
+      "updated_at"
+    ],
+    "preserved": [
+      "optional guild filter and bind",
+      "stable guild/type/name order",
+      "serialized row keys and UUID/datetime normalization"
+    ],
+    "focused_test_cases_passed": 2
+  },
+  "predictive_bpm_cli": {
+    "preflight": "before PostgreSQL access",
+    "age_and_sla": "finite and non-negative; optional SLA remains optional",
+    "threshold": "finite and within inclusive 0..1",
+    "focused_tests_passed": 19,
+    "database_contacted": false
+  },
+  "typescript_ecocredit_pagination": {
+    "methods": 9,
+    "accepted_limits": [0, 1, 500],
+    "rejected_limits": [
+      "negative",
+      "fractional",
+      "NaN",
+      "positive infinity",
+      "negative infinity",
+      "above 500"
+    ],
+    "cursor_bytes_preserved": true,
+    "focused_tests_passed": 36,
+    "live_grpc_contacted": false
+  },
+  "validation": {
+    "python_ruff": "passed",
+    "python_compile": "passed",
+    "typescript_tsc_no_emit": "passed",
+    "git_diff_check": "passed",
+    "provider_contacted": false,
+    "candidate_or_legacy_service_contacted": false
+  }
+}

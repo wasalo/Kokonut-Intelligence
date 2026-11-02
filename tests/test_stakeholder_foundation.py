@@ -1,12 +1,18 @@
 """Integration tests for the canonical stakeholder foundation."""
 
+import math
 from unittest.mock import MagicMock
 from uuid import uuid4
 
 import pytest
 
 from services.analytics import stakeholders
-from services.export.report_generator import generate_stakeholder_landscape
+from services.export.report_generator import (
+    generate_stakeholder_decision_lineage,
+    generate_stakeholder_engagement,
+    generate_stakeholder_grievance,
+    generate_stakeholder_landscape,
+)
 from services.ingestion.base import get_db
 
 
@@ -72,7 +78,11 @@ def test_seeded_proxy_parties_and_landscape_report():
         assert "Adelphi living systems" in names
         assert "Future generations" in names
 
-        report = generate_stakeholder_landscape(conn)
+        with conn.cursor() as cur:
+            cur.execute("SELECT id FROM location WHERE slug = 'kokonut-adelphi'")
+            location_row = cur.fetchone()
+        assert location_row is not None
+        report = generate_stakeholder_landscape(conn, location_id=str(location_row[0]))
         assert report["report_type"] == "stakeholder_landscape"
         assert report["party_count"] >= 5
         assert any(row["open_interest_count"] > 0 for row in report["parties"])
@@ -106,8 +116,29 @@ def test_add_interest_rejects_invalid_interest_type():
 
 def test_assess_salience_rejects_out_of_range_score():
     mock_conn = MagicMock()
-    with pytest.raises(ValueError, match="scores must be between 0 and 10"):
+    with pytest.raises(ValueError, match="scores must be finite and between 0 and 10"):
         stakeholders.assess_salience(mock_conn, "p1", power=11, rationale="Test")
+    mock_conn.cursor.assert_not_called()
+
+
+@pytest.mark.parametrize("score", [math.nan, math.inf, -math.inf, -0.01, 10.01])
+def test_assess_salience_rejects_non_finite_and_out_of_range_scores(score):
+    mock_conn = MagicMock()
+    with pytest.raises(ValueError, match="finite and between 0 and 10"):
+        stakeholders.assess_salience(mock_conn, "p1", power=score, rationale="Test")
+    mock_conn.cursor.assert_not_called()
+
+
+@pytest.mark.parametrize("score", [0, 10])
+def test_assess_salience_accepts_score_boundaries(score):
+    mock_conn = MagicMock()
+    cursor = mock_conn.cursor.return_value.__enter__.return_value
+    cursor.fetchone.return_value = {"id": "assessment-id", "advisory_score": score}
+    result = stakeholders.assess_salience(
+        mock_conn, "p1", power=score, rationale="Boundary score is valid"
+    )
+    assert result["id"] == "assessment-id"
+    cursor.execute.assert_called_once()
 
 
 def _landscape_report_connection(rows):
@@ -121,30 +152,39 @@ def _landscape_report_connection(rows):
 
 
 def test_location_landscape_uses_location_lineage_view():
-    row = {"location_id": "location-a", "party_id": "party-a", "active_relationship_count": 1}
+    location_id = "a0000000-0000-0000-0000-000000000001"
+    row = {"location_id": location_id, "party_id": "party-a", "active_relationship_count": 1}
     conn, cursor = _landscape_report_connection([row])
 
-    report = generate_stakeholder_landscape(conn, location_id="location-a")
+    report = generate_stakeholder_landscape(conn, location_id=location_id)
 
     assert report["parties"] == [row]
     assert report["party_count"] == 1
     assert "v_stakeholder_landscape_by_location" in cursor.execute.call_args.args[0]
     assert "location_id = %s::uuid" in cursor.execute.call_args.args[0]
     assert "v_stakeholder_landscape " not in cursor.execute.call_args.args[0]
-    assert cursor.execute.call_args.args[1] == ["location-a"]
+    assert cursor.execute.call_args.args[1] == [location_id]
     assert any("explicit location lineage" in item for item in report["limitations"])
 
 
-def test_network_landscape_retains_canonical_network_view():
-    row = {"party_id": "party-a", "active_relationship_count": 3}
-    conn, cursor = _landscape_report_connection([row])
+@pytest.mark.parametrize(
+    ("report_type", "generator"),
+    [
+        ("stakeholder_landscape", generate_stakeholder_landscape),
+        ("stakeholder_engagement", generate_stakeholder_engagement),
+        ("stakeholder_grievance", generate_stakeholder_grievance),
+        ("stakeholder_decision_lineage", generate_stakeholder_decision_lineage),
+    ],
+)
+def test_stakeholder_reports_reject_missing_location_before_database_access(
+    report_type, generator
+):
+    conn = MagicMock()
 
-    report = generate_stakeholder_landscape(conn)
+    with pytest.raises(ValueError, match=f"{report_type} requires an explicit location_id"):
+        generator(conn)
 
-    assert report["parties"] == [row]
-    assert "FROM v_stakeholder_landscape ORDER BY" in cursor.execute.call_args.args[0]
-    assert "v_stakeholder_landscape_by_location" not in cursor.execute.call_args.args[0]
-    assert cursor.execute.call_args.args[1] == []
+    conn.cursor.assert_not_called()
 
 
 def test_location_landscape_aggregates_only_explicit_location_lineage():

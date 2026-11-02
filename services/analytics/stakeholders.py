@@ -7,12 +7,12 @@ links remain candidate records until a reviewer verifies them.
 from __future__ import annotations
 
 import json
+import math
 import uuid
 from datetime import date, datetime
 from typing import Any, Dict, List, Optional
 
 import psycopg2.extras
-
 
 PARTY_TYPES = (
     "person", "organization", "community", "cooperative",
@@ -77,11 +77,17 @@ def list_parties(conn, *, party_type: Optional[str] = None, status: Optional[str
         clauses.append("party_type = %s")
         params.append(party_type)
     if status:
-        clauses.append("status = %s")
+        clauses.append("party_status = %s")
         params.append(status)
     where = " WHERE " + " AND ".join(clauses) if clauses else ""
     with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
-        cur.execute(f"SELECT * FROM v_stakeholder_landscape{where} ORDER BY display_name", params)
+        cur.execute(
+            "SELECT party_id, party_type, display_name, party_status, privacy_level, "
+            "identifier_count, active_relationship_count, open_interest_count, advisory_score, "
+            "salience_review_status, last_updated_at "
+            f"FROM v_stakeholder_landscape{where} ORDER BY display_name",
+            params,
+        )
         return [_row(row) for row in cur.fetchall()]
 
 
@@ -237,8 +243,8 @@ def assess_salience(
     if not rationale.strip():
         raise ValueError("rationale is required for a salience assessment")
     scores = (power, legitimacy, urgency, vulnerability, harm_exposure, representation)
-    if any(score < 0 or score > 10 for score in scores):
-        raise ValueError("salience scores must be between 0 and 10")
+    if any(not math.isfinite(score) or score < 0 or score > 10 for score in scores):
+        raise ValueError("salience scores must be finite and between 0 and 10")
     with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
         cur.execute(
             """INSERT INTO stakeholder_salience_assessment

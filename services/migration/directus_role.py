@@ -20,6 +20,152 @@ from .runtime_role import _ensure_login_role, _role_identifier, _verify_role_att
 _ROLE_NAME = re.compile(r"^[a-z_][a-z0-9_]{0,62}$")
 _PLACEHOLDER_SECRET = re.compile(r"^(replace-with|your[_-]|change[_-]me|todo|none|null)", re.IGNORECASE)
 _APP_SCHEMAS = ("public", "kokonut")
+_DIRECTUS_RELATION_POLICY = "kokonut_security.directus_relation_privilege_policy"
+_DIRECTUS_POLICY_MODES = frozenset({"read_only", "no_access"})
+
+
+def _apply_migration_declared_relation_policies(cur, directus_ident: sql.Identifier) -> dict[str, int]:
+    """Reapply ordered-migration Directus denials after compatibility grants.
+
+    The provisioner intentionally grants broad collection access for the
+    optional Directus adapter. Ordered migrations can narrow that access for
+    Kernel-owned workflows. Because this command is idempotent and may run
+    again after migrations, the migration-owned policy registry is the source
+    of truth for those exceptions.
+    """
+    cur.execute(
+        f"SELECT schema_name, relation_name, access_mode "
+        f"FROM {_DIRECTUS_RELATION_POLICY} ORDER BY schema_name, relation_name"
+    )
+    policies = cur.fetchall()
+    seen: set[tuple[str, str]] = set()
+    counts = {"read_only": 0, "no_access": 0}
+    for schema_name, relation_name, access_mode in policies:
+        if (
+            schema_name not in _APP_SCHEMAS
+            or not isinstance(relation_name, str)
+            or not _ROLE_NAME.fullmatch(relation_name)
+            or access_mode not in _DIRECTUS_POLICY_MODES
+        ):
+            raise RuntimeError("Directus relation privilege policy contains an invalid entry")
+        key = (schema_name, relation_name)
+        if key in seen:
+            raise RuntimeError("Directus relation privilege policy contains a duplicate entry")
+        seen.add(key)
+
+        relation = sql.Identifier(schema_name, relation_name)
+        qualified_name = f"{schema_name}.{relation_name}"
+        cur.execute("SELECT pg_catalog.to_regclass(%s)", (qualified_name,))
+        relation_oid = cur.fetchone()[0]
+        if relation_oid is None:
+            raise RuntimeError("Directus relation privilege policy refers to a missing relation")
+        cur.execute(
+            "SELECT relation.relkind FROM pg_catalog.pg_class AS relation "
+            "WHERE relation.oid = pg_catalog.to_regclass(%s)",
+            (qualified_name,),
+        )
+        relation_kind = cur.fetchone()[0]
+        is_view = relation_kind in {"v", "m"}
+
+        if access_mode == "no_access":
+            cur.execute(
+                sql.SQL("REVOKE ALL PRIVILEGES ON TABLE {} FROM {}").format(
+                    relation, directus_ident
+                )
+            )
+            column_privileges = (
+                ("SELECT", "INSERT", "UPDATE")
+                if is_view
+                else ("SELECT", "INSERT", "UPDATE", "REFERENCES")
+            )
+        else:
+            if is_view:
+                cur.execute(
+                    sql.SQL("REVOKE INSERT, UPDATE, DELETE ON TABLE {} FROM {}").format(
+                        relation, directus_ident
+                    )
+                )
+                column_privileges = ("INSERT", "UPDATE")
+            else:
+                cur.execute(
+                    sql.SQL(
+                        "REVOKE INSERT, UPDATE, DELETE, TRUNCATE, REFERENCES, TRIGGER "
+                        "ON TABLE {} FROM {}"
+                    ).format(relation, directus_ident)
+                )
+                column_privileges = ("INSERT", "UPDATE", "REFERENCES")
+
+        cur.execute(
+            "SELECT attribute.attname "
+            "FROM pg_catalog.pg_attribute AS attribute "
+            "WHERE attribute.attrelid = pg_catalog.to_regclass(%s) "
+            "AND attribute.attnum > 0 AND NOT attribute.attisdropped "
+            "ORDER BY attribute.attnum",
+            (qualified_name,),
+        )
+        columns = [row[0] for row in cur.fetchall()]
+        for column_name in columns:
+            for privilege in column_privileges:
+                cur.execute(
+                    sql.SQL("REVOKE {} ({}) ON TABLE {} FROM {}").format(
+                        sql.SQL(privilege),
+                        sql.Identifier(column_name),
+                        relation,
+                        directus_ident,
+                    )
+                )
+
+        cur.execute(
+            "SELECT sequence_namespace.nspname, sequence.relname "
+            "FROM pg_catalog.pg_class AS relation "
+            "JOIN pg_catalog.pg_depend AS dependency "
+            "  ON dependency.refobjid = relation.oid "
+            " AND dependency.refclassid = 'pg_catalog.pg_class'::pg_catalog.regclass "
+            " AND dependency.classid = 'pg_catalog.pg_class'::pg_catalog.regclass "
+            " AND dependency.deptype IN ('a', 'i') "
+            "JOIN pg_catalog.pg_class AS sequence "
+            "  ON sequence.oid = dependency.objid AND sequence.relkind = 'S' "
+            "JOIN pg_catalog.pg_namespace AS sequence_namespace "
+            "  ON sequence_namespace.oid = sequence.relnamespace "
+            "WHERE relation.oid = pg_catalog.to_regclass(%s) "
+            "ORDER BY sequence_namespace.nspname, sequence.relname",
+            (qualified_name,),
+        )
+        for sequence_schema, sequence_name in cur.fetchall():
+            cur.execute(
+                sql.SQL("REVOKE ALL PRIVILEGES ON SEQUENCE {} FROM {}").format(
+                    sql.Identifier(sequence_schema, sequence_name),
+                    directus_ident,
+                )
+            )
+
+        cur.execute(
+            "SELECT "
+            "has_table_privilege(%s, %s, 'SELECT'), "
+            "has_table_privilege(%s, %s, 'INSERT'), "
+            "has_table_privilege(%s, %s, 'UPDATE'), "
+            "has_table_privilege(%s, %s, 'DELETE'), "
+            "has_table_privilege(%s, %s, 'TRUNCATE'), "
+            "has_table_privilege(%s, %s, 'REFERENCES'), "
+            "has_table_privilege(%s, %s, 'TRIGGER'), "
+            "has_any_column_privilege(%s, %s, 'SELECT'), "
+            "has_any_column_privilege(%s, %s, 'INSERT'), "
+            "has_any_column_privilege(%s, %s, 'UPDATE'), "
+            "has_any_column_privilege(%s, %s, 'REFERENCES')",
+            tuple(value for _ in range(11) for value in (directus_ident.string, qualified_name)),
+        )
+        effective = cur.fetchone()
+        expected = (
+            (True, False, False, False, False, False, False, True, False, False, False)
+            if access_mode == "read_only"
+            else (False,) * 11
+        )
+        if effective != expected:
+            raise RuntimeError(
+                "Directus relation privilege policy did not produce the expected effective ACL"
+            )
+        counts[access_mode] += 1
+    return counts
 
 
 def provision_directus_role(
@@ -58,6 +204,14 @@ def provision_directus_role(
                 raise RuntimeError("connected database does not match the requested Kernel database")
             if current_user != admin_user or not is_superuser:
                 raise RuntimeError("connection must use the configured PostgreSQL superuser")
+            cur.execute(
+                "SELECT pg_catalog.to_regclass(%s)",
+                (_DIRECTUS_RELATION_POLICY,),
+            )
+            if cur.fetchone()[0] is None:
+                raise RuntimeError(
+                    "ordered migrations must create the Directus relation privilege policy before provisioning"
+                )
 
             directus_oid = _ensure_login_role(
                 cur,
@@ -141,14 +295,9 @@ def provision_directus_role(
                     ).format(admin_ident, schema_ident, directus_ident)
                 )
 
-            cur.execute("SELECT to_regclass('public.farm_activity_operator_event')")
-            if cur.fetchone()[0] is not None:
-                cur.execute(
-                    sql.SQL("REVOKE ALL PRIVILEGES ON TABLE {} FROM {}").format(
-                        sql.Identifier("public", "farm_activity_operator_event"),
-                        directus_ident,
-                    )
-                )
+            directus_policy_counts = _apply_migration_declared_relation_policies(
+                cur, directus_ident
+            )
 
             _verify_role_attributes(cur, directus_user)
             cur.execute(
@@ -176,17 +325,6 @@ def provision_directus_role(
             if cur.fetchone()[0]:
                 raise RuntimeError("Directus runtime role must not own database objects")
 
-            cur.execute("SELECT to_regclass('public.farm_activity_operator_event')")
-            if cur.fetchone()[0] is not None:
-                cur.execute(
-                    """SELECT has_table_privilege(%s, 'public.farm_activity_operator_event', 'SELECT')
-                           OR has_table_privilege(%s, 'public.farm_activity_operator_event', 'INSERT')
-                           OR has_table_privilege(%s, 'public.farm_activity_operator_event', 'UPDATE')
-                           OR has_table_privilege(%s, 'public.farm_activity_operator_event', 'DELETE')""",
-                    (directus_user, directus_user, directus_user, directus_user),
-                )
-                if cur.fetchone()[0]:
-                    raise RuntimeError("Directus runtime role must not access the farm activity operator ledger")
         conn.commit()
     except BaseException:
         conn.rollback()
@@ -199,7 +337,7 @@ def provision_directus_role(
         "schemas": app_schemas,
         "privileges": ["SELECT", "INSERT", "UPDATE", "DELETE", "sequence USAGE/SELECT/UPDATE"],
         "privilege_exceptions": {
-            "farm_activity_operator_event": "no direct access; Gateway trigger owner appends the ledger",
+            "migration_declared_relation_policies": directus_policy_counts,
         },
         "ddl": False,
         "owns_relations": False,

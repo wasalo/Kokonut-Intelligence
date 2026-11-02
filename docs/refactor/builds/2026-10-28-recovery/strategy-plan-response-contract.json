@@ -1,0 +1,57 @@
+{
+  "date": "2026-10-28",
+  "source_revision": "08f852d2",
+  "working_tree_dirty": true,
+  "scope": "Strict private success-response contract for the location-scoped strategy plan listing.",
+  "route": {
+    "method": "GET",
+    "path": "/operator/api/strategy/{location_id}/plans",
+    "response_model": "StrategyPlanListResponse",
+    "source": "schemas/postgres/452_location_scoped_strategy_plan_read.sql",
+    "constraints": {
+      "extra_fields": "forbidden at all response object levels",
+      "plan_fields": "exact safe 22-column projection returned by the bounded SQL function",
+      "enums": "strategy status, visibility, cascade, and structural gate constraints align with schema/function checks",
+      "counts": "strict nonnegative integers; version is a strict positive integer",
+      "timestamps": "updated_at must be timezone-aware; planning horizon end cannot precede start",
+      "pagination": "maximum 50 plans aligns with route/service page size and SQL function limit 51 including the lookahead row; accepted offset and next_offset are capped at 10,000; has_more is true only when a continuation offset remains within that cap",
+      "privacy": "free-text rationale, party identities, private amounts, and execution authority are excluded"
+    }
+  },
+  "error_contract": {
+    "disabled_oidc": "existing 404 preserved",
+    "tenant_denial": "existing 403 preserved",
+    "invalid_input": "existing 400 preserved",
+    "permission_denial": "existing 403 preserved",
+    "database_failure": "existing sanitized 503 and Retry-After: 30 preserved",
+    "invalid_projection": "sanitized 500 with Cache-Control: no-store and Vary: Cookie"
+  },
+  "checks": [
+    {
+      "command": "python3 -m pytest tests/test_gateway_strategy_response.py tests/test_gateway_strategy_reads.py -q",
+      "result": "passed",
+      "passed": 37
+    },
+    {
+      "command": "python3 -m ruff check services/gateway/strategy_reads.py services/gateway/strategy_routes.py tests/test_gateway_strategy_response.py tests/test_gateway_strategy_reads.py",
+      "result": "passed"
+    },
+    {
+      "command": "python3 -m py_compile services/gateway/strategy_reads.py services/gateway/strategy_routes.py tests/test_gateway_strategy_response.py tests/test_gateway_strategy_reads.py",
+      "result": "passed"
+    },
+    {
+      "command": "git diff --check",
+      "result": "passed"
+    }
+  ],
+  "environment": {
+    "database_used": false,
+    "provider_called": false,
+    "candidate_or_legacy_touched": false
+  },
+  "limitations": [
+    "The route accepts starting offsets through 10,000. If a page reaches the cap and more source rows remain, the response terminates pagination without advertising an unsupported next offset.",
+    "This closes the route response-contract slice; live OIDC, populated-data parity, and broader tenant-isolation acceptance remain separate."
+  ]
+}

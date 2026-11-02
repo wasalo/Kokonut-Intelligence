@@ -1,0 +1,20 @@
+{
+  "date": "2026-10-28",
+  "slice": "Delphi facilitator draft study pagination bounds",
+  "result": "passed",
+  "route": "/operator/api/delphi/{location_id}/draft-studies",
+  "contract": {
+    "limit": {"default": 50, "minimum": 1, "maximum": 50},
+    "offset": {"default": 0, "minimum": 0, "maximum": 10000},
+    "invalid_values_rejected_before_service": ["limit=0", "limit=51", "offset=-1", "offset=10001"]
+  },
+  "verification": {
+    "pytest_command": "python3 -m pytest tests/test_gateway_delphi_recommendation_drafts.py -q",
+    "pytest_result": "32 passed",
+    "ruff": "passed",
+    "py_compile": "passed",
+    "git_diff_check": "passed"
+  },
+  "scope": "Mocked FastAPI/OpenAPI checks only; no database, provider, network, candidate, or legacy service was used.",
+  "rollback": "Revert route Query bounds, OpenAPI regression cases, and this evidence file; no persisted data changed."
+}

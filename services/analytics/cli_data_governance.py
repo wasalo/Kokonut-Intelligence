@@ -7,7 +7,9 @@ queries/business logic. Reachable via:
 """
 
 import sys
+from argparse import ArgumentTypeError
 from datetime import datetime
+from uuid import UUID
 
 from ..common.cli import run
 from ..common.commands import CommandLine
@@ -41,12 +43,26 @@ from .data_governance import (
 cli = CommandLine("data_governance", "Data governance & interoperability")
 
 
+def _parse_consent_expiry(value: str) -> datetime:
+    """Parse a timezone-aware ISO datetime before acquiring PostgreSQL."""
+    try:
+        parsed = datetime.fromisoformat(value)
+    except ValueError as exc:
+        raise ArgumentTypeError(
+            "expiry must be an ISO-8601 datetime with a timezone"
+        ) from exc
+    if parsed.tzinfo is None or parsed.utcoffset() is None:
+        raise ArgumentTypeError(
+            "expiry must be an ISO-8601 datetime with a timezone"
+        )
+    return parsed
+
+
 def _cmd_record_consent(db, a):
-    exp = datetime.fromisoformat(a.expires_at) if a.expires_at else None
     return record_consent(
         db, a.farmer_id, a.data_category, a.scope,
         status=a.status, method=a.method,
-        location_id=a.location_id, expires_at=exp,
+        location_id=a.location_id, expires_at=a.expires_at,
         evidence_ref=a.evidence_ref, legal_basis=a.legal_basis,
     )
 
@@ -159,7 +175,11 @@ cli.subcommand("record-consent", "Record consent grant/withdrawal") \
     .add("--status", default="granted", choices=["granted", "withdrawn", "pending"]) \
     .add("--method", default="digital_form") \
     .add("--location-id") \
-    .add("--expires-at", help="Expiry datetime ISO format") \
+    .add(
+        "--expires-at",
+        type=_parse_consent_expiry,
+        help="Expiry ISO-8601 datetime with an explicit timezone offset",
+    ) \
     .add("--evidence-ref") \
     .add("--legal-basis") \
     .add("--json", action="store_true") \
@@ -340,6 +360,19 @@ cli.subcommand("governance-summary", "Aggregated governance metrics") \
 
 def main(argv=None):
     tokens = list(sys.argv[1:] if argv is None else argv)
+    parser = cli.build_parser()
+    args = parser.parse_args(tokens)
+    location_id = getattr(args, "location_id", None)
+    if location_id is not None:
+        try:
+            location_id = str(UUID(location_id))
+        except (TypeError, ValueError):
+            parser.error("--location-id must be a valid UUID")
+        for index, token in enumerate(tokens):
+            if token == "--location-id" and index + 1 < len(tokens):
+                tokens[index + 1] = location_id
+            elif token.startswith("--location-id="):
+                tokens[index] = f"--location-id={location_id}"
     if (
         tokens
         and tokens[0] == "enforce-retention"

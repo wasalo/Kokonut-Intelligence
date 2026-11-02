@@ -1,0 +1,27 @@
+{
+  "date": "2026-10-28",
+  "scope": [
+    "pest_biology_reference",
+    "pest_crop_interaction",
+    "pest_mode_of_action"
+  ],
+  "source_review": {
+    "seeds": [
+      "schemas/seeds/093_pest_biology_reference.sql",
+      "schemas/seeds/094_pest_mode_of_action.sql",
+      "schemas/seeds/095_pest_crop_interactions.sql"
+    ],
+    "runtime_writers": [
+      "services/analytics/pest_management.py::add_pest_reference",
+      "services/analytics/pest_management.py::add_pest_crop_interaction",
+      "services/analytics/pest_management.py::add_mode_of_action"
+    ],
+    "operator_entrypoint": "services/analytics/cli_pest_management.py"
+  },
+  "decision": "No runtime write privilege change is supported by the source audit.",
+  "reason": "Each reference family has a service writer reachable from the pest-management CLI. Seed ownership therefore does not establish immutability; revoking DML would remove current operator customization behavior.",
+  "limitations": [
+    "This is a repository-source audit; it does not establish live operator usage or external callers.",
+    "No migration, test, database, seed, candidate, legacy service, or provider was changed or used."
+  ]
+}

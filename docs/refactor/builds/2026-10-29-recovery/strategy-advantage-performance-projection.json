@@ -1,0 +1,31 @@
+{
+  "date": "2026-10-29",
+  "scope": "mock-cursor-view-projection",
+  "view": "v_strategy_advantage_performance",
+  "migration": 286,
+  "columns": [
+    "advantage_id",
+    "strategy_plan_id",
+    "name",
+    "advantage_status",
+    "defensibility_score",
+    "latest_outcome_type",
+    "baseline_value",
+    "actual_value",
+    "comparator_type",
+    "comparator_value",
+    "attribution_confidence",
+    "outcome_delta",
+    "renewal_event_count",
+    "erosion_event_count",
+    "completed_reinforcement_count"
+  ],
+  "filter": "strategy_plan_id",
+  "ordering": "defensibility_score DESC NULLS LAST, name",
+  "focused_tests_passed": 1,
+  "ruff": "passed",
+  "python_compile": "passed",
+  "diff_check": "passed",
+  "database_contacted": false,
+  "provider_contacted": false
+}

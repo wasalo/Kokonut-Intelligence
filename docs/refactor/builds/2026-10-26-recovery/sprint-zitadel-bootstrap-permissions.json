@@ -1,0 +1,1 @@
+{"result": "passed", "checks": ["initial ownership and modes", "API write", "rerun preserves token", "Login group can read", "unrelated user denied", "root uid rejected", "symlink rejected"], "network": "none", "candidate_or_legacy_touched": false}

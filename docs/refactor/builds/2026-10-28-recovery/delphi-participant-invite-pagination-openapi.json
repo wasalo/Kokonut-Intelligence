@@ -1,0 +1,35 @@
+{
+  "date": "2026-10-28",
+  "source_revision": "753b4645",
+  "working_tree_dirty": true,
+  "result": "passed",
+  "slice": "Delphi participant-invite list pagination contract",
+  "route": "/operator/api/delphi/{location_id}/studies/{study_id}/invites",
+  "service_contract": {
+    "limit_default": 50,
+    "limit_minimum": 1,
+    "limit_maximum": 50,
+    "offset_default": 0,
+    "offset_minimum": 0,
+    "offset_maximum": 10000
+  },
+  "change": "FastAPI now publishes and enforces the participant-invite reader bounds in OpenAPI; invalid limit/offset values return 422 before the service is called. Typed integer values are forwarded to the existing service validator.",
+  "verification": {
+    "pytest": {
+      "command": "python3 -m pytest tests/test_gateway_delphi_participant_invites.py -q",
+      "result": "29 passed"
+    },
+    "ruff": "passed",
+    "py_compile": "passed",
+    "diff_check": "passed"
+  },
+  "external_services": {
+    "database": false,
+    "provider": false,
+    "network": false
+  },
+  "rollback": "Revert the route-level Query constraints and focused contract checks; no persisted state or schema changed.",
+  "limitations": [
+    "The checks exercise OpenAPI and in-process request validation only; they do not establish live proxy behavior or tenant authorization."
+  ]
+}

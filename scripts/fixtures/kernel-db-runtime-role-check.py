@@ -8,6 +8,7 @@ import os
 from pathlib import Path
 
 import psycopg2
+from psycopg2 import sql as pg_sql
 
 from services.migration.runtime_role import provision_runtime_role
 
@@ -111,6 +112,23 @@ def main() -> None:
                 "INSERT INTO public.kernel_role_probe_existing (value) VALUES ('admin-seeded')"
             )
 
+        with admin.cursor() as cur:
+            cur.execute("SELECT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = %s)", (RUNTIME_USER,))
+            runtime_role_existed_before = cur.fetchone()[0]
+            if runtime_role_existed_before:
+                cur.execute(
+                    pg_sql.SQL(
+                        "GRANT SELECT, INSERT, UPDATE, DELETE "
+                        "ON ALL TABLES IN SCHEMA public TO {}"
+                    ).format(pg_sql.Identifier(RUNTIME_USER))
+                )
+                cur.execute(
+                    pg_sql.SQL(
+                        "GRANT USAGE, SELECT, UPDATE "
+                        "ON ALL SEQUENCES IN SCHEMA public TO {}"
+                    ).format(pg_sql.Identifier(RUNTIME_USER))
+                )
+
         first = provision_runtime_role(
             admin,
             database=DATABASE,
@@ -131,6 +149,10 @@ def main() -> None:
             operator_auth_user=OPERATOR_AUTH_USER,
             operator_auth_password=OPERATOR_AUTH_PASSWORD,
         )
+        if first["legacy_compatibility_grants_applied"] is not (not runtime_role_existed_before):
+            raise AssertionError("runtime-role compatibility grant did not match initial role state")
+        if second["legacy_compatibility_grants_applied"] is not False:
+            raise AssertionError("existing runtime role repeated the compatibility grant")
 
         with admin.cursor() as cur:
             cur.execute(
@@ -141,6 +163,18 @@ def main() -> None:
                 )
                 """
             )
+        third = provision_runtime_role(
+            admin,
+            database=DATABASE,
+            admin_user=ADMIN_USER,
+            admin_password=ADMIN_PASSWORD,
+            runtime_user=RUNTIME_USER,
+            runtime_password=RUNTIME_PASSWORD,
+            operator_auth_user=OPERATOR_AUTH_USER,
+            operator_auth_password=OPERATOR_AUTH_PASSWORD,
+        )
+        if third["legacy_compatibility_grants_applied"] is not False:
+            raise AssertionError("runtime reprovision unexpectedly widened relation privileges")
         admin.close()
 
         runtime = connect(RUNTIME_USER, RUNTIME_PASSWORD)
@@ -159,13 +193,11 @@ def main() -> None:
                     (inserted_id,),
                 )
                 cur.execute("DELETE FROM public.kernel_role_probe_existing WHERE id = %s", (inserted_id,))
-                cur.execute(
-                    "INSERT INTO public.kernel_role_probe_future (value) VALUES ('default-privilege-grant') RETURNING id"
-                )
-                future_id = cur.fetchone()[0]
-                cur.execute("DELETE FROM public.kernel_role_probe_future WHERE id = %s", (future_id,))
-
             for statement in (
+                "SELECT value FROM public.kernel_role_probe_future LIMIT 1",
+                "INSERT INTO public.kernel_role_probe_future (value) VALUES ('reprovision-must-not-grant')",
+                "UPDATE public.kernel_role_probe_future SET value = 'reprovision-must-not-grant'",
+                "DELETE FROM public.kernel_role_probe_future",
                 "SELECT device_token_hash FROM public.mobile_device LIMIT 1",
                 "SELECT push_token FROM public.mobile_device LIMIT 1",
                 "SELECT code_hash FROM public.mobile_device_enrollment LIMIT 1",
@@ -229,7 +261,13 @@ def main() -> None:
 
         print(json.dumps({
             "result": "passed",
-            "provisioning_runs": [first["status"], second["status"]],
+            "provisioning_runs": [first["status"], second["status"], third["status"]],
+            "legacy_compatibility_grants_applied": [
+                first["legacy_compatibility_grants_applied"],
+                second["legacy_compatibility_grants_applied"],
+                third["legacy_compatibility_grants_applied"],
+            ],
+            "runtime_role_existed_before_provisioning": runtime_role_existed_before,
             "runtime_user": RUNTIME_USER,
             "runtime_password_distinct_from_admin": RUNTIME_PASSWORD != ADMIN_PASSWORD,
             "role_attributes": {
@@ -243,7 +281,8 @@ def main() -> None:
                 "role_memberships": role_state[7],
                 "owns_probe_relations": role_state[8],
             },
-            "existing_and_future_admin_owned_table_dml": ["select", "insert", "update", "delete"],
+            "existing_admin_owned_table_dml": ["select", "insert", "update", "delete"],
+            "future_admin_owned_table_after_reprovision": "all access denied",
             "denied_actions": ["persistent DDL", "create role", "create database", "set role admin"],
             "denied_unrelated_databases": unrelated_denials,
             "runtime_database_access": database_access,

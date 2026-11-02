@@ -1,0 +1,18 @@
+{
+  "date": "2026-10-28",
+  "report": "tactical_layer",
+  "finding": "Location-filtered threat warnings could include companion threat names and IDs from other locations because the helper only constrained the source threat.",
+  "change": "Pass the selected location through to companion lookup and constrain the target threat to the same location. Network-wide calls remain unfiltered.",
+  "verification": {
+    "command": "python3 -m pytest -q tests/test_tactical_layer.py tests/test_threatcasting.py tests/test_report_generator_readonly.py",
+    "result": "passed",
+    "tests": 73,
+    "ruff": "passed",
+    "py_compile": "passed",
+    "diff_check": "passed"
+  },
+  "limitations": [
+    "This closes this report helper's location filter only; it does not establish universal tenant isolation or RLS.",
+    "No database, provider, candidate, or legacy service was used."
+  ]
+}

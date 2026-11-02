@@ -1,6 +1,9 @@
 """CLI-compatible adapter for the existing business-plan generator."""
 
+from uuid import UUID
+
 from ..business_plan import generate_business_plan
+from .common import _looks_like_uuid
 
 
 def generate_business_plan_report(
@@ -17,18 +20,20 @@ def generate_business_plan_report(
     comma-separated location selection, and the CLI's explicit ``--all``
     selection.
     """
-    if not location_id:
+    if not isinstance(location_id, str) or not location_id.strip():
         raise ValueError("business_plan requires a location scope")
 
-    if location_id == "all":
+    location_scope = location_id.strip()
+    if location_scope.lower() == "all":
         with conn.cursor() as cur:
             cur.execute("SELECT id FROM location ORDER BY id")
             location_ids = [str(row[0]) for row in cur.fetchall()]
         scope = "all_locations"
     else:
-        location_ids = [item.strip() for item in location_id.split(",")]
-        if any(not item for item in location_ids):
-            raise ValueError("business_plan location scope contains an empty identifier")
+        raw_location_ids = [item.strip() for item in location_scope.split(",")]
+        if any(not _looks_like_uuid(item) for item in raw_location_ids):
+            raise ValueError("business_plan location scope must contain only valid UUIDs")
+        location_ids = [str(UUID(item)) for item in raw_location_ids]
         scope = "location" if len(location_ids) == 1 else "selected_locations"
 
     plans = [

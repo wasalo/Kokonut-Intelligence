@@ -1,6 +1,55 @@
 # Deployment Guide
 
+> [!IMPORTANT]
+> This file contains legacy Compose and cloud-deployment examples retained for
+> compatibility. The repository's active Kernel direction uses isolated
+> `docker-compose.kernel-*.yml` manifests and the profile planner. The Kernel
+> remains under capability-parity and recovery acceptance; these legacy
+> production examples are not a certification or a cutover instruction. See
+> the [current refactor status and implementation guide](refactor/current-state-and-implementation.md).
+
+## Kernel Candidate (Current Development Path)
+
+The Kernel candidate is isolated from the legacy project and data. Its base
+manifest contains PostgreSQL/PostGIS and the native app, binds the app to
+`127.0.0.1:8098`, and keeps PostgreSQL private. The `standard` overlay separates
+the API and worker processes. Optional adapters are selected explicitly; see
+the [profile planner guide](refactor/profile-selection.md) for current profile
+selection and known acceptance limits.
+
+The planner prints a command and does not run it, decrypt secrets, apply
+migrations, seed data, or stop another project. Review each generated command
+before copying it into a shell:
+
+```bash
+# Provide values from the encrypted local secret store; never put secrets here.
+source scripts/load-secrets.sh
+
+# Print and review the candidate configuration, then the start command.
+python3 scripts/kernel-profile.py minimal --project kokonut-kernel-dev --action config
+python3 scripts/kernel-profile.py minimal --project kokonut-kernel-dev --action up
+```
+
+On a fresh candidate volume, the app waits for the schema. The candidate does
+not automatically apply migrations or seeds. Select the candidate Compose
+project and manifest explicitly for host-side migration commands; the exact
+procedure and rollback cautions are in
+[Kernel candidate targeting](migrations.md#kernel-candidate-targeting) and
+[candidate setup](refactor/kernel-candidate.md). Do not use the generic legacy
+bootstrap or curated pilot-seed steps for a new candidate unless their scope
+has been reviewed and separately authorized.
+
+The planner's ARM64 option checks software/image compatibility. QEMU results do
+not establish Raspberry Pi memory, storage, thermal, or sustained-workload
+suitability. The `scale` selection currently fails closed pending topology,
+failover, recovery, and sizing evidence.
+
 ## Local Development
+
+The sections below document the **legacy** `docker-compose.yml` bundle. Its
+service list and commands are not the Kernel candidate. Use them only when
+working on legacy compatibility, and pin a Compose project name so services or
+volumes cannot collide with the isolated Kernel project.
 
 ### Prerequisites
 
@@ -17,7 +66,9 @@ cd Kokonut-Intelligence
 
 # 2. Configure environment
 cp .env.example .env
-# Edit .env with your secrets
+# Use local-only values; for the Kernel use the encrypted secret loader instead.
+# Pin a project name so this legacy bundle cannot share the Kernel project.
+export COMPOSE_PROJECT_NAME=kokonut-legacy-dev
 
 # 3. Start all services
 docker compose up -d
@@ -60,8 +111,9 @@ host-run process.
 **Deploy (local / LAN)**
 
 ```bash
-# 1. Secrets and stack (gateway builds from Dockerfile.gateway)
-cp .env.example .env   # if needed; set POSTGRES_PASSWORD and CLICKHOUSE_PASSWORD
+# 1. Legacy stack (gateway builds from Dockerfile.gateway)
+# Use a project name distinct from any candidate and load only local secrets.
+export COMPOSE_PROJECT_NAME=kokonut-legacy-dev
 docker compose up -d --build gateway caddy
 
 # 2. Confirm health
@@ -117,14 +169,43 @@ python3 -m services.gateway.cli --serve --port 8099
 
 See `services/mobile/README.md` for API endpoints and device-token behavior.
 
-### Stopping Services
+### Stopping The Legacy Sandbox
 
 ```bash
-docker compose down          # Stop containers
-docker compose down -v       # Stop and remove volumes (deletes data)
+docker compose -p YOUR_LEGACY_PROJECT -f docker-compose.yml down
 ```
 
-## Cloud Deployment
+Replace `YOUR_LEGACY_PROJECT` with the exact project used to start that stack.
+This stops the legacy Compose project and preserves its volumes. Never add
+`-v` as routine cleanup: that removes persistent database and upload data.
+Confirm the exact project and volume ownership before any manual deletion.
+
+## Repository Deployment Workflows
+
+The GitHub deployment workflows exist, but their presence does not prove a
+reachable runner, configured secrets, successful host deployment, or production
+readiness:
+
+- CI runs on pushes and pull requests targeting `main` and `develop`.
+- Staging is manually dispatched from `main` with an explicit `yes` input on a
+  self-hosted `ki-staging` runner. The workflow currently sets
+  `DEPLOY_STAGING_ENABLED=no`, so it intentionally exits before deploying.
+- Production is manually dispatched from `main` with an explicit `yes` input,
+  uses the GitHub `production` environment, and connects to the `ki-prod` SSH
+  alias using the protected environment host/key/known-host values. The
+  workflow delegates deployment to `deploy/scripts/deploy-production.sh`.
+
+Read `.github/workflows/deploy-staging.yml`,
+`.github/workflows/deploy-production.yml`, and the deployment scripts before
+changing these controls. Deployment workflows currently target the legacy
+release path; do not treat them as an accepted Kernel rollout mechanism until
+the Kernel production gates and workflow target are explicitly reviewed.
+
+## Legacy Cloud Deployment Reference
+
+The following VM and proxy examples apply to the legacy Compose bundle only.
+They are retained for compatibility and are not a production runbook for the
+Kernel candidate.
 
 ### Docker Compose on a VM
 
@@ -132,6 +213,7 @@ docker compose down -v       # Stop and remove volumes (deletes data)
 # On your cloud VM:
 git clone https://github.com/wasalo/Kokonut-Intelligence.git
 cd Kokonut-Intelligence
+export COMPOSE_PROJECT_NAME=kokonut-legacy-prod
 
 # Configure for production
 cp .env.example .env
@@ -245,7 +327,7 @@ Both channels can be active simultaneously. Alerts are only sent on failure — 
 # {"hostname":"vps-01","timestamp":"2026-06-29T12:00:00Z","pass":12,"fail":0,"failures":"","disk_pct":45,"mem_pct":62}
 ```
 
-### Production Checklist
+### Legacy Production Checklist
 
 Before deploying to production:
 
@@ -263,7 +345,7 @@ Before deploying to production:
 - [ ] Directus `ADMIN_PASSWORD` changed from default
 - [ ] If optional Metabase embedding is enabled, `METABASE_EMBEDDING_SECRET_KEY` is set to a strong value
 
-### Recommended VM Specs
+### Legacy VM Sizing Notes
 
 | Component | Minimum | Recommended |
 |-----------|---------|-------------|
@@ -307,7 +389,7 @@ Ensure `KOKONUT_ENV=production` and all required secrets are set in the environm
 
 For an explicit host-side metric run, set `KOKONUT_METRICS_EXECUTION=host ./scripts/compute-metrics.sh`. Without that setting, the script may launch a one-shot worker container when the Compose database is running. This is computation only; a reviewer must verify a value separately with `python3 -m services.metrics --verify-value UUID --verified-by REVIEWER_UUID --verification-notes "Reviewed evidence"`.
 
-### Production Compose
+### Legacy Production Compose
 
 For production deployments, use the production overlay to apply memory limits and keep all services internal to Docker networks:
 
@@ -430,7 +512,7 @@ python3 -m services.migration dry-run
 python3 -m services.migration migrate
 ```
 
-Take and test a backup before `migrate`, review the dry-run list, and run only one migration process. The runner uses `ON_ERROR_STOP`, a PostgreSQL advisory lock, deterministic schema-before-seed ordering, and checksums that reject modification of an applied migration. Add a new migration instead of editing an applied file. Because repository SQL may contain its own transaction control, a failed file can be partially committed; inspect database state and `schema_migration` before retrying. `status` and `dry-run` create or reconcile the tracking table, so they are not strictly read-only database operations. `scripts/seed.sh` uses the runner for PostgreSQL schemas and then applies the curated pilot/reference seed phase; use `KOKONUT_RUN_CURATED_SEEDS=false` only when intentionally skipping that data phase.
+Take and test a backup before `migrate`, review the plan, and run only one migration process. The runner uses `ON_ERROR_STOP`, a PostgreSQL advisory lock, deterministic schema-before-seed ordering, and checksums that reject modification of an applied migration. Accepted migration SQL and its ledger row commit in the same transaction; a statement failure rolls that migration back. Add a new migration instead of editing an applied file. If a client disconnects near completion, inspect migration status against the same explicitly selected target before retrying. See the [migration transaction and recovery rules](migrations.md#transaction-boundaries-and-failure). `status` and `plan` reconcile the tracking table, so they are not strictly read-only database operations. `scripts/seed.sh` is the legacy bootstrap: it uses the runner for PostgreSQL schemas and then applies the curated pilot/reference seed phase. Do not use it for a Kernel candidate; set `KOKONUT_RUN_CURATED_SEEDS=false` only when intentionally skipping that legacy data phase.
 
 ### Backup
 

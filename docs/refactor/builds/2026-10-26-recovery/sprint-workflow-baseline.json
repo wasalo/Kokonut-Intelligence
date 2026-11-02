@@ -1,0 +1,33 @@
+{
+  "result": "recorded",
+  "checked_at_utc": "2026-10-27T02:16:58.949553+00:00",
+  "develop_baseline": "ef29f193992717653251b325e99ae24afc62ccef",
+  "local_planning_commit": "a0de63ef",
+  "migration_inputs_match_planning_commit": true,
+  "schema_replay_evidence": "sprint-native-schema-replay.json",
+  "schema_replay_worktree_dirty": true,
+  "schema_replay_dirty_note": "Generated evidence files were untracked; the schema and migration inputs match the recorded planning commit.",
+  "docker_server_version": "29.9.2",
+  "docker_architecture": "x86_64",
+  "docker_cpus": 2,
+  "docker_memory_bytes": 4102549504,
+  "running_containers_at_initial_inspection": 0,
+  "workspace_available_gib_at_initial_inspection": 9.7,
+  "profiles_inspected": [
+    "minimal",
+    "edge",
+    "minimal+zitadel"
+  ],
+  "develop_ci": {
+    "run": 884,
+    "conclusion": "success",
+    "head": "ef29f193992717653251b325e99ae24afc62ccef"
+  },
+  "develop_security": {
+    "run": 608,
+    "conclusion": "success",
+    "head": "ef29f193992717653251b325e99ae24afc62ccef"
+  },
+  "candidate_status": "not running at initial Docker inspection; stored data and live migration state not inspected",
+  "scope_limit": "Software and disposable-database baseline only; no real OIDC login, current candidate deployment, production, or physical Raspberry Pi acceptance."
+}

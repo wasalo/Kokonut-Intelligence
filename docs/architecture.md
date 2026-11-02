@@ -1,10 +1,22 @@
 # Architecture
 
-> **Visual companion:** an interactive, self-contained visual explanation of this document is available at [architecture-visual.html](architecture-visual.html).
+> **Historical diagram:** [architecture-visual.html](architecture-visual.html) preserves an older full-stack deployment snapshot. Its service list, APIs, migration counts, and container topology are not current. Use this document and the [current refactor status guide](refactor/current-state-and-implementation.md) for today's Kernel architecture.
 
 ## System Overview
 
-The Kokonut Intelligence Platform is a governed, open-source data operating system for regenerative farm operations, financial performance, ecological outcomes, and Web3 verification.
+Kokonut Intelligence is a governed, open-source data operating system for
+regenerative farm operations, financial performance, ecological outcomes, and
+Web3 verification. Its deployment direction is a small native Kernel around
+PostgreSQL/PostGIS, the FastAPI Gateway, and Python domain services. The older
+`docker-compose.yml` bundle remains a compatibility/development stack; it is
+not the Kernel profile or the default recommendation for a new deployment.
+
+The candidate manifests are isolated from legacy Compose and intentionally do
+not migrate, seed, or reuse existing data automatically. Current candidate
+builds, profiles, acceptance gates, and unresolved parity work are tracked in
+the [current refactor status and implementation guide](refactor/current-state-and-implementation.md).
+No candidate health check is evidence of production readiness or physical
+Raspberry Pi acceptance.
 
 ## Core Principles
 
@@ -20,38 +32,64 @@ The Kokonut Intelligence Platform is a governed, open-source data operating syst
 
 ## Technology Stack
 
-| Component | Version | Key Capabilities |
-|-----------|---------|------------------|
-| PostgreSQL | 16 + PostGIS 3.4 | SQL/JSON constructors, pg_stat_io monitoring, parallel joins, expression indexes |
-| Directus | 12.1.1 | API, permissions, workflows, versioned collections, extension SDK |
-| ClickHouse | 25.8 LTS | PromQL support, Iceberg/DeltaLake write, Parquet v3, ArrowFlight, correlated subqueries |
-| Redis | 7 | Directus caching, rate limiting, session store |
-| Metabase | 0.62.4 | Custom visualizations, MCP server, Schema Viewer, programmatic filters |
-| Caddy | 2 | TLS termination, reverse proxy, security headers, `/mobile` routing to gateway |
-| FastAPI | 0.139+ | 2x JSON via Pydantic/Rust, native SSE, streaming JSON Lines |
-| Gateway | FastAPI | Policy-aware mobile API, Field Collector backend, device-token auth |
-| gRPC | Protobuf | Type-safe external API with streaming, API key auth, Buf codegen |
-| Prefect | 3.x | Pipeline orchestration, event-driven automations, 90% overhead reduction |
-| Python | 3.11 | services/, analytics, ML (Prophet + Isolation Forest) |
-| numpy | 2.x | SIMD-accelerated sorting, StringDType, array API standard |
-| pandas | 3.0 | Copy-on-Write default, Arrow interface, string dtype |
-| scikit-learn | 1.9 | Callback API, Array API, anomaly detection improvements |
-| Prophet | 1.3 | minmax scaling, custom CV metrics, NaN handling |
-| yfinance | 1.x | Authenticated access, consolidated dataframes |
-| EAS | Celo mainnet | Attestation gating, 7 registered schemas (MRV, impact, financial, harvest, compliance, bio-batch, data-post) |
-| Gnosis | Chain 100 | 11 Solidity contracts: Guild protocol, Credit Token, Price Oracle, Selective Disclosure, EAS Resolver |
-| Foundry | Latest | Build, test, deploy, upgrade scripts; OpenZeppelin base contracts |
-| Mosquitto | 2 | MQTT broker for IoT sensor ingestion with TLS on port 8883 |
+| Component | Kernel role | Profile status |
+|-----------|-------------|----------------|
+| PostgreSQL 16 + PostGIS | Canonical schema, operational records, spatial data, and durable state | Required; private Compose service |
+| Kokonut Gateway (FastAPI) | Native HTTP/API and browser operator boundary | Required; candidate app binds to loopback by default |
+| Python domain services | Domain logic, CLI operations, and supervised workers | Required; worker topology varies by profile |
+| Directus | Compatibility/admin data-entry adapter | Optional; separate runtime permissions and parity gate apply |
+| ClickHouse | Analytical event/projection store | Optional; analytics overlay |
+| Metabase | BI presentation adapter | Not part of Kernel base profiles; available in legacy Compose |
+| Redis | Replaceable cache/coordination adapter | Not required by Kernel base profiles |
+| Prefect | Optional workflow/orchestration integration | Disabled by default in Kernel manifests |
+| Mosquitto | MQTT transport for edge sensors | Optional; requires TLS certificates and client provisioning |
+| gRPC | Alternate service API transport | Optional overlay |
+| Caddy | Reverse proxy and TLS ingress | Optional overlay; loopback bind by default |
+| EAS / Solidity | Proof and coordination layer | Optional to local core operation; repository artifacts do not prove current external deployment state |
+
+Python and package versions are pinned in the dependency manifests and image
+build inputs. Avoid inferring runtime capabilities from upstream version
+marketing notes; the repository lock files and CI define the tested set.
+
+### Kernel Deployment Profiles
+
+`scripts/kernel-profile.py` accepts `core`, `minimal`, `edge`, `standard`,
+`analytics`, and `scale`. It prints a shell-quoted Compose command; it does not
+execute Docker, load secrets, apply migrations, seed data, or switch a running
+deployment.
+
+| Profile | Shape | Important boundary |
+|---------|-------|--------------------|
+| `core` | Small dependency build target; optional capability packages can be added explicitly | Package/profile contract; not a certified deployment |
+| `minimal` | PostgreSQL/PostGIS plus one app/API process with enabled workers | Isolated candidate profile, still under capability-parity/recovery acceptance |
+| `edge` | Minimal plus selected edge media/transport resources | Requires storage, device, outage, and retention acceptance |
+| `standard` | PostgreSQL/PostGIS, separate API and worker roles | Requires role provisioning, migration, worker progress, recovery, and release gates |
+| `analytics` | Minimal plus private ClickHouse | Requires schema and projection parity |
+| `scale` | Rejected by the planner | Multi-host, failover, concurrency, recovery, and measured sizing are not accepted |
+
+See [profile selection and planner behavior](refactor/profile-selection.md)
+and the current [refactor status](refactor/current-state-and-implementation.md)
+before using a profile. ARM64/QEMU checks demonstrate software compatibility
+only. No physical Raspberry Pi has been used to measure memory, storage,
+thermal, or sustained-workload behavior.
+
+The source refactor plan includes Caddy in Standard, but the current planner
+adds Caddy only when `--proxy` is selected. The current `standard` profile
+therefore has no TLS/public ingress by itself; this plan/code difference is an
+open deployment gate.
 
 ### Container Images
 
-All container images are pinned to `@sha256` digests. CI fails on unpinned images via `scripts/check-image-digests.sh`.
+Container image digests and CI checks are maintained in the Compose manifests
+and repository scripts. Legacy images do not imply that those products are
+required by the Kernel.
 
 | Dockerfile | Purpose |
 |------------|---------|
-| `Dockerfile.worker` | Cron-based Python ingestion container for scheduler jobs |
-| `Dockerfile.gateway` | FastAPI gateway / Field Collector mobile app backend |
-| `Dockerfile.grpc` | gRPC server with Protobuf codegen and health checks |
+| `Dockerfile.kernel` | Kernel API/worker runtime image and optional package targets |
+| `Dockerfile.gateway` | Legacy Compose FastAPI gateway image |
+| `Dockerfile.worker` | Legacy cron-based worker image |
+| `Dockerfile.grpc` | Optional/legacy gRPC runtime image |
 
 ---
 
@@ -70,7 +108,12 @@ Draft → Submitted → Verified → Published
 
 ## Schema Management
 
-Schemas are version-controlled as SQL files in `schemas/postgres/` (344 migrations, up to #352). Directus snapshots capture the API-layer state.
+Schemas are version-controlled as ordered, checksummed SQL files in
+`schemas/postgres/`; seed units are separately tracked in `schemas/seeds/`.
+Use `python3 -m services.migration status` to inspect the current migration
+ledger instead of relying on a hard-coded count in documentation. Directus
+metadata snapshots describe that optional adapter and do not supersede
+PostgreSQL migrations as the schema source of truth.
 
 - `schemas/postgres/` — Source of truth for database schema
 - `schemas/directus/` — Directus snapshot exports
@@ -83,29 +126,30 @@ Schemas are version-controlled as SQL files in `schemas/postgres/` (344 migratio
 
 | Layer | Protocol | Auth | Use Case |
 |-------|----------|------|----------|
-| Directus REST | HTTP REST | Bearer token | CRUD, admin, integrations |
-| Directus GraphQL | GraphQL | Bearer token | Complex queries, frontend |
-| Directus SDK | JavaScript | Session | Application integration |
-| ClickHouse HTTP | HTTP | Basic auth | Analytical queries |
-| Directus MCP | MCP | Scoped token | AI agent access |
-| Kokonut gateway | HTTP REST | API key, capability token, or device token (mobile) | Policy-aware routes under `/api`; Compose service `gateway` |
-| gRPC | gRPC + Protobuf | API key | Type-safe external API with streaming, credit class and data services |
-| Helper CLIs | Python modules | Local process auth | Registry validation, local CID prep, attestation request prep, agent manifest prep |
+| Kokonut Gateway REST | HTTP | Public only on explicit public-route policy; otherwise API key/capability token or separate device/session flow | Native Gateway routes and mobile collection under `/api`; protected browser operator routes under `/operator/api` when optional OIDC is enabled |
+| Operator browser auth | OIDC callback plus database-backed opaque session | Secure operator session cookie; CSRF token for mutations; explicit org/location grants | Human operations and review console |
+| Directus REST/GraphQL | HTTP / GraphQL | Directus roles and tokens | Optional compatibility/admin adapter; not required by native Gateway |
+| ClickHouse HTTP | HTTP | ClickHouse credentials | Optional analytics adapter |
+| gRPC | gRPC + Protobuf | API key and route policy | Optional transport; see [gRPC API](grpc-api.md) |
+| Helper CLIs | Python modules | Local process/worker-specific credentials | Migration, ingestion, analysis, and operational commands |
 
-The gateway runs as Compose service `gateway` (or host fallback `python3 -m services.gateway.cli --serve`). Its `/health`, `/`, `/docs`, `/openapi.json`, and Field Collector `/mobile` discovery routes are public; route policies determine whether other gateway routes are public, and protected routes require `x-api-key` or `x-capability-token`. Mobile sync uses `X-Device-Token`. A Directus bearer token is not gateway authentication. Base Caddy proxies `/mobile*` and `/api/mobile/*` to the gateway; other gateway `/api/*` routes remain on the gateway process (loopback `8099` in dev).
-
-The gRPC server runs as Compose service `grpc` on port 50051 with Protobuf definitions in `proto/` (ecocredit, data services). It supports server-side streaming, API key authentication, and health checks. See [gRPC API](grpc-api.md) for the full specification.
+The route policy in `services/gateway/router.py` is public only by explicit
+method/path entries; unknown routes remain protected. Mobile sync has its own
+opaque device-token boundary. Browser operator routes use an optional OIDC
+identity provider, database-backed session, CSRF protection, and explicit
+location-scoped grants. These route classes have separate contracts: do not
+infer universal endpoint or tenant parity from the presence of a Gateway.
+Directus, ClickHouse, gRPC, and Caddy are not required for the minimal Kernel.
 
 ---
 
 ## Security Model
 
-- **Directus roles:** Administrator, Field Worker, Supervisor, Manager, Finance, Analyst
+- **Identity boundaries:** Native Gateway API keys/capabilities, mobile device credentials, Delphi participant credentials, and optional OIDC operator sessions are distinct identities.
 - **Governance roles:** stakeholder-steward, circle-steward, evidence-custodian, consent-custodian, grievance-owner, ecological-proxy-steward, market-relationship-owner, governance-facilitator, governance-recorder (defined in `governance_circle` / `governance_role` tables)
-- **Policies:** Per-collection, per-action, per-field permissions
-- **Field-level:** Sensitive fields hidden per role
-- **Row-level:** Filter rules restrict record visibility
-- **Audit:** All mutations logged to `audit_log`
+- **Directus policies:** Per-collection, per-action, per-field permissions apply only when the optional Directus adapter is deployed and its runtime permissions have passed parity review.
+- **Tenant enforcement:** Location grants and signed PostgreSQL contexts are in place for selected access paths. Runtime-wide table grants, downstream consumers, Directus, and full RLS acceptance remain tracked separately; do not claim universal row isolation from route presence alone.
+- **Audit:** The Gateway records requests to the audit store and uses a bounded local SQLite journal for replay when PostgreSQL writes fail. Audit coverage and capture state are observable, but the journal is not a human approval or evidence record.
 - **Evidence:** Raw evidence stored off-chain; hashes/CIDs/attestation UIDs/chain labels/tx hashes on-chain
 - **Agent scope:** This repository stores agent metadata and tasks only; marketplace identity, payment, escrow, and reputation logic are external to `Kokonut-Agentic-Marketplace`
 - **KGP upgrade security:** 48-hour timelock (`KokonutGuildUpgradeTimelock.sol`) with self-administered `UPGRADER_ROLE`; only the timelock contract can propose and execute upgrades
@@ -115,20 +159,24 @@ The gRPC server runs as Compose service `grpc` on port 50051 with Protobuf defin
 
 ## Data Ingestion
 
-External data flows through Python scripts in `services/ingestion/` (37 modules). Major categories:
+External data flows through Python services in `services/ingestion/`. Major categories include:
 
 | Category | Scripts | Frequency | Target |
 |----------|---------|-----------|--------|
-| **Weather** | `weather.py`, `weather_forecast.py` | On demand | `weather_observation`, `weather_forecast` + ClickHouse |
-| **IoT Sensors** | `mqtt_subscriber.py`, `http_sensor_receiver.py`, `sensor_ingester.py`, `device_manager.py` | Real-time | `sensor_reading` + ClickHouse |
+| **Weather** | `weather.py`, `weather_forecast.py` | On demand | `weather_observation`, `weather_forecast`; optional analytics projection |
+| **IoT Sensors** | `mqtt_subscriber.py`, `http_sensor_receiver.py`, `sensor_ingester.py`, `device_manager.py` | Event/input-driven | `sensor_reading`; MQTT transport and analytics projection are optional |
 | **Remote Sensing** | `remote_sensing_fetcher.py`, `gee_remote_sensing.py`, `copernicus_remote_sensing.py` | Scheduled jobs | `remote_sensing_observation` |
 | **Financial** | `market_data.py`, `yahoo_finance.py`, `price_attestation.py`, `oracle_aggregator.py` | On demand / daily | `price_observation`, on-chain attestation |
-| **Blockchain** | `gnosis_indexer.py`, `baal_indexer.py`, `eas_indexer.py`, `rpc_indexer.py` | On demand | `wallet_activity_event`, `attestation_record` + ClickHouse |
+| **Blockchain** | `gnosis_indexer.py`, `baal_indexer.py`, `eas_indexer.py`, `rpc_indexer.py` | On demand | `wallet_activity_event`, `attestation_record`; optional analytics projection |
 | **Climate** | `climate_data.py` | On demand | Climate data tables |
 | **Analytics** | `anomaly_detector.py`, `ml_anomaly_detector.py`, `data_freshness.py`, `adaptive_sampler.py` | Periodic | Anomaly alerts, freshness checks |
 | **GIS** | `gis_import.py`, `kml_import.py`, `shapefile_import.py`, `raster_metadata.py` | On demand | Spatial tables |
 
-All ingestion is logged to `ingestion_log` with source, status, and timing. Chain indexer health tracked in `chain_indexer_status`.
+Ingestion and worker state use the canonical PostgreSQL records and durable
+worker boundaries. ClickHouse projections are available only when the analytics
+profile and its required configuration are selected. A service/module in the
+repository is not proof that its external provider, credentials, schedule, or
+deployment is active.
 
 > [!NOTE]
 > DApp session ingestion and metrics are deferred. Current Web3 ingestion remains focused on wallet activity, protocol interactions, EAS attestations, and governed value-flow records.
@@ -137,9 +185,13 @@ All ingestion is logged to `ingestion_log` with source, status, and timing. Chai
 
 ## EAS on Celo
 
-Celo is the primary chain for Kokonut attestations. EAS v1.3.0 is deployed on Celo mainnet. EAS configuration for 5 chains (Ethereum, Celo, Celo-Alfajores, Optimism, Base) is in `services/attestation/config.py`.
+The repository configures Celo as the primary chain for Kokonut attestations.
+Chain IDs, resolver addresses, and schema UIDs are source-controlled
+configuration; verify the live chain, contract code, resolver ownership, and
+schema registration before any production attestation. Configuration alone is
+not evidence that a deployment is currently active.
 
-**Deployed Contracts:**
+**Configured Contract Addresses (verify live state before use):**
 
 | Contract | Address |
 |----------|---------|
@@ -174,7 +226,7 @@ See [Attestation Guide](attestation-guide.md) for schema details and registratio
 
 ## Smart Contracts
 
-`contracts/` is a Foundry project with 11 Solidity contracts, deploy scripts, and upgrade tooling. All contracts use OpenZeppelin base patterns and are deployed on Gnosis Mainnet (chain 100).
+`contracts/` is a Foundry project with Solidity contracts, deploy scripts, and upgrade tooling. The repository includes Gnosis Mainnet deployment records, but this documentation does not verify current bytecode or contract state. Confirm the chain, deployment, ownership, and authority independently before interacting with any address. Contract source and deployment artifacts do not establish that every listed contract is currently deployed or active.
 
 ### Contract Inventory
 
@@ -447,7 +499,10 @@ See [Upgrades](upgrades.md) for onchain deployment and upgrade history.
 
 ## Configurable Container Architecture
 
-The platform implements a Docker-inspired configurable container architecture for farms and projects. Each farm is a composable container that can be configured, instantiated from templates, and scaled.
+This section describes a **farm/project domain model** that borrows container
+metaphors. It is not Docker Compose guidance and does not describe deployment
+profiles or infrastructure scaling. See [Kernel deployment profiles](#kernel-deployment-profiles)
+for service topology.
 
 ### Architecture Layers
 

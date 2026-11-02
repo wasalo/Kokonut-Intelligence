@@ -1,10 +1,10 @@
 # Agent Workflows
 
-Kokonut agents assist with drafts, exports, synthesis, and review preparation. They do not replace human governance. Every agent write is guarded by four enforcement layers that prevent agents from verifying, publishing, or modifying human-governed records. See [Agent Safety](agent-safety.md) for full enforcement details and [Agent Access](agent-access.md) for connection and permission reference.
+Kokonut agents assist with drafts, exports, synthesis, and review preparation. They do not replace human governance. Enforcement varies by execution path: Python policy and task validation cover guarded code paths, Directus hooks cover selected Directus writes, two database constraints cover specific status fields, and audit calls are explicit rather than automatic. Database least privilege for agent identities is not complete. See [Agent Safety](agent-safety.md) for exact coverage and [Agent Access](agent-access.md) for connection and permission reference.
 
 ## Task Catalogue
 
-The task catalogue lives in `services/agents/tasks.py` (18 registered tasks). No task has `high_risk: True`; all write targets are draft-only.
+The task catalogue lives in `services/agents/tasks.py` (20 registered tasks). No task declares `high_risk: True`; task write targets and lifecycle values are checked by the shared task and Python safety paths.
 
 ### Read-Only Tasks
 
@@ -16,7 +16,7 @@ The task catalogue lives in `services/agents/tasks.py` (18 registered tasks). No
 
 ### Synthesis Tasks
 
-All synthesis tasks produce structured JSON summaries from governed data. Most accept `--location-id` (optional for network-wide) and `--store` (persist draft `ai_summary`).
+Location-based synthesis tasks require an exact `--location-id UUID`; they do not fall back to network-wide reads. Applicable synthesis CLIs accept `--store` to persist a draft `ai_summary`.
 
 | Task | Description | Writes | Risk |
 |------|-------------|--------|------|
@@ -46,6 +46,16 @@ All synthesis tasks produce structured JSON summaries from governed data. Most a
 | `coordination_strategy_draft` | Draft candidate coordination alliances from stakeholder, capability, market, trust, and cooperative evidence | `coordination_alliance:draft` | Medium |
 | `delphi_facilitation` | Facilitate Real-time Delphi studies: anonymized live summary and draft recommendation | `delphi_recommendation:draft` | Medium |
 
+### Signed Synthesis Worker Tasks
+
+These two location-bound synthesis tasks are registered in the same catalogue
+but execute through the signed worker path rather than standalone CLI modules.
+
+| Task | Description | Writes | Risk |
+|------|-------------|--------|------|
+| `ecological_modeling_synthesis` | Build an advisory ecological summary from signed, exact-location source projections | `ai_summary:draft` | Medium |
+| `organic_readiness_synthesis` | Build an advisory organic-readiness summary from signed, exact-location source projections | `ai_summary:draft` | Medium |
+
 ### Task Catalogue CLI
 
 ```bash
@@ -59,7 +69,7 @@ python3 -m services.agents.tasks --describe ebf_scorecard_draft
 
 ## CLI Agents
 
-15 agent modules are invokable via `python3 -m`. All accept `--help`.
+15 agent CLI entry points are invokable via `python3 -m`; all accept `--help`. Two additional signed synthesis modules (`ecological_modeling_agent` and `organic_readiness_agent`) run through the worker path and do not expose standalone CLIs.
 
 ### AI Summary
 
@@ -75,20 +85,21 @@ python3 -m services.agents.tasks --describe ebf_scorecard_draft
 
 ### Synthesis Agents
 
-All synthesis agents share the same pattern: `--location-id UUID` (required or optional) and `--store` (persist draft).
+All standalone location-based synthesis CLIs listed below require
+`--location-id UUID`; `--store` persists a draft where supported.
 
 | Command | `--location-id` | Description |
 |---------|-----------------|-------------|
 | `python3 -m services.agents.feedback_agent` | Required | Summarize stakeholder feedback |
 | `python3 -m services.agents.wellbeing_agent` | Required | Summarize well-being metrics and cultural context |
-| `python3 -m services.agents.resilience_agent` | Optional | Summarize financial resilience and scaling |
-| `python3 -m services.agents.capital_efficiency_agent` | Optional | Summarize capital efficiency and governance throughput |
-| `python3 -m services.agents.commons_agent` | Optional | Summarize commons liberation and stewardship |
-| `python3 -m services.agents.gnh_agent` | Optional | Summarize GNH alignment and cultural preservation |
-| `python3 -m services.agents.regenerator_agent` | Optional | Summarize regenerative outcomes and community governance |
-| `python3 -m services.agents.open_source_capitalist_agent` | Optional | Summarize scaling economics and adoption barriers |
-| `python3 -m services.agents.kokonut_commons_agent` | Optional | Summarize anti-capture governance and federation |
-| `python3 -m services.agents.bio_factory_agent` | Optional | Summarize bio-factory operations and LAC regional inputs |
+| `python3 -m services.agents.resilience_agent` | Required | Summarize financial resilience and scaling |
+| `python3 -m services.agents.capital_efficiency_agent` | Required | Summarize capital efficiency and governance throughput |
+| `python3 -m services.agents.commons_agent` | Required | Summarize commons liberation and stewardship |
+| `python3 -m services.agents.gnh_agent` | Required | Summarize GNH alignment and cultural preservation |
+| `python3 -m services.agents.regenerator_agent` | Required | Summarize regenerative outcomes and community governance |
+| `python3 -m services.agents.open_source_capitalist_agent` | Required | Summarize scaling economics and adoption barriers |
+| `python3 -m services.agents.kokonut_commons_agent` | Required | Summarize anti-capture governance and federation |
+| `python3 -m services.agents.bio_factory_agent` | Required | Summarize bio-factory operations and LAC regional inputs |
 
 ### EBF Agents
 
@@ -106,7 +117,8 @@ All synthesis agents share the same pattern: `--location-id UUID` (required or o
 
 ## Signed Synthesis Workers
 
-Ecological modeling and organic readiness run through the signed worker. They
+The `ecological_modeling_synthesis` and `organic_readiness_synthesis` tasks
+run through signed worker modules and require an exact location. They
 remain advisory drafts and do not replace ecological field validation or
 certification by an accredited body. Ecological modeling is not a deterministic
 prediction. The ecological task keeps its legacy calculations while resolving
@@ -128,7 +140,9 @@ python3 -m services.agents.feedback_agent --location-id UUID --store
 
 ### The `--location-id` Pattern
 
-Some agents require `--location-id` (feedback, wellbeing, ai_summary, CIDS, EBF scorecard). Others accept it as optional — when omitted, they operate across all locations. The `--location-id` is always a UUID.
+Every location-based synthesis requires a valid location UUID. A missing or
+blank location is rejected before source queries; no synthesis agent silently
+widens its scope to all locations.
 
 ### Output Format
 
@@ -147,7 +161,7 @@ python3 -m services.agents.cids_agent --location-id UUID --summary
 4. **High-risk actions require human approval and audit logging.** The seven high-risk actions are: `publish`, `attest`, `onchain_submit`, `delete`, `bulk_update`, `financial_write`, `status_change_to_published`.
 5. **Feedback synthesis must not include raw private stakeholder feedback.** Private/no-consent records are aggregate-only; raw text is never exposed in agent outputs.
 
-For full enforcement architecture (4-layer defense-in-depth), see [Agent Safety](agent-safety.md).
+For enforcement coverage and the explicit limits of each layer, see [Agent Safety](agent-safety.md).
 
 ## Output Schemas
 
@@ -168,10 +182,10 @@ Each task defines `inputs` and `outputs` dictionaries with field types, formats,
 ## Testing
 
 ```bash
-# Agent safety tests (7 tests)
+# Agent safety policy and database-boundary tests
 python3 -m tests.test_agent_safety
 
-# Agent task catalogue tests (5 tests)
+# Agent task catalogue and input/output validation tests
 python3 -m tests.test_agent_tasks
 
 # Directus hook tests (includes agent safety enforcement)

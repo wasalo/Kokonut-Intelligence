@@ -1,6 +1,10 @@
 """Commons liberation, aligned capital, governance inclusion, and land stewardship tests."""
 
+import re
+from datetime import date
 from pathlib import Path
+
+import pytest
 
 from services.agents.commons_agent import synthesize_commons
 from services.agents.tasks import get_task, list_tasks, validate_output
@@ -11,7 +15,6 @@ from services.export.report_generator import (
     generate_land_stewardship,
     generate_time_liberation,
 )
-
 
 SCHEMA = Path("schemas/postgres/037_commons_liberation_and_stewardship.sql")
 SEED = Path("schemas/seeds/038_commons_liberation_and_stewardship.sql")
@@ -215,6 +218,332 @@ def test_commons_report_generators_public_safe() -> None:
     land = generate_land_stewardship(conn, "a0000000-0000-0000-0000-000000000001")
     assert land["report_type"] == "land_stewardship"
     assert "not legal opinions" in land["limitations"][0]
+
+
+def test_land_stewardship_uses_exact_view_projection_and_preserves_scope_and_payload() -> None:
+    location_id = "a0000000-0000-0000-0000-000000000001"
+    period_start = "2026-01-01"
+    period_end = "2026-03-31"
+    source_row = {
+        "id": "b0000000-0000-0000-0000-000000000001",
+        "location_id": location_id,
+        "farm_id": "c0000000-0000-0000-0000-000000000001",
+        "tenure_rights_assessment_id": "d0000000-0000-0000-0000-000000000001",
+        "commitment_date": "2026-03-31",
+        "stewardship_model": "community_stewardship",
+        "landlord_dependency_risk": "low",
+        "anti_speculation_terms": "Transfer controls apply.",
+        "community_benefit_rights": "Commons access remains reserved.",
+        "commons_transition_path": "Governed review required.",
+        "public_summary": "Reviewed public commitment.",
+        "evidence_maturity": 3,
+        "evidence_maturity_label": "Reviewed record",
+        "metadata": {"source": "synthetic"},
+    }
+
+    class Cursor:
+        def __init__(self):
+            self.calls = []
+
+        def execute(self, query, params=None):
+            self.calls.append((" ".join(query.split()), params))
+
+        def fetchone(self):
+            return {"name": "Synthetic location"}
+
+        def fetchall(self):
+            return [source_row]
+
+        def close(self):
+            pass
+
+    class Conn:
+        def __init__(self):
+            self.cursor_value = Cursor()
+
+        def cursor(self, cursor_factory=None):
+            return self.cursor_value
+
+    conn = Conn()
+    report = generate_land_stewardship(conn, location_id, period_start, period_end)
+    query, params = conn.cursor_value.calls[1]
+
+    assert query == (
+        "SELECT id, location_id, farm_id, tenure_rights_assessment_id, commitment_date, "
+        "stewardship_model, landlord_dependency_risk, anti_speculation_terms, "
+        "community_benefit_rights, commons_transition_path, public_summary, evidence_maturity, "
+        "evidence_maturity_label, metadata FROM v_public_land_stewardship_summary "
+        "WHERE location_id = %s AND (%s::date IS NULL OR commitment_date >= %s::date) "
+        "AND (%s::date IS NULL OR commitment_date <= %s::date) "
+        "ORDER BY commitment_date DESC, stewardship_model"
+    )
+    assert params == (location_id, period_start, period_start, period_end, period_end)
+    assert report["location_name"] == "Synthetic location"
+    assert report["commitments"] == [source_row]
+
+
+def test_time_liberation_projection_preserves_complete_view_payload() -> None:
+    location_id = "a0000000-0000-0000-0000-000000000001"
+    period_start = "2026-01-01"
+    period_end = "2026-03-31"
+    source_row = {
+        "id": "b0000000-0000-0000-0000-000000000001",
+        "location_id": location_id,
+        "farm_id": "c0000000-0000-0000-0000-000000000001",
+        "observation_date": date(2026, 3, 31),
+        "workflow_area": "monthly_operator_reporting",
+        "baseline_hours": 8.0,
+        "observed_hours": 5.25,
+        "hours_reclaimed": 2.75,
+        "burden_reduction_pct": 34.375,
+        "automation_or_agent_used": True,
+        "automation_type": "reviewed_assistant",
+        "beneficiary_group": "farm_operator",
+        "public_summary": "Reviewed workflow outcome.",
+        "evidence_maturity": 3,
+        "evidence_maturity_label": "Reviewed record",
+        "metadata": {"source": "reviewed", "labels": ["quarterly"]},
+    }
+    expected_columns = (
+        "id, location_id, farm_id, observation_date, workflow_area, baseline_hours, observed_hours, "
+        "hours_reclaimed, burden_reduction_pct, automation_or_agent_used, automation_type, "
+        "beneficiary_group, public_summary, evidence_maturity, evidence_maturity_label, metadata"
+    )
+
+    class Cursor:
+        query = None
+        params = None
+
+        def execute(self, query, params):
+            self.query = query
+            self.params = params
+
+        def fetchone(self):
+            return {"name": "Kokonut Adelphi"}
+
+        def fetchall(self):
+            return [source_row]
+
+        def close(self):
+            pass
+
+    class Conn:
+        def __init__(self):
+            self.cursor_value = Cursor()
+
+        def cursor(self, cursor_factory=None):
+            return self.cursor_value
+
+    conn = Conn()
+    report = generate_time_liberation(conn, location_id, period_start, period_end)
+
+    normalized_query = re.sub(r"\s+", " ", conn.cursor_value.query).strip()
+    assert normalized_query == (
+        f"SELECT {expected_columns} FROM v_public_time_liberation_summary "
+        "WHERE location_id = %s AND (%s::date IS NULL OR observation_date >= %s::date) "
+        "AND (%s::date IS NULL OR observation_date <= %s::date) "
+        "ORDER BY observation_date DESC, workflow_area"
+    )
+    assert conn.cursor_value.params == (location_id, period_start, period_start, period_end, period_end)
+    assert report["report_type"] == "time_liberation"
+    assert report["location_name"] == "Kokonut Adelphi"
+    assert report["observations"] == [
+        {**source_row, "observation_date": "2026-03-31"}
+    ]
+    assert report["total_hours_reclaimed"] == 2.75
+
+
+def test_capital_alignment_projection_preserves_payload_and_extractive_risk_count() -> None:
+    location_id = "a0000000-0000-0000-0000-000000000001"
+    period_start = "2026-01-01"
+    period_end = "2026-03-31"
+    source_row = {
+        "id": "b0000000-0000-0000-0000-000000000001",
+        "location_id": location_id,
+        "farm_id": "c0000000-0000-0000-0000-000000000001",
+        "capital_source_id": "d0000000-0000-0000-0000-000000000001",
+        "assessment_date": date(2026, 3, 31),
+        "provider_name": "Kokonut Network",
+        "provider_type": "community_fund",
+        "alignment_status": "aligned",
+        "extractive_risk_level": "high",
+        "community_control_terms": "Community retains veto rights.",
+        "exit_pressure_risk": "low",
+        "profit_extraction_limits": "Returns capped by policy.",
+        "commons_reinvestment_commitment_pct": 70.0,
+        "public_summary": "Reviewed capital alignment assessment.",
+        "evidence_maturity": 3,
+        "evidence_maturity_label": "Reviewed record",
+        "metadata": {"source": "reviewed", "cycle": "Q1"},
+    }
+    low_risk_row = {
+        **source_row,
+        "id": "b0000000-0000-0000-0000-000000000002",
+        "assessment_date": date(2026, 2, 28),
+        "provider_name": "Community revolving fund",
+        "provider_type": "community_fund",
+        "extractive_risk_level": "low",
+    }
+    source_rows = [source_row, low_risk_row]
+    columns = (
+        "id, location_id, farm_id, capital_source_id, assessment_date, provider_name, provider_type, "
+        "alignment_status, extractive_risk_level, community_control_terms, exit_pressure_risk, "
+        "profit_extraction_limits, commons_reinvestment_commitment_pct, public_summary, "
+        "evidence_maturity, evidence_maturity_label, metadata"
+    )
+
+    class Cursor:
+        def __init__(self):
+            self.executed = []
+
+        def execute(self, query, params):
+            self.executed.append((query, params))
+
+        def fetchone(self):
+            return {"name": "Kokonut Adelphi"}
+
+        def fetchall(self):
+            return source_rows
+
+        def close(self):
+            pass
+
+    class Conn:
+        def __init__(self):
+            self.cursor_value = Cursor()
+
+        def cursor(self, cursor_factory=None):
+            return self.cursor_value
+
+    conn = Conn()
+    report = generate_capital_alignment(conn, location_id, period_start, period_end)
+    query, params = conn.cursor_value.executed[1]
+
+    assert re.sub(r"\s+", " ", query).strip() == (
+        f"SELECT {columns} FROM v_public_capital_alignment_summary "
+        "WHERE location_id = %s AND (%s::date IS NULL OR assessment_date >= %s::date) "
+        "AND (%s::date IS NULL OR assessment_date <= %s::date) "
+        "ORDER BY assessment_date DESC, provider_type"
+    )
+    assert params == (location_id, period_start, period_start, period_end, period_end)
+    assert report["report_type"] == "capital_alignment"
+    assert report["location_name"] == "Kokonut Adelphi"
+    assert report["assessments"] == [
+        {**row, "assessment_date": row["assessment_date"].isoformat()}
+        for row in source_rows
+    ]
+    assert report["high_or_critical_extractive_risk_count"] == 1
+
+
+@pytest.mark.parametrize("location_id", [None, ""])
+def test_governance_inclusion_requires_location_before_database_access(location_id) -> None:
+    class NoDatabase:
+        def cursor(self, **_kwargs):
+            raise AssertionError("unscoped report must fail before opening a cursor")
+
+    with pytest.raises(ValueError, match="governance_inclusion requires an explicit location_id"):
+        generate_governance_inclusion(NoDatabase(), location_id)
+
+
+def test_governance_inclusion_keeps_selected_location_and_global_rows() -> None:
+    columns = [
+        "id",
+        "location_id",
+        "dao_proposal_id",
+        "observation_date",
+        "governance_body",
+        "inclusion_scope",
+        "represented_groups",
+        "missing_groups",
+        "pseudonymous_participation_enabled",
+        "marginalized_voice_count",
+        "total_participant_count",
+        "representation_coverage_pct",
+        "public_summary",
+        "evidence_maturity",
+        "evidence_maturity_label",
+        "metadata",
+    ]
+    location_id = "a0000000-0000-0000-0000-000000000001"
+    observations = [
+        {
+            "id": "00000000-0000-4000-8000-000000000001",
+            "location_id": location_id,
+            "dao_proposal_id": None,
+            "observation_date": "2026-09-01",
+            "governance_body": "Kokonut DAO",
+            "inclusion_scope": "proposal_participation",
+            "represented_groups": ["farmers", "guild_members"],
+            "missing_groups": ["youth"],
+            "pseudonymous_participation_enabled": True,
+            "marginalized_voice_count": 2,
+            "total_participant_count": 8,
+            "representation_coverage_pct": 75.0,
+            "public_summary": "Reviewed location-level participation summary.",
+            "evidence_maturity": 4,
+            "evidence_maturity_label": "Reviewed",
+            "metadata": {"reviewed": True},
+        },
+        {
+            "id": "00000000-0000-4000-8000-000000000002",
+            "location_id": None,
+            "dao_proposal_id": None,
+            "observation_date": "2026-08-01",
+            "governance_body": "Kokonut Network",
+            "inclusion_scope": "network_wide",
+            "represented_groups": ["community"],
+            "missing_groups": [],
+            "pseudonymous_participation_enabled": False,
+            "marginalized_voice_count": 0,
+            "total_participant_count": 12,
+            "representation_coverage_pct": 100.0,
+            "public_summary": "Reviewed network-level participation summary.",
+            "evidence_maturity": 3,
+            "evidence_maturity_label": "Field validated",
+            "metadata": {"network_shared": True},
+        },
+    ]
+
+    class Cursor:
+        query = None
+        params = None
+
+        def execute(self, query, params):
+            self.query = " ".join(query.split())
+            self.params = params
+
+        def fetchall(self):
+            return observations
+
+        def close(self):
+            pass
+
+    class Conn:
+        def __init__(self):
+            self.cursor_value = Cursor()
+
+        def cursor(self, cursor_factory=None):
+            return self.cursor_value
+
+    conn = Conn()
+    report = generate_governance_inclusion(
+        conn, location_id, period_start="2026-08-01", period_end="2026-09-30"
+    )
+
+    assert report["location_id"] == location_id
+    projection = re.search(
+        r"SELECT (.*?) FROM v_public_governance_inclusion_summary",
+        conn.cursor_value.query,
+    )
+    assert projection is not None
+    assert [column.strip() for column in projection.group(1).split(",")] == columns
+    assert "WHERE (location_id = %s OR location_id IS NULL)" in conn.cursor_value.query
+    assert "observation_date >= %s::date" in conn.cursor_value.query
+    assert "observation_date <= %s::date" in conn.cursor_value.query
+    assert "ORDER BY observation_date DESC, governance_body" in conn.cursor_value.query
+    assert conn.cursor_value.params == (location_id, "2026-08-01", "2026-08-01", "2026-09-30", "2026-09-30")
+    assert report["observations"] == observations
+    assert report["pseudonymous_participation_enabled_count"] == 1
 
 
 if __name__ == "__main__":

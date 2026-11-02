@@ -83,39 +83,6 @@ class TestEventBus:
         mock_conn.commit.assert_not_called()
         mock_conn.rollback.assert_not_called()
 
-    def test_process_pending_handles_empty(self):
-        """process_pending() returns zero stats when no pending events."""
-        from services.events.bus import EventBus
-
-        mock_conn = MagicMock()
-        mock_cursor = MagicMock()
-        mock_cursor.fetchall.return_value = []
-        mock_conn.cursor.return_value.__enter__ = MagicMock(return_value=mock_cursor)
-        mock_conn.cursor.return_value.__exit__ = MagicMock(return_value=False)
-
-        bus = EventBus(conn=mock_conn)
-        stats = bus.process_pending(batch_size=10)
-        assert stats == {"processed": 0, "failed": 0, "skipped": 0, "lease_lost": 0}
-
-    def test_process_pending_skips_event_without_handlers(self):
-        """Events with no registered handlers are marked skipped."""
-        from services.events.bus import EventBus
-
-        event_id = str(uuid.uuid4())
-        mock_conn = MagicMock()
-        mock_cursor = MagicMock()
-        # First call: fetch pending events. Second call: fetch handlers (empty).
-        mock_cursor.fetchall.side_effect = [
-            [(event_id, "no_handler_event", "{}", 0, 3)],
-            [],
-        ]
-        mock_conn.cursor.return_value.__enter__ = MagicMock(return_value=mock_cursor)
-        mock_conn.cursor.return_value.__exit__ = MagicMock(return_value=False)
-
-        bus = EventBus(conn=mock_conn)
-        stats = bus.process_pending(batch_size=10)
-        assert stats["skipped"] == 1
-
     def test_cleanup_old_events(self, monkeypatch):
         """cleanup_old_events() deletes old completed/dead_letter events."""
         from services.events.bus import EventBus

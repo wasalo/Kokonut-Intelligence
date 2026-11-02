@@ -1,0 +1,24 @@
+{
+  "date": "2026-10-28",
+  "slice": "gateway_nutrient_pagination_openapi_bounds",
+  "result": "passed",
+  "routes": [
+    "/operator/api/nutrients/{location_id}/balances",
+    "/operator/api/nutrients/{location_id}/soil-tests",
+    "/operator/api/nutrients/{location_id}/events/{event_type}"
+  ],
+  "contract": {
+    "limit_default": 25,
+    "limit_minimum": 1,
+    "limit_maximum": 50,
+    "invalid_values_rejected_by_fastapi_before_service_access": [0, 51]
+  },
+  "verification": {
+    "pytest_command": "python3 -m pytest tests/test_gateway_nutrient_pagination_openapi.py tests/test_gateway_nutrient_balances.py -q",
+    "pytest_result": "19 passed",
+    "ruff": "passed",
+    "py_compile": "passed",
+    "git_diff_check": "passed"
+  },
+  "scope": "Synthetic FastAPI/OpenAPI and mocked service-boundary checks only; no database, provider, network, candidate, or legacy service was used."
+}

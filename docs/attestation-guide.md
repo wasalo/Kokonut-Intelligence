@@ -304,9 +304,12 @@ WHERE id = 'RECORD_UUID';
 
 ## EAS on Celo
 
-Celo is the primary chain for Kokonut attestations. EAS v1.3.0 is deployed on Celo mainnet.
+Celo is the configured primary chain for Kokonut attestations. The addresses
+below are repository deployment records, not a live chain-state check. Confirm
+current bytecode, registry entries, resolver policy, and authority before
+submitting attestations or making external deployment claims.
 
-### Deployed Contracts
+### Recorded Contract Addresses
 
 | Contract | Address | Explorer |
 |----------|---------|----------|
@@ -317,12 +320,12 @@ Celo is the primary chain for Kokonut attestations. EAS v1.3.0 is deployed on Ce
 
 ### Kokonut Schemas
 
-| Schema | UID | Use Case | Active |
+| Schema | UID | Use Case | Repository record |
 |--------|-----|----------|--------|
-| `kokonut-mrv` | `0x93af67b8197dda513fa968e597e1c9a2c0d0607d656659f153dc1b065a100e54` | MRV claims (location, crop, quantity, evidence) | Yes |
-| `kokonut-impact` | `0xb99bb4b2a55218b8f4df1f0bd4c39400711809f13ef5d150d2903648c6590dfe` | Environmental impact (soil carbon, biodiversity, NDVI) | Yes |
-| `kokonut-financial` | `0x75b42beb85dd852134dfaff3de41b8dc361ed0cb2bf93ce3009c8ec082de905b` | Financial summaries (NOI, revenue, costs) | Yes |
-| `kokonut-harvest` | `0xb359f9756e3cb3597e4048dccae2842083359906fbae8dc8c0e9af8ac1b3ccff` | Harvest verification (quantity, quality, date) | Yes |
+| `kokonut-mrv` | `0x93af67b8197dda513fa968e597e1c9a2c0d0607d656659f153dc1b065a100e54` | MRV claims (location, crop, quantity, evidence) | Recorded; verify registry |
+| `kokonut-impact` | `0xb99bb4b2a55218b8f4df1f0bd4c39400711809f13ef5d150d2903648c6590dfe` | Environmental impact (soil carbon, biodiversity, NDVI) | Recorded; verify registry |
+| `kokonut-financial` | `0x75b42beb85dd852134dfaff3de41b8dc361ed0cb2bf93ce3009c8ec082de905b` | Financial summaries (NOI, revenue, costs) | Recorded; verify registry |
+| `kokonut-harvest` | `0xb359f9756e3cb3597e4048dccae2842083359906fbae8dc8c0e9af8ac1b3ccff` | Harvest verification (quantity, quality, date) | Recorded; verify registry |
 | `kokonut-compliance` | `0x59632edcf1d04be0c2dcfd572282bbd4dac518e7a92872ec45ade29876ef95f5` | Partner compliance and audit trails | Yes |
 | `kokonut-bio-batch` | `0x9306a4cf...38ff29` | Bio-organic fertilizer batch production (LAC) | Yes |
 | `kokonut-data-post` | `0xf0de37f5c4a441aedb794d5585201c6ef150543dc53f894e1212f7e330205045` | Data stream posts for environmental project tracking | Yes |

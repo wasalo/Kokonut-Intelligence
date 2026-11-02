@@ -1,0 +1,30 @@
+{
+  "route": "GET /data-stream/posts",
+  "result": "passed",
+  "bounds": {
+    "limit": {
+      "default": 20,
+      "minimum": 1,
+      "maximum": 100
+    },
+    "offset": {
+      "default": 0,
+      "minimum": 0,
+      "maximum": 5000
+    }
+  },
+  "checks": {
+    "openapi_parameters_match_service_contract": true,
+    "explicit_page_forwarded_to_reader": true,
+    "invalid_page_rejected_before_reader": true,
+    "focused_tests_passed": 3,
+    "ruff": "passed",
+    "python_compile": "passed",
+    "diff_check": "passed"
+  },
+  "data_access": {
+    "database_contacted": false,
+    "provider_contacted": false,
+    "candidate_or_legacy_touched": false
+  }
+}

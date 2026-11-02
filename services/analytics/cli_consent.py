@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import sys
+from uuid import UUID
 
 from services.analytics.consent_resolver import (
     check_consent,
@@ -19,18 +20,26 @@ def _out(data):
     print_json(data)
 
 
+def _parse_uuid(value: str) -> str:
+    """Validate and canonicalize UUID arguments before opening PostgreSQL."""
+    try:
+        return str(UUID(value))
+    except (TypeError, ValueError, AttributeError) as exc:
+        raise argparse.ArgumentTypeError("must be a valid UUID") from exc
+
+
 def main():
     parser = argparse.ArgumentParser(description="Canonical stakeholder consent resolver")
     sub = parser.add_subparsers(dest="command")
 
     record = sub.add_parser("record")
-    record.add_argument("party_id")
+    record.add_argument("party_id", type=_parse_uuid)
     record.add_argument("data_category")
     record.add_argument("purpose")
     record.add_argument("--event-type", default="grant", choices=["grant", "withdraw", "deny", "expire"])
     record.add_argument("--scope-type", default="network")
-    record.add_argument("--scope-id")
-    record.add_argument("--recipient-party-id")
+    record.add_argument("--scope-id", type=_parse_uuid)
+    record.add_argument("--recipient-party-id", type=_parse_uuid)
     record.add_argument("--recipient-type", default="system")
     record.add_argument("--recipient-name")
     record.add_argument("--reason")
@@ -43,12 +52,12 @@ def main():
     ))
 
     check = sub.add_parser("check")
-    check.add_argument("party_id")
+    check.add_argument("party_id", type=_parse_uuid)
     check.add_argument("data_category")
     check.add_argument("purpose")
     check.add_argument("--scope-type", default="network")
-    check.add_argument("--scope-id")
-    check.add_argument("--recipient-party-id")
+    check.add_argument("--scope-id", type=_parse_uuid)
+    check.add_argument("--recipient-party-id", type=_parse_uuid)
     check.add_argument("--recipient-type", default="system")
     check.set_defaults(func=lambda conn, a: check_consent(
         conn, a.party_id, a.data_category, a.purpose, scope_type=a.scope_type,
@@ -57,14 +66,14 @@ def main():
     ))
 
     listing = sub.add_parser("list")
-    listing.add_argument("--party-id")
+    listing.add_argument("--party-id", type=_parse_uuid)
     listing.add_argument("--status")
     listing.set_defaults(func=lambda conn, a: list_effective_consent(
         conn, a.party_id, effective_status=a.status,
     ))
 
     withdraw = sub.add_parser("withdraw")
-    withdraw.add_argument("consent_event_id")
+    withdraw.add_argument("consent_event_id", type=_parse_uuid)
     withdraw.add_argument("--reason", required=True)
     withdraw.set_defaults(func=lambda conn, a: withdraw_consent(conn, a.consent_event_id, a.reason))
 

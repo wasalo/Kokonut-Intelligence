@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from unittest.mock import Mock
+from unittest.mock import MagicMock, Mock
 
 import pytest
 
@@ -52,6 +52,47 @@ def test_dispatch_claims_and_completes_only_through_bounded_functions(monkeypatc
         "SELECT kokonut_security.complete_platform_event(%s, %s, %s)",
     ]
     assert calls[-1][1] == (_event_tuple()[0], "worker-7", _event_tuple()[-1])
+
+
+def test_claim_and_handler_receipt_commit_before_handler_subprocess():
+    connection = MagicMock()
+    cursor = MagicMock()
+    connection.cursor.return_value.__enter__.return_value = cursor
+    connection.cursor.return_value.__exit__.return_value = False
+    order = []
+    event = _event_tuple()
+    handler = (
+        "40000000-0000-0000-8000-000000000001",
+        "services.events.handlers",
+        "handle_alert_notification",
+        30,
+        None,
+    )
+
+    def execute(query, _parameters):
+        cursor.description = [None, None]
+        if "claim_platform_event_batch" in query:
+            cursor.fetchall.return_value = [event]
+        elif "list_platform_event_handlers" in query:
+            cursor.fetchall.return_value = [handler]
+        else:
+            cursor.description = [None]
+            cursor.fetchone.return_value = (True,)
+
+    cursor.execute.side_effect = execute
+    connection.commit.side_effect = lambda: order.append("commit")
+    bus = IsolatedEventBus(conn=connection)
+
+    def invoke(*_args, **_kwargs):
+        order.append("handler")
+        return "success", None
+
+    bus._invoke_handler = invoke
+    outcome = bus.process_pending(batch_size=1, worker_id="commit-boundary")
+
+    assert outcome == {"processed": 1, "failed": 0, "skipped": 0, "lease_lost": 0}
+    assert order.count("handler") == 1
+    assert order.index("commit") < order.index("handler")
 
 
 def test_failed_handler_retries_through_bounded_function_and_preserves_counts(monkeypatch):

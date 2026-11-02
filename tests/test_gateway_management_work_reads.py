@@ -165,7 +165,26 @@ def test_http_summary_is_no_store_and_returns_only_projection(monkeypatch):
 
     monkeypatch.setattr(
         "services.gateway.management_work_reads.location_management_work_summary",
-        lambda *_args, **_kwargs: {"location_id": LOCATION_ID, "work_item_count": 2},
+        lambda *_args, **_kwargs: {
+            "location_id": LOCATION_ID,
+            "work_item_count": 6,
+            "open_work_item_count": 4,
+            "draft_count": 1,
+            "assigned_count": 1,
+            "in_progress_count": 1,
+            "blocked_count": 1,
+            "done_count": 1,
+            "cancelled_count": 1,
+            "high_priority_open_count": 1,
+            "critical_priority_open_count": 1,
+            "overdue_count": 1,
+            "sla_breached_count": 2,
+            "pending_claim_count": 1,
+            "accepted_claim_count": 1,
+            "open_escalation_count": 1,
+            "resolved_escalation_count": 1,
+            "latest_work_event_at": EVENT_AT,
+        },
     )
     app = FastAPI()
     router = APIRouter()
@@ -189,4 +208,89 @@ def test_http_summary_is_no_store_and_returns_only_projection(monkeypatch):
     assert response.status_code == 200
     assert response.headers["cache-control"] == "no-store"
     assert response.headers["vary"] == "Cookie"
-    assert response.json() == {"location_id": LOCATION_ID, "work_item_count": 2}
+    assert response.json() == {
+        "location_id": LOCATION_ID,
+        "work_item_count": 6,
+        "open_work_item_count": 4,
+        "draft_count": 1,
+        "assigned_count": 1,
+        "in_progress_count": 1,
+        "blocked_count": 1,
+        "done_count": 1,
+        "cancelled_count": 1,
+        "high_priority_open_count": 1,
+        "critical_priority_open_count": 1,
+        "overdue_count": 1,
+        "sla_breached_count": 2,
+        "pending_claim_count": 1,
+        "accepted_claim_count": 1,
+        "open_escalation_count": 1,
+        "resolved_escalation_count": 1,
+        "latest_work_event_at": EVENT_AT.isoformat().replace("+00:00", "Z"),
+    }
+    schema = app.openapi()["paths"][
+        "/operator/api/management/{location_id}/summary"
+    ]["get"]["responses"]["200"]["content"]["application/json"]["schema"]
+    assert schema["$ref"].endswith("ManagementWorkSummaryResponse")
+
+
+@pytest.mark.parametrize(
+    "mutate",
+    [
+        lambda result: result.update(task_title="private"),
+        lambda result: result.update(work_item_count=True),
+        lambda result: result.update(open_escalation_count=-1),
+        lambda result: result.update(location_id=str(uuid4())),
+    ],
+)
+def test_http_summary_rejects_malformed_or_mismatched_projection(monkeypatch, mutate):
+    from services.gateway.management_work_routes import register_management_work_routes
+
+    result = {
+        "location_id": LOCATION_ID,
+        "work_item_count": 6,
+        "open_work_item_count": 4,
+        "draft_count": 1,
+        "assigned_count": 1,
+        "in_progress_count": 1,
+        "blocked_count": 1,
+        "done_count": 1,
+        "cancelled_count": 1,
+        "high_priority_open_count": 1,
+        "critical_priority_open_count": 1,
+        "overdue_count": 1,
+        "sla_breached_count": 2,
+        "pending_claim_count": 1,
+        "accepted_claim_count": 1,
+        "open_escalation_count": 1,
+        "resolved_escalation_count": 1,
+        "latest_work_event_at": EVENT_AT,
+    }
+    mutate(result)
+    monkeypatch.setattr(
+        "services.gateway.management_work_reads.location_management_work_summary",
+        lambda *_args, **_kwargs: result,
+    )
+    app = FastAPI()
+    router = APIRouter()
+
+    async def run_in_threadpool(function, *args, **kwargs):
+        return function(*args, **kwargs)
+
+    register_management_work_routes(router, object(), run_in_threadpool, SimpleNamespace(Error=Exception))
+    app.include_router(router)
+
+    @app.middleware("http")
+    async def add_operator(request, call_next):
+        request.state.operator_session = SimpleNamespace(
+            operator=SimpleNamespace(operator_id=OPERATOR_ID)
+        )
+        return await call_next(request)
+
+    with TestClient(app) as client:
+        response = client.get(f"/operator/api/management/{LOCATION_ID}/summary")
+
+    assert response.status_code == 500
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["vary"] == "Cookie"
+    assert response.json() == {"error": "Management work summary unavailable"}

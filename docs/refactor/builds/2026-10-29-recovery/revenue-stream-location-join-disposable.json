@@ -1,0 +1,48 @@
+{
+  "result": "passed",
+  "migration": "686_location_scoped_revenue_stream_cycle_join.sql",
+  "database": "disposable PostgreSQL 16",
+  "network_disabled": true,
+  "host_port_published": false,
+  "candidate_or_legacy_modified": false,
+  "provider_contacted": false,
+  "baseline": {
+    "row_count": 3,
+    "gross_revenue": 175,
+    "net_contribution": 120,
+    "local_cycle_name": "Local crop cycle",
+    "foreign_row_present": true,
+    "foreign_cycle_name": "Foreign crop cycle",
+    "unlinked_cycle_name": null
+  },
+  "after_apply": {
+    "row_count": 3,
+    "gross_revenue": 175,
+    "net_contribution": 120,
+    "local_cycle_name": "Local crop cycle",
+    "foreign_row_present": true,
+    "foreign_cycle_name": null,
+    "unlinked_cycle_name": null
+  },
+  "after_replay": {
+    "row_count": 3,
+    "gross_revenue": 175,
+    "net_contribution": 120,
+    "local_cycle_name": "Local crop cycle",
+    "foreign_row_present": true,
+    "foreign_cycle_name": null,
+    "unlinked_cycle_name": null
+  },
+  "assertions": {
+    "baseline_exposes_mismatched_cycle_label": true,
+    "same_location_cycle_label_preserved": true,
+    "cross_location_cycle_label_null_after_migration": true,
+    "cross_location_contribution_preserved": true,
+    "unlinked_contribution_preserved": true,
+    "location_a_row_count": 3,
+    "location_a_gross_revenue": 175,
+    "location_a_net_contribution": 120,
+    "migration_replay_safe": true
+  },
+  "cleanup": "container stopped and auto-removed"
+}

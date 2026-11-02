@@ -13,13 +13,13 @@ Usage:
     python -m services.analytics.yield_monitoring benchmark --location-id UUID --crop maize
 """
 
+import argparse
 import json
-import math
 import uuid
-from datetime import datetime, date, timezone
-from typing import Optional
+from datetime import date
 
 from services.common.commands import CommandLine
+
 from ..common.logging import get_logger
 
 logger = get_logger("analytics.yield_monitoring")
@@ -343,7 +343,6 @@ def compare_benchmark(conn, location_id: str, crop_name: str = None) -> dict:
         """,
         tuple(params),
     )
-    cols = [d[0] for d in cur.description]
     benchmarks = {row[0]: float(row[1]) for row in cur.fetchall()}
 
     # Current yield
@@ -437,11 +436,20 @@ def _format_benchmark(r: dict) -> str:
 
 
 def _cmd_record(db, a):
-    hd = date.fromisoformat(a.date) if a.date else None
     return record_yield_observation(
         db, a.location_id, a.yield_amount, a.area, a.crop,
-        harvest_date=hd, moisture_pct=a.moisture, grade=a.grade,
+        harvest_date=a.date, moisture_pct=a.moisture, grade=a.grade,
     )
+
+
+def _parse_harvest_date(value: str) -> date:
+    """Parse an ISO harvest date before a CLI command opens PostgreSQL."""
+    try:
+        return date.fromisoformat(value)
+    except (TypeError, ValueError) as exc:
+        raise argparse.ArgumentTypeError(
+            "must be a valid ISO date (YYYY-MM-DD)"
+        ) from exc
 
 
 cli.subcommand("record", "Record yield observation") \
@@ -450,7 +458,10 @@ cli.subcommand("record", "Record yield observation") \
     .add("--area", type=float, default=1.0, help="Area in hectares") \
     .add("--crop", default="maize") \
     .add("--variety") \
-    .add("--date", help="Harvest date YYYY-MM-DD") \
+    .add(
+        "--date", type=_parse_harvest_date,
+        help="Harvest date YYYY-MM-DD",
+    ) \
     .add("--moisture", type=float, help="Moisture content %") \
     .add("--grade") \
     .add("--json", action="store_true") \

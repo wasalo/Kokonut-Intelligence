@@ -1,0 +1,14 @@
+{
+  "container_network": "internal-only",
+  "custom_and_unrelated_schedule_values": "preserved",
+  "directus_and_maintenance_grants": "preserved",
+  "exact_schedule_migrated": true,
+  "host_binding": "none",
+  "migration": "723_isolated_worker_runtime_write_boundaries.sql",
+  "migration_replay": "passed",
+  "ok": true,
+  "runtime_provisioner_reapplication": "passed",
+  "runtime_select": "preserved",
+  "runtime_table_and_column_writes": "denied",
+  "target": "disposable PostgreSQL only"
+}

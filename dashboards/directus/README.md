@@ -1,6 +1,10 @@
 # Directus Dashboards
 
-Role-based and domain-specific dashboard configurations for Directus. 19 dashboards covering partner roles, internal roles, domain-specific views, and platform administration.
+Nineteen JSON dashboard design/import templates for the optional legacy
+Directus adapter. They describe intended views for partner roles, internal
+roles, domain areas, and platform administration; they are not proof that the
+dashboards are installed, that their queries work against the current schema,
+or that their filters enforce authorization.
 
 ## Dashboard Index
 
@@ -49,9 +53,14 @@ Each dashboard consists of:
 - **JSON module spec** — Directus dashboard configuration with modules, filters, and data access rules
 - **Markdown setup guide** — Overview, module descriptions, data access rules, and notes
 
-## Data Access Patterns
+## Illustrative Data Access Patterns
 
-### Location-Scoped (Partner & Internal Roles)
+The snippets below describe the original dashboard design. They are not
+verified Directus policies. `$CURRENT_USER.assigned_locations` and
+`partner_id` are placeholders in these templates; only the deployed Directus
+permission engine and the authenticated Gateway's grants can authorize data.
+
+### Proposed Location Scope (Partner & Internal Roles)
 ```json
 {
   "read": "location_id IN ($CURRENT_USER.assigned_locations)"
@@ -72,12 +81,12 @@ Each dashboard consists of:
 }
 ```
 
-## Role Permissions
+## Intended Role Matrix (Not Effective Access Proof)
 
 | Role | Access Level | Key Collections |
 |------|--------------|-----------------|
-| Field Worker | Create/read own records | `farm_activity`, `harvest_event`, `field_note` |
-| Supervisor | Submit/approve operational | `farm_activity`, `approval`, `harvest_event` |
+| Field Worker | Field data entry design | `harvest_event`, `field_note`; `farm_activity` is intentionally excluded from Directus permissions |
+| Supervisor | Operational review design | `approval`, `harvest_event`; farm-activity operations are owned by the Gateway |
 | Manager | Approve operational + financial | `crop_cycle`, `expense_event`, `sales_event`, `noi_snapshot` |
 | Finance | Verify expenses/revenue | `expense_event`, `sales_event`, `revenue_event`, `capex_breakdown` |
 | Analyst | Read-only all verified | `metric_value`, `forecast_output`, `dashboard_dataset` |
@@ -98,16 +107,16 @@ draft → submitted → verified → published
 - 7-day review period for stakeholder feedback
 - All transitions logged to `workflow_history`
 
-## Setup
+## Setup (Optional Directus Adapter)
 
 1. In Directus Admin → Settings → Roles → Create/verify roles
 2. Apply permissions from `config/directus/permissions.sql`
-3. Assign `assigned_locations` to users for location-scoped access
-4. Import JSON dashboard modules via Directus API or UI
+3. Configure and verify supported user-to-organization/location permissions in the pinned Directus runtime. Do not treat the template's `assigned_locations` variable as an existing access control.
+4. Review and adapt each JSON module before importing it. Dashboard import does not establish field, row, lifecycle, or tenant permissions.
 
 ## Notes
 
 - All queries use bare table names (no schema prefix)
-- Location scope enforced via `$CURRENT_USER.assigned_locations`
+- Location scope snippets in these templates are illustrative only; they are not verified effective permission rules
 - Agent safety enforced via `agent-safety.ts` hook
 - High-risk actions require human approval

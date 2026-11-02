@@ -8,6 +8,7 @@ that creates a DRAFT ``strategic_reserve_release`` row for human approval
 from __future__ import annotations
 
 import argparse
+from uuid import UUID
 
 from services.common.cli import print_json, run
 from services.common.database import get_db
@@ -33,12 +34,20 @@ def cmd_health() -> None:
 
 
 def cmd_seed_vault(location_id: str) -> None:
+    location_id = _normalize_location_id(location_id)
     conn = get_db()
     try:
         out = health.seed_vault_health(conn, location_id)
     finally:
         conn.close()
     print_json(out)
+
+
+def _normalize_location_id(location_id: str) -> str:
+    try:
+        return str(UUID(location_id))
+    except (AttributeError, TypeError, ValueError) as exc:
+        raise ValueError("location_id must be a valid UUID") from exc
 
 
 def cmd_propose_release(reserve_code: str, quantity: float, reason: str) -> None:
@@ -95,6 +104,11 @@ def main() -> None:
     pr.add_argument("--reason", default=None)
 
     args = p.parse_args()
+    if args.command == "seed-vault":
+        try:
+            args.location_id = _normalize_location_id(args.location_id)
+        except ValueError:
+            p.error("--location-id must be a valid UUID")
     _cmd(args)
 
 

@@ -18,6 +18,7 @@ OPERATOR_ID = "a0000000-0000-4000-8000-000000000001"
 LOCATION_ID = "b0000000-0000-4000-8000-000000000001"
 REQUEST_ID = "c0000000-0000-4000-8000-000000000001"
 PROFILE_ID = "d0000000-0000-4000-8000-000000000001"
+CLAIM_ID = "e0000000-0000-4000-8000-000000000001"
 CAPACITY_PAYLOAD = {
     "period_start": "2026-11-01",
     "period_end": "2026-11-30",
@@ -833,8 +834,267 @@ def _route_app(monkeypatch, action, operation="create_location_operating_pilot_d
     return TestClient(app)
 
 
+def test_work_claim_proposal_route_publishes_strict_response_and_binds_work_item(monkeypatch):
+    action = MagicMock(
+        return_value={
+            "location_id": LOCATION_ID,
+            "work_item_id": PROFILE_ID,
+            "claim_id": CLAIM_ID,
+            "status": "proposed",
+            "replayed": False,
+        }
+    )
+    client = _route_app(monkeypatch, action, "claim_location_operating_pilot_work")
+
+    response = client.post(
+        f"/operator/api/operating-pilot/{LOCATION_ID}/work-opportunities/{PROFILE_ID}/claims",
+        json={"request_id": REQUEST_ID, "proposed_effort_hours": "12.5"},
+    )
+
+    assert response.status_code == 201
+    assert response.headers["cache-control"] == "no-store"
+    assert response.json() == action.return_value
+    schema = client.app.openapi()["paths"][
+        "/operator/api/operating-pilot/{location_id}/work-opportunities/{work_item_id}/claims"
+    ]["post"]["responses"]["201"]["content"]["application/json"]["schema"]
+    assert schema["$ref"].endswith("OperatingPilotWorkClaimProposalResponse")
+    action.assert_called_once_with(
+        OPERATOR_ID,
+        LOCATION_ID,
+        PROFILE_ID,
+        REQUEST_ID,
+        {"proposed_effort_hours": "12.5"},
+    )
+
+
+def test_work_claim_proposal_replay_preserves_current_claim_status(monkeypatch):
+    action = MagicMock(
+        return_value={
+            "location_id": LOCATION_ID,
+            "work_item_id": PROFILE_ID,
+            "claim_id": CLAIM_ID,
+            "status": "withdrawn",
+            "replayed": True,
+        }
+    )
+    client = _route_app(monkeypatch, action, "claim_location_operating_pilot_work")
+
+    response = client.post(
+        f"/operator/api/operating-pilot/{LOCATION_ID}/work-opportunities/{PROFILE_ID}/claims",
+        json={"request_id": REQUEST_ID, "proposed_effort_hours": "12.5"},
+    )
+
+    assert response.status_code == 201
+    assert response.json()["status"] == "withdrawn"
+    assert response.json()["replayed"] is True
+
+
+@pytest.mark.parametrize(
+    "update",
+    [
+        {"location_id": PROFILE_ID},
+        {"work_item_id": REQUEST_ID},
+        {"status": "accepted"},
+        {"private_party_id": OPERATOR_ID},
+    ],
+)
+def test_work_claim_proposal_rejects_malformed_response(monkeypatch, update):
+    result = {
+        "location_id": LOCATION_ID,
+        "work_item_id": PROFILE_ID,
+        "claim_id": CLAIM_ID,
+        "status": "proposed",
+        "replayed": False,
+    }
+    result.update(update)
+    action = MagicMock(return_value=result)
+    client = _route_app(monkeypatch, action, "claim_location_operating_pilot_work")
+
+    response = client.post(
+        f"/operator/api/operating-pilot/{LOCATION_ID}/work-opportunities/{PROFILE_ID}/claims",
+        json={"request_id": REQUEST_ID, "proposed_effort_hours": "12.5"},
+    )
+
+    assert response.status_code == 503
+    assert response.json() == {"error": "Operating work-claim proposal unavailable"}
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["retry-after"] == "30"
+
+
+def test_work_claim_review_route_publishes_decision_response_and_binds_claim(monkeypatch):
+    action = MagicMock(
+        return_value={
+            "location_id": LOCATION_ID,
+            "claim_id": CLAIM_ID,
+            "status": "accepted",
+            "replayed": False,
+        }
+    )
+    client = _route_app(monkeypatch, action, "review_location_operating_pilot_work_claim")
+
+    response = client.post(
+        f"/operator/api/operating-pilot/{LOCATION_ID}/work-claims/{CLAIM_ID}/review",
+        json={"request_id": REQUEST_ID, "decision": "accepted"},
+    )
+
+    assert response.status_code == 200
+    assert response.headers["cache-control"] == "no-store"
+    assert response.json() == action.return_value
+    schema = client.app.openapi()["paths"][
+        "/operator/api/operating-pilot/{location_id}/work-claims/{claim_id}/review"
+    ]["post"]["responses"]["200"]["content"]["application/json"]["schema"]
+    assert schema["$ref"].endswith("OperatingPilotWorkClaimReviewResponse")
+    action.assert_called_once_with(
+        OPERATOR_ID,
+        LOCATION_ID,
+        CLAIM_ID,
+        REQUEST_ID,
+        {"decision": "accepted"},
+    )
+
+
+def test_work_claim_review_replay_preserves_rejection(monkeypatch):
+    action = MagicMock(
+        return_value={
+            "location_id": LOCATION_ID,
+            "claim_id": CLAIM_ID,
+            "status": "rejected",
+            "replayed": True,
+        }
+    )
+    client = _route_app(monkeypatch, action, "review_location_operating_pilot_work_claim")
+
+    response = client.post(
+        f"/operator/api/operating-pilot/{LOCATION_ID}/work-claims/{CLAIM_ID}/review",
+        json={"request_id": REQUEST_ID, "decision": "rejected", "reason": "Not eligible"},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["status"] == "rejected"
+    assert response.json()["replayed"] is True
+
+
+@pytest.mark.parametrize(
+    "update",
+    [
+        {"location_id": PROFILE_ID},
+        {"claim_id": REQUEST_ID},
+        {"status": "proposed"},
+        {"private_party_id": OPERATOR_ID},
+    ],
+)
+def test_work_claim_review_rejects_malformed_response(monkeypatch, update):
+    result = {
+        "location_id": LOCATION_ID,
+        "claim_id": CLAIM_ID,
+        "status": "accepted",
+        "replayed": False,
+    }
+    result.update(update)
+    action = MagicMock(return_value=result)
+    client = _route_app(monkeypatch, action, "review_location_operating_pilot_work_claim")
+
+    response = client.post(
+        f"/operator/api/operating-pilot/{LOCATION_ID}/work-claims/{CLAIM_ID}/review",
+        json={"request_id": REQUEST_ID, "decision": "accepted"},
+    )
+
+    assert response.status_code == 503
+    assert response.json() == {"error": "Operating work-claim review unavailable"}
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["retry-after"] == "30"
+
+
+def test_work_claim_allocation_route_publishes_separate_allocation_response(monkeypatch):
+    action = MagicMock(
+        return_value={
+            "location_id": LOCATION_ID,
+            "claim_id": CLAIM_ID,
+            "work_item_id": PROFILE_ID,
+            "allocation_status": "allocated",
+            "replayed": False,
+        }
+    )
+    client = _route_app(monkeypatch, action, "allocate_location_operating_pilot_work_claim")
+
+    response = client.post(
+        f"/operator/api/operating-pilot/{LOCATION_ID}/work-claims/{CLAIM_ID}/allocate",
+        json={"request_id": REQUEST_ID},
+    )
+
+    assert response.status_code == 200
+    assert response.headers["cache-control"] == "no-store"
+    assert response.json() == action.return_value
+    schema = client.app.openapi()["paths"][
+        "/operator/api/operating-pilot/{location_id}/work-claims/{claim_id}/allocate"
+    ]["post"]["responses"]["200"]["content"]["application/json"]["schema"]
+    assert schema["$ref"].endswith("OperatingPilotWorkClaimAllocationResponse")
+    action.assert_called_once_with(OPERATOR_ID, LOCATION_ID, CLAIM_ID, REQUEST_ID)
+
+
+def test_work_claim_allocation_replay_preserves_allocated_state(monkeypatch):
+    action = MagicMock(
+        return_value={
+            "location_id": LOCATION_ID,
+            "claim_id": CLAIM_ID,
+            "work_item_id": PROFILE_ID,
+            "allocation_status": "allocated",
+            "replayed": True,
+        }
+    )
+    client = _route_app(monkeypatch, action, "allocate_location_operating_pilot_work_claim")
+
+    response = client.post(
+        f"/operator/api/operating-pilot/{LOCATION_ID}/work-claims/{CLAIM_ID}/allocate",
+        json={"request_id": REQUEST_ID},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["allocation_status"] == "allocated"
+    assert response.json()["replayed"] is True
+
+
+@pytest.mark.parametrize(
+    "update",
+    [
+        {"location_id": PROFILE_ID},
+        {"claim_id": REQUEST_ID},
+        {"allocation_status": "open"},
+        {"private_party_id": OPERATOR_ID},
+    ],
+)
+def test_work_claim_allocation_rejects_malformed_response(monkeypatch, update):
+    result = {
+        "location_id": LOCATION_ID,
+        "claim_id": CLAIM_ID,
+        "work_item_id": PROFILE_ID,
+        "allocation_status": "allocated",
+        "replayed": False,
+    }
+    result.update(update)
+    action = MagicMock(return_value=result)
+    client = _route_app(monkeypatch, action, "allocate_location_operating_pilot_work_claim")
+
+    response = client.post(
+        f"/operator/api/operating-pilot/{LOCATION_ID}/work-claims/{CLAIM_ID}/allocate",
+        json={"request_id": REQUEST_ID},
+    )
+
+    assert response.status_code == 503
+    assert response.json() == {"error": "Operating work-claim allocation unavailable"}
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["retry-after"] == "30"
+
+
 def test_demand_draft_http_route_passes_request_id_and_uses_no_store(monkeypatch):
-    action = MagicMock(return_value={"signal_id": REQUEST_ID, "status": "draft", "replayed": False})
+    action = MagicMock(
+        return_value={
+            "location_id": LOCATION_ID,
+            "signal_id": REQUEST_ID,
+            "status": "draft",
+            "replayed": False,
+        }
+    )
     client = _route_app(monkeypatch, action)
 
     response = client.post(
@@ -844,8 +1104,69 @@ def test_demand_draft_http_route_passes_request_id_and_uses_no_store(monkeypatch
 
     assert response.status_code == 201
     assert response.headers["cache-control"] == "no-store"
-    assert response.json()["status"] == "draft"
+    assert response.json() == {
+        "location_id": LOCATION_ID,
+        "signal_id": REQUEST_ID,
+        "status": "draft",
+        "replayed": False,
+    }
+    schema = client.app.openapi()["paths"][
+        "/operator/api/operating-pilot/{location_id}/demand-signals"
+    ]["post"]["responses"]["201"]["content"]["application/json"]["schema"]
+    assert schema["$ref"].endswith("OperatingPilotDemandDraftCreateResponse")
     action.assert_called_once_with(OPERATOR_ID, LOCATION_ID, REQUEST_ID, PAYLOAD)
+
+
+def test_demand_draft_replay_preserves_terminal_lifecycle(monkeypatch):
+    action = MagicMock(
+        return_value={
+            "location_id": LOCATION_ID,
+            "signal_id": REQUEST_ID,
+            "status": "fulfilled",
+            "replayed": True,
+        }
+    )
+    client = _route_app(monkeypatch, action)
+
+    response = client.post(
+        f"/operator/api/operating-pilot/{LOCATION_ID}/demand-signals",
+        json={**PAYLOAD, "request_id": REQUEST_ID},
+    )
+
+    assert response.status_code == 201
+    assert response.json()["status"] == "fulfilled"
+    assert response.json()["replayed"] is True
+
+
+@pytest.mark.parametrize(
+    "update",
+    [
+        {"location_id": PROFILE_ID},
+        {"status": "approved"},
+        {"private_note": "must-not-leak"},
+    ],
+)
+def test_demand_draft_rejects_malformed_response(monkeypatch, update):
+    result = {
+        "location_id": LOCATION_ID,
+        "signal_id": REQUEST_ID,
+        "status": "draft",
+        "replayed": False,
+    }
+    result.update(update)
+    action = MagicMock(return_value=result)
+    client = _route_app(monkeypatch, action)
+
+    response = client.post(
+        f"/operator/api/operating-pilot/{LOCATION_ID}/demand-signals",
+        json={**PAYLOAD, "request_id": REQUEST_ID},
+    )
+
+    assert response.status_code == 503
+    assert response.json() == {"error": "Operating demand draft unavailable"}
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["retry-after"] == "30"
+    assert "must-not-leak" not in response.text
 
 
 def test_demand_draft_http_route_returns_403_when_signed_context_is_denied(monkeypatch):
@@ -885,7 +1206,14 @@ def test_demand_draft_route_policy_requires_exact_location_create_grant():
 
 
 def test_competency_draft_http_route_passes_request_id_and_uses_no_store(monkeypatch):
-    action = MagicMock(return_value={"draft_id": PROFILE_ID, "status": "draft", "replayed": False})
+    action = MagicMock(
+        return_value={
+            "location_id": LOCATION_ID,
+            "draft_id": PROFILE_ID,
+            "status": "draft",
+            "replayed": False,
+        }
+    )
     client = _route_app(
         monkeypatch,
         action,
@@ -899,13 +1227,80 @@ def test_competency_draft_http_route_passes_request_id_and_uses_no_store(monkeyp
 
     assert response.status_code == 201
     assert response.headers["cache-control"] == "no-store"
-    assert response.json() == {"draft_id": PROFILE_ID, "status": "draft", "replayed": False}
+    assert response.json() == {
+        "location_id": LOCATION_ID,
+        "draft_id": PROFILE_ID,
+        "status": "draft",
+        "replayed": False,
+    }
+    schema = client.app.openapi()["paths"][
+        "/operator/api/operating-pilot/{location_id}/competency-assessments"
+    ]["post"]["responses"]["201"]["content"]["application/json"]["schema"]
+    assert schema["$ref"].endswith("OperatingPilotCompetencyDraftCreateResponse")
     action.assert_called_once_with(OPERATOR_ID, LOCATION_ID, REQUEST_ID, COMPETENCY_PAYLOAD)
 
 
+def test_competency_draft_replay_preserves_verified_state(monkeypatch):
+    action = MagicMock(
+        return_value={
+            "location_id": LOCATION_ID,
+            "draft_id": PROFILE_ID,
+            "status": "verified",
+            "replayed": True,
+        }
+    )
+    client = _route_app(
+        monkeypatch, action, "create_location_operating_pilot_competency_draft"
+    )
+
+    response = client.post(
+        f"/operator/api/operating-pilot/{LOCATION_ID}/competency-assessments",
+        json={**COMPETENCY_PAYLOAD, "request_id": REQUEST_ID},
+    )
+
+    assert response.status_code == 201
+    assert response.json()["status"] == "verified"
+    assert response.json()["replayed"] is True
+
+
+@pytest.mark.parametrize(
+    "update",
+    [
+        {"location_id": PROFILE_ID},
+        {"status": "submitted"},
+        {"private_party_id": OPERATOR_ID},
+    ],
+)
+def test_competency_draft_rejects_malformed_response(monkeypatch, update):
+    result = {
+        "location_id": LOCATION_ID,
+        "draft_id": PROFILE_ID,
+        "status": "draft",
+        "replayed": False,
+    }
+    result.update(update)
+    action = MagicMock(return_value=result)
+    client = _route_app(
+        monkeypatch, action, "create_location_operating_pilot_competency_draft"
+    )
+
+    response = client.post(
+        f"/operator/api/operating-pilot/{LOCATION_ID}/competency-assessments",
+        json={**COMPETENCY_PAYLOAD, "request_id": REQUEST_ID},
+    )
+
+    assert response.status_code == 503
+    assert response.json() == {"error": "Operating competency draft unavailable"}
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["retry-after"] == "30"
 def test_learning_plan_draft_http_route_passes_request_id_and_uses_no_store(monkeypatch):
     action = MagicMock(
-        return_value={"learning_plan_id": PROFILE_ID, "status": "draft", "replayed": False}
+        return_value={
+            "location_id": LOCATION_ID,
+            "learning_plan_id": PROFILE_ID,
+            "status": "draft",
+            "replayed": False,
+        }
     )
     client = _route_app(
         monkeypatch,
@@ -921,11 +1316,71 @@ def test_learning_plan_draft_http_route_passes_request_id_and_uses_no_store(monk
     assert response.status_code == 201
     assert response.headers["cache-control"] == "no-store"
     assert response.json() == {
+        "location_id": LOCATION_ID,
         "learning_plan_id": PROFILE_ID,
         "status": "draft",
         "replayed": False,
     }
+    schema = client.app.openapi()["paths"][
+        "/operator/api/operating-pilot/{location_id}/learning-plans"
+    ]["post"]["responses"]["201"]["content"]["application/json"]["schema"]
+    assert schema["$ref"].endswith("OperatingPilotLearningPlanDraftCreateResponse")
     action.assert_called_once_with(OPERATOR_ID, LOCATION_ID, REQUEST_ID, LEARNING_PLAN_PAYLOAD)
+
+
+def test_learning_plan_draft_replay_preserves_current_lifecycle(monkeypatch):
+    action = MagicMock(
+        return_value={
+            "location_id": LOCATION_ID,
+            "learning_plan_id": PROFILE_ID,
+            "status": "cancelled",
+            "replayed": True,
+        }
+    )
+    client = _route_app(
+        monkeypatch, action, "create_location_operating_pilot_learning_plan_draft"
+    )
+
+    response = client.post(
+        f"/operator/api/operating-pilot/{LOCATION_ID}/learning-plans",
+        json={**LEARNING_PLAN_PAYLOAD, "request_id": REQUEST_ID},
+    )
+
+    assert response.status_code == 201
+    assert response.json()["status"] == "cancelled"
+    assert response.json()["replayed"] is True
+
+
+@pytest.mark.parametrize(
+    "update",
+    [
+        {"location_id": PROFILE_ID},
+        {"status": "submitted"},
+        {"private_party_id": OPERATOR_ID},
+    ],
+)
+def test_learning_plan_draft_rejects_malformed_response(monkeypatch, update):
+    result = {
+        "location_id": LOCATION_ID,
+        "learning_plan_id": PROFILE_ID,
+        "status": "draft",
+        "replayed": False,
+    }
+    result.update(update)
+    action = MagicMock(return_value=result)
+    client = _route_app(
+        monkeypatch, action, "create_location_operating_pilot_learning_plan_draft"
+    )
+
+    response = client.post(
+        f"/operator/api/operating-pilot/{LOCATION_ID}/learning-plans",
+        json={**LEARNING_PLAN_PAYLOAD, "request_id": REQUEST_ID},
+    )
+
+    assert response.status_code == 503
+    assert response.json() == {"error": "Operating learning-plan draft unavailable"}
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["retry-after"] == "30"
 
 
 def test_learning_plan_draft_http_route_rejects_oversized_body_before_database(monkeypatch):
@@ -985,7 +1440,17 @@ def test_learning_plan_revision_http_route_uses_edit_own_and_returns_no_store(mo
 
     assert response.status_code == 200
     assert response.headers["cache-control"] == "no-store"
-    assert response.json() == action.return_value
+    assert response.json() == {
+        "location_id": LOCATION_ID,
+        "learning_plan_id": PROFILE_ID,
+        "status": "draft",
+        "updated_at": "2026-10-24T12:01:00Z",
+        "replayed": False,
+    }
+    schema = client.app.openapi()["paths"][
+        "/operator/api/operating-pilot/{location_id}/learning-plans/{learning_plan_id}"
+    ]["put"]["responses"]["200"]["content"]["application/json"]["schema"]
+    assert schema["$ref"].endswith("OperatingPilotLearningPlanDraftRevisionResponse")
     action.assert_called_once_with(
         OPERATOR_ID,
         LOCATION_ID,
@@ -993,6 +1458,70 @@ def test_learning_plan_revision_http_route_uses_edit_own_and_returns_no_store(mo
         REQUEST_ID,
         LEARNING_PLAN_REVISION_PAYLOAD,
     )
+
+
+def test_learning_plan_revision_replay_preserves_current_lifecycle_and_timestamp(monkeypatch):
+    action = MagicMock(
+        return_value={
+            "location_id": LOCATION_ID,
+            "learning_plan_id": PROFILE_ID,
+            "status": "active",
+            "updated_at": "2026-10-24T12:01:00+00:00",
+            "replayed": True,
+        }
+    )
+    client = _route_app(
+        monkeypatch,
+        action,
+        "revise_location_operating_pilot_learning_plan_draft",
+    )
+
+    response = client.put(
+        f"/operator/api/operating-pilot/{LOCATION_ID}/learning-plans/{PROFILE_ID}",
+        json={**LEARNING_PLAN_REVISION_PAYLOAD, "request_id": REQUEST_ID},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["status"] == "active"
+    assert response.json()["replayed"] is True
+    assert response.json()["updated_at"] == "2026-10-24T12:01:00Z"
+
+
+@pytest.mark.parametrize(
+    "update",
+    [
+        {"location_id": REQUEST_ID},
+        {"learning_plan_id": REQUEST_ID},
+        {"status": "submitted"},
+        {"updated_at": "invalid"},
+        {"private_party_id": OPERATOR_ID},
+    ],
+)
+def test_learning_plan_revision_rejects_malformed_response(monkeypatch, update):
+    result = {
+        "location_id": LOCATION_ID,
+        "learning_plan_id": PROFILE_ID,
+        "status": "draft",
+        "updated_at": "2026-10-24T12:01:00+00:00",
+        "replayed": False,
+    }
+    result.update(update)
+    action = MagicMock(return_value=result)
+    client = _route_app(
+        monkeypatch,
+        action,
+        "revise_location_operating_pilot_learning_plan_draft",
+    )
+
+    response = client.put(
+        f"/operator/api/operating-pilot/{LOCATION_ID}/learning-plans/{PROFILE_ID}",
+        json={**LEARNING_PLAN_REVISION_PAYLOAD, "request_id": REQUEST_ID},
+    )
+
+    assert response.status_code == 503
+    assert response.json() == {"error": "Operating learning-plan revision unavailable"}
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["retry-after"] == "30"
 
 
 def test_learning_plan_revision_route_policy_requires_exact_location_edit_own_grant():
@@ -1025,6 +1554,10 @@ def test_learning_plan_submission_http_route_uses_submit_own_and_returns_no_stor
     assert response.status_code == 200
     assert response.headers["cache-control"] == "no-store"
     assert response.json() == action.return_value
+    schema = client.app.openapi()["paths"][
+        "/operator/api/operating-pilot/{location_id}/learning-plans/{learning_plan_id}/submit"
+    ]["post"]["responses"]["200"]["content"]["application/json"]["schema"]
+    assert schema["$ref"].endswith("OperatingPilotLearningPlanDraftSubmissionResponse")
     action.assert_called_once_with(OPERATOR_ID, LOCATION_ID, PROFILE_ID.upper(), REQUEST_ID)
 
 
@@ -1045,6 +1578,37 @@ def test_learning_plan_submission_http_route_replay_accepts_current_lifecycle_st
     assert response.status_code == 200
     assert response.json()["status"] == "active"
     assert response.json()["replayed"] is True
+
+
+@pytest.mark.parametrize(
+    "update",
+    [
+        {"location_id": REQUEST_ID},
+        {"learning_plan_id": REQUEST_ID},
+        {"status": "active"},
+        {"private_party_id": OPERATOR_ID},
+    ],
+)
+def test_learning_plan_submission_rejects_malformed_response(monkeypatch, update):
+    result = {
+        "location_id": LOCATION_ID,
+        "learning_plan_id": PROFILE_ID,
+        "status": "submitted",
+        "replayed": False,
+    }
+    result.update(update)
+    action = MagicMock(return_value=result)
+    client = _route_app(monkeypatch, action, "submit_location_operating_pilot_learning_plan")
+
+    response = client.post(
+        f"/operator/api/operating-pilot/{LOCATION_ID}/learning-plans/{PROFILE_ID}/submit",
+        json={"request_id": REQUEST_ID},
+    )
+
+    assert response.status_code == 503
+    assert response.json() == {"error": "Operating learning-plan submission unavailable"}
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["retry-after"] == "30"
 
 
 def test_learning_plan_submission_rejects_oversized_body_before_database(monkeypatch):
@@ -1107,7 +1671,17 @@ def test_learning_plan_review_http_route_passes_exact_submission_version_and_ret
     assert response.status_code == 200
     assert response.headers["cache-control"] == "no-store"
     assert response.headers["vary"] == "Cookie"
-    assert response.json() == action.return_value
+    assert response.json() == {
+        "location_id": LOCATION_ID,
+        "learning_plan_id": PROFILE_ID,
+        "decision": "approved",
+        "status": "submitted",
+        "replayed": False,
+    }
+    schema = client.app.openapi()["paths"][
+        "/operator/api/operating-pilot/{location_id}/learning-plans/{learning_plan_id}/review"
+    ]["post"]["responses"]["200"]["content"]["application/json"]["schema"]
+    assert schema["$ref"].endswith("OperatingPilotLearningPlanReviewDecisionResponse")
     action.assert_called_once_with(
         OPERATOR_ID,
         LOCATION_ID,
@@ -1115,6 +1689,77 @@ def test_learning_plan_review_http_route_passes_exact_submission_version_and_ret
         REQUEST_ID,
         {"submitted_at": "2026-10-24T12:00:00Z", "decision": "approved"},
     )
+
+
+@pytest.mark.parametrize(
+    ("decision", "status"),
+    [("approved", "submitted"), ("rejected", "draft")],
+)
+def test_learning_plan_review_replay_preserves_decision_and_status(
+    monkeypatch, decision, status
+):
+    action = MagicMock(
+        return_value={
+            "location_id": LOCATION_ID,
+            "learning_plan_id": PROFILE_ID,
+            "decision": decision,
+            "status": status,
+            "replayed": True,
+        }
+    )
+    client = _route_app(monkeypatch, action, "review_location_operating_pilot_learning_plan")
+
+    response = client.post(
+        f"/operator/api/operating-pilot/{LOCATION_ID}/learning-plans/{PROFILE_ID}/review",
+        json={
+            "request_id": REQUEST_ID,
+            "submitted_at": "2026-10-24T12:00:00Z",
+            "decision": decision,
+            **({"reason": "Needs revision"} if decision == "rejected" else {}),
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.headers["cache-control"] == "no-store"
+    assert response.json() == action.return_value
+
+
+@pytest.mark.parametrize(
+    "update",
+    [
+        {"location_id": PROFILE_ID},
+        {"learning_plan_id": REQUEST_ID},
+        {"status": "draft"},
+        {"reviewer_party_id": OPERATOR_ID},
+    ],
+)
+def test_learning_plan_review_rejects_malformed_response(monkeypatch, update):
+    result = {
+        "location_id": LOCATION_ID,
+        "learning_plan_id": PROFILE_ID,
+        "decision": "approved",
+        "status": "submitted",
+        "replayed": False,
+    }
+    result.update(update)
+    action = MagicMock(return_value=result)
+    client = _route_app(monkeypatch, action, "review_location_operating_pilot_learning_plan")
+
+    response = client.post(
+        f"/operator/api/operating-pilot/{LOCATION_ID}/learning-plans/{PROFILE_ID}/review",
+        json={
+            "request_id": REQUEST_ID,
+            "submitted_at": "2026-10-24T12:00:00Z",
+            "decision": "approved",
+        },
+    )
+
+    assert response.status_code == 503
+    assert response.json() == {
+        "error": "Operating learning-plan review decision unavailable"
+    }
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["retry-after"] == "30"
 
 
 def test_learning_plan_review_route_policy_requires_exact_location_review_grant():
@@ -1227,6 +1872,16 @@ def test_learning_plan_activation_http_route_is_exact_grant_csrf_surface_and_no_
     assert response.status_code == 200
     assert response.headers["cache-control"] == "no-store"
     assert response.headers["vary"] == "Cookie"
+    assert response.json() == {
+        "location_id": LOCATION_ID,
+        "learning_plan_id": PROFILE_ID,
+        "status": "active",
+        "replayed": False,
+    }
+    schema = client.app.openapi()["paths"][
+        "/operator/api/operating-pilot/{location_id}/learning-plans/{learning_plan_id}/activate"
+    ]["post"]["responses"]["200"]["content"]["application/json"]["schema"]
+    assert schema["$ref"].endswith("OperatingPilotLearningPlanActivationResponse")
     action.assert_called_once_with(
         OPERATOR_ID,
         LOCATION_ID,
@@ -1234,6 +1889,64 @@ def test_learning_plan_activation_http_route_is_exact_grant_csrf_surface_and_no_
         REQUEST_ID,
         {"submitted_at": "2026-10-24T12:00:00Z"},
     )
+
+
+def test_learning_plan_activation_replay_preserves_active_state(monkeypatch):
+    action = MagicMock(
+        return_value={
+            "location_id": LOCATION_ID,
+            "learning_plan_id": PROFILE_ID,
+            "status": "active",
+            "replayed": True,
+        }
+    )
+    client = _route_app(monkeypatch, action, "activate_location_operating_pilot_learning_plan")
+
+    response = client.post(
+        f"/operator/api/operating-pilot/{LOCATION_ID}/learning-plans/{PROFILE_ID}/activate",
+        json={
+            "request_id": REQUEST_ID,
+            "submitted_at": "2026-10-24T12:00:00Z",
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.headers["cache-control"] == "no-store"
+    assert response.json() == action.return_value
+
+
+@pytest.mark.parametrize(
+    "update",
+    [
+        {"location_id": PROFILE_ID},
+        {"learning_plan_id": REQUEST_ID},
+        {"status": "submitted"},
+        {"private_party_id": OPERATOR_ID},
+    ],
+)
+def test_learning_plan_activation_rejects_malformed_response(monkeypatch, update):
+    result = {
+        "location_id": LOCATION_ID,
+        "learning_plan_id": PROFILE_ID,
+        "status": "active",
+        "replayed": False,
+    }
+    result.update(update)
+    action = MagicMock(return_value=result)
+    client = _route_app(monkeypatch, action, "activate_location_operating_pilot_learning_plan")
+
+    response = client.post(
+        f"/operator/api/operating-pilot/{LOCATION_ID}/learning-plans/{PROFILE_ID}/activate",
+        json={
+            "request_id": REQUEST_ID,
+            "submitted_at": "2026-10-24T12:00:00Z",
+        },
+    )
+
+    assert response.status_code == 503
+    assert response.json() == {"error": "Operating learning-plan activation unavailable"}
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["retry-after"] == "30"
 
 
 def test_learning_plan_activation_route_policy_requires_separate_exact_location_grant():
@@ -1271,7 +1984,14 @@ def test_competency_draft_route_policy_requires_exact_location_create_grant():
 
 
 def test_resource_draft_http_route_passes_request_id_and_uses_no_store(monkeypatch):
-    action = MagicMock(return_value={"draft_id": REQUEST_ID, "status": "draft", "replayed": False})
+    action = MagicMock(
+        return_value={
+            "location_id": LOCATION_ID,
+            "draft_id": REQUEST_ID,
+            "status": "draft",
+            "replayed": False,
+        }
+    )
     client = _route_app(monkeypatch, action, "create_location_operating_pilot_resource_draft")
 
     response = client.post(
@@ -1280,24 +2000,102 @@ def test_resource_draft_http_route_passes_request_id_and_uses_no_store(monkeypat
     )
     assert response.status_code == 201
     assert response.headers["cache-control"] == "no-store"
-    assert response.json()["status"] == "draft"
+    assert response.json() == {
+        "location_id": LOCATION_ID,
+        "draft_id": REQUEST_ID,
+        "status": "draft",
+        "replayed": False,
+    }
+    schema = client.app.openapi()["paths"][
+        "/operator/api/operating-pilot/{location_id}/resource-requests"
+    ]["post"]["responses"]["201"]["content"]["application/json"]["schema"]
+    assert schema["$ref"].endswith("OperatingPilotResourceDraftCreateResponse")
     action.assert_called_once_with(OPERATOR_ID, LOCATION_ID, REQUEST_ID, RESOURCE_PAYLOAD)
 
 
+def test_resource_draft_replay_keeps_the_draft_contract(monkeypatch):
+    action = MagicMock(
+        return_value={
+            "location_id": LOCATION_ID,
+            "draft_id": REQUEST_ID,
+            "status": "draft",
+            "replayed": True,
+        }
+    )
+    client = _route_app(monkeypatch, action, "create_location_operating_pilot_resource_draft")
+
+    response = client.post(
+        f"/operator/api/operating-pilot/{LOCATION_ID}/resource-requests",
+        json={**RESOURCE_PAYLOAD, "request_id": REQUEST_ID},
+    )
+
+    assert response.status_code == 201
+    assert response.json()["replayed"] is True
+    assert response.headers["cache-control"] == "no-store"
+
+
+@pytest.mark.parametrize("update", [{"location_id": PROFILE_ID}, {"status": "submitted"}, {"private_note": "must-not-leak"}])
+def test_resource_draft_rejects_malformed_response(monkeypatch, update):
+    result = {
+        "location_id": LOCATION_ID,
+        "draft_id": REQUEST_ID,
+        "status": "draft",
+        "replayed": False,
+    }
+    result.update(update)
+    action = MagicMock(return_value=result)
+    client = _route_app(monkeypatch, action, "create_location_operating_pilot_resource_draft")
+
+    response = client.post(
+        f"/operator/api/operating-pilot/{LOCATION_ID}/resource-requests",
+        json={**RESOURCE_PAYLOAD, "request_id": REQUEST_ID},
+    )
+
+    assert response.status_code == 503
+    assert response.json() == {"error": "Operating resource draft unavailable"}
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["retry-after"] == "30"
+    assert "must-not-leak" not in response.text
+
+
 def test_competency_revision_and_submission_routes_use_exact_own_actions(monkeypatch):
-    revise = MagicMock(return_value={"draft_id": REQUEST_ID, "status": "draft"})
+    revise = MagicMock(
+        return_value={
+            "location_id": LOCATION_ID,
+            "draft_id": REQUEST_ID,
+            "status": "draft",
+            "replayed": False,
+        }
+    )
     client = _route_app(monkeypatch, revise, "revise_location_operating_pilot_competency_draft")
     revise_path = f"/operator/api/operating-pilot/{LOCATION_ID}/competency-assessments/{PROFILE_ID}"
     response = client.put(revise_path, json={**COMPETENCY_PAYLOAD, "request_id": REQUEST_ID})
     assert response.status_code == 200
     assert response.headers["cache-control"] == "no-store"
+    assert response.json() == {
+        "location_id": LOCATION_ID,
+        "draft_id": REQUEST_ID,
+        "status": "draft",
+        "replayed": False,
+    }
+    schema = client.app.openapi()["paths"][
+        "/operator/api/operating-pilot/{location_id}/competency-assessments/{draft_id}"
+    ]["put"]["responses"]["200"]["content"]["application/json"]["schema"]
+    assert schema["$ref"].endswith("OperatingPilotCompetencyDraftRevisionResponse")
     revise.assert_called_once_with(OPERATOR_ID, LOCATION_ID, PROFILE_ID, REQUEST_ID, COMPETENCY_PAYLOAD)
     assert auth_route_policy("PUT", revise_path, enabled=True) == {
         "resource": "operating_pilot", "action": "edit_own", "public": False,
         "location_id": LOCATION_ID, "scope_required": True, "operator_auth": True,
     }
 
-    submit = MagicMock(return_value={"draft_id": PROFILE_ID, "status": "submitted"})
+    submit = MagicMock(
+        return_value={
+            "location_id": LOCATION_ID,
+            "draft_id": PROFILE_ID,
+            "status": "submitted",
+            "replayed": False,
+        }
+    )
     client = _route_app(monkeypatch, submit, "submit_location_operating_pilot_competency_draft")
     submit_path = revise_path + "/submit"
     bad = client.post(submit_path, json={"request_id": REQUEST_ID, "status": "verified"})
@@ -1306,6 +2104,16 @@ def test_competency_revision_and_submission_routes_use_exact_own_actions(monkeyp
     response = client.post(submit_path, json={"request_id": REQUEST_ID})
     assert response.status_code == 200
     assert response.headers["cache-control"] == "no-store"
+    assert response.json() == {
+        "location_id": LOCATION_ID,
+        "draft_id": PROFILE_ID,
+        "status": "submitted",
+        "replayed": False,
+    }
+    schema = client.app.openapi()["paths"][
+        "/operator/api/operating-pilot/{location_id}/competency-assessments/{draft_id}/submit"
+    ]["post"]["responses"]["200"]["content"]["application/json"]["schema"]
+    assert schema["$ref"].endswith("OperatingPilotCompetencyDraftSubmissionResponse")
     submit.assert_called_once_with(OPERATOR_ID, LOCATION_ID, PROFILE_ID, REQUEST_ID)
     assert auth_route_policy("POST", submit_path, enabled=True) == {
         "resource": "operating_pilot", "action": "submit_own", "public": False,
@@ -1336,6 +2144,7 @@ def test_resource_draft_route_policy_requires_exact_location_create_grant():
 def test_resource_revision_http_route_passes_ids_and_uses_no_store(monkeypatch):
     action = MagicMock(
         return_value={
+            "location_id": LOCATION_ID,
             "draft_id": REQUEST_ID,
             "replaced_draft_id": PROFILE_ID,
             "status": "draft",
@@ -1352,8 +2161,74 @@ def test_resource_revision_http_route_passes_ids_and_uses_no_store(monkeypatch):
     assert response.status_code == 200
     assert response.headers["cache-control"] == "no-store"
     assert response.headers["vary"] == "Cookie"
-    assert response.json()["status"] == "draft"
+    assert response.json() == {
+        "location_id": LOCATION_ID,
+        "draft_id": REQUEST_ID,
+        "replaced_draft_id": PROFILE_ID,
+        "status": "draft",
+        "replayed": False,
+    }
+    schema = client.app.openapi()["paths"][
+        "/operator/api/operating-pilot/{location_id}/resource-requests/{draft_id}"
+    ]["put"]["responses"]["200"]["content"]["application/json"]["schema"]
+    assert schema["$ref"].endswith("OperatingPilotResourceDraftRevisionResponse")
     action.assert_called_once_with(OPERATOR_ID, LOCATION_ID, PROFILE_ID, REQUEST_ID, RESOURCE_PAYLOAD)
+
+
+def test_resource_revision_replay_preserves_replacement_state_and_distinct_ids(monkeypatch):
+    action = MagicMock(
+        return_value={
+            "location_id": LOCATION_ID,
+            "draft_id": REQUEST_ID,
+            "replaced_draft_id": PROFILE_ID,
+            "status": "superseded",
+            "replayed": True,
+        }
+    )
+    client = _route_app(monkeypatch, action, "revise_location_operating_pilot_resource_draft")
+
+    response = client.put(
+        f"/operator/api/operating-pilot/{LOCATION_ID}/resource-requests/{PROFILE_ID}",
+        json={**RESOURCE_PAYLOAD, "request_id": REQUEST_ID},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["status"] == "superseded"
+    assert response.json()["replayed"] is True
+
+
+@pytest.mark.parametrize(
+    "update",
+    [
+        {"location_id": REQUEST_ID},
+        {"replaced_draft_id": REQUEST_ID},
+        {"draft_id": PROFILE_ID},
+        {"status": "submitted"},
+        {"private_note": "must-not-leak"},
+    ],
+)
+def test_resource_revision_rejects_malformed_response(monkeypatch, update):
+    result = {
+        "location_id": LOCATION_ID,
+        "draft_id": REQUEST_ID,
+        "replaced_draft_id": PROFILE_ID,
+        "status": "draft",
+        "replayed": False,
+    }
+    result.update(update)
+    action = MagicMock(return_value=result)
+    client = _route_app(monkeypatch, action, "revise_location_operating_pilot_resource_draft")
+
+    response = client.put(
+        f"/operator/api/operating-pilot/{LOCATION_ID}/resource-requests/{PROFILE_ID}",
+        json={**RESOURCE_PAYLOAD, "request_id": REQUEST_ID},
+    )
+
+    assert response.status_code == 503
+    assert response.json() == {"error": "Operating resource revision unavailable"}
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["retry-after"] == "30"
+    assert "must-not-leak" not in response.text
 
 
 def test_resource_revision_route_denies_missing_edit_own_context(monkeypatch):
@@ -1504,7 +2379,12 @@ def _capacity_route_app(monkeypatch, action, provider=object()):
 
 
 def test_capacity_draft_http_route_passes_request_id_and_uses_no_store(monkeypatch):
-    action = MagicMock(return_value={"profile_id": REQUEST_ID, "status": "draft", "replayed": False})
+    action = MagicMock(return_value={
+        "location_id": LOCATION_ID,
+        "profile_id": REQUEST_ID,
+        "status": "draft",
+        "replayed": False,
+    })
     client = _capacity_route_app(monkeypatch, action)
 
     response = client.post(
@@ -1515,8 +2395,70 @@ def test_capacity_draft_http_route_passes_request_id_and_uses_no_store(monkeypat
     assert response.status_code == 201
     assert response.headers["cache-control"] == "no-store"
     assert response.headers["vary"] == "Cookie"
-    assert response.json()["status"] == "draft"
+    assert response.json() == {
+        "location_id": LOCATION_ID,
+        "profile_id": REQUEST_ID,
+        "status": "draft",
+        "replayed": False,
+    }
+    operation = client.app.openapi()["paths"][
+        "/operator/api/operating-pilot/{location_id}/capacity-profiles"
+    ]["post"]
+    for status_code in ("200", "201"):
+        schema = operation["responses"][status_code]["content"]["application/json"]["schema"]
+        assert schema["$ref"].endswith("OperatingPilotCapacityDraftCreateResponse")
     action.assert_called_once_with(OPERATOR_ID, LOCATION_ID, REQUEST_ID, CAPACITY_PAYLOAD)
+
+
+def test_capacity_draft_idempotent_replay_returns_http_200(monkeypatch):
+    action = MagicMock(return_value={
+        "location_id": LOCATION_ID,
+        "profile_id": PROFILE_ID,
+        "status": "submitted",
+        "replayed": True,
+    })
+    client = _capacity_route_app(monkeypatch, action)
+
+    response = client.post(
+        f"/operator/api/operating-pilot/{LOCATION_ID}/capacity-profiles",
+        json={**CAPACITY_PAYLOAD, "request_id": REQUEST_ID},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["status"] == "submitted"
+    assert response.json()["replayed"] is True
+    assert response.headers["cache-control"] == "no-store"
+
+
+@pytest.mark.parametrize(
+    "update",
+    [
+        {"location_id": PROFILE_ID},
+        {"status": "active"},
+        {"private_note": "must-not-leak"},
+    ],
+)
+def test_capacity_draft_rejects_malformed_response_without_private_data(monkeypatch, update):
+    result = {
+        "location_id": LOCATION_ID,
+        "profile_id": PROFILE_ID,
+        "status": "draft",
+        "replayed": False,
+    }
+    result.update(update)
+    action = MagicMock(return_value=result)
+    client = _capacity_route_app(monkeypatch, action)
+
+    response = client.post(
+        f"/operator/api/operating-pilot/{LOCATION_ID}/capacity-profiles",
+        json={**CAPACITY_PAYLOAD, "request_id": REQUEST_ID},
+    )
+
+    assert response.status_code == 503
+    assert response.json() == {"error": "Operating capacity draft unavailable"}
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["retry-after"] == "30"
+    assert "must-not-leak" not in response.text
 
 
 def test_capacity_draft_http_route_returns_403_when_signed_context_is_denied(monkeypatch):
@@ -1676,6 +2618,7 @@ def _capacity_revision_route_app(monkeypatch, action, provider=object()):
 def test_capacity_revision_http_route_passes_ids_and_uses_no_store(monkeypatch):
     action = MagicMock(
         return_value={
+            "location_id": LOCATION_ID,
             "profile_id": REQUEST_ID,
             "replaced_profile_id": PROFILE_ID,
             "status": "draft",
@@ -1692,8 +2635,73 @@ def test_capacity_revision_http_route_passes_ids_and_uses_no_store(monkeypatch):
     assert response.status_code == 200
     assert response.headers["cache-control"] == "no-store"
     assert response.headers["vary"] == "Cookie"
-    assert response.json()["status"] == "draft"
+    assert response.json() == {
+        "location_id": LOCATION_ID,
+        "profile_id": REQUEST_ID,
+        "replaced_profile_id": PROFILE_ID,
+        "status": "draft",
+        "replayed": False,
+    }
+    schema = client.app.openapi()["paths"][
+        "/operator/api/operating-pilot/{location_id}/capacity-profiles/{profile_id}"
+    ]["put"]["responses"]["200"]["content"]["application/json"]["schema"]
+    assert schema["$ref"].endswith("OperatingPilotCapacityDraftRevisionResponse")
     action.assert_called_once_with(OPERATOR_ID, LOCATION_ID, PROFILE_ID, REQUEST_ID, CAPACITY_PAYLOAD)
+
+
+def test_capacity_revision_idempotent_replay_returns_existing_status(monkeypatch):
+    action = MagicMock(return_value={
+        "location_id": LOCATION_ID,
+        "profile_id": REQUEST_ID,
+        "replaced_profile_id": PROFILE_ID,
+        "status": "rejected",
+        "replayed": True,
+    })
+    client = _capacity_revision_route_app(monkeypatch, action)
+
+    response = client.put(
+        f"/operator/api/operating-pilot/{LOCATION_ID}/capacity-profiles/{PROFILE_ID}",
+        json={**CAPACITY_PAYLOAD, "request_id": REQUEST_ID},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["status"] == "rejected"
+    assert response.json()["replayed"] is True
+    assert response.headers["cache-control"] == "no-store"
+
+
+@pytest.mark.parametrize(
+    "update",
+    [
+        {"location_id": REQUEST_ID},
+        {"profile_id": PROFILE_ID},
+        {"replaced_profile_id": REQUEST_ID},
+        {"status": "submitted"},
+        {"private_note": "must-not-leak"},
+    ],
+)
+def test_capacity_revision_rejects_malformed_response_without_private_data(monkeypatch, update):
+    result = {
+        "location_id": LOCATION_ID,
+        "profile_id": REQUEST_ID,
+        "replaced_profile_id": PROFILE_ID,
+        "status": "draft",
+        "replayed": False,
+    }
+    result.update(update)
+    action = MagicMock(return_value=result)
+    client = _capacity_revision_route_app(monkeypatch, action)
+
+    response = client.put(
+        f"/operator/api/operating-pilot/{LOCATION_ID}/capacity-profiles/{PROFILE_ID}",
+        json={**CAPACITY_PAYLOAD, "request_id": REQUEST_ID},
+    )
+
+    assert response.status_code == 503
+    assert response.json() == {"error": "Operating capacity revision unavailable"}
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["retry-after"] == "30"
+    assert "must-not-leak" not in response.text
 
 
 def test_capacity_revision_http_route_denies_missing_edit_own_context(monkeypatch):
@@ -1853,6 +2861,7 @@ def _demand_revision_route_app(monkeypatch, action, provider=object()):
 def test_demand_revision_http_route_passes_ids_and_uses_no_store(monkeypatch):
     action = MagicMock(
         return_value={
+            "location_id": LOCATION_ID,
             "signal_id": REQUEST_ID,
             "replaced_signal_id": PROFILE_ID,
             "status": "draft",
@@ -1869,8 +2878,74 @@ def test_demand_revision_http_route_passes_ids_and_uses_no_store(monkeypatch):
     assert response.status_code == 200
     assert response.headers["cache-control"] == "no-store"
     assert response.headers["vary"] == "Cookie"
-    assert response.json()["status"] == "draft"
+    assert response.json() == {
+        "location_id": LOCATION_ID,
+        "signal_id": REQUEST_ID,
+        "replaced_signal_id": PROFILE_ID,
+        "status": "draft",
+        "replayed": False,
+    }
+    schema = client.app.openapi()["paths"][
+        "/operator/api/operating-pilot/{location_id}/demand-signals/{signal_id}"
+    ]["put"]["responses"]["200"]["content"]["application/json"]["schema"]
+    assert schema["$ref"].endswith("OperatingPilotDemandDraftRevisionResponse")
     action.assert_called_once_with(OPERATOR_ID, LOCATION_ID, PROFILE_ID, REQUEST_ID, PAYLOAD)
+
+
+def test_demand_revision_replay_preserves_full_lifecycle_and_requires_new_id(monkeypatch):
+    action = MagicMock(
+        return_value={
+            "location_id": LOCATION_ID,
+            "signal_id": REQUEST_ID,
+            "replaced_signal_id": PROFILE_ID,
+            "status": "fulfilled",
+            "replayed": True,
+        }
+    )
+    client = _demand_revision_route_app(monkeypatch, action)
+
+    response = client.put(
+        f"/operator/api/operating-pilot/{LOCATION_ID}/demand-signals/{PROFILE_ID}",
+        json={**PAYLOAD, "request_id": REQUEST_ID},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["status"] == "fulfilled"
+    assert response.json()["replayed"] is True
+
+
+@pytest.mark.parametrize(
+    "update",
+    [
+        {"location_id": REQUEST_ID},
+        {"replaced_signal_id": REQUEST_ID},
+        {"signal_id": PROFILE_ID},
+        {"status": "submitted"},
+        {"private_note": "must-not-leak"},
+    ],
+)
+def test_demand_revision_rejects_malformed_response(monkeypatch, update):
+    result = {
+        "location_id": LOCATION_ID,
+        "signal_id": REQUEST_ID,
+        "replaced_signal_id": PROFILE_ID,
+        "status": "draft",
+        "replayed": False,
+    }
+    result.update(update)
+    action = MagicMock(return_value=result)
+    client = _demand_revision_route_app(monkeypatch, action)
+
+    response = client.put(
+        f"/operator/api/operating-pilot/{LOCATION_ID}/demand-signals/{PROFILE_ID}",
+        json={**PAYLOAD, "request_id": REQUEST_ID},
+    )
+
+    assert response.status_code == 503
+    assert response.json() == {"error": "Operating demand revision unavailable"}
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["retry-after"] == "30"
+    assert "must-not-leak" not in response.text
 
 
 def test_demand_revision_http_route_denies_missing_edit_own_context(monkeypatch):
@@ -1978,7 +3053,12 @@ def _capacity_submission_route_app(monkeypatch, action, provider=object()):
 
 def test_capacity_submission_http_route_requires_only_request_id_and_uses_no_store(monkeypatch):
     action = MagicMock(
-        return_value={"profile_id": PROFILE_ID, "status": "submitted", "replayed": False}
+        return_value={
+            "location_id": LOCATION_ID,
+            "profile_id": PROFILE_ID,
+            "status": "submitted",
+            "replayed": False,
+        }
     )
     client = _capacity_submission_route_app(monkeypatch, action)
     path = f"/operator/api/operating-pilot/{LOCATION_ID}/capacity-profiles/{PROFILE_ID}/submit"
@@ -1992,8 +3072,71 @@ def test_capacity_submission_http_route_requires_only_request_id_and_uses_no_sto
     assert response.status_code == 200
     assert response.headers["cache-control"] == "no-store"
     assert response.headers["vary"] == "Cookie"
-    assert response.json()["status"] == "submitted"
+    assert response.json() == {
+        "location_id": LOCATION_ID,
+        "profile_id": PROFILE_ID,
+        "status": "submitted",
+        "replayed": False,
+    }
+    schema = client.app.openapi()["paths"][
+        "/operator/api/operating-pilot/{location_id}/capacity-profiles/{profile_id}/submit"
+    ]["post"]["responses"]["200"]["content"]["application/json"]["schema"]
+    assert schema["$ref"].endswith("OperatingPilotCapacityDraftSubmissionResponse")
     action.assert_called_once_with(OPERATOR_ID, LOCATION_ID, PROFILE_ID, REQUEST_ID)
+
+
+def test_capacity_submission_replay_preserves_current_lifecycle(monkeypatch):
+    action = MagicMock(
+        return_value={
+            "location_id": LOCATION_ID,
+            "profile_id": PROFILE_ID,
+            "status": "approved",
+            "replayed": True,
+        }
+    )
+    client = _capacity_submission_route_app(monkeypatch, action)
+
+    response = client.post(
+        f"/operator/api/operating-pilot/{LOCATION_ID}/capacity-profiles/{PROFILE_ID}/submit",
+        json={"request_id": REQUEST_ID},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["status"] == "approved"
+    assert response.json()["replayed"] is True
+    assert response.headers["cache-control"] == "no-store"
+
+
+@pytest.mark.parametrize(
+    "update",
+    [
+        {"location_id": REQUEST_ID},
+        {"profile_id": REQUEST_ID},
+        {"status": "approved"},
+        {"private_note": "must-not-leak"},
+    ],
+)
+def test_capacity_submission_rejects_malformed_response(monkeypatch, update):
+    result = {
+        "location_id": LOCATION_ID,
+        "profile_id": PROFILE_ID,
+        "status": "submitted",
+        "replayed": False,
+    }
+    result.update(update)
+    action = MagicMock(return_value=result)
+    client = _capacity_submission_route_app(monkeypatch, action)
+
+    response = client.post(
+        f"/operator/api/operating-pilot/{LOCATION_ID}/capacity-profiles/{PROFILE_ID}/submit",
+        json={"request_id": REQUEST_ID},
+    )
+
+    assert response.status_code == 503
+    assert response.json() == {"error": "Operating capacity submission unavailable"}
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["retry-after"] == "30"
+    assert "must-not-leak" not in response.text
 
 
 def test_capacity_submission_http_route_denies_missing_submit_own_context(monkeypatch):
@@ -2101,7 +3244,12 @@ def _demand_submission_route_app(monkeypatch, action, provider=object()):
 
 def test_demand_submission_http_route_accepts_only_request_id_and_is_no_store(monkeypatch):
     action = MagicMock(
-        return_value={"signal_id": PROFILE_ID, "status": "submitted", "replayed": False}
+        return_value={
+            "location_id": LOCATION_ID,
+            "signal_id": PROFILE_ID,
+            "status": "submitted",
+            "replayed": False,
+        }
     )
     client = _demand_submission_route_app(monkeypatch, action)
     path = f"/operator/api/operating-pilot/{LOCATION_ID}/demand-signals/{PROFILE_ID}/submit"
@@ -2115,8 +3263,70 @@ def test_demand_submission_http_route_accepts_only_request_id_and_is_no_store(mo
     assert response.status_code == 200
     assert response.headers["cache-control"] == "no-store"
     assert response.headers["vary"] == "Cookie"
-    assert response.json()["status"] == "submitted"
+    assert response.json() == {
+        "location_id": LOCATION_ID,
+        "signal_id": PROFILE_ID,
+        "status": "submitted",
+        "replayed": False,
+    }
+    schema = client.app.openapi()["paths"][
+        "/operator/api/operating-pilot/{location_id}/demand-signals/{signal_id}/submit"
+    ]["post"]["responses"]["200"]["content"]["application/json"]["schema"]
+    assert schema["$ref"].endswith("OperatingPilotDemandDraftSubmissionResponse")
     action.assert_called_once_with(OPERATOR_ID, LOCATION_ID, PROFILE_ID, REQUEST_ID)
+
+
+def test_demand_submission_replay_preserves_current_lifecycle(monkeypatch):
+    action = MagicMock(
+        return_value={
+            "location_id": LOCATION_ID,
+            "signal_id": PROFILE_ID,
+            "status": "cancelled",
+            "replayed": True,
+        }
+    )
+    client = _demand_submission_route_app(monkeypatch, action)
+
+    response = client.post(
+        f"/operator/api/operating-pilot/{LOCATION_ID}/demand-signals/{PROFILE_ID}/submit",
+        json={"request_id": REQUEST_ID},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["status"] == "cancelled"
+    assert response.json()["replayed"] is True
+
+
+@pytest.mark.parametrize(
+    "update",
+    [
+        {"location_id": PROFILE_ID},
+        {"signal_id": REQUEST_ID},
+        {"status": "approved"},
+        {"private_note": "must-not-leak"},
+    ],
+)
+def test_demand_submission_rejects_malformed_response(monkeypatch, update):
+    result = {
+        "location_id": LOCATION_ID,
+        "signal_id": PROFILE_ID,
+        "status": "submitted",
+        "replayed": False,
+    }
+    result.update(update)
+    action = MagicMock(return_value=result)
+    client = _demand_submission_route_app(monkeypatch, action)
+
+    response = client.post(
+        f"/operator/api/operating-pilot/{LOCATION_ID}/demand-signals/{PROFILE_ID}/submit",
+        json={"request_id": REQUEST_ID},
+    )
+
+    assert response.status_code == 503
+    assert response.json() == {"error": "Operating demand submission unavailable"}
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["retry-after"] == "30"
+    assert "must-not-leak" not in response.text
 
 
 def test_demand_submission_http_route_denies_missing_submit_own_context(monkeypatch):
@@ -2225,7 +3435,12 @@ def _resource_submission_route_app(monkeypatch, action, provider=object()):
 
 def test_resource_submission_http_route_accepts_only_request_id_and_is_no_store(monkeypatch):
     action = MagicMock(
-        return_value={"draft_id": PROFILE_ID, "status": "submitted", "replayed": False}
+        return_value={
+            "location_id": LOCATION_ID,
+            "draft_id": PROFILE_ID,
+            "status": "submitted",
+            "replayed": False,
+        }
     )
     client = _resource_submission_route_app(monkeypatch, action)
     path = f"/operator/api/operating-pilot/{LOCATION_ID}/resource-requests/{PROFILE_ID}/submit"
@@ -2239,8 +3454,70 @@ def test_resource_submission_http_route_accepts_only_request_id_and_is_no_store(
     assert response.status_code == 200
     assert response.headers["cache-control"] == "no-store"
     assert response.headers["vary"] == "Cookie"
-    assert response.json()["status"] == "submitted"
+    assert response.json() == {
+        "location_id": LOCATION_ID,
+        "draft_id": PROFILE_ID,
+        "status": "submitted",
+        "replayed": False,
+    }
+    schema = client.app.openapi()["paths"][
+        "/operator/api/operating-pilot/{location_id}/resource-requests/{draft_id}/submit"
+    ]["post"]["responses"]["200"]["content"]["application/json"]["schema"]
+    assert schema["$ref"].endswith("OperatingPilotResourceDraftSubmissionResponse")
     action.assert_called_once_with(OPERATOR_ID, LOCATION_ID, PROFILE_ID, REQUEST_ID)
+
+
+def test_resource_submission_replay_returns_strict_submitted_result(monkeypatch):
+    action = MagicMock(
+        return_value={
+            "location_id": LOCATION_ID,
+            "draft_id": PROFILE_ID,
+            "status": "submitted",
+            "replayed": True,
+        }
+    )
+    client = _resource_submission_route_app(monkeypatch, action)
+
+    response = client.post(
+        f"/operator/api/operating-pilot/{LOCATION_ID}/resource-requests/{PROFILE_ID}/submit",
+        json={"request_id": REQUEST_ID},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["replayed"] is True
+    assert response.headers["cache-control"] == "no-store"
+
+
+@pytest.mark.parametrize(
+    "update",
+    [
+        {"location_id": PROFILE_ID},
+        {"draft_id": REQUEST_ID},
+        {"status": "draft"},
+        {"private_note": "must-not-leak"},
+    ],
+)
+def test_resource_submission_rejects_malformed_response(monkeypatch, update):
+    result = {
+        "location_id": LOCATION_ID,
+        "draft_id": PROFILE_ID,
+        "status": "submitted",
+        "replayed": False,
+    }
+    result.update(update)
+    action = MagicMock(return_value=result)
+    client = _resource_submission_route_app(monkeypatch, action)
+
+    response = client.post(
+        f"/operator/api/operating-pilot/{LOCATION_ID}/resource-requests/{PROFILE_ID}/submit",
+        json={"request_id": REQUEST_ID},
+    )
+
+    assert response.status_code == 503
+    assert response.json() == {"error": "Operating resource submission unavailable"}
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["retry-after"] == "30"
+    assert "must-not-leak" not in response.text
 
 
 def test_resource_submission_http_route_denies_missing_submit_own_context(monkeypatch):
@@ -2364,7 +3641,13 @@ def _capacity_review_route_app(monkeypatch, action, provider=object()):
 
 def test_capacity_review_http_route_requires_request_and_returns_no_store_result(monkeypatch):
     action = MagicMock(
-        return_value={"profile_id": PROFILE_ID, "status": "approved", "decision": "approved", "replayed": False}
+        return_value={
+            "location_id": LOCATION_ID,
+            "profile_id": PROFILE_ID,
+            "status": "approved",
+            "decision": "approved",
+            "replayed": False,
+        }
     )
     client = _capacity_review_route_app(monkeypatch, action)
     path = f"/operator/api/operating-pilot/{LOCATION_ID}/capacity-profiles/{PROFILE_ID}/review"
@@ -2378,8 +3661,74 @@ def test_capacity_review_http_route_requires_request_and_returns_no_store_result
     assert response.status_code == 200
     assert response.headers["cache-control"] == "no-store"
     assert response.headers["vary"] == "Cookie"
-    assert response.json()["decision"] == "approved"
+    assert response.json() == {
+        "location_id": LOCATION_ID,
+        "profile_id": PROFILE_ID,
+        "status": "approved",
+        "decision": "approved",
+        "replayed": False,
+    }
+    schema = client.app.openapi()["paths"][
+        "/operator/api/operating-pilot/{location_id}/capacity-profiles/{profile_id}/review"
+    ]["post"]["responses"]["200"]["content"]["application/json"]["schema"]
+    assert schema["$ref"].endswith("OperatingPilotCapacityReviewDecisionResponse")
     action.assert_called_once_with(OPERATOR_ID, LOCATION_ID, PROFILE_ID, REQUEST_ID, {"decision": "approved"})
+
+
+def test_capacity_review_replay_preserves_decision(monkeypatch):
+    action = MagicMock(
+        return_value={
+            "location_id": LOCATION_ID,
+            "profile_id": PROFILE_ID,
+            "status": "rejected",
+            "decision": "rejected",
+            "replayed": True,
+        }
+    )
+    client = _capacity_review_route_app(monkeypatch, action)
+
+    response = client.post(
+        f"/operator/api/operating-pilot/{LOCATION_ID}/capacity-profiles/{PROFILE_ID}/review",
+        json={"request_id": REQUEST_ID, "decision": "rejected", "reason": "Needs correction"},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["decision"] == "rejected"
+    assert response.json()["replayed"] is True
+    assert response.headers["cache-control"] == "no-store"
+
+
+@pytest.mark.parametrize(
+    "update",
+    [
+        {"location_id": REQUEST_ID},
+        {"profile_id": REQUEST_ID},
+        {"status": "approved", "decision": "rejected"},
+        {"private_note": "must-not-leak"},
+    ],
+)
+def test_capacity_review_rejects_malformed_response(monkeypatch, update):
+    result = {
+        "location_id": LOCATION_ID,
+        "profile_id": PROFILE_ID,
+        "status": "approved",
+        "decision": "approved",
+        "replayed": False,
+    }
+    result.update(update)
+    action = MagicMock(return_value=result)
+    client = _capacity_review_route_app(monkeypatch, action)
+
+    response = client.post(
+        f"/operator/api/operating-pilot/{LOCATION_ID}/capacity-profiles/{PROFILE_ID}/review",
+        json={"request_id": REQUEST_ID, "decision": "approved"},
+    )
+
+    assert response.status_code == 503
+    assert response.json() == {"error": "Operating capacity review decision unavailable"}
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["retry-after"] == "30"
+    assert "must-not-leak" not in response.text
 
 
 def test_capacity_review_http_route_denies_missing_review_context(monkeypatch):
@@ -2496,7 +3845,11 @@ def _competency_review_route_app(monkeypatch, action, provider=object()):
 
 def test_competency_review_http_route_requires_request_and_returns_no_store(monkeypatch):
     action = MagicMock(return_value={
-        "draft_id": PROFILE_ID, "status": "rejected", "decision": "rejected", "replayed": False,
+        "location_id": LOCATION_ID,
+        "draft_id": PROFILE_ID,
+        "status": "rejected",
+        "decision": "rejected",
+        "replayed": False,
     })
     client = _competency_review_route_app(monkeypatch, action)
     path = f"/operator/api/operating-pilot/{LOCATION_ID}/competency-assessments/{PROFILE_ID}/review"
@@ -2516,11 +3869,189 @@ def test_competency_review_http_route_requires_request_and_returns_no_store(monk
     assert response.status_code == 200
     assert response.headers["cache-control"] == "no-store"
     assert response.headers["vary"] == "Cookie"
-    assert response.json()["decision"] == "rejected"
+    assert response.json() == {
+        "location_id": LOCATION_ID,
+        "draft_id": PROFILE_ID,
+        "status": "rejected",
+        "decision": "rejected",
+        "replayed": False,
+    }
+    schema = client.app.openapi()["paths"][
+        "/operator/api/operating-pilot/{location_id}/competency-assessments/{draft_id}/review"
+    ]["post"]["responses"]["200"]["content"]["application/json"]["schema"]
+    assert schema["$ref"].endswith("OperatingPilotCompetencyReviewDecisionResponse")
     action.assert_called_once_with(
         OPERATOR_ID, LOCATION_ID, PROFILE_ID, REQUEST_ID,
         {"decision": "rejected", "reason": "Please provide clearer evidence."},
     )
+
+
+def test_competency_revision_replay_preserves_terminal_state_and_replacement_id(monkeypatch):
+    action = MagicMock(
+        return_value={
+            "location_id": LOCATION_ID,
+            "draft_id": REQUEST_ID,
+            "status": "superseded",
+            "replayed": True,
+        }
+    )
+    client = _route_app(
+        monkeypatch, action, "revise_location_operating_pilot_competency_draft"
+    )
+
+    response = client.put(
+        f"/operator/api/operating-pilot/{LOCATION_ID}/competency-assessments/{PROFILE_ID}",
+        json={**COMPETENCY_PAYLOAD, "request_id": REQUEST_ID},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["draft_id"] == REQUEST_ID
+    assert response.json()["draft_id"] != PROFILE_ID
+    assert response.json()["status"] == "superseded"
+    assert response.json()["replayed"] is True
+
+
+@pytest.mark.parametrize(
+    "update",
+    [
+        {"location_id": PROFILE_ID},
+        {"draft_id": PROFILE_ID},
+        {"status": "submitted"},
+        {"private_note": "must-not-leak"},
+    ],
+)
+def test_competency_revision_rejects_malformed_response(monkeypatch, update):
+    result = {
+        "location_id": LOCATION_ID,
+        "draft_id": REQUEST_ID,
+        "status": "draft",
+        "replayed": False,
+    }
+    result.update(update)
+    action = MagicMock(return_value=result)
+    client = _route_app(
+        monkeypatch, action, "revise_location_operating_pilot_competency_draft"
+    )
+
+    response = client.put(
+        f"/operator/api/operating-pilot/{LOCATION_ID}/competency-assessments/{PROFILE_ID}",
+        json={**COMPETENCY_PAYLOAD, "request_id": REQUEST_ID},
+    )
+
+    assert response.status_code == 503
+    assert response.json() == {"error": "Operating competency revision unavailable"}
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["retry-after"] == "30"
+
+
+def test_competency_submission_replay_preserves_review_state(monkeypatch):
+    action = MagicMock(
+        return_value={
+            "location_id": LOCATION_ID,
+            "draft_id": PROFILE_ID,
+            "status": "rejected",
+            "replayed": True,
+        }
+    )
+    client = _route_app(
+        monkeypatch, action, "submit_location_operating_pilot_competency_draft"
+    )
+
+    response = client.post(
+        f"/operator/api/operating-pilot/{LOCATION_ID}/competency-assessments/{PROFILE_ID}/submit",
+        json={"request_id": REQUEST_ID},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["status"] == "rejected"
+    assert response.json()["replayed"] is True
+
+
+@pytest.mark.parametrize(
+    "update",
+    [
+        {"location_id": PROFILE_ID},
+        {"draft_id": REQUEST_ID},
+        {"status": "verified"},
+        {"private_note": "must-not-leak"},
+    ],
+)
+def test_competency_submission_rejects_malformed_response(monkeypatch, update):
+    result = {
+        "location_id": LOCATION_ID,
+        "draft_id": PROFILE_ID,
+        "status": "submitted",
+        "replayed": False,
+    }
+    result.update(update)
+    action = MagicMock(return_value=result)
+    client = _route_app(
+        monkeypatch, action, "submit_location_operating_pilot_competency_draft"
+    )
+
+    response = client.post(
+        f"/operator/api/operating-pilot/{LOCATION_ID}/competency-assessments/{PROFILE_ID}/submit",
+        json={"request_id": REQUEST_ID},
+    )
+
+    assert response.status_code == 503
+    assert response.json() == {"error": "Operating competency submission unavailable"}
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["retry-after"] == "30"
+
+
+def test_competency_review_replay_preserves_decision(monkeypatch):
+    action = MagicMock(
+        return_value={
+            "location_id": LOCATION_ID,
+            "draft_id": PROFILE_ID,
+            "status": "verified",
+            "decision": "verified",
+            "replayed": True,
+        }
+    )
+    client = _competency_review_route_app(monkeypatch, action)
+
+    response = client.post(
+        f"/operator/api/operating-pilot/{LOCATION_ID}/competency-assessments/{PROFILE_ID}/review",
+        json={"request_id": REQUEST_ID, "decision": "verified"},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["decision"] == "verified"
+    assert response.json()["replayed"] is True
+
+
+@pytest.mark.parametrize(
+    "update",
+    [
+        {"location_id": REQUEST_ID},
+        {"draft_id": REQUEST_ID},
+        {"status": "verified", "decision": "rejected"},
+        {"private_note": "must-not-leak"},
+    ],
+)
+def test_competency_review_rejects_malformed_response(monkeypatch, update):
+    result = {
+        "location_id": LOCATION_ID,
+        "draft_id": PROFILE_ID,
+        "status": "rejected",
+        "decision": "rejected",
+        "replayed": False,
+    }
+    result.update(update)
+    action = MagicMock(return_value=result)
+    client = _competency_review_route_app(monkeypatch, action)
+
+    response = client.post(
+        f"/operator/api/operating-pilot/{LOCATION_ID}/competency-assessments/{PROFILE_ID}/review",
+        json={"request_id": REQUEST_ID, "decision": "rejected", "reason": "Review"},
+    )
+
+    assert response.status_code == 503
+    assert response.json() == {"error": "Operating competency review decision unavailable"}
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["retry-after"] == "30"
 
 
 def test_competency_review_route_policy_requires_exact_location_review_grant():
@@ -2626,7 +4157,13 @@ def _demand_review_route_app(monkeypatch, action, provider=object()):
 
 def test_demand_review_http_route_requires_supported_fields_and_returns_no_store(monkeypatch):
     action = MagicMock(
-        return_value={"signal_id": PROFILE_ID, "status": "rejected", "decision": "rejected", "replayed": False}
+        return_value={
+            "location_id": LOCATION_ID,
+            "signal_id": PROFILE_ID,
+            "status": "rejected",
+            "decision": "rejected",
+            "replayed": False,
+        }
     )
     client = _demand_review_route_app(monkeypatch, action)
     path = f"/operator/api/operating-pilot/{LOCATION_ID}/demand-signals/{PROFILE_ID}/review"
@@ -2643,11 +4180,76 @@ def test_demand_review_http_route_requires_supported_fields_and_returns_no_store
     assert response.status_code == 200
     assert response.headers["cache-control"] == "no-store"
     assert response.headers["vary"] == "Cookie"
-    assert response.json()["decision"] == "rejected"
+    assert response.json() == {
+        "location_id": LOCATION_ID,
+        "signal_id": PROFILE_ID,
+        "status": "rejected",
+        "decision": "rejected",
+        "replayed": False,
+    }
+    schema = client.app.openapi()["paths"][
+        "/operator/api/operating-pilot/{location_id}/demand-signals/{signal_id}/review"
+    ]["post"]["responses"]["200"]["content"]["application/json"]["schema"]
+    assert schema["$ref"].endswith("OperatingPilotDemandReviewDecisionResponse")
     action.assert_called_once_with(
         OPERATOR_ID, LOCATION_ID, PROFILE_ID, REQUEST_ID,
         {"decision": "rejected", "reason": "Review evidence and revise."},
     )
+
+
+def test_demand_review_replay_preserves_decision(monkeypatch):
+    action = MagicMock(
+        return_value={
+            "location_id": LOCATION_ID,
+            "signal_id": PROFILE_ID,
+            "status": "approved",
+            "decision": "approved",
+            "replayed": True,
+        }
+    )
+    client = _demand_review_route_app(monkeypatch, action)
+
+    response = client.post(
+        f"/operator/api/operating-pilot/{LOCATION_ID}/demand-signals/{PROFILE_ID}/review",
+        json={"request_id": REQUEST_ID, "decision": "approved"},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["decision"] == "approved"
+    assert response.json()["replayed"] is True
+
+
+@pytest.mark.parametrize(
+    "update",
+    [
+        {"location_id": REQUEST_ID},
+        {"signal_id": REQUEST_ID},
+        {"status": "approved", "decision": "rejected"},
+        {"private_note": "must-not-leak"},
+    ],
+)
+def test_demand_review_rejects_malformed_response(monkeypatch, update):
+    result = {
+        "location_id": LOCATION_ID,
+        "signal_id": PROFILE_ID,
+        "status": "rejected",
+        "decision": "rejected",
+        "replayed": False,
+    }
+    result.update(update)
+    action = MagicMock(return_value=result)
+    client = _demand_review_route_app(monkeypatch, action)
+
+    response = client.post(
+        f"/operator/api/operating-pilot/{LOCATION_ID}/demand-signals/{PROFILE_ID}/review",
+        json={"request_id": REQUEST_ID, "decision": "rejected", "reason": "Review"},
+    )
+
+    assert response.status_code == 503
+    assert response.json() == {"error": "Operating demand review decision unavailable"}
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["retry-after"] == "30"
+    assert "must-not-leak" not in response.text
 
 
 def test_demand_review_http_route_denies_missing_review_context(monkeypatch):
@@ -2785,6 +4387,7 @@ def _resource_review_route_app(monkeypatch, action, provider=object()):
 
 def test_resource_review_http_route_is_exact_no_store_and_requires_stable_request_id(monkeypatch):
     action = MagicMock(return_value={
+        "location_id": LOCATION_ID,
         "resource_request_id": PROFILE_ID,
         "status": "reviewed",
         "decision": "rejected",
@@ -2798,11 +4401,77 @@ def test_resource_review_http_route_is_exact_no_store_and_requires_stable_reques
     assert response.status_code == 200
     assert response.headers["cache-control"] == "no-store"
     assert response.headers["vary"] == "Cookie"
-    assert response.json()["decision"] == "rejected"
+    assert response.json() == {
+        "location_id": LOCATION_ID,
+        "resource_request_id": PROFILE_ID,
+        "status": "reviewed",
+        "decision": "rejected",
+        "replayed": False,
+    }
+    schema = client.app.openapi()["paths"][
+        "/operator/api/operating-pilot/{location_id}/resource-requests/{resource_request_id}/review"
+    ]["post"]["responses"]["200"]["content"]["application/json"]["schema"]
+    assert schema["$ref"].endswith("OperatingPilotResourceReviewDecisionResponse")
     action.assert_called_once_with(
         OPERATOR_ID, LOCATION_ID, PROFILE_ID, REQUEST_ID,
         {"decision": "rejected", "reason": "No supporting quote."},
     )
+
+
+def test_resource_review_replay_preserves_review_decision(monkeypatch):
+    action = MagicMock(
+        return_value={
+            "location_id": LOCATION_ID,
+            "resource_request_id": PROFILE_ID,
+            "status": "reviewed",
+            "decision": "approved",
+            "replayed": True,
+        }
+    )
+    client = _resource_review_route_app(monkeypatch, action)
+
+    response = client.post(
+        f"/operator/api/operating-pilot/{LOCATION_ID}/resource-requests/{PROFILE_ID}/review",
+        json={"request_id": REQUEST_ID, "decision": "approved"},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["decision"] == "approved"
+    assert response.json()["replayed"] is True
+
+
+@pytest.mark.parametrize(
+    "update",
+    [
+        {"location_id": REQUEST_ID},
+        {"resource_request_id": REQUEST_ID},
+        {"status": "approved"},
+        {"decision": "pending"},
+        {"private_note": "must-not-leak"},
+    ],
+)
+def test_resource_review_rejects_malformed_response(monkeypatch, update):
+    result = {
+        "location_id": LOCATION_ID,
+        "resource_request_id": PROFILE_ID,
+        "status": "reviewed",
+        "decision": "rejected",
+        "replayed": False,
+    }
+    result.update(update)
+    action = MagicMock(return_value=result)
+    client = _resource_review_route_app(monkeypatch, action)
+
+    response = client.post(
+        f"/operator/api/operating-pilot/{LOCATION_ID}/resource-requests/{PROFILE_ID}/review",
+        json={"request_id": REQUEST_ID, "decision": "rejected", "reason": "Review"},
+    )
+
+    assert response.status_code == 503
+    assert response.json() == {"error": "Operating resource review decision unavailable"}
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["retry-after"] == "30"
+    assert "must-not-leak" not in response.text
 
 
 def test_resource_review_http_route_denies_missing_review_context(monkeypatch):
@@ -2929,6 +4598,7 @@ def _resource_fulfillment_route_app(monkeypatch, action, provider=object()):
 
 def test_resource_fulfillment_http_route_is_exact_and_no_store(monkeypatch):
     action = MagicMock(return_value={
+        "location_id": LOCATION_ID,
         "resource_request_id": PROFILE_ID,
         "status": "closed",
         "decision": "fulfilled",
@@ -2942,8 +4612,72 @@ def test_resource_fulfillment_http_route_is_exact_and_no_store(monkeypatch):
     assert response.status_code == 200
     assert response.headers["cache-control"] == "no-store"
     assert response.headers["vary"] == "Cookie"
-    assert response.json()["decision"] == "fulfilled"
+    assert response.json() == {
+        "location_id": LOCATION_ID,
+        "resource_request_id": PROFILE_ID,
+        "status": "closed",
+        "decision": "fulfilled",
+        "replayed": False,
+    }
+    schema = client.app.openapi()["paths"][
+        "/operator/api/operating-pilot/{location_id}/resource-requests/{resource_request_id}/fulfill"
+    ]["post"]["responses"]["200"]["content"]["application/json"]["schema"]
+    assert schema["$ref"].endswith("OperatingPilotResourceFulfillmentResponse")
     action.assert_called_once_with(OPERATOR_ID, LOCATION_ID, PROFILE_ID, REQUEST_ID)
+
+
+def test_resource_fulfillment_replay_preserves_closed_fulfilled_state(monkeypatch):
+    action = MagicMock(
+        return_value={
+            "location_id": LOCATION_ID,
+            "resource_request_id": PROFILE_ID,
+            "status": "closed",
+            "decision": "fulfilled",
+            "replayed": True,
+        }
+    )
+    client = _resource_fulfillment_route_app(monkeypatch, action)
+
+    response = client.post(
+        f"/operator/api/operating-pilot/{LOCATION_ID}/resource-requests/{PROFILE_ID}/fulfill",
+        json={"request_id": REQUEST_ID},
+    )
+
+    assert response.status_code == 200
+    assert response.headers["cache-control"] == "no-store"
+    assert response.json() == action.return_value
+
+
+@pytest.mark.parametrize(
+    "update",
+    [
+        {"location_id": REQUEST_ID},
+        {"resource_request_id": REQUEST_ID},
+        {"status": "approved"},
+        {"private_fulfiller_party_id": OPERATOR_ID},
+    ],
+)
+def test_resource_fulfillment_rejects_malformed_response(monkeypatch, update):
+    result = {
+        "location_id": LOCATION_ID,
+        "resource_request_id": PROFILE_ID,
+        "status": "closed",
+        "decision": "fulfilled",
+        "replayed": False,
+    }
+    result.update(update)
+    action = MagicMock(return_value=result)
+    client = _resource_fulfillment_route_app(monkeypatch, action)
+
+    response = client.post(
+        f"/operator/api/operating-pilot/{LOCATION_ID}/resource-requests/{PROFILE_ID}/fulfill",
+        json={"request_id": REQUEST_ID},
+    )
+
+    assert response.status_code == 503
+    assert response.json() == {"error": "Operating resource fulfillment unavailable"}
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["retry-after"] == "30"
 
 
 def test_resource_fulfillment_http_route_rejects_extra_payload_fields(monkeypatch):
@@ -3021,7 +4755,12 @@ def test_invalid_coaching_session_fails_before_database_access(payload, message)
 
 def test_coaching_session_route_requires_request_id_and_returns_no_store(monkeypatch):
     action = MagicMock(return_value={
-        "session_id": PROFILE_ID, "status": "completed", "privacy_level": "private", "replayed": False,
+        "location_id": LOCATION_ID,
+        "session_id": PROFILE_ID,
+        "status": "completed",
+        "privacy_level": "private",
+        "session_date": "2026-10-20",
+        "replayed": False,
     })
     client = _route_app(monkeypatch, action, "create_location_operating_pilot_coaching_session")
 
@@ -3033,8 +4772,89 @@ def test_coaching_session_route_requires_request_id_and_returns_no_store(monkeyp
     assert response.status_code == 201
     assert response.headers["cache-control"] == "no-store"
     assert response.headers["vary"] == "Cookie"
-    assert response.json()["privacy_level"] == "private"
+    assert response.json() == {
+        "location_id": LOCATION_ID,
+        "session_id": PROFILE_ID,
+        "status": "completed",
+        "privacy_level": "private",
+        "session_date": "2026-10-20",
+        "replayed": False,
+    }
     action.assert_called_once_with(OPERATOR_ID, LOCATION_ID, REQUEST_ID, COACHING_PAYLOAD)
+
+
+def test_coaching_session_openapi_declares_create_and_replay_responses(monkeypatch):
+    action = MagicMock(return_value={
+        "location_id": LOCATION_ID,
+        "session_id": PROFILE_ID,
+        "status": "completed",
+        "privacy_level": "private",
+        "session_date": "2026-10-20",
+        "replayed": False,
+    })
+    client = _route_app(monkeypatch, action, "create_location_operating_pilot_coaching_session")
+    operation = client.app.openapi()["paths"][
+        "/operator/api/operating-pilot/{location_id}/coaching-sessions"
+    ]["post"]
+    for status_code in ("200", "201"):
+        schema = operation["responses"][status_code]["content"]["application/json"]["schema"]
+        assert schema["$ref"].endswith("OperatingPilotCoachingSessionCreateResponse")
+
+
+def test_coaching_session_idempotent_replay_returns_http_200(monkeypatch):
+    action = MagicMock(return_value={
+        "location_id": LOCATION_ID,
+        "session_id": PROFILE_ID,
+        "status": "completed",
+        "privacy_level": "private",
+        "session_date": "2026-10-20",
+        "replayed": True,
+    })
+    client = _route_app(monkeypatch, action, "create_location_operating_pilot_coaching_session")
+
+    response = client.post(
+        f"/operator/api/operating-pilot/{LOCATION_ID}/coaching-sessions",
+        json={**COACHING_PAYLOAD, "request_id": REQUEST_ID},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["replayed"] is True
+    assert response.headers["cache-control"] == "no-store"
+
+
+@pytest.mark.parametrize(
+    "update",
+    [
+        {"location_id": PROFILE_ID},
+        {"status": "draft"},
+        {"privacy_level": "public"},
+        {"session_date": "not-a-date"},
+        {"private_note": "must-not-leak"},
+    ],
+)
+def test_coaching_session_rejects_malformed_response_without_private_data(monkeypatch, update):
+    result = {
+        "location_id": LOCATION_ID,
+        "session_id": PROFILE_ID,
+        "status": "completed",
+        "privacy_level": "private",
+        "session_date": "2026-10-20",
+        "replayed": False,
+    }
+    result.update(update)
+    action = MagicMock(return_value=result)
+    client = _route_app(monkeypatch, action, "create_location_operating_pilot_coaching_session")
+
+    response = client.post(
+        f"/operator/api/operating-pilot/{LOCATION_ID}/coaching-sessions",
+        json={**COACHING_PAYLOAD, "request_id": REQUEST_ID},
+    )
+
+    assert response.status_code == 503
+    assert response.json() == {"error": "Operating coaching-session write unavailable"}
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["retry-after"] == "30"
+    assert "must-not-leak" not in response.text
 
 
 def test_coaching_session_route_rejects_oversized_body_before_write(monkeypatch):

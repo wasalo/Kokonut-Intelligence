@@ -18,6 +18,14 @@ Operational scripts for the Kokonut Intelligence platform. All shell scripts use
 | `seed-pilot.sh` | Load pilot farm data (`*_pilot_*.sql` seeds + CRISP + alignment + dashboards) | Manual, CI |
 | `check-agent-safety-superuser-disposable.py` | Exercise migration 598 worker/admin lifecycle guards on network-disabled temporary PostgreSQL | CI, manual |
 | `check-credit-adjustment-worker-disposable.py` | Exercise migration 599 signed, location-scoped, read-only credit-adjustment checks on temporary PostgreSQL; a 180-second startup bound is the default; optional `--platform linux/arm64 --startup-timeout 360` runs the focused contract under QEMU | CI, manual |
+| `check-runtime-scoped-write-boundary-disposable.py` | Exercise migration-declared runtime table/column ACLs and the provisioner's post-compatibility reapplication on empty disposable PostgreSQL; ARM64 defaults to the repository's local `kokonut-kernel-postgis-arm64:local` image; optional `--image` overrides it | Manual |
+| `check-revenue-stream-location-join-disposable.py` | Apply/replay migration 686 against synthetic cross-location revenue/crop-cycle rows on network-disabled PostgreSQL 16; verify location-safe cycle labels and unchanged contribution totals; no host port or retained container | Isolated acceptance |
+| `check-governance-tension-location-actions-disposable.py` | Apply and replay migration 700 on disposable PostgreSQL 16; verify signed, location-scoped tension actions and runtime/Directus write boundaries with synthetic data | Isolated acceptance |
+| `check-extension-learning-writes-disposable.py` | Apply and replay migration 701 on network-disabled PostgreSQL 16; verify signed location-scoped extension-learning writes and privilege boundaries with synthetic data | Isolated acceptance |
+| `check-landscape-capture-disposable.py` | Apply and replay migration 702 on disposable PostgreSQL/PostGIS 16; verify location-scoped landscape capture and database constraints | Isolated acceptance |
+| `check-landscape-runtime-boundary-disposable.py` | Apply migration 702 and apply/replay migration 708 on network-disabled disposable PostgreSQL/PostGIS 16; verify runtime read-only ACLs, preserved bounded-writer/Directus/maintenance privileges, and Gateway capture | Isolated acceptance |
+| `check-metric-value-kernel-disposable.py` | Apply and replay migration 703 on network-disabled PostgreSQL 16; verify the metric-value Kernel write contract and privilege boundaries with synthetic data | Isolated acceptance |
+| `check-clickhouse-retention-disposable.py` | Apply ClickHouse schemas on a network-disabled pinned server; verify fresh schemas have no TTL, existing TTL removal/replay, and historical synthetic row retention | Isolated acceptance |
 | `seed-metabase.sh` | Configure Metabase with database connection (prints manual setup instructions) | Manual |
 
 ## Metric Computation
@@ -42,7 +50,11 @@ published loopback ports and does not require the production worker credential.
 | `check-directus-role-disposable.py` | Provision and replay the Directus DML-only role on a temporary internal-only PostgreSQL instance; check existing/future DML, DDL denial, stale ACL removal, and database isolation; always removes its Compose project and volume. | Isolated acceptance |
 | `check-directus-profile-disposable.py` | Build the Directus hook, provision its dedicated role, bootstrap a fresh Kernel database, start the actual optional Directus overlay on loopback, verify health/admin login/runtime DB identity, and remove the complete disposable project and volume. | Isolated acceptance |
 | `check-scheduler-engine-reconnect-disposable.py` | Exercise real SchedulerEngine PostgreSQL outage/reconnect, pre-dispatch lease recovery, and post-effect crash/reclaim idempotency with synthetic events on a disposable PostgreSQL 16 container; no provider requests, candidate/legacy access, or retained container. | Isolated acceptance |
-| `check-event-worker-reconnect-disposable.py` | Exercise legacy event and notification workers plus the isolated migration-648 EventBus dispatcher across disposable PostgreSQL stop/start, loopback notification retry, and notification lease reclaim; uses synthetic records/credential, loopback-only container, and no candidate/legacy/provider access. | Isolated acceptance |
+| `check-event-worker-reconnect-disposable.py` | Retired safety stub: refuses to run the legacy shared-identity reconnect harness. Use `check-event-dispatch-worker-disposable.py` for the isolated dispatcher and `check-notification-delivery-worker-disposable.py` for isolated notification delivery; both use disposable PostgreSQL and synthetic records only. | Retired |
+| `check-event-dispatch-worker-disposable.py` | Exercise migration-backed isolated event dispatch, receipts, retries, and runtime-role table/column write denial on disposable PostgreSQL; synthetic records only, no candidate/legacy access. | Isolated acceptance |
+| `check-notification-enqueue-worker-disposable.py` | Verify filtered notification-enqueue workers use the bounded migration-backed function, preserve optional location lineage, and fail closed when the isolated identity is unavailable. Disposable PostgreSQL and synthetic notifications only. | Isolated acceptance |
+| `check-notification-delivery-worker-disposable.py` | Exercise isolated notification delivery claims, bounded retries, and runtime-role privilege boundaries with synthetic outbox rows on disposable PostgreSQL; no external provider delivery. | Isolated acceptance |
+| `check-isolated-worker-runtime-write-boundary-disposable.py` | Verify migration 723 preserves runtime reads while revoking direct runtime writes on event receipts, freshness state, and notification attempts; replays migration and checks runtime-role reprovisioning. Disposable PostgreSQL only. | Isolated acceptance |
 | `check-operator-session-role-disposable.py` | Exercise runtime-role bootstrap and migrations 391–396, 398–400, 405, and 417–419, plus migration 432 on disposable PostgreSQL 16/PostGIS; verify mobile/worker ACLs, notification enqueue, and remote-sensing SET ROLE isolation under forced RLS. Synthetic credentials only; removes the container and never connects to candidate or legacy databases. | Isolated acceptance |
 | `check-governance-tension-actions-disposable.py` | Apply migration 437 on temporary PostgreSQL 16; verify explicit operator/person bindings, admin-only binding management, exact signed-context scope, idempotent draft intake/submission, reporter ownership, and denial of direct binding/lifecycle writes. Removes its container; never connects to candidate or legacy databases. | Isolated acceptance |
 | `check-retention-policy-disposable.py` | Apply migration 401 through the ordered runner to a synthetic pre-migration schema in an internal-only temporary PostgreSQL project; verify policy transitions, audited holds, and hold-aware cleanup. Removes its container, network, and volume; never uses candidate or legacy databases. | Isolated acceptance |
@@ -51,18 +63,31 @@ published loopback ports and does not require the production worker credential.
 | `check-cache-invalidation-worker-disposable.py` | Apply and replay migration 415 on network-isolated PostgreSQL 16; verify signed event/type/location matching, cache-type and location scoping, retry idempotency, forced-RLS policy behavior, and worker direct-table denial. Uses synthetic rows and removes its temporary container; never connects to candidate or legacy databases. | Isolated acceptance |
 | `check-ai-summary-review-disposable.py` | Apply/replay migration 521 on disposable PostgreSQL 16; verify exact-location review scope, approval blockers, verified-versus-published lifecycle separation, append-only decisions, request retries, and runtime/Directus privilege boundaries. Uses synthetic rows and removes its temporary container; never connects to candidate or legacy databases. | Isolated acceptance |
 | `check-ai-summary-draft-disposable.py` | Apply/replay migrations 521–524 on disposable PostgreSQL 16; verify authenticated requester attribution, bounded exact-location source references, location-linked crop and top-five expense-category references, retry/review manifest access, self-review denial, legacy creator blockers, independent verification lifecycle, append-only source records, and runtime/Directus privilege boundaries. Uses synthetic rows and a network-disabled temporary container; never connects to candidate or legacy databases. | Isolated acceptance |
-| `verify-full-test-suite.sh` | Run full pytest suite with unexpected-skip detection | CI |
+| `verify-full-test-suite.sh` | Run full pytest suite with per-test progress, slow-test timings, and unexpected-skip detection | CI |
 | `verify-local-test-suite.sh` | Start local Compose databases, wait for readiness, run full test suite | Manual |
 
 ## CI Pipeline
 
 | Script | Purpose | Context |
 |--------|---------|---------|
-| `ci-check.sh` | Fast-fail CI gate: Python imports, CLI parsers, TypeScript build, clean bootstrap | CI |
+| `ci-preflight.sh` | Run dependency-free Python-runtime, dependency-group, source-inventory, and capability checks before CI starts long Docker/database jobs | GitHub Actions |
+| `ci-check.sh [all|--source-only|--database-only]` | Fast-fail CI gates: source/import/CLI/TypeScript checks can run without a database; the isolated clean-bootstrap check can run after PostgreSQL is ready. No argument preserves the combined local behavior. | CI |
 | `static-analysis.sh` | Slither (Solidity), Aderyn (Solidity), Semgrep (Python + Solidity) | CI |
 | `check-tracked-secrets.sh` | Scan Git-tracked files for private keys and token patterns | CI |
 | `check-image-digests.sh` | Fail if Dockerfile `FROM` or Compose `image:` is not pinned by `@sha256` digest | CI |
 | `check-python-runtime.py` | Validate Python >= 3.11 and OpenSSL availability | CI (via `ci-check.sh`) |
+
+GitHub Actions first runs the dependency-free `ci-preflight.sh`, including the
+release-input lock and inventories that previously failed only after long
+jobs had started. When it passes, source/security/static/contract checks run
+separately and in parallel with the database-backed integration runner and multi-architecture image build. The
+`CI / ci` aggregate is the required branch-protection status.
+`scripts/run-github-ci.sh --source-only` and
+`scripts/run-github-ci.sh --integration-only` are the corresponding runner
+modes. Calling the runner without an argument retains the combined local gate.
+Hosted jobs skip the redundant apt bootstrap, use cached locked Python/Node
+dependencies, bound network installs, and bound Compose failure diagnostics and
+teardown. Each job uploads its log and relevant diagnostics on failure.
 
 ## Monitoring & Operations
 

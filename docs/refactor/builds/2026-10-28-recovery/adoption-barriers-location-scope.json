@@ -1,0 +1,35 @@
+{
+  "result": "passed",
+  "date": "2026-10-28",
+  "source_revision": "753b4645",
+  "working_tree_dirty": true,
+  "scope": "Legacy adoption-barrier report query scope",
+  "change": "generate_adoption_barriers now rejects missing/empty location_id before opening a cursor and no longer contains an unscoped SQL branch.",
+  "query_contract": "The existing location-bound query still includes explicitly public-safe global rows where location_id IS NULL.",
+  "checks": {
+    "focused_tests": {
+      "modules": [
+        "tests/test_open_source_capitalist_scaling.py",
+        "tests/test_report_state_cursor_cleanup.py",
+        "tests/test_report_generator_cli.py",
+        "tests/test_report_generator_query_scope_inventory.py"
+      ],
+      "result": "456 passed"
+    },
+    "ruff": "passed",
+    "query_scope_inventory": "passed",
+    "python_compilation": "passed",
+    "diff_check": "passed"
+  },
+  "external_services": {
+    "database": false,
+    "provider": false,
+    "network": false,
+    "candidate_or_legacy": false
+  },
+  "rollback": "Revert the location guard, branch removal, inventory, and regression changes; no migration or persisted data changed.",
+  "limitations": [
+    "This is fail-before-DB/query-shape behavior, not a tenant authorization boundary.",
+    "Populated report semantic parity and owner review remain open."
+  ]
+}

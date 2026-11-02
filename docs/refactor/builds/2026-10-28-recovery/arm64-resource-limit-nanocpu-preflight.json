@@ -1,0 +1,51 @@
+{
+  "date": "2026-10-28",
+  "source_revision": "23e5bf8c",
+  "working_tree_dirty": true,
+  "scope": "Validate ARM64 schema replay CPU budgets before disposable Docker resources are created.",
+  "behavior": {
+    "invalid_input": "A positive CPU value that rounds to zero nanocpus is rejected by argument preflight.",
+    "valid_conversions": {
+      "0.5": 500000000,
+      "2.0": 2000000000
+    },
+    "side_effect_order": "resource_limit_values runs before disposable-project inspection, image inspection, and container creation."
+  },
+  "checks": [
+    {
+      "command": "python3 -m pytest tests/test_arm64_schema_replay.py -q",
+      "result": "passed",
+      "passed": 26
+    },
+    {
+      "command": "python3 scripts/check-arm64-schema-replay.py --cpu-limit 1e-12",
+      "result": "rejected during CLI preflight",
+      "exit_code": 2,
+      "diagnostic": "CPU limit must round to at least one nanocpu"
+    },
+    {
+      "command": "python3 -m ruff check scripts/check-arm64-schema-replay.py tests/test_arm64_schema_replay.py",
+      "result": "passed"
+    },
+    {
+      "command": "python3 -m py_compile scripts/check-arm64-schema-replay.py tests/test_arm64_schema_replay.py",
+      "result": "passed"
+    },
+    {
+      "command": "python3 scripts/check-capability-matrix.py",
+      "result": "passed"
+    },
+    {
+      "command": "git diff --check",
+      "result": "passed"
+    }
+  ],
+  "environment": {
+    "docker_used": false,
+    "database_used": false,
+    "candidate_or_legacy_touched": false
+  },
+  "limitations": [
+    "This proves parser-level resource validation only; it does not add ARM64 execution, physical Raspberry Pi, or production recovery evidence."
+  ]
+}

@@ -1,0 +1,47 @@
+{
+  "date": "2026-10-31",
+  "scope": "Signed climate worker compatibility, schema parity, and runtime write boundary",
+  "migration": "schemas/postgres/713_signed_climate_summary_audit_parity.sql",
+  "unit_checks": {
+    "command": "KOKONUT_ENV=development KOKONUT_ENV_SECRETS_NOT_REQUIRED=true python3 -m pytest tests/test_climate_data.py tests/test_climate_data_cli_scope.py tests/test_climate_data_cli_parity.py tests/test_gee_climate_error_redaction.py tests/test_climate_worker.py tests/test_worker_environment.py tests/test_scheduled_command_contracts.py -q --tb=short",
+    "passed": 252,
+    "failed": 0
+  },
+  "worker_inventory_regressions": {
+    "description": "Broader worker, SQL inventory, and generated-boundary regression selection after updating the climate operation map",
+    "passed": 261,
+    "failed": 0,
+    "duration_seconds": 154.1
+  },
+  "migration_source_validation": {
+    "result": "passed",
+    "ordered_sources": 704,
+    "last_source": "schema:713_signed_climate_summary_audit_parity.sql"
+  },
+  "disposable_postgresql": {
+    "result": "passed",
+    "engine": "PostgreSQL 16 with PostGIS",
+    "network": "disabled",
+    "acceptance_groups": 10,
+    "evidence": "climate-worker-713-disposable.json"
+  },
+  "static_checks": {
+    "ruff": "passed",
+    "python_compileall": "passed",
+    "migration_source_validation": "passed",
+    "runtime_sql_inventory": "passed",
+    "worker_source_closure": "passed",
+    "worker_function_reachability": "passed",
+    "worker_sql_inventory_and_reachability": "passed",
+    "worker_effect_inventory": "passed",
+    "worker_boundary_preflight": "passed",
+    "worker_job_contracts": "passed",
+    "git_diff_check": "passed"
+  },
+  "scope_limits": [
+    "No candidate, legacy, or production database was migrated.",
+    "No real provider, schedule, or credential was used.",
+    "Migration 713 has focused disposable acceptance only; it has not been included in a fresh full-schema replay or candidate rollout.",
+    "Hosted CI run 41172853331 has no recoverable attempt-one logs; its second attempt was cancelled during Buildx. No source failure can be attributed to that run from available evidence."
+  ]
+}

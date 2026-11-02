@@ -1,0 +1,30 @@
+{
+  "result": "passed",
+  "checked_at": "2026-11-01T15:04:02.243260+00:00",
+  "database": "PostgreSQL 16 disposable container and client on an internal-only Docker network",
+  "migration": "728_farm_activity_operator_event_signed_location_rls.sql",
+  "scope_grant_function_source": "711_location_energy_reading_capture.sql",
+  "migration_replay": "applied twice",
+  "runtime_role_provisioning": "event boundary helper applied twice after synthetic compatibility-wide table and column DML grants; SELECT-only ACL and RLS policies preserved",
+  "forced_rls": true,
+  "checks": [
+    "migration applies and replays idempotently",
+    "uses the exact canonical operator_scope_grant_allows body from migration 711",
+    "migration removes synthetic stale table-level and column-level runtime writes",
+    "runtime provisioner event-boundary helper clears table and column writes and preserves forced-RLS policies",
+    "no-context, diagnostic-GUC, and forged signed-context reads return no event rows",
+    "SECURITY DEFINER create/update triggers append ledger events under forced RLS",
+    "append-only trigger rejects even privileged direct UPDATE and DELETE",
+    "signed location A reads its audit history and cannot read location B",
+    "signed location B reads its audit history and cannot read location A",
+    "rollback clears signed context before the next transaction",
+    "runtime remains SELECT-only; direct ledger INSERT, UPDATE, and DELETE are denied"
+  ],
+  "candidate_database_touched": false,
+  "legacy_database_touched": false,
+  "external_network_requests": 0,
+  "container_network_external_routing": false,
+  "host_ports_published": false,
+  "persistent_database_touched": false,
+  "scope_limit": "Uses a minimal compatible schema with the real migration-394 signed operator context, migration-404 farm-activity triggers, and migration-728 event-ledger policies. It does not enable RLS on the parent farm_activity table or establish populated candidate/production parity."
+}

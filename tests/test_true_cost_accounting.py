@@ -2,26 +2,26 @@
 
 from pathlib import Path
 
-from services.analytics.true_cost_accounting import (
-    compute_hidden_cost_summary,
-    compute_human_capital_score,
-    compute_natural_capital_valuation,
-    compute_social_impact_valuation,
-    compute_true_cost_statement,
+from services.analytics.gri_reporting import (
+    compute_gri_compliance_score,
+    compute_materiality_matrix,
 )
 from services.analytics.life_cycle import (
     compute_lca_summary,
     compute_product_carbon_footprint,
     compute_water_footprint,
 )
-from services.analytics.gri_reporting import (
-    compute_gri_compliance_score,
-    compute_materiality_matrix,
-)
 from services.analytics.systems_thinking import (
     compute_capital_flow_summary,
     compute_cross_capital_dependencies,
     compute_system_resilience,
+)
+from services.analytics.true_cost_accounting import (
+    compute_hidden_cost_summary,
+    compute_human_capital_score,
+    compute_natural_capital_valuation,
+    compute_social_impact_valuation,
+    compute_true_cost_statement,
 )
 
 SCHEMA = Path("schemas/postgres/062_true_cost_accounting.sql")
@@ -207,7 +207,8 @@ def test_natural_capital_valuation() -> None:
 
 
 def test_social_impact_valuation() -> None:
-    rows = [("training", 1, 12, 2400.0, 2400.0)]
+    # Different SUM and AVG values catch a tuple-index mix-up in the response.
+    rows = [("training", 2, 12, 2400.0, 1200.0)]
 
     class _SIVConn:
         def __init__(self):
@@ -226,6 +227,13 @@ def test_social_impact_valuation() -> None:
     result = compute_social_impact_valuation(_SIVConn(), "test-location")
     assert result["total_social_impact_value_usd"] == 2400.0
     assert result["total_beneficiaries"] == 12
+    assert result["by_category"] == [{
+        "category": "training",
+        "count": 2,
+        "total_beneficiaries": 12,
+        "total_value_usd": 2400.0,
+        "avg_value_per_intervention": 1200.0,
+    }]
 
 
 def test_product_carbon_footprint() -> None:

@@ -1,0 +1,35 @@
+{
+  "date": "2026-10-31",
+  "requested_run": {
+    "url": "https://github.com/wasalo/Kokonut-Intelligence/actions/runs/41172853331",
+    "run_number": 1014,
+    "branch": "chore/kernel-next-sprint-plan",
+    "head": "aa6a01ab053ff48f886766e19212096528b41d6d",
+    "attempt_1": "failure; GitHub log endpoint returns BlobNotFound because the log expired",
+    "attempt_2": "cancelled during ARM64 Buildx dependency installation after a newer run superseded it",
+    "root_cause": "unknown; retained evidence is insufficient to identify the failed step"
+  },
+  "later_actionable_failure": {
+    "url": "https://github.com/wasalo/Kokonut-Intelligence/actions/runs/41233060705",
+    "run_number": 1029,
+    "head": "9d94c48f913aaa408098c8fd54855020f91dd65f",
+    "job": "full-ci",
+    "failed_gate": "Fast-fail CI checks",
+    "failed_check": "Runtime SQL inventory and unresolved-write review ledger",
+    "observed_error": "Runtime SQL inventory is stale: docs/refactor/runtime-sql-inventory.json",
+    "local_repair": "Regenerated runtime SQL inventory and reconciled the retired remote-sensing due-claim fingerprint from the unresolved-write review ledger.",
+    "local_verification": "python3 scripts/runtime_sql_inventory.py --check docs/refactor/runtime-sql-inventory.json passes."
+  },
+  "later_branch_ci_changes": [
+    {
+      "commit": "cfb910be",
+      "change": "reuse isolated multiarch Buildx cache"
+    },
+    {
+      "commit": "cb94ec97",
+      "change": "parallelize multiarch image gate"
+    }
+  ],
+  "interpretation": "The later Buildx changes improve the pipeline but do not establish the original attempt-1 failure cause. The stale-inventory failure is a separate verified current-head failure and is repaired locally; hosted confirmation is pending.",
+  "scope": "No candidate, legacy, or production database or role was accessed or changed."
+}

@@ -1,0 +1,41 @@
+{
+  "date": "2026-10-28",
+  "base_commit": "7de8e2accff72db1cdef0971607ea7971a640dc9",
+  "scope": "Regenerative-outcomes and federation response contracts; explicit stakeholder-outcome and Green Paper report projections",
+  "test_command": [
+    "python3",
+    "-m",
+    "pytest",
+    "tests/test_gateway_comprehensive_status_reads.py",
+    "tests/test_comprehensive_status.py",
+    "tests/test_climate_impact_report.py",
+    "tests/test_gateway_federation_response.py",
+    "tests/test_gateway_route_policy_inventory.py",
+    "tests/test_federation_node_pagination.py",
+    "tests/test_public_api_openapi.py",
+    "tests/test_financial_resilience.py",
+    "tests/test_stakeholder_outcomes_scope.py",
+    "tests/test_strategy_report_location_guards.py",
+    "tests/test_report_state_cursor_cleanup.py",
+    "tests/test_report_generator_query_scope_inventory.py",
+    "-q"
+  ],
+  "test_result": {"passed": 525, "failed": 0},
+  "checks": {
+    "ruff": "passed for changed Python files",
+    "python_compile": "passed for changed Python files",
+    "report_generator_inventories": "passed; source, query-scope, and helper-scope reports are current",
+    "capability_matrix": "passed; 67 rows (24 baseline-retained, 7 deployed, 36 prepared)",
+    "git_diff_check": "passed"
+  },
+  "contracts": {
+    "regenerative_outcomes": "Strict success/error section model binds report and every outcome row to the selected location, validates period order and the hectares total, and preserves public_summary and metadata.",
+    "federation_node": "shared_capabilities uses runtime-validated JSON values without narrowing the JSONB payload shape. Route policy, pagination, and versioned public SDK exposure are unchanged. Pydantic currently emits an empty OpenAPI schema component for the recursive JsonValue type; runtime validation rejects non-JSON Python values.",
+    "stakeholder_outcomes": "The report explicitly selects all 22 migration-031 columns in order; location/status filters and row output remain unchanged.",
+    "green_paper_publication_status": "The report explicitly selects all 14 view columns; ordering, public-view filters, and full output remain unchanged."
+  },
+  "data_exposure_review": "No content fields were removed. Existing regenerative public summaries/metadata, stakeholder descriptions/metadata/actors, and public Green Paper paths/reviewer/CID/hash fields remain present. This work validates shape/scope and prevents future schema fields from entering implicitly; it does not decide content-level privacy or populated-data parity.",
+  "candidate_or_legacy_database_touched": false,
+  "provider_or_production_service_touched": false,
+  "migration_added": false
+}

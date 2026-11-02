@@ -5,18 +5,36 @@ from datetime import datetime, timezone
 import psycopg2
 import psycopg2.extras
 
-from ..common import _serialize_rows
+from ..common import _looks_like_uuid, _serialize_rows
 
 
 def generate_time_liberation(conn, location_id: str, period_start: str = None, period_end: str = None) -> dict:
     """Generate a public-safe time liberation report."""
+    if not _looks_like_uuid(location_id):
+        raise ValueError("time_liberation requires an explicit location_id")
+
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     try:
         cur.execute("SELECT name FROM location WHERE id = %s", (location_id,))
         location = cur.fetchone()
         cur.execute(
             """
-            SELECT *
+            SELECT id,
+                   location_id,
+                   farm_id,
+                   observation_date,
+                   workflow_area,
+                   baseline_hours,
+                   observed_hours,
+                   hours_reclaimed,
+                   burden_reduction_pct,
+                   automation_or_agent_used,
+                   automation_type,
+                   beneficiary_group,
+                   public_summary,
+                   evidence_maturity,
+                   evidence_maturity_label,
+                   metadata
             FROM v_public_time_liberation_summary
             WHERE location_id = %s
               AND (%s::date IS NULL OR observation_date >= %s::date)
@@ -47,13 +65,32 @@ def generate_time_liberation(conn, location_id: str, period_start: str = None, p
 
 def generate_capital_alignment(conn, location_id: str, period_start: str = None, period_end: str = None) -> dict:
     """Generate a public-safe capital alignment report."""
+    if not _looks_like_uuid(location_id):
+        raise ValueError("capital_alignment requires an explicit location_id")
+
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     try:
         cur.execute("SELECT name FROM location WHERE id = %s", (location_id,))
         location = cur.fetchone()
         cur.execute(
             """
-            SELECT *
+            SELECT id,
+                   location_id,
+                   farm_id,
+                   capital_source_id,
+                   assessment_date,
+                   provider_name,
+                   provider_type,
+                   alignment_status,
+                   extractive_risk_level,
+                   community_control_terms,
+                   exit_pressure_risk,
+                   profit_extraction_limits,
+                   commons_reinvestment_commitment_pct,
+                   public_summary,
+                   evidence_maturity,
+                   evidence_maturity_label,
+                   metadata
             FROM v_public_capital_alignment_summary
             WHERE location_id = %s
               AND (%s::date IS NULL OR assessment_date >= %s::date)
@@ -86,32 +123,38 @@ def generate_capital_alignment(conn, location_id: str, period_start: str = None,
 def generate_governance_inclusion(
     conn, location_id: str = None, period_start: str = None, period_end: str = None
 ) -> dict:
-    """Generate a public-safe governance inclusion report."""
+    """Generate a public-safe governance inclusion report for one location."""
+    if not _looks_like_uuid(location_id):
+        raise ValueError("governance_inclusion requires an explicit location_id")
+
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     try:
-        if location_id:
-            cur.execute(
-                """
-                SELECT *
-                FROM v_public_governance_inclusion_summary
-                WHERE (location_id = %s OR location_id IS NULL)
-                  AND (%s::date IS NULL OR observation_date >= %s::date)
-                  AND (%s::date IS NULL OR observation_date <= %s::date)
-                ORDER BY observation_date DESC, governance_body
-                """,
-                (location_id, period_start, period_start, period_end, period_end),
-            )
-        else:
-            cur.execute(
-                """
-                SELECT *
-                FROM v_public_governance_inclusion_summary
-                WHERE (%s::date IS NULL OR observation_date >= %s::date)
-                  AND (%s::date IS NULL OR observation_date <= %s::date)
-                ORDER BY observation_date DESC, governance_body
-                """,
-                (period_start, period_start, period_end, period_end),
-            )
+        cur.execute(
+            """
+            SELECT id,
+                   location_id,
+                   dao_proposal_id,
+                   observation_date,
+                   governance_body,
+                   inclusion_scope,
+                   represented_groups,
+                   missing_groups,
+                   pseudonymous_participation_enabled,
+                   marginalized_voice_count,
+                   total_participant_count,
+                   representation_coverage_pct,
+                   public_summary,
+                   evidence_maturity,
+                   evidence_maturity_label,
+                   metadata
+            FROM v_public_governance_inclusion_summary
+            WHERE (location_id = %s OR location_id IS NULL)
+              AND (%s::date IS NULL OR observation_date >= %s::date)
+              AND (%s::date IS NULL OR observation_date <= %s::date)
+            ORDER BY observation_date DESC, governance_body
+            """,
+            (location_id, period_start, period_start, period_end, period_end),
+        )
         observations = [dict(r) for r in cur.fetchall()]
     finally:
         cur.close()
@@ -135,13 +178,30 @@ def generate_governance_inclusion(
 
 def generate_land_stewardship(conn, location_id: str, period_start: str = None, period_end: str = None) -> dict:
     """Generate a public-safe land stewardship report."""
+    if not _looks_like_uuid(location_id):
+        raise ValueError("land_stewardship requires an explicit location_id")
+
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     try:
         cur.execute("SELECT name FROM location WHERE id = %s", (location_id,))
         location = cur.fetchone()
         cur.execute(
             """
-            SELECT *
+            SELECT
+                id,
+                location_id,
+                farm_id,
+                tenure_rights_assessment_id,
+                commitment_date,
+                stewardship_model,
+                landlord_dependency_risk,
+                anti_speculation_terms,
+                community_benefit_rights,
+                commons_transition_path,
+                public_summary,
+                evidence_maturity,
+                evidence_maturity_label,
+                metadata
             FROM v_public_land_stewardship_summary
             WHERE location_id = %s
               AND (%s::date IS NULL OR commitment_date >= %s::date)

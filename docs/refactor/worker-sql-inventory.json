@@ -4,10 +4,10 @@
   "scope": "Direct Python SQL execution calls found in the static worker source-import closure. Relation names are regex-derived candidates, not a parsed SQL AST. The inventory does not prove function reachability, complete database effects, or authorization.",
   "summary": {
     "operation_roots": 49,
-    "source_files": 136,
-    "execution_sites": 471,
-    "static_literal_sites": 384,
-    "composed_or_variable_sites": 87
+    "source_files": 146,
+    "execution_sites": 440,
+    "static_literal_sites": 351,
+    "composed_or_variable_sites": 89
   },
   "execution_sites": [
     {
@@ -1779,9 +1779,9 @@
       ]
     },
     {
-      "id": "services/analytics/carbon_balance.py:42:4",
+      "id": "services/analytics/carbon_balance.py:43:4",
       "source": "services/analytics/carbon_balance.py",
-      "line": 42,
+      "line": 43,
       "column": 4,
       "scope": "compute_ghg_emissions",
       "method": "execute",
@@ -1794,9 +1794,9 @@
       ]
     },
     {
-      "id": "services/analytics/carbon_balance.py:140:8",
+      "id": "services/analytics/carbon_balance.py:141:8",
       "source": "services/analytics/carbon_balance.py",
-      "line": 140,
+      "line": 141,
       "column": 8,
       "scope": "compute_carbon_balance",
       "method": "execute",
@@ -1805,15 +1805,15 @@
       "candidate_relations": [
         "climate_impact_summary"
       ],
-      "static_sql_sha256": "2049c211f18fe176df56a84a71b50faf59952b32ec19a62198c45b837ad030c2",
+      "static_sql_sha256": "191b57324850fbbc761490a70d3feeebe1c31ba832c33e74d530033ecdaaf250",
       "operation_refs": [
         "scheduled_module:services.analytics.carbon_credit_adjustment_check"
       ]
     },
     {
-      "id": "services/analytics/carbon_balance.py:147:8",
+      "id": "services/analytics/carbon_balance.py:154:8",
       "source": "services/analytics/carbon_balance.py",
-      "line": 147,
+      "line": 154,
       "column": 8,
       "scope": "compute_carbon_balance",
       "method": "execute",
@@ -1822,15 +1822,15 @@
       "candidate_relations": [
         "climate_impact_summary"
       ],
-      "static_sql_sha256": "caf843e140857614061a65e58dfab525f47cc202505287de1ea83027d7a0bf81",
+      "static_sql_sha256": "eb5f39662eddf98b6f7264c2c481a11c5481e77634c3f01da0beb5f0a41927f5",
       "operation_refs": [
         "scheduled_module:services.analytics.carbon_credit_adjustment_check"
       ]
     },
     {
-      "id": "services/analytics/carbon_balance.py:168:8",
+      "id": "services/analytics/carbon_balance.py:181:8",
       "source": "services/analytics/carbon_balance.py",
-      "line": 168,
+      "line": 181,
       "column": 8,
       "scope": "compute_carbon_balance",
       "method": "execute",
@@ -1845,9 +1845,9 @@
       ]
     },
     {
-      "id": "services/analytics/carbon_balance.py:177:8",
+      "id": "services/analytics/carbon_balance.py:190:8",
       "source": "services/analytics/carbon_balance.py",
-      "line": 177,
+      "line": 190,
       "column": 8,
       "scope": "compute_carbon_balance",
       "method": "execute",
@@ -1862,9 +1862,9 @@
       ]
     },
     {
-      "id": "services/analytics/carbon_balance.py:205:8",
+      "id": "services/analytics/carbon_balance.py:218:8",
       "source": "services/analytics/carbon_balance.py",
-      "line": 205,
+      "line": 218,
       "column": 8,
       "scope": "compute_carbon_balance",
       "method": "execute",
@@ -1879,9 +1879,9 @@
       ]
     },
     {
-      "id": "services/analytics/carbon_balance.py:297:4",
+      "id": "services/analytics/carbon_balance.py:310:4",
       "source": "services/analytics/carbon_balance.py",
-      "line": 297,
+      "line": 310,
       "column": 4,
       "scope": "list_emission_factors",
       "method": "execute",
@@ -1894,9 +1894,9 @@
       ]
     },
     {
-      "id": "services/analytics/carbon_balance.py:326:4",
+      "id": "services/analytics/carbon_balance.py:339:4",
       "source": "services/analytics/carbon_balance.py",
-      "line": 326,
+      "line": 339,
       "column": 4,
       "scope": "list_carbon_benchmarks",
       "method": "execute",
@@ -1969,11 +1969,9 @@
       "expression_kind": "literal",
       "statement_kind": "SELECT",
       "candidate_relations": [
-        "climate_impact_summary",
-        "period_end",
-        "period_start"
+        "climate_impact_summary"
       ],
-      "static_sql_sha256": "aacad1cbf410263b30e4db1b2ef85dbec133d7d0fc24b5bc25e35f18d776cd62",
+      "static_sql_sha256": "f006c7a5cdf581cc5abbb3d92704d00058a94fa51709f4ccfd1d4cd02924a3a7",
       "operation_refs": [
         "scheduled_module:services.analytics.carbon_credit_adjustment_check"
       ]
@@ -2326,15 +2324,15 @@
       "candidate_relations": [
         "soil_input_application"
       ],
-      "static_sql_sha256": "70609491377c3ca7df49323081b25dd467bc0651739978fb482922c4a2a126b3",
+      "static_sql_sha256": "73503fc168f33ec216789f8de678f5c75f93fb675ba7e857cd6153e426373454",
       "operation_refs": [
         "isolated_worker:services.agents.worker_cli"
       ]
     },
     {
-      "id": "services/analytics/ecological_modeling_v2.py:58:4",
+      "id": "services/analytics/ecological_modeling_v2.py:73:4",
       "source": "services/analytics/ecological_modeling_v2.py",
-      "line": 58,
+      "line": 73,
       "column": 4,
       "scope": "compute_pest_trends",
       "method": "execute",
@@ -2349,9 +2347,9 @@
       ]
     },
     {
-      "id": "services/analytics/ecological_modeling_v2.py:114:4",
+      "id": "services/analytics/ecological_modeling_v2.py:129:4",
       "source": "services/analytics/ecological_modeling_v2.py",
-      "line": 114,
+      "line": 129,
       "column": 4,
       "scope": "compute_biocontrol_effectiveness",
       "method": "execute",
@@ -2366,9 +2364,9 @@
       ]
     },
     {
-      "id": "services/analytics/ecological_modeling_v2.py:166:4",
+      "id": "services/analytics/ecological_modeling_v2.py:181:4",
       "source": "services/analytics/ecological_modeling_v2.py",
-      "line": 166,
+      "line": 181,
       "column": 4,
       "scope": "compute_resource_efficiency",
       "method": "execute",
@@ -2383,9 +2381,9 @@
       ]
     },
     {
-      "id": "services/analytics/ecological_modeling_v2.py:181:4",
+      "id": "services/analytics/ecological_modeling_v2.py:196:4",
       "source": "services/analytics/ecological_modeling_v2.py",
-      "line": 181,
+      "line": 196,
       "column": 4,
       "scope": "compute_resource_efficiency",
       "method": "execute",
@@ -2401,9 +2399,9 @@
       ]
     },
     {
-      "id": "services/analytics/ecological_modeling_v2.py:223:4",
+      "id": "services/analytics/ecological_modeling_v2.py:238:4",
       "source": "services/analytics/ecological_modeling_v2.py",
-      "line": 223,
+      "line": 238,
       "column": 4,
       "scope": "compute_conservation_status_summary",
       "method": "execute",
@@ -2876,8 +2874,8 @@
       "expression_kind": "literal",
       "statement_kind": "INSERT",
       "candidate_relations": [
-        "SET",
-        "cache_entry"
+        "cache_entry",
+        "set"
       ],
       "static_sql_sha256": "3aefde19c9beb24d42d7c861420f91d60d177d5b44ba0879e6eaf25a0ee861e4",
       "operation_refs": [
@@ -2986,9 +2984,9 @@
       ]
     },
     {
-      "id": "services/common/database.py:77:15",
+      "id": "services/common/database.py:79:15",
       "source": "services/common/database.py",
-      "line": 77,
+      "line": 79,
       "column": 15,
       "scope": "query",
       "method": "execute",
@@ -3006,11 +3004,12 @@
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "isolated_worker:services.agents.worker_cli",
         "isolated_worker:services.events.dispatch_worker",
+        "isolated_worker:services.events.notification_delivery_worker",
+        "isolated_worker:services.export.report_snapshot_export_worker",
         "scheduled_module:services.analytics.carbon_credit_adjustment_check",
         "scheduled_module:services.analytics.carbon_credit_adjustment_worker",
         "scheduled_module:services.events",
         "scheduled_module:services.export.dataset_refresh",
-        "scheduled_module:services.ingestion.anomaly_detector",
         "scheduled_module:services.ingestion.baal_indexer",
         "scheduled_module:services.ingestion.baal_worker",
         "scheduled_module:services.ingestion.clickhouse_outbox",
@@ -3048,9 +3047,9 @@
       ]
     },
     {
-      "id": "services/common/database.py:80:8",
+      "id": "services/common/database.py:82:8",
       "source": "services/common/database.py",
-      "line": 80,
+      "line": 82,
       "column": 8,
       "scope": "query",
       "method": "execute",
@@ -3068,11 +3067,12 @@
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "isolated_worker:services.agents.worker_cli",
         "isolated_worker:services.events.dispatch_worker",
+        "isolated_worker:services.events.notification_delivery_worker",
+        "isolated_worker:services.export.report_snapshot_export_worker",
         "scheduled_module:services.analytics.carbon_credit_adjustment_check",
         "scheduled_module:services.analytics.carbon_credit_adjustment_worker",
         "scheduled_module:services.events",
         "scheduled_module:services.export.dataset_refresh",
-        "scheduled_module:services.ingestion.anomaly_detector",
         "scheduled_module:services.ingestion.baal_indexer",
         "scheduled_module:services.ingestion.baal_worker",
         "scheduled_module:services.ingestion.clickhouse_outbox",
@@ -3110,9 +3110,9 @@
       ]
     },
     {
-      "id": "services/common/database.py:142:12",
+      "id": "services/common/database.py:144:12",
       "source": "services/common/database.py",
-      "line": 142,
+      "line": 144,
       "column": 12,
       "scope": "DatabaseConnection.execute",
       "method": "execute",
@@ -3130,11 +3130,12 @@
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "isolated_worker:services.agents.worker_cli",
         "isolated_worker:services.events.dispatch_worker",
+        "isolated_worker:services.events.notification_delivery_worker",
+        "isolated_worker:services.export.report_snapshot_export_worker",
         "scheduled_module:services.analytics.carbon_credit_adjustment_check",
         "scheduled_module:services.analytics.carbon_credit_adjustment_worker",
         "scheduled_module:services.events",
         "scheduled_module:services.export.dataset_refresh",
-        "scheduled_module:services.ingestion.anomaly_detector",
         "scheduled_module:services.ingestion.baal_indexer",
         "scheduled_module:services.ingestion.baal_worker",
         "scheduled_module:services.ingestion.clickhouse_outbox",
@@ -3190,7 +3191,6 @@
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "isolated_worker:services.agents.worker_cli",
         "scheduled_module:services.analytics.carbon_credit_adjustment_worker",
-        "scheduled_module:services.ingestion.anomaly_detector",
         "scheduled_module:services.ingestion.climate_worker",
         "scheduled_module:services.ingestion.remote_sensing_worker",
         "scheduled_module:services.ingestion.sensor_anomaly_scan_worker",
@@ -3226,7 +3226,6 @@
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "isolated_worker:services.agents.worker_cli",
         "scheduled_module:services.analytics.carbon_credit_adjustment_worker",
-        "scheduled_module:services.ingestion.anomaly_detector",
         "scheduled_module:services.ingestion.climate_worker",
         "scheduled_module:services.ingestion.remote_sensing_worker",
         "scheduled_module:services.ingestion.sensor_anomaly_scan_worker",
@@ -3262,7 +3261,6 @@
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "isolated_worker:services.agents.worker_cli",
         "scheduled_module:services.analytics.carbon_credit_adjustment_worker",
-        "scheduled_module:services.ingestion.anomaly_detector",
         "scheduled_module:services.ingestion.climate_worker",
         "scheduled_module:services.ingestion.remote_sensing_worker",
         "scheduled_module:services.ingestion.sensor_anomaly_scan_worker",
@@ -3298,7 +3296,6 @@
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "isolated_worker:services.agents.worker_cli",
         "scheduled_module:services.analytics.carbon_credit_adjustment_worker",
-        "scheduled_module:services.ingestion.anomaly_detector",
         "scheduled_module:services.ingestion.climate_worker",
         "scheduled_module:services.ingestion.remote_sensing_worker",
         "scheduled_module:services.ingestion.sensor_anomaly_scan_worker",
@@ -3336,7 +3333,6 @@
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "isolated_worker:services.agents.worker_cli",
         "scheduled_module:services.analytics.carbon_credit_adjustment_worker",
-        "scheduled_module:services.ingestion.anomaly_detector",
         "scheduled_module:services.ingestion.climate_worker",
         "scheduled_module:services.ingestion.remote_sensing_worker",
         "scheduled_module:services.ingestion.sensor_anomaly_scan_worker",
@@ -3374,7 +3370,6 @@
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "isolated_worker:services.agents.worker_cli",
         "scheduled_module:services.analytics.carbon_credit_adjustment_worker",
-        "scheduled_module:services.ingestion.anomaly_detector",
         "scheduled_module:services.ingestion.climate_worker",
         "scheduled_module:services.ingestion.remote_sensing_worker",
         "scheduled_module:services.ingestion.sensor_anomaly_scan_worker",
@@ -3412,7 +3407,6 @@
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "isolated_worker:services.agents.worker_cli",
         "scheduled_module:services.analytics.carbon_credit_adjustment_worker",
-        "scheduled_module:services.ingestion.anomaly_detector",
         "scheduled_module:services.ingestion.climate_worker",
         "scheduled_module:services.ingestion.remote_sensing_worker",
         "scheduled_module:services.ingestion.sensor_anomaly_scan_worker",
@@ -3450,7 +3444,6 @@
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "isolated_worker:services.agents.worker_cli",
         "scheduled_module:services.analytics.carbon_credit_adjustment_worker",
-        "scheduled_module:services.ingestion.anomaly_detector",
         "scheduled_module:services.ingestion.climate_worker",
         "scheduled_module:services.ingestion.remote_sensing_worker",
         "scheduled_module:services.ingestion.sensor_anomaly_scan_worker",
@@ -3468,9 +3461,9 @@
       ]
     },
     {
-      "id": "services/common/worker_database.py:142:12",
+      "id": "services/common/worker_database.py:143:12",
       "source": "services/common/worker_database.py",
-      "line": 142,
+      "line": 143,
       "column": 12,
       "scope": "get_worker_db",
       "method": "execute",
@@ -3489,20 +3482,30 @@
         "isolated_worker:services.agents.worker_cli",
         "isolated_worker:services.events.dispatch_worker",
         "isolated_worker:services.events.notification_delivery_worker",
+        "isolated_worker:services.export.report_snapshot_export_worker",
         "scheduled_module:services.analytics.carbon_credit_adjustment_worker",
         "scheduled_module:services.events",
-        "scheduled_module:services.ingestion.anomaly_detector",
         "scheduled_module:services.ingestion.baal_worker",
+        "scheduled_module:services.ingestion.clickhouse_outbox",
         "scheduled_module:services.ingestion.clickhouse_outbox_worker",
         "scheduled_module:services.ingestion.climate_worker",
+        "scheduled_module:services.ingestion.data_freshness",
+        "scheduled_module:services.ingestion.eas_indexer",
         "scheduled_module:services.ingestion.eas_worker",
         "scheduled_module:services.ingestion.freshness_worker",
+        "scheduled_module:services.ingestion.gnosis_indexer",
         "scheduled_module:services.ingestion.gnosis_worker",
+        "scheduled_module:services.ingestion.market_data",
         "scheduled_module:services.ingestion.market_data_worker",
+        "scheduled_module:services.ingestion.remote_sensing_fetcher",
         "scheduled_module:services.ingestion.remote_sensing_worker",
+        "scheduled_module:services.ingestion.rpc_indexer",
         "scheduled_module:services.ingestion.rpc_worker",
         "scheduled_module:services.ingestion.sensor_anomaly_scan_worker",
+        "scheduled_module:services.ingestion.sensor_ingester",
         "scheduled_module:services.ingestion.sensor_worker",
+        "scheduled_module:services.ingestion.weather",
+        "scheduled_module:services.ingestion.weather_forecast",
         "scheduled_module:services.ingestion.weather_forecast_worker",
         "scheduled_module:services.ingestion.weather_worker",
         "scheduled_module:services.metrics.noi_snapshot_worker",
@@ -3513,6 +3516,47 @@
         "signed_source_function:services.agents.worker_cli.run_worker_summary_digest_result",
         "signed_source_function:services.agents.worker_cli.run_worker_summary_list",
         "signed_source_function:services.agents.worker_cli.run_worker_summary_list_result"
+      ]
+    },
+    {
+      "id": "services/core/jobs.py:390:15",
+      "source": "services/core/jobs.py",
+      "line": 390,
+      "column": 15,
+      "scope": "kokonut_network_location_ids",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "location",
+        "organization"
+      ],
+      "static_sql_sha256": "381a830f4e5c52c917f24d3055dd14fb77f19876411c003efd2eef32c1c55cd8",
+      "operation_refs": [
+        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading"
+      ]
+    },
+    {
+      "id": "services/core/worker_progress.py:490:8",
+      "source": "services/core/worker_progress.py",
+      "line": 490,
+      "column": 8,
+      "scope": "inspect_progress",
+      "method": "execute",
+      "expression_kind": "composed_or_variable",
+      "statement_kind": "UNKNOWN",
+      "candidate_relations": [],
+      "static_sql_sha256": null,
+      "operation_refs": [
+        "event_handler:services.events.handlers.handle_alert_notification",
+        "event_handler:services.events.handlers.handle_stale_data",
+        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "isolated_worker:services.events.dispatch_worker",
+        "isolated_worker:services.events.notification_delivery_worker",
+        "scheduled_module:services.events",
+        "scheduled_module:services.ingestion.sensor_anomaly_scan_worker",
+        "scheduled_module:services.ingestion.sensor_ingester",
+        "scheduled_module:services.metrics"
       ]
     },
     {
@@ -3806,17 +3850,17 @@
       ]
     },
     {
-      "id": "services/drivers/registry.py:183:16",
+      "id": "services/drivers/registry.py:185:16",
       "source": "services/drivers/registry.py",
-      "line": 183,
+      "line": 185,
       "column": 16,
       "scope": "DriverRegistry.register",
       "method": "execute",
       "expression_kind": "literal",
       "statement_kind": "INSERT",
       "candidate_relations": [
-        "SET",
-        "driver_registry"
+        "driver_registry",
+        "set"
       ],
       "static_sql_sha256": "bfe86051cd8335b42c7292e00f1f4f90e2e9562f17fd605acc9d6b2e9680eccf",
       "operation_refs": [
@@ -3825,9 +3869,9 @@
       ]
     },
     {
-      "id": "services/drivers/registry.py:233:16",
+      "id": "services/drivers/registry.py:235:16",
       "source": "services/drivers/registry.py",
-      "line": 233,
+      "line": 235,
       "column": 16,
       "scope": "DriverRegistry.load",
       "method": "execute",
@@ -3843,9 +3887,9 @@
       ]
     },
     {
-      "id": "services/drivers/registry.py:274:20",
+      "id": "services/drivers/registry.py:276:20",
       "source": "services/drivers/registry.py",
-      "line": 274,
+      "line": 276,
       "column": 20,
       "scope": "DriverRegistry.list_drivers",
       "method": "execute",
@@ -3861,9 +3905,9 @@
       ]
     },
     {
-      "id": "services/drivers/registry.py:285:20",
+      "id": "services/drivers/registry.py:287:20",
       "source": "services/drivers/registry.py",
-      "line": 285,
+      "line": 287,
       "column": 20,
       "scope": "DriverRegistry.list_drivers",
       "method": "execute",
@@ -3879,9 +3923,27 @@
       ]
     },
     {
-      "id": "services/drivers/registry.py:327:16",
+      "id": "services/drivers/registry.py:336:16",
       "source": "services/drivers/registry.py",
-      "line": 327,
+      "line": 336,
+      "column": 16,
+      "scope": "DriverRegistry.list_public_drivers_page",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "driver_registry"
+      ],
+      "static_sql_sha256": "937279dceb8db3f96668b92d8fb5aa5ae9fb05e2af62538a3adcf1623e99a06f",
+      "operation_refs": [
+        "scheduled_module:services.ingestion.sensor_ingester",
+        "scheduled_module:services.ingestion.sensor_worker"
+      ]
+    },
+    {
+      "id": "services/drivers/registry.py:383:16",
+      "source": "services/drivers/registry.py",
+      "line": 383,
       "column": 16,
       "scope": "DriverRegistry.list_instances",
       "method": "execute",
@@ -3898,9 +3960,9 @@
       ]
     },
     {
-      "id": "services/drivers/registry.py:368:12",
+      "id": "services/drivers/registry.py:424:12",
       "source": "services/drivers/registry.py",
-      "line": 368,
+      "line": 424,
       "column": 12,
       "scope": "DriverRegistry.get_schedulable_instance",
       "method": "execute",
@@ -3917,9 +3979,9 @@
       ]
     },
     {
-      "id": "services/drivers/registry.py:474:16",
+      "id": "services/drivers/registry.py:530:16",
       "source": "services/drivers/registry.py",
-      "line": 474,
+      "line": 530,
       "column": 16,
       "scope": "DriverRegistry.create_instance",
       "method": "execute",
@@ -3935,9 +3997,9 @@
       ]
     },
     {
-      "id": "services/drivers/registry.py:487:16",
+      "id": "services/drivers/registry.py:543:16",
       "source": "services/drivers/registry.py",
-      "line": 487,
+      "line": 543,
       "column": 16,
       "scope": "DriverRegistry.create_instance",
       "method": "execute",
@@ -3953,9 +4015,9 @@
       ]
     },
     {
-      "id": "services/drivers/registry.py:523:16",
+      "id": "services/drivers/registry.py:579:16",
       "source": "services/drivers/registry.py",
-      "line": 523,
+      "line": 579,
       "column": 16,
       "scope": "DriverRegistry.update_instance_status",
       "method": "execute",
@@ -3971,9 +4033,9 @@
       ]
     },
     {
-      "id": "services/drivers/registry.py:535:20",
+      "id": "services/drivers/registry.py:591:20",
       "source": "services/drivers/registry.py",
-      "line": 535,
+      "line": 591,
       "column": 20,
       "scope": "DriverRegistry.update_instance_status",
       "method": "execute",
@@ -3989,9 +4051,9 @@
       ]
     },
     {
-      "id": "services/drivers/registry.py:546:20",
+      "id": "services/drivers/registry.py:602:20",
       "source": "services/drivers/registry.py",
-      "line": 546,
+      "line": 602,
       "column": 20,
       "scope": "DriverRegistry.update_instance_status",
       "method": "execute",
@@ -4007,9 +4069,9 @@
       ]
     },
     {
-      "id": "services/events/bus.py:88:16",
+      "id": "services/events/bus.py:94:16",
       "source": "services/events/bus.py",
-      "line": 88,
+      "line": 94,
       "column": 16,
       "scope": "EventBus.publish",
       "method": "execute",
@@ -4023,247 +4085,22 @@
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "isolated_worker:services.events.dispatch_worker",
         "scheduled_module:services.events",
-        "scheduled_module:services.ingestion.anomaly_detector",
-        "scheduled_module:services.ingestion.data_freshness",
-        "scheduled_module:services.ingestion.freshness_worker",
         "scheduled_module:services.ingestion.sensor_ingester",
         "scheduled_module:services.metrics"
       ]
     },
     {
-      "id": "services/events/bus.py:107:12",
-      "source": "services/events/bus.py",
-      "line": 107,
-      "column": 12,
-      "scope": "EventBus._claim",
-      "method": "execute",
-      "expression_kind": "literal",
-      "statement_kind": "WITH",
-      "candidate_relations": [
-        "SKIP",
-        "claimable",
-        "platform_event"
-      ],
-      "static_sql_sha256": "c919984a6503eef68e1c686f0bc2c391a3de11359e6b99e5de7afbbfe2e95857",
-      "operation_refs": [
-        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
-        "isolated_worker:services.events.dispatch_worker",
-        "scheduled_module:services.events",
-        "scheduled_module:services.ingestion.anomaly_detector",
-        "scheduled_module:services.ingestion.data_freshness",
-        "scheduled_module:services.ingestion.freshness_worker",
-        "scheduled_module:services.ingestion.sensor_ingester",
-        "scheduled_module:services.metrics"
-      ]
-    },
-    {
-      "id": "services/events/bus.py:157:12",
-      "source": "services/events/bus.py",
-      "line": 157,
-      "column": 12,
-      "scope": "EventBus._process_event",
-      "method": "execute",
-      "expression_kind": "literal",
-      "statement_kind": "SELECT",
-      "candidate_relations": [
-        "event_handler",
-        "event_handler_delivery"
-      ],
-      "static_sql_sha256": "be6c98445b0b18dac8dbd4efde09a0986ada03ad1b93402f1f80de0b5a83f240",
-      "operation_refs": [
-        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
-        "isolated_worker:services.events.dispatch_worker",
-        "scheduled_module:services.events",
-        "scheduled_module:services.ingestion.anomaly_detector",
-        "scheduled_module:services.ingestion.data_freshness",
-        "scheduled_module:services.ingestion.freshness_worker",
-        "scheduled_module:services.ingestion.sensor_ingester",
-        "scheduled_module:services.metrics"
-      ]
-    },
-    {
-      "id": "services/events/bus.py:176:16",
-      "source": "services/events/bus.py",
-      "line": 176,
-      "column": 16,
-      "scope": "EventBus._process_event",
-      "method": "execute",
-      "expression_kind": "literal",
-      "statement_kind": "UPDATE",
-      "candidate_relations": [
-        "platform_event"
-      ],
-      "static_sql_sha256": "32b2517b034c78356cd848dd4a5c4eb43f4c9891ea1b3893a207ffe87c8b66eb",
-      "operation_refs": [
-        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
-        "isolated_worker:services.events.dispatch_worker",
-        "scheduled_module:services.events",
-        "scheduled_module:services.ingestion.anomaly_detector",
-        "scheduled_module:services.ingestion.data_freshness",
-        "scheduled_module:services.ingestion.freshness_worker",
-        "scheduled_module:services.ingestion.sensor_ingester",
-        "scheduled_module:services.metrics"
-      ]
-    },
-    {
-      "id": "services/events/bus.py:188:16",
+      "id": "services/events/bus.py:188:12",
       "source": "services/events/bus.py",
       "line": 188,
-      "column": 16,
-      "scope": "EventBus._process_event",
-      "method": "execute",
-      "expression_kind": "literal",
-      "statement_kind": "INSERT",
-      "candidate_relations": [
-        "SET",
-        "event_handler_delivery"
-      ],
-      "static_sql_sha256": "815dd01475f74ae3eea32efa30273249bf9039f3d787d6079fbed6ca4107472d",
-      "operation_refs": [
-        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
-        "isolated_worker:services.events.dispatch_worker",
-        "scheduled_module:services.events",
-        "scheduled_module:services.ingestion.anomaly_detector",
-        "scheduled_module:services.ingestion.data_freshness",
-        "scheduled_module:services.ingestion.freshness_worker",
-        "scheduled_module:services.ingestion.sensor_ingester",
-        "scheduled_module:services.metrics"
-      ]
-    },
-    {
-      "id": "services/events/bus.py:204:16",
-      "source": "services/events/bus.py",
-      "line": 204,
-      "column": 16,
-      "scope": "EventBus._process_event",
-      "method": "execute",
-      "expression_kind": "literal",
-      "statement_kind": "UPDATE",
-      "candidate_relations": [
-        "event_handler_delivery"
-      ],
-      "static_sql_sha256": "96672bd85e9e07f3c8f102d43a51bcf5478651c2077251b9327d431c3a48d170",
-      "operation_refs": [
-        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
-        "isolated_worker:services.events.dispatch_worker",
-        "scheduled_module:services.events",
-        "scheduled_module:services.ingestion.anomaly_detector",
-        "scheduled_module:services.ingestion.data_freshness",
-        "scheduled_module:services.ingestion.freshness_worker",
-        "scheduled_module:services.ingestion.sensor_ingester",
-        "scheduled_module:services.metrics"
-      ]
-    },
-    {
-      "id": "services/events/bus.py:209:16",
-      "source": "services/events/bus.py",
-      "line": 209,
-      "column": 16,
-      "scope": "EventBus._process_event",
-      "method": "execute",
-      "expression_kind": "literal",
-      "statement_kind": "INSERT",
-      "candidate_relations": [
-        "event_handler_log"
-      ],
-      "static_sql_sha256": "c68e1fbd88e2dadea4ba59cba5e0840c3d8ef0388137114529d98b11cc362c88",
-      "operation_refs": [
-        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
-        "isolated_worker:services.events.dispatch_worker",
-        "scheduled_module:services.events",
-        "scheduled_module:services.ingestion.anomaly_detector",
-        "scheduled_module:services.ingestion.data_freshness",
-        "scheduled_module:services.ingestion.freshness_worker",
-        "scheduled_module:services.ingestion.sensor_ingester",
-        "scheduled_module:services.metrics"
-      ]
-    },
-    {
-      "id": "services/events/bus.py:275:12",
-      "source": "services/events/bus.py",
-      "line": 275,
-      "column": 12,
-      "scope": "EventBus._complete",
-      "method": "execute",
-      "expression_kind": "literal",
-      "statement_kind": "UPDATE",
-      "candidate_relations": [
-        "platform_event"
-      ],
-      "static_sql_sha256": "7ced102a46d1a25ea4fa6d21807df97fa18de02557dc5fb825e2b8cc32881c96",
-      "operation_refs": [
-        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
-        "isolated_worker:services.events.dispatch_worker",
-        "scheduled_module:services.events",
-        "scheduled_module:services.ingestion.anomaly_detector",
-        "scheduled_module:services.ingestion.data_freshness",
-        "scheduled_module:services.ingestion.freshness_worker",
-        "scheduled_module:services.ingestion.sensor_ingester",
-        "scheduled_module:services.metrics"
-      ]
-    },
-    {
-      "id": "services/events/bus.py:290:12",
-      "source": "services/events/bus.py",
-      "line": 290,
-      "column": 12,
-      "scope": "EventBus._retry_or_dead_letter",
-      "method": "execute",
-      "expression_kind": "literal",
-      "statement_kind": "UPDATE",
-      "candidate_relations": [
-        "platform_event"
-      ],
-      "static_sql_sha256": "c7008c7558eba43a16e728fabeb208e2f5d64630d39494343b706bd154b77534",
-      "operation_refs": [
-        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
-        "isolated_worker:services.events.dispatch_worker",
-        "scheduled_module:services.events",
-        "scheduled_module:services.ingestion.anomaly_detector",
-        "scheduled_module:services.ingestion.data_freshness",
-        "scheduled_module:services.ingestion.freshness_worker",
-        "scheduled_module:services.ingestion.sensor_ingester",
-        "scheduled_module:services.metrics"
-      ]
-    },
-    {
-      "id": "services/events/bus.py:299:16",
-      "source": "services/events/bus.py",
-      "line": 299,
-      "column": 16,
-      "scope": "EventBus._retry_or_dead_letter",
-      "method": "execute",
-      "expression_kind": "literal",
-      "statement_kind": "INSERT",
-      "candidate_relations": [
-        "SET",
-        "event_dead_letter",
-        "platform_event"
-      ],
-      "static_sql_sha256": "0d0ea69d0e5466e12ebea5fd31402530861ff7a0a51708eea2ca8ddcc1924cd8",
-      "operation_refs": [
-        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
-        "isolated_worker:services.events.dispatch_worker",
-        "scheduled_module:services.events",
-        "scheduled_module:services.ingestion.anomaly_detector",
-        "scheduled_module:services.ingestion.data_freshness",
-        "scheduled_module:services.ingestion.freshness_worker",
-        "scheduled_module:services.ingestion.sensor_ingester",
-        "scheduled_module:services.metrics"
-      ]
-    },
-    {
-      "id": "services/events/bus.py:315:12",
-      "source": "services/events/bus.py",
-      "line": 315,
       "column": 12,
       "scope": "EventBus.replay_dead_letter",
       "method": "execute",
       "expression_kind": "literal",
       "statement_kind": "WITH",
       "candidate_relations": [
-        "OF",
         "event_dead_letter",
+        "of",
         "platform_event",
         "replayable",
         "reset_event"
@@ -4273,17 +4110,14 @@
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "isolated_worker:services.events.dispatch_worker",
         "scheduled_module:services.events",
-        "scheduled_module:services.ingestion.anomaly_detector",
-        "scheduled_module:services.ingestion.data_freshness",
-        "scheduled_module:services.ingestion.freshness_worker",
         "scheduled_module:services.ingestion.sensor_ingester",
         "scheduled_module:services.metrics"
       ]
     },
     {
-      "id": "services/events/bus.py:352:12",
+      "id": "services/events/bus.py:225:12",
       "source": "services/events/bus.py",
-      "line": 352,
+      "line": 225,
       "column": 12,
       "scope": "EventBus.dispose_dead_letter",
       "method": "execute",
@@ -4297,17 +4131,14 @@
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "isolated_worker:services.events.dispatch_worker",
         "scheduled_module:services.events",
-        "scheduled_module:services.ingestion.anomaly_detector",
-        "scheduled_module:services.ingestion.data_freshness",
-        "scheduled_module:services.ingestion.freshness_worker",
         "scheduled_module:services.ingestion.sensor_ingester",
         "scheduled_module:services.metrics"
       ]
     },
     {
-      "id": "services/events/bus.py:364:12",
+      "id": "services/events/bus.py:237:12",
       "source": "services/events/bus.py",
-      "line": 364,
+      "line": 237,
       "column": 12,
       "scope": "EventBus.get_stats",
       "method": "execute",
@@ -4321,17 +4152,14 @@
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "isolated_worker:services.events.dispatch_worker",
         "scheduled_module:services.events",
-        "scheduled_module:services.ingestion.anomaly_detector",
-        "scheduled_module:services.ingestion.data_freshness",
-        "scheduled_module:services.ingestion.freshness_worker",
         "scheduled_module:services.ingestion.sensor_ingester",
         "scheduled_module:services.metrics"
       ]
     },
     {
-      "id": "services/events/bus.py:377:16",
+      "id": "services/events/bus.py:250:16",
       "source": "services/events/bus.py",
-      "line": 377,
+      "line": 250,
       "column": 16,
       "scope": "EventBus.cleanup_old_events",
       "method": "execute",
@@ -4343,17 +4171,14 @@
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "isolated_worker:services.events.dispatch_worker",
         "scheduled_module:services.events",
-        "scheduled_module:services.ingestion.anomaly_detector",
-        "scheduled_module:services.ingestion.data_freshness",
-        "scheduled_module:services.ingestion.freshness_worker",
         "scheduled_module:services.ingestion.sensor_ingester",
         "scheduled_module:services.metrics"
       ]
     },
     {
-      "id": "services/events/bus.py:380:16",
+      "id": "services/events/bus.py:253:16",
       "source": "services/events/bus.py",
-      "line": 380,
+      "line": 253,
       "column": 16,
       "scope": "EventBus.cleanup_old_events",
       "method": "execute",
@@ -4367,17 +4192,14 @@
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "isolated_worker:services.events.dispatch_worker",
         "scheduled_module:services.events",
-        "scheduled_module:services.ingestion.anomaly_detector",
-        "scheduled_module:services.ingestion.data_freshness",
-        "scheduled_module:services.ingestion.freshness_worker",
         "scheduled_module:services.ingestion.sensor_ingester",
         "scheduled_module:services.metrics"
       ]
     },
     {
-      "id": "services/events/bus.py:421:16",
+      "id": "services/events/bus.py:294:16",
       "source": "services/events/bus.py",
-      "line": 421,
+      "line": 294,
       "column": 16,
       "scope": "EventBus.cleanup_old_events",
       "method": "execute",
@@ -4395,17 +4217,14 @@
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "isolated_worker:services.events.dispatch_worker",
         "scheduled_module:services.events",
-        "scheduled_module:services.ingestion.anomaly_detector",
-        "scheduled_module:services.ingestion.data_freshness",
-        "scheduled_module:services.ingestion.freshness_worker",
         "scheduled_module:services.ingestion.sensor_ingester",
         "scheduled_module:services.metrics"
       ]
     },
     {
-      "id": "services/events/bus.py:450:16",
+      "id": "services/events/bus.py:323:16",
       "source": "services/events/bus.py",
-      "line": 450,
+      "line": 323,
       "column": 16,
       "scope": "EventBus.cleanup_old_events",
       "method": "execute",
@@ -4419,17 +4238,14 @@
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "isolated_worker:services.events.dispatch_worker",
         "scheduled_module:services.events",
-        "scheduled_module:services.ingestion.anomaly_detector",
-        "scheduled_module:services.ingestion.data_freshness",
-        "scheduled_module:services.ingestion.freshness_worker",
         "scheduled_module:services.ingestion.sensor_ingester",
         "scheduled_module:services.metrics"
       ]
     },
     {
-      "id": "services/events/bus.py:458:16",
+      "id": "services/events/bus.py:331:16",
       "source": "services/events/bus.py",
-      "line": 458,
+      "line": 331,
       "column": 16,
       "scope": "EventBus.cleanup_old_events",
       "method": "execute",
@@ -4443,17 +4259,14 @@
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "isolated_worker:services.events.dispatch_worker",
         "scheduled_module:services.events",
-        "scheduled_module:services.ingestion.anomaly_detector",
-        "scheduled_module:services.ingestion.data_freshness",
-        "scheduled_module:services.ingestion.freshness_worker",
         "scheduled_module:services.ingestion.sensor_ingester",
         "scheduled_module:services.metrics"
       ]
     },
     {
-      "id": "services/events/cli.py:220:12",
+      "id": "services/events/cli.py:315:12",
       "source": "services/events/cli.py",
-      "line": 220,
+      "line": 315,
       "column": 12,
       "scope": "cmd_list_handlers",
       "method": "execute",
@@ -4468,9 +4281,9 @@
       ]
     },
     {
-      "id": "services/events/cli.py:249:12",
+      "id": "services/events/cli.py:344:12",
       "source": "services/events/cli.py",
-      "line": 249,
+      "line": 344,
       "column": 12,
       "scope": "cmd_list_dead_letter",
       "method": "execute",
@@ -4485,9 +4298,9 @@
       ]
     },
     {
-      "id": "services/events/dispatch_worker.py:34:16",
+      "id": "services/events/dispatch_worker.py:37:16",
       "source": "services/events/dispatch_worker.py",
-      "line": 34,
+      "line": 37,
       "column": 16,
       "scope": "IsolatedEventBus._function",
       "method": "execute",
@@ -4501,7 +4314,7 @@
       ],
       "statement_variants": [
         {
-          "operation": "_claim@44",
+          "operation": "_claim@47",
           "statement_kind": "SELECT",
           "candidate_relations": [
             "kokonut_security.claim_platform_event_batch"
@@ -4509,19 +4322,25 @@
           "static_sql_sha256": "8563e1b1eab119752ce7b867b8277fff80b1b81e5af7ee65c2c2fed7d4675ca7"
         },
         {
-          "operation": "_complete@136",
+          "operation": "_complete@141",
           "statement_kind": "SELECT",
           "candidate_relations": [],
           "static_sql_sha256": "05976f3e9caa4ffe76ca07f0c73398d76e807e1e3ae5fbeacfd383e74865ff53"
         },
         {
-          "operation": "_process_event@119",
+          "operation": "_process_event@103",
+          "statement_kind": "SELECT",
+          "candidate_relations": [],
+          "static_sql_sha256": "8b6b8f739fdb2df62ef5839243c7b9a5e4db69663aa9b2abe340622e0f884858"
+        },
+        {
+          "operation": "_process_event@124",
           "statement_kind": "SELECT",
           "candidate_relations": [],
           "static_sql_sha256": "590ec66d67dce2e1d7f2419035e75152c91ce82056064f51ff44a51b6d396485"
         },
         {
-          "operation": "_process_event@79",
+          "operation": "_process_event@84",
           "statement_kind": "SELECT",
           "candidate_relations": [
             "kokonut_security.list_platform_event_handlers"
@@ -4529,19 +4348,13 @@
           "static_sql_sha256": "3346ba1537a44345e22b308a769aba8205198b29d56bfad580e0770cbb39025d"
         },
         {
-          "operation": "_process_event@91",
+          "operation": "_process_event@96",
           "statement_kind": "SELECT",
           "candidate_relations": [],
           "static_sql_sha256": "1414cc8b7fbaa3097603985cc121640fb342db383e15e83efee80e9786826f29"
         },
         {
-          "operation": "_process_event@98",
-          "statement_kind": "SELECT",
-          "candidate_relations": [],
-          "static_sql_sha256": "8b6b8f739fdb2df62ef5839243c7b9a5e4db69663aa9b2abe340622e0f884858"
-        },
-        {
-          "operation": "_retry_or_dead_letter@143",
+          "operation": "_retry_or_dead_letter@148",
           "statement_kind": "SELECT",
           "candidate_relations": [],
           "static_sql_sha256": "054d224ddb2e1f26c1866c45b5d8f225056f63a015336dc46b18f2ebc4b65f1d"
@@ -4549,10 +4362,10 @@
       ]
     },
     {
-      "id": "services/events/fork_detector.py:36:8",
+      "id": "services/events/fork_detector.py:41:12",
       "source": "services/events/fork_detector.py",
-      "line": 36,
-      "column": 8,
+      "line": 41,
+      "column": 12,
       "scope": "detect_fork_opportunities",
       "method": "execute",
       "expression_kind": "literal",
@@ -4566,9 +4379,9 @@
       ]
     },
     {
-      "id": "services/events/fork_detector.py:59:8",
+      "id": "services/events/fork_detector.py:64:8",
       "source": "services/events/fork_detector.py",
-      "line": 59,
+      "line": 64,
       "column": 8,
       "scope": "detect_fork_opportunities",
       "method": "execute",
@@ -4583,9 +4396,9 @@
       ]
     },
     {
-      "id": "services/events/fork_detector.py:133:12",
+      "id": "services/events/fork_detector.py:138:12",
       "source": "services/events/fork_detector.py",
-      "line": 133,
+      "line": 138,
       "column": 12,
       "scope": "propose_fork_opportunities",
       "method": "execute",
@@ -4754,9 +4567,9 @@
       ]
     },
     {
-      "id": "services/events/notification_delivery_worker.py:31:12",
+      "id": "services/events/notification_delivery_worker.py:36:12",
       "source": "services/events/notification_delivery_worker.py",
-      "line": 31,
+      "line": 36,
       "column": 12,
       "scope": "_claim",
       "method": "execute",
@@ -4767,14 +4580,18 @@
       ],
       "static_sql_sha256": "0335433d9397bedcfa151082d0aabf388740ad6fcf89b74a401e79d50933d5ef",
       "operation_refs": [
+        "event_handler:services.events.handlers.handle_alert_notification",
+        "event_handler:services.events.handlers.handle_stale_data",
+        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "isolated_worker:services.events.notification_delivery_worker",
-        "scheduled_module:services.events"
+        "scheduled_module:services.events",
+        "scheduled_module:services.ingestion.sensor_anomaly_scan_worker"
       ]
     },
     {
-      "id": "services/events/notification_delivery_worker.py:49:12",
+      "id": "services/events/notification_delivery_worker.py:54:12",
       "source": "services/events/notification_delivery_worker.py",
-      "line": 49,
+      "line": 54,
       "column": 12,
       "scope": "_finish",
       "method": "execute",
@@ -4783,14 +4600,18 @@
       "candidate_relations": [],
       "static_sql_sha256": "91d31b1fd12dd21b2a0123976dfae17f3e9f83e0c4a0e61784ff0b96eead01b0",
       "operation_refs": [
+        "event_handler:services.events.handlers.handle_alert_notification",
+        "event_handler:services.events.handlers.handle_stale_data",
+        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "isolated_worker:services.events.notification_delivery_worker",
-        "scheduled_module:services.events"
+        "scheduled_module:services.events",
+        "scheduled_module:services.ingestion.sensor_anomaly_scan_worker"
       ]
     },
     {
-      "id": "services/events/notification_outbox.py:210:12",
+      "id": "services/events/notification_outbox.py:231:12",
       "source": "services/events/notification_outbox.py",
-      "line": 210,
+      "line": 231,
       "column": 12,
       "scope": "enqueue_event_notification",
       "method": "execute",
@@ -4806,14 +4627,13 @@
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "isolated_worker:services.events.notification_delivery_worker",
         "scheduled_module:services.events",
-        "scheduled_module:services.ingestion.anomaly_detector",
         "scheduled_module:services.ingestion.sensor_anomaly_scan_worker"
       ]
     },
     {
-      "id": "services/events/notification_outbox.py:225:12",
+      "id": "services/events/notification_outbox.py:246:12",
       "source": "services/events/notification_outbox.py",
-      "line": 225,
+      "line": 246,
       "column": 12,
       "scope": "enqueue_event_notification",
       "method": "execute",
@@ -4829,14 +4649,13 @@
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "isolated_worker:services.events.notification_delivery_worker",
         "scheduled_module:services.events",
-        "scheduled_module:services.ingestion.anomaly_detector",
         "scheduled_module:services.ingestion.sensor_anomaly_scan_worker"
       ]
     },
     {
-      "id": "services/events/notification_outbox.py:245:16",
+      "id": "services/events/notification_outbox.py:266:16",
       "source": "services/events/notification_outbox.py",
-      "line": 245,
+      "line": 266,
       "column": 16,
       "scope": "enqueue_event_notification",
       "method": "execute",
@@ -4852,14 +4671,13 @@
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "isolated_worker:services.events.notification_delivery_worker",
         "scheduled_module:services.events",
-        "scheduled_module:services.ingestion.anomaly_detector",
         "scheduled_module:services.ingestion.sensor_anomaly_scan_worker"
       ]
     },
     {
-      "id": "services/events/notification_outbox.py:290:8",
+      "id": "services/events/notification_outbox.py:311:8",
       "source": "services/events/notification_outbox.py",
-      "line": 290,
+      "line": 311,
       "column": 8,
       "scope": "enqueue_event_notification_isolated",
       "method": "execute",
@@ -4873,155 +4691,13 @@
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "isolated_worker:services.events.notification_delivery_worker",
         "scheduled_module:services.events",
-        "scheduled_module:services.ingestion.anomaly_detector",
         "scheduled_module:services.ingestion.sensor_anomaly_scan_worker"
       ]
     },
     {
-      "id": "services/events/notification_outbox.py:346:8",
+      "id": "services/events/notification_outbox.py:483:8",
       "source": "services/events/notification_outbox.py",
-      "line": 346,
-      "column": 8,
-      "scope": "_recover_expired_leases",
-      "method": "execute",
-      "expression_kind": "literal",
-      "statement_kind": "UPDATE",
-      "candidate_relations": [
-        "notification_outbox",
-        "notification_outbox_attempt"
-      ],
-      "static_sql_sha256": "051e46eb56e7c70bfce869c9e790798b625537a68df36c49ede38730c870af87",
-      "operation_refs": [
-        "event_handler:services.events.handlers.handle_alert_notification",
-        "event_handler:services.events.handlers.handle_stale_data",
-        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
-        "isolated_worker:services.events.notification_delivery_worker",
-        "scheduled_module:services.events",
-        "scheduled_module:services.ingestion.anomaly_detector",
-        "scheduled_module:services.ingestion.sensor_anomaly_scan_worker"
-      ]
-    },
-    {
-      "id": "services/events/notification_outbox.py:357:8",
-      "source": "services/events/notification_outbox.py",
-      "line": 357,
-      "column": 8,
-      "scope": "_recover_expired_leases",
-      "method": "execute",
-      "expression_kind": "literal",
-      "statement_kind": "UPDATE",
-      "candidate_relations": [
-        "notification_outbox"
-      ],
-      "static_sql_sha256": "53d233f930c6f9ffc76cd19c646b76fb52944ddcebf6fc75a925ab079e2d6c21",
-      "operation_refs": [
-        "event_handler:services.events.handlers.handle_alert_notification",
-        "event_handler:services.events.handlers.handle_stale_data",
-        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
-        "isolated_worker:services.events.notification_delivery_worker",
-        "scheduled_module:services.events",
-        "scheduled_module:services.ingestion.anomaly_detector",
-        "scheduled_module:services.ingestion.sensor_anomaly_scan_worker"
-      ]
-    },
-    {
-      "id": "services/events/notification_outbox.py:394:8",
-      "source": "services/events/notification_outbox.py",
-      "line": 394,
-      "column": 8,
-      "scope": "claim_batch",
-      "method": "execute",
-      "expression_kind": "literal",
-      "statement_kind": "WITH",
-      "candidate_relations": [
-        "SKIP",
-        "candidates",
-        "notification_outbox"
-      ],
-      "static_sql_sha256": "71e2462a0249799481f8abd7fc5fba21195134c76baa231f58b1dd789e71e56f",
-      "operation_refs": [
-        "event_handler:services.events.handlers.handle_alert_notification",
-        "event_handler:services.events.handlers.handle_stale_data",
-        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
-        "isolated_worker:services.events.notification_delivery_worker",
-        "scheduled_module:services.events",
-        "scheduled_module:services.ingestion.anomaly_detector",
-        "scheduled_module:services.ingestion.sensor_anomaly_scan_worker"
-      ]
-    },
-    {
-      "id": "services/events/notification_outbox.py:422:12",
-      "source": "services/events/notification_outbox.py",
-      "line": 422,
-      "column": 12,
-      "scope": "claim_batch",
-      "method": "execute",
-      "expression_kind": "literal",
-      "statement_kind": "INSERT",
-      "candidate_relations": [
-        "notification_outbox_attempt"
-      ],
-      "static_sql_sha256": "357eabff0be3a8e9a55b0cb4527a66bae6fce10126d97cf796782685932bd99c",
-      "operation_refs": [
-        "event_handler:services.events.handlers.handle_alert_notification",
-        "event_handler:services.events.handlers.handle_stale_data",
-        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
-        "isolated_worker:services.events.notification_delivery_worker",
-        "scheduled_module:services.events",
-        "scheduled_module:services.ingestion.anomaly_detector",
-        "scheduled_module:services.ingestion.sensor_anomaly_scan_worker"
-      ]
-    },
-    {
-      "id": "services/events/notification_outbox.py:507:8",
-      "source": "services/events/notification_outbox.py",
-      "line": 507,
-      "column": 8,
-      "scope": "_finish_attempt",
-      "method": "execute",
-      "expression_kind": "literal",
-      "statement_kind": "UPDATE",
-      "candidate_relations": [
-        "notification_outbox"
-      ],
-      "static_sql_sha256": "0f0644ee5ebe338306588b568ef2e736929a7a732fb6b3733c61cf5a7c48709f",
-      "operation_refs": [
-        "event_handler:services.events.handlers.handle_alert_notification",
-        "event_handler:services.events.handlers.handle_stale_data",
-        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
-        "isolated_worker:services.events.notification_delivery_worker",
-        "scheduled_module:services.events",
-        "scheduled_module:services.ingestion.anomaly_detector",
-        "scheduled_module:services.ingestion.sensor_anomaly_scan_worker"
-      ]
-    },
-    {
-      "id": "services/events/notification_outbox.py:531:8",
-      "source": "services/events/notification_outbox.py",
-      "line": 531,
-      "column": 8,
-      "scope": "_finish_attempt",
-      "method": "execute",
-      "expression_kind": "literal",
-      "statement_kind": "UPDATE",
-      "candidate_relations": [
-        "notification_outbox_attempt"
-      ],
-      "static_sql_sha256": "f886d61f975ed999f724617a187daa5364f540edead592e7390d20447cf19ce0",
-      "operation_refs": [
-        "event_handler:services.events.handlers.handle_alert_notification",
-        "event_handler:services.events.handlers.handle_stale_data",
-        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
-        "isolated_worker:services.events.notification_delivery_worker",
-        "scheduled_module:services.events",
-        "scheduled_module:services.ingestion.anomaly_detector",
-        "scheduled_module:services.ingestion.sensor_anomaly_scan_worker"
-      ]
-    },
-    {
-      "id": "services/events/notification_outbox.py:601:8",
-      "source": "services/events/notification_outbox.py",
-      "line": 601,
+      "line": 483,
       "column": 8,
       "scope": "get_stats",
       "method": "execute",
@@ -5037,22 +4713,21 @@
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "isolated_worker:services.events.notification_delivery_worker",
         "scheduled_module:services.events",
-        "scheduled_module:services.ingestion.anomaly_detector",
         "scheduled_module:services.ingestion.sensor_anomaly_scan_worker"
       ]
     },
     {
-      "id": "services/events/notification_outbox.py:603:8",
+      "id": "services/events/notification_outbox.py:485:8",
       "source": "services/events/notification_outbox.py",
-      "line": 603,
+      "line": 485,
       "column": 8,
       "scope": "get_stats",
       "method": "execute",
       "expression_kind": "literal",
       "statement_kind": "SELECT",
       "candidate_relations": [
-        "NOW",
-        "notification_outbox"
+        "notification_outbox",
+        "now"
       ],
       "static_sql_sha256": "5b76d71fafa0eabe43797a3e8a5f08a19faf987b42787e1ada32ba1df61e78f4",
       "operation_refs": [
@@ -5061,14 +4736,13 @@
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "isolated_worker:services.events.notification_delivery_worker",
         "scheduled_module:services.events",
-        "scheduled_module:services.ingestion.anomaly_detector",
         "scheduled_module:services.ingestion.sensor_anomaly_scan_worker"
       ]
     },
     {
-      "id": "services/events/notification_outbox.py:644:8",
+      "id": "services/events/notification_outbox.py:526:8",
       "source": "services/events/notification_outbox.py",
-      "line": 644,
+      "line": 526,
       "column": 8,
       "scope": "list_dead_letters",
       "method": "execute",
@@ -5084,14 +4758,13 @@
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "isolated_worker:services.events.notification_delivery_worker",
         "scheduled_module:services.events",
-        "scheduled_module:services.ingestion.anomaly_detector",
         "scheduled_module:services.ingestion.sensor_anomaly_scan_worker"
       ]
     },
     {
-      "id": "services/events/notification_outbox.py:674:8",
+      "id": "services/events/notification_outbox.py:556:8",
       "source": "services/events/notification_outbox.py",
-      "line": 674,
+      "line": 556,
       "column": 8,
       "scope": "replay_dead_letter",
       "method": "execute",
@@ -5107,14 +4780,13 @@
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "isolated_worker:services.events.notification_delivery_worker",
         "scheduled_module:services.events",
-        "scheduled_module:services.ingestion.anomaly_detector",
         "scheduled_module:services.ingestion.sensor_anomaly_scan_worker"
       ]
     },
     {
-      "id": "services/events/notification_outbox.py:685:8",
+      "id": "services/events/notification_outbox.py:567:8",
       "source": "services/events/notification_outbox.py",
-      "line": 685,
+      "line": 567,
       "column": 8,
       "scope": "replay_dead_letter",
       "method": "execute",
@@ -5130,14 +4802,13 @@
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "isolated_worker:services.events.notification_delivery_worker",
         "scheduled_module:services.events",
-        "scheduled_module:services.ingestion.anomaly_detector",
         "scheduled_module:services.ingestion.sensor_anomaly_scan_worker"
       ]
     },
     {
-      "id": "services/events/notification_outbox.py:697:8",
+      "id": "services/events/notification_outbox.py:579:8",
       "source": "services/events/notification_outbox.py",
-      "line": 697,
+      "line": 579,
       "column": 8,
       "scope": "replay_dead_letter",
       "method": "execute",
@@ -5153,14 +4824,13 @@
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "isolated_worker:services.events.notification_delivery_worker",
         "scheduled_module:services.events",
-        "scheduled_module:services.ingestion.anomaly_detector",
         "scheduled_module:services.ingestion.sensor_anomaly_scan_worker"
       ]
     },
     {
-      "id": "services/events/notification_outbox.py:725:8",
+      "id": "services/events/notification_outbox.py:607:8",
       "source": "services/events/notification_outbox.py",
-      "line": 725,
+      "line": 607,
       "column": 8,
       "scope": "dispose_dead_letter",
       "method": "execute",
@@ -5176,14 +4846,13 @@
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "isolated_worker:services.events.notification_delivery_worker",
         "scheduled_module:services.events",
-        "scheduled_module:services.ingestion.anomaly_detector",
         "scheduled_module:services.ingestion.sensor_anomaly_scan_worker"
       ]
     },
     {
-      "id": "services/events/notification_outbox.py:736:8",
+      "id": "services/events/notification_outbox.py:618:8",
       "source": "services/events/notification_outbox.py",
-      "line": 736,
+      "line": 618,
       "column": 8,
       "scope": "dispose_dead_letter",
       "method": "execute",
@@ -5199,14 +4868,13 @@
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "isolated_worker:services.events.notification_delivery_worker",
         "scheduled_module:services.events",
-        "scheduled_module:services.ingestion.anomaly_detector",
         "scheduled_module:services.ingestion.sensor_anomaly_scan_worker"
       ]
     },
     {
-      "id": "services/events/notification_outbox.py:745:8",
+      "id": "services/events/notification_outbox.py:627:8",
       "source": "services/events/notification_outbox.py",
-      "line": 745,
+      "line": 627,
       "column": 8,
       "scope": "dispose_dead_letter",
       "method": "execute",
@@ -5222,7 +4890,6 @@
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "isolated_worker:services.events.notification_delivery_worker",
         "scheduled_module:services.events",
-        "scheduled_module:services.ingestion.anomaly_detector",
         "scheduled_module:services.ingestion.sensor_anomaly_scan_worker"
       ]
     },
@@ -5295,6 +4962,380 @@
       ]
     },
     {
+      "id": "services/export/report_snapshot_export_worker.py:78:12",
+      "source": "services/export/report_snapshot_export_worker.py",
+      "line": 78,
+      "column": 12,
+      "scope": "_claim",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "kokonut_security.claim_report_snapshot_export_batch"
+      ],
+      "static_sql_sha256": "3311476cd2fac4a9c73e6ed5af049866d96221623dce225430a26b6df2a3c6a4",
+      "operation_refs": [
+        "isolated_worker:services.export.report_snapshot_export_worker"
+      ]
+    },
+    {
+      "id": "services/export/report_snapshot_export_worker.py:101:12",
+      "source": "services/export/report_snapshot_export_worker.py",
+      "line": 101,
+      "column": 12,
+      "scope": "_read_source",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "kokonut_security.read_report_snapshot_export_source"
+      ],
+      "static_sql_sha256": "793c3a37a5805520121b335e4fd73a74dd8d1b16680f30df43ca1085388233fe",
+      "operation_refs": [
+        "isolated_worker:services.export.report_snapshot_export_worker"
+      ]
+    },
+    {
+      "id": "services/export/report_snapshot_export_worker.py:154:12",
+      "source": "services/export/report_snapshot_export_worker.py",
+      "line": 154,
+      "column": 12,
+      "scope": "_finish",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [],
+      "static_sql_sha256": "dae5496dd867e54c837858e4a205029b31a8fcc030731f229a8251187fa58e63",
+      "operation_refs": [
+        "isolated_worker:services.export.report_snapshot_export_worker"
+      ]
+    },
+    {
+      "id": "services/export/reports/common.py:192:8",
+      "source": "services/export/reports/common.py",
+      "line": 192,
+      "column": 8,
+      "scope": "fetch_public_interest_context",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "v_public_stakeholder_feedback_summary"
+      ],
+      "static_sql_sha256": "7074cdeab138a5e8198df335b5e5bc1461010056d97204ddd3419105f021398c",
+      "operation_refs": [
+        "isolated_worker:services.export.report_snapshot_export_worker"
+      ]
+    },
+    {
+      "id": "services/export/reports/common.py:205:8",
+      "source": "services/export/reports/common.py",
+      "line": 205,
+      "column": 8,
+      "scope": "fetch_public_interest_context",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "v_public_impact_claim_summary"
+      ],
+      "static_sql_sha256": "9b55a46cc6e1e63ad3283b06beed6c79d5a8f80388b33a014c7305f90dd22704",
+      "operation_refs": [
+        "isolated_worker:services.export.report_snapshot_export_worker"
+      ]
+    },
+    {
+      "id": "services/export/reports/common.py:219:8",
+      "source": "services/export/reports/common.py",
+      "line": 219,
+      "column": 8,
+      "scope": "fetch_public_interest_context",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "impact_claim"
+      ],
+      "static_sql_sha256": "01100fa9cd1562d9e4a0aac21fe7bd35bb36ff2a216046f99723d6c0c79af55c",
+      "operation_refs": [
+        "isolated_worker:services.export.report_snapshot_export_worker"
+      ]
+    },
+    {
+      "id": "services/export/reports/common.py:250:8",
+      "source": "services/export/reports/common.py",
+      "line": 250,
+      "column": 8,
+      "scope": "fetch_public_interest_context",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "stakeholder_feedback"
+      ],
+      "static_sql_sha256": "65f1910f6cc4039c9c9da7e2e55bb0c236080093877beb024c0eff8ab49982e9",
+      "operation_refs": [
+        "isolated_worker:services.export.report_snapshot_export_worker"
+      ]
+    },
+    {
+      "id": "services/export/reports/common.py:267:8",
+      "source": "services/export/reports/common.py",
+      "line": 267,
+      "column": 8,
+      "scope": "fetch_public_interest_context",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "v_public_cultural_context_summary"
+      ],
+      "static_sql_sha256": "fd0e5da8a2874b9bb9cfa5b1000bbdf82ab626b49e8651934c02af0c741ea518",
+      "operation_refs": [
+        "isolated_worker:services.export.report_snapshot_export_worker"
+      ]
+    },
+    {
+      "id": "services/export/reports/common.py:280:8",
+      "source": "services/export/reports/common.py",
+      "line": 280,
+      "column": 8,
+      "scope": "fetch_public_interest_context",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "v_public_wellbeing_metric_summary"
+      ],
+      "static_sql_sha256": "c9bd1ef82b2464f218f149f822a36822ca53295481b2b2e3cbd54ab6c01a3e97",
+      "operation_refs": [
+        "isolated_worker:services.export.report_snapshot_export_worker"
+      ]
+    },
+    {
+      "id": "services/export/reports/common.py:294:8",
+      "source": "services/export/reports/common.py",
+      "line": 294,
+      "column": 8,
+      "scope": "fetch_public_interest_context",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "v_public_participatory_governance_summary"
+      ],
+      "static_sql_sha256": "c127fdfec6147897fc57095a491d4bade5a31132bfe8fb46b2bb71209a442d9d",
+      "operation_refs": [
+        "isolated_worker:services.export.report_snapshot_export_worker"
+      ]
+    },
+    {
+      "id": "services/export/reports/common.py:308:8",
+      "source": "services/export/reports/common.py",
+      "line": 308,
+      "column": 8,
+      "scope": "fetch_public_interest_context",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "v_public_financial_sustainability_summary"
+      ],
+      "static_sql_sha256": "b49c0cd162718c74d2a0f57e2e263bec52a4603f3a594019404ab34ed0c8209d",
+      "operation_refs": [
+        "isolated_worker:services.export.report_snapshot_export_worker"
+      ]
+    },
+    {
+      "id": "services/export/reports/common.py:323:8",
+      "source": "services/export/reports/common.py",
+      "line": 323,
+      "column": 8,
+      "scope": "fetch_public_interest_context",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "v_public_risk_mitigation_summary"
+      ],
+      "static_sql_sha256": "55fa4206d2b158c7126beb38cb54905649915e35937959d835fecc916d0913d4",
+      "operation_refs": [
+        "isolated_worker:services.export.report_snapshot_export_worker"
+      ]
+    },
+    {
+      "id": "services/export/reports/common.py:337:8",
+      "source": "services/export/reports/common.py",
+      "line": 337,
+      "column": 8,
+      "scope": "fetch_public_interest_context",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "v_public_prediction_accuracy"
+      ],
+      "static_sql_sha256": "ae1ef424ad27fc87ed43c63e92c73118e6af03c22336d4ee1fc9f3260c67521d",
+      "operation_refs": [
+        "isolated_worker:services.export.report_snapshot_export_worker"
+      ]
+    },
+    {
+      "id": "services/export/reports/common.py:350:8",
+      "source": "services/export/reports/common.py",
+      "line": 350,
+      "column": 8,
+      "scope": "fetch_public_interest_context",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "threat_backcast_plan"
+      ],
+      "static_sql_sha256": "9e75b9026f239873eddad42d3ea4008caf5a315e79f83bd4ae56c88113c6c35c",
+      "operation_refs": [
+        "isolated_worker:services.export.report_snapshot_export_worker"
+      ]
+    },
+    {
+      "id": "services/export/reports/common.py:367:8",
+      "source": "services/export/reports/common.py",
+      "line": 367,
+      "column": 8,
+      "scope": "fetch_public_interest_context",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "backcast_assumption_challenge",
+        "backcast_plan"
+      ],
+      "static_sql_sha256": "b01e5473294681641862555e35cfd968c8baac8c4370c8dc328c18acdbc8b02d",
+      "operation_refs": [
+        "isolated_worker:services.export.report_snapshot_export_worker"
+      ]
+    },
+    {
+      "id": "services/export/reports/common.py:378:8",
+      "source": "services/export/reports/common.py",
+      "line": 378,
+      "column": 8,
+      "scope": "fetch_public_interest_context",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "delphi_study",
+        "v_delphi_consensus_public"
+      ],
+      "static_sql_sha256": "813382400664cf7fbf93b2b650252bad80738d7ac54fb246f84be11af2ab6d38",
+      "operation_refs": [
+        "isolated_worker:services.export.report_snapshot_export_worker"
+      ]
+    },
+    {
+      "id": "services/export/reports/common.py:390:8",
+      "source": "services/export/reports/common.py",
+      "line": 390,
+      "column": 8,
+      "scope": "fetch_public_interest_context",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "v_crisp_composite_rating"
+      ],
+      "static_sql_sha256": "618416a772b30bd8c100848535b5d856cced8891d5de9a77de897b6f64d4e846",
+      "operation_refs": [
+        "isolated_worker:services.export.report_snapshot_export_worker"
+      ]
+    },
+    {
+      "id": "services/export/reports/common.py:403:8",
+      "source": "services/export/reports/common.py",
+      "line": 403,
+      "column": 8,
+      "scope": "fetch_public_interest_context",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "v_prediction_calibration_summary"
+      ],
+      "static_sql_sha256": "f6c2364e9e61fe25428cabe162557ec39260897291be36214ed312a5de79679a",
+      "operation_refs": [
+        "isolated_worker:services.export.report_snapshot_export_worker"
+      ]
+    },
+    {
+      "id": "services/export/reports/context.py:48:8",
+      "source": "services/export/reports/context.py",
+      "line": 48,
+      "column": 8,
+      "scope": "store_snapshot",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "INSERT",
+      "candidate_relations": [
+        "report_snapshot"
+      ],
+      "static_sql_sha256": "dd639ea7932711d485a2bdadca0b98296d802dfab2557fa2b60eaf7a49f2fe70",
+      "operation_refs": [
+        "isolated_worker:services.export.report_snapshot_export_worker"
+      ]
+    },
+    {
+      "id": "services/export/reports/context.py:87:12",
+      "source": "services/export/reports/context.py",
+      "line": 87,
+      "column": 12,
+      "scope": "list_snapshots",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "report_snapshot"
+      ],
+      "static_sql_sha256": "5153217b352d9ebcbfc6d4131c0195a2ed7bac7072f66ea8563b0ce014ba78a4",
+      "operation_refs": [
+        "isolated_worker:services.export.report_snapshot_export_worker"
+      ]
+    },
+    {
+      "id": "services/export/reports/context.py:92:12",
+      "source": "services/export/reports/context.py",
+      "line": 92,
+      "column": 12,
+      "scope": "list_snapshots",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "report_snapshot"
+      ],
+      "static_sql_sha256": "1af7a9135d3801ff02c21503fc11e41d67b28f3172f67fd6bf1ab43fbbcbd88e",
+      "operation_refs": [
+        "isolated_worker:services.export.report_snapshot_export_worker"
+      ]
+    },
+    {
+      "id": "services/export/reports/context.py:116:8",
+      "source": "services/export/reports/context.py",
+      "line": 116,
+      "column": 8,
+      "scope": "_verify_snapshot",
+      "method": "execute",
+      "expression_kind": "fstring",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "report_snapshot"
+      ],
+      "static_sql_sha256": null,
+      "operation_refs": [
+        "isolated_worker:services.export.report_snapshot_export_worker"
+      ]
+    },
+    {
       "id": "services/governance/baal.py:207:16",
       "source": "services/governance/baal.py",
       "line": 207,
@@ -5313,63 +5354,24 @@
       ]
     },
     {
-      "id": "services/ingestion/anomaly_detector.py:196:8",
+      "id": "services/ingestion/anomaly_detector.py:199:8",
       "source": "services/ingestion/anomaly_detector.py",
-      "line": 196,
+      "line": 199,
       "column": 8,
       "scope": "ensure_alert_rules",
       "method": "execute",
       "expression_kind": "literal",
       "statement_kind": "SELECT",
-      "candidate_relations": [
-        "alert_rule"
-      ],
-      "static_sql_sha256": "4ff119768a1b70f586f0add57788c16de7187145e8e05ded0c4f76b25b9b8bbf",
+      "candidate_relations": [],
+      "static_sql_sha256": "c977e8e4ffd0b2346e24b9cb0323a0da97bc922106f04846b5b044c329503e87",
       "operation_refs": [
-        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
-        "scheduled_module:services.ingestion.anomaly_detector"
+        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading"
       ]
     },
     {
-      "id": "services/ingestion/anomaly_detector.py:203:8",
+      "id": "services/ingestion/anomaly_detector.py:232:8",
       "source": "services/ingestion/anomaly_detector.py",
-      "line": 203,
-      "column": 8,
-      "scope": "ensure_alert_rules",
-      "method": "execute",
-      "expression_kind": "literal",
-      "statement_kind": "SELECT",
-      "candidate_relations": [
-        "sensor_type"
-      ],
-      "static_sql_sha256": "26e2307e89b4cff7a82dea74be7199f9827d17686348c1fd7183702ff352fbde",
-      "operation_refs": [
-        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
-        "scheduled_module:services.ingestion.anomaly_detector"
-      ]
-    },
-    {
-      "id": "services/ingestion/anomaly_detector.py:213:12",
-      "source": "services/ingestion/anomaly_detector.py",
-      "line": 213,
-      "column": 12,
-      "scope": "ensure_alert_rules",
-      "method": "execute",
-      "expression_kind": "literal",
-      "statement_kind": "INSERT",
-      "candidate_relations": [
-        "alert_rule"
-      ],
-      "static_sql_sha256": "bcd430f63e98d7af4f590d0a59b56ca2e534e6bdd8b0aa78cbbca3dae5d73c45",
-      "operation_refs": [
-        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
-        "scheduled_module:services.ingestion.anomaly_detector"
-      ]
-    },
-    {
-      "id": "services/ingestion/anomaly_detector.py:258:8",
-      "source": "services/ingestion/anomaly_detector.py",
-      "line": 258,
+      "line": 232,
       "column": 8,
       "scope": "compute_rate_of_change",
       "method": "execute",
@@ -5380,14 +5382,13 @@
       ],
       "static_sql_sha256": "a26bff0755e66dfbb446067f4e5de9aba936c495b83510aa2a5596a6a27ffa0f",
       "operation_refs": [
-        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
-        "scheduled_module:services.ingestion.anomaly_detector"
+        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading"
       ]
     },
     {
-      "id": "services/ingestion/anomaly_detector.py:301:8",
+      "id": "services/ingestion/anomaly_detector.py:275:8",
       "source": "services/ingestion/anomaly_detector.py",
-      "line": 301,
+      "line": 275,
       "column": 8,
       "scope": "compute_gap_hours",
       "method": "execute",
@@ -5398,14 +5399,13 @@
       ],
       "static_sql_sha256": "92066ca5d1c16c8258319586c5dc3409c7458bec74930d6c6e0a07182d288952",
       "operation_refs": [
-        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
-        "scheduled_module:services.ingestion.anomaly_detector"
+        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading"
       ]
     },
     {
-      "id": "services/ingestion/anomaly_detector.py:327:8",
+      "id": "services/ingestion/anomaly_detector.py:301:8",
       "source": "services/ingestion/anomaly_detector.py",
-      "line": 327,
+      "line": 301,
       "column": 8,
       "scope": "compute_window_stats",
       "method": "execute",
@@ -5416,90 +5416,13 @@
       ],
       "static_sql_sha256": "979d2e4cd2589cfe10d09832c846ee6d2590f25da9debcbd6a8e8ab6751a4afd",
       "operation_refs": [
-        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
-        "scheduled_module:services.ingestion.anomaly_detector"
+        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading"
       ]
     },
     {
-      "id": "services/ingestion/anomaly_detector.py:391:8",
+      "id": "services/ingestion/anomaly_detector.py:500:8",
       "source": "services/ingestion/anomaly_detector.py",
-      "line": 391,
-      "column": 8,
-      "scope": "check_cooldown",
-      "method": "execute",
-      "expression_kind": "literal",
-      "statement_kind": "SELECT",
-      "candidate_relations": [
-        "sensor_alert"
-      ],
-      "static_sql_sha256": "ca86a8e526987b4555b5a3d5905008df2bd6e543b7e451259e74f0d6d7845677",
-      "operation_refs": [
-        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
-        "scheduled_module:services.ingestion.anomaly_detector"
-      ]
-    },
-    {
-      "id": "services/ingestion/anomaly_detector.py:418:8",
-      "source": "services/ingestion/anomaly_detector.py",
-      "line": 418,
-      "column": 8,
-      "scope": "create_alert",
-      "method": "execute",
-      "expression_kind": "literal",
-      "statement_kind": "INSERT",
-      "candidate_relations": [
-        "sensor_alert",
-        "sensor_device",
-        "sensor_reading"
-      ],
-      "static_sql_sha256": "d1b676d54cf3bb6c5cdd4979338883199a26bba74fc12d6ea0fc85486a8693fd",
-      "operation_refs": [
-        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
-        "scheduled_module:services.ingestion.anomaly_detector"
-      ]
-    },
-    {
-      "id": "services/ingestion/anomaly_detector.py:449:12",
-      "source": "services/ingestion/anomaly_detector.py",
-      "line": 449,
-      "column": 12,
-      "scope": "create_alert",
-      "method": "execute",
-      "expression_kind": "literal",
-      "statement_kind": "INSERT",
-      "candidate_relations": [
-        "mrv_claim",
-        "sensor_device",
-        "sensor_reading"
-      ],
-      "static_sql_sha256": "8c13182f8d525529b23cac9ceae096ecd6d84956e897e4278553089932e1eafe",
-      "operation_refs": [
-        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
-        "scheduled_module:services.ingestion.anomaly_detector"
-      ]
-    },
-    {
-      "id": "services/ingestion/anomaly_detector.py:478:16",
-      "source": "services/ingestion/anomaly_detector.py",
-      "line": 478,
-      "column": 16,
-      "scope": "create_alert",
-      "method": "execute",
-      "expression_kind": "literal",
-      "statement_kind": "UPDATE",
-      "candidate_relations": [
-        "sensor_alert"
-      ],
-      "static_sql_sha256": "cb7a178c6033a483c1f6f2a6492d23242eca484108a5b9cbe90daf34517149f0",
-      "operation_refs": [
-        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
-        "scheduled_module:services.ingestion.anomaly_detector"
-      ]
-    },
-    {
-      "id": "services/ingestion/anomaly_detector.py:599:8",
-      "source": "services/ingestion/anomaly_detector.py",
-      "line": 599,
+      "line": 500,
       "column": 8,
       "scope": "send_actuation_commands",
       "method": "execute",
@@ -5510,14 +5433,13 @@
       ],
       "static_sql_sha256": "44ab2baed0257e1660302e16ae35d3bb2115643f4e0521aeb4b6a927a3393c83",
       "operation_refs": [
-        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
-        "scheduled_module:services.ingestion.anomaly_detector"
+        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading"
       ]
     },
     {
-      "id": "services/ingestion/anomaly_detector.py:650:8",
+      "id": "services/ingestion/anomaly_detector.py:551:8",
       "source": "services/ingestion/anomaly_detector.py",
-      "line": 650,
+      "line": 551,
       "column": 8,
       "scope": "get_sensor_device_info",
       "method": "execute",
@@ -5530,251 +5452,13 @@
       ],
       "static_sql_sha256": "12f5722e1cc97a95d51ab9e9ac17c6ec9951b0756d9390096cdaf10c837c22e6",
       "operation_refs": [
-        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
-        "scheduled_module:services.ingestion.anomaly_detector"
+        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading"
       ]
     },
     {
-      "id": "services/ingestion/anomaly_detector.py:708:16",
+      "id": "services/ingestion/anomaly_detector.py:699:12",
       "source": "services/ingestion/anomaly_detector.py",
-      "line": 708,
-      "column": 16,
-      "scope": "run_check",
-      "method": "execute",
-      "expression_kind": "literal",
-      "statement_kind": "SELECT",
-      "candidate_relations": [
-        "platform_event",
-        "sensor_reading"
-      ],
-      "static_sql_sha256": "5816cca894630ebe236ebe4613177d4af06ad94b650460c583f09ecc86b523f8",
-      "operation_refs": [
-        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
-        "scheduled_module:services.ingestion.anomaly_detector"
-      ]
-    },
-    {
-      "id": "services/ingestion/anomaly_detector.py:746:12",
-      "source": "services/ingestion/anomaly_detector.py",
-      "line": 746,
-      "column": 12,
-      "scope": "run_check",
-      "method": "execute",
-      "expression_kind": "literal",
-      "statement_kind": "SELECT",
-      "candidate_relations": [
-        "alert_rule",
-        "sensor_type"
-      ],
-      "static_sql_sha256": "e505cf344c9f3ad9e28dbd84120568a201791fd6b18754bdd4c385a51c90d3bc",
-      "operation_refs": [
-        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
-        "scheduled_module:services.ingestion.anomaly_detector"
-      ]
-    },
-    {
-      "id": "services/ingestion/anomaly_detector.py:777:20",
-      "source": "services/ingestion/anomaly_detector.py",
-      "line": 777,
-      "column": 20,
-      "scope": "run_check",
-      "method": "execute",
-      "expression_kind": "literal",
-      "statement_kind": "SELECT",
-      "candidate_relations": [
-        "sensor_reading"
-      ],
-      "static_sql_sha256": "69d0a1489f0020ed95f3bc2b90feadf517e7bc2276a9e2662c669ef7ecb5e1f7",
-      "operation_refs": [
-        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
-        "scheduled_module:services.ingestion.anomaly_detector"
-      ]
-    },
-    {
-      "id": "services/ingestion/anomaly_detector.py:789:20",
-      "source": "services/ingestion/anomaly_detector.py",
-      "line": 789,
-      "column": 20,
-      "scope": "run_check",
-      "method": "execute",
-      "expression_kind": "literal",
-      "statement_kind": "SELECT",
-      "candidate_relations": [
-        "sensor_reading"
-      ],
-      "static_sql_sha256": "7fdd7145991b8fb0aa6a9b2c3d15e46fd51376ed4a61c1504768866d9ed252a3",
-      "operation_refs": [
-        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
-        "scheduled_module:services.ingestion.anomaly_detector"
-      ]
-    },
-    {
-      "id": "services/ingestion/anomaly_detector.py:822:24",
-      "source": "services/ingestion/anomaly_detector.py",
-      "line": 822,
-      "column": 24,
-      "scope": "run_check",
-      "method": "execute",
-      "expression_kind": "literal",
-      "statement_kind": "INSERT",
-      "candidate_relations": [
-        "sensor_anomaly_effect"
-      ],
-      "static_sql_sha256": "b9347fbde12a0ab1d4938671c5b4488ec69cbda9aaa5f77095021c976f818800",
-      "operation_refs": [
-        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
-        "scheduled_module:services.ingestion.anomaly_detector"
-      ]
-    },
-    {
-      "id": "services/ingestion/anomaly_detector.py:842:24",
-      "source": "services/ingestion/anomaly_detector.py",
-      "line": 842,
-      "column": 24,
-      "scope": "run_check",
-      "method": "execute",
-      "expression_kind": "literal",
-      "statement_kind": "SELECT",
-      "candidate_relations": [
-        "sensor_device"
-      ],
-      "static_sql_sha256": "8703a3c5c0020b2cbba42a17af858463819b4bffe22efbb57d8f49ac62a2b92f",
-      "operation_refs": [
-        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
-        "scheduled_module:services.ingestion.anomaly_detector"
-      ]
-    },
-    {
-      "id": "services/ingestion/anomaly_detector.py:868:28",
-      "source": "services/ingestion/anomaly_detector.py",
-      "line": 868,
-      "column": 28,
-      "scope": "run_check",
-      "method": "execute",
-      "expression_kind": "literal",
-      "statement_kind": "UPDATE",
-      "candidate_relations": [
-        "sensor_anomaly_effect"
-      ],
-      "static_sql_sha256": "94026f8378a96f9708de91b09db916f91ae3715d9ec68147dbb2b251ba7da833",
-      "operation_refs": [
-        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
-        "scheduled_module:services.ingestion.anomaly_detector"
-      ]
-    },
-    {
-      "id": "services/ingestion/anomaly_detector.py:910:24",
-      "source": "services/ingestion/anomaly_detector.py",
-      "line": 910,
-      "column": 24,
-      "scope": "run_check",
-      "method": "execute",
-      "expression_kind": "literal",
-      "statement_kind": "SELECT",
-      "candidate_relations": [
-        "sensor_alert"
-      ],
-      "static_sql_sha256": "e7ad78a40057f85e2dbf60887f22a511979f8d993aae529dc9f93aebd5937644",
-      "operation_refs": [
-        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
-        "scheduled_module:services.ingestion.anomaly_detector"
-      ]
-    },
-    {
-      "id": "services/ingestion/anomaly_detector.py:936:28",
-      "source": "services/ingestion/anomaly_detector.py",
-      "line": 936,
-      "column": 28,
-      "scope": "run_check",
-      "method": "execute",
-      "expression_kind": "literal",
-      "statement_kind": "UPDATE",
-      "candidate_relations": [
-        "sensor_anomaly_effect"
-      ],
-      "static_sql_sha256": "ec170161e80a878d2e24884e22dd5b17b12c0bed7e9094bb89b50fc358c473c0",
-      "operation_refs": [
-        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
-        "scheduled_module:services.ingestion.anomaly_detector"
-      ]
-    },
-    {
-      "id": "services/ingestion/anomaly_detector.py:1006:12",
-      "source": "services/ingestion/anomaly_detector.py",
-      "line": 1006,
-      "column": 12,
-      "scope": "run_baseline_check",
-      "method": "execute",
-      "expression_kind": "literal",
-      "statement_kind": "SELECT",
-      "candidate_relations": [
-        "environmental_baseline"
-      ],
-      "static_sql_sha256": "682d84bb2dd38aa3177e9f6ca7064636750549393872eed23ae05f7b3af700b4",
-      "operation_refs": [
-        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
-        "scheduled_module:services.ingestion.anomaly_detector"
-      ]
-    },
-    {
-      "id": "services/ingestion/anomaly_detector.py:1035:16",
-      "source": "services/ingestion/anomaly_detector.py",
-      "line": 1035,
-      "column": 16,
-      "scope": "run_baseline_check",
-      "method": "execute",
-      "expression_kind": "literal",
-      "statement_kind": "SELECT",
-      "candidate_relations": [
-        "sensor_reading"
-      ],
-      "static_sql_sha256": "18d4d39942d7725066e22896873a9b4f757f3b3d5d0e15267db8fc47b760d286",
-      "operation_refs": [
-        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
-        "scheduled_module:services.ingestion.anomaly_detector"
-      ]
-    },
-    {
-      "id": "services/ingestion/anomaly_detector.py:1060:20",
-      "source": "services/ingestion/anomaly_detector.py",
-      "line": 1060,
-      "column": 20,
-      "scope": "run_baseline_check",
-      "method": "execute",
-      "expression_kind": "literal",
-      "statement_kind": "SELECT",
-      "candidate_relations": [
-        "sensor_device"
-      ],
-      "static_sql_sha256": "5a8843a946589f446e5dc862e65e9511864b83e9658a6f0f910af7b79625fe52",
-      "operation_refs": [
-        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
-        "scheduled_module:services.ingestion.anomaly_detector"
-      ]
-    },
-    {
-      "id": "services/ingestion/anomaly_detector.py:1080:20",
-      "source": "services/ingestion/anomaly_detector.py",
-      "line": 1080,
-      "column": 20,
-      "scope": "run_baseline_check",
-      "method": "execute",
-      "expression_kind": "literal",
-      "statement_kind": "SELECT",
-      "candidate_relations": [
-        "alert_rule",
-        "sensor_type"
-      ],
-      "static_sql_sha256": "e357192642bea5d455cfac6c7faf7d5ba3e40d88111149eee7290462d28cae16",
-      "operation_refs": [
-        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
-        "scheduled_module:services.ingestion.anomaly_detector"
-      ]
-    },
-    {
-      "id": "services/ingestion/anomaly_detector.py:1153:12",
-      "source": "services/ingestion/anomaly_detector.py",
-      "line": 1153,
+      "line": 699,
       "column": 12,
       "scope": "list_rules",
       "method": "execute",
@@ -5786,8 +5470,7 @@
       ],
       "static_sql_sha256": "591c33698e3f058a6df0de4c78df6042cb0ffa8a52c4b1754453ad95680b0c83",
       "operation_refs": [
-        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
-        "scheduled_module:services.ingestion.anomaly_detector"
+        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading"
       ]
     },
     {
@@ -5929,13 +5612,10 @@
       "static_sql_sha256": "b6338d443f60f6b7f82ae2add2213d8912e8d50c9c9659bf2db0916ceb2abfbe",
       "operation_refs": [
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
-        "scheduled_module:services.ingestion.anomaly_detector",
         "scheduled_module:services.ingestion.baal_indexer",
         "scheduled_module:services.ingestion.baal_worker",
         "scheduled_module:services.ingestion.clickhouse_outbox",
         "scheduled_module:services.ingestion.clickhouse_outbox_worker",
-        "scheduled_module:services.ingestion.climate_data",
-        "scheduled_module:services.ingestion.climate_worker",
         "scheduled_module:services.ingestion.data_freshness",
         "scheduled_module:services.ingestion.eas_indexer",
         "scheduled_module:services.ingestion.freshness_worker",
@@ -5965,19 +5645,16 @@
       "expression_kind": "literal",
       "statement_kind": "INSERT",
       "candidate_relations": [
-        "SET",
-        "chain_indexer_status"
+        "chain_indexer_status",
+        "set"
       ],
       "static_sql_sha256": "f643045b66f2d86680f5b953f5c9cbfa4ce53ffce7a14eca619deaa726535756",
       "operation_refs": [
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
-        "scheduled_module:services.ingestion.anomaly_detector",
         "scheduled_module:services.ingestion.baal_indexer",
         "scheduled_module:services.ingestion.baal_worker",
         "scheduled_module:services.ingestion.clickhouse_outbox",
         "scheduled_module:services.ingestion.clickhouse_outbox_worker",
-        "scheduled_module:services.ingestion.climate_data",
-        "scheduled_module:services.ingestion.climate_worker",
         "scheduled_module:services.ingestion.data_freshness",
         "scheduled_module:services.ingestion.eas_indexer",
         "scheduled_module:services.ingestion.freshness_worker",
@@ -6012,13 +5689,10 @@
       "static_sql_sha256": "16344b080c79f42de03436dedbe39a5c4e4418b98b15eb579e427b89639179df",
       "operation_refs": [
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
-        "scheduled_module:services.ingestion.anomaly_detector",
         "scheduled_module:services.ingestion.baal_indexer",
         "scheduled_module:services.ingestion.baal_worker",
         "scheduled_module:services.ingestion.clickhouse_outbox",
         "scheduled_module:services.ingestion.clickhouse_outbox_worker",
-        "scheduled_module:services.ingestion.climate_data",
-        "scheduled_module:services.ingestion.climate_worker",
         "scheduled_module:services.ingestion.data_freshness",
         "scheduled_module:services.ingestion.eas_indexer",
         "scheduled_module:services.ingestion.freshness_worker",
@@ -6039,17 +5713,17 @@
       ]
     },
     {
-      "id": "services/ingestion/clickhouse_outbox.py:125:12",
+      "id": "services/ingestion/clickhouse_outbox.py:122:12",
       "source": "services/ingestion/clickhouse_outbox.py",
-      "line": 125,
+      "line": 122,
       "column": 12,
       "scope": "enqueue",
       "method": "execute",
       "expression_kind": "literal",
       "statement_kind": "INSERT",
       "candidate_relations": [
-        "SET",
-        "clickhouse_outbox"
+        "clickhouse_outbox",
+        "set"
       ],
       "static_sql_sha256": "3177423aa157fcfb92b5d570c0d24f0dc36a66127c0069ee371a5cc306248744",
       "operation_refs": [
@@ -6069,98 +5743,9 @@
       ]
     },
     {
-      "id": "services/ingestion/clickhouse_outbox.py:161:8",
+      "id": "services/ingestion/clickhouse_outbox.py:263:8",
       "source": "services/ingestion/clickhouse_outbox.py",
-      "line": 161,
-      "column": 8,
-      "scope": "_recover_expired",
-      "method": "execute",
-      "expression_kind": "literal",
-      "statement_kind": "UPDATE",
-      "candidate_relations": [
-        "clickhouse_outbox"
-      ],
-      "static_sql_sha256": "863a3e35fe1af473f4de2565c69e4d36bf297f52d49bfd9467e810653543f68d",
-      "operation_refs": [
-        "scheduled_module:services.ingestion.clickhouse_outbox",
-        "scheduled_module:services.ingestion.clickhouse_outbox_worker",
-        "scheduled_module:services.ingestion.eas_indexer",
-        "scheduled_module:services.ingestion.gnosis_indexer",
-        "scheduled_module:services.ingestion.gnosis_worker",
-        "scheduled_module:services.ingestion.remote_sensing_fetcher",
-        "scheduled_module:services.ingestion.remote_sensing_worker",
-        "scheduled_module:services.ingestion.rpc_indexer",
-        "scheduled_module:services.ingestion.sensor_ingester",
-        "scheduled_module:services.ingestion.weather",
-        "scheduled_module:services.ingestion.weather_forecast",
-        "scheduled_module:services.ingestion.weather_forecast_worker",
-        "scheduled_module:services.ingestion.weather_worker"
-      ]
-    },
-    {
-      "id": "services/ingestion/clickhouse_outbox.py:179:8",
-      "source": "services/ingestion/clickhouse_outbox.py",
-      "line": 179,
-      "column": 8,
-      "scope": "claim_batch",
-      "method": "execute",
-      "expression_kind": "literal",
-      "statement_kind": "WITH",
-      "candidate_relations": [
-        "SKIP",
-        "candidates",
-        "clickhouse_outbox"
-      ],
-      "static_sql_sha256": "cd04922371cb25521ef167ec8d9898db76466a7699f7b66ef95a883eaf1aed75",
-      "operation_refs": [
-        "scheduled_module:services.ingestion.clickhouse_outbox",
-        "scheduled_module:services.ingestion.clickhouse_outbox_worker",
-        "scheduled_module:services.ingestion.eas_indexer",
-        "scheduled_module:services.ingestion.gnosis_indexer",
-        "scheduled_module:services.ingestion.gnosis_worker",
-        "scheduled_module:services.ingestion.remote_sensing_fetcher",
-        "scheduled_module:services.ingestion.remote_sensing_worker",
-        "scheduled_module:services.ingestion.rpc_indexer",
-        "scheduled_module:services.ingestion.sensor_ingester",
-        "scheduled_module:services.ingestion.weather",
-        "scheduled_module:services.ingestion.weather_forecast",
-        "scheduled_module:services.ingestion.weather_forecast_worker",
-        "scheduled_module:services.ingestion.weather_worker"
-      ]
-    },
-    {
-      "id": "services/ingestion/clickhouse_outbox.py:213:8",
-      "source": "services/ingestion/clickhouse_outbox.py",
-      "line": 213,
-      "column": 8,
-      "scope": "_finish",
-      "method": "execute",
-      "expression_kind": "literal",
-      "statement_kind": "UPDATE",
-      "candidate_relations": [
-        "clickhouse_outbox"
-      ],
-      "static_sql_sha256": "a717dbf6b73f8520c07814fff6a021de60348cc176bda0757fc07c494fcb1317",
-      "operation_refs": [
-        "scheduled_module:services.ingestion.clickhouse_outbox",
-        "scheduled_module:services.ingestion.clickhouse_outbox_worker",
-        "scheduled_module:services.ingestion.eas_indexer",
-        "scheduled_module:services.ingestion.gnosis_indexer",
-        "scheduled_module:services.ingestion.gnosis_worker",
-        "scheduled_module:services.ingestion.remote_sensing_fetcher",
-        "scheduled_module:services.ingestion.remote_sensing_worker",
-        "scheduled_module:services.ingestion.rpc_indexer",
-        "scheduled_module:services.ingestion.sensor_ingester",
-        "scheduled_module:services.ingestion.weather",
-        "scheduled_module:services.ingestion.weather_forecast",
-        "scheduled_module:services.ingestion.weather_forecast_worker",
-        "scheduled_module:services.ingestion.weather_worker"
-      ]
-    },
-    {
-      "id": "services/ingestion/clickhouse_outbox.py:352:8",
-      "source": "services/ingestion/clickhouse_outbox.py",
-      "line": 352,
+      "line": 263,
       "column": 8,
       "scope": "reconcile_pending",
       "method": "execute",
@@ -6187,9 +5772,9 @@
       ]
     },
     {
-      "id": "services/ingestion/clickhouse_outbox.py:373:12",
+      "id": "services/ingestion/clickhouse_outbox.py:284:12",
       "source": "services/ingestion/clickhouse_outbox.py",
-      "line": 373,
+      "line": 284,
       "column": 12,
       "scope": "_operator_transition",
       "method": "execute",
@@ -6219,9 +5804,9 @@
       ]
     },
     {
-      "id": "services/ingestion/clickhouse_outbox.py:420:8",
+      "id": "services/ingestion/clickhouse_outbox.py:331:8",
       "source": "services/ingestion/clickhouse_outbox.py",
-      "line": 420,
+      "line": 331,
       "column": 8,
       "scope": "list_dead_letters",
       "method": "execute",
@@ -6261,7 +5846,19 @@
       ],
       "static_sql_sha256": "7e5d2c45fe47d6b411085740ff034484bdd05e74ba2bdcb660acc37b1dacf455",
       "operation_refs": [
-        "scheduled_module:services.ingestion.clickhouse_outbox_worker"
+        "scheduled_module:services.ingestion.clickhouse_outbox",
+        "scheduled_module:services.ingestion.clickhouse_outbox_worker",
+        "scheduled_module:services.ingestion.eas_indexer",
+        "scheduled_module:services.ingestion.gnosis_indexer",
+        "scheduled_module:services.ingestion.gnosis_worker",
+        "scheduled_module:services.ingestion.remote_sensing_fetcher",
+        "scheduled_module:services.ingestion.remote_sensing_worker",
+        "scheduled_module:services.ingestion.rpc_indexer",
+        "scheduled_module:services.ingestion.sensor_ingester",
+        "scheduled_module:services.ingestion.weather",
+        "scheduled_module:services.ingestion.weather_forecast",
+        "scheduled_module:services.ingestion.weather_forecast_worker",
+        "scheduled_module:services.ingestion.weather_worker"
       ]
     },
     {
@@ -6276,69 +5873,25 @@
       "candidate_relations": [],
       "static_sql_sha256": "898fb2211cdc01eaf4a49170fed647128dda81ecbb705f91d496fe3e64d8319c",
       "operation_refs": [
-        "scheduled_module:services.ingestion.clickhouse_outbox_worker"
+        "scheduled_module:services.ingestion.clickhouse_outbox",
+        "scheduled_module:services.ingestion.clickhouse_outbox_worker",
+        "scheduled_module:services.ingestion.eas_indexer",
+        "scheduled_module:services.ingestion.gnosis_indexer",
+        "scheduled_module:services.ingestion.gnosis_worker",
+        "scheduled_module:services.ingestion.remote_sensing_fetcher",
+        "scheduled_module:services.ingestion.remote_sensing_worker",
+        "scheduled_module:services.ingestion.rpc_indexer",
+        "scheduled_module:services.ingestion.sensor_ingester",
+        "scheduled_module:services.ingestion.weather",
+        "scheduled_module:services.ingestion.weather_forecast",
+        "scheduled_module:services.ingestion.weather_forecast_worker",
+        "scheduled_module:services.ingestion.weather_worker"
       ]
     },
     {
-      "id": "services/ingestion/climate_data.py:36:4",
-      "source": "services/ingestion/climate_data.py",
-      "line": 36,
-      "column": 4,
-      "scope": "_query_location_bbox",
-      "method": "execute",
-      "expression_kind": "literal",
-      "statement_kind": "SELECT",
-      "candidate_relations": [
-        "farm",
-        "plot"
-      ],
-      "static_sql_sha256": "17c99193e06ba6cd8e6f27dd3e94ba97ff5c5ff658668bc615dda117a15ce1e3",
-      "operation_refs": [
-        "scheduled_module:services.ingestion.climate_data",
-        "scheduled_module:services.ingestion.climate_worker"
-      ]
-    },
-    {
-      "id": "services/ingestion/climate_data.py:64:4",
-      "source": "services/ingestion/climate_data.py",
-      "line": 64,
-      "column": 4,
-      "scope": "_query_location_centroid",
-      "method": "execute",
-      "expression_kind": "literal",
-      "statement_kind": "SELECT",
-      "candidate_relations": [
-        "location"
-      ],
-      "static_sql_sha256": "3b423730652249be4b8b95fbe4ab8e3d8de495bae9789ffffa49b1a7e560e078",
-      "operation_refs": [
-        "scheduled_module:services.ingestion.climate_data",
-        "scheduled_module:services.ingestion.climate_worker"
-      ]
-    },
-    {
-      "id": "services/ingestion/climate_data.py:104:4",
-      "source": "services/ingestion/climate_data.py",
-      "line": 104,
-      "column": 4,
-      "scope": "fetch_worldclim",
-      "method": "execute",
-      "expression_kind": "literal",
-      "statement_kind": "INSERT",
-      "candidate_relations": [
-        "SET",
-        "worldclim_climate"
-      ],
-      "static_sql_sha256": "f87c88368e85ede4f80cb393fbdc52f04049f8742d3f7bfdec5ee0f49148e74c",
-      "operation_refs": [
-        "scheduled_module:services.ingestion.climate_data",
-        "scheduled_module:services.ingestion.climate_worker"
-      ]
-    },
-    {
-      "id": "services/ingestion/climate_worker.py:51:12",
+      "id": "services/ingestion/climate_worker.py:52:12",
       "source": "services/ingestion/climate_worker.py",
-      "line": 51,
+      "line": 52,
       "column": 12,
       "scope": "_load_location",
       "method": "execute",
@@ -6353,16 +5906,16 @@
       ]
     },
     {
-      "id": "services/ingestion/climate_worker.py:90:12",
+      "id": "services/ingestion/climate_worker.py:100:12",
       "source": "services/ingestion/climate_worker.py",
-      "line": 90,
+      "line": 100,
       "column": 12,
       "scope": "_store_result",
       "method": "execute",
       "expression_kind": "literal",
       "statement_kind": "SELECT",
       "candidate_relations": [],
-      "static_sql_sha256": "ef59e8076b64fb230a39f99423b83ae856f6eab21f3c64d53a0a35b2460ae7ed",
+      "static_sql_sha256": "3bc58b638bde1d83d6654732ba6e9570284df7fa0453dd5504c5834d3a542428",
       "operation_refs": [
         "scheduled_module:services.ingestion.climate_worker"
       ]
@@ -6404,187 +5957,9 @@
       ]
     },
     {
-      "id": "services/ingestion/data_freshness.py:52:12",
+      "id": "services/ingestion/data_freshness.py:109:16",
       "source": "services/ingestion/data_freshness.py",
-      "line": 52,
-      "column": 12,
-      "scope": "_query_freshness_configs",
-      "method": "execute",
-      "expression_kind": "literal",
-      "statement_kind": "SELECT",
-      "candidate_relations": [
-        "data_freshness_config"
-      ],
-      "static_sql_sha256": "4c102ca184fdc3f91ab311d7c0a7f6e794a0050c635ea894b776b5b122b41d0d",
-      "operation_refs": [
-        "scheduled_module:services.ingestion.data_freshness",
-        "scheduled_module:services.ingestion.freshness_worker"
-      ]
-    },
-    {
-      "id": "services/ingestion/data_freshness.py:57:12",
-      "source": "services/ingestion/data_freshness.py",
-      "line": 57,
-      "column": 12,
-      "scope": "_query_freshness_configs",
-      "method": "execute",
-      "expression_kind": "literal",
-      "statement_kind": "SELECT",
-      "candidate_relations": [
-        "data_freshness_config"
-      ],
-      "static_sql_sha256": "a60141a27af0b3d82c47c1442bae7a6d17b60366a56cd092c0c0e85e5341deea",
-      "operation_refs": [
-        "scheduled_module:services.ingestion.data_freshness",
-        "scheduled_module:services.ingestion.freshness_worker"
-      ]
-    },
-    {
-      "id": "services/ingestion/data_freshness.py:72:8",
-      "source": "services/ingestion/data_freshness.py",
-      "line": 72,
-      "column": 8,
-      "scope": "_location_ids",
-      "method": "execute",
-      "expression_kind": "literal",
-      "statement_kind": "SELECT",
-      "candidate_relations": [
-        "location"
-      ],
-      "static_sql_sha256": "16067c6a8e72e9f58a55dc71095bb225962fae7b462889f42a2f368efbc69aad",
-      "operation_refs": [
-        "scheduled_module:services.ingestion.data_freshness",
-        "scheduled_module:services.ingestion.freshness_worker"
-      ]
-    },
-    {
-      "id": "services/ingestion/data_freshness.py:103:8",
-      "source": "services/ingestion/data_freshness.py",
-      "line": 103,
-      "column": 8,
-      "scope": "_query_latest_data_at",
-      "method": "execute",
-      "expression_kind": "composed_or_variable",
-      "statement_kind": "SELECT",
-      "candidate_relations": [],
-      "static_sql_sha256": null,
-      "operation_refs": [
-        "scheduled_module:services.ingestion.data_freshness",
-        "scheduled_module:services.ingestion.freshness_worker"
-      ]
-    },
-    {
-      "id": "services/ingestion/data_freshness.py:155:8",
-      "source": "services/ingestion/data_freshness.py",
-      "line": 155,
-      "column": 8,
-      "scope": "_alert_state",
-      "method": "execute",
-      "expression_kind": "literal",
-      "statement_kind": "SELECT",
-      "candidate_relations": [
-        "data_freshness_alert_state"
-      ],
-      "static_sql_sha256": "5088eab90b442512646fb02d7cdd6c2662878b76ab3bed7e924e9e609cfe88b1",
-      "operation_refs": [
-        "scheduled_module:services.ingestion.data_freshness",
-        "scheduled_module:services.ingestion.freshness_worker"
-      ]
-    },
-    {
-      "id": "services/ingestion/data_freshness.py:170:8",
-      "source": "services/ingestion/data_freshness.py",
-      "line": 170,
-      "column": 8,
-      "scope": "_alert_state",
-      "method": "execute",
-      "expression_kind": "literal",
-      "statement_kind": "INSERT",
-      "candidate_relations": [
-        "data_freshness_alert_state"
-      ],
-      "static_sql_sha256": "cf3222c061761d02867a703984c56ca3cbcf8d54b6750666d9094867beae4830",
-      "operation_refs": [
-        "scheduled_module:services.ingestion.data_freshness",
-        "scheduled_module:services.ingestion.freshness_worker"
-      ]
-    },
-    {
-      "id": "services/ingestion/data_freshness.py:182:8",
-      "source": "services/ingestion/data_freshness.py",
-      "line": 182,
-      "column": 8,
-      "scope": "_alert_state",
-      "method": "execute",
-      "expression_kind": "literal",
-      "statement_kind": "SELECT",
-      "candidate_relations": [
-        "data_freshness_alert_state"
-      ],
-      "static_sql_sha256": "5088eab90b442512646fb02d7cdd6c2662878b76ab3bed7e924e9e609cfe88b1",
-      "operation_refs": [
-        "scheduled_module:services.ingestion.data_freshness",
-        "scheduled_module:services.ingestion.freshness_worker"
-      ]
-    },
-    {
-      "id": "services/ingestion/data_freshness.py:209:8",
-      "source": "services/ingestion/data_freshness.py",
-      "line": 209,
-      "column": 8,
-      "scope": "_persist_alert_event",
-      "method": "execute",
-      "expression_kind": "literal",
-      "statement_kind": "INSERT",
-      "candidate_relations": [
-        "data_freshness_alert_history"
-      ],
-      "static_sql_sha256": "32a454b3e88fadc77c096ddd3802845025dee37ed799f701c755377f6d4c2ad8",
-      "operation_refs": [
-        "scheduled_module:services.ingestion.data_freshness",
-        "scheduled_module:services.ingestion.freshness_worker"
-      ]
-    },
-    {
-      "id": "services/ingestion/data_freshness.py:225:8",
-      "source": "services/ingestion/data_freshness.py",
-      "line": 225,
-      "column": 8,
-      "scope": "_persist_alert_event",
-      "method": "execute",
-      "expression_kind": "fstring",
-      "statement_kind": "UPDATE",
-      "candidate_relations": [
-        "data_freshness_alert_state"
-      ],
-      "static_sql_sha256": null,
-      "operation_refs": [
-        "scheduled_module:services.ingestion.data_freshness",
-        "scheduled_module:services.ingestion.freshness_worker"
-      ]
-    },
-    {
-      "id": "services/ingestion/data_freshness.py:254:8",
-      "source": "services/ingestion/data_freshness.py",
-      "line": 254,
-      "column": 8,
-      "scope": "_insert_check_result",
-      "method": "execute",
-      "expression_kind": "literal",
-      "statement_kind": "INSERT",
-      "candidate_relations": [
-        "data_freshness_check"
-      ],
-      "static_sql_sha256": "6a8f6f56f051d88e46dd8e668827010ef6bcbf38b42ed72ee126b816ac731635",
-      "operation_refs": [
-        "scheduled_module:services.ingestion.data_freshness",
-        "scheduled_module:services.ingestion.freshness_worker"
-      ]
-    },
-    {
-      "id": "services/ingestion/data_freshness.py:370:16",
-      "source": "services/ingestion/data_freshness.py",
-      "line": 370,
+      "line": 109,
       "column": 16,
       "scope": "check_freshness",
       "method": "execute",
@@ -6598,9 +5973,9 @@
       ]
     },
     {
-      "id": "services/ingestion/data_freshness.py:388:20",
+      "id": "services/ingestion/data_freshness.py:123:20",
       "source": "services/ingestion/data_freshness.py",
-      "line": 388,
+      "line": 123,
       "column": 20,
       "scope": "check_freshness",
       "method": "execute",
@@ -6614,45 +5989,9 @@
       ]
     },
     {
-      "id": "services/ingestion/data_freshness.py:468:28",
+      "id": "services/ingestion/data_freshness.py:177:20",
       "source": "services/ingestion/data_freshness.py",
-      "line": 468,
-      "column": 28,
-      "scope": "check_freshness",
-      "method": "execute",
-      "expression_kind": "literal",
-      "statement_kind": "UPDATE",
-      "candidate_relations": [
-        "data_freshness_alert_state"
-      ],
-      "static_sql_sha256": "2fb045ba4e5bf1ffcf500a744326fc3e459bba935517b42698b17c9f0abde3fb",
-      "operation_refs": [
-        "scheduled_module:services.ingestion.data_freshness",
-        "scheduled_module:services.ingestion.freshness_worker"
-      ]
-    },
-    {
-      "id": "services/ingestion/data_freshness.py:479:24",
-      "source": "services/ingestion/data_freshness.py",
-      "line": 479,
-      "column": 24,
-      "scope": "check_freshness",
-      "method": "execute",
-      "expression_kind": "literal",
-      "statement_kind": "UPDATE",
-      "candidate_relations": [
-        "data_freshness_check"
-      ],
-      "static_sql_sha256": "274891bf49ba6fe3a392465fb6bf0c63fe285b104af31bc562e14055560cd293",
-      "operation_refs": [
-        "scheduled_module:services.ingestion.data_freshness",
-        "scheduled_module:services.ingestion.freshness_worker"
-      ]
-    },
-    {
-      "id": "services/ingestion/data_freshness.py:487:20",
-      "source": "services/ingestion/data_freshness.py",
-      "line": 487,
+      "line": 177,
       "column": 20,
       "scope": "check_freshness",
       "method": "execute",
@@ -6666,9 +6005,9 @@
       ]
     },
     {
-      "id": "services/ingestion/data_freshness.py:538:8",
+      "id": "services/ingestion/data_freshness.py:228:8",
       "source": "services/ingestion/data_freshness.py",
-      "line": 538,
+      "line": 228,
       "column": 8,
       "scope": "get_freshness_summary",
       "method": "execute",
@@ -6677,7 +6016,7 @@
       "candidate_relations": [
         "v_data_freshness_summary"
       ],
-      "static_sql_sha256": "5cf5e69cad7d4c732757fbf3ec9e0c2fd5befa70c62234dff2e16d4c8caa4875",
+      "static_sql_sha256": "8db9376316fcc7b212c908536f26c58cff40b881eb2624fad0358424bd0bc1c7",
       "operation_refs": [
         "scheduled_module:services.ingestion.data_freshness",
         "scheduled_module:services.ingestion.freshness_worker"
@@ -7013,6 +6352,7 @@
       "candidate_relations": [],
       "static_sql_sha256": null,
       "operation_refs": [
+        "scheduled_module:services.ingestion.data_freshness",
         "scheduled_module:services.ingestion.freshness_worker"
       ],
       "statement_variants": [
@@ -7054,6 +6394,7 @@
       "candidate_relations": [],
       "static_sql_sha256": null,
       "operation_refs": [
+        "scheduled_module:services.ingestion.data_freshness",
         "scheduled_module:services.ingestion.freshness_worker"
       ],
       "statement_variants": [
@@ -7092,60 +6433,6 @@
           "statement_kind": "SELECT",
           "candidate_relations": [],
           "static_sql_sha256": "a2026ccadf7f85fb0e75c753e18c1fa5b103436952913cda4e3c16c18c6678ea"
-        }
-      ]
-    },
-    {
-      "id": "services/ingestion/gee_climate.py:92:8",
-      "source": "services/ingestion/gee_climate.py",
-      "line": 92,
-      "column": 8,
-      "scope": "_persist_summary",
-      "method": "execute",
-      "expression_kind": "composed_or_variable",
-      "statement_kind": "INSERT",
-      "candidate_relations": [],
-      "static_sql_sha256": null,
-      "operation_refs": [
-        "scheduled_module:services.ingestion.climate_data",
-        "scheduled_module:services.ingestion.climate_worker"
-      ],
-      "statement_variants": [
-        {
-          "operation": "fetch_era5_land@478",
-          "statement_kind": "INSERT",
-          "candidate_relations": [
-            "SET",
-            "ncep_weather_summary"
-          ],
-          "static_sql_sha256": "22510a69d2e1e48b63c18133c806b707538c1280d4788949f39ad1683c375feb"
-        },
-        {
-          "operation": "fetch_modis_lst@200",
-          "statement_kind": "INSERT",
-          "candidate_relations": [
-            "SET",
-            "modis_lst_summary"
-          ],
-          "static_sql_sha256": "e61fd0ef89b0c17bfa1cd395cbe10bd687ed10c84c64d2fc7aa91b66ea0378db"
-        },
-        {
-          "operation": "fetch_sentinel1_sar@359",
-          "statement_kind": "INSERT",
-          "candidate_relations": [
-            "SET",
-            "sentinel1_sar_summary"
-          ],
-          "static_sql_sha256": "19d33cfc4c3b81ae05806ed716bb050a411d01889896ff6998c53150c8034b8e"
-        },
-        {
-          "operation": "fetch_smap_moisture@278",
-          "statement_kind": "INSERT",
-          "candidate_relations": [
-            "SET",
-            "smap_soil_moisture"
-          ],
-          "static_sql_sha256": "44c765906983b8e86dfab08af6e423e2fa9dfc60ff101194856e6ae48a7887cc"
         }
       ]
     },
@@ -7457,89 +6744,18 @@
       ]
     },
     {
-      "id": "services/ingestion/market_data.py:412:8",
-      "source": "services/ingestion/market_data.py",
-      "line": 412,
-      "column": 8,
-      "scope": "insert_price",
-      "method": "execute",
-      "expression_kind": "literal",
-      "statement_kind": "INSERT",
-      "candidate_relations": [
-        "price_observation"
-      ],
-      "static_sql_sha256": "3c4d993737b38fad0ef6458742a0ee7b62cbee74bee1c7733f019ada5351a383",
-      "operation_refs": [
-        "scheduled_module:services.ingestion.market_data",
-        "scheduled_module:services.ingestion.market_data_worker"
-      ]
-    },
-    {
-      "id": "services/ingestion/market_data.py:437:8",
-      "source": "services/ingestion/market_data.py",
-      "line": 437,
-      "column": 8,
-      "scope": "insert_price",
-      "method": "execute",
-      "expression_kind": "literal",
-      "statement_kind": "SELECT",
-      "candidate_relations": [
-        "price_observation"
-      ],
-      "static_sql_sha256": "7a920c0e995e515a8c13cfe9885be4e55120ddbae591b56e42e4bdc5ba41c0a2",
-      "operation_refs": [
-        "scheduled_module:services.ingestion.market_data",
-        "scheduled_module:services.ingestion.market_data_worker"
-      ]
-    },
-    {
-      "id": "services/ingestion/market_data.py:458:12",
-      "source": "services/ingestion/market_data.py",
-      "line": 458,
-      "column": 12,
-      "scope": "run_seed_data",
-      "method": "execute",
-      "expression_kind": "literal",
-      "statement_kind": "SELECT",
-      "candidate_relations": [
-        "crop"
-      ],
-      "static_sql_sha256": "d9e45ee8de4b56e0f234b1053554eb821f5c5118ca8b12d480c6e40b8ad3f410",
-      "operation_refs": [
-        "scheduled_module:services.ingestion.market_data",
-        "scheduled_module:services.ingestion.market_data_worker"
-      ]
-    },
-    {
-      "id": "services/ingestion/market_data.py:548:12",
-      "source": "services/ingestion/market_data.py",
-      "line": 548,
-      "column": 12,
-      "scope": "run_world_bank",
-      "method": "execute",
-      "expression_kind": "literal",
-      "statement_kind": "SELECT",
-      "candidate_relations": [
-        "crop"
-      ],
-      "static_sql_sha256": "d9e45ee8de4b56e0f234b1053554eb821f5c5118ca8b12d480c6e40b8ad3f410",
-      "operation_refs": [
-        "scheduled_module:services.ingestion.market_data",
-        "scheduled_module:services.ingestion.market_data_worker"
-      ]
-    },
-    {
-      "id": "services/ingestion/market_data_worker.py:55:12",
+      "id": "services/ingestion/market_data_worker.py:54:12",
       "source": "services/ingestion/market_data_worker.py",
-      "line": 55,
+      "line": 54,
       "column": 12,
-      "scope": "ingest",
+      "scope": "_call_worker",
       "method": "execute",
-      "expression_kind": "literal",
-      "statement_kind": "SELECT",
+      "expression_kind": "composed_or_variable",
+      "statement_kind": "UNKNOWN",
       "candidate_relations": [],
-      "static_sql_sha256": "0141548fc651e00427699d3751822e7c5cc1c58f35fc355f084d571d23243962",
+      "static_sql_sha256": null,
       "operation_refs": [
+        "scheduled_module:services.ingestion.market_data",
         "scheduled_module:services.ingestion.market_data_worker"
       ]
     },
@@ -7555,8 +6771,7 @@
       "candidate_relations": [],
       "static_sql_sha256": null,
       "operation_refs": [
-        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
-        "scheduled_module:services.ingestion.anomaly_detector"
+        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading"
       ]
     },
     {
@@ -7571,8 +6786,7 @@
       "candidate_relations": [],
       "static_sql_sha256": null,
       "operation_refs": [
-        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
-        "scheduled_module:services.ingestion.anomaly_detector"
+        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading"
       ]
     },
     {
@@ -7587,8 +6801,7 @@
       "candidate_relations": [],
       "static_sql_sha256": null,
       "operation_refs": [
-        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
-        "scheduled_module:services.ingestion.anomaly_detector"
+        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading"
       ]
     },
     {
@@ -7603,8 +6816,7 @@
       "candidate_relations": [],
       "static_sql_sha256": null,
       "operation_refs": [
-        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
-        "scheduled_module:services.ingestion.anomaly_detector"
+        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading"
       ]
     },
     {
@@ -7621,8 +6833,7 @@
       ],
       "static_sql_sha256": "e43ceeeb2e7f75eb3227a7e6d10de82b49319b94e0992668bb7e4a0820f64d66",
       "operation_refs": [
-        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
-        "scheduled_module:services.ingestion.anomaly_detector"
+        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading"
       ]
     },
     {
@@ -7639,34 +6850,13 @@
       ],
       "static_sql_sha256": "1c5506b81e7cc2ead11f04b5dd7f4d8b0db618c79e868ad7771646cf17e6fe27",
       "operation_refs": [
-        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
-        "scheduled_module:services.ingestion.anomaly_detector"
+        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading"
       ]
     },
     {
-      "id": "services/ingestion/remote_sensing_fetcher.py:118:8",
+      "id": "services/ingestion/remote_sensing_fetcher.py:133:8",
       "source": "services/ingestion/remote_sensing_fetcher.py",
-      "line": 118,
-      "column": 8,
-      "scope": "_claim_due_jobs",
-      "method": "execute",
-      "expression_kind": "literal",
-      "statement_kind": "WITH",
-      "candidate_relations": [
-        "SKIP",
-        "due",
-        "remote_sensing_job"
-      ],
-      "static_sql_sha256": "edd72783a52eaead63ae41a9790f0fbc30479cf4193a781ff24d98f6ef9dbed6",
-      "operation_refs": [
-        "scheduled_module:services.ingestion.remote_sensing_fetcher",
-        "scheduled_module:services.ingestion.remote_sensing_worker"
-      ]
-    },
-    {
-      "id": "services/ingestion/remote_sensing_fetcher.py:158:8",
-      "source": "services/ingestion/remote_sensing_fetcher.py",
-      "line": 158,
+      "line": 133,
       "column": 8,
       "scope": "_query_job",
       "method": "execute",
@@ -7682,9 +6872,9 @@
       ]
     },
     {
-      "id": "services/ingestion/remote_sensing_fetcher.py:214:8",
+      "id": "services/ingestion/remote_sensing_fetcher.py:189:8",
       "source": "services/ingestion/remote_sensing_fetcher.py",
-      "line": 214,
+      "line": 189,
       "column": 8,
       "scope": "_update_job_status",
       "method": "execute",
@@ -7700,9 +6890,9 @@
       ]
     },
     {
-      "id": "services/ingestion/remote_sensing_fetcher.py:235:12",
+      "id": "services/ingestion/remote_sensing_fetcher.py:210:12",
       "source": "services/ingestion/remote_sensing_fetcher.py",
-      "line": 235,
+      "line": 210,
       "column": 12,
       "scope": "_resolve_bbox_from_job",
       "method": "execute",
@@ -7718,9 +6908,9 @@
       ]
     },
     {
-      "id": "services/ingestion/remote_sensing_fetcher.py:253:8",
+      "id": "services/ingestion/remote_sensing_fetcher.py:228:8",
       "source": "services/ingestion/remote_sensing_fetcher.py",
-      "line": 253,
+      "line": 228,
       "column": 8,
       "scope": "_resolve_bbox_from_job",
       "method": "execute",
@@ -7737,9 +6927,9 @@
       ]
     },
     {
-      "id": "services/ingestion/remote_sensing_fetcher.py:283:8",
+      "id": "services/ingestion/remote_sensing_fetcher.py:258:8",
       "source": "services/ingestion/remote_sensing_fetcher.py",
-      "line": 283,
+      "line": 258,
       "column": 8,
       "scope": "_record_provider_attempt",
       "method": "execute",
@@ -7755,9 +6945,9 @@
       ]
     },
     {
-      "id": "services/ingestion/remote_sensing_fetcher.py:444:8",
+      "id": "services/ingestion/remote_sensing_fetcher.py:406:8",
       "source": "services/ingestion/remote_sensing_fetcher.py",
-      "line": 444,
+      "line": 406,
       "column": 8,
       "scope": "list_jobs",
       "method": "execute",
@@ -7774,9 +6964,9 @@
       ]
     },
     {
-      "id": "services/ingestion/remote_sensing_fetcher.py:510:16",
+      "id": "services/ingestion/remote_sensing_fetcher.py:480:16",
       "source": "services/ingestion/remote_sensing_fetcher.py",
-      "line": 510,
+      "line": 480,
       "column": 16,
       "scope": "main",
       "method": "execute",
@@ -8053,14 +7243,13 @@
       "candidate_relations": [],
       "static_sql_sha256": "2bc49e9ac764b27ddd2b0f1d4c8f02be4d447d99c4d56e3eabce627558dc2a49",
       "operation_refs": [
-        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
-        "scheduled_module:services.ingestion.anomaly_detector"
+        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading"
       ]
     },
     {
-      "id": "services/ingestion/sensor_anomaly_worker.py:118:8",
+      "id": "services/ingestion/sensor_anomaly_worker.py:125:8",
       "source": "services/ingestion/sensor_anomaly_worker.py",
-      "line": 118,
+      "line": 125,
       "column": 8,
       "scope": "_one",
       "method": "execute",
@@ -8070,7 +7259,6 @@
       "static_sql_sha256": null,
       "operation_refs": [
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
-        "scheduled_module:services.ingestion.anomaly_detector",
         "scheduled_module:services.ingestion.sensor_anomaly_scan_worker"
       ],
       "statement_variants": [
@@ -8125,6 +7313,14 @@
             "kokonut_security.list_sensor_anomaly_events_since"
           ],
           "static_sql_sha256": "e4477b80bde9631111f574aa25e37d467e0dc244d7ceb422e8376e2472fa80e0"
+        },
+        {
+          "operation": "list_pending_sensor_events",
+          "statement_kind": "SELECT",
+          "candidate_relations": [
+            "kokonut_security.list_sensor_anomaly_events_for_sensor_since"
+          ],
+          "static_sql_sha256": "056c3921219e211a63dfb51a6fb12422985cc6f450ba0d3b4aefdd4d76ec75ab"
         },
         {
           "operation": "list_rules",
@@ -8163,9 +7359,9 @@
       ]
     },
     {
-      "id": "services/ingestion/sensor_anomaly_worker.py:125:8",
+      "id": "services/ingestion/sensor_anomaly_worker.py:132:8",
       "source": "services/ingestion/sensor_anomaly_worker.py",
-      "line": 125,
+      "line": 132,
       "column": 8,
       "scope": "_many",
       "method": "execute",
@@ -8175,7 +7371,6 @@
       "static_sql_sha256": null,
       "operation_refs": [
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
-        "scheduled_module:services.ingestion.anomaly_detector",
         "scheduled_module:services.ingestion.sensor_anomaly_scan_worker"
       ],
       "statement_variants": [
@@ -8232,6 +7427,14 @@
           "static_sql_sha256": "e4477b80bde9631111f574aa25e37d467e0dc244d7ceb422e8376e2472fa80e0"
         },
         {
+          "operation": "list_pending_sensor_events",
+          "statement_kind": "SELECT",
+          "candidate_relations": [
+            "kokonut_security.list_sensor_anomaly_events_for_sensor_since"
+          ],
+          "static_sql_sha256": "056c3921219e211a63dfb51a6fb12422985cc6f450ba0d3b4aefdd4d76ec75ab"
+        },
+        {
           "operation": "list_rules",
           "statement_kind": "SELECT",
           "candidate_relations": [
@@ -8265,6 +7468,36 @@
           "candidate_relations": [],
           "static_sql_sha256": "d4ae84fb28e5b84e8c0249533c26f2cdbdc1ff38c76fdd40a5c273cf3369fc0e"
         }
+      ]
+    },
+    {
+      "id": "services/ingestion/sensor_baseline_worker.py:172:12",
+      "source": "services/ingestion/sensor_baseline_worker.py",
+      "line": 172,
+      "column": 12,
+      "scope": "_enqueue_notifications",
+      "method": "execute",
+      "expression_kind": "composed_or_variable",
+      "statement_kind": "UNKNOWN",
+      "candidate_relations": [],
+      "static_sql_sha256": null,
+      "operation_refs": [
+        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading"
+      ]
+    },
+    {
+      "id": "services/ingestion/sensor_baseline_worker.py:220:12",
+      "source": "services/ingestion/sensor_baseline_worker.py",
+      "line": 220,
+      "column": 12,
+      "scope": "run_baseline_check",
+      "method": "execute",
+      "expression_kind": "composed_or_variable",
+      "statement_kind": "UNKNOWN",
+      "candidate_relations": [],
+      "static_sql_sha256": null,
+      "operation_refs": [
+        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading"
       ]
     },
     {
@@ -8655,16 +7888,16 @@
       ]
     },
     {
-      "id": "services/ingestion/weather_forecast.py:104:12",
+      "id": "services/ingestion/weather_forecast.py:109:12",
       "source": "services/ingestion/weather_forecast.py",
-      "line": 104,
+      "line": 109,
       "column": 12,
       "scope": "insert_forecasts",
       "method": "execute",
       "expression_kind": "literal",
       "statement_kind": "INSERT",
       "candidate_relations": [
-        "SET",
+        "set",
         "weather_forecast"
       ],
       "static_sql_sha256": "7279376fc79a198fd639c8dcd73e263b5def1c0466c910672338d38b437ad6f5",
@@ -8674,9 +7907,9 @@
       ]
     },
     {
-      "id": "services/ingestion/weather_forecast.py:154:8",
+      "id": "services/ingestion/weather_forecast.py:159:8",
       "source": "services/ingestion/weather_forecast.py",
-      "line": 154,
+      "line": 159,
       "column": 8,
       "scope": "insert_location_forecasts",
       "method": "execute",
@@ -8690,9 +7923,9 @@
       ]
     },
     {
-      "id": "services/ingestion/weather_forecast.py:159:12",
+      "id": "services/ingestion/weather_forecast.py:164:12",
       "source": "services/ingestion/weather_forecast.py",
-      "line": 159,
+      "line": 164,
       "column": 12,
       "scope": "insert_location_forecasts",
       "method": "execute",
@@ -8706,9 +7939,9 @@
       ]
     },
     {
-      "id": "services/ingestion/weather_forecast.py:160:12",
+      "id": "services/ingestion/weather_forecast.py:165:12",
       "source": "services/ingestion/weather_forecast.py",
-      "line": 160,
+      "line": 165,
       "column": 12,
       "scope": "insert_location_forecasts",
       "method": "execute",
@@ -8722,9 +7955,9 @@
       ]
     },
     {
-      "id": "services/ingestion/weather_forecast.py:163:8",
+      "id": "services/ingestion/weather_forecast.py:168:8",
       "source": "services/ingestion/weather_forecast.py",
-      "line": 163,
+      "line": 168,
       "column": 8,
       "scope": "insert_location_forecasts",
       "method": "execute",
@@ -8738,9 +7971,9 @@
       ]
     },
     {
-      "id": "services/ingestion/weather_forecast.py:251:8",
+      "id": "services/ingestion/weather_forecast.py:256:8",
       "source": "services/ingestion/weather_forecast.py",
-      "line": 251,
+      "line": 256,
       "column": 8,
       "scope": "get_daily_summary",
       "method": "execute",
@@ -8756,9 +7989,9 @@
       ]
     },
     {
-      "id": "services/ingestion/weather_forecast.py:271:8",
+      "id": "services/ingestion/weather_forecast.py:276:8",
       "source": "services/ingestion/weather_forecast.py",
-      "line": 271,
+      "line": 276,
       "column": 8,
       "scope": "get_spray_windows",
       "method": "execute",
@@ -8774,9 +8007,9 @@
       ]
     },
     {
-      "id": "services/ingestion/weather_forecast.py:305:16",
+      "id": "services/ingestion/weather_forecast.py:310:16",
       "source": "services/ingestion/weather_forecast.py",
-      "line": 305,
+      "line": 310,
       "column": 16,
       "scope": "_ingest_locations",
       "method": "execute",
@@ -8790,9 +8023,9 @@
       ]
     },
     {
-      "id": "services/ingestion/weather_forecast.py:325:16",
+      "id": "services/ingestion/weather_forecast.py:330:16",
       "source": "services/ingestion/weather_forecast.py",
-      "line": 325,
+      "line": 330,
       "column": 16,
       "scope": "_ingest_locations",
       "method": "execute",
@@ -8806,9 +8039,9 @@
       ]
     },
     {
-      "id": "services/ingestion/weather_forecast.py:331:20",
+      "id": "services/ingestion/weather_forecast.py:336:20",
       "source": "services/ingestion/weather_forecast.py",
-      "line": 331,
+      "line": 336,
       "column": 20,
       "scope": "_ingest_locations",
       "method": "execute",
@@ -8822,9 +8055,9 @@
       ]
     },
     {
-      "id": "services/ingestion/weather_forecast.py:332:20",
+      "id": "services/ingestion/weather_forecast.py:337:20",
       "source": "services/ingestion/weather_forecast.py",
-      "line": 332,
+      "line": 337,
       "column": 20,
       "scope": "_ingest_locations",
       "method": "execute",
@@ -8838,9 +8071,9 @@
       ]
     },
     {
-      "id": "services/ingestion/weather_forecast.py:382:16",
+      "id": "services/ingestion/weather_forecast.py:387:16",
       "source": "services/ingestion/weather_forecast.py",
-      "line": 382,
+      "line": 387,
       "column": 16,
       "scope": "run",
       "method": "execute",
@@ -8856,9 +8089,9 @@
       ]
     },
     {
-      "id": "services/ingestion/weather_forecast.py:388:16",
+      "id": "services/ingestion/weather_forecast.py:393:16",
       "source": "services/ingestion/weather_forecast.py",
-      "line": 388,
+      "line": 393,
       "column": 16,
       "scope": "run",
       "method": "execute",
@@ -8874,9 +8107,9 @@
       ]
     },
     {
-      "id": "services/ingestion/weather_forecast_worker.py:44:12",
+      "id": "services/ingestion/weather_forecast_worker.py:52:12",
       "source": "services/ingestion/weather_forecast_worker.py",
-      "line": 44,
+      "line": 52,
       "column": 12,
       "scope": "_load_location",
       "method": "execute",
@@ -8891,9 +8124,9 @@
       ]
     },
     {
-      "id": "services/ingestion/weather_forecast_worker.py:85:12",
+      "id": "services/ingestion/weather_forecast_worker.py:93:12",
       "source": "services/ingestion/weather_forecast_worker.py",
-      "line": 85,
+      "line": 93,
       "column": 12,
       "scope": "_store_batch",
       "method": "execute",
@@ -9249,10 +8482,11 @@
       "expression_kind": "literal",
       "statement_kind": "SELECT",
       "candidate_relations": [
+        "farm",
         "plot",
         "soil_carbon_measurement"
       ],
-      "static_sql_sha256": "00460061584e764a46da73d2bc712a33d378f871bbe39b848ea3db282838cd05",
+      "static_sql_sha256": "23366e654ff8cb16efcb4925556b45a549b01b6d0c05f902c7814f9ffb74fdcb",
       "operation_refs": [
         "scheduled_module:services.metrics"
       ]
@@ -9337,9 +8571,9 @@
       "expression_kind": "fstring",
       "statement_kind": "INSERT",
       "candidate_relations": [
-        "SET",
         "crop_cycle",
         "noi_snapshot",
+        "set",
         "v_crop_cycle_noi"
       ],
       "static_sql_sha256": null,
@@ -9382,26 +8616,9 @@
       ]
     },
     {
-      "id": "services/metrics/engine.py:47:8",
+      "id": "services/metrics/engine.py:54:8",
       "source": "services/metrics/engine.py",
-      "line": 47,
-      "column": 8,
-      "scope": "compute_metric",
-      "method": "execute",
-      "expression_kind": "literal",
-      "statement_kind": "SELECT",
-      "candidate_relations": [
-        "metric_definition"
-      ],
-      "static_sql_sha256": "6d60a617fc6cb5c3005868cc90ce3534c1d2f53af66658726b08a8bfb410da22",
-      "operation_refs": [
-        "scheduled_module:services.metrics"
-      ]
-    },
-    {
-      "id": "services/metrics/engine.py:75:8",
-      "source": "services/metrics/engine.py",
-      "line": 75,
+      "line": 54,
       "column": 8,
       "scope": "compute_metric",
       "method": "execute",
@@ -9416,9 +8633,26 @@
       ]
     },
     {
-      "id": "services/metrics/engine.py:117:4",
+      "id": "services/metrics/engine.py:107:8",
       "source": "services/metrics/engine.py",
-      "line": 117,
+      "line": 107,
+      "column": 8,
+      "scope": "compute_metric_draft",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "metric_definition"
+      ],
+      "static_sql_sha256": "6d60a617fc6cb5c3005868cc90ce3534c1d2f53af66658726b08a8bfb410da22",
+      "operation_refs": [
+        "scheduled_module:services.metrics"
+      ]
+    },
+    {
+      "id": "services/metrics/engine.py:163:4",
+      "source": "services/metrics/engine.py",
+      "line": 163,
       "column": 4,
       "scope": "compute_all",
       "method": "execute",
@@ -9433,9 +8667,9 @@
       ]
     },
     {
-      "id": "services/metrics/engine.py:180:8",
+      "id": "services/metrics/engine.py:226:8",
       "source": "services/metrics/engine.py",
-      "line": 180,
+      "line": 226,
       "column": 8,
       "scope": "verify_metric_value",
       "method": "execute",

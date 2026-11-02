@@ -1,0 +1,16 @@
+{
+  "candidate_legacy_or_production_db_touched": false,
+  "checks": [
+    "migration applies and replays transactionally",
+    "kokonut_runtime retains SELECT and loses table/column DML",
+    "Directus and owner-seed write paths remain intact",
+    "signed context and exact-location create grant are required",
+    "plot must belong to the signed location",
+    "same request/input replays one receipt; changed input conflicts",
+    "baseline and receipt roll back with the caller transaction"
+  ],
+  "disposable": true,
+  "migration": "733_environmental_baseline_gateway_capture.sql",
+  "network_disabled": true,
+  "result": "passed"
+}

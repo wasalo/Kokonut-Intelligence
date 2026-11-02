@@ -21,7 +21,6 @@ import psycopg2.extras
 from .models import DimensionScore
 from .normalization import clamp_risk_score, likelihood_to_risk_score
 
-
 # Carbon pool default fractions (IPCC 2006)
 CARBON_FRACTION = 0.47
 CO2E_CONVERSION = 3.67
@@ -61,25 +60,6 @@ def _query_soil_carbon(conn, location_id: str) -> Dict[str, Any]:
         WHERE location_id = %s
         ORDER BY measurement_date DESC NULLS LAST
         LIMIT 1
-    """, (location_id,))
-    row = dict(cur.fetchone() or {})
-    cur.close()
-    return row
-
-
-def _query_harvest_summary(conn, location_id: str) -> Dict[str, Any]:
-    """Aggregate harvest data for yield estimation."""
-    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-    cur.execute("""
-        SELECT
-            COUNT(*) AS harvest_count,
-            COALESCE(SUM(CASE WHEN unit = 'kg' THEN quantity WHEN unit = 'tonnes' THEN quantity * 1000 ELSE quantity END), 0) AS total_yield_kg,
-            COALESCE(AVG(CASE WHEN unit = 'kg' THEN quantity WHEN unit = 'tonnes' THEN quantity * 1000 ELSE quantity END), 0) AS avg_yield_kg,
-            MIN(harvest_date) AS first_harvest,
-            MAX(harvest_date) AS last_harvest
-        FROM harvest_event he
-        JOIN crop_cycle cc ON cc.id = he.crop_cycle_id
-        WHERE cc.location_id = %s
     """, (location_id,))
     row = dict(cur.fetchone() or {})
     cur.close()
@@ -221,7 +201,6 @@ def compute_carbon_yield_risk(
     """
     tree_summary = _query_tree_summary(conn, location_id)
     soil_carbon = _query_soil_carbon(conn, location_id)
-    harvest_summary = _query_harvest_summary(conn, location_id)
     ndvi = _query_ndvi_latest(conn, location_id)
     benchmark = _query_carbon_benchmark(conn, species)
 

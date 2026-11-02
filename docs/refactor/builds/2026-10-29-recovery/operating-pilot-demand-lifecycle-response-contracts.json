@@ -1,0 +1,30 @@
+{
+  "date": "2026-10-29",
+  "purpose": "Mock-only acceptance for operating-pilot demand draft create, revision, submission, and independent review response contracts.",
+  "command": "python3 -m pytest -q tests/test_gateway_operating_pilot_writes.py -k 'demand_draft_http_route or demand_draft_replay or demand_draft_rejects or demand_revision_http_route or demand_revision_replay or demand_revision_rejects or demand_submission_http_route or demand_submission_replay or demand_submission_rejects or demand_review_http_route or demand_review_replay or demand_review_rejects'",
+  "result": {
+    "passed": 28,
+    "failed": 0,
+    "deselected": 207
+  },
+  "coverage": [
+    "OpenAPI publishes exact strict responses for create, revision, submit, and review",
+    "Responses bind location and signal IDs to the route and require distinct replacement IDs",
+    "First create/revision remains draft and first submission remains submitted",
+    "Replay preserves the existing lifecycle, including fulfilled and cancelled demand states",
+    "Review status matches its approved/rejected decision and replay result",
+    "Malformed, mismatched, or undeclared output returns sanitized no-store 503"
+  ],
+  "environment": {
+    "database_used": false,
+    "provider_used": false,
+    "candidate_or_legacy_state_touched": false,
+    "fixtures": "Synthetic service dictionaries and in-process FastAPI TestClient."
+  },
+  "static_checks": {
+    "ruff": "passed",
+    "python_compile": "passed",
+    "capability_matrix": "passed",
+    "git_diff_check": "passed"
+  }
+}

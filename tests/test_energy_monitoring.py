@@ -85,80 +85,13 @@ class TestRecordReading(unittest.TestCase):
         self.conn.cursor.return_value = self.mock_cursor
         self.mock_cursor.fetchone.return_value = ("loc-001",)
 
-    def test_returns_reading_id(self):
-        result = record_reading(
-            self.conn, "src-001", date(2026, 7, 1),
-            "consumption", 100.0,
-        )
-        self.assertIn("reading_id", result)
-        self.assertIsNotNone(result["reading_id"])
-
-    def test_records_kwh(self):
-        result = record_reading(
-            self.conn, "src-001", date(2026, 7, 1),
-            "consumption", 120.5,
-        )
-        self.assertEqual(result["kwh"], 120.5)
-
-    def test_records_type(self):
-        result = record_reading(
-            self.conn, "src-001", date(2026, 7, 1),
-            "production", 50.0,
-        )
-        self.assertEqual(result["reading_type"], "production")
-
-    def test_computes_total_cost(self):
-        result = record_reading(
-            self.conn, "src-001", date(2026, 7, 1),
-            "consumption", 100.0, cost_per_kwh=0.15, cost_currency_code="usd",
-        )
-        self.assertEqual(result["total_cost"], 15.0)
-        self.assertEqual(result["cost_currency_code"], "USD")
-
-    def test_zero_cost_rate_is_preserved(self):
-        result = record_reading(
-            self.conn, "src-001", date(2026, 7, 1),
-            "consumption", 100.0, cost_per_kwh=0, cost_currency_code="USD",
-        )
-        self.assertEqual(result["total_cost"], 0)
-
-    def test_cost_requires_currency_before_database_access(self):
-        with self.assertRaisesRegex(ValueError, "cost_currency_code"):
+    def test_direct_writer_is_retired_before_database_access(self):
+        with self.assertRaisesRegex(RuntimeError, "authenticated location-scoped"):
             record_reading(
-                self.conn, "src-001", date(2026, 7, 1),
-                "consumption", 100.0, cost_per_kwh=0.15,
+                self.conn, "src-001", date(2026, 7, 1), "consumption", 100.0
             )
         self.conn.cursor.assert_not_called()
-
-    def test_currency_requires_cost_before_database_access(self):
-        with self.assertRaisesRegex(ValueError, "requires cost_per_kwh"):
-            record_reading(
-                self.conn, "src-001", date(2026, 7, 1),
-                "consumption", 100.0, cost_currency_code="USD",
-            )
-        self.conn.cursor.assert_not_called()
-
-    def test_no_cost(self):
-        result = record_reading(
-            self.conn, "src-001", date(2026, 7, 1),
-            "consumption", 100.0,
-        )
-        self.assertIsNone(result["total_cost"])
-
-    def test_raises_for_missing_source(self):
-        self.mock_cursor.fetchone.return_value = None
-        with self.assertRaises(ValueError):
-            record_reading(
-                self.conn, "nonexistent", date(2026, 7, 1),
-                "consumption", 100.0,
-            )
-
-    def test_records_activity_type(self):
-        result = record_reading(
-            self.conn, "src-001", date(2026, 7, 1),
-            "consumption", 100.0, activity_type="irrigation",
-        )
-        self.assertEqual(result["activity_type"], "irrigation")
+        self.conn.commit.assert_not_called()
 
 
 class TestCurrencyFormatting(unittest.TestCase):

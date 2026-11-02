@@ -1,0 +1,38 @@
+{
+  "date": "2026-10-29",
+  "base_commit": "29445882",
+  "scope": "Exact ecological, Bio Factory, and Open Source Impact report projections plus the private operating-pilot own-learning-plans response contract",
+  "python_test_command": [
+    "python3",
+    "-m",
+    "pytest",
+    "-q",
+    "tests/test_gateway_operating_pilot_learning.py",
+    "tests/test_ecological_modeling.py::test_ecological_modeling_explicit_public_view_projections_preserve_payload",
+    "tests/test_bio_factory_operations.py::test_bio_regional_input_uses_exact_projection_and_preserves_payload",
+    "tests/test_open_source_capitalist_scaling.py::test_open_source_impact_uses_exact_projection_and_preserves_payload"
+  ],
+  "python_test_result": {
+    "passed": 41,
+    "failed": 0
+  },
+  "checks": {
+    "ruff": "passed on changed source and focused test files",
+    "python_compile": "passed on changed source and focused test files",
+    "report_source_inventory": "passed",
+    "report_query_scope_inventory": "passed",
+    "report_helper_scope_inventory": "passed",
+    "capability_matrix": "passed; 67 rows (24 baseline-retained, 7 deployed, 36 prepared)",
+    "git_diff_check": "passed"
+  },
+  "contracts": {
+    "ecological_modeling": "The interaction, model-run, population-dynamics, energy-flow, and soil-input report queries select their exact ordered public-view columns. Location/date predicates, ordering, serialized row payloads, and aggregate behavior are preserved.",
+    "bio_factory_regional_input": "The regional-input report selects all 15 ordered columns from the public view while preserving its network-scope guard, ordering, serialization, and region aggregate.",
+    "open_source_impact": "The report selects the 16 ordered public-view artifact columns while preserving its network scope, ordering, row payload, artifact count, and reuse total.",
+    "operating_pilot_own_learning_plans": "The private own-learning-plans page has an explicit OpenAPI/runtime response schema. It validates exact fields, lifecycle/review metadata, unique descending order, page bounds and continuation, and request location/offset binding; malformed service output returns a sanitized no-store 500. Authorization and SQL scope are unchanged."
+  },
+  "limitations": "These are synthetic/mocked source-contract checks. They do not establish populated-data parity, content-level privacy, live OIDC, database behavior, tenant isolation, or production acceptance.",
+  "candidate_or_legacy_database_touched": false,
+  "provider_or_production_service_touched": false,
+  "migration_added": false
+}

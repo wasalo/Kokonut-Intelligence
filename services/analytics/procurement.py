@@ -11,7 +11,7 @@ Usage:
 
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 import psycopg2
 import psycopg2.extras
@@ -108,7 +108,13 @@ def compute_supplier_comparison(conn, location_id: str = None, product_category:
         query += " AND po.location_id = %s"
         params.append(location_id)
     if product_category:
-        query += " AND EXISTS (SELECT 1 FROM purchase_order_item poi JOIN purchase_order po2 ON poi.order_id = po2.id WHERE po2.supplier_id = sp.id AND poi.product_category = %s)"
+        query += """
+            AND EXISTS (
+                SELECT 1 FROM purchase_order_item poi
+                WHERE poi.order_id = po.id
+                  AND poi.product_category = %s
+            )
+        """
         params.append(product_category)
 
     query += " GROUP BY sp.id, sp.name, sp.supplier_type, sp.quality_rating, sp.reliability_score, sp.delivery_lead_time_days, sp.payment_terms ORDER BY sp.quality_rating DESC, sp.reliability_score DESC"

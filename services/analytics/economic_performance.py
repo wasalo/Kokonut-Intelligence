@@ -14,16 +14,46 @@ def compute_revenue_per_acre(conn, location_id: str) -> dict[str, Any]:
     cur = conn.cursor()
     cur.execute(
         """
-        SELECT cc.id, c.name AS crop_name, cc.cycle_name,
-               cc.area_planted, cc.area_unit,
-               COALESCE(SUM(re.amount_usd), 0) AS total_revenue_usd,
-               COALESCE(SUM(ee.amount), 0) AS total_expenses_usd
-        FROM crop_cycle cc
-        JOIN crop c ON c.id = cc.crop_id
-        LEFT JOIN revenue_event re ON re.crop_cycle_id = cc.id AND re.status IN ('verified', 'published')
-        LEFT JOIN expense_event ee ON ee.crop_cycle_id = cc.id AND ee.status IN ('verified', 'published')
-        WHERE cc.location_id = %s AND cc.status IN ('completed', 'harvested', 'active')
-        GROUP BY cc.id, c.name, cc.cycle_name, cc.area_planted, cc.area_unit
+        WITH eligible_cycles AS (
+            SELECT cc.id,
+                   cc.location_id,
+                   c.name AS crop_name,
+                   cc.cycle_name,
+                   cc.area_planted,
+                   cc.area_unit
+            FROM crop_cycle cc
+            JOIN crop c ON c.id = cc.crop_id
+            WHERE cc.location_id = %s
+              AND cc.status IN ('completed', 'harvested', 'active')
+        ), revenue_by_cycle AS (
+            SELECT re.crop_cycle_id,
+                   SUM(re.amount_usd) AS total_revenue_usd
+            FROM revenue_event re
+            JOIN eligible_cycles cycle
+              ON cycle.id = re.crop_cycle_id
+             AND cycle.location_id = re.location_id
+            WHERE re.status IN ('verified', 'published')
+            GROUP BY re.crop_cycle_id
+        ), expense_by_cycle AS (
+            SELECT ee.crop_cycle_id,
+                   SUM(ee.amount) AS total_expenses_usd
+            FROM expense_event ee
+            JOIN eligible_cycles cycle
+              ON cycle.id = ee.crop_cycle_id
+             AND cycle.location_id = ee.location_id
+            WHERE ee.status IN ('verified', 'published')
+            GROUP BY ee.crop_cycle_id
+        )
+        SELECT cycle.id,
+               cycle.crop_name,
+               cycle.cycle_name,
+               cycle.area_planted,
+               cycle.area_unit,
+               COALESCE(revenue.total_revenue_usd, 0) AS total_revenue_usd,
+               COALESCE(expense.total_expenses_usd, 0) AS total_expenses_usd
+        FROM eligible_cycles cycle
+        LEFT JOIN revenue_by_cycle revenue ON revenue.crop_cycle_id = cycle.id
+        LEFT JOIN expense_by_cycle expense ON expense.crop_cycle_id = cycle.id
         """,
         (location_id,),
     )

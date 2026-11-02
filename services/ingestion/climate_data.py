@@ -1,170 +1,145 @@
-"""Climate data ingestion service.
+"""Climate-data compatibility CLI routed through the signed climate worker.
 
-Builds a latitude-based bioclimatic proxy for WorldClim-shaped fields and
-fetches ERA5, MODIS, SMAP, and Sentinel-1 data through Google Earth Engine.
-
-Usage:
-    python3 -m services.ingestion.climate_data --worldclim --location-id UUID
-    python3 -m services.ingestion.climate_data --ncep --location-id UUID
-    python3 -m services.ingestion.climate_data --modis --location-id UUID
-    python3 -m services.ingestion.climate_data --smap --location-id UUID
-    python3 -m services.ingestion.climate_data --sentinel1 --location-id UUID
-    python3 -m services.ingestion.climate_data --all --location-id UUID
+The legacy selectors and manual entry point remain available, but no longer
+open the shared application database or write climate summary relations.
 """
 
 from __future__ import annotations
 
 import argparse
 import json
+import subprocess
+import sys
 import uuid
 from typing import Any, Dict, List, Optional
 
-import psycopg2
-import psycopg2.extras
-
 from services.common.cli import print_json
-
-from ..common.logging import get_logger
-from .base import get_db, hash_payload, log_ingestion
+from services.common.logging import get_logger
+from services.common.worker_environment import worker_subprocess_environment
+from services.core.features import is_enabled
+from services.security.scheduled_command_contracts import validate_scheduled_command
 
 logger = get_logger("ingestion.climate_data")
 
+_CLIMATE_WORKER_MODULE = "services.ingestion.climate_worker"
+_CLIMATE_SOURCE_KEYS = frozenset({
+    "worldclim", "era5_land", "modis_lst", "smap_moisture", "sentinel1_sar",
+})
+_LEGACY_CLIMATE_RESULT_KEYS = {
+    "worldclim": "worldclim",
+    "era5_land": "ncep",
+    "modis_lst": "modis",
+    "smap_moisture": "smap",
+    "sentinel1_sar": "sentinel1",
+}
 
-def _query_location_bbox(conn, location_id: str) -> Optional[Dict[str, Any]]:
-    """Get location bounding box from plot geometries."""
-    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-    cur.execute(
-        """
-        SELECT
-            ST_XMin(ST_Extent(p.geometry)) AS west,
-            ST_YMin(ST_Extent(p.geometry)) AS south,
-            ST_XMax(ST_Extent(p.geometry)) AS east,
-            ST_YMax(ST_Extent(p.geometry)) AS north
-        FROM plot p
-        JOIN farm f ON p.farm_id = f.id
-        WHERE f.location_id = %s AND p.geometry IS NOT NULL
-    """,
-        (location_id,),
+
+def _valid_worker_report(
+    report: Any,
+    *,
+    location_id: str,
+    expected_sources: set[str],
+    exit_code: int,
+) -> bool:
+    if not isinstance(report, dict) or report.get("location_id") != location_id:
+        return False
+    results = report.get("results")
+    if not isinstance(results, dict) or set(results) != expected_sources:
+        return False
+    statuses: list[str] = []
+    for item in results.values():
+        if not isinstance(item, dict) or item.get("status") not in {"success", "skipped", "error"}:
+            return False
+        statuses.append(item["status"])
+    success = statuses.count("success")
+    skipped = statuses.count("skipped")
+    failed = statuses.count("error")
+    expected_status = "error" if failed else "success"
+    return (
+        report.get("status") == expected_status
+        and report.get("success") == success
+        and report.get("skipped") == skipped
+        and report.get("failed") == failed
+        and report.get("total") == len(expected_sources)
+        and isinstance(report.get("success"), int)
+        and not isinstance(report.get("success"), bool)
+        and isinstance(report.get("skipped"), int)
+        and not isinstance(report.get("skipped"), bool)
+        and isinstance(report.get("failed"), int)
+        and not isinstance(report.get("failed"), bool)
+        and isinstance(report.get("total"), int)
+        and not isinstance(report.get("total"), bool)
+        and exit_code == (1 if failed else 0)
     )
-    row = cur.fetchone()
-    cur.close()
-    if row and row["west"] is not None:
-        return {
-            "west": float(row["west"]),
-            "south": float(row["south"]),
-            "east": float(row["east"]),
-            "north": float(row["north"]),
-        }
-    return None
 
 
-def _query_location_centroid(conn, location_id: str) -> Optional[Dict[str, float]]:
-    """Resolve the canonical location point, with coordinates as a fallback."""
-    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-    cur.execute(
-        """
-        SELECT
-            COALESCE(ST_Y(center), latitude)::double precision AS lat,
-            COALESCE(ST_X(center), longitude)::double precision AS lon
-        FROM location
-        WHERE id = %s
-          AND (center IS NOT NULL OR (latitude IS NOT NULL AND longitude IS NOT NULL))
-    """,
-        (location_id,),
-    )
-    row = cur.fetchone()
-    cur.close()
-    if row and row["lat"] is not None:
-        return {"lat": float(row["lat"]), "lon": float(row["lon"])}
-    return None
+def _dispatch_signed_climate_worker(
+    location_id: str,
+    source: str | None = None,
+) -> dict[str, Any]:
+    """Run the isolated, signed writer with only its exact worker secrets."""
+    try:
+        canonical_location_id = str(uuid.UUID(str(location_id)))
+    except (TypeError, ValueError, AttributeError):
+        return {"status": "error", "message": "climate location ID must be a UUID"}
+    if source is not None and source not in _CLIMATE_SOURCE_KEYS:
+        return {"status": "error", "message": "unsupported climate source"}
+    if not is_enabled("signed_climate_worker"):
+        return {"status": "error", "location_id": canonical_location_id,
+                "message": "signed climate worker is disabled"}
+
+    arguments = ["--location-id", canonical_location_id]
+    if source is not None:
+        arguments.extend(("--source", source))
+    try:
+        validate_scheduled_command(_CLIMATE_WORKER_MODULE, arguments)
+        result = subprocess.run(
+            [sys.executable, "-m", _CLIMATE_WORKER_MODULE, *arguments],
+            capture_output=True,
+            text=True,
+            timeout=3600,
+            env=worker_subprocess_environment(
+                allowed_worker_keys=("climate",),
+                isolated_database_credentials=True,
+            ),
+        )
+    except subprocess.TimeoutExpired:
+        logger.error("Signed climate worker timed out")
+        return {"status": "error", "location_id": canonical_location_id,
+                "message": "signed climate worker timed out"}
+    except Exception as exc:
+        logger.error("Signed climate worker could not start (%s)", type(exc).__name__)
+        return {"status": "error", "location_id": canonical_location_id,
+                "message": "signed climate worker could not start"}
+
+    try:
+        report = json.loads(result.stdout) if result.stdout.strip() else None
+    except (TypeError, ValueError):
+        report = None
+    expected_sources = {source} if source is not None else set(_CLIMATE_SOURCE_KEYS)
+    if _valid_worker_report(
+        report,
+        location_id=canonical_location_id,
+        expected_sources=expected_sources,
+        exit_code=result.returncode,
+    ):
+        return report
+    logger.error("Signed climate worker failed (exit code %s)", result.returncode)
+    return {"status": "error", "location_id": canonical_location_id,
+            "message": "signed climate worker failed"}
 
 
-def fetch_worldclim(conn, location_id: str) -> Dict[str, Any]:
-    """Store latitude-derived bioclimatic estimates for a location.
-
-    This compatibility path does not download WorldClim rasters. It records
-    the existing latitude formula as a proxy, with explicit provenance and no
-    claimed spatial resolution.
-    """
-    centroid = _query_location_centroid(conn, location_id)
-    if not centroid:
-        logger.warning("No centroid for location %s, skipping WorldClim", location_id)
-        return {"status": "skipped", "reason": "no_centroid"}
-
-    lat, lon = centroid["lat"], centroid["lon"]
-
-    bio_variables = {f"bio_{bio}": _estimate_bioclim(lat, lon, bio) for bio in range(1, 20)}
-
-    metadata = {
-        "estimation_method": "latitude_proxy_v1",
-        "reference_period": "1970-2000",
-        "estimated_bioclimatic_variables": bio_variables,
-    }
-    cur = conn.cursor()
-    cur.execute(
-        """
-        INSERT INTO worldclim_climate
-            (location_id, bio1_mean_annual_temp, bio4_temp_seasonality,
-             bio5_max_temp_warmest_month, bio6_min_temp_coldest_month,
-             bio12_annual_precipitation, bio15_precip_seasonality,
-             bio16_precip_wettest_quarter, bio17_precip_driest_quarter,
-             temp_range, source, resolution_m, metadata)
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
-                'latitude_proxy_v1', NULL, %s::jsonb)
-        ON CONFLICT (location_id) WHERE plot_id IS NULL DO UPDATE SET
-            bio1_mean_annual_temp = EXCLUDED.bio1_mean_annual_temp,
-            bio4_temp_seasonality = EXCLUDED.bio4_temp_seasonality,
-            bio5_max_temp_warmest_month = EXCLUDED.bio5_max_temp_warmest_month,
-            bio6_min_temp_coldest_month = EXCLUDED.bio6_min_temp_coldest_month,
-            bio12_annual_precipitation = EXCLUDED.bio12_annual_precipitation,
-            bio15_precip_seasonality = EXCLUDED.bio15_precip_seasonality,
-            bio16_precip_wettest_quarter = EXCLUDED.bio16_precip_wettest_quarter,
-            bio17_precip_driest_quarter = EXCLUDED.bio17_precip_driest_quarter,
-            temp_range = EXCLUDED.temp_range,
-            source = EXCLUDED.source,
-            resolution_m = EXCLUDED.resolution_m,
-            metadata = EXCLUDED.metadata,
-            updated_at = NOW()
-        RETURNING id
-    """,
-        (
-            location_id,
-            bio_variables["bio_1"],
-            bio_variables["bio_4"],
-            bio_variables["bio_5"],
-            bio_variables["bio_6"],
-            bio_variables["bio_12"],
-            bio_variables["bio_15"],
-            bio_variables["bio_16"],
-            bio_variables["bio_17"],
-            bio_variables["bio_7"],
-            json.dumps(metadata),
-        ),
-    )
-    record_id = str(cur.fetchone()[0])
-    cur.close()
-    log_ingestion(
-        source_system="latitude_proxy",
-        source_table="worldclim_climate",
-        source_id="latitude_proxy_v1",
-        target_table="worldclim_climate",
-        target_id=record_id,
-        operation="upsert",
-        payload_hash=hash_payload(bio_variables),
-        status="success",
-        rows_affected=1,
-        db=conn,
-        location_id=location_id,
-    )
-    conn.commit()
-
-    return {
-        "status": "success",
-        "record_id": record_id,
-        "variables": len(bio_variables),
-        "source": "latitude_proxy_v1",
-        "estimated": True,
-    }
+def _dispatch_signed_climate_source(location_id: str, source: str) -> dict[str, Any]:
+    """Keep the single-source compatibility result while using the worker."""
+    report = _dispatch_signed_climate_worker(location_id, source)
+    if report.get("status") == "error" and "results" not in report:
+        return report
+    results = report.get("results")
+    selected = results.get(source) if isinstance(results, dict) else None
+    if isinstance(selected, dict) and selected.get("status") in {"success", "skipped", "error"}:
+        return selected
+    logger.error("Signed climate worker omitted the %s result", source)
+    return {"status": "error", "message": "signed climate worker returned an invalid result"}
 
 
 def _estimate_bioclim(lat: float, lon: float, bio: int) -> Optional[float]:
@@ -206,116 +181,57 @@ def _estimate_bioclim(lat: float, lon: float, bio: int) -> Optional[float]:
     return None
 
 
+def fetch_worldclim(conn, location_id: str) -> Dict[str, Any]:
+    """Compatibility entry point routed to the signed WorldClim writer."""
+    return _dispatch_signed_climate_source(location_id, "worldclim")
+
+
 def fetch_ncep(conn, location_id: str) -> Dict[str, Any]:
-    """Fetch climate summaries via GEE ERA5 Land (replaces NCEP CFS).
-
-    ERA5 Land provides higher resolution (9km vs 50km) than NCEP CFS
-    and is accessible through the existing GEE infrastructure.
-    """
-    bbox = _query_location_bbox(conn, location_id)
-    if not bbox:
-        centroid = _query_location_centroid(conn, location_id)
-        if not centroid:
-            return {"status": "skipped", "reason": "no_geometry"}
-        bbox = {
-            "west": centroid["lon"] - 0.05,
-            "south": centroid["lat"] - 0.05,
-            "east": centroid["lon"] + 0.05,
-            "north": centroid["lat"] + 0.05,
-        }
-
-    from .gee_climate import fetch_era5_land
-
-    return fetch_era5_land(conn, location_id, bbox)
+    """Compatibility selector for the ERA5-Land climate summary."""
+    return _dispatch_signed_climate_source(location_id, "era5_land")
 
 
 def fetch_modis(conn, location_id: str) -> Dict[str, Any]:
-    """Fetch MODIS MOD11A2 land surface temperature via GEE."""
-    bbox = _query_location_bbox(conn, location_id)
-    if not bbox:
-        centroid = _query_location_centroid(conn, location_id)
-        if not centroid:
-            return {"status": "skipped", "reason": "no_geometry"}
-        bbox = {
-            "west": centroid["lon"] - 0.05,
-            "south": centroid["lat"] - 0.05,
-            "east": centroid["lon"] + 0.05,
-            "north": centroid["lat"] + 0.05,
-        }
-
-    from .gee_climate import fetch_modis_lst
-
-    return fetch_modis_lst(conn, location_id, bbox)
+    """Compatibility selector for the MODIS land-surface-temperature summary."""
+    return _dispatch_signed_climate_source(location_id, "modis_lst")
 
 
 def fetch_smap(conn, location_id: str) -> Dict[str, Any]:
-    """Fetch SMAP L3 soil moisture via GEE."""
-    bbox = _query_location_bbox(conn, location_id)
-    if not bbox:
-        centroid = _query_location_centroid(conn, location_id)
-        if not centroid:
-            return {"status": "skipped", "reason": "no_geometry"}
-        bbox = {
-            "west": centroid["lon"] - 0.05,
-            "south": centroid["lat"] - 0.05,
-            "east": centroid["lon"] + 0.05,
-            "north": centroid["lat"] + 0.05,
-        }
-
-    from .gee_climate import fetch_smap_moisture
-
-    return fetch_smap_moisture(conn, location_id, bbox)
+    """Compatibility selector for the SMAP soil-moisture summary."""
+    return _dispatch_signed_climate_source(location_id, "smap_moisture")
 
 
 def fetch_sentinel1(conn, location_id: str) -> Dict[str, Any]:
-    """Fetch Sentinel-1 SAR backscatter via GEE."""
-    bbox = _query_location_bbox(conn, location_id)
-    if not bbox:
-        centroid = _query_location_centroid(conn, location_id)
-        if not centroid:
-            return {"status": "skipped", "reason": "no_geometry"}
-        bbox = {
-            "west": centroid["lon"] - 0.05,
-            "south": centroid["lat"] - 0.05,
-            "east": centroid["lon"] + 0.05,
-            "north": centroid["lat"] + 0.05,
-        }
-
-    from .gee_climate import fetch_sentinel1_sar
-
-    return fetch_sentinel1_sar(conn, location_id, bbox)
+    """Compatibility selector for the Sentinel-1 SAR summary."""
+    return _dispatch_signed_climate_source(location_id, "sentinel1_sar")
 
 
 def run_all(conn, location_id: str) -> Dict[str, Any]:
-    """Run all climate data fetchers for a location."""
-    results = {}
-    results["worldclim"] = fetch_worldclim(conn, location_id)
-    results["ncep"] = fetch_ncep(conn, location_id)
-    results["modis"] = fetch_modis(conn, location_id)
-    results["smap"] = fetch_smap(conn, location_id)
-    results["sentinel1"] = fetch_sentinel1(conn, location_id)
+    """Compatibility entry point for all five signed climate sources."""
+    return _legacy_climate_report(_dispatch_signed_climate_worker(location_id))
 
-    success = sum(1 for r in results.values() if r.get("status") == "success")
-    skipped = sum(1 for r in results.values() if r.get("status") == "skipped")
-    failed = sum(1 for r in results.values() if r.get("status") == "error")
 
+def _legacy_climate_report(report: dict[str, Any]) -> dict[str, Any]:
+    """Keep the historical source labels at the public compatibility boundary."""
+    results = report.get("results")
+    if not isinstance(results, dict):
+        return report
     return {
-        "status": "error" if failed else "success",
-        "location_id": location_id,
-        "results": results,
-        "success": success,
-        "skipped": skipped,
-        "failed": failed,
-        "total": len(results),
+        **report,
+        "results": {
+            legacy_key: results[source_key]
+            for source_key, legacy_key in _LEGACY_CLIMATE_RESULT_KEYS.items()
+            if source_key in results
+        },
     }
 
 
 def main(argv: Optional[List[str]] = None) -> int:
-    """Run the climate-data CLI and return its process status."""
+    """Run the legacy selector interface without opening the shared database."""
     parser = argparse.ArgumentParser(description="Climate data ingestion")
     operation = parser.add_mutually_exclusive_group()
     operation.add_argument("--worldclim", action="store_true", help="Fetch WorldClim data")
-    operation.add_argument("--ncep", action="store_true", help="Fetch NCEP data")
+    operation.add_argument("--ncep", action="store_true", help="Fetch ERA5-Land data")
     operation.add_argument("--modis", action="store_true", help="Fetch MODIS data")
     operation.add_argument("--smap", action="store_true", help="Fetch SMAP data")
     operation.add_argument("--sentinel1", action="store_true", help="Fetch Sentinel-1 data")
@@ -332,26 +248,28 @@ def main(argv: Optional[List[str]] = None) -> int:
     except (TypeError, ValueError, AttributeError):
         parser.error("--location-id must be a UUID")
 
-    conn = get_db()
-    try:
-        if args.all:
-            result = run_all(conn, location_id)
-        elif args.worldclim:
-            result = fetch_worldclim(conn, location_id)
-        elif args.ncep:
-            result = fetch_ncep(conn, location_id)
-        elif args.modis:
-            result = fetch_modis(conn, location_id)
-        elif args.smap:
-            result = fetch_smap(conn, location_id)
-        else:
-            result = fetch_sentinel1(conn, location_id)
-        print_json(result)
-        if result.get("status") == "error":
-            return 1
-    finally:
-        conn.close()
-    return 0
+    source = None
+    if args.worldclim:
+        source = "worldclim"
+    elif args.ncep:
+        source = "era5_land"
+    elif args.modis:
+        source = "modis_lst"
+    elif args.smap:
+        source = "smap_moisture"
+    elif args.sentinel1:
+        source = "sentinel1_sar"
+
+    report = (
+        _legacy_climate_report(_dispatch_signed_climate_worker(location_id))
+        if args.all
+        else _dispatch_signed_climate_source(
+            location_id,
+            source or "sentinel1_sar",
+        )
+    )
+    print_json(report)
+    return 1 if report.get("status") == "error" else 0
 
 
 if __name__ == "__main__":

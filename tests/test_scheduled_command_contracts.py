@@ -3,6 +3,7 @@
 import subprocess
 import sys
 from argparse import Namespace
+from datetime import datetime, timezone
 from unittest.mock import MagicMock, patch
 from uuid import uuid4
 
@@ -55,8 +56,6 @@ def test_every_scheduled_module_has_a_command_contract():
             "services.ingestion.sensor_worker",
             ["--location-id", str(uuid4()), "--driver-instance-id", str(uuid4())],
         ),
-        ("services.ingestion.anomaly_detector", ["--location-id", str(uuid4())]),
-        ("services.ingestion.anomaly_detector", ["--baseline-check", "--location-id", str(uuid4())]),
         ("services.ingestion.sensor_anomaly_scan_worker", ["--location-id", str(uuid4())]),
         (
             "services.ingestion.sensor_anomaly_scan_worker",
@@ -77,8 +76,6 @@ def test_every_scheduled_module_has_a_command_contract():
         ),
         ("services.events", ["--process"]),
         ("services.events", ["--notification-process", "--batch-size", "50"]),
-        ("services.ingestion.remote_sensing_fetcher", ["--run-jobs", "--location-id", str(uuid4())]),
-        ("services.ingestion.remote_sensing_fetcher", ["--run-jobs", "--limit", "10", "--location-id", str(uuid4())]),
         ("services.ingestion.remote_sensing_worker", ["--location-id", str(uuid4())]),
         ("services.ingestion.remote_sensing_worker", ["--location-id", str(uuid4()), "--limit", "10"]),
         ("services.ingestion.clickhouse_outbox", ["--run-once"]),
@@ -133,8 +130,6 @@ def test_supported_operations_accept_valid_argv(module, arguments):
         ("services.ingestion.rpc_indexer", ["--chain", "polygon"]),
         ("services.ingestion.rpc_worker", []),
         ("services.ingestion.rpc_worker", ["--chain", "polygon"]),
-        ("services.ingestion.anomaly_detector", []),
-        ("services.ingestion.anomaly_detector", ["--baseline-check"]),
         ("services.ingestion.sensor_anomaly_scan_worker", []),
         (
             "services.ingestion.sensor_anomaly_scan_worker",
@@ -174,6 +169,8 @@ def test_supported_operations_accept_valid_argv(module, arguments):
         ("services.ingestion.remote_sensing_fetcher", ["--list-jobs"]),
         ("services.ingestion.remote_sensing_fetcher", ["--run-jobs", "--limit", "0"]),
         ("services.ingestion.remote_sensing_fetcher", ["--run-jobs", "--limit", "11"]),
+        ("services.ingestion.remote_sensing_fetcher", ["--run-jobs", "--location-id", str(uuid4())]),
+        ("services.ingestion.remote_sensing_fetcher", ["--run-jobs", "--limit", "10", "--location-id", str(uuid4())]),
         ("services.ingestion.remote_sensing_fetcher", ["--location-id", str(uuid4())]),
         ("services.ingestion.remote_sensing_worker", []),
         ("services.ingestion.remote_sensing_worker", ["--location-id", str(uuid4()), "--run-jobs"]),
@@ -192,12 +189,19 @@ def test_supported_operations_accept_valid_argv(module, arguments):
         ("services.export.dataset_refresh", ["--all", "--dataset-id", str(uuid4())]),
         ("services.ingestion.weather", ["--all-locations"]),
         ("services.ingestion.weather_worker", ["--all-locations"]),
-        ("services.ingestion.anomaly_detector", ["--all-locations"]),
     ],
 )
 def test_unsupported_or_incomplete_operations_are_rejected(module, arguments):
     with pytest.raises(ScheduledCommandRejected):
         validate_scheduled_command(module, arguments)
+
+
+def test_legacy_remote_sensing_due_job_schedule_names_signed_worker():
+    with pytest.raises(ScheduledCommandRejected, match="remote_sensing_worker"):
+        validate_scheduled_command(
+            "services.ingestion.remote_sensing_fetcher",
+            ["--run-jobs", "--location-id", str(uuid4())],
+        )
 
 
 def test_credit_adjustment_job_uses_dedicated_read_only_entrypoint():
@@ -296,22 +300,28 @@ def test_projection_job_is_scheduler_allowed_but_restricted_to_one_delivery_batc
     )
 
 
-def test_legacy_projection_schedules_remain_allowlisted_and_isolated_path_is_default_off():
-    from services.core.jobs import _LEGACY_PROJECTIONS
-
-    assert _LEGACY_PROJECTIONS.module == "services.ingestion.clickhouse_outbox"
-    assert _LEGACY_PROJECTIONS.scheduler_allowed
-    assert validate_scheduled_command(
-        _LEGACY_PROJECTIONS.module, list(_LEGACY_PROJECTIONS.arguments)
-    ) == ("--run-once", "--limit", "100")
-
-    with patch("services.core.jobs.is_enabled", return_value=False), patch(
-        "services.core.jobs.subprocess.run",
-        return_value=subprocess.CompletedProcess(args=[], returncode=0, stdout="ok", stderr=""),
-    ) as run:
+def test_projection_job_never_falls_back_to_legacy_shared_identity():
+    environment = {"KOKONUT_DENY_SHARED_DATABASE": "true"}
+    with (
+        patch(
+            "services.core.jobs.scheduled_module_worker_environment",
+            return_value=environment,
+        ) as env_builder,
+        patch(
+            "services.core.jobs.subprocess.run",
+            return_value=subprocess.CompletedProcess(
+                args=[], returncode=0, stdout='{"status":"paused"}', stderr=""
+            ),
+        ) as run,
+    ):
         run_job("projections")
 
-    assert run.call_args.args[0][2] == "services.ingestion.clickhouse_outbox"
+    assert run.call_args.args[0][2] == "services.ingestion.clickhouse_outbox_worker"
+    assert run.call_args.kwargs["env"] is environment
+    env_builder.assert_called_once_with(
+        "services.ingestion.clickhouse_outbox_worker",
+        ["--run-once", "--worker-id", "kernel-projections", "--limit", "100"],
+    )
 
 
 @pytest.mark.parametrize(
@@ -368,7 +378,7 @@ def test_weather_forecast_dispatch_forwards_only_its_exact_worker_credentials():
     }
     with (
         patch("services.core.jobs.subprocess.run", return_value=completed) as run,
-        patch("services.core.jobs.worker_subprocess_environment", return_value=environment) as child_environment,
+        patch("services.core.jobs.scheduled_module_worker_environment", return_value=environment) as child_environment,
     ):
         result = run_job("weather_forecast", location_id=location_id)
 
@@ -382,8 +392,8 @@ def test_weather_forecast_dispatch_forwards_only_its_exact_worker_credentials():
     ]
     assert run.call_args.kwargs["env"] is environment
     child_environment.assert_called_once_with(
-        allowed_worker_keys=("weather_forecast",),
-        isolated_database_credentials=True,
+        "services.ingestion.weather_forecast_worker",
+        ["--location-id", location_id],
     )
 
 
@@ -407,24 +417,95 @@ def test_anomaly_job_requires_one_explicit_location_before_dispatch():
     assert plan["scheduled_task"]["is_enabled"] is False
 
 
+def test_sensor_anomaly_scan_rejects_naive_since_before_process_dispatch():
+    from services.scheduler.engine import SchedulerEngine
+
+    engine = SchedulerEngine(MagicMock(), worker_id="contract-test")
+    engine._complete_task = MagicMock()
+    arguments = [
+        "--location-id",
+        str(uuid4()),
+        "--since",
+        "2026-10-30T09:30:00",
+    ]
+
+    with patch("services.scheduler.engine.subprocess.run") as run:
+        completed = engine._execute_task(
+            "run-id",
+            "task-id",
+            "sensor anomaly replay",
+            "services.ingestion.sensor_anomaly_scan_worker",
+            arguments,
+            30,
+            None,
+        )
+
+    assert completed is False
+    run.assert_not_called()
+    engine._complete_task.assert_called_once()
+    assert engine._complete_task.call_args.args[2] == "failed"
+    assert engine._complete_task.call_args.kwargs["retryable"] is False
+
+
 @pytest.mark.parametrize(
-    ("enabled", "expected_job"),
-    [(False, "anomaly_legacy"), (True, "anomaly")],
+    "timestamp",
+    ["2026-10-30T09:30:00Z", "2026-10-30T09:30:00+02:00", "2026-10-30T09:30:00-04:00"],
 )
-def test_anomaly_schedule_switches_only_after_signed_replay_is_enabled(
-    monkeypatch, enabled, expected_job
-):
+def test_sensor_anomaly_scan_accepts_timezone_aware_since(timestamp):
+    arguments = ["--location-id", str(uuid4()), "--since", timestamp]
+
+    assert validate_scheduled_command(
+        "services.ingestion.sensor_anomaly_scan_worker", arguments
+    ) == tuple(arguments)
+
+
+def test_legacy_anomaly_cli_keeps_accepting_naive_since(monkeypatch):
+    monkeypatch.setenv("KOKONUT_ENV_SECRETS_NOT_REQUIRED", "true")
+    from services.ingestion import anomaly_detector
+
+    location_id = str(uuid4())
+    timestamp = datetime.now(timezone.utc).replace(tzinfo=None).isoformat(timespec="seconds")
+    arguments = ["--location-id", location_id, "--since", timestamp]
+
+    assert anomaly_detector._replay_since(timestamp).tzinfo is not None
+    with patch.object(anomaly_detector, "run_check") as run_check:
+        anomaly_detector.main(arguments)
+
+    run_check.assert_called_once_with(
+        sensor_id=None, since=timestamp, location_id=location_id,
+        all_locations=False,
+    )
+
+
+def test_anomaly_schedule_skips_until_signed_replay_is_enabled(monkeypatch):
     import services.core.jobs as jobs
 
-    monkeypatch.setattr(
-        jobs,
-        "is_enabled",
-        lambda name: enabled if name == "isolated_sensor_anomaly_scan_worker" else True,
-    )
+    monkeypatch.setattr(jobs, "is_enabled", lambda _name: False)
+    with patch("services.core.jobs._run_job_spec") as dispatch:
+        result = jobs.run_job("anomaly", location_id=str(uuid4()))
+
+    assert result == {
+        "status": "skipped",
+        "reason": "isolated sensor anomaly worker is disabled",
+    }
+    dispatch.assert_not_called()
+
+    monkeypatch.setattr(jobs, "is_enabled", lambda _name: True)
     with patch("services.core.jobs._run_job_spec", return_value={"status": "success"}) as dispatch:
         jobs.run_job("anomaly", location_id=str(uuid4()))
 
-    assert dispatch.call_args.args[:2] == (expected_job, jobs.JOBS[expected_job])
+    assert dispatch.call_args.args[:2] == ("anomaly", jobs.JOBS["anomaly"])
+
+
+def test_legacy_anomaly_module_is_not_a_scheduled_target():
+    from services.security.execution_allowlist import ALLOWED_SCHEDULED_MODULES
+
+    assert "services.ingestion.anomaly_detector" not in ALLOWED_SCHEDULED_MODULES
+    with pytest.raises(ScheduledCommandRejected, match="not allowlisted"):
+        validate_scheduled_command(
+            "services.ingestion.anomaly_detector",
+            ["--location-id", str(uuid4())],
+        )
 
 
 def test_remote_sensing_job_defaults_to_one_due_job_batch():
@@ -515,7 +596,7 @@ def test_run_now_passes_filtered_environment_to_task_child():
     with (
         patch("services.common.database.get_db", return_value=connection),
         patch("subprocess.run", return_value=completed) as run,
-        patch("services.scheduler.cli.worker_subprocess_environment", return_value=child_env),
+        patch("services.scheduler.cli.scheduled_module_worker_environment", return_value=child_env),
     ):
         result = cmd_run_now(Namespace(task_name="metrics"))
 
@@ -547,13 +628,13 @@ def test_run_now_forwards_noi_worker_secrets_only_to_signed_module():
     with (
         patch("services.common.database.get_db", return_value=connection),
         patch("subprocess.run", return_value=completed) as run,
-        patch("services.scheduler.cli.worker_subprocess_environment", return_value=child_env) as env_builder,
+        patch("services.scheduler.cli.scheduled_module_worker_environment", return_value=child_env) as env_builder,
     ):
         result = cmd_run_now(Namespace(task_name="noi_snapshots"))
 
     assert result == 0
     env_builder.assert_called_once_with(
-        allowed_worker_keys=("noi_snapshot",), isolated_database_credentials=True
+        "services.metrics.noi_snapshot_worker", ("--location-id", location_id)
     )
     assert run.call_args.kwargs["env"] is child_env
     connection.close.assert_called_once()
@@ -602,7 +683,7 @@ def test_noi_snapshot_job_requires_location_before_dispatch():
     assert job.required_inputs == ("location_id",)
     with (
         patch("services.core.jobs.subprocess.run") as run,
-        patch("services.core.jobs.worker_subprocess_environment") as child_environment,
+        patch("services.core.jobs.scheduled_module_worker_environment") as child_environment,
     ):
         with pytest.raises(ValueError, match="requires a location"):
             run_job("noi_snapshots")
@@ -614,7 +695,7 @@ def test_noi_snapshot_job_requires_location_before_dispatch():
     environment = {"KOKONUT_NOI_SNAPSHOT_WORKER_CREDENTIAL": "synthetic"}
     with (
         patch("services.core.jobs.subprocess.run", return_value=completed) as run,
-        patch("services.core.jobs.worker_subprocess_environment", return_value=environment) as child_environment,
+        patch("services.core.jobs.scheduled_module_worker_environment", return_value=environment) as child_environment,
     ):
         result = run_job("noi_snapshots", location_id=location_id)
 
@@ -628,7 +709,7 @@ def test_noi_snapshot_job_requires_location_before_dispatch():
     ]
     assert run.call_args.kwargs["env"] is environment
     child_environment.assert_called_once_with(
-        allowed_worker_keys=("noi_snapshot",), isolated_database_credentials=True
+        "services.metrics.noi_snapshot_worker", ["--location-id", location_id]
     )
 
 
@@ -639,7 +720,7 @@ def test_sensor_job_dispatch_passes_only_registered_instance_and_location():
     completed = MagicMock(returncode=0, stdout='{"records_written": 1}')
     with (
         patch("services.core.jobs.subprocess.run", return_value=completed) as run,
-        patch("services.core.jobs.worker_subprocess_environment", return_value=environment) as child_environment,
+        patch("services.core.jobs.scheduled_module_worker_environment", return_value=environment) as child_environment,
     ):
         result = run_job(
             "sensors",
@@ -659,6 +740,6 @@ def test_sensor_job_dispatch_passes_only_registered_instance_and_location():
     ]
     assert run.call_args.kwargs["env"] is environment
     child_environment.assert_called_once_with(
-        allowed_worker_keys=("sensor_ingestion",),
-        isolated_database_credentials=True,
+        "services.ingestion.sensor_worker",
+        ["--location-id", location_id, "--driver-instance-id", driver_instance_id],
     )

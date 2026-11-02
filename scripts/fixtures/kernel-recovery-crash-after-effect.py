@@ -241,14 +241,28 @@ def crash_worker(conn, run_id: str) -> dict:
         raise RuntimeError("Crash worker guard rejected unexpected claimable event state")
     conn.close()
 
-    from services.events.bus import EventBus
+    from services.common.worker_database import get_worker_db
+    from services.common.worker_environment import isolated_worker_key
+    from services.core.features import require_feature
+    from services.events.dispatch_worker import IsolatedEventBus
 
-    bus = EventBus(lease_seconds=1)
+    require_feature("event_bus")
+    require_feature("isolated_event_dispatch")
+    if isolated_worker_key() != "event_dispatch":
+        raise RuntimeError("crash probe requires the dedicated event-dispatch identity")
+
+    # The harness expires this synthetic lease explicitly after the crash;
+    # keep the worker lease inside the production 30–3600 second contract.
+    worker_conn = get_worker_db("event_dispatch")
+    bus = IsolatedEventBus(conn=worker_conn, lease_seconds=30)
     invoke_handler = bus._invoke_handler
 
-    def crash_after_committed_effect(module_path, function_name, event_type, payload, timeout_seconds):
+    def crash_after_committed_effect(
+        module_path, function_name, event_type, payload, timeout_seconds, *, event_id=None
+    ):
         outcome = invoke_handler(
-            module_path, function_name, event_type, payload, timeout_seconds
+            module_path, function_name, event_type, payload, timeout_seconds,
+            event_id=event_id,
         )
         if (
             module_path == HANDLER_MODULE
@@ -305,8 +319,10 @@ def crash_worker(conn, run_id: str) -> dict:
         return outcome
 
     bus._invoke_handler = crash_after_committed_effect
-    stats = bus.process_pending(batch_size=1, worker_id=TARGET_WORKER)
-    bus.close()
+    try:
+        stats = bus.process_pending(batch_size=1, worker_id=TARGET_WORKER)
+    finally:
+        worker_conn.close()
     raise RuntimeError(f"Expected crash point was missed; worker returned {stats}")
 
 

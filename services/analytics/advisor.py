@@ -15,13 +15,21 @@ Usage:
 
 import json
 import uuid
-from datetime import datetime, timezone, timedelta
+from datetime import datetime
 from typing import Optional
 
 from services.common.commands import CommandLine
+
 from ..common.logging import get_logger
 
 logger = get_logger("analytics.advisor")
+
+
+def _canonical_location_id(location_id: str) -> str:
+    try:
+        return str(uuid.UUID(str(location_id)))
+    except (TypeError, ValueError, AttributeError) as exc:
+        raise ValueError("location_id must be a valid UUID") from exc
 
 
 # ============================================================
@@ -30,9 +38,10 @@ logger = get_logger("analytics.advisor")
 
 def evaluate_rules(conn, location_id: str) -> list[dict]:
     """Evaluate all active advisory rules for a location.
-    
+
     Returns list of triggered rules with context data.
     """
+    location_id = _canonical_location_id(location_id)
     cur = conn.cursor()
 
     # Get active rules
@@ -242,7 +251,7 @@ def _eval_schedule(conn, location_id: str, conditions: dict) -> Optional[dict]:
 
     cur = conn.cursor()
     cur.execute(
-        f"SELECT metadata->>%s FROM location WHERE id = %s",
+        "SELECT metadata->>%s FROM location WHERE id = %s",
         (last_check_field, location_id),
     )
     row = cur.fetchone()
@@ -310,6 +319,7 @@ def _eval_forecast(conn, location_id: str, conditions: dict) -> Optional[dict]:
 
 def _eval_anomaly(conn, location_id: str, conditions: dict) -> Optional[dict]:
     """Evaluate anomaly-based conditions."""
+    location_id = _canonical_location_id(location_id)
     cur = conn.cursor()
     severity = conditions.get("min_severity", "warning")
 
@@ -513,6 +523,7 @@ def dismiss_recommendation(conn, recommendation_id: str, reason: str = "") -> di
 
 def run_advisory_cycle(conn, location_id: str) -> dict:
     """Run a full advisory cycle: evaluate → generate → expire → summary."""
+    location_id = _canonical_location_id(location_id)
     # Evaluate rules
     triggered = evaluate_rules(conn, location_id)
 

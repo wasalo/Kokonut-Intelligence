@@ -27,7 +27,16 @@ def dashboard(conn, *, strategy_plan_id: Optional[str] = None, scope_type: Optio
         params.append(scope_id)
     where = " WHERE " + " AND ".join(clauses) if clauses else ""
     with conn.cursor(cursor_factory=RealDictCursor) as cur:
-        cur.execute(f"SELECT * FROM v_strategy_kernel_execution{where} ORDER BY scope_type, scope_id, version DESC", params)
+        cur.execute(
+            "SELECT strategy_plan_id, scope_type, scope_id, name, version, plan_status, "
+            "visibility, objective_count, accountable_objective_count, measured_objective_count, "
+            "initiative_count, completed_initiative_count, average_initiative_completion_pct, "
+            "investment_case_count, recommended_investment_count, average_investment_score, "
+            "open_coherence_finding_count, critical_coherence_finding_count, latest_execution_update "
+            f"FROM v_strategy_kernel_execution{where} "
+            "ORDER BY scope_type, scope_id, version DESC",
+            params,
+        )
         return [_clean(row) for row in cur.fetchall()]
 
 

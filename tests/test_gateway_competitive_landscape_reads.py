@@ -117,6 +117,37 @@ def test_summary_read_sets_exact_signed_context_and_uses_bounded_projection():
     assert connection.rolled_back and connection.closed
 
 
+@pytest.mark.parametrize(
+    "offset,limit,row_count,expected_has_more,expected_next_offset",
+    [
+        (9975, 25, 26, True, 10000),
+        (9976, 25, 26, False, None),
+        (9999, 1, 2, True, 10000),
+        (9999, 2, 3, False, None),
+        (10000, 25, 26, False, None),
+    ],
+)
+def test_pagination_never_advertises_offset_above_maximum(
+    offset, limit, row_count, expected_has_more, expected_next_offset
+):
+    connection = _Connection([_row(str(uuid4())) for _ in range(row_count)])
+    with patch.object(reads, "set_operator_tenant_context"):
+        result = reads.list_location_competitive_landscape_summaries(
+            OPERATOR_ID,
+            LOCATION_ID,
+            limit=limit,
+            offset=offset,
+            connection_factory=lambda: connection,
+        )
+
+    assert result["offset"] == offset
+    assert len(result["landscapes"]) <= limit
+    assert result["has_more"] is expected_has_more
+    assert result["next_offset"] == expected_next_offset
+    if result["next_offset"] is not None:
+        assert result["next_offset"] <= reads.MAX_COMPETITIVE_LANDSCAPE_OFFSET
+
+
 @pytest.mark.parametrize("kwargs", [
     {"limit": "0"},
     {"limit": "51"},
@@ -206,8 +237,10 @@ def test_http_projection_is_no_store_and_requires_operator_session(monkeypatch):
         "services.gateway.competitive_landscape_reads.list_location_competitive_landscape_summaries",
         lambda *_args, **_kwargs: {
             "location_id": LOCATION_ID,
+            "offset": 0,
             "landscapes": [],
             "has_more": False,
+            "next_offset": None,
         },
     )
     app = FastAPI()

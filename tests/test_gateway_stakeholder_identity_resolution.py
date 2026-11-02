@@ -168,6 +168,83 @@ def test_resolution_route_returns_only_location_and_canonical_party():
     assert PROFILE_ID not in response.text
 
 
+def test_resolution_route_publishes_strict_openapi_success_contract():
+    from services.gateway.stakeholder_identity_resolution_routes import (
+        register_stakeholder_identity_resolution_routes,
+    )
+
+    app = FastAPI()
+    psycopg2 = SimpleNamespace(Error=type("PgError", (Exception,), {}))
+    register_stakeholder_identity_resolution_routes(
+        app.router,
+        SimpleNamespace(),
+        lambda *_args, **_kwargs: None,
+        psycopg2,
+    )
+
+    operation = app.openapi()["paths"][
+        "/operator/api/stakeholder-identity/{location_id}/resolve/{source_profile_id}"
+    ]["get"]
+    assert operation["responses"]["200"]["content"]["application/json"]["schema"] == {
+        "$ref": "#/components/schemas/StakeholderIdentityResolutionResponse"
+    }
+    schema = app.openapi()["components"]["schemas"][
+        "StakeholderIdentityResolutionResponse"
+    ]
+    assert schema["additionalProperties"] is False
+    assert set(schema["required"]) == {"location_id", "party_id", "resolved_at"}
+
+
+@pytest.mark.parametrize(
+    "invalid_result",
+    [
+        {
+            "party_id": PARTY_ID,
+            "resolved_at": RESOLVED_AT,
+            "private_internal_field": "must not escape",
+        },
+        {"party_id": "invalid", "resolved_at": RESOLVED_AT},
+        {"party_id": PARTY_ID, "resolved_at": datetime(2026, 10, 19, 12, 0)},
+    ],
+)
+def test_resolution_route_sanitizes_invalid_success_projection(invalid_result):
+    from services.gateway.stakeholder_identity_resolution_routes import (
+        register_stakeholder_identity_resolution_routes,
+    )
+
+    app = FastAPI()
+    psycopg2 = SimpleNamespace(Error=type("PgError", (Exception,), {}))
+
+    @app.middleware("http")
+    async def attach_operator_session(request, call_next):
+        request.state.operator_session = SimpleNamespace(
+            operator=SimpleNamespace(operator_id=OPERATOR_ID)
+        )
+        return await call_next(request)
+
+    async def run_inline(_function, *_args, **_kwargs):
+        return invalid_result
+
+    register_stakeholder_identity_resolution_routes(
+        app.router,
+        SimpleNamespace(),
+        run_inline,
+        psycopg2,
+    )
+    with TestClient(app) as client:
+        response = client.get(
+            f"/operator/api/stakeholder-identity/{LOCATION_ID}/resolve/{PROFILE_ID}"
+        )
+
+    assert response.status_code == 500
+    assert response.json() == {
+        "error": "Stakeholder identity resolution unavailable"
+    }
+    assert response.headers["cache-control"] == "no-store"
+    assert PROFILE_ID not in response.text
+    assert "must not escape" not in response.text
+
+
 def test_resolution_route_hides_unavailable_mapping_as_not_found():
     from services.gateway.stakeholder_identity_resolution_routes import (
         register_stakeholder_identity_resolution_routes,

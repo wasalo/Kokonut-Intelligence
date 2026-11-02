@@ -1,0 +1,35 @@
+{
+  "date": "2026-10-31",
+  "migration": "709_runtime_schema_version_read_only.sql",
+  "relation": "public.schema_version",
+  "source_audit": {
+    "repository_writer": "ordered migration/bootstrap runner under the maintenance identity",
+    "service_worker_extension_or_directus_application_writer": "none found",
+    "external_importer_use_of_kokonut_runtime": "unconfirmed; persistent rollout remains gated"
+  },
+  "disposable_postgresql": {
+    "version": 16,
+    "network": "none",
+    "host_ports_published": false,
+    "migration_apply_and_replay": "passed",
+    "runtime_select": "preserved",
+    "runtime_table_and_column_writes": "denied",
+    "directus_and_maintenance_writes": "preserved",
+    "cleanup": "passed",
+    "candidate_legacy_production_touched": false
+  },
+  "source_checks": {
+    "runtime_role_boundary_schema_version_test": "passed",
+    "runtime_privilege_callsite_report_tests": "11 passed",
+    "migration_sources_validated": 822,
+    "runtime_sql_inventory": "current; 41 unresolved write candidates remain",
+    "ruff": "passed",
+    "py_compile": "passed",
+    "git_diff_check": "passed"
+  },
+  "limits": [
+    "Focused migration acceptance is not a complete ordered-chain replay.",
+    "Retaining SELECT does not establish tenant isolation.",
+    "External importer compatibility and persistent rollout remain open."
+  ]
+}

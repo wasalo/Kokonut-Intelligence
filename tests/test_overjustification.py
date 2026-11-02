@@ -112,7 +112,9 @@ def test_report_surfaces_overjustification():
             _corr_row("soil_carbon_delta", 0.9, 5, "extrinsic"),
         ],
     })
-    out = report_generator.generate_reward_calibration(conn, "L")
+    out = report_generator.generate_reward_calibration(
+        conn, "a0000000-0000-0000-0000-000000000001"
+    )
     assert "overjustification_risk" in out
     risk = out["overjustification_risk"]
     assert risk["risk_level"] == "high"

@@ -1,0 +1,28 @@
+{
+  "date": "2026-10-29",
+  "purpose": "Mock-only acceptance for operating-pilot learning-plan independent review and activation response contracts.",
+  "command": "python3 -m pytest -q tests/test_gateway_operating_pilot_writes.py -k 'learning_plan_review_http_route or learning_plan_review_replay or learning_plan_review_rejects_malformed_response or learning_plan_activation_http_route or learning_plan_activation_replay or learning_plan_activation_rejects_malformed_response'",
+  "result": {
+    "passed": 13,
+    "failed": 0,
+    "deselected": 273
+  },
+  "coverage": [
+    "OpenAPI publishes exact review and activation response models",
+    "Responses bind location and learning-plan IDs to request paths",
+    "Approval remains submitted pending the separate activation action; rejection returns the plan to draft",
+    "Review and activation retries preserve their recorded decision or active state",
+    "Malformed, mismatched, or undeclared output returns sanitized no-store 503"
+  ],
+  "environment": {
+    "database_used": false,
+    "provider_used": false,
+    "candidate_or_legacy_state_touched": false,
+    "fixtures": "Synthetic service dictionaries and in-process FastAPI TestClient."
+  },
+  "static_checks": {
+    "ruff": "passed",
+    "python_compile": "passed",
+    "git_diff_check": "passed"
+  }
+}

@@ -1,5 +1,6 @@
 """Waste-management Kernel reads remain private and location-scoped."""
 
+from copy import deepcopy
 from types import SimpleNamespace
 from unittest.mock import patch
 from uuid import uuid4
@@ -12,6 +13,83 @@ from starlette.testclient import TestClient  # noqa: E402
 from services.gateway.app import create_app  # noqa: E402
 from services.gateway.operator_auth import auth_route_policy  # noqa: E402
 from services.gateway.waste_management_reads import get_location_waste_summary  # noqa: E402
+
+
+def _waste_summary_payload(location_id, days=90):
+    return {
+        "location_id": location_id,
+        "waste_summary": {
+            "period_days": days,
+            "total_waste_kg": 12.5,
+            "total_records": 3,
+            "by_type": [
+                {"waste_type": "crop_residue", "total_kg": 12.5, "record_count": 3}
+            ],
+            "by_disposal_method": [
+                {"disposal_method": "composting", "total_kg": 12.5, "record_count": 3}
+            ],
+        },
+        "waste_streams": [{
+            "waste_type": "crop_residue",
+            "disposal_method": "composting",
+            "quantity_unit": "kg",
+            "record_count": 3,
+            "total_quantity": 12.5,
+            "first_date": "2026-01-02",
+            "last_date": "2026-01-04",
+        }],
+        "composting": [{
+            "feedstock_type": "manure",
+            "compost_method": "vermiculture",
+            "record_count": 2,
+            "feedstock_kg": 8.0,
+            "total_output_kg": 3.2,
+            "weighted_yield_pct": 40.0,
+            "mean_batch_yield_pct": 42.5,
+            "mean_duration_days": 25.0,
+            "mean_temperature_c": 54.5,
+            "mean_moisture_pct": 58.0,
+            "graded_batches": 1,
+            "first_date": "2026-01-05",
+            "last_date": "2026-01-06",
+        }],
+        "composting_efficiency": {
+            "location_id": location_id,
+            "total_batches": 2,
+            "total_feedstock_kg": 8.0,
+            "total_output_kg": 3.2,
+            "overall_yield_pct": 40.0,
+            "by_method": [{
+                "compost_method": "vermiculture",
+                "batches": 2,
+                "avg_yield_pct": 42.5,
+                "avg_feedstock_kg": 4.0,
+                "avg_output_kg": 1.6,
+                "avg_duration_days": 25.0,
+            }],
+            "recent_quality": [{
+                "ph": 6.8,
+                "moisture_pct": 58.0,
+                "temperature_c": 54.5,
+                "output_yield_pct": 40.0,
+                "recorded_at": "2026-01-06",
+            }],
+        },
+        "recycling": [{
+            "material_type": "plastic",
+            "record_count": 1,
+            "quantity_kg": 1.5,
+            "first_date": "2026-01-07",
+            "last_date": "2026-01-07",
+        }],
+        "pollution_incidents": [{
+            "severity": "low",
+            "status": "open",
+            "record_count": 1,
+            "first_date": "2026-01-08",
+            "last_date": "2026-01-08",
+        }],
+    }
 
 
 class _Cursor:
@@ -284,7 +362,7 @@ def test_waste_route_requires_location_scope_and_returns_no_store(monkeypatch, g
             )
 
     monkeypatch.setattr("services.gateway.operator_auth.create_provider", lambda: Provider())
-    expected = {"location_id": location_id, "waste_summary": {}, "waste_streams": [], "composting": [], "composting_efficiency": {}, "recycling": [], "pollution_incidents": []}
+    expected = _waste_summary_payload(location_id)
     monkeypatch.setattr(
         "services.gateway.waste_management_reads.get_location_waste_summary",
         lambda op, loc, *, days=30: expected if (op, loc) == (operator_id, location_id) and days == 90 else None,
@@ -296,6 +374,98 @@ def test_waste_route_requires_location_scope_and_returns_no_store(monkeypatch, g
     assert response.json() == expected
     assert response.headers["cache-control"] == "no-store"
     assert "cookie" in {value.strip().lower() for value in response.headers["vary"].split(",")}
+
+
+def test_waste_summary_response_schema_is_published_and_nested_objects_are_strict(
+    monkeypatch, gateway_audit_spool
+):
+    monkeypatch.setattr("services.gateway.operator_auth.create_provider", lambda: None)
+    app = create_app()
+    schema = app.openapi()["paths"][
+        "/operator/api/waste/{location_id}/summary"
+    ]["get"]["responses"]["200"]["content"]["application/json"]["schema"]
+    assert schema == {"$ref": "#/components/schemas/WasteSummaryResponse"}
+    models = app.openapi()["components"]["schemas"]
+    for name in (
+        "WasteSummaryResponse",
+        "WastePeriodSummary",
+        "WasteStreamAggregate",
+        "CompostingAggregate",
+        "CompostingEfficiencySummary",
+        "PollutionIncidentAggregate",
+    ):
+        assert models[name]["additionalProperties"] is False
+    assert models["WastePeriodSummary"]["properties"]["by_type"]["maxItems"] == 7
+    assert models["CompostingEfficiencySummary"]["properties"]["recent_quality"]["maxItems"] == 10
+
+
+@pytest.mark.parametrize(
+    "invalid_field",
+    [
+        "top_level_extra",
+        "nested_extra",
+        "unknown_waste_type",
+        "negative_count",
+        "non_finite",
+        "location_mismatch",
+        "efficiency_location_mismatch",
+        "period_mismatch",
+    ],
+)
+def test_waste_summary_rejects_invalid_service_projection(
+    monkeypatch, gateway_audit_spool, invalid_field
+):
+    operator_id, location_id = str(uuid4()), str(uuid4())
+    payload = _waste_summary_payload(location_id)
+    if invalid_field == "top_level_extra":
+        payload["private_record_ids"] = [str(uuid4())]
+    elif invalid_field == "nested_extra":
+        payload["composting_efficiency"]["notes"] = "not part of the summary"
+    elif invalid_field == "unknown_waste_type":
+        payload["waste_streams"][0]["waste_type"] = "unmapped"
+    elif invalid_field == "negative_count":
+        payload["waste_summary"]["total_records"] = -1
+    elif invalid_field == "non_finite":
+        payload["composting_efficiency"]["total_output_kg"] = float("inf")
+    elif invalid_field == "location_mismatch":
+        payload["location_id"] = str(uuid4())
+    elif invalid_field == "efficiency_location_mismatch":
+        payload["composting_efficiency"]["location_id"] = str(uuid4())
+    else:
+        payload["waste_summary"]["period_days"] = 89
+
+    session = SimpleNamespace(
+        session_id=str(uuid4()), session_token_hash="e" * 64,
+        operator=SimpleNamespace(operator_id=operator_id),
+    )
+
+    class Provider:
+        settings = SimpleNamespace(state_secret="test-only-state-secret")
+
+        def authenticate_request(self, _request):
+            return session
+
+        def has_scope(self, op, resource, action, location):
+            return (op, resource, action, location) == (
+                operator_id, "waste_management", "read", location_id
+            )
+
+    monkeypatch.setattr("services.gateway.operator_auth.create_provider", lambda: Provider())
+    monkeypatch.setattr(
+        "services.gateway.waste_management_reads.get_location_waste_summary",
+        lambda *_args, **_kwargs: deepcopy(payload),
+    )
+    with TestClient(
+        create_app(), cookies={"kokonut_operator_session": "synthetic-session"}
+    ) as client:
+        response = client.get(f"/operator/api/waste/{location_id}/summary?days=90")
+
+    assert response.status_code == 500
+    assert response.json() == {"error": "Waste summary unavailable"}
+    assert response.headers["cache-control"] == "no-store"
+    assert "cookie" in {
+        value.strip().lower() for value in response.headers["vary"].split(",")
+    }
 
 
 def test_waste_route_rejects_invalid_period_with_no_store_before_query(monkeypatch, gateway_audit_spool):

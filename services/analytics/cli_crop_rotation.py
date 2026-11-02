@@ -6,8 +6,11 @@ queries/business logic. Reachable via:
     python -m services.analytics.cli_crop_rotation --help
 """
 
+import argparse
 import json
+import sys
 from datetime import date
+from uuid import UUID
 
 from ..common.commands import CommandLine
 from .crop_rotation import (
@@ -30,17 +33,24 @@ from .crop_rotation import (
 cli = CommandLine("crop_rotation", "Crop rotation planning")
 
 
+def _parse_iso_date(value: str) -> date:
+    """Parse an ISO calendar date while argparse is still handling input."""
+    try:
+        return date.fromisoformat(value)
+    except (TypeError, ValueError) as exc:
+        raise argparse.ArgumentTypeError("--date must be a valid ISO date (YYYY-MM-DD)") from exc
+
+
 def _render(result, args, human):
     print(json.dumps(result, indent=2, default=str) if args.json else human(result))
 
 
 def _cmd_record_impact(db, a):
-    rd = date.fromisoformat(a.date) if a.date else None
     return record_impact(
         db, plan_id=a.plan_id, slot_id=a.slot_id, location_id=a.location_id,
         impact_type=a.impact_type, impact_direction=a.direction,
         severity_pct=a.severity, measurement_value=a.value,
-        measurement_unit=a.unit, record_date=rd, notes=a.notes,
+        measurement_unit=a.unit, record_date=a.date, notes=a.notes,
     )
 
 
@@ -107,7 +117,7 @@ cli.subcommand("record-impact", "Record rotation impact") \
     .add("--severity", type=float, help="Severity percentage") \
     .add("--value", type=float, help="Measurement value") \
     .add("--unit", help="Measurement unit") \
-    .add("--date", help="Record date YYYY-MM-DD") \
+    .add("--date", type=_parse_iso_date, help="Record date YYYY-MM-DD") \
     .add("--notes") \
     .add("--json", action="store_true") \
     .run(_cmd_record_impact) \
@@ -146,7 +156,32 @@ cli.subcommand("dashboard", "Rotation dashboard") \
 
 
 def main(argv=None):
-    cli.run(argv)
+    parser = cli.build_parser()
+    dispatch_argv = list(sys.argv[1:] if argv is None else argv)
+    args = parser.parse_args(dispatch_argv)
+    required_location_commands = {
+        "create-plan",
+        "list-plans",
+        "family-usage",
+        "recommend",
+        "dashboard",
+    }
+    if args.command in required_location_commands or (
+        args.command == "record-impact" and args.location_id is not None
+    ):
+        try:
+            canonical_location_id = str(UUID(args.location_id))
+        except (AttributeError, TypeError, ValueError):
+            parser.error(f"--location-id must be a valid UUID for {args.command}")
+        for index, token in enumerate(dispatch_argv):
+            option, separator, _value = token.partition("=")
+            if option.startswith("--") and "--location-id".startswith(option):
+                if separator:
+                    dispatch_argv[index] = f"{option}={canonical_location_id}"
+                elif index + 1 < len(dispatch_argv):
+                    dispatch_argv[index + 1] = canonical_location_id
+                break
+    cli.run(dispatch_argv)
 
 
 def _format_plan_created(r: dict) -> str:

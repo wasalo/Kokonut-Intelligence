@@ -138,6 +138,20 @@ def test_demand_trends_no_data() -> None:
     assert result["total_crops_analyzed"] == 0
 
 
+def test_demand_trends_returns_peak_and_trough_month_numbers() -> None:
+    rows = [
+        ("Cassava", 1, 10, 5),
+        ("Cassava", 2, 30, 6),
+        ("Cassava", 3, 20, 7),
+    ]
+    result = compute_demand_trends(_MockConn(rows=rows), "test-location")
+
+    assert result["total_crops_analyzed"] == 1
+    assert result["trends"][0]["peak_month"] == 2
+    assert result["trends"][0]["trough_month"] == 1
+    assert result["trends"][0]["avg_monthly_demand"] == 20.0
+
+
 def test_buyer_segmentation_empty() -> None:
     result = compute_buyer_segmentation(_MockConn(rows=[]), "test-location")
     assert result["total_buyers"] == 0

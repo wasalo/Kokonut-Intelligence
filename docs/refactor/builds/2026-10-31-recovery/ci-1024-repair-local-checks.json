@@ -1,0 +1,56 @@
+{
+  "ci_run": {
+    "id": 41219570724,
+    "number": 1024,
+    "head_revision": "4722fdd925fa894e4255dde700f53f94be34c1e9",
+    "full_ci": "runner_shutdown_during_full_python_suite",
+    "runner_shutdown_at": "2026-10-31T16:36:09.4981634Z",
+    "assertion_failure_observed": false,
+    "kernel_image": "passed",
+    "security": "passed"
+  },
+  "linked_older_run": {
+    "id": 41172853331,
+    "number": 1014,
+    "result": "cancelled_or_superseded",
+    "attempt_1_logs": "expired",
+    "attempt_2": "superseded_by_newer_same_pr_run",
+    "source_failure_established": false
+  },
+  "local_repair": {
+    "issue": "runtime privilege report regression fixture hard-coded 79 private relations while the source policy now declares 86",
+    "fix": "derive the expected private relation count from the runtime-role declaration",
+    "focused_tests": {
+      "passed": 238,
+      "subtests_passed": 10,
+      "failed": 0
+    },
+    "landscape_migration_708": {
+      "result": "passed",
+      "assertions_passed": 4,
+      "network": "none",
+      "host_port": false,
+      "candidate_legacy_production_touched": false
+    },
+    "directus_hooks": {
+      "build": "passed",
+      "tests_passed": 143,
+      "mounted_bundle_probe": "passed"
+    },
+    "static_checks": {
+      "ruff": "passed",
+      "py_compile": "passed",
+      "migration_sources_validated": 821,
+      "runtime_sql_inventory": "current",
+      "capability_matrix": "valid"
+    }
+  },
+  "ordered_schema_replay_through_708": {
+    "migration_runner_result": "Applied: 699, Failed: 0",
+    "last_migration_logged": "708_runtime_landscape_capture_only.sql",
+    "target": "fresh disposable PostgreSQL 16; no host ports or seeds",
+    "candidate_legacy_production_touched": false,
+    "post_replay_probe": "A separate ad hoc status query used a nonexistent kind column and failed after the migration runner had reported success; no post-708 ACL inventory was produced."
+  },
+  "directus_warning": "The CI cleanup log separately showed a missing hook dist/index.js at container startup even though make hooks-build passed. A local probe using the same pinned image and exact bind-mount target found the freshly built bundle. The CI warning did not cause the runner shutdown and its CI-only cause is not established."
+}

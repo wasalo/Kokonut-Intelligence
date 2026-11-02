@@ -5,12 +5,14 @@ Queries soil_carbon_measurement and species_observation tables to produce
 before/after comparisons and ecological health indicators.
 """
 
+import copy
 import math
-from datetime import datetime, timezone
-from typing import Dict, Any, List, Optional
+from datetime import datetime
+from typing import Any, Dict, List
 
 import psycopg2
 import psycopg2.extras
+
 from services.common.database import query
 
 
@@ -28,7 +30,8 @@ def compare_soil_carbon(conn, location_id: str) -> Dict[str, Any]:
             measurement_method,
             depth_cm
         FROM soil_carbon_measurement sc
-        LEFT JOIN plot p ON sc.plot_id = p.id
+        JOIN plot p ON sc.plot_id = p.id
+        JOIN farm f ON f.id = p.farm_id AND f.location_id = sc.location_id
         WHERE sc.location_id = %s
         ORDER BY sc.plot_id, sc.measurement_date
     """, (location_id,))
@@ -220,9 +223,7 @@ def sensitivity_analysis(
 
     Supported variables: price, yield, cost
     """
-    from ..forecast.engine import load_scenario, run_forecast
-    from ..ingestion.base import get_db
-    import copy
+    from ..forecast.engine import load_scenario
 
     scenario = load_scenario(scenario_id)
     if not scenario:
@@ -271,14 +272,9 @@ def sensitivity_analysis(
 
 def _estimate_noi(scenario: Dict[str, Any]) -> float:
     """Quick NOI estimate without DB writes."""
-    from services.forecast.pricing import project_prices
-    from services.forecast.yield_forecast import project_yields
-    from services.forecast.cost_forecast import project_costs
-
     # Simplified calculation
     pa = scenario.get("price_assumptions", {})
     ya = scenario.get("yield_assumptions", {})
-    ga = scenario.get("growth_assumptions", {})
 
     # Estimate total revenue and costs
     total_revenue = 0.0
@@ -314,7 +310,8 @@ def ndvi_trends(conn, location_id: str) -> Dict[str, Any]:
             ndvi,
             ndwi
         FROM remote_sensing_observation rs
-        LEFT JOIN plot p ON rs.plot_id = p.id
+        JOIN plot p ON rs.plot_id = p.id
+        JOIN farm f ON f.id = p.farm_id AND f.location_id = rs.location_id
         WHERE rs.location_id = %s AND rs.ndvi IS NOT NULL
         ORDER BY rs.plot_id, rs.observation_date
     """, (location_id,))
@@ -491,7 +488,8 @@ def crop_diversity(conn, location_id: str) -> Dict[str, Any]:
             c.name as crop_name
         FROM crop_cycle cc
         LEFT JOIN crop c ON cc.crop_id = c.id
-        LEFT JOIN plot p ON cc.plot_id = p.id
+        JOIN plot p ON cc.plot_id = p.id
+        JOIN farm f ON f.id = p.farm_id AND f.location_id = cc.location_id
         WHERE cc.location_id = %s
         ORDER BY cc.season, cc.plot_id
     """, (location_id,))
@@ -639,6 +637,7 @@ def soil_health(conn, location_id: str) -> Dict[str, Any]:
             ss.sample_date
         FROM soil_sample ss
         JOIN plot p ON ss.plot_id = p.id
+        JOIN farm f ON f.id = p.farm_id AND f.location_id = ss.location_id
         WHERE ss.location_id = %s
         ORDER BY ss.sample_date DESC
     """, (location_id,))
@@ -656,6 +655,7 @@ def soil_health(conn, location_id: str) -> Dict[str, Any]:
             ss.sample_date
         FROM soil_sample ss
         JOIN plot p ON ss.plot_id = p.id
+        JOIN farm f ON f.id = p.farm_id AND f.location_id = ss.location_id
         WHERE ss.location_id = %s
         ORDER BY ss.sample_date ASC
     """, (location_id,))

@@ -2,13 +2,16 @@
 
 from __future__ import annotations
 
+import argparse
 import json
 import re
 from typing import Any
 
+from services.common.cli import print_json
 from services.common.worker_database import get_worker_db
 from services.common.worker_environment import isolated_worker_key
 from services.core.features import require_feature
+from services.core.worker_progress import pulse_worker_progress
 from services.events.bus import EventBus
 
 
@@ -52,6 +55,7 @@ class IsolatedEventBus(EventBus):
         try:
             events = self._claim(batch_size, worker_id)
             for event_id, event_type, payload, retry_count, max_retries, lease_token in events:
+                pulse_worker_progress()
                 payload = json.loads(payload) if isinstance(payload, str) else payload
                 outcome = self._process_event(
                     event_id, event_type, payload, worker_id, lease_token
@@ -70,6 +74,7 @@ class IsolatedEventBus(EventBus):
                         stats["lease_lost"] += 1
                     else:
                         stats["failed"] += 1
+                pulse_worker_progress()
             return stats
         except Exception:
             connection.rollback()
@@ -165,3 +170,21 @@ def run_once(
         return bus.process_pending(batch_size, worker_id)
     finally:
         connection.close()
+
+
+def main(argv: list[str] | None = None) -> None:
+    """Run one bounded dispatch batch from a filtered CLI child process."""
+    parser = argparse.ArgumentParser(description="Isolated durable EventBus dispatcher")
+    parser.add_argument("--run-once", action="store_true", required=True)
+    parser.add_argument("--worker-id", default="event-kernel-worker")
+    parser.add_argument("--batch-size", type=int, default=100)
+    parser.add_argument("--lease-seconds", type=int, default=300)
+    args = parser.parse_args(argv)
+    result = run_once(args.worker_id, args.batch_size, args.lease_seconds)
+    print_json(result)
+    if result["failed"] or result["lease_lost"]:
+        raise SystemExit(1)
+
+
+if __name__ == "__main__":
+    main()

@@ -9,6 +9,9 @@ from services.common.logging import get_logger
 
 logger = get_logger("federation.node")
 
+MAX_NODE_PAGE_SIZE = 100
+MAX_NODE_PAGE_OFFSET = 10_000
+
 
 class FederationNode:
     """Manages federation nodes — remote farms that share data."""
@@ -113,31 +116,90 @@ class FederationNode:
             logger.error("Failed to update federation trust level (%s)", safe_exception_class(exc))
             return False
 
-    def list_nodes(self, status: str | None = None) -> list[dict]:
+    def list_nodes(
+        self,
+        status: str | None = None,
+        *,
+        limit: int | None = None,
+        offset: int = 0,
+    ) -> list[dict]:
         """List all federation nodes."""
+        self._validate_page(limit, offset)
+        return self._read_nodes(status, limit=limit, offset=offset)
+
+    def list_nodes_page(
+        self,
+        *,
+        limit: int = 50,
+        offset: int = 0,
+    ) -> dict:
+        """Return one bounded node page with exact continuation metadata."""
+        if limit is None:
+            raise ValueError("limit is required for paginated federation reads")
+        self._validate_page(limit, offset)
+        rows = self._read_nodes(None, limit=limit + 1, offset=offset)
+        has_more = len(rows) > limit
+        can_continue = has_more and offset + limit <= MAX_NODE_PAGE_OFFSET
+        return {
+            "nodes": rows[:limit],
+            "limit": limit,
+            "offset": offset,
+            "has_more": has_more,
+            "next_offset": offset + limit if can_continue else None,
+            "continuation_capped": has_more and not can_continue,
+        }
+
+    @staticmethod
+    def _validate_page(limit: int | None, offset: int) -> None:
+        if limit is not None and (
+            isinstance(limit, bool)
+            or not isinstance(limit, int)
+            or not 1 <= limit <= MAX_NODE_PAGE_SIZE
+        ):
+            raise ValueError(f"limit must be an integer between 1 and {MAX_NODE_PAGE_SIZE}")
+        if (
+            isinstance(offset, bool)
+            or not isinstance(offset, int)
+            or not 0 <= offset <= MAX_NODE_PAGE_OFFSET
+        ):
+            raise ValueError(
+                f"offset must be an integer between 0 and {MAX_NODE_PAGE_OFFSET}"
+            )
+
+    def _read_nodes(
+        self,
+        status: str | None,
+        *,
+        limit: int | None,
+        offset: int,
+    ) -> list[dict]:
         conn = self._get_conn()
         try:
             with conn.cursor() as cur:
                 if status:
-                    cur.execute(
-                        """
+                    query = """
                         SELECT id, node_name, node_url, trust_level,
                                shared_capabilities, last_sync_at, status, created_at
                         FROM federation_node
                         WHERE status = %s
                         ORDER BY node_name
-                        """,
-                        (status,),
-                    )
+                    """
+                    parameters: tuple[object, ...] = (status,)
                 else:
-                    cur.execute(
-                        """
+                    query = """
                         SELECT id, node_name, node_url, trust_level,
                                shared_capabilities, last_sync_at, status, created_at
                         FROM federation_node
                         ORDER BY trust_level, node_name
-                        """
-                    )
+                    """
+                    parameters = ()
+                if limit is not None:
+                    query += " LIMIT %s OFFSET %s"
+                    parameters += (limit, offset)
+                elif offset:
+                    query += " OFFSET %s"
+                    parameters += (offset,)
+                cur.execute(query, parameters)
                 return [
                     {
                         "node_id": str(r[0]),

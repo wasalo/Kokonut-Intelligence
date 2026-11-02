@@ -1,0 +1,22 @@
+{
+  "date": "2026-10-30",
+  "source_revision": "67bef59b",
+  "working_tree_dirty": true,
+  "result": "passed",
+  "scope": "C4 climate Prefect aggregate failure-report stderr redaction",
+  "failure_report": {
+    "synthetic_exit_code": 7,
+    "location_binding_preserved": true,
+    "safe_output": "Climate data refresh failed (exit code 7)",
+    "synthetic_child_stderr_excluded": true,
+    "test_command": "python3 -m pytest tests/test_prefect_scoped_location_fanout.py::test_climate_refresh_failure_report_excludes_child_stderr -q",
+    "tests_passed": 1
+  },
+  "static_checks": {
+    "ruff": "passed",
+    "python_compile": "passed",
+    "git_diff_check": "passed"
+  },
+  "database_or_provider_accessed": false,
+  "external_schedule_state_accessed": false
+}

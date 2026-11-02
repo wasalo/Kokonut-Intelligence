@@ -1,0 +1,63 @@
+{
+  "date": "2026-10-28",
+  "source_revision": "7d2e0653",
+  "working_tree_dirty": true,
+  "scope": "Strict nested response contract for the private location-scoped waste operations summary.",
+  "route": {
+    "method": "GET",
+    "path": "/operator/api/waste/{location_id}/summary",
+    "response_model": "WasteSummaryResponse",
+    "nested_sections": [
+      "waste_summary",
+      "waste_streams",
+      "composting",
+      "composting_efficiency",
+      "recycling",
+      "pollution_incidents"
+    ],
+    "constraints": {
+      "extra_fields": "forbidden at every response object level",
+      "waste_and_compost_enums": "match migration 153 table checks",
+      "incident_enums": "match pollution incident severity and status checks",
+      "counts": "strict nonnegative integers; grouped records require at least one",
+      "numeric_values": "finite",
+      "group_bounds": "derived only from checked domain enums or the existing recent-quality limit",
+      "request_scope": "top-level and composting-efficiency locations must match the path; period must match the requested days value",
+      "validation": "Explicitly validate the service projection before returning JSONResponse"
+    }
+  },
+  "error_contract": {
+    "disabled_oidc": "existing 404 preserved",
+    "tenant_denial": "existing 403 preserved",
+    "invalid_input": "existing 400 preserved",
+    "database_failure": "existing sanitized 503 and Retry-After: 30 path unchanged",
+    "invalid_projection": "sanitized 500 with Cache-Control: no-store and Vary: Cookie"
+  },
+  "checks": [
+    {
+      "command": "python3 -m pytest tests/test_gateway_waste_management_reads.py -q",
+      "result": "passed",
+      "passed": 22
+    },
+    {
+      "command": "python3 -m ruff check services/gateway/waste_management_routes.py tests/test_gateway_waste_management_reads.py",
+      "result": "passed"
+    },
+    {
+      "command": "python3 -m py_compile services/gateway/waste_management_routes.py tests/test_gateway_waste_management_reads.py",
+      "result": "passed"
+    },
+    {
+      "command": "git diff --check",
+      "result": "passed"
+    }
+  ],
+  "environment": {
+    "live_database_used": false,
+    "candidate_or_legacy_touched": false,
+    "provider_called": false
+  },
+  "limitations": [
+    "This closes one aggregate response-contract slice only; live OIDC behavior, populated-data parity, and broader tenant isolation remain separate gates."
+  ]
+}

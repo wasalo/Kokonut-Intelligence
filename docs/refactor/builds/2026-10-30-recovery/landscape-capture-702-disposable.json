@@ -1,0 +1,26 @@
+{
+  "date": "2026-10-30",
+  "migration": "702_location_landscape_capture.sql",
+  "result": "passed",
+  "database": "disposable PostgreSQL 16 with PostGIS",
+  "architecture": "x86_64",
+  "migration_replayed": true,
+  "assertions_passed": 12,
+  "candidate_database_touched": false,
+  "legacy_database_touched": false,
+  "production_database_touched": false,
+  "checks": [
+    "migration 702 applies and replays on a disposable PostGIS/PostgreSQL 16 database",
+    "habitat capture is active, replay-idempotent, and creates one source row",
+    "request ID reuse with changed input is rejected",
+    "habitat geometry must be valid WGS84 polygon contained by the location boundary",
+    "corridor defaults to fair/active and accepts same-location habitat links",
+    "corridor capture rejects habitat references belonging to another location",
+    "hedgerow defaults to fair/active with bounded array data",
+    "buffer date defaults to current date and compliance is derived only from both widths",
+    "biodiversity assessment date defaults to current date and remains recorded",
+    "caller cannot select a lifecycle status or create verified/published records",
+    "ungranted operator is denied before write",
+    "runtime alone can call the function; Directus cannot; writer owner is isolated and has only required authorization columns"
+  ]
+}

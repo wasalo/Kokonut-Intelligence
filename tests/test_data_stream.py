@@ -240,9 +240,28 @@ class TestDeletePost:
 class TestStream:
     def test_get_project_stream(self):
         from services.data_stream.stream import get_project_stream
-        conn = _fake_conn(rows=[{"id": POST_ID, "title": "Stream post"}])
-        posts = get_project_stream(conn, LOCATION_ID)
+        columns = [
+            "id", "location_id", "post_type", "title", "content", "media_type",
+            "evidence_urls", "file_ids", "visibility", "status", "is_anchored",
+            "attestation_uid", "chain", "anchored_at", "created_at", "created_by",
+            "metadata", "location_name", "farm_name", "comment_count",
+        ]
+        row = {column: f"value-{index}" for index, column in enumerate(columns)}
+        row["id"] = POST_ID
+        row["location_id"] = LOCATION_ID
+        row["title"] = "Stream post"
+        conn = _fake_conn(rows=[row])
+        posts = get_project_stream(conn, LOCATION_ID, limit=37)
+
         assert len(posts) == 1
+        assert posts[0] == row
+        sql, parameters = conn.execute.call_args.args
+        assert sql.split("FROM v_project_data_stream", maxsplit=1)[0].strip() == (
+            "SELECT " + ", ".join(columns) + " "
+        ).strip()
+        assert "WHERE location_id = :location_id" in sql
+        assert "ORDER BY created_at DESC LIMIT :limit" in sql
+        assert parameters == {"location_id": LOCATION_ID, "limit": 37}
 
     def test_get_chronological_feed(self):
         from services.data_stream.stream import get_chronological_feed

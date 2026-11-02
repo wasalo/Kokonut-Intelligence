@@ -1,0 +1,33 @@
+{
+  "date": "2026-10-30",
+  "branch": "chore/kernel-next-sprint-plan",
+  "scope": [
+    "Partner lifecycle scorecard CLI date preflight"
+  ],
+  "contract": {
+    "date_format": "Canonical YYYY-MM-DD calendar dates",
+    "range": "period_start must be on or before period_end",
+    "database_boundary": "Malformed, noncanonical, impossible, and reversed values are rejected before get_db()",
+    "service_compatibility": "Valid date strings are passed unchanged to create_scorecard"
+  },
+  "verification": {
+    "focused_pytest": {
+      "command": "python3 -m pytest tests/test_partner_lifecycle_cli_preflight.py -q",
+      "result": "13 passed"
+    },
+    "ruff": "Passed for implementation and focused tests",
+    "python_compile": "Passed for implementation and focused tests",
+    "diff_check": "Passed",
+    "capability_matrix": "Valid: 67 rows; 24 baseline-retained, 7 deployed, 36 prepared",
+    "runtime_sql_inventory": "Current; 42 unresolved write candidates remain review-only",
+    "provider_boundaries": "Passed: 17 vendor import sites",
+    "dependency_groups": "Aligned: 14 groups, 33 requirements"
+  },
+  "isolation": {
+    "database_access": false,
+    "provider_access": false,
+    "candidate_or_legacy_access": false,
+    "migration_applied": false
+  },
+  "rollback": "Revert the partner scorecard CLI date validation, focused tests, evidence, and progress updates; no data rollback is needed."
+}

@@ -93,6 +93,8 @@ def list_location_delphi_participant_invites(
             result = json.loads(result)
         if not isinstance(result, dict):
             raise RuntimeError("Delphi invite inventory returned an invalid payload")
+        if page_offset + page_size > 10000 and result.get("has_more") is True:
+            result["has_more"] = False
         connection.commit()
         return result
     except Exception:

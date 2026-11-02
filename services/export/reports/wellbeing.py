@@ -6,6 +6,7 @@ import psycopg2
 import psycopg2.extras
 
 from .common import (
+    _looks_like_uuid,
     _serialize_rows,
 )
 from .scope import require_network_scope
@@ -13,11 +14,30 @@ from .scope import require_network_scope
 
 def generate_ebf_scorecard(conn, location_id: str, period_start: str = None, period_end: str = None) -> dict:
     """Generate a public-safe EBF scorecard report for a location."""
+    if not _looks_like_uuid(location_id):
+        raise ValueError("ebf_scorecard requires an explicit location_id")
+
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     try:
         cur.execute(
             """
-            SELECT *
+            SELECT scorecard_id,
+                   location_id,
+                   location_name,
+                   farm_id,
+                   farm_name,
+                   period_start,
+                   period_end,
+                   overall_score,
+                   overall_confidence,
+                   rubric_version,
+                   evidence_maturity_level,
+                   evidence_maturity_label,
+                   pillar_count,
+                   public_safe_pillar_count,
+                   min_pillar_evidence_maturity,
+                   max_pillar_evidence_maturity,
+                   caveat
             FROM v_public_ebf_scorecard_summary
             WHERE location_id = %s
               AND (%s::date IS NULL OR period_start >= %s::date)
@@ -62,6 +82,9 @@ def generate_ebf_scorecard(conn, location_id: str, period_start: str = None, per
 
 def generate_holistic_wellbeing(conn, location_id: str, period_start: str = None, period_end: str = None) -> dict:
     """Generate a public-safe holistic well-being report for a location."""
+    if not _looks_like_uuid(location_id):
+        raise ValueError("holistic_wellbeing requires an explicit location_id")
+
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     try:
         cur.execute("SELECT name FROM location WHERE id = %s", (location_id,))
@@ -133,13 +156,36 @@ def generate_holistic_wellbeing(conn, location_id: str, period_start: str = None
 
 def generate_financial_sustainability(conn, location_id: str, period_start: str = None, period_end: str = None) -> dict:
     """Generate a public-safe financial sustainability report for a location."""
+    if not _looks_like_uuid(location_id):
+        raise ValueError("financial_sustainability requires an explicit location_id")
+
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     try:
         cur.execute("SELECT name FROM location WHERE id = %s", (location_id,))
         location = cur.fetchone()
         cur.execute(
             """
-            SELECT *
+            SELECT id,
+                   location_id,
+                   farm_id,
+                   plan_name,
+                   farm_model,
+                   plan_period_start,
+                   plan_period_end,
+                   revenue_streams,
+                   grant_dependency_pct,
+                   reinvestment_pct,
+                   public_goods_allocation_pct,
+                   break_even_month,
+                   runway_months,
+                   projected_annual_revenue_usd,
+                   projected_annual_operating_cost_usd,
+                   projected_annual_noi_usd,
+                   sustainability_status,
+                   public_summary,
+                   evidence_maturity,
+                   evidence_maturity_label,
+                   metadata
             FROM v_public_financial_sustainability_summary
             WHERE location_id = %s
               AND (%s::date IS NULL OR plan_period_start >= %s::date)
@@ -167,13 +213,35 @@ def generate_financial_sustainability(conn, location_id: str, period_start: str 
 
 def generate_risk_mitigation(conn, location_id: str, period_start: str = None, period_end: str = None) -> dict:
     """Generate a public-safe risk mitigation report for a location."""
+    if not _looks_like_uuid(location_id):
+        raise ValueError("risk_mitigation requires an explicit location_id")
+
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     try:
         cur.execute("SELECT name FROM location WHERE id = %s", (location_id,))
         location = cur.fetchone()
         cur.execute(
             """
-            SELECT *
+            SELECT id,
+                   location_id,
+                   farm_id,
+                   risk_category,
+                   risk_description,
+                   likelihood,
+                   impact_level,
+                   mitigation_strategy,
+                   insurance_scope,
+                   oversight_mechanism,
+                   technical_support_provider,
+                   owner_role,
+                   review_cadence,
+                   residual_risk_level,
+                   review_date,
+                   next_review_date,
+                   public_summary,
+                   evidence_maturity,
+                   evidence_maturity_label,
+                   metadata
             FROM v_public_risk_mitigation_summary
             WHERE location_id = %s
               AND (%s::date IS NULL OR review_date IS NULL OR review_date >= %s::date)
@@ -200,32 +268,38 @@ def generate_risk_mitigation(conn, location_id: str, period_start: str = None, p
 
 
 def generate_scaling_roadmap(conn, location_id: str = None, period_start: str = None, period_end: str = None) -> dict:
-    """Generate a public-safe scaling roadmap report."""
+    """Generate a public-safe scaling roadmap report for one location."""
+    if not _looks_like_uuid(location_id):
+        raise ValueError("scaling_roadmap requires an explicit location_id")
+
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     try:
-        if location_id:
-            cur.execute(
-                """
-                SELECT *
-                FROM v_public_scaling_roadmap_summary
-                WHERE (location_id = %s OR location_id IS NULL)
-                  AND (%s::date IS NULL OR target_date >= %s::date)
-                  AND (%s::date IS NULL OR target_date <= %s::date)
-                ORDER BY target_date, roadmap_name
-                """,
-                (location_id, period_start, period_start, period_end, period_end),
-            )
-        else:
-            cur.execute(
-                """
-                SELECT *
-                FROM v_public_scaling_roadmap_summary
-                WHERE (%s::date IS NULL OR target_date >= %s::date)
-                  AND (%s::date IS NULL OR target_date <= %s::date)
-                ORDER BY target_date, roadmap_name
-                """,
-                (period_start, period_start, period_end, period_end),
-            )
+        cur.execute(
+            """
+            SELECT id,
+                   roadmap_name,
+                   location_id,
+                   target_region,
+                   farm_model,
+                   planned_farm_count,
+                   capital_required_usd,
+                   partner_requirements,
+                   operational_dependencies,
+                   risk_gates,
+                   target_date,
+                   milestone_status,
+                   public_summary,
+                   evidence_maturity,
+                   evidence_maturity_label,
+                   metadata
+            FROM v_public_scaling_roadmap_summary
+            WHERE (location_id = %s OR location_id IS NULL)
+              AND (%s::date IS NULL OR target_date >= %s::date)
+              AND (%s::date IS NULL OR target_date <= %s::date)
+            ORDER BY target_date, roadmap_name
+            """,
+            (location_id, period_start, period_start, period_end, period_end),
+        )
         milestones = [dict(r) for r in cur.fetchall()]
     finally:
         cur.close()
@@ -251,7 +325,11 @@ def generate_green_paper_publication_status(
     try:
         cur.execute(
             """
-            SELECT *
+            SELECT id, version, document_path, review_status, review_owner,
+                   target_publication_date, open_question_count,
+                   approval_record_count, publication_cid, publication_hash,
+                   published_at, public_summary, evidence_maturity,
+                   evidence_maturity_label
             FROM v_public_green_paper_publication_status
             ORDER BY target_publication_date DESC, version DESC
             """
@@ -273,13 +351,31 @@ def generate_green_paper_publication_status(
 
 def generate_capital_efficiency(conn, location_id: str, period_start: str = None, period_end: str = None) -> dict:
     """Generate a public-safe capital efficiency and regenerative ROI scenario report."""
+    if not _looks_like_uuid(location_id):
+        raise ValueError("capital_efficiency requires an explicit location_id")
+
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     try:
         cur.execute("SELECT name FROM location WHERE id = %s", (location_id,))
         location = cur.fetchone()
         cur.execute(
             """
-            SELECT *
+            SELECT id,
+                   location_id,
+                   farm_id,
+                   scenario_name,
+                   scenario_type,
+                   period_start,
+                   period_end,
+                   capital_deployed_usd,
+                   gross_output_value_usd,
+                   net_output_value_usd,
+                   public_goods_value_usd,
+                   capital_leverage_ratio,
+                   public_summary,
+                   evidence_maturity,
+                   evidence_maturity_label,
+                   metadata
             FROM v_public_capital_efficiency_summary
             WHERE location_id = %s
               AND (%s::date IS NULL OR period_start >= %s::date)
@@ -291,7 +387,22 @@ def generate_capital_efficiency(conn, location_id: str, period_start: str = None
         scenarios = [dict(r) for r in cur.fetchall()]
         cur.execute(
             """
-            SELECT *
+            SELECT id,
+                   location_id,
+                   farm_id,
+                   practice_event_id,
+                   observation_date,
+                   practice_type,
+                   baseline_cost_usd,
+                   observed_cost_usd,
+                   cost_savings_pct,
+                   incremental_output_value_usd,
+                   implementation_cost_usd,
+                   payback_months,
+                   public_summary,
+                   evidence_maturity,
+                   evidence_maturity_label,
+                   metadata
             FROM v_public_regenerative_efficiency_summary
             WHERE location_id = %s
               AND (%s::date IS NULL OR observation_date >= %s::date)
@@ -321,32 +432,38 @@ def generate_capital_efficiency(conn, location_id: str, period_start: str = None
 def generate_governance_throughput(
     conn, location_id: str = None, period_start: str = None, period_end: str = None
 ) -> dict:
-    """Generate a public-safe governance throughput report."""
+    """Generate a public-safe governance throughput report for one location."""
+    if not _looks_like_uuid(location_id):
+        raise ValueError("governance_throughput requires an explicit location_id")
+
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     try:
-        if location_id:
-            cur.execute(
-                """
-                SELECT *
-                FROM v_public_governance_throughput_summary
-                WHERE (location_id = %s OR location_id IS NULL)
-                  AND (%s::date IS NULL OR proposal_created_at::date >= %s::date)
-                  AND (%s::date IS NULL OR proposal_created_at::date <= %s::date)
-                ORDER BY proposal_created_at DESC, proposal_code
-                """,
-                (location_id, period_start, period_start, period_end, period_end),
-            )
-        else:
-            cur.execute(
-                """
-                SELECT *
-                FROM v_public_governance_throughput_summary
-                WHERE (%s::date IS NULL OR proposal_created_at::date >= %s::date)
-                  AND (%s::date IS NULL OR proposal_created_at::date <= %s::date)
-                ORDER BY proposal_created_at DESC, proposal_code
-                """,
-                (period_start, period_start, period_end, period_end),
-            )
+        cur.execute(
+            """
+            SELECT id,
+                   location_id,
+                   dao_proposal_id,
+                   proposal_code,
+                   venue,
+                   proposal_type,
+                   proposal_created_at,
+                   decision_at,
+                   executed_at,
+                   decision_latency_days,
+                   execution_latency_days,
+                   decision_result,
+                   public_summary,
+                   evidence_maturity,
+                   evidence_maturity_label,
+                   metadata
+            FROM v_public_governance_throughput_summary
+            WHERE (location_id = %s OR location_id IS NULL)
+              AND (%s::date IS NULL OR proposal_created_at::date >= %s::date)
+              AND (%s::date IS NULL OR proposal_created_at::date <= %s::date)
+            ORDER BY proposal_created_at DESC, proposal_code
+            """,
+            (location_id, period_start, period_start, period_end, period_end),
+        )
         observations = [dict(r) for r in cur.fetchall()]
     finally:
         cur.close()

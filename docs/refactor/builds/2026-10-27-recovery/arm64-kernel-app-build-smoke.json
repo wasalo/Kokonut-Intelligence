@@ -1,0 +1,75 @@
+{
+  "result": "passed",
+  "date": "2026-10-27",
+  "source_revision": "9691128b",
+  "source_tree": "working-tree snapshot; includes migration 652 and the runtime-role provisioner append-only boundary",
+  "application_oci": {
+    "target": "kernel",
+    "clickhouse_profile": false,
+    "platforms": [
+      "linux/amd64",
+      "linux/arm64"
+    ],
+    "index_sha256": "86583cbcf8451a3e7c9a902fbaca9a4e5d45b283cfec8b578c222f0836e10b95",
+    "release_input_validation": "passed",
+    "matching_python_packages": 72
+  },
+  "arm64_runtime_smoke": {
+    "image_id": "sha256:735befcad3bc542e4c76f4179994fb78ac779ed2529eec593536ab8c6071dc6c",
+    "image_size_bytes": 547610951,
+    "container_architecture": "aarch64",
+    "gateway_factory_imported": true,
+    "runtime_role_append_only_tables": [
+      "data_access_log"
+    ],
+    "supervisor_processes_without_workers": [
+      "api"
+    ],
+    "network": "none",
+    "root_filesystem": "read-only",
+    "tmpfs_bytes": 67108864,
+    "database_or_provider_calls": false
+  },
+  "clickhouse_superset_oci": {
+    "target": "kernel",
+    "clickhouse_profile": true,
+    "platforms": [
+      "linux/amd64",
+      "linux/arm64"
+    ],
+    "index_sha256": "08e275c7f283bb3f15f494edf90969029ae1e2395dddc5dbe31418c002537fa4",
+    "release_input_validation": "passed",
+    "matching_python_packages": 75
+  },
+  "arm64_clickhouse_runtime_smoke": {
+    "image_id": "sha256:9b90b30d68af96dcfe5e24fdd92bc901050b1e1058b4caf8b868852a6e2cca92",
+    "image_size_bytes": 567625316,
+    "container_architecture": "aarch64",
+    "clickhouse_connect_version": "1.10.0",
+    "supervisor_api_only_process_plan": true,
+    "network": "none",
+    "root_filesystem": "read-only",
+    "tmpfs_bytes": 67108864,
+    "database_or_clickhouse_calls": false
+  },
+  "arm64_compose_profile_config": {
+    "profiles": [
+      "minimal",
+      "edge",
+      "standard",
+      "analytics"
+    ],
+    "result": "all config --quiet selections passed using synthetic placeholders",
+    "containers_created": false
+  },
+  "temporary_oci_archive_removed": true,
+  "temporary_clickhouse_oci_archive_removed": true,
+  "temporary_arm64_image_removed": true,
+  "temporary_clickhouse_arm64_image_removed": true,
+  "candidate_or_legacy_modified": false,
+  "limitations": [
+    "Docker/QEMU software-emulation evidence only; no physical Raspberry Pi, power-loss, thermal, performance, or storage-endurance acceptance.",
+    "Compose profile configuration was validated, but all optional service image combinations were not built or started.",
+    "Constrained CPU/memory operation and synthetic backup/restore acceptance remain open."
+  ]
+}

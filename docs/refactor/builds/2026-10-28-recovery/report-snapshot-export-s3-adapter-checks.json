@@ -1,0 +1,55 @@
+{
+  "date": "2026-10-28",
+  "base_commit": "926947358fe7ad8f16a38769088504015bc905fc",
+  "scope": "optional private S3-compatible report artifact adapter, including Cloudflare R2 configuration support",
+  "test_command": [
+    "python3",
+    "-m",
+    "pytest",
+    "tests/test_export_artifact_s3.py",
+    "tests/test_export_artifact_storage.py",
+    "tests/test_report_exports_gateway.py",
+    "tests/test_report_exports_gateway_contract.py",
+    "tests/test_report_snapshot_export_worker.py",
+    "-q"
+  ],
+  "test_result": {
+    "passed": 77,
+    "failed": 0
+  },
+  "checks": {
+    "ruff": "passed",
+    "python_compile": "passed",
+    "dependency_groups": "passed; 14 groups, 33 requirements",
+    "provider_boundaries": "passed; 17 vendor import sites",
+    "static_worker_inventories": "passed; seven reports regenerated and current",
+    "aggregate_worker_boundary_preflight": "review_required; repository-wide worker-boundary debt remains"
+  },
+  "contract": [
+    "local private artifact storage remains the default",
+    "S3-compatible provider uses explicit endpoint, bucket, region and UUID-only object prefix",
+    "Gateway receives separate read-only credentials; worker receives separate write/delete credentials",
+    "neither credential role requires ListBucket",
+    "S3 reads require a bound and close the body on success or failure",
+    "provider exceptions and object paths are redacted from safe errors",
+    "S3 dependency import is lazy and remains in the optional exports dependency group"
+  ],
+  "live_r2_or_external_provider_used": false,
+  "candidate_or_legacy_database_touched": false,
+  "inventory_test_command": [
+    "python3",
+    "-m",
+    "pytest",
+    "tests/test_worker_source_closure.py",
+    "tests/test_worker_function_reachability.py",
+    "tests/test_worker_sql_reachability.py",
+    "tests/test_worker_sql_inventory.py",
+    "tests/test_worker_boundary_preflight.py",
+    "tests/test_worker_operation_map.py",
+    "-q"
+  ],
+  "inventory_test_result": {
+    "passed": 67,
+    "failed": 0
+  }
+}

@@ -10,6 +10,7 @@ from unittest.mock import MagicMock
 import pytest
 
 from services.common.worker_environment import (
+    DENY_SHARED_DATABASE_ENV,
     ISOLATED_WORKER_KEY_ENV,
     scheduled_module_worker_key,
     worker_subprocess_environment,
@@ -52,6 +53,7 @@ def test_scheduled_child_receives_only_baal_worker_inputs():
         "KOKONUT_BAAL_INDEXER_DATABASE_URL": "postgresql://isolated",
         baal_worker.RPC_ENV: endpoint,
         ISOLATED_WORKER_KEY_ENV: "baal_indexer",
+        DENY_SHARED_DATABASE_ENV: "true",
     }
 
 

@@ -1,0 +1,29 @@
+{
+  "date": "2026-10-29",
+  "purpose": "Mock-only acceptance evidence for strict Delphi recommendation and minority-report decision responses.",
+  "command": "python3 -m pytest -q tests/test_gateway_delphi_recommendation_review.py tests/test_gateway_delphi_minority_review.py -k 'decision_route_validates_response_and_publishes_openapi_contract or decision_route_sanitizes_invalid'",
+  "result": {
+    "passed": 12,
+    "failed": 0,
+    "deselected": 56
+  },
+  "coverage": [
+    "Exact six-field response schema in OpenAPI for both decision endpoints",
+    "Path record ID and submitted decision binding",
+    "Recommendation approve/reject status consistency",
+    "Minority-report verified/rejected status consistency",
+    "Malformed, mismatched, extra, and inconsistent service results fail with sanitized no-store responses",
+    "Operator, path IDs, decision, request ID, and reason code are forwarded to the service as expected"
+  ],
+  "environment": {
+    "database_used": false,
+    "provider_used": false,
+    "candidate_or_legacy_state_touched": false,
+    "fixtures": "Synthetic response dictionaries, in-process FastAPI TestClient, and a synthetic OIDC provider."
+  },
+  "static_checks": {
+    "ruff": "passed",
+    "python_compile": "passed",
+    "git_diff_check": "passed"
+  }
+}

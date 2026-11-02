@@ -34,6 +34,11 @@ class DoubleLoopController:
         Triggers structural review when single-loop adjustments are
         not producing lasting improvements.
         """
+        try:
+            location_id = str(uuid.UUID(str(location_id)))
+        except (TypeError, ValueError, AttributeError) as exc:
+            raise ValueError("location_id must be a valid UUID") from exc
+
         conn = self._get_conn()
         cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 

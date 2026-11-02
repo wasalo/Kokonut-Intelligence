@@ -249,7 +249,8 @@ def test_mobile_operations_inventory_rejects_invalid_location_or_limit_before_co
     assert connections == []
 
 
-def test_mobile_collection_list_rejects_invalid_bounds_before_connection():
+@pytest.mark.parametrize("limit", [0, 101])
+def test_mobile_collection_list_rejects_invalid_bounds_before_connection(limit):
     opened = False
 
     def connection_factory():
@@ -261,7 +262,7 @@ def test_mobile_collection_list_rejects_invalid_bounds_before_connection():
         list_mobile_collections(
             OPERATOR_ID,
             LOCATION_ID,
-            101,
+            limit,
             connection_factory=connection_factory,
         )
     assert not opened
@@ -349,7 +350,7 @@ def test_disposition_inventory_is_read_only_location_scoped_and_content_free(
         "collection_id": UUID(COLLECTION_ID),
         "location_id": UUID(LOCATION_ID),
         "eligible_for_use": False,
-        "eligibility_reason": "retired_form_version",
+        "eligibility_reason": "review_required",
         "inventory_scope": "known_direct_lineage_only",
         "collection": {
             "sync_status": "synced",
@@ -363,7 +364,11 @@ def test_disposition_inventory_is_read_only_location_scoped_and_content_free(
             "photo_reference_count": 1,
             "has_coordinates": True,
         },
-        "private_media": {"object_count": 1, "total_bytes": 2048, "by_status": {"stored": 1}},
+        "private_media": {
+            "object_count": 1,
+            "total_bytes": 2048,
+            "by_status": {"attached": 1},
+        },
         "canonical_activity": {"total": 0, "by_status": {}},
         "workflow_event_count": 0,
         "review_event_count": 1,

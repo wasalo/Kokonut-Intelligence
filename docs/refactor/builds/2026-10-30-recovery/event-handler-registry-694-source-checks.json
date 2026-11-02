@@ -1,0 +1,77 @@
+{
+  "arm64_qemu_focused_acl_result": "passed",
+  "arm64_qemu_full_schema_through_migration_694": false,
+  "arm64_qemu_through_migration_694": false,
+  "candidate_legacy_or_production_touched": false,
+  "checks": [
+    {
+      "command": "python3 -m pytest tests/test_runtime_role_boundary.py -k event_handler -q",
+      "deselected": 86,
+      "passed": 1,
+      "result": "passed"
+    },
+    {
+      "command": "python3 -m pytest tests/test_arm64_schema_replay.py -k 'operator_probe_fixture_implements_every_required_acceptance_check or operator_probe_requires_both_tenants_and_a_success_result' -q",
+      "deselected": 33,
+      "passed": 2,
+      "result": "passed"
+    },
+    {
+      "command": "python3 -m pytest tests/test_runtime_role_boundary.py -k 'runtime_acl_policy_matches_all_recorded_migration_revokes or current_full_schema_acl_snapshot_matches_source_policy' -q",
+      "deselected": 85,
+      "passed": 2,
+      "result": "passed"
+    },
+    {
+      "command": "python3 -m pytest tests/test_runtime_privilege_callsite_report.py tests/test_runtime_sql_inventory.py -q",
+      "passed": 43,
+      "result": "passed"
+    },
+    {
+      "command": "ruff check services/migration/runtime_role.py scripts/runtime-privilege-callsite-report.py scripts/check-runtime-scoped-write-boundary-disposable.py scripts/check-arm64-schema-replay.py scripts/fixtures/sprint_operator_scope_probe.py tests/test_runtime_role_boundary.py",
+      "result": "passed"
+    },
+    {
+      "command": "python3 -m py_compile services/migration/runtime_role.py scripts/runtime-privilege-callsite-report.py scripts/check-runtime-scoped-write-boundary-disposable.py scripts/check-arm64-schema-replay.py scripts/fixtures/sprint_operator_scope_probe.py tests/test_runtime_role_boundary.py",
+      "result": "passed"
+    },
+    {
+      "command": "python3 -m services.migration validate --schemas-only",
+      "result": "passed",
+      "schema_sources": 685
+    },
+    {
+      "command": "python3 scripts/runtime_sql_inventory.py --check docs/refactor/runtime-sql-inventory.json",
+      "result": "passed",
+      "unresolved_write_candidates": 41
+    },
+    {
+      "classifications": {
+        "baseline_retained": 24,
+        "deployed": 7,
+        "prepared": 36
+      },
+      "command": "python3 scripts/check-capability-matrix.py",
+      "result": "passed",
+      "rows": 67
+    },
+    {
+      "command": "git diff --check",
+      "result": "passed"
+    }
+  ],
+  "database_evidence": {
+    "arm64_qemu_focused_acl": "runtime-event-handler-694-arm64-disposable.json",
+    "focused_acl": "runtime-event-handler-694-disposable.json",
+    "native_full_schema": "native-resource-limited-schema-694-operator-probe.json",
+    "source_acl_join": "runtime-privilege-callsite-report-694.json"
+  },
+  "date": "2026-10-30",
+  "diagnostic": {
+    "initial_full_replay": "native-resource-limited-schema-694-checklist-mismatch.json",
+    "outcome": "all 685 schema migrations applied; the first operator-probe parse rejected the newly added check name because the expected-check inventory had not yet been updated. The checklist was corrected and the complete fresh replay then passed."
+  },
+  "result": "passed",
+  "scope": "migration 694 runtime event_handler ACL source and acceptance contracts",
+  "tenant_isolation_established_by_this_slice": false
+}

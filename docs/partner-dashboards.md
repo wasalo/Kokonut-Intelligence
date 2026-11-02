@@ -1,16 +1,16 @@
 # Partner Dashboard Guide
 
-Kokonut Intelligence supports Directus dashboards, optional Metabase dashboards, and custom partner applications. These are presentation and integration layers over the canonical PostgreSQL/Directus records. They do not replace lifecycle review, evidence gates, consent controls, or server-side authorization. Metabase is excluded from default Compose deployments; the repository dashboard assets remain available for product discovery.
+Kokonut Intelligence supports Directus dashboards where the adapter is enabled, optional Metabase dashboards, and custom partner applications. These are presentation and integration layers over canonical PostgreSQL records. They do not replace lifecycle review, evidence gates, consent controls, or server-side authorization. The refactored Kernel profiles make Directus and analytics/BI adapters opt-in; the legacy Compose stack retains its existing service configuration.
 
 ## Deployment Topology
 
 - PostgreSQL and ClickHouse remain private to the Compose networks.
-- Directus is the canonical schema/API layer.
+- PostgreSQL is the canonical schema and data layer. The native Gateway and Python services implement Kernel APIs; Directus provides a compatibility/admin surface when enabled.
 - When explicitly enabled, Metabase is an optional BI layer and stores its own application metadata in the separate `metabase` database.
 - Partner analytics connect Metabase to the `kokonut_intelligence` PostgreSQL database.
 - Base Compose exposes Caddy, not Directus or Metabase database ports.
 - Default Caddy routes Directus through `/directus/*` and `/admin/*`; Metabase is not routed through default Caddy.
-- A separately launched gateway on port `8099` is an API integration surface, not the default dashboard proxy.
+- The Gateway is a Compose service in the current stack and a native Kernel API surface. Base Caddy routes only the documented paths, including Field Collector paths; it does not proxy every Gateway API route.
 
 Default Compose and optional Metabase URLs are:
 
@@ -224,7 +224,7 @@ Use server-side Directus permission filters and public-safe views. A client-supp
 
 ## Gateway/API Integration
 
-The optional gateway exposes explicit public-read routes such as:
+The Gateway exposes explicitly configured public-read routes such as:
 
 - `GET /api/locations`
 - `GET /api/locations/{location_id}`
@@ -234,7 +234,7 @@ The optional gateway exposes explicit public-read routes such as:
 
 Unknown routes remain protected. API keys use `KOKONUT_API_KEY_SCOPES` and fail closed without a matching scope. Capability tokens support resource/action, expiration, revocation, usage, and optional location constraints.
 
-Do not describe the gateway as strict end-to-end location authorization for every route: current propagation is incomplete for several location-bearing endpoints. Gateway audit logging is best effort until its HTTP-action mapping is corrected. The gateway is not included as a Compose service by default, and Caddy does not route `/api/*` to port `8099` without additional deployment configuration.
+Do not describe the gateway as strict end-to-end location authorization for every route: current propagation is incomplete for several location-bearing endpoints. Gateway audit logging is best effort until its HTTP-action mapping is corrected. The Gateway is a Compose service; however, base Caddy does not route all `/api/*` paths to port `8099`. Check the active Caddy configuration and route policy before exposing a dashboard or API externally.
 
 ## Recommended Approach By Partner Type
 

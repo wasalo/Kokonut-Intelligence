@@ -15,26 +15,16 @@ import psycopg2
 from psycopg2 import sql
 
 _ROLE_NAME = re.compile(r"^[a-z_][a-z0-9_]{0,62}$")
-_PLACEHOLDER_SECRET = re.compile(
-    r"^(replace-with|your[_-]|change[_-]me|todo|none|null)", re.IGNORECASE
-)
+_PLACEHOLDER_SECRET = re.compile(r"^(replace-with|your[_-]|change[_-]me|todo|none|null)", re.IGNORECASE)
 _SESSION_FUNCTIONS = (
     "kokonut_security.create_operator_session(text,text,text,text,text,text,timestamptz)",
     "kokonut_security.authenticate_operator_session(text)",
     "kokonut_security.revoke_operator_session(uuid)",
 )
-_GATEWAY_CONTEXT_FUNCTION = (
-    "kokonut_security.set_gateway_tenant_context(text,text,uuid,text,text)"
-)
-_OPERATOR_CONTEXT_FUNCTION = (
-    "kokonut_security.set_operator_tenant_context(text,uuid,uuid,text,text,jsonb)"
-)
-_MOBILE_DEVICE_REVOKE_FUNCTION = (
-    "kokonut_security.revoke_mobile_device(uuid,text,text,text,uuid,text)"
-)
-_WORKER_CONTEXT_FUNCTION = (
-    "kokonut_security.set_worker_tenant_context(text,uuid,text,text)"
-)
+_GATEWAY_CONTEXT_FUNCTION = "kokonut_security.set_gateway_tenant_context(text,text,uuid,text,text)"
+_OPERATOR_CONTEXT_FUNCTION = "kokonut_security.set_operator_tenant_context(text,uuid,uuid,text,text,jsonb)"
+_MOBILE_DEVICE_REVOKE_FUNCTION = "kokonut_security.revoke_mobile_device(uuid,text,text,text,uuid,text)"
+_WORKER_CONTEXT_FUNCTION = "kokonut_security.set_worker_tenant_context(text,uuid,text,text)"
 _WORKER_SCOPE_FUNCTION = "kokonut_security.current_worker_scope(text,text)"
 _MOBILE_CREDENTIAL_FUNCTIONS = (
     "kokonut_security.resolve_mobile_device_token(text)",
@@ -43,11 +33,23 @@ _MOBILE_CREDENTIAL_FUNCTIONS = (
     "kokonut_security.current_tenant_context()",
 )
 _FARM_ACTIVITY_EVENT_OWNER = "kokonut_farm_activity_event_owner"
-_NOTIFICATION_ENQUEUE_FUNCTION = (
-    "kokonut_security.enqueue_notification_intents(uuid,text,uuid,jsonb)"
+_NOTIFICATION_ENQUEUE_FUNCTION = "kokonut_security.enqueue_notification_intents(uuid,text,uuid,jsonb)"
+_ALERT_RULE_DEFAULT_FUNCTION = "kokonut_security.ensure_default_alert_rules()"
+_MARKET_DATA_FUNCTION = "kokonut_security.store_world_bank_market_data(jsonb,text,text,integer)"
+_MARKET_DATA_MANUAL_PRICE_FUNCTION = (
+    "kokonut_security.store_manual_market_price(text,text,numeric,text,text,text,jsonb)"
 )
-_MARKET_DATA_FUNCTION = (
-    "kokonut_security.store_world_bank_market_data(jsonb,text,text,integer)"
+_MARKET_DATA_REFERENCE_SEED_FUNCTION = "kokonut_security.store_world_bank_seed_market_data(jsonb,text,integer)"
+_MARKET_DATA_FUNCTIONS = (
+    _MARKET_DATA_FUNCTION,
+    _MARKET_DATA_MANUAL_PRICE_FUNCTION,
+    _MARKET_DATA_REFERENCE_SEED_FUNCTION,
+)
+_THESAURUS_FUNCTIONS = (
+    "kokonut_security.create_thesaurus(text,text,text,text)",
+    "kokonut_security.add_thesaurus_keyword(uuid,text,text,uuid)",
+    "kokonut_security.upsert_thesaurus_keyword_label(uuid,text,text)",
+    "kokonut_security.delete_thesaurus_keyword(uuid)",
 )
 _EAS_INDEXER_FUNCTIONS = (
     "kokonut_security.acquire_eas_indexer_chain_lock(text)",
@@ -102,6 +104,65 @@ _FRESHNESS_WORKER_FUNCTIONS = (
 _CLICKHOUSE_OUTBOX_WORKER_FUNCTIONS = (
     "kokonut_security.claim_clickhouse_outbox_batch(text,integer)",
     "kokonut_security.finish_clickhouse_outbox_delivery(uuid,text,uuid,boolean,text,integer,boolean)",
+)
+_REPORT_SNAPSHOT_EXPORT_RUNTIME_FUNCTIONS = (
+    "kokonut_security.request_report_snapshot_export(uuid,uuid,uuid)",
+    "kokonut_security.list_report_snapshot_exports(uuid,integer)",
+    "kokonut_security.list_report_snapshot_export_candidates(uuid,integer,integer)",
+    "kokonut_security.get_report_snapshot_export(uuid,uuid)",
+    "kokonut_security.authorize_report_snapshot_export_download(uuid,uuid)",
+)
+_REPORT_SNAPSHOT_EXPORT_REQUESTER_ISOLATION_GUARDS = (
+    (
+        "kokonut_security.list_report_snapshot_exports(uuid,integer)",
+        "request.requested_by = context_record.actor_id",
+    ),
+    (
+        "kokonut_security.get_report_snapshot_export(uuid,uuid)",
+        "request.requested_by = context_record.actor_id",
+    ),
+    (
+        "kokonut_security.authorize_report_snapshot_export_download(uuid,uuid)",
+        "request.requested_by = context_record.actor_id",
+    ),
+)
+_REPORT_SNAPSHOT_EXPORT_WORKER_FUNCTIONS = (
+    "kokonut_security.claim_report_snapshot_export_batch(text,integer,integer)",
+    "kokonut_security.read_report_snapshot_export_source(uuid,text,uuid)",
+    "kokonut_security.finish_report_snapshot_export_attempt(uuid,text,uuid,boolean,text,integer,uuid,text,bigint)",
+)
+_METRIC_VALUE_KERNEL_FUNCTIONS = (
+    "kokonut_security.create_location_metric_value_draft(uuid,uuid,uuid,text,date,date,numeric,text,text,uuid[],jsonb)",
+    "kokonut_security.verify_location_metric_value(uuid,uuid,uuid,text)",
+    "kokonut_security.list_location_metric_values(uuid,text,integer)",
+)
+_GOVERNANCE_TENSION_ACTION_FUNCTIONS = (
+    "kokonut_security.mutate_governance_tension_action(uuid,uuid,text,uuid,jsonb,text)",
+)
+_EXTENSION_LEARNING_WRITE_FUNCTIONS = (
+    "kokonut_security.create_extension_peer_network(uuid,uuid,text,text,text,integer,text,text,jsonb)",
+    "kokonut_security.update_extension_learning_progress(uuid,uuid,uuid,text,numeric,numeric,integer,jsonb)",
+    "kokonut_security.extension_learning_grant_allows(uuid,text,uuid)",
+    "kokonut_security.extension_compact_json_text(jsonb)",
+)
+_LANDSCAPE_CAPTURE_FUNCTIONS = ("kokonut_security.create_location_landscape_record(uuid,text,uuid,jsonb,text)",)
+_ENERGY_READING_CAPTURE_FUNCTIONS = (
+    "kokonut_security.record_location_energy_reading(uuid,uuid,uuid,date,text,numeric,numeric,text,text,uuid,text,jsonb,text)",
+)
+_GATEWAY_RATE_LIMIT_CONSUME_FUNCTION = "kokonut_security.consume_gateway_rate_bucket(text,integer,boolean)"
+_GATEWAY_RATE_LIMIT_CLEANUP_FUNCTION = "kokonut_rate_limit_maintenance.cleanup_idle_gateway_rate_buckets(integer)"
+_POSTGIS_METADATA_READ_RELATIONS = (
+    "geography_columns",
+    "geometry_columns",
+    "spatial_ref_sys",
+)
+_GATEWAY_RATE_LIMIT_FUNCTIONS = (
+    _GATEWAY_RATE_LIMIT_CONSUME_FUNCTION,
+    _GATEWAY_RATE_LIMIT_CLEANUP_FUNCTION,
+)
+_REPORT_SNAPSHOT_EXPORT_FUNCTIONS = (
+    *_REPORT_SNAPSHOT_EXPORT_RUNTIME_FUNCTIONS,
+    *_REPORT_SNAPSHOT_EXPORT_WORKER_FUNCTIONS,
 )
 _NOTIFICATION_DELIVERY_FUNCTIONS = (
     "kokonut_security.claim_notification_outbox_batch(text,integer,integer,text[])",
@@ -164,23 +225,28 @@ _SECURITY_DEFINER_OWNERS = (
     (_WORKER_CONTEXT_FUNCTION, "kokonut_worker_context_owner"),
     (_WORKER_SCOPE_FUNCTION, "kokonut_worker_context_owner"),
     (_NOTIFICATION_ENQUEUE_FUNCTION, "kokonut_notification_enqueue_owner"),
+    (_ALERT_RULE_DEFAULT_FUNCTION, "kokonut_alert_rule_owner"),
     (_MARKET_DATA_FUNCTION, "kokonut_market_data_owner"),
+    (_MARKET_DATA_MANUAL_PRICE_FUNCTION, "kokonut_market_data_owner"),
+    (_MARKET_DATA_REFERENCE_SEED_FUNCTION, "kokonut_market_data_owner"),
+    *((function, "kokonut_thesaurus_owner") for function in _THESAURUS_FUNCTIONS),
     *((function, "kokonut_eas_indexer_owner") for function in _EAS_INDEXER_FUNCTIONS),
     *((function, "kokonut_rpc_indexer_owner") for function in _RPC_INDEXER_FUNCTIONS),
     *((function, "kokonut_gnosis_indexer_owner") for function in _GNOSIS_INDEXER_FUNCTIONS),
     *((function, "kokonut_baal_indexer_owner") for function in _BAAL_INDEXER_FUNCTIONS),
     *((function, "kokonut_freshness_owner") for function in _FRESHNESS_WORKER_FUNCTIONS),
     *((function, "kokonut_clickhouse_outbox_owner") for function in _CLICKHOUSE_OUTBOX_WORKER_FUNCTIONS),
+    *((function, "kokonut_report_snapshot_export_owner") for function in _REPORT_SNAPSHOT_EXPORT_FUNCTIONS),
+    *((function, "kokonut_metric_value_manager") for function in _METRIC_VALUE_KERNEL_FUNCTIONS),
+    *((function, "kokonut_governance_action_owner") for function in _GOVERNANCE_TENSION_ACTION_FUNCTIONS),
+    *((function, "kokonut_extension_learning_writer") for function in _EXTENSION_LEARNING_WRITE_FUNCTIONS),
+    *((function, "kokonut_landscape_capture_writer") for function in _LANDSCAPE_CAPTURE_FUNCTIONS),
+    *((function, "kokonut_energy_reading_writer") for function in _ENERGY_READING_CAPTURE_FUNCTIONS),
+    *((function, "kokonut_gateway_rate_limit_owner") for function in _GATEWAY_RATE_LIMIT_FUNCTIONS),
     *((function, "kokonut_notification_delivery_owner") for function in _NOTIFICATION_DELIVERY_FUNCTIONS),
     *((function, "kokonut_event_dispatch_owner") for function in _EVENT_DISPATCH_FUNCTIONS),
-    *(
-        (function, "kokonut_sensor_ingestion_owner")
-        for function in _SENSOR_INGESTION_FUNCTIONS
-    ),
-    *(
-        (function, "kokonut_remote_sensing_owner")
-        for function in _REMOTE_SENSING_FUNCTIONS
-    ),
+    *((function, "kokonut_sensor_ingestion_owner") for function in _SENSOR_INGESTION_FUNCTIONS),
+    *((function, "kokonut_remote_sensing_owner") for function in _REMOTE_SENSING_FUNCTIONS),
     ("public.guard_farm_activity_operator_event_insert()", _FARM_ACTIVITY_EVENT_OWNER),
     ("public.record_gateway_farm_activity_create()", _FARM_ACTIVITY_EVENT_OWNER),
     ("public.record_farm_activity_gateway_operation()", _FARM_ACTIVITY_EVENT_OWNER),
@@ -194,13 +260,22 @@ _PRIVATE_RUNTIME_FUNCTIONS = (
     _WORKER_CONTEXT_FUNCTION,
     _WORKER_SCOPE_FUNCTION,
     _NOTIFICATION_ENQUEUE_FUNCTION,
-    _MARKET_DATA_FUNCTION,
+    _ALERT_RULE_DEFAULT_FUNCTION,
+    *_MARKET_DATA_FUNCTIONS,
+    *_THESAURUS_FUNCTIONS,
     *_EAS_INDEXER_FUNCTIONS,
     *_RPC_INDEXER_FUNCTIONS,
     *_GNOSIS_INDEXER_FUNCTIONS,
     *_BAAL_INDEXER_FUNCTIONS,
     *_FRESHNESS_WORKER_FUNCTIONS,
     *_CLICKHOUSE_OUTBOX_WORKER_FUNCTIONS,
+    *_REPORT_SNAPSHOT_EXPORT_FUNCTIONS,
+    *_METRIC_VALUE_KERNEL_FUNCTIONS,
+    *_GOVERNANCE_TENSION_ACTION_FUNCTIONS,
+    *_EXTENSION_LEARNING_WRITE_FUNCTIONS,
+    *_LANDSCAPE_CAPTURE_FUNCTIONS,
+    *_ENERGY_READING_CAPTURE_FUNCTIONS,
+    *_GATEWAY_RATE_LIMIT_FUNCTIONS,
     *_NOTIFICATION_DELIVERY_FUNCTIONS,
     *_EVENT_DISPATCH_FUNCTIONS,
     *_SENSOR_INGESTION_FUNCTIONS,
@@ -303,11 +378,7 @@ def _ensure_login_role(cur, *, name: str, identifier: sql.Identifier, password: 
             (role_oid,),
         )
         for (granted_role,) in cur.fetchall():
-            cur.execute(
-                sql.SQL("REVOKE {} FROM {}").format(
-                    _role_identifier(granted_role, "granted role"), identifier
-                )
-            )
+            cur.execute(sql.SQL("REVOKE {} FROM {}").format(_role_identifier(granted_role, "granted role"), identifier))
         cur.execute(
             sql.SQL(
                 "ALTER ROLE {} WITH LOGIN PASSWORD %s NOSUPERUSER NOCREATEDB "
@@ -341,11 +412,7 @@ def _remove_role_memberships(cur, *, role_name: str, identifier: sql.Identifier)
         (role_name,),
     )
     for (granted_role,) in cur.fetchall():
-        cur.execute(
-            sql.SQL("REVOKE {} FROM {}").format(
-                _role_identifier(granted_role, "granted role"), identifier
-            )
-        )
+        cur.execute(sql.SQL("REVOKE {} FROM {}").format(_role_identifier(granted_role, "granted role"), identifier))
 
     cur.execute(
         """
@@ -358,11 +425,7 @@ def _remove_role_memberships(cur, *, role_name: str, identifier: sql.Identifier)
         (role_name,),
     )
     for (member_role,) in cur.fetchall():
-        cur.execute(
-            sql.SQL("REVOKE {} FROM {}").format(
-                identifier, _role_identifier(member_role, "member role")
-            )
-        )
+        cur.execute(sql.SQL("REVOKE {} FROM {}").format(identifier, _role_identifier(member_role, "member role")))
 
 
 def _verify_role_attributes(cur, role_name: str) -> None:
@@ -392,61 +455,95 @@ def _verify_role_attributes(cur, role_name: str) -> None:
 
 
 def _verify_bounded_indexer_login(
-    cur, role_name: str, functions: tuple[str, ...], label: str, runtime_user: str
+    cur,
+    role_name: str,
+    functions: tuple[str, ...],
+    label: str,
+    runtime_user: str,
+    *,
+    schema_name: str = "kokonut_security",
+    function_schemas: tuple[str, ...] = ("public", "kokonut_security"),
+    allowed_read_relations: tuple[str, ...] = (),
 ) -> None:
-    """Verify that an indexer login exposes only its named function surface."""
+    """Verify a bounded login's callable function surface and schema boundary.
+
+    Trigger-returning routines are excluded because PostgreSQL only permits
+    invoking them through an attached trigger, not as direct SQL functions.
+    """
     _verify_role_attributes(cur, role_name)
     cur.execute(
-        "SELECT " + ", ".join(
-            "has_function_privilege(%s, %s, 'EXECUTE')" for _ in functions
-        ),
+        "SELECT " + ", ".join("has_function_privilege(%s, %s, 'EXECUTE')" for _ in functions),
         tuple(value for function in functions for value in (role_name, function)),
     )
     if cur.fetchone() != (True,) * len(functions):
         raise RuntimeError(f"{label} login is missing a bounded function")
     cur.execute(
-        "SELECT has_schema_privilege(%s, 'kokonut_security', 'USAGE'), "
-        "has_schema_privilege(%s, 'kokonut_security', 'CREATE')",
-        (role_name, role_name),
+        "SELECT has_schema_privilege(%s, %s, 'USAGE'), has_schema_privilege(%s, %s, 'CREATE')",
+        (role_name, schema_name, role_name, schema_name),
     )
     if cur.fetchone() != (True, False):
-        raise RuntimeError(f"{label} login has unsafe security schema privileges")
+        raise RuntimeError(f"{label} login has unsafe {schema_name} schema privileges")
+    any_relation_privilege = """(
+        has_table_privilege(%s, relation.oid, 'SELECT')
+        OR has_table_privilege(%s, relation.oid, 'INSERT')
+        OR has_table_privilege(%s, relation.oid, 'UPDATE')
+        OR has_table_privilege(%s, relation.oid, 'DELETE')
+        OR has_table_privilege(%s, relation.oid, 'TRUNCATE')
+        OR has_table_privilege(%s, relation.oid, 'REFERENCES')
+        OR has_table_privilege(%s, relation.oid, 'TRIGGER')
+        OR has_any_column_privilege(%s, relation.oid, 'SELECT')
+        OR has_any_column_privilege(%s, relation.oid, 'INSERT')
+        OR has_any_column_privilege(%s, relation.oid, 'UPDATE')
+        OR has_any_column_privilege(%s, relation.oid, 'REFERENCES'))"""
+    mutation_privilege = """(
+        has_table_privilege(%s, relation.oid, 'INSERT')
+        OR has_table_privilege(%s, relation.oid, 'UPDATE')
+        OR has_table_privilege(%s, relation.oid, 'DELETE')
+        OR has_table_privilege(%s, relation.oid, 'TRUNCATE')
+        OR has_table_privilege(%s, relation.oid, 'REFERENCES')
+        OR has_table_privilege(%s, relation.oid, 'TRIGGER')
+        OR has_any_column_privilege(%s, relation.oid, 'INSERT')
+        OR has_any_column_privilege(%s, relation.oid, 'UPDATE')
+        OR has_any_column_privilege(%s, relation.oid, 'REFERENCES'))"""
+    relation_privilege_clause = any_relation_privilege
+    relation_parameters: tuple[object, ...] = (role_name,) * 11
+    if allowed_read_relations:
+        relation_privilege_clause += " AND (relation.relname <> ALL(%s) OR " + mutation_privilege + ")"
+        relation_parameters += (
+            list(allowed_read_relations),
+            *((role_name,) * 9),
+        )
     cur.execute(
-        """SELECT EXISTS (
-               SELECT 1 FROM pg_class AS relation
-               JOIN pg_namespace AS namespace ON namespace.oid = relation.relnamespace
-               WHERE namespace.nspname = 'public'
-                 AND relation.relkind IN ('r', 'p', 'v', 'm', 'f')
-                 AND (has_table_privilege(%s, relation.oid, 'SELECT')
-                   OR has_table_privilege(%s, relation.oid, 'INSERT')
-                   OR has_table_privilege(%s, relation.oid, 'UPDATE')
-                   OR has_table_privilege(%s, relation.oid, 'DELETE')
-                   OR has_table_privilege(%s, relation.oid, 'TRUNCATE')
-                   OR has_table_privilege(%s, relation.oid, 'REFERENCES')
-                   OR has_table_privilege(%s, relation.oid, 'TRIGGER')
-                   OR has_any_column_privilege(%s, relation.oid, 'SELECT')
-                   OR has_any_column_privilege(%s, relation.oid, 'INSERT')
-                   OR has_any_column_privilege(%s, relation.oid, 'UPDATE')
-                   OR has_any_column_privilege(%s, relation.oid, 'REFERENCES'))
-           )""",
-        (role_name,) * 11,
+        """SELECT relation.relname
+             FROM pg_class AS relation
+             JOIN pg_namespace AS namespace ON namespace.oid = relation.relnamespace
+            WHERE namespace.nspname = 'public'
+              AND relation.relkind IN ('r', 'p', 'v', 'm', 'f')
+              AND """
+        + relation_privilege_clause
+        + " ORDER BY relation.relname LIMIT 1",
+        relation_parameters,
     )
-    if cur.fetchone()[0]:
-        raise RuntimeError(f"{label} login retains direct relation privileges")
-    function_slots = ", ".join("to_regprocedure(%s)" for _ in functions)
+    relation_with_privilege = cur.fetchone()
+    if relation_with_privilege is not None:
+        raise RuntimeError(f"{label} login retains direct relation privileges on public.{relation_with_privilege[0]}")
+    excluded_functions = functions
+    function_slots = ", ".join("to_regprocedure(%s)" for _ in excluded_functions)
     cur.execute(
         f"""SELECT procedure.oid::regprocedure::text
               FROM pg_proc AS procedure
               JOIN pg_namespace AS namespace ON namespace.oid = procedure.pronamespace
-             WHERE namespace.nspname IN ('public', 'kokonut_security')
+             WHERE namespace.nspname::text = ANY(%s)
                AND procedure.prosecdef
+               AND procedure.prorettype <> 'trigger'::regtype
                AND procedure.oid <> ALL(ARRAY[{function_slots}])
                AND has_function_privilege(%s, procedure.oid, 'EXECUTE')
              LIMIT 1""",
-        (*functions, role_name),
+        (list(function_schemas), *excluded_functions, role_name),
     )
-    if cur.fetchone() is not None:
-        raise RuntimeError(f"{label} login can execute another SECURITY DEFINER function")
+    unexpected_function = cur.fetchone()
+    if unexpected_function is not None:
+        raise RuntimeError(f"{label} login can execute another SECURITY DEFINER function: {unexpected_function[0]}")
     cur.execute(
         """SELECT EXISTS (
                SELECT 1 FROM pg_class AS sequence
@@ -461,33 +558,25 @@ def _verify_bounded_indexer_login(
     if cur.fetchone()[0]:
         raise RuntimeError(f"{label} login retains application sequence privileges")
     cur.execute(
-        "SELECT " + " OR ".join(
-            "has_function_privilege(%s, %s, 'EXECUTE')" for _ in functions
-        ),
+        "SELECT " + " OR ".join("has_function_privilege(%s, %s, 'EXECUTE')" for _ in functions),
         tuple(value for function in functions for value in (runtime_user, function)),
     )
     if cur.fetchone()[0]:
         raise RuntimeError(f"runtime role can execute {label} worker functions")
 
 
-def _revoke_runtime_default_privileges(
-    cur, admin_ident: sql.Identifier, runtime_ident: sql.Identifier
-) -> None:
+def _revoke_runtime_default_privileges(cur, admin_ident: sql.Identifier, runtime_ident: sql.Identifier) -> None:
     """Require explicit provisioning before the runtime can use new objects."""
     for scope in (None, "public"):
         for object_kind in ("TABLES", "SEQUENCES"):
             statement = sql.SQL("ALTER DEFAULT PRIVILEGES FOR ROLE {} ").format(admin_ident)
             if scope is not None:
                 statement += sql.SQL("IN SCHEMA {} ").format(sql.Identifier(scope))
-            statement += sql.SQL("REVOKE ALL PRIVILEGES ON {} FROM {}").format(
-                sql.SQL(object_kind), runtime_ident
-            )
+            statement += sql.SQL("REVOKE ALL PRIVILEGES ON {} FROM {}").format(sql.SQL(object_kind), runtime_ident)
             cur.execute(statement)
 
 
-def _verify_no_runtime_default_privileges(
-    cur, *, admin_user: str, runtime_user: str
-) -> None:
+def _verify_no_runtime_default_privileges(cur, *, admin_user: str, runtime_user: str) -> None:
     cur.execute(
         """
         SELECT EXISTS (
@@ -504,18 +593,14 @@ def _verify_no_runtime_default_privileges(
         (admin_user, runtime_user),
     )
     if cur.fetchone()[0]:
-        raise RuntimeError(
-            "runtime role retains default privileges on future public tables or sequences"
-        )
+        raise RuntimeError("runtime role retains default privileges on future public tables or sequences")
 
 
 def _revoke_public_function_execute(cur, function: str) -> None:
     cur.execute("SELECT to_regprocedure(%s)", (function,))
     if cur.fetchone()[0] is None:
         return
-    cur.execute(
-        sql.SQL("REVOKE ALL ON FUNCTION {} FROM PUBLIC").format(sql.SQL(function))
-    )
+    cur.execute(sql.SQL("REVOKE ALL ON FUNCTION {} FROM PUBLIC").format(sql.SQL(function)))
 
 
 def _verify_no_public_function_execute(cur, function: str) -> None:
@@ -574,8 +659,7 @@ def _restore_farm_activity_event_owner(cur) -> bool:
     if cur.fetchone() is None:
         cur.execute(
             sql.SQL(
-                "CREATE ROLE {} NOLOGIN NOINHERIT NOSUPERUSER NOCREATEDB "
-                "NOCREATEROLE NOREPLICATION NOBYPASSRLS"
+                "CREATE ROLE {} NOLOGIN NOINHERIT NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS"
             ).format(sql.Identifier(_FARM_ACTIVITY_EVENT_OWNER))
         )
     cur.execute(
@@ -592,14 +676,11 @@ def _restore_farm_activity_event_owner(cur) -> bool:
     cur.execute(sql.SQL("GRANT USAGE ON SCHEMA public TO {}").format(owner))
     cur.execute(sql.SQL("GRANT USAGE ON SCHEMA kokonut_security TO {}").format(owner))
     cur.execute(sql.SQL("REVOKE CREATE ON SCHEMA kokonut_security FROM {}").format(owner))
+    cur.execute(sql.SQL("GRANT SELECT, INSERT ON TABLE public.farm_activity_operator_event TO {}").format(owner))
     cur.execute(
-        sql.SQL("GRANT SELECT, INSERT ON TABLE public.farm_activity_operator_event TO {}").format(owner)
-    )
-    cur.execute(
-        sql.SQL(
-            "GRANT SELECT ON TABLE public.farm_activity, public.location, "
-            "public.operator_identity TO {}"
-        ).format(owner)
+        sql.SQL("GRANT SELECT ON TABLE public.farm_activity, public.location, public.operator_identity TO {}").format(
+            owner
+        )
     )
     cur.execute(
         sql.SQL(
@@ -609,9 +690,9 @@ def _restore_farm_activity_event_owner(cur) -> bool:
         ).format(owner)
     )
     cur.execute(
-        sql.SQL(
-            "GRANT EXECUTE ON FUNCTION public.operator_scope_grant_allows(UUID, TEXT, TEXT, UUID) TO {}"
-        ).format(owner)
+        sql.SQL("GRANT EXECUTE ON FUNCTION public.operator_scope_grant_allows(UUID, TEXT, TEXT, UUID) TO {}").format(
+            owner
+        )
     )
     cur.execute(sql.SQL("GRANT CREATE ON SCHEMA public TO {}").format(owner))
     for function in (
@@ -645,8 +726,7 @@ def _apply_mobile_credential_boundary(cur, runtime_ident: sql.Identifier) -> dic
     for table_name, grants in policies.items():
         table_ident = sql.Identifier("public", table_name)
         cur.execute(
-            "SELECT attname FROM pg_attribute "
-            "WHERE attrelid = to_regclass(%s) AND attnum > 0 AND NOT attisdropped",
+            "SELECT attname FROM pg_attribute WHERE attrelid = to_regclass(%s) AND attnum > 0 AND NOT attisdropped",
             (f"public.{table_name}",),
         )
         actual_columns = {row[0] for row in cur.fetchall()}
@@ -655,15 +735,9 @@ def _apply_mobile_credential_boundary(cur, runtime_ident: sql.Identifier) -> dic
             required_columns.update(columns)
         missing_columns = sorted(required_columns - actual_columns)
         if not actual_columns or missing_columns:
-            raise RuntimeError(
-                f"{table_name} is missing columns required for the mobile credential boundary"
-            )
+            raise RuntimeError(f"{table_name} is missing columns required for the mobile credential boundary")
 
-        cur.execute(
-            sql.SQL("REVOKE ALL PRIVILEGES ON TABLE {} FROM {}").format(
-                table_ident, runtime_ident
-            )
-        )
+        cur.execute(sql.SQL("REVOKE ALL PRIVILEGES ON TABLE {} FROM {}").format(table_ident, runtime_ident))
         # Column grants survive a table-level REVOKE, so explicitly clear any
         # grants left by an earlier provisioner version before applying the
         # allowlist. Unknown future columns remain inaccessible until reviewed.
@@ -701,9 +775,7 @@ def _apply_mobile_credential_boundary(cur, runtime_ident: sql.Identifier) -> dic
             "select": list(_MOBILE_ENROLLMENT_READ_COLUMNS),
             "insert": list(_MOBILE_ENROLLMENT_INSERT_COLUMNS),
             "update": list(_MOBILE_ENROLLMENT_UPDATE_COLUMNS),
-            "denied_select": list(
-                _MOBILE_CREDENTIAL_COLUMNS["mobile_device_enrollment"]
-            ),
+            "denied_select": list(_MOBILE_CREDENTIAL_COLUMNS["mobile_device_enrollment"]),
             "delete": False,
         },
     }
@@ -731,10 +803,7 @@ def _verify_mobile_credential_boundary(cur, role_name: str) -> None:
             (role_name, table_name, column_name, privilege),
         )
         if cur.fetchone()[0] is not expected:
-            raise RuntimeError(
-                f"{role_name} has an unexpected {privilege} grant on "
-                f"{table_name}.{column_name}"
-            )
+            raise RuntimeError(f"{role_name} has an unexpected {privilege} grant on {table_name}.{column_name}")
     for table_name, privilege in (
         ("public.mobile_device", "INSERT"),
         ("public.mobile_device", "UPDATE"),
@@ -762,11 +831,7 @@ def _apply_api_key_boundary(cur, runtime_ident: sql.Identifier) -> dict[str, obj
     if not actual_columns or missing_columns:
         raise RuntimeError("api_key is missing columns required for the runtime boundary")
 
-    cur.execute(
-        sql.SQL("REVOKE ALL PRIVILEGES ON TABLE {} FROM {}").format(
-            table_ident, runtime_ident
-        )
-    )
+    cur.execute(sql.SQL("REVOKE ALL PRIVILEGES ON TABLE {} FROM {}").format(table_ident, runtime_ident))
     for column_name in sorted(actual_columns):
         for privilege in ("SELECT", "INSERT", "UPDATE"):
             cur.execute(
@@ -835,25 +900,120 @@ def _verify_api_key_boundary(cur, role_name: str) -> None:
         raise RuntimeError(f"{role_name} retains column-level API-key write privileges")
 
 
-def _apply_farm_activity_operator_event_boundary(
-    cur, runtime_ident: sql.Identifier
-) -> dict[str, object]:
-    """Allow event reads/appends while denying mutation of the append-only ledger."""
+def _apply_farm_activity_operator_event_boundary(cur, runtime_ident: sql.Identifier) -> dict[str, object]:
+    """Allow event reads while denying direct mutation of the append-only ledger."""
     cur.execute("SELECT to_regclass('public.farm_activity_operator_event')")
     if cur.fetchone()[0] is None:
-        return {"installed": False, "select": False, "insert": False, "update": False, "delete": False}
+        return {
+            "installed": False,
+            "select": False,
+            "insert": False,
+            "update": False,
+            "delete": False,
+            "column_privileges": "none",
+        }
     table_ident = sql.Identifier("public", "farm_activity_operator_event")
+    cur.execute(sql.SQL("REVOKE ALL PRIVILEGES ON TABLE {} FROM {}").format(table_ident, runtime_ident))
     cur.execute(
-        sql.SQL("REVOKE ALL PRIVILEGES ON TABLE {} FROM {}").format(
-            table_ident, runtime_ident
-        )
+        "SELECT attname FROM pg_attribute WHERE attrelid = %s::regclass AND attnum > 0 AND NOT attisdropped",
+        ("public.farm_activity_operator_event",),
     )
-    cur.execute(
-        sql.SQL("GRANT SELECT ON TABLE {} TO {}").format(
-            table_ident, runtime_ident
+    columns = [row[0] for row in cur.fetchall()]
+    for column in columns:
+        for privilege in ("INSERT", "UPDATE", "REFERENCES"):
+            cur.execute(
+                sql.SQL("REVOKE {} ({}) ON TABLE {} FROM {}").format(
+                    sql.SQL(privilege),
+                    sql.Identifier(column),
+                    table_ident,
+                    runtime_ident,
+                )
+            )
+    cur.execute(sql.SQL("GRANT SELECT ON TABLE {} TO {}").format(table_ident, runtime_ident))
+    return {
+        "installed": True,
+        "select": True,
+        "insert": False,
+        "update": False,
+        "delete": False,
+        "truncate": False,
+        "references": False,
+        "trigger": False,
+        "column_privileges": "none; table-level SELECT only",
+    }
+
+
+def _apply_runtime_append_only_boundary(cur, runtime_ident: sql.Identifier) -> dict[str, object]:
+    """Retain read/append access while removing runtime mutation privileges."""
+    installed: dict[str, bool] = {}
+    for table in _RUNTIME_APPEND_ONLY_TABLES:
+        cur.execute("SELECT to_regclass(%s)", (f"public.{table}",))
+        if cur.fetchone()[0] is None:
+            installed[table] = False
+            continue
+
+        table_ident = sql.Identifier("public", table)
+        cur.execute(sql.SQL("REVOKE ALL PRIVILEGES ON TABLE {} FROM {}").format(table_ident, runtime_ident))
+        cur.execute(
+            "SELECT attname FROM pg_attribute WHERE attrelid = %s::regclass AND attnum > 0 AND NOT attisdropped",
+            (f"public.{table}",),
         )
-    )
-    return {"installed": True, "select": True, "insert": False, "update": False, "delete": False}
+        columns = [row[0] for row in cur.fetchall()]
+        for column in columns:
+            for privilege in ("SELECT", "INSERT", "UPDATE", "REFERENCES"):
+                cur.execute(
+                    sql.SQL("REVOKE {} ({}) ON TABLE {} FROM {}").format(
+                        sql.SQL(privilege),
+                        sql.Identifier(column),
+                        table_ident,
+                        runtime_ident,
+                    )
+                )
+        cur.execute(sql.SQL("GRANT SELECT, INSERT ON TABLE {} TO {}").format(table_ident, runtime_ident))
+        installed[table] = True
+
+    return {
+        "installed": any(installed.values()),
+        "relations": installed,
+        "select": True,
+        "insert": True,
+        "update": False,
+        "delete": False,
+        "truncate": False,
+        "references": False,
+        "trigger": False,
+        "column_privileges": "none; table-level SELECT and INSERT only",
+    }
+
+
+def _verify_runtime_append_only_boundary(cur, role_name: str) -> None:
+    """Verify exact table rights and that stale per-column grants were removed."""
+    for table in _RUNTIME_APPEND_ONLY_TABLES:
+        cur.execute("SELECT to_regclass(%s)", (f"public.{table}",))
+        if cur.fetchone()[0] is None:
+            continue
+        privileges = ("SELECT", "INSERT", "UPDATE", "DELETE", "TRUNCATE", "REFERENCES", "TRIGGER")
+        cur.execute(
+            "SELECT " + ", ".join("has_table_privilege(%s, %s, %s)" for _ in privileges),
+            tuple(value for privilege in privileges for value in (role_name, f"public.{table}", privilege)),
+        )
+        if cur.fetchone() != (True, True, False, False, False, False, False):
+            raise RuntimeError(f"{role_name} has unexpected privileges on append-only {table}")
+        cur.execute(
+            """SELECT EXISTS (
+                   SELECT 1
+                     FROM pg_attribute AS column_row
+                     CROSS JOIN LATERAL aclexplode(column_row.attacl) AS privilege
+                    WHERE column_row.attrelid = %s::regclass
+                      AND column_row.attnum > 0
+                      AND NOT column_row.attisdropped
+                      AND privilege.grantee = (SELECT oid FROM pg_roles WHERE rolname = %s)
+                      AND privilege.privilege_type IN ('SELECT', 'INSERT', 'UPDATE', 'REFERENCES')
+               )""",
+            (f"public.{table}", role_name),
+        )
+        if cur.fetchone()[0]:
+            raise RuntimeError(f"{role_name} retains column-level grants on append-only {table}")
 
 
 def _verify_farm_activity_operator_event_boundary(cur, role_name: str) -> None:
@@ -864,18 +1024,443 @@ def _verify_farm_activity_operator_event_boundary(cur, role_name: str) -> None:
         """SELECT has_table_privilege(%s, 'public.farm_activity_operator_event', 'SELECT'),
                   has_table_privilege(%s, 'public.farm_activity_operator_event', 'INSERT'),
                   has_table_privilege(%s, 'public.farm_activity_operator_event', 'UPDATE'),
-                  has_table_privilege(%s, 'public.farm_activity_operator_event', 'DELETE')""",
-        (role_name, role_name, role_name, role_name),
+                  has_table_privilege(%s, 'public.farm_activity_operator_event', 'DELETE'),
+                  has_table_privilege(%s, 'public.farm_activity_operator_event', 'TRUNCATE'),
+                  has_table_privilege(%s, 'public.farm_activity_operator_event', 'REFERENCES'),
+                  has_table_privilege(%s, 'public.farm_activity_operator_event', 'TRIGGER')""",
+        (role_name,) * 7,
     )
-    if cur.fetchone() != (True, False, False, False):
-        raise RuntimeError(
-            f"{role_name} does not have append-only farm activity operator event privileges"
+    if cur.fetchone() != (True, False, False, False, False, False, False):
+        raise RuntimeError(f"{role_name} does not have append-only farm activity operator event privileges")
+    cur.execute(
+        """SELECT EXISTS (
+               SELECT 1
+                 FROM pg_attribute AS attribute
+                WHERE attribute.attrelid = 'public.farm_activity_operator_event'::regclass
+                  AND attribute.attnum > 0
+                  AND NOT attribute.attisdropped
+                  AND (
+                    has_column_privilege(
+                        %s, 'public.farm_activity_operator_event', attribute.attname, 'INSERT'
+                    )
+                    OR has_column_privilege(
+                        %s, 'public.farm_activity_operator_event', attribute.attname, 'UPDATE'
+                    )
+                    OR has_column_privilege(
+                        %s, 'public.farm_activity_operator_event', attribute.attname, 'REFERENCES'
+                    )
+                  )
+           )""",
+        (role_name, role_name, role_name),
+    )
+    if cur.fetchone()[0]:
+        raise RuntimeError(f"{role_name} retains column-level farm activity operator event write privileges")
+
+
+_RUNTIME_PRIVATE_TABLES = (
+    "ai_summary_agent_draft_request",
+    "ai_summary_draft_request",
+    "ai_summary_review_decision",
+    "business_model_canvas_create_request",
+    "business_model_canvas_kernel_edit_request",
+    "composting_capture_receipt",
+    "delphi_minority_report_review_decision",
+    "delphi_recommendation_draft_request",
+    "delphi_recommendation_review_decision",
+    "delphi_stopping_evaluation",
+    "energy_reading_capture_receipt",
+    "energy_reading_operator_audit",
+    "extension_learning_progress_update_receipt",
+    "extension_peer_network_create_receipt",
+    "governance_definition_action_event",
+    "governance_definition_mutation_event",
+    "governance_role_assignment_decision",
+    "governance_role_assignment_request",
+    "governance_tactical_action_event",
+    "governance_tactical_content_event",
+    "governance_tactical_session_creation_event",
+    "governance_tension_action_request",
+    "landscape_capture_receipt",
+    "metric_value_compute_receipt",
+    "metric_value_operator_audit",
+    "metric_value_verification_receipt",
+    "operating_capacity_review_decision",
+    "operating_capacity_draft_receipt",
+    "operating_capacity_draft_revision_receipt",
+    "operating_capacity_draft_submission_receipt",
+    "operating_demand_draft_receipt",
+    "operating_demand_draft_revision_receipt",
+    "operating_demand_draft_submission_receipt",
+    "operating_demand_review_decision",
+    "operating_learning_plan",
+    "operating_pilot_coaching_session_receipt",
+    "operating_pilot_competency_draft",
+    "operating_pilot_competency_draft_receipt",
+    "operating_pilot_competency_review_decision",
+    "operating_pilot_competency_revision_receipt",
+    "operating_pilot_competency_submission_receipt",
+    "operating_pilot_learning_plan_activation_receipt",
+    "operating_pilot_learning_plan_draft_receipt",
+    "operating_pilot_learning_plan_review_decision",
+    "operating_pilot_learning_plan_revision_receipt",
+    "operating_pilot_learning_plan_submission_receipt",
+    "operating_resource_request_draft",
+    "operating_resource_request_draft_receipt",
+    "operating_resource_request_draft_revision_receipt",
+    "operating_resource_request_draft_submission_receipt",
+    "operating_resource_request_fulfillment_receipt",
+    "operating_resource_request_review_decision",
+    "operating_work_claim_allocation_receipt",
+    "operating_work_claim_receipt",
+    "operating_work_claim_review_receipt",
+    "operator_governance_party_binding",
+    "party_location_identity_case",
+    "party_location_identity_decision",
+    "pesticide_impact_capture_receipt",
+    "pollinator_habitat_capture_receipt",
+    "pollinator_hive_capture_receipt",
+    "pollinator_hive_inspection_capture_receipt",
+    "pollinator_observation_capture_receipt",
+    "pollution_incident_operation_receipt",
+    "recycling_capture_receipt",
+    "solution_adopter_readiness_assessment",
+    "solution_adopter_readiness_review",
+    "solution_adoption_event",
+    "solution_adoption_event_capture_receipt",
+    "solution_adoption_program_creation_receipt",
+    "solution_adoption_program_consent_policy",
+    "solution_adoption_program_consent_policy_receipt",
+    "solution_adoption_program_review_receipt",
+    "solution_adoption_program_revision",
+    "solution_adoption_program_revision_receipt",
+    "solution_adoption_program_submission_receipt",
+    "location_solution_creation_receipt",
+    "solution_configuration_draft_receipt",
+    "solution_configuration_legacy_approval_archive",
+    "solution_configuration_review_receipt",
+    "solution_configuration_submission_receipt",
+    "solution_experiment_analysis_receipt",
+    "solution_experiment_analysis_source",
+    "solution_experiment_completion_receipt",
+    "solution_experiment_creation_receipt",
+    "solution_experiment_observation_capture_receipt",
+    "solution_experiment_protocol_approval_receipt",
+    "solution_experiment_review_submission_receipt",
+    "solution_experiment_start_receipt",
+    "solution_experiment_submission_receipt",
+    "solution_funding_approval_receipt",
+    "solution_funding_proposal_receipt",
+    "solution_funding_submission_receipt",
+    "solution_funding_tranche_approval_receipt",
+    "solution_gate_approval_submission_receipt",
+    "solution_gate_definition_receipt",
+    "solution_gate_evaluation_submission_receipt",
+    "solution_gate_transition_submission_receipt",
+    "solution_learning_application_receipt",
+    "solution_learning_proposal_event",
+    "solution_learning_review_receipt",
+    "solution_nonpromotion_transition_receipt",
+    "solution_replication_activation_receipt",
+    "solution_replication_completion_proposal",
+    "solution_replication_completion_review_receipt",
+    "solution_replication_proposal_receipt",
+    "solution_replication_review_receipt",
+    "solution_retirement_proposal_event",
+    "solution_retirement_review_event",
+    "solution_scale_gate",
+    "solution_scale_gate_assessment",
+    "waste_stream_capture_receipt",
+    "gateway_rate_bucket",
+)
+
+
+_RUNTIME_MUTATION_TABLES = (
+    "ai_summary",
+    "agent_action_log",
+    "advisory_rule",
+    "service_registry",
+    "carbon_benchmark",
+    "crop_gdd_config",
+    "dfs_currency",
+    "chat_intent",
+    "ghg_emission_factor",
+    "operations_protocol",
+    "revenue_multiplier_config",
+    "reference_class",
+    "farmer_credential_type",
+    "market_reference_data",
+    "quantity_unit",
+    "yield_benchmark",
+    "process_benchmark",
+    "living_wage_benchmark",
+    "location_baseline",
+    "bio_ingredient_composition_reference",
+    "bio_regional_input_availability",
+    "data_freshness_config",
+    "protocol",
+    "metric_definition",
+    "capex_breakdown",
+    "capital_source",
+    "consent_data_type",
+    "water_access",
+    "attestation_plan",
+    "process_maturity_level",
+    "farmer_role",
+    "pollinator_species_reference",
+    "pest_degree_day_config",
+    "sensor_alert",
+    "alert_rule",
+    "gri_indicator",
+    "governance_framework",
+    "impact_framework",
+    "impact_dimension",
+    "ebf_pillar",
+    "ebf_rubric_band",
+    "form_of_capital",
+    "sdg",
+    "pillar_of_value",
+    "regeneration_principle",
+    "time_delay",
+    "solution",
+    "solution_lifecycle_event",
+    "expense_category",
+    "crisp_risk_dimension",
+    "crop_family",
+    "crop_nutrient_removal_factor",
+    "certification_type",
+    "quality_grade",
+    "readiness_dimension",
+    "v_public_ebf_scorecard",
+    "v_public_metric_summary",
+    "v_public_wellbeing_metric_summary",
+    "cooperative_type",
+    "dfs_insurance_product_type",
+    "evidence_maturity_level",
+    "sensor_type",
+    "environmental_baseline",
+    "waste_type",
+    "disposal_method",
+    "hive_record",
+    "pollinator_hive_inspection",
+    "pollinator_observation",
+    "pollinator_habitat",
+    "pesticide_impact_log",
+    "event_handler",
+    "event_handler_delivery",
+    "event_handler_log",
+    "data_freshness_check",
+    "data_freshness_alert_state",
+    "data_freshness_alert_history",
+    "data_freshness_alert_delivery_attempt",
+    "notification_outbox_attempt",
+    "graph_node_type",
+    "graph_edge_type",
+    "delphi_minority_report",
+    "farm_activity_operator_event",
+    "governance_circle",
+    "governance_role",
+    "governance_role_assignment",
+    "governance_tactical_item",
+    "governance_tactical_session",
+    "solution_adopter_readiness",
+    "solution_adoption_program",
+    "solution_configuration",
+    "solution_learning_record",
+    "v_public_farm_summary",
+    "v_public_attestation_summary",
+    "v_public_ebf_scorecard_summary",
+    "v_public_ebf_pillar_summary",
+    "thesaurus",
+    "thesaurus_keyword",
+    "thesaurus_keyword_label",
+    "data_governance_category",
+    "data_governance_scope",
+    "habitat_zone",
+    "wildlife_corridor",
+    "hedgerow_record",
+    "buffer_zone_monitoring",
+    "landscape_biodiversity_score",
+    "schema_version",
+    "schema_migration",
+    "cache_invalidation_rule",
+    "price_observation",
+    "energy_reading",
+    "worldclim_climate",
+    "ncep_weather_summary",
+    "modis_lst_summary",
+    "smap_soil_moisture",
+    "sentinel1_sar_summary",
+)
+
+# Immutable audit evidence and workflow history keep SELECT/INSERT under the
+# runtime login while compatibility provisioning removes mutation privileges.
+_RUNTIME_APPEND_ONLY_TABLES = (
+    "data_access_log",
+    "access_audit_log",
+    "farm_activity_workflow_event",
+)
+
+
+def _apply_scoped_write_boundary(cur, runtime_ident: sql.Identifier) -> dict[str, object]:
+    """Reapply migration-declared runtime denials after compatibility grants."""
+    mutation_privileges = (
+        "INSERT",
+        "UPDATE",
+        "DELETE",
+        "TRUNCATE",
+        "REFERENCES",
+        "TRIGGER",
+    )
+    rules = {
+        **{table: mutation_privileges for table in _RUNTIME_MUTATION_TABLES},
+        **{table: ("ALL",) for table in _RUNTIME_PRIVATE_TABLES},
+    }
+    installed: dict[str, bool] = {}
+    owned_sequences_denied = 0
+    for table, table_privileges in rules.items():
+        cur.execute("SELECT to_regclass(%s)", (f"public.{table}",))
+        if cur.fetchone()[0] is None:
+            installed[table] = False
+            continue
+
+        table_ident = sql.Identifier("public", table)
+        if table_privileges == ("ALL",):
+            cur.execute(sql.SQL("REVOKE ALL PRIVILEGES ON TABLE {} FROM {}").format(table_ident, runtime_ident))
+            column_privileges = ("SELECT", "INSERT", "UPDATE", "REFERENCES")
+        else:
+            for privilege in table_privileges:
+                cur.execute(
+                    sql.SQL("REVOKE {} ON TABLE {} FROM {}").format(sql.SQL(privilege), table_ident, runtime_ident)
+                )
+            column_privileges = ("INSERT", "UPDATE", "REFERENCES")
+
+        cur.execute(
+            "SELECT attname FROM pg_attribute WHERE attrelid = %s::regclass AND attnum > 0 AND NOT attisdropped",
+            (f"public.{table}",),
         )
+        columns = [row[0] for row in cur.fetchall()]
+        for column in columns:
+            for privilege in column_privileges:
+                cur.execute(
+                    sql.SQL("REVOKE {} ({}) ON TABLE {} FROM {}").format(
+                        sql.SQL(privilege),
+                        sql.Identifier(column),
+                        table_ident,
+                        runtime_ident,
+                    )
+                )
+        if table in _RUNTIME_MUTATION_TABLES:
+            for sequence_schema, sequence_name, _sequence_oid in _owned_sequences_for_relation(cur, table):
+                cur.execute(
+                    sql.SQL("REVOKE ALL PRIVILEGES ON SEQUENCE {} FROM {}").format(
+                        sql.Identifier(sequence_schema, sequence_name),
+                        runtime_ident,
+                    )
+                )
+                owned_sequences_denied += 1
+        installed[table] = True
+
+    return {
+        "installed": any(installed.values()),
+        "relations": installed,
+        "direct_scoped_mutations": "denied; bounded Gateway functions only",
+        "source_revoked_private_relations": "no direct runtime access",
+        "reads": "existing runtime SELECT grants preserved",
+        "owned_sequences_denied": owned_sequences_denied,
+    }
 
 
-def _apply_solution_stage_gate_boundary(
-    cur, runtime_ident: sql.Identifier
-) -> dict[str, object]:
+def _owned_sequences_for_relation(cur, table: str) -> list[tuple[str, str, int]]:
+    """Return identity/serial sequences owned by a public relation."""
+    cur.execute(
+        "SELECT sequence_namespace.nspname, sequence.relname, sequence.oid "
+        "FROM pg_catalog.pg_depend AS dependency "
+        "JOIN pg_catalog.pg_class AS sequence "
+        "  ON sequence.oid = dependency.objid AND sequence.relkind = 'S' "
+        "JOIN pg_catalog.pg_namespace AS sequence_namespace "
+        "  ON sequence_namespace.oid = sequence.relnamespace "
+        "WHERE dependency.refobjid = %s::regclass "
+        "  AND dependency.refclassid = 'pg_catalog.pg_class'::pg_catalog.regclass "
+        "  AND dependency.classid = 'pg_catalog.pg_class'::pg_catalog.regclass "
+        "  AND dependency.deptype IN ('a', 'i') "
+        "ORDER BY sequence_namespace.nspname, sequence.relname",
+        (f"public.{table}",),
+    )
+    return [(row[0], row[1], row[2]) for row in cur.fetchall()]
+
+
+def _verify_scoped_write_boundary(cur, role_name: str) -> None:
+    """Fail if compatibility provisioning reopens bounded-action table access."""
+    mutation_privileges = (
+        "INSERT",
+        "UPDATE",
+        "DELETE",
+        "TRUNCATE",
+        "REFERENCES",
+        "TRIGGER",
+    )
+    for table, table_privileges in {
+        **{table: mutation_privileges for table in _RUNTIME_MUTATION_TABLES},
+        **{
+            table: (
+                "SELECT",
+                "INSERT",
+                "UPDATE",
+                "DELETE",
+                "TRUNCATE",
+                "REFERENCES",
+                "TRIGGER",
+            )
+            for table in _RUNTIME_PRIVATE_TABLES
+        },
+    }.items():
+        cur.execute("SELECT to_regclass(%s)", (f"public.{table}",))
+        if cur.fetchone()[0] is None:
+            continue
+        table_privilege_sql = ", ".join("has_table_privilege(%s, %s, %s)" for _ in table_privileges)
+        parameters = tuple(
+            value for privilege in table_privileges for value in (role_name, f"public.{table}", privilege)
+        )
+        cur.execute(
+            "SELECT " + table_privilege_sql,
+            parameters,
+        )
+        if any(cur.fetchone()):
+            raise RuntimeError(f"{role_name} retains direct {table} table privileges")
+
+        column_privileges = (
+            ("SELECT", "INSERT", "UPDATE", "REFERENCES")
+            if table in _RUNTIME_PRIVATE_TABLES
+            else ("INSERT", "UPDATE", "REFERENCES")
+        )
+        column_privilege_sql = " OR ".join("has_column_privilege(%s, %s, attname, %s)" for _ in column_privileges)
+        column_parameters = tuple(
+            value for privilege in column_privileges for value in (role_name, f"public.{table}", privilege)
+        )
+        cur.execute(
+            "SELECT EXISTS (SELECT 1 FROM pg_attribute "
+            "WHERE attrelid = %s::regclass AND attnum > 0 AND NOT attisdropped "
+            "AND (" + column_privilege_sql + "))",
+            (f"public.{table}", *column_parameters),
+        )
+        if cur.fetchone()[0]:
+            raise RuntimeError(f"{role_name} retains direct {table} column privileges")
+        if table in _RUNTIME_MUTATION_TABLES:
+            for sequence_schema, sequence_name, sequence_oid in _owned_sequences_for_relation(cur, table):
+                cur.execute(
+                    "SELECT has_sequence_privilege(%s, %s, 'USAGE') "
+                    "OR has_sequence_privilege(%s, %s, 'SELECT') "
+                    "OR has_sequence_privilege(%s, %s, 'UPDATE')",
+                    (role_name, sequence_oid, role_name, sequence_oid, role_name, sequence_oid),
+                )
+                if cur.fetchone()[0]:
+                    raise RuntimeError(
+                        f"{role_name} retains direct sequence privileges on "
+                        f"{sequence_schema}.{sequence_name} owned by {table}"
+                    )
+
+
+def _apply_solution_stage_gate_boundary(cur, runtime_ident: sql.Identifier) -> dict[str, object]:
     """Require bounded security-definer functions for solution stage-gate access."""
     cur.execute("SELECT to_regclass('public.solution_stage_gate')")
     if cur.fetchone()[0] is None:
@@ -897,11 +1482,7 @@ def _apply_solution_stage_gate_boundary(
     if not columns:
         raise RuntimeError("solution_stage_gate has no columns for the runtime boundary")
 
-    cur.execute(
-        sql.SQL("REVOKE ALL PRIVILEGES ON TABLE {} FROM {}").format(
-            table_ident, runtime_ident
-        )
-    )
+    cur.execute(sql.SQL("REVOKE ALL PRIVILEGES ON TABLE {} FROM {}").format(table_ident, runtime_ident))
     # Column grants survive a table-level REVOKE; clear them before leaving the
     # relation available only through its bounded Gateway projections/actions.
     for column in columns:
@@ -942,19 +1523,17 @@ def _verify_solution_stage_gate_boundary(cur, role_name: str) -> None:
         (role_name, role_name, role_name, role_name, role_name, role_name, role_name),
     )
     if cur.fetchone() != (False, False, False, False, False):
-        raise RuntimeError(
-            f"{role_name} retains direct solution_stage_gate privileges"
-        )
+        raise RuntimeError(f"{role_name} retains direct solution_stage_gate privileges")
 
 
-def _apply_solution_experiment_protocol_boundary(
-    cur, runtime_ident: sql.Identifier
-) -> dict[str, object]:
+def _apply_solution_experiment_protocol_boundary(cur, runtime_ident: sql.Identifier) -> dict[str, object]:
     """Permit lifecycle-field updates; draft creation stays behind the Gateway."""
     cur.execute("SELECT to_regclass('public.solution_experiment')")
     if cur.fetchone()[0] is None:
         return {
-            "installed": False, "insert": False, "delete": False,
+            "installed": False,
+            "insert": False,
+            "delete": False,
             "protocol_update": False,
         }
 
@@ -968,11 +1547,7 @@ def _apply_solution_experiment_protocol_boundary(
     if not columns:
         raise RuntimeError("solution_experiment has no columns for the runtime boundary")
 
-    cur.execute(
-        sql.SQL("REVOKE INSERT, UPDATE, DELETE ON TABLE {} FROM {}").format(
-            table_ident, runtime_ident
-        )
-    )
+    cur.execute(sql.SQL("REVOKE INSERT, UPDATE, DELETE ON TABLE {} FROM {}").format(table_ident, runtime_ident))
     for column in columns:
         for privilege in ("INSERT", "UPDATE"):
             cur.execute(
@@ -995,8 +1570,12 @@ def _apply_solution_experiment_protocol_boundary(
         "delete": False,
         "protocol_update": False,
         "lifecycle_update_columns": [
-            "status", "approved_by_party_id", "approved_at", "started_at",
-            "completed_at", "updated_at",
+            "status",
+            "approved_by_party_id",
+            "approved_at",
+            "started_at",
+            "completed_at",
+            "updated_at",
         ],
         "access": "bounded Gateway protocol creation; lifecycle fields remain writable",
     }
@@ -1027,9 +1606,7 @@ def _verify_solution_experiment_protocol_boundary(cur, role_name: str) -> None:
     )
     expected = (False, False, False, False, True, True, True, True, True, True)
     if cur.fetchone() != expected:
-        raise RuntimeError(
-            f"{role_name} retains direct solution_experiment protocol privileges"
-        )
+        raise RuntimeError(f"{role_name} retains direct solution_experiment protocol privileges")
 
 
 def provision_runtime_role(
@@ -1058,6 +1635,8 @@ def provision_runtime_role(
     freshness_password: str | None = None,
     clickhouse_outbox_user: str | None = None,
     clickhouse_outbox_password: str | None = None,
+    report_snapshot_export_user: str | None = None,
+    report_snapshot_export_password: str | None = None,
     notification_delivery_user: str | None = None,
     notification_delivery_password: str | None = None,
     event_dispatch_user: str | None = None,
@@ -1068,19 +1647,25 @@ def provision_runtime_role(
     remote_sensing_password: str | None = None,
     sensor_anomaly_ml_source_user: str | None = None,
     sensor_anomaly_ml_source_password: str | None = None,
+    rate_limit_maintenance_user: str | None = None,
+    rate_limit_maintenance_password: str | None = None,
 ) -> dict[str, object]:
     """Provision a general runtime role plus a session-only auth principal.
 
-    The runtime role keeps DML compatibility for existing public tables,
-    except ``operator_session``, mobile credentials, ``api_key``, and
-    ``solution_stage_gate``, which use
-    explicit least-privilege grants. New public tables and sequences receive no
-    automatic runtime privileges. The dedicated auth role can only execute
+    A newly created runtime role receives a one-time DML compatibility grant
+    for existing legacy public tables, then the provisioner reapplies its
+    declared private, mutation-denied, append-only, and call-site-specific
+    boundaries. Reprovisioning preserves existing grants and explicit
+    boundaries but does not widen access to relations created since the prior
+    run. ``operator_session``, mobile credentials, ``api_key``, and
+    ``solution_stage_gate`` use additional explicit least-privilege grants.
+    New public tables and sequences receive no automatic runtime privileges.
+    The dedicated auth role can only execute
     the three bounded functions from migration 395. This is scoped to a
     dedicated Kernel PostgreSQL instance. When configured, the optional
     notification-enqueue login receives only its bounded intent function.
-    When configured, the market-data login receives only the bounded global
-    World Bank batch function. When configured, the sensor-ingestion login can
+    When configured, the market-data login receives only bounded global
+    World Bank, reference-seed, and manual-price functions. When configured, the sensor-ingestion login can
     switch to the worker execution role only to call the signed, bounded sensor
     driver functions from migration 431. When configured, the remote-sensing
     login can switch to that role only to call migration 432's signed bounded
@@ -1096,6 +1681,8 @@ def provision_runtime_role(
     the separate reviewed operator path. The optional sensor-anomaly ML source
     login can only set signed exact-location context and SET ROLE to its
     read-only migration-650 source-view reader.
+    The optional rate-limit maintenance login can only execute the bounded
+    idle-bucket cleanup function and receives no table privileges.
     """
     admin_ident = _role_identifier(admin_user, "admin_user")
     runtime_ident = _role_identifier(runtime_user, "runtime_user")
@@ -1116,6 +1703,8 @@ def provision_runtime_role(
         raise ValueError("freshness worker user and password must be provided together")
     if (clickhouse_outbox_user is None) != (clickhouse_outbox_password is None):
         raise ValueError("ClickHouse outbox user and password must be provided together")
+    if (report_snapshot_export_user is None) != (report_snapshot_export_password is None):
+        raise ValueError("report snapshot export user and password must be provided together")
     if (notification_delivery_user is None) != (notification_delivery_password is None):
         raise ValueError("notification-delivery user and password must be provided together")
     if (event_dispatch_user is None) != (event_dispatch_password is None):
@@ -1126,44 +1715,31 @@ def provision_runtime_role(
         raise ValueError("remote-sensing user and password must be provided together")
     if (sensor_anomaly_ml_source_user is None) != (sensor_anomaly_ml_source_password is None):
         raise ValueError("sensor-anomaly ML source user and password must be provided together")
+    if (rate_limit_maintenance_user is None) != (rate_limit_maintenance_password is None):
+        raise ValueError("rate-limit maintenance user and password must be provided together")
     enqueue_ident = (
         _role_identifier(notification_enqueue_user, "notification_enqueue_user")
         if notification_enqueue_user is not None
         else None
     )
-    market_data_ident = (
-        _role_identifier(market_data_user, "market_data_user")
-        if market_data_user is not None
-        else None
-    )
-    eas_indexer_ident = (
-        _role_identifier(eas_indexer_user, "eas_indexer_user")
-        if eas_indexer_user is not None
-        else None
-    )
-    rpc_indexer_ident = (
-        _role_identifier(rpc_indexer_user, "rpc_indexer_user")
-        if rpc_indexer_user is not None
-        else None
-    )
+    market_data_ident = _role_identifier(market_data_user, "market_data_user") if market_data_user is not None else None
+    eas_indexer_ident = _role_identifier(eas_indexer_user, "eas_indexer_user") if eas_indexer_user is not None else None
+    rpc_indexer_ident = _role_identifier(rpc_indexer_user, "rpc_indexer_user") if rpc_indexer_user is not None else None
     gnosis_indexer_ident = (
-        _role_identifier(gnosis_indexer_user, "gnosis_indexer_user")
-        if gnosis_indexer_user is not None
-        else None
+        _role_identifier(gnosis_indexer_user, "gnosis_indexer_user") if gnosis_indexer_user is not None else None
     )
     baal_indexer_ident = (
-        _role_identifier(baal_indexer_user, "baal_indexer_user")
-        if baal_indexer_user is not None
-        else None
+        _role_identifier(baal_indexer_user, "baal_indexer_user") if baal_indexer_user is not None else None
     )
-    freshness_ident = (
-        _role_identifier(freshness_user, "freshness_user")
-        if freshness_user is not None
-        else None
-    )
+    freshness_ident = _role_identifier(freshness_user, "freshness_user") if freshness_user is not None else None
     clickhouse_outbox_ident = (
         _role_identifier(clickhouse_outbox_user, "clickhouse_outbox_user")
         if clickhouse_outbox_user is not None
+        else None
+    )
+    report_snapshot_export_ident = (
+        _role_identifier(report_snapshot_export_user, "report_snapshot_export_user")
+        if report_snapshot_export_user is not None
         else None
     )
     notification_delivery_ident = (
@@ -1172,23 +1748,22 @@ def provision_runtime_role(
         else None
     )
     event_dispatch_ident = (
-        _role_identifier(event_dispatch_user, "event_dispatch_user")
-        if event_dispatch_user is not None
-        else None
+        _role_identifier(event_dispatch_user, "event_dispatch_user") if event_dispatch_user is not None else None
     )
     sensor_ingestion_ident = (
-        _role_identifier(sensor_ingestion_user, "sensor_ingestion_user")
-        if sensor_ingestion_user is not None
-        else None
+        _role_identifier(sensor_ingestion_user, "sensor_ingestion_user") if sensor_ingestion_user is not None else None
     )
     remote_sensing_ident = (
-        _role_identifier(remote_sensing_user, "remote_sensing_user")
-        if remote_sensing_user is not None
-        else None
+        _role_identifier(remote_sensing_user, "remote_sensing_user") if remote_sensing_user is not None else None
     )
     sensor_anomaly_ml_source_ident = (
         _role_identifier(sensor_anomaly_ml_source_user, "sensor_anomaly_ml_source_user")
         if sensor_anomaly_ml_source_user is not None
+        else None
+    )
+    rate_limit_maintenance_ident = (
+        _role_identifier(rate_limit_maintenance_user, "rate_limit_maintenance_user")
+        if rate_limit_maintenance_user is not None
         else None
     )
     role_names = [admin_user, runtime_user, operator_auth_user]
@@ -1208,6 +1783,8 @@ def provision_runtime_role(
         role_names.append(freshness_user)
     if clickhouse_outbox_user is not None:
         role_names.append(clickhouse_outbox_user)
+    if report_snapshot_export_user is not None:
+        role_names.append(report_snapshot_export_user)
     if notification_delivery_user is not None:
         role_names.append(notification_delivery_user)
     if event_dispatch_user is not None:
@@ -1218,6 +1795,8 @@ def provision_runtime_role(
         role_names.append(remote_sensing_user)
     if sensor_anomaly_ml_source_user is not None:
         role_names.append(sensor_anomaly_ml_source_user)
+    if rate_limit_maintenance_user is not None:
+        role_names.append(rate_limit_maintenance_user)
     if "kokonut_notification_enqueue_owner" in role_names:
         raise ValueError("application logins must differ from the notification function owner")
     if "kokonut_market_data_owner" in role_names:
@@ -1234,6 +1813,17 @@ def provision_runtime_role(
         raise ValueError("application logins must differ from the freshness function owner")
     if "kokonut_clickhouse_outbox_owner" in role_names:
         raise ValueError("application logins must differ from the ClickHouse outbox function owner")
+    if "kokonut_report_snapshot_export_owner" in role_names:
+        raise ValueError("application logins must differ from the report snapshot export function owner")
+    if "kokonut_metric_value_manager" in role_names:
+        raise ValueError("application logins must differ from the metric-value function owner")
+    for owner_role, owner_label in (
+        ("kokonut_governance_action_owner", "governance-action"),
+        ("kokonut_extension_learning_writer", "extension-learning"),
+        ("kokonut_landscape_capture_writer", "landscape-capture"),
+    ):
+        if owner_role in role_names:
+            raise ValueError(f"application logins must differ from the {owner_label} function owner")
     if "kokonut_notification_delivery_owner" in role_names:
         raise ValueError("application logins must differ from the notification-delivery function owner")
     if "kokonut_event_dispatch_owner" in role_names:
@@ -1246,9 +1836,16 @@ def provision_runtime_role(
         raise ValueError("application logins must differ from the sensor-anomaly ML view owner")
     if "kokonut_sensor_anomaly_ml_reader" in role_names:
         raise ValueError("application logins must differ from the sensor-anomaly ML reader role")
+    if "kokonut_gateway_rate_limit_owner" in role_names:
+        raise ValueError("application logins must differ from the gateway rate-limit function owner")
+    if (
+        rate_limit_maintenance_user is not None
+        and rate_limit_maintenance_user != "kokonut_rate_limit_maintenance_login"
+    ):
+        raise ValueError("rate-limit maintenance must use kokonut_rate_limit_maintenance_login")
     if len(set(role_names)) != len(role_names):
         raise ValueError(
-            "admin, runtime, operator-auth, notification-enqueue, notification-delivery, event-dispatch, market-data, EAS-indexer, RPC-indexer, Gnosis-indexer, Baal-indexer, freshness, ClickHouse outbox, sensor-ingestion, remote-sensing, and sensor-anomaly ML source roles must be distinct"
+            "admin, runtime, operator-auth, notification-enqueue, notification-delivery, event-dispatch, market-data, EAS-indexer, RPC-indexer, Gnosis-indexer, Baal-indexer, freshness, ClickHouse outbox, report snapshot export, sensor-ingestion, remote-sensing, sensor-anomaly ML source, and rate-limit maintenance roles must be distinct"
         )
     if not admin_password:
         raise ValueError("admin password must be provided")
@@ -1272,6 +1869,8 @@ def provision_runtime_role(
         credential_pairs.append(("freshness_password", freshness_password))
     if clickhouse_outbox_password is not None:
         credential_pairs.append(("clickhouse_outbox_password", clickhouse_outbox_password))
+    if report_snapshot_export_password is not None:
+        credential_pairs.append(("report_snapshot_export_password", report_snapshot_export_password))
     if notification_delivery_password is not None:
         credential_pairs.append(("notification_delivery_password", notification_delivery_password))
     if event_dispatch_password is not None:
@@ -1281,9 +1880,9 @@ def provision_runtime_role(
     if remote_sensing_password is not None:
         credential_pairs.append(("remote_sensing_password", remote_sensing_password))
     if sensor_anomaly_ml_source_password is not None:
-        credential_pairs.append((
-            "sensor_anomaly_ml_source_password", sensor_anomaly_ml_source_password
-        ))
+        credential_pairs.append(("sensor_anomaly_ml_source_password", sensor_anomaly_ml_source_password))
+    if rate_limit_maintenance_password is not None:
+        credential_pairs.append(("rate_limit_maintenance_password", rate_limit_maintenance_password))
     for label, secret in credential_pairs:
         if len(secret) < 24 or _PLACEHOLDER_SECRET.match(secret):
             raise ValueError(f"{label} must be a non-placeholder secret of at least 24 characters")
@@ -1304,6 +1903,8 @@ def provision_runtime_role(
         passwords.append(freshness_password)
     if clickhouse_outbox_password is not None:
         passwords.append(clickhouse_outbox_password)
+    if report_snapshot_export_password is not None:
+        passwords.append(report_snapshot_export_password)
     if notification_delivery_password is not None:
         passwords.append(notification_delivery_password)
     if event_dispatch_password is not None:
@@ -1314,23 +1915,28 @@ def provision_runtime_role(
         passwords.append(remote_sensing_password)
     if sensor_anomaly_ml_source_password is not None:
         passwords.append(sensor_anomaly_ml_source_password)
+    if rate_limit_maintenance_password is not None:
+        passwords.append(rate_limit_maintenance_password)
     if len(set(passwords)) != len(passwords):
         raise ValueError("admin and dedicated application-role passwords must be distinct")
     if not database or "\x00" in database:
         raise ValueError("database name is required")
 
     market_data_database_access: dict[str, bool] = {}
+    market_data_functions: tuple[str, ...] = (_MARKET_DATA_FUNCTION,)
     eas_indexer_database_access: dict[str, bool] = {}
     rpc_indexer_database_access: dict[str, bool] = {}
     gnosis_indexer_database_access: dict[str, bool] = {}
     baal_indexer_database_access: dict[str, bool] = {}
     freshness_database_access: dict[str, bool] = {}
     clickhouse_outbox_database_access: dict[str, bool] = {}
+    report_snapshot_export_database_access: dict[str, bool] = {}
     notification_delivery_database_access: dict[str, bool] = {}
     event_dispatch_database_access: dict[str, bool] = {}
     sensor_ingestion_database_access: dict[str, bool] = {}
     remote_sensing_database_access: dict[str, bool] = {}
     sensor_anomaly_ml_source_database_access: dict[str, bool] = {}
+    rate_limit_maintenance_database_access: dict[str, bool] = {}
     conn.autocommit = True
     with conn.cursor() as cur:
         cur.execute(
@@ -1376,9 +1982,7 @@ def provision_runtime_role(
         )
         worker_functions = cur.fetchone()
         if (worker_functions[0] is None) != (worker_functions[1] is None):
-            raise RuntimeError(
-                "worker tenant-context migrations must provide both bounded context functions"
-            )
+            raise RuntimeError("worker tenant-context migrations must provide both bounded context functions")
         if notification_enqueue_user is not None:
             cur.execute("SELECT to_regprocedure(%s)", (_NOTIFICATION_ENQUEUE_FUNCTION,))
             if cur.fetchone()[0] is None:
@@ -1387,12 +1991,23 @@ def provision_runtime_role(
                     "provisioning its dedicated login"
                 )
         if market_data_user is not None:
-            cur.execute("SELECT to_regprocedure(%s)", (_MARKET_DATA_FUNCTION,))
-            if cur.fetchone()[0] is None:
+            cur.execute(
+                "SELECT " + ", ".join("to_regprocedure(%s)" for _ in _MARKET_DATA_FUNCTIONS),
+                _MARKET_DATA_FUNCTIONS,
+            )
+            installed_market_data_functions = cur.fetchone()
+            if installed_market_data_functions[0] is None:
                 raise RuntimeError(
-                    "migration 430 market-data function must be applied before "
-                    "provisioning its dedicated login"
+                    "migration 430 market-data function must be applied before provisioning its dedicated login"
                 )
+            optional_manual_and_seed = installed_market_data_functions[1:]
+            if any(optional_manual_and_seed) and not all(optional_manual_and_seed):
+                raise RuntimeError("manual-price and reference-seed functions must be installed together")
+            market_data_functions = tuple(
+                function
+                for function, installed in zip(_MARKET_DATA_FUNCTIONS, installed_market_data_functions)
+                if installed is not None
+            )
         if eas_indexer_user is not None:
             cur.execute(
                 "SELECT " + ", ".join("to_regprocedure(%s)" for _ in _EAS_INDEXER_FUNCTIONS),
@@ -1400,8 +2015,7 @@ def provision_runtime_role(
             )
             if any(procedure is None for procedure in cur.fetchone()):
                 raise RuntimeError(
-                    "migration 433 EAS-indexer functions must be applied before "
-                    "provisioning its dedicated login"
+                    "migration 433 EAS-indexer functions must be applied before provisioning its dedicated login"
                 )
         if rpc_indexer_user is not None:
             cur.execute(
@@ -1410,8 +2024,7 @@ def provision_runtime_role(
             )
             if any(procedure is None for procedure in cur.fetchone()):
                 raise RuntimeError(
-                    "migration 436 RPC-indexer functions must be applied before "
-                    "provisioning its dedicated login"
+                    "migration 436 RPC-indexer functions must be applied before provisioning its dedicated login"
                 )
         if gnosis_indexer_user is not None:
             cur.execute(
@@ -1420,8 +2033,7 @@ def provision_runtime_role(
             )
             if any(procedure is None for procedure in cur.fetchone()):
                 raise RuntimeError(
-                    "migration 643 Gnosis-indexer functions must be applied before "
-                    "provisioning its dedicated login"
+                    "migration 643 Gnosis-indexer functions must be applied before provisioning its dedicated login"
                 )
         if baal_indexer_user is not None:
             cur.execute(
@@ -1430,38 +2042,56 @@ def provision_runtime_role(
             )
             if any(procedure is None for procedure in cur.fetchone()):
                 raise RuntimeError(
-                    "migration 644 Baal-indexer functions must be applied before "
-                    "provisioning its dedicated login"
+                    "migration 644 Baal-indexer functions must be applied before provisioning its dedicated login"
                 )
         if freshness_user is not None:
             cur.execute(
-                "SELECT " + ", ".join(
-                    "to_regprocedure(%s)" for _ in _FRESHNESS_WORKER_FUNCTIONS
-                ),
+                "SELECT " + ", ".join("to_regprocedure(%s)" for _ in _FRESHNESS_WORKER_FUNCTIONS),
                 _FRESHNESS_WORKER_FUNCTIONS,
             )
             if any(procedure is None for procedure in cur.fetchone()):
                 raise RuntimeError(
-                    "migration 645 freshness-worker functions must be applied before "
-                    "provisioning its dedicated login"
+                    "migration 645 freshness-worker functions must be applied before provisioning its dedicated login"
                 )
         if clickhouse_outbox_user is not None:
             cur.execute(
-                "SELECT " + ", ".join(
-                    "to_regprocedure(%s)" for _ in _CLICKHOUSE_OUTBOX_WORKER_FUNCTIONS
-                ),
+                "SELECT " + ", ".join("to_regprocedure(%s)" for _ in _CLICKHOUSE_OUTBOX_WORKER_FUNCTIONS),
                 _CLICKHOUSE_OUTBOX_WORKER_FUNCTIONS,
             )
             if any(procedure is None for procedure in cur.fetchone()):
                 raise RuntimeError(
-                    "migration 646 ClickHouse outbox functions must be applied before "
+                    "migration 646 ClickHouse outbox functions must be applied before provisioning its dedicated login"
+                )
+        if report_snapshot_export_user is not None:
+            cur.execute(
+                "SELECT " + ", ".join("to_regprocedure(%s)" for _ in _REPORT_SNAPSHOT_EXPORT_WORKER_FUNCTIONS),
+                _REPORT_SNAPSHOT_EXPORT_WORKER_FUNCTIONS,
+            )
+            if any(procedure is None for procedure in cur.fetchone()):
+                raise RuntimeError(
+                    "migrations 683 through 685 report snapshot export functions must be applied before "
                     "provisioning its dedicated login"
+                )
+            cur.execute(
+                "SELECT "
+                + ", ".join(
+                    "pg_catalog.strpos(pg_catalog.pg_get_functiondef(%s::regprocedure), %s) > 0"
+                    for _ in _REPORT_SNAPSHOT_EXPORT_REQUESTER_ISOLATION_GUARDS
+                ),
+                tuple(
+                    value
+                    for signature, guard in _REPORT_SNAPSHOT_EXPORT_REQUESTER_ISOLATION_GUARDS
+                    for value in (signature, guard)
+                ),
+            )
+            if cur.fetchone() != (True,) * len(_REPORT_SNAPSHOT_EXPORT_REQUESTER_ISOLATION_GUARDS):
+                raise RuntimeError(
+                    "migration 685 report snapshot export requester-isolation functions must be "
+                    "applied before provisioning its dedicated login"
                 )
         if notification_delivery_user is not None:
             cur.execute(
-                "SELECT " + ", ".join(
-                    "to_regprocedure(%s)" for _ in _NOTIFICATION_DELIVERY_FUNCTIONS
-                ),
+                "SELECT " + ", ".join("to_regprocedure(%s)" for _ in _NOTIFICATION_DELIVERY_FUNCTIONS),
                 _NOTIFICATION_DELIVERY_FUNCTIONS,
             )
             if any(procedure is None for procedure in cur.fetchone()):
@@ -1471,15 +2101,12 @@ def provision_runtime_role(
                 )
         if event_dispatch_user is not None:
             cur.execute(
-                "SELECT " + ", ".join(
-                    "to_regprocedure(%s)" for _ in _EVENT_DISPATCH_FUNCTIONS
-                ),
+                "SELECT " + ", ".join("to_regprocedure(%s)" for _ in _EVENT_DISPATCH_FUNCTIONS),
                 _EVENT_DISPATCH_FUNCTIONS,
             )
             if any(procedure is None for procedure in cur.fetchone()):
                 raise RuntimeError(
-                    "migration 648 event-dispatch functions must be applied "
-                    "before provisioning its dedicated login"
+                    "migration 648 event-dispatch functions must be applied before provisioning its dedicated login"
                 )
         if sensor_ingestion_user is not None:
             cur.execute(
@@ -1488,14 +2115,11 @@ def provision_runtime_role(
             )
             if any(procedure is None for procedure in cur.fetchone()):
                 raise RuntimeError(
-                    "migration 431 sensor-ingestion functions must be applied before "
-                    "provisioning the dedicated login"
+                    "migration 431 sensor-ingestion functions must be applied before provisioning the dedicated login"
                 )
             cur.execute("SELECT 1 FROM pg_roles WHERE rolname = 'kokonut_worker_execution'")
             if cur.fetchone() is None:
-                raise RuntimeError(
-                    "migration 405 worker execution role must exist before sensor-login provisioning"
-                )
+                raise RuntimeError("migration 405 worker execution role must exist before sensor-login provisioning")
         if remote_sensing_user is not None:
             cur.execute(
                 "SELECT " + ", ".join("to_regprocedure(%s)" for _ in _REMOTE_SENSING_FUNCTIONS),
@@ -1503,8 +2127,7 @@ def provision_runtime_role(
             )
             if any(procedure is None for procedure in cur.fetchone()):
                 raise RuntimeError(
-                    "migration 432 remote-sensing functions must be applied before "
-                    "provisioning the dedicated login"
+                    "migration 432 remote-sensing functions must be applied before provisioning the dedicated login"
                 )
             cur.execute("SELECT 1 FROM pg_roles WHERE rolname = 'kokonut_worker_execution'")
             if cur.fetchone() is None:
@@ -1513,8 +2136,7 @@ def provision_runtime_role(
                 )
         if sensor_anomaly_ml_source_user is not None:
             cur.execute(
-                "SELECT to_regclass(%s), to_regprocedure(%s), "
-                "EXISTS (SELECT 1 FROM pg_roles WHERE rolname = %s)",
+                "SELECT to_regclass(%s), to_regprocedure(%s), EXISTS (SELECT 1 FROM pg_roles WHERE rolname = %s)",
                 (
                     "kokonut_anomaly_ml_source.sensor_reading",
                     _WORKER_CONTEXT_FUNCTION,
@@ -1527,15 +2149,86 @@ def provision_runtime_role(
                     "migration 650 sensor-anomaly ML source view and reader role must be "
                     "applied before provisioning its dedicated login"
                 )
+        if rate_limit_maintenance_user is not None:
+            cur.execute(
+                "SELECT " + ", ".join("to_regprocedure(%s)" for _ in _GATEWAY_RATE_LIMIT_FUNCTIONS),
+                _GATEWAY_RATE_LIMIT_FUNCTIONS,
+            )
+            if any(procedure is None for procedure in cur.fetchone()):
+                raise RuntimeError(
+                    "migration 712 gateway rate-limit functions must be applied before "
+                    "provisioning the dedicated maintenance login"
+                )
+
+        cur.execute(
+            "SELECT to_regprocedure(%s), to_regprocedure(%s)",
+            _GATEWAY_RATE_LIMIT_FUNCTIONS,
+        )
+        rate_limit_functions = cur.fetchone()
+        if (rate_limit_functions[0] is None) != (rate_limit_functions[1] is None):
+            raise RuntimeError("gateway rate-limit consume and cleanup functions must be installed together")
+
+        cur.execute(
+            "SELECT " + ", ".join("to_regprocedure(%s)" for _ in _THESAURUS_FUNCTIONS),
+            _THESAURUS_FUNCTIONS,
+        )
+        thesaurus_functions = cur.fetchone()
+        if any(procedure is not None for procedure in thesaurus_functions) and any(
+            procedure is None for procedure in thesaurus_functions
+        ):
+            raise RuntimeError("thesaurus mutation functions must be installed as a complete set")
+
+        cur.execute("SELECT to_regprocedure(%s)", (_ALERT_RULE_DEFAULT_FUNCTION,))
+        if cur.fetchone()[0] is None:
+            raise RuntimeError(
+                "migration 739 alert-rule initialization function must be applied before provisioning"
+            )
 
         for function in _PRIVATE_RUNTIME_FUNCTIONS:
             _revoke_public_function_execute(cur, function)
 
+        cur.execute(
+            """SELECT
+                   EXISTS (SELECT 1 FROM pg_catalog.pg_roles WHERE rolname = %s),
+                   EXISTS (
+                       SELECT 1
+                         FROM pg_catalog.pg_roles AS role
+                         JOIN pg_catalog.pg_db_role_setting AS setting
+                           ON setting.setrole = role.oid
+                        CROSS JOIN LATERAL unnest(setting.setconfig) AS config(value)
+                        WHERE role.rolname = %s
+                          AND setting.setdatabase = 0
+                          AND config.value =
+                              'kokonut.compatibility_grant_state=placeholder'
+                   )""",
+            (runtime_user, runtime_user),
+        )
+        runtime_role_exists, runtime_placeholder_pending = cur.fetchone()
+        runtime_compatibility_grants_applied = not runtime_role_exists or runtime_placeholder_pending
         _ensure_login_role(cur, name=runtime_user, identifier=runtime_ident, password=runtime_password)
+        cur.execute(
+            sql.SQL("GRANT EXECUTE ON FUNCTION {} TO {}").format(
+                sql.SQL(_ALERT_RULE_DEFAULT_FUNCTION), runtime_ident
+            )
+        )
+        for function in _REPORT_SNAPSHOT_EXPORT_RUNTIME_FUNCTIONS:
+            cur.execute(sql.SQL("GRANT EXECUTE ON FUNCTION {} TO {}").format(sql.SQL(function), runtime_ident))
+        for function in _REPORT_SNAPSHOT_EXPORT_WORKER_FUNCTIONS:
+            cur.execute(sql.SQL("REVOKE ALL ON FUNCTION {} FROM {}").format(sql.SQL(function), runtime_ident))
         for function in _MOBILE_CREDENTIAL_FUNCTIONS:
+            cur.execute(sql.SQL("GRANT EXECUTE ON FUNCTION {} TO {}").format(sql.SQL(function), runtime_ident))
+        if all(procedure is not None for procedure in thesaurus_functions):
+            for function in _THESAURUS_FUNCTIONS:
+                cur.execute(sql.SQL("GRANT EXECUTE ON FUNCTION {} TO {}").format(sql.SQL(function), runtime_ident))
+        if rate_limit_functions[0] is not None:
             cur.execute(
                 sql.SQL("GRANT EXECUTE ON FUNCTION {} TO {}").format(
-                    sql.SQL(function), runtime_ident
+                    sql.SQL(_GATEWAY_RATE_LIMIT_CONSUME_FUNCTION), runtime_ident
+                )
+            )
+            cur.execute(
+                sql.SQL("REVOKE ALL ON FUNCTION {} FROM {}").format(
+                    sql.SQL(_GATEWAY_RATE_LIMIT_CLEANUP_FUNCTION), runtime_ident
                 )
             )
         _ensure_login_role(
@@ -1547,21 +2240,15 @@ def provision_runtime_role(
         if worker_functions[0] is not None:
             cur.execute("SELECT 1 FROM pg_roles WHERE rolname = 'kokonut_worker_execution'")
             if cur.fetchone() is None:
-                raise RuntimeError(
-                    "worker tenant-context functions exist without kokonut_worker_execution"
-                )
-            worker_execution_ident = _role_identifier(
-                "kokonut_worker_execution", "worker execution role"
-            )
+                raise RuntimeError("worker tenant-context functions exist without kokonut_worker_execution")
+            worker_execution_ident = _role_identifier("kokonut_worker_execution", "worker execution role")
             for function in (
                 _MOBILE_CREDENTIAL_FUNCTIONS[-1],
                 _WORKER_CONTEXT_FUNCTION,
                 _WORKER_SCOPE_FUNCTION,
             ):
                 cur.execute(
-                    sql.SQL("GRANT EXECUTE ON FUNCTION {} TO {}").format(
-                        sql.SQL(function), worker_execution_ident
-                    )
+                    sql.SQL("GRANT EXECUTE ON FUNCTION {} TO {}").format(sql.SQL(function), worker_execution_ident)
                 )
         if notification_enqueue_user is not None:
             assert enqueue_ident is not None and notification_enqueue_password is not None
@@ -1576,14 +2263,8 @@ def provision_runtime_role(
                 role_name=notification_enqueue_user,
                 identifier=enqueue_ident,
             )
-            cur.execute(
-                sql.SQL("REVOKE CREATE ON SCHEMA kokonut_security FROM {}").format(
-                    enqueue_ident
-                )
-            )
-            cur.execute(
-                sql.SQL("GRANT USAGE ON SCHEMA kokonut_security TO {}").format(enqueue_ident)
-            )
+            cur.execute(sql.SQL("REVOKE CREATE ON SCHEMA kokonut_security FROM {}").format(enqueue_ident))
+            cur.execute(sql.SQL("GRANT USAGE ON SCHEMA kokonut_security TO {}").format(enqueue_ident))
             cur.execute(
                 sql.SQL("GRANT EXECUTE ON FUNCTION {} TO {}").format(
                     sql.SQL(_NOTIFICATION_ENQUEUE_FUNCTION), enqueue_ident
@@ -1608,30 +2289,21 @@ def provision_runtime_role(
                         sql.SQL(object_kind), market_data_ident
                     )
                 )
-            for schema in ("public", "kokonut_security"):
+            for schema in (
+                "public",
+                "kokonut_security",
+                "kokonut_rate_limit_maintenance",
+            ):
                 cur.execute(
                     sql.SQL("REVOKE ALL ON ALL FUNCTIONS IN SCHEMA {} FROM {}").format(
                         sql.Identifier(schema), market_data_ident
                     )
                 )
-            cur.execute(
-                sql.SQL("REVOKE CREATE ON SCHEMA public FROM {}").format(market_data_ident)
-            )
-            cur.execute(
-                sql.SQL("REVOKE CREATE ON SCHEMA kokonut_security FROM {}").format(
-                    market_data_ident
-                )
-            )
-            cur.execute(
-                sql.SQL("GRANT USAGE ON SCHEMA kokonut_security TO {}").format(
-                    market_data_ident
-                )
-            )
-            cur.execute(
-                sql.SQL("GRANT EXECUTE ON FUNCTION {} TO {}").format(
-                    sql.SQL(_MARKET_DATA_FUNCTION), market_data_ident
-                )
-            )
+            cur.execute(sql.SQL("REVOKE CREATE ON SCHEMA public FROM {}").format(market_data_ident))
+            cur.execute(sql.SQL("REVOKE CREATE ON SCHEMA kokonut_security FROM {}").format(market_data_ident))
+            cur.execute(sql.SQL("GRANT USAGE ON SCHEMA kokonut_security TO {}").format(market_data_ident))
+            for function in market_data_functions:
+                cur.execute(sql.SQL("GRANT EXECUTE ON FUNCTION {} TO {}").format(sql.SQL(function), market_data_ident))
         if eas_indexer_user is not None:
             assert eas_indexer_ident is not None and eas_indexer_password is not None
             _ensure_login_role(
@@ -1651,31 +2323,21 @@ def provision_runtime_role(
                         sql.SQL(object_kind), eas_indexer_ident
                     )
                 )
-            for schema in ("public", "kokonut_security"):
+            for schema in (
+                "public",
+                "kokonut_security",
+                "kokonut_rate_limit_maintenance",
+            ):
                 cur.execute(
                     sql.SQL("REVOKE ALL ON ALL FUNCTIONS IN SCHEMA {} FROM {}").format(
                         sql.Identifier(schema), eas_indexer_ident
                     )
                 )
-            cur.execute(
-                sql.SQL("REVOKE CREATE ON SCHEMA public FROM {}").format(eas_indexer_ident)
-            )
-            cur.execute(
-                sql.SQL("REVOKE CREATE ON SCHEMA kokonut_security FROM {}").format(
-                    eas_indexer_ident
-                )
-            )
-            cur.execute(
-                sql.SQL("GRANT USAGE ON SCHEMA kokonut_security TO {}").format(
-                    eas_indexer_ident
-                )
-            )
+            cur.execute(sql.SQL("REVOKE CREATE ON SCHEMA public FROM {}").format(eas_indexer_ident))
+            cur.execute(sql.SQL("REVOKE CREATE ON SCHEMA kokonut_security FROM {}").format(eas_indexer_ident))
+            cur.execute(sql.SQL("GRANT USAGE ON SCHEMA kokonut_security TO {}").format(eas_indexer_ident))
             for function in _EAS_INDEXER_FUNCTIONS:
-                cur.execute(
-                    sql.SQL("GRANT EXECUTE ON FUNCTION {} TO {}").format(
-                        sql.SQL(function), eas_indexer_ident
-                    )
-                )
+                cur.execute(sql.SQL("GRANT EXECUTE ON FUNCTION {} TO {}").format(sql.SQL(function), eas_indexer_ident))
         if rpc_indexer_user is not None:
             assert rpc_indexer_ident is not None and rpc_indexer_password is not None
             _ensure_login_role(
@@ -1695,31 +2357,21 @@ def provision_runtime_role(
                         sql.SQL(object_kind), rpc_indexer_ident
                     )
                 )
-            for schema in ("public", "kokonut_security"):
+            for schema in (
+                "public",
+                "kokonut_security",
+                "kokonut_rate_limit_maintenance",
+            ):
                 cur.execute(
                     sql.SQL("REVOKE ALL ON ALL FUNCTIONS IN SCHEMA {} FROM {}").format(
                         sql.Identifier(schema), rpc_indexer_ident
                     )
                 )
-            cur.execute(
-                sql.SQL("REVOKE CREATE ON SCHEMA public FROM {}").format(rpc_indexer_ident)
-            )
-            cur.execute(
-                sql.SQL("REVOKE CREATE ON SCHEMA kokonut_security FROM {}").format(
-                    rpc_indexer_ident
-                )
-            )
-            cur.execute(
-                sql.SQL("GRANT USAGE ON SCHEMA kokonut_security TO {}").format(
-                    rpc_indexer_ident
-                )
-            )
+            cur.execute(sql.SQL("REVOKE CREATE ON SCHEMA public FROM {}").format(rpc_indexer_ident))
+            cur.execute(sql.SQL("REVOKE CREATE ON SCHEMA kokonut_security FROM {}").format(rpc_indexer_ident))
+            cur.execute(sql.SQL("GRANT USAGE ON SCHEMA kokonut_security TO {}").format(rpc_indexer_ident))
             for function in _RPC_INDEXER_FUNCTIONS:
-                cur.execute(
-                    sql.SQL("GRANT EXECUTE ON FUNCTION {} TO {}").format(
-                        sql.SQL(function), rpc_indexer_ident
-                    )
-                )
+                cur.execute(sql.SQL("GRANT EXECUTE ON FUNCTION {} TO {}").format(sql.SQL(function), rpc_indexer_ident))
         if gnosis_indexer_user is not None:
             assert gnosis_indexer_ident is not None and gnosis_indexer_password is not None
             _ensure_login_role(
@@ -1745,26 +2397,12 @@ def provision_runtime_role(
                         sql.Identifier(schema), gnosis_indexer_ident
                     )
                 )
-            cur.execute(
-                sql.SQL("REVOKE CREATE ON SCHEMA public FROM {}").format(
-                    gnosis_indexer_ident
-                )
-            )
-            cur.execute(
-                sql.SQL("REVOKE CREATE ON SCHEMA kokonut_security FROM {}").format(
-                    gnosis_indexer_ident
-                )
-            )
-            cur.execute(
-                sql.SQL("GRANT USAGE ON SCHEMA kokonut_security TO {}").format(
-                    gnosis_indexer_ident
-                )
-            )
+            cur.execute(sql.SQL("REVOKE CREATE ON SCHEMA public FROM {}").format(gnosis_indexer_ident))
+            cur.execute(sql.SQL("REVOKE CREATE ON SCHEMA kokonut_security FROM {}").format(gnosis_indexer_ident))
+            cur.execute(sql.SQL("GRANT USAGE ON SCHEMA kokonut_security TO {}").format(gnosis_indexer_ident))
             for function in _GNOSIS_INDEXER_FUNCTIONS:
                 cur.execute(
-                    sql.SQL("GRANT EXECUTE ON FUNCTION {} TO {}").format(
-                        sql.SQL(function), gnosis_indexer_ident
-                    )
+                    sql.SQL("GRANT EXECUTE ON FUNCTION {} TO {}").format(sql.SQL(function), gnosis_indexer_ident)
                 )
         if baal_indexer_user is not None:
             assert baal_indexer_ident is not None and baal_indexer_password is not None
@@ -1791,27 +2429,11 @@ def provision_runtime_role(
                         sql.Identifier(schema), baal_indexer_ident
                     )
                 )
-            cur.execute(
-                sql.SQL("REVOKE CREATE ON SCHEMA public FROM {}").format(
-                    baal_indexer_ident
-                )
-            )
-            cur.execute(
-                sql.SQL("REVOKE CREATE ON SCHEMA kokonut_security FROM {}").format(
-                    baal_indexer_ident
-                )
-            )
-            cur.execute(
-                sql.SQL("GRANT USAGE ON SCHEMA kokonut_security TO {}").format(
-                    baal_indexer_ident
-                )
-            )
+            cur.execute(sql.SQL("REVOKE CREATE ON SCHEMA public FROM {}").format(baal_indexer_ident))
+            cur.execute(sql.SQL("REVOKE CREATE ON SCHEMA kokonut_security FROM {}").format(baal_indexer_ident))
+            cur.execute(sql.SQL("GRANT USAGE ON SCHEMA kokonut_security TO {}").format(baal_indexer_ident))
             for function in _BAAL_INDEXER_FUNCTIONS:
-                cur.execute(
-                    sql.SQL("GRANT EXECUTE ON FUNCTION {} TO {}").format(
-                        sql.SQL(function), baal_indexer_ident
-                    )
-                )
+                cur.execute(sql.SQL("GRANT EXECUTE ON FUNCTION {} TO {}").format(sql.SQL(function), baal_indexer_ident))
         if freshness_user is not None:
             assert freshness_ident is not None and freshness_password is not None
             _ensure_login_role(
@@ -1837,25 +2459,11 @@ def provision_runtime_role(
                         sql.Identifier(schema), freshness_ident
                     )
                 )
-            cur.execute(
-                sql.SQL("REVOKE CREATE ON SCHEMA public FROM {}").format(freshness_ident)
-            )
-            cur.execute(
-                sql.SQL("REVOKE CREATE ON SCHEMA kokonut_security FROM {}").format(
-                    freshness_ident
-                )
-            )
-            cur.execute(
-                sql.SQL("GRANT USAGE ON SCHEMA kokonut_security TO {}").format(
-                    freshness_ident
-                )
-            )
+            cur.execute(sql.SQL("REVOKE CREATE ON SCHEMA public FROM {}").format(freshness_ident))
+            cur.execute(sql.SQL("REVOKE CREATE ON SCHEMA kokonut_security FROM {}").format(freshness_ident))
+            cur.execute(sql.SQL("GRANT USAGE ON SCHEMA kokonut_security TO {}").format(freshness_ident))
             for function in _FRESHNESS_WORKER_FUNCTIONS:
-                cur.execute(
-                    sql.SQL("GRANT EXECUTE ON FUNCTION {} TO {}").format(
-                        sql.SQL(function), freshness_ident
-                    )
-                )
+                cur.execute(sql.SQL("GRANT EXECUTE ON FUNCTION {} TO {}").format(sql.SQL(function), freshness_ident))
         if clickhouse_outbox_user is not None:
             assert clickhouse_outbox_ident is not None and clickhouse_outbox_password is not None
             _ensure_login_role(
@@ -1887,15 +2495,46 @@ def provision_runtime_role(
                         sql.Identifier(schema), clickhouse_outbox_ident
                     )
                 )
-            cur.execute(
-                sql.SQL("GRANT USAGE ON SCHEMA kokonut_security TO {}").format(
-                    clickhouse_outbox_ident
-                )
-            )
+            cur.execute(sql.SQL("GRANT USAGE ON SCHEMA kokonut_security TO {}").format(clickhouse_outbox_ident))
             for function in _CLICKHOUSE_OUTBOX_WORKER_FUNCTIONS:
                 cur.execute(
+                    sql.SQL("GRANT EXECUTE ON FUNCTION {} TO {}").format(sql.SQL(function), clickhouse_outbox_ident)
+                )
+        if report_snapshot_export_user is not None:
+            assert report_snapshot_export_ident is not None and report_snapshot_export_password is not None
+            _ensure_login_role(
+                cur,
+                name=report_snapshot_export_user,
+                identifier=report_snapshot_export_ident,
+                password=report_snapshot_export_password,
+            )
+            _remove_role_memberships(
+                cur,
+                role_name=report_snapshot_export_user,
+                identifier=report_snapshot_export_ident,
+            )
+            for object_kind in ("TABLES", "SEQUENCES"):
+                cur.execute(
+                    sql.SQL("REVOKE ALL ON ALL {} IN SCHEMA public FROM {}").format(
+                        sql.SQL(object_kind), report_snapshot_export_ident
+                    )
+                )
+            for schema in ("public", "kokonut_security"):
+                cur.execute(
+                    sql.SQL("REVOKE ALL ON ALL FUNCTIONS IN SCHEMA {} FROM {}").format(
+                        sql.Identifier(schema), report_snapshot_export_ident
+                    )
+                )
+                cur.execute(
+                    sql.SQL("REVOKE CREATE ON SCHEMA {} FROM {}").format(
+                        sql.Identifier(schema), report_snapshot_export_ident
+                    )
+                )
+            cur.execute(sql.SQL("GRANT USAGE ON SCHEMA kokonut_security TO {}").format(report_snapshot_export_ident))
+            for function in _REPORT_SNAPSHOT_EXPORT_WORKER_FUNCTIONS:
+                cur.execute(
                     sql.SQL("GRANT EXECUTE ON FUNCTION {} TO {}").format(
-                        sql.SQL(function), clickhouse_outbox_ident
+                        sql.SQL(function), report_snapshot_export_ident
                     )
                 )
         if notification_delivery_user is not None:
@@ -1929,17 +2568,57 @@ def provision_runtime_role(
                         sql.Identifier(schema), notification_delivery_ident
                     )
                 )
-            cur.execute(
-                sql.SQL("GRANT USAGE ON SCHEMA kokonut_security TO {}").format(
-                    notification_delivery_ident
-                )
-            )
+            cur.execute(sql.SQL("GRANT USAGE ON SCHEMA kokonut_security TO {}").format(notification_delivery_ident))
             for function in _NOTIFICATION_DELIVERY_FUNCTIONS:
                 cur.execute(
-                    sql.SQL("GRANT EXECUTE ON FUNCTION {} TO {}").format(
-                        sql.SQL(function), notification_delivery_ident
+                    sql.SQL("GRANT EXECUTE ON FUNCTION {} TO {}").format(sql.SQL(function), notification_delivery_ident)
+                )
+        if rate_limit_maintenance_user is not None:
+            assert rate_limit_maintenance_ident is not None
+            assert rate_limit_maintenance_password is not None
+            _ensure_login_role(
+                cur,
+                name=rate_limit_maintenance_user,
+                identifier=rate_limit_maintenance_ident,
+                password=rate_limit_maintenance_password,
+            )
+            _remove_role_memberships(
+                cur,
+                role_name=rate_limit_maintenance_user,
+                identifier=rate_limit_maintenance_ident,
+            )
+            for object_kind in ("TABLES", "SEQUENCES"):
+                cur.execute(
+                    sql.SQL("REVOKE ALL ON ALL {} IN SCHEMA public FROM {}").format(
+                        sql.SQL(object_kind), rate_limit_maintenance_ident
                     )
                 )
+            for schema in (
+                "public",
+                "kokonut_security",
+                "kokonut_rate_limit_maintenance",
+            ):
+                cur.execute(
+                    sql.SQL("REVOKE ALL ON SCHEMA {} FROM {}").format(
+                        sql.Identifier(schema), rate_limit_maintenance_ident
+                    )
+                )
+                cur.execute(
+                    sql.SQL("REVOKE ALL ON ALL FUNCTIONS IN SCHEMA {} FROM {}").format(
+                        sql.Identifier(schema), rate_limit_maintenance_ident
+                    )
+                )
+            cur.execute(
+                sql.SQL("GRANT USAGE ON SCHEMA kokonut_rate_limit_maintenance TO {}").format(
+                    rate_limit_maintenance_ident
+                )
+            )
+            cur.execute(
+                sql.SQL("GRANT EXECUTE ON FUNCTION {} TO {}").format(
+                    sql.SQL(_GATEWAY_RATE_LIMIT_CLEANUP_FUNCTION),
+                    rate_limit_maintenance_ident,
+                )
+            )
         if event_dispatch_user is not None:
             assert event_dispatch_ident is not None
             assert event_dispatch_password is not None
@@ -1967,20 +2646,12 @@ def provision_runtime_role(
                     )
                 )
                 cur.execute(
-                    sql.SQL("REVOKE CREATE ON SCHEMA {} FROM {}").format(
-                        sql.Identifier(schema), event_dispatch_ident
-                    )
+                    sql.SQL("REVOKE CREATE ON SCHEMA {} FROM {}").format(sql.Identifier(schema), event_dispatch_ident)
                 )
-            cur.execute(
-                sql.SQL("GRANT USAGE ON SCHEMA kokonut_security TO {}").format(
-                    event_dispatch_ident
-                )
-            )
+            cur.execute(sql.SQL("GRANT USAGE ON SCHEMA kokonut_security TO {}").format(event_dispatch_ident))
             for function in _EVENT_DISPATCH_FUNCTIONS:
                 cur.execute(
-                    sql.SQL("GRANT EXECUTE ON FUNCTION {} TO {}").format(
-                        sql.SQL(function), event_dispatch_ident
-                    )
+                    sql.SQL("GRANT EXECUTE ON FUNCTION {} TO {}").format(sql.SQL(function), event_dispatch_ident)
                 )
         if sensor_ingestion_user is not None:
             assert sensor_ingestion_ident is not None and sensor_ingestion_password is not None
@@ -2007,23 +2678,13 @@ def provision_runtime_role(
                         sql.Identifier(schema), sensor_ingestion_ident
                     )
                 )
+            cur.execute(sql.SQL("REVOKE CREATE ON SCHEMA public FROM {}").format(sensor_ingestion_ident))
+            cur.execute(sql.SQL("REVOKE CREATE ON SCHEMA kokonut_security FROM {}").format(sensor_ingestion_ident))
+            cur.execute(sql.SQL("GRANT USAGE ON SCHEMA kokonut_security TO {}").format(sensor_ingestion_ident))
             cur.execute(
-                sql.SQL("REVOKE CREATE ON SCHEMA public FROM {}").format(sensor_ingestion_ident)
-            )
-            cur.execute(
-                sql.SQL("REVOKE CREATE ON SCHEMA kokonut_security FROM {}").format(
+                sql.SQL("GRANT kokonut_worker_execution TO {} WITH INHERIT FALSE, SET TRUE").format(
                     sensor_ingestion_ident
                 )
-            )
-            cur.execute(
-                sql.SQL("GRANT USAGE ON SCHEMA kokonut_security TO {}").format(
-                    sensor_ingestion_ident
-                )
-            )
-            cur.execute(
-                sql.SQL(
-                    "GRANT kokonut_worker_execution TO {} WITH INHERIT FALSE, SET TRUE"
-                ).format(sensor_ingestion_ident)
             )
         if remote_sensing_user is not None:
             assert remote_sensing_ident is not None and remote_sensing_password is not None
@@ -2050,29 +2711,16 @@ def provision_runtime_role(
                         sql.Identifier(schema), remote_sensing_ident
                     )
                 )
+            cur.execute(sql.SQL("REVOKE CREATE ON SCHEMA public FROM {}").format(remote_sensing_ident))
+            cur.execute(sql.SQL("REVOKE CREATE ON SCHEMA kokonut_security FROM {}").format(remote_sensing_ident))
+            cur.execute(sql.SQL("GRANT USAGE ON SCHEMA kokonut_security TO {}").format(remote_sensing_ident))
             cur.execute(
-                sql.SQL("REVOKE CREATE ON SCHEMA public FROM {}").format(remote_sensing_ident)
-            )
-            cur.execute(
-                sql.SQL("REVOKE CREATE ON SCHEMA kokonut_security FROM {}").format(
+                sql.SQL("GRANT kokonut_worker_execution TO {} WITH INHERIT FALSE, SET TRUE").format(
                     remote_sensing_ident
                 )
-            )
-            cur.execute(
-                sql.SQL("GRANT USAGE ON SCHEMA kokonut_security TO {}").format(
-                    remote_sensing_ident
-                )
-            )
-            cur.execute(
-                sql.SQL(
-                    "GRANT kokonut_worker_execution TO {} WITH INHERIT FALSE, SET TRUE"
-                ).format(remote_sensing_ident)
             )
         if sensor_anomaly_ml_source_user is not None:
-            assert (
-                sensor_anomaly_ml_source_ident is not None
-                and sensor_anomaly_ml_source_password is not None
-            )
+            assert sensor_anomaly_ml_source_ident is not None and sensor_anomaly_ml_source_password is not None
             _ensure_login_role(
                 cur,
                 name=sensor_anomaly_ml_source_user,
@@ -2091,9 +2739,9 @@ def provision_runtime_role(
                     )
                 )
                 cur.execute(
-                    sql.SQL(
-                        "REVOKE ALL ON ALL {} IN SCHEMA kokonut_anomaly_ml_source FROM {}"
-                    ).format(sql.SQL(object_kind), sensor_anomaly_ml_source_ident)
+                    sql.SQL("REVOKE ALL ON ALL {} IN SCHEMA kokonut_anomaly_ml_source FROM {}").format(
+                        sql.SQL(object_kind), sensor_anomaly_ml_source_ident
+                    )
                 )
             for schema in ("public", "kokonut_security", "kokonut_anomaly_ml_source"):
                 cur.execute(
@@ -2106,51 +2754,30 @@ def provision_runtime_role(
                         sql.Identifier(schema), sensor_anomaly_ml_source_ident
                     )
                 )
-            cur.execute(
-                sql.SQL("REVOKE CREATE ON SCHEMA public FROM {}").format(
-                    sensor_anomaly_ml_source_ident
-                )
-            )
-            cur.execute(
-                sql.SQL("GRANT USAGE ON SCHEMA kokonut_security TO {}").format(
-                    sensor_anomaly_ml_source_ident
-                )
-            )
+            cur.execute(sql.SQL("REVOKE CREATE ON SCHEMA public FROM {}").format(sensor_anomaly_ml_source_ident))
+            cur.execute(sql.SQL("GRANT USAGE ON SCHEMA kokonut_security TO {}").format(sensor_anomaly_ml_source_ident))
             cur.execute(
                 sql.SQL("GRANT EXECUTE ON FUNCTION {} TO {}").format(
                     sql.SQL(_WORKER_CONTEXT_FUNCTION), sensor_anomaly_ml_source_ident
                 )
             )
             cur.execute(
-                sql.SQL(
-                    "GRANT kokonut_sensor_anomaly_ml_reader TO {} "
-                    "WITH INHERIT FALSE, SET TRUE"
-                ).format(sensor_anomaly_ml_source_ident)
+                sql.SQL("GRANT kokonut_sensor_anomaly_ml_reader TO {} WITH INHERIT FALSE, SET TRUE").format(
+                    sensor_anomaly_ml_source_ident
+                )
             )
+        cur.execute(sql.SQL("GRANT USAGE ON SCHEMA kokonut_security TO {}").format(runtime_ident))
+        cur.execute(sql.SQL("GRANT USAGE ON SCHEMA kokonut_security TO {}").format(auth_ident))
         cur.execute(
-            sql.SQL("GRANT USAGE ON SCHEMA kokonut_security TO {}").format(runtime_ident)
+            sql.SQL("GRANT EXECUTE ON FUNCTION {} TO {}").format(sql.SQL(_GATEWAY_CONTEXT_FUNCTION), runtime_ident)
         )
         cur.execute(
-            sql.SQL("GRANT USAGE ON SCHEMA kokonut_security TO {}").format(auth_ident)
+            sql.SQL("GRANT EXECUTE ON FUNCTION {} TO {}").format(sql.SQL(_OPERATOR_CONTEXT_FUNCTION), runtime_ident)
         )
         cur.execute(
-            sql.SQL("GRANT EXECUTE ON FUNCTION {} TO {}").format(
-                sql.SQL(_GATEWAY_CONTEXT_FUNCTION), runtime_ident
-            )
+            sql.SQL("GRANT EXECUTE ON FUNCTION {} TO {}").format(sql.SQL(_MOBILE_DEVICE_REVOKE_FUNCTION), runtime_ident)
         )
-        cur.execute(
-            sql.SQL("GRANT EXECUTE ON FUNCTION {} TO {}").format(
-                sql.SQL(_OPERATOR_CONTEXT_FUNCTION), runtime_ident
-            )
-        )
-        cur.execute(
-            sql.SQL("GRANT EXECUTE ON FUNCTION {} TO {}").format(
-                sql.SQL(_MOBILE_DEVICE_REVOKE_FUNCTION), runtime_ident
-            )
-        )
-        cur.execute(
-            "SELECT datname FROM pg_database WHERE datallowconn OR datname = 'template1'"
-        )
+        cur.execute("SELECT datname FROM pg_database WHERE datallowconn OR datname = 'template1'")
         database_names = [row[0] for row in cur.fetchall()]
         protected_login_idents = [runtime_ident, auth_ident]
         if enqueue_ident is not None:
@@ -2169,6 +2796,8 @@ def provision_runtime_role(
             protected_login_idents.append(freshness_ident)
         if clickhouse_outbox_ident is not None:
             protected_login_idents.append(clickhouse_outbox_ident)
+        if report_snapshot_export_ident is not None:
+            protected_login_idents.append(report_snapshot_export_ident)
         if notification_delivery_ident is not None:
             protected_login_idents.append(notification_delivery_ident)
         if event_dispatch_ident is not None:
@@ -2179,68 +2808,51 @@ def provision_runtime_role(
             protected_login_idents.append(remote_sensing_ident)
         if sensor_anomaly_ml_source_ident is not None:
             protected_login_idents.append(sensor_anomaly_ml_source_ident)
+        if rate_limit_maintenance_ident is not None:
+            protected_login_idents.append(rate_limit_maintenance_ident)
         for name in database_names:
             database_ident = sql.Identifier(name)
             cur.execute(sql.SQL("REVOKE CONNECT ON DATABASE {} FROM PUBLIC").format(database_ident))
             for login_ident in protected_login_idents:
-                cur.execute(
-                    sql.SQL("REVOKE CONNECT ON DATABASE {} FROM {}").format(
-                        database_ident, login_ident
-                    )
-                )
+                cur.execute(sql.SQL("REVOKE CONNECT ON DATABASE {} FROM {}").format(database_ident, login_ident))
 
         cur.execute("REVOKE CREATE ON SCHEMA public FROM PUBLIC")
         for identifier in protected_login_idents:
             cur.execute(sql.SQL("REVOKE CREATE ON SCHEMA public FROM {}").format(identifier))
-            cur.execute(
-                sql.SQL("GRANT CONNECT ON DATABASE {} TO {}").format(
-                    sql.Identifier(database), identifier
-                )
-            )
+            cur.execute(sql.SQL("GRANT CONNECT ON DATABASE {} TO {}").format(sql.Identifier(database), identifier))
         cur.execute(sql.SQL("GRANT USAGE ON SCHEMA public TO {}").format(runtime_ident))
 
         _revoke_runtime_default_privileges(cur, admin_ident, runtime_ident)
 
-        cur.execute(
-            sql.SQL("GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO {}").format(
-                runtime_ident
+        if runtime_compatibility_grants_applied:
+            cur.execute(
+                sql.SQL("GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO {}").format(
+                    runtime_ident
+                )
             )
-        )
-        cur.execute(
-            sql.SQL("GRANT USAGE, SELECT, UPDATE ON ALL SEQUENCES IN SCHEMA public TO {}").format(
-                runtime_ident
+            cur.execute(
+                sql.SQL("GRANT USAGE, SELECT, UPDATE ON ALL SEQUENCES IN SCHEMA public TO {}").format(runtime_ident)
             )
-        )
+        cur.execute(sql.SQL("ALTER ROLE {} SET kokonut.compatibility_grant_state = 'applied'").format(runtime_ident))
         farm_activity_event_owner_ready = _restore_farm_activity_event_owner(cur)
         mobile_credential_grants = _apply_mobile_credential_boundary(cur, runtime_ident)
         api_key_grants = _apply_api_key_boundary(cur, runtime_ident)
         farm_activity_event_grants = _apply_farm_activity_operator_event_boundary(cur, runtime_ident)
-        solution_stage_gate_grants = _apply_solution_stage_gate_boundary(
-            cur, runtime_ident
-        )
-        solution_experiment_protocol_grants = _apply_solution_experiment_protocol_boundary(
-            cur, runtime_ident
-        )
+        scoped_write_grants = _apply_scoped_write_boundary(cur, runtime_ident)
         cur.execute(
-            sql.SQL("REVOKE ALL ON ALL TABLES IN SCHEMA public FROM {}").format(auth_ident)
+            sql.SQL("GRANT SELECT ON TABLE public.alert_rule TO {}").format(runtime_ident)
         )
-        cur.execute(
-            sql.SQL("REVOKE ALL ON ALL SEQUENCES IN SCHEMA public FROM {}").format(auth_ident)
-        )
-        cur.execute(
-            sql.SQL("REVOKE ALL ON ALL FUNCTIONS IN SCHEMA kokonut_security FROM {}").format(
-                auth_ident
-            )
-        )
-        cur.execute(
-            sql.SQL("REVOKE ALL ON ALL FUNCTIONS IN SCHEMA public FROM {}").format(auth_ident)
-        )
+        append_only_grants = _apply_runtime_append_only_boundary(cur, runtime_ident)
+        solution_stage_gate_grants = _apply_solution_stage_gate_boundary(cur, runtime_ident)
+        solution_experiment_protocol_grants = _apply_solution_experiment_protocol_boundary(cur, runtime_ident)
+        cur.execute(sql.SQL("REVOKE ALL ON ALL TABLES IN SCHEMA public FROM {}").format(auth_ident))
+        cur.execute(sql.SQL("REVOKE ALL ON ALL SEQUENCES IN SCHEMA public FROM {}").format(auth_ident))
+        cur.execute(sql.SQL("REVOKE ALL ON ALL FUNCTIONS IN SCHEMA kokonut_security FROM {}").format(auth_ident))
+        cur.execute(sql.SQL("REVOKE ALL ON ALL FUNCTIONS IN SCHEMA public FROM {}").format(auth_ident))
         if enqueue_ident is not None:
             for object_kind in ("TABLES", "SEQUENCES"):
                 cur.execute(
-                    sql.SQL("REVOKE ALL ON ALL {} IN SCHEMA public FROM {}").format(
-                        sql.SQL(object_kind), enqueue_ident
-                    )
+                    sql.SQL("REVOKE ALL ON ALL {} IN SCHEMA public FROM {}").format(sql.SQL(object_kind), enqueue_ident)
                 )
             for schema in ("public", "kokonut_security"):
                 cur.execute(
@@ -2248,14 +2860,8 @@ def provision_runtime_role(
                         sql.Identifier(schema), enqueue_ident
                     )
                 )
-            cur.execute(
-                sql.SQL("GRANT USAGE ON SCHEMA kokonut_security TO {}").format(enqueue_ident)
-            )
-            cur.execute(
-                sql.SQL("REVOKE CREATE ON SCHEMA kokonut_security FROM {}").format(
-                    enqueue_ident
-                )
-            )
+            cur.execute(sql.SQL("GRANT USAGE ON SCHEMA kokonut_security TO {}").format(enqueue_ident))
+            cur.execute(sql.SQL("REVOKE CREATE ON SCHEMA kokonut_security FROM {}").format(enqueue_ident))
             cur.execute(
                 sql.SQL("GRANT EXECUTE ON FUNCTION {} TO {}").format(
                     sql.SQL(_NOTIFICATION_ENQUEUE_FUNCTION), enqueue_ident
@@ -2274,20 +2880,10 @@ def provision_runtime_role(
                         sql.Identifier(schema), market_data_ident
                     )
                 )
+            cur.execute(sql.SQL("GRANT USAGE ON SCHEMA kokonut_security TO {}").format(market_data_ident))
+            cur.execute(sql.SQL("REVOKE CREATE ON SCHEMA kokonut_security FROM {}").format(market_data_ident))
             cur.execute(
-                sql.SQL("GRANT USAGE ON SCHEMA kokonut_security TO {}").format(
-                    market_data_ident
-                )
-            )
-            cur.execute(
-                sql.SQL("REVOKE CREATE ON SCHEMA kokonut_security FROM {}").format(
-                    market_data_ident
-                )
-            )
-            cur.execute(
-                sql.SQL("GRANT EXECUTE ON FUNCTION {} TO {}").format(
-                    sql.SQL(_MARKET_DATA_FUNCTION), market_data_ident
-                )
+                sql.SQL("GRANT EXECUTE ON FUNCTION {} TO {}").format(sql.SQL(_MARKET_DATA_FUNCTION), market_data_ident)
             )
         if eas_indexer_ident is not None:
             for object_kind in ("TABLES", "SEQUENCES"):
@@ -2302,22 +2898,10 @@ def provision_runtime_role(
                         sql.Identifier(schema), eas_indexer_ident
                     )
                 )
-            cur.execute(
-                sql.SQL("GRANT USAGE ON SCHEMA kokonut_security TO {}").format(
-                    eas_indexer_ident
-                )
-            )
-            cur.execute(
-                sql.SQL("REVOKE CREATE ON SCHEMA kokonut_security FROM {}").format(
-                    eas_indexer_ident
-                )
-            )
+            cur.execute(sql.SQL("GRANT USAGE ON SCHEMA kokonut_security TO {}").format(eas_indexer_ident))
+            cur.execute(sql.SQL("REVOKE CREATE ON SCHEMA kokonut_security FROM {}").format(eas_indexer_ident))
             for function in _EAS_INDEXER_FUNCTIONS:
-                cur.execute(
-                    sql.SQL("GRANT EXECUTE ON FUNCTION {} TO {}").format(
-                        sql.SQL(function), eas_indexer_ident
-                    )
-                )
+                cur.execute(sql.SQL("GRANT EXECUTE ON FUNCTION {} TO {}").format(sql.SQL(function), eas_indexer_ident))
         if sensor_ingestion_ident is not None:
             for object_kind in ("TABLES", "SEQUENCES"):
                 cur.execute(
@@ -2331,32 +2915,19 @@ def provision_runtime_role(
                         sql.Identifier(schema), sensor_ingestion_ident
                     )
                 )
+            cur.execute(sql.SQL("GRANT USAGE ON SCHEMA kokonut_security TO {}").format(sensor_ingestion_ident))
+            cur.execute(sql.SQL("REVOKE CREATE ON SCHEMA kokonut_security FROM {}").format(sensor_ingestion_ident))
             cur.execute(
-                sql.SQL("GRANT USAGE ON SCHEMA kokonut_security TO {}").format(
+                sql.SQL("GRANT kokonut_worker_execution TO {} WITH INHERIT FALSE, SET TRUE").format(
                     sensor_ingestion_ident
                 )
-            )
-            cur.execute(
-                sql.SQL("REVOKE CREATE ON SCHEMA kokonut_security FROM {}").format(
-                    sensor_ingestion_ident
-                )
-            )
-            cur.execute(
-                sql.SQL(
-                    "GRANT kokonut_worker_execution TO {} WITH INHERIT FALSE, SET TRUE"
-                ).format(sensor_ingestion_ident)
             )
 
         cur.execute("REVOKE ALL ON TABLE public.operator_session FROM PUBLIC")
-        cur.execute(
-            sql.SQL("REVOKE ALL ON TABLE public.operator_session FROM {}").format(runtime_ident)
-        )
-        cur.execute(
-            sql.SQL("REVOKE ALL ON TABLE public.operator_session FROM {}").format(auth_ident)
-        )
+        cur.execute(sql.SQL("REVOKE ALL ON TABLE public.operator_session FROM {}").format(runtime_ident))
+        cur.execute(sql.SQL("REVOKE ALL ON TABLE public.operator_session FROM {}").format(auth_ident))
         columns = (
-            "id, operator_id, session_token_hash, csrf_token_hash, created_at, "
-            "last_seen_at, expires_at, revoked_at"
+            "id, operator_id, session_token_hash, csrf_token_hash, created_at, last_seen_at, expires_at, revoked_at"
         )
         for privilege in ("SELECT", "INSERT", "UPDATE"):
             for role_ident in (runtime_ident, auth_ident):
@@ -2366,21 +2937,9 @@ def provision_runtime_role(
                     )
                 )
         for function in _SESSION_FUNCTIONS:
-            cur.execute(
-                sql.SQL("REVOKE ALL ON FUNCTION {} FROM PUBLIC").format(
-                    sql.SQL(function)
-                )
-            )
-            cur.execute(
-                sql.SQL("REVOKE ALL ON FUNCTION {} FROM {}").format(
-                    sql.SQL(function), runtime_ident
-                )
-            )
-            cur.execute(
-                sql.SQL("GRANT EXECUTE ON FUNCTION {} TO {}").format(
-                    sql.SQL(function), auth_ident
-                )
-            )
+            cur.execute(sql.SQL("REVOKE ALL ON FUNCTION {} FROM PUBLIC").format(sql.SQL(function)))
+            cur.execute(sql.SQL("REVOKE ALL ON FUNCTION {} FROM {}").format(sql.SQL(function), runtime_ident))
+            cur.execute(sql.SQL("GRANT EXECUTE ON FUNCTION {} TO {}").format(sql.SQL(function), auth_ident))
 
         _verify_role_attributes(cur, runtime_user)
         _verify_role_attributes(cur, operator_auth_user)
@@ -2411,8 +2970,7 @@ def provision_runtime_role(
                     "sensor-ingestion login must have only a non-inheriting SET membership in kokonut_worker_execution"
                 )
             cur.execute(
-                "SELECT EXISTS (SELECT 1 FROM pg_class WHERE relowner = "
-                "(SELECT oid FROM pg_roles WHERE rolname = %s))",
+                "SELECT EXISTS (SELECT 1 FROM pg_class WHERE relowner = (SELECT oid FROM pg_roles WHERE rolname = %s))",
                 (sensor_ingestion_user,),
             )
             if cur.fetchone()[0]:
@@ -2424,9 +2982,7 @@ def provision_runtime_role(
                 (sensor_ingestion_user, sensor_ingestion_user, sensor_ingestion_user),
             )
             if cur.fetchone() != (True, True, False):
-                raise RuntimeError(
-                    "sensor-ingestion login is missing its restricted worker-role boundary"
-                )
+                raise RuntimeError("sensor-ingestion login is missing its restricted worker-role boundary")
             cur.execute(
                 """SELECT EXISTS (
                        SELECT 1
@@ -2507,8 +3063,7 @@ def provision_runtime_role(
                     "remote-sensing login must have only a non-inheriting SET membership in kokonut_worker_execution"
                 )
             cur.execute(
-                "SELECT EXISTS (SELECT 1 FROM pg_class WHERE relowner = "
-                "(SELECT oid FROM pg_roles WHERE rolname = %s))",
+                "SELECT EXISTS (SELECT 1 FROM pg_class WHERE relowner = (SELECT oid FROM pg_roles WHERE rolname = %s))",
                 (remote_sensing_user,),
             )
             if cur.fetchone()[0]:
@@ -2520,39 +3075,21 @@ def provision_runtime_role(
                 (remote_sensing_user, remote_sensing_user, remote_sensing_user),
             )
             if cur.fetchone() != (True, True, False):
-                raise RuntimeError(
-                    "remote-sensing login is missing its restricted worker-role boundary"
-                )
+                raise RuntimeError("remote-sensing login is missing its restricted worker-role boundary")
             cur.execute(
-                "SELECT " + ", ".join(
-                    "has_function_privilege(%s, %s, 'EXECUTE')"
-                    for _ in _REMOTE_SENSING_FUNCTIONS
-                ),
+                "SELECT " + ", ".join("has_function_privilege(%s, %s, 'EXECUTE')" for _ in _REMOTE_SENSING_FUNCTIONS),
                 tuple(
-                    value
-                    for function in _REMOTE_SENSING_FUNCTIONS
-                    for value in ("kokonut_worker_execution", function)
+                    value for function in _REMOTE_SENSING_FUNCTIONS for value in ("kokonut_worker_execution", function)
                 ),
             )
             if cur.fetchone() != (True, True):
-                raise RuntimeError(
-                    "worker execution role is missing a bounded remote-sensing function grant"
-                )
+                raise RuntimeError("worker execution role is missing a bounded remote-sensing function grant")
             cur.execute(
-                "SELECT " + ", ".join(
-                    "has_function_privilege(%s, %s, 'EXECUTE')"
-                    for _ in _REMOTE_SENSING_FUNCTIONS
-                ),
-                tuple(
-                    value
-                    for function in _REMOTE_SENSING_FUNCTIONS
-                    for value in (remote_sensing_user, function)
-                ),
+                "SELECT " + ", ".join("has_function_privilege(%s, %s, 'EXECUTE')" for _ in _REMOTE_SENSING_FUNCTIONS),
+                tuple(value for function in _REMOTE_SENSING_FUNCTIONS for value in (remote_sensing_user, function)),
             )
             if cur.fetchone() != (False, False):
-                raise RuntimeError(
-                    "remote-sensing login can call bounded functions without entering worker execution"
-                )
+                raise RuntimeError("remote-sensing login can call bounded functions without entering worker execution")
             cur.execute(
                 """SELECT EXISTS (
                        SELECT 1
@@ -2615,8 +3152,12 @@ def provision_runtime_role(
             checked_login_names.append(freshness_user)
         if clickhouse_outbox_user is not None:
             checked_login_names.append(clickhouse_outbox_user)
+        if report_snapshot_export_user is not None:
+            checked_login_names.append(report_snapshot_export_user)
         if notification_delivery_user is not None:
             checked_login_names.append(notification_delivery_user)
+        if rate_limit_maintenance_user is not None:
+            checked_login_names.append(rate_limit_maintenance_user)
         if event_dispatch_user is not None:
             checked_login_names.append(event_dispatch_user)
         for role_name in checked_login_names:
@@ -2628,9 +3169,9 @@ def provision_runtime_role(
                 (role_name,),
             )
             access = {name: allowed for name, allowed in cur.fetchall()}
-            if access.get(database) is not True or any(
-                allowed for name, allowed in access.items() if name != database
-            ):
+            if role_name == rate_limit_maintenance_user:
+                rate_limit_maintenance_database_access = access
+            if access.get(database) is not True or any(allowed for name, allowed in access.items() if name != database):
                 raise RuntimeError(f"{role_name} must connect only to its configured database")
 
         for role_name in (runtime_user, operator_auth_user):
@@ -2655,9 +3196,12 @@ def provision_runtime_role(
                      OR has_function_privilege(%s, %s, 'EXECUTE')
                      OR has_function_privilege(%s, %s, 'EXECUTE')""",
             (
-                runtime_user, _SESSION_FUNCTIONS[0],
-                runtime_user, _SESSION_FUNCTIONS[1],
-                runtime_user, _SESSION_FUNCTIONS[2],
+                runtime_user,
+                _SESSION_FUNCTIONS[0],
+                runtime_user,
+                _SESSION_FUNCTIONS[1],
+                runtime_user,
+                _SESSION_FUNCTIONS[2],
             ),
         )
         if cur.fetchone()[0]:
@@ -2667,9 +3211,12 @@ def provision_runtime_role(
                        AND has_function_privilege(%s, %s, 'EXECUTE')
                        AND has_function_privilege(%s, %s, 'EXECUTE')""",
             (
-                operator_auth_user, _SESSION_FUNCTIONS[0],
-                operator_auth_user, _SESSION_FUNCTIONS[1],
-                operator_auth_user, _SESSION_FUNCTIONS[2],
+                operator_auth_user,
+                _SESSION_FUNCTIONS[0],
+                operator_auth_user,
+                _SESSION_FUNCTIONS[1],
+                operator_auth_user,
+                _SESSION_FUNCTIONS[2],
             ),
         )
         if cur.fetchone()[0] is not True:
@@ -2684,9 +3231,12 @@ def provision_runtime_role(
                           has_table_privilege(%s, 'public.notification_outbox', 'UPDATE'),
                           has_table_privilege(%s, 'public.notification_outbox', 'DELETE')""",
                 (
-                    notification_enqueue_user, _NOTIFICATION_ENQUEUE_FUNCTION,
-                    notification_enqueue_user, notification_enqueue_user,
-                    notification_enqueue_user, notification_enqueue_user,
+                    notification_enqueue_user,
+                    _NOTIFICATION_ENQUEUE_FUNCTION,
+                    notification_enqueue_user,
+                    notification_enqueue_user,
+                    notification_enqueue_user,
+                    notification_enqueue_user,
                     notification_enqueue_user,
                 ),
             )
@@ -2734,9 +3284,7 @@ def provision_runtime_role(
                 (notification_enqueue_user,) * 11,
             )
             if cur.fetchone()[0]:
-                raise RuntimeError(
-                    "notification-enqueue role retains application table or column privileges"
-                )
+                raise RuntimeError("notification-enqueue role retains application table or column privileges")
             cur.execute(
                 """SELECT EXISTS (
                        SELECT 1
@@ -2787,12 +3335,14 @@ def provision_runtime_role(
 
         if market_data_user is not None:
             cur.execute(
-                "SELECT has_function_privilege(%s, %s, 'EXECUTE'), "
-                "has_schema_privilege(%s, 'kokonut_security', 'USAGE'), "
+                "SELECT "
+                + ", ".join("has_function_privilege(%s, %s, 'EXECUTE')" for _ in market_data_functions)
+                + ", has_schema_privilege(%s, 'kokonut_security', 'USAGE'), "
                 "has_schema_privilege(%s, 'kokonut_security', 'CREATE')",
-                (market_data_user, _MARKET_DATA_FUNCTION, market_data_user, market_data_user),
+                tuple(value for function in market_data_functions for value in (market_data_user, function))
+                + (market_data_user, market_data_user),
             )
-            if cur.fetchone() != (True, True, False):
+            if cur.fetchone() != (True,) * len(market_data_functions) + (True, False):
                 raise RuntimeError(
                     "market-data login is missing its bounded function grant or has unsafe schema access"
                 )
@@ -2860,41 +3410,36 @@ def provision_runtime_role(
             )
             if cur.fetchone()[0]:
                 raise RuntimeError("market-data login retains application sequence privileges")
+            other_function_predicate = " AND ".join(
+                "procedure.oid IS DISTINCT FROM to_regprocedure(%s)" for _ in market_data_functions
+            )
             cur.execute(
-                """SELECT procedure.oid::regprocedure::text
-                     FROM pg_proc AS procedure
-                     JOIN pg_namespace AS namespace ON namespace.oid = procedure.pronamespace
-                    WHERE namespace.nspname IN ('public', 'kokonut_security')
-                      AND procedure.prosecdef
-                      AND procedure.oid <> to_regprocedure(%s)
-                      AND has_function_privilege(%s, procedure.oid, 'EXECUTE')
-                    LIMIT 1""",
-                (_MARKET_DATA_FUNCTION, market_data_user),
+                f"""SELECT procedure.oid::regprocedure::text
+                      FROM pg_proc AS procedure
+                      JOIN pg_namespace AS namespace ON namespace.oid = procedure.pronamespace
+                     WHERE namespace.nspname IN ('public', 'kokonut_security')
+                       AND procedure.prosecdef
+                       AND {other_function_predicate}
+                       AND has_function_privilege(%s, procedure.oid, 'EXECUTE')
+                     LIMIT 1""",
+                tuple(market_data_functions) + (market_data_user,),
             )
             other_security_definer = cur.fetchone()
             if other_security_definer is not None:
                 raise RuntimeError(
-                    "market-data login can execute another SECURITY DEFINER function: "
-                    f"{other_security_definer[0]}"
+                    f"market-data login can execute another SECURITY DEFINER function: {other_security_definer[0]}"
                 )
             cur.execute(
-                "SELECT has_function_privilege(%s, %s, 'EXECUTE')",
-                (runtime_user, _MARKET_DATA_FUNCTION),
+                "SELECT " + " OR ".join("has_function_privilege(%s, %s, 'EXECUTE')" for _ in market_data_functions),
+                tuple(value for function in market_data_functions for value in (runtime_user, function)),
             )
             if cur.fetchone()[0]:
                 raise RuntimeError("runtime role can execute market-data worker function")
         if eas_indexer_user is not None:
             _verify_role_attributes(cur, eas_indexer_user)
             cur.execute(
-                "SELECT " + ", ".join(
-                    "has_function_privilege(%s, %s, 'EXECUTE')"
-                    for _ in _EAS_INDEXER_FUNCTIONS
-                ),
-                tuple(
-                    value
-                    for function in _EAS_INDEXER_FUNCTIONS
-                    for value in (eas_indexer_user, function)
-                ),
+                "SELECT " + ", ".join("has_function_privilege(%s, %s, 'EXECUTE')" for _ in _EAS_INDEXER_FUNCTIONS),
+                tuple(value for function in _EAS_INDEXER_FUNCTIONS for value in (eas_indexer_user, function)),
             )
             if cur.fetchone() != (True,) * len(_EAS_INDEXER_FUNCTIONS):
                 raise RuntimeError("EAS-indexer login is missing one of its bounded functions")
@@ -2948,8 +3493,7 @@ def provision_runtime_role(
             unexpected_function = cur.fetchone()
             if unexpected_function is not None:
                 raise RuntimeError(
-                    "EAS-indexer login can execute another SECURITY DEFINER function: "
-                    f"{unexpected_function[0]}"
+                    f"EAS-indexer login can execute another SECURITY DEFINER function: {unexpected_function[0]}"
                 )
             cur.execute(
                 """SELECT EXISTS (
@@ -2965,30 +3509,16 @@ def provision_runtime_role(
             if cur.fetchone()[0]:
                 raise RuntimeError("EAS-indexer login retains application sequence privileges")
             cur.execute(
-                "SELECT " + " OR ".join(
-                    "has_function_privilege(%s, %s, 'EXECUTE')"
-                    for _ in _EAS_INDEXER_FUNCTIONS
-                ),
-                tuple(
-                    value
-                    for function in _EAS_INDEXER_FUNCTIONS
-                    for value in (runtime_user, function)
-                ),
+                "SELECT " + " OR ".join("has_function_privilege(%s, %s, 'EXECUTE')" for _ in _EAS_INDEXER_FUNCTIONS),
+                tuple(value for function in _EAS_INDEXER_FUNCTIONS for value in (runtime_user, function)),
             )
             if cur.fetchone()[0]:
                 raise RuntimeError("runtime role can execute EAS-indexer worker functions")
         if rpc_indexer_user is not None:
             _verify_role_attributes(cur, rpc_indexer_user)
             cur.execute(
-                "SELECT " + ", ".join(
-                    "has_function_privilege(%s, %s, 'EXECUTE')"
-                    for _ in _RPC_INDEXER_FUNCTIONS
-                ),
-                tuple(
-                    value
-                    for function in _RPC_INDEXER_FUNCTIONS
-                    for value in (rpc_indexer_user, function)
-                ),
+                "SELECT " + ", ".join("has_function_privilege(%s, %s, 'EXECUTE')" for _ in _RPC_INDEXER_FUNCTIONS),
+                tuple(value for function in _RPC_INDEXER_FUNCTIONS for value in (rpc_indexer_user, function)),
             )
             if cur.fetchone() != (True,) * len(_RPC_INDEXER_FUNCTIONS):
                 raise RuntimeError("RPC-indexer login is missing one of its bounded functions")
@@ -3039,9 +3569,7 @@ def provision_runtime_role(
                 (*_RPC_INDEXER_FUNCTIONS, rpc_indexer_user),
             )
             if cur.fetchone() is not None:
-                raise RuntimeError(
-                    "RPC-indexer login can execute another SECURITY DEFINER function"
-                )
+                raise RuntimeError("RPC-indexer login can execute another SECURITY DEFINER function")
             cur.execute(
                 """SELECT EXISTS (
                        SELECT 1 FROM pg_class AS sequence
@@ -3056,15 +3584,8 @@ def provision_runtime_role(
             if cur.fetchone()[0]:
                 raise RuntimeError("RPC-indexer login retains application sequence privileges")
             cur.execute(
-                "SELECT " + " OR ".join(
-                    "has_function_privilege(%s, %s, 'EXECUTE')"
-                    for _ in _RPC_INDEXER_FUNCTIONS
-                ),
-                tuple(
-                    value
-                    for function in _RPC_INDEXER_FUNCTIONS
-                    for value in (runtime_user, function)
-                ),
+                "SELECT " + " OR ".join("has_function_privilege(%s, %s, 'EXECUTE')" for _ in _RPC_INDEXER_FUNCTIONS),
+                tuple(value for function in _RPC_INDEXER_FUNCTIONS for value in (runtime_user, function)),
             )
             if cur.fetchone()[0]:
                 raise RuntimeError("runtime role can execute RPC-indexer worker functions")
@@ -3091,6 +3612,7 @@ def provision_runtime_role(
                 _FRESHNESS_WORKER_FUNCTIONS,
                 "freshness worker",
                 runtime_user,
+                allowed_read_relations=_POSTGIS_METADATA_READ_RELATIONS,
             )
         if clickhouse_outbox_user is not None:
             _verify_bounded_indexer_login(
@@ -3098,6 +3620,14 @@ def provision_runtime_role(
                 clickhouse_outbox_user,
                 _CLICKHOUSE_OUTBOX_WORKER_FUNCTIONS,
                 "ClickHouse outbox worker",
+                runtime_user,
+            )
+        if report_snapshot_export_user is not None:
+            _verify_bounded_indexer_login(
+                cur,
+                report_snapshot_export_user,
+                _REPORT_SNAPSHOT_EXPORT_WORKER_FUNCTIONS,
+                "report snapshot export worker",
                 runtime_user,
             )
         if notification_delivery_user is not None:
@@ -3116,27 +3646,93 @@ def provision_runtime_role(
                 "event-dispatch worker",
                 runtime_user,
             )
+        if rate_limit_maintenance_user is not None:
+            _verify_bounded_indexer_login(
+                cur,
+                rate_limit_maintenance_user,
+                (_GATEWAY_RATE_LIMIT_CLEANUP_FUNCTION,),
+                "rate-limit maintenance",
+                runtime_user,
+                schema_name="kokonut_rate_limit_maintenance",
+                function_schemas=(
+                    "public",
+                    "kokonut_security",
+                    "kokonut_rate_limit_maintenance",
+                ),
+                allowed_read_relations=_POSTGIS_METADATA_READ_RELATIONS,
+            )
 
         _verify_mobile_credential_boundary(cur, runtime_user)
         _verify_api_key_boundary(cur, runtime_user)
         _verify_farm_activity_operator_event_boundary(cur, runtime_user)
+        _verify_scoped_write_boundary(cur, runtime_user)
+        _verify_runtime_append_only_boundary(cur, runtime_user)
         _verify_solution_stage_gate_boundary(cur, runtime_user)
         _verify_solution_experiment_protocol_boundary(cur, runtime_user)
-        _verify_no_runtime_default_privileges(
-            cur, admin_user=admin_user, runtime_user=runtime_user
-        )
+        _verify_no_runtime_default_privileges(cur, admin_user=admin_user, runtime_user=runtime_user)
+        if rate_limit_functions[0] is not None:
+            if rate_limit_maintenance_user is None:
+                cur.execute(
+                    "SELECT has_function_privilege(%s, %s, 'EXECUTE'), has_function_privilege(%s, %s, 'EXECUTE')",
+                    (
+                        runtime_user,
+                        _GATEWAY_RATE_LIMIT_CONSUME_FUNCTION,
+                        runtime_user,
+                        _GATEWAY_RATE_LIMIT_CLEANUP_FUNCTION,
+                    ),
+                )
+                if cur.fetchone() != (True, False):
+                    raise RuntimeError("runtime role must execute only the gateway rate-limit consume function")
+            else:
+                cur.execute(
+                    "SELECT has_function_privilege(%s, %s, 'EXECUTE'), "
+                    "has_function_privilege(%s, %s, 'EXECUTE'), "
+                    "has_function_privilege(%s, %s, 'EXECUTE'), "
+                    "has_function_privilege(%s, %s, 'EXECUTE')",
+                    (
+                        runtime_user,
+                        _GATEWAY_RATE_LIMIT_CONSUME_FUNCTION,
+                        runtime_user,
+                        _GATEWAY_RATE_LIMIT_CLEANUP_FUNCTION,
+                        rate_limit_maintenance_user,
+                        _GATEWAY_RATE_LIMIT_CLEANUP_FUNCTION,
+                        rate_limit_maintenance_user,
+                        _GATEWAY_RATE_LIMIT_CONSUME_FUNCTION,
+                    ),
+                )
+                if cur.fetchone() != (True, False, True, False):
+                    raise RuntimeError("rate-limit function grants exceed the bounded role contract")
         cur.execute(
             "SELECT has_function_privilege(%s, %s, 'EXECUTE'), "
             "has_function_privilege(%s, %s, 'EXECUTE'), "
             "has_function_privilege(%s, %s, 'EXECUTE')",
             (
-                runtime_user, _GATEWAY_CONTEXT_FUNCTION,
-                runtime_user, _OPERATOR_CONTEXT_FUNCTION,
-                runtime_user, _MOBILE_DEVICE_REVOKE_FUNCTION,
+                runtime_user,
+                _GATEWAY_CONTEXT_FUNCTION,
+                runtime_user,
+                _OPERATOR_CONTEXT_FUNCTION,
+                runtime_user,
+                _MOBILE_DEVICE_REVOKE_FUNCTION,
             ),
         )
         if cur.fetchone() != (True, True, True):
             raise RuntimeError("runtime role is missing a bounded Gateway/mobile-device function")
+        cur.execute(
+            "SELECT "
+            + ", ".join("has_function_privilege(%s, %s, 'EXECUTE')" for _ in _REPORT_SNAPSHOT_EXPORT_RUNTIME_FUNCTIONS),
+            tuple(
+                value for function in _REPORT_SNAPSHOT_EXPORT_RUNTIME_FUNCTIONS for value in (runtime_user, function)
+            ),
+        )
+        if cur.fetchone() != (True,) * len(_REPORT_SNAPSHOT_EXPORT_RUNTIME_FUNCTIONS):
+            raise RuntimeError("runtime role is missing the bounded report snapshot export API")
+        if all(procedure is not None for procedure in thesaurus_functions):
+            cur.execute(
+                "SELECT " + ", ".join("has_function_privilege(%s, %s, 'EXECUTE')" for _ in _THESAURUS_FUNCTIONS),
+                tuple(value for function in _THESAURUS_FUNCTIONS for value in (runtime_user, function)),
+            )
+            if cur.fetchone() != (True,) * len(_THESAURUS_FUNCTIONS):
+                raise RuntimeError("runtime role is missing the bounded thesaurus write API")
         cur.execute(
             "SELECT has_schema_privilege(%s, 'kokonut_security', 'USAGE'), "
             "has_schema_privilege(%s, 'kokonut_security', 'USAGE')",
@@ -3151,9 +3747,7 @@ def provision_runtime_role(
                 (notification_enqueue_user, notification_enqueue_user),
             )
             if cur.fetchone() != (True, False):
-                raise RuntimeError(
-                    "notification-enqueue login has unsafe security schema privileges"
-                )
+                raise RuntimeError("notification-enqueue login has unsafe security schema privileges")
         if notification_delivery_user is not None:
             cur.execute(
                 "SELECT has_schema_privilege(%s, 'kokonut_security', 'USAGE'), "
@@ -3161,9 +3755,7 @@ def provision_runtime_role(
                 (notification_delivery_user, notification_delivery_user),
             )
             if cur.fetchone() != (True, False):
-                raise RuntimeError(
-                    "notification-delivery login has unsafe security schema privileges"
-                )
+                raise RuntimeError("notification-delivery login has unsafe security schema privileges")
         if event_dispatch_user is not None:
             cur.execute(
                 "SELECT has_schema_privilege(%s, 'kokonut_security', 'USAGE'), "
@@ -3171,9 +3763,7 @@ def provision_runtime_role(
                 (event_dispatch_user, event_dispatch_user),
             )
             if cur.fetchone() != (True, False):
-                raise RuntimeError(
-                    "event-dispatch login has unsafe security schema privileges"
-                )
+                raise RuntimeError("event-dispatch login has unsafe security schema privileges")
         for function in (
             *_PRIVATE_RUNTIME_FUNCTIONS,
             *_EAS_INDEXER_FUNCTIONS,
@@ -3185,18 +3775,20 @@ def provision_runtime_role(
         _verify_security_definer_owners(cur)
         if remote_sensing_user is not None:
             cur.execute(
-                "SELECT " + " OR ".join(
-                    "has_function_privilege(%s, %s, 'EXECUTE')"
-                    for _ in _REMOTE_SENSING_FUNCTIONS
-                ),
-                tuple(
-                    value
-                    for function in _REMOTE_SENSING_FUNCTIONS
-                    for value in (runtime_user, function)
-                ),
+                "SELECT " + " OR ".join("has_function_privilege(%s, %s, 'EXECUTE')" for _ in _REMOTE_SENSING_FUNCTIONS),
+                tuple(value for function in _REMOTE_SENSING_FUNCTIONS for value in (runtime_user, function)),
             )
             if cur.fetchone()[0]:
                 raise RuntimeError("runtime role can execute remote-sensing worker functions")
+        cur.execute(
+            "SELECT "
+            + " OR ".join(
+                "has_function_privilege(%s, %s, 'EXECUTE')" for _ in _REPORT_SNAPSHOT_EXPORT_WORKER_FUNCTIONS
+            ),
+            tuple(value for function in _REPORT_SNAPSHOT_EXPORT_WORKER_FUNCTIONS for value in (runtime_user, function)),
+        )
+        if cur.fetchone()[0]:
+            raise RuntimeError("runtime role can execute report snapshot export worker functions")
         if farm_activity_event_owner_ready:
             for function in (
                 "public.guard_farm_activity_operator_event_insert()",
@@ -3262,16 +3854,9 @@ def provision_runtime_role(
                     ORDER BY datname""",
                 (gnosis_indexer_user,),
             )
-            gnosis_indexer_database_access = {
-                name: allowed for name, allowed in cur.fetchall()
-            }
-            if any(
-                allowed != (name == database)
-                for name, allowed in gnosis_indexer_database_access.items()
-            ):
-                raise RuntimeError(
-                    "Gnosis-indexer login must connect only to its configured database"
-                )
+            gnosis_indexer_database_access = {name: allowed for name, allowed in cur.fetchall()}
+            if any(allowed != (name == database) for name, allowed in gnosis_indexer_database_access.items()):
+                raise RuntimeError("Gnosis-indexer login must connect only to its configured database")
         if baal_indexer_user is not None:
             cur.execute(
                 """SELECT datname, has_database_privilege(%s, oid, 'CONNECT')
@@ -3280,16 +3865,9 @@ def provision_runtime_role(
                     ORDER BY datname""",
                 (baal_indexer_user,),
             )
-            baal_indexer_database_access = {
-                name: allowed for name, allowed in cur.fetchall()
-            }
-            if any(
-                allowed != (name == database)
-                for name, allowed in baal_indexer_database_access.items()
-            ):
-                raise RuntimeError(
-                    "Baal-indexer login must connect only to its configured database"
-                )
+            baal_indexer_database_access = {name: allowed for name, allowed in cur.fetchall()}
+            if any(allowed != (name == database) for name, allowed in baal_indexer_database_access.items()):
+                raise RuntimeError("Baal-indexer login must connect only to its configured database")
         if freshness_user is not None:
             cur.execute(
                 """SELECT datname, has_database_privilege(%s, oid, 'CONNECT')
@@ -3298,16 +3876,9 @@ def provision_runtime_role(
                     ORDER BY datname""",
                 (freshness_user,),
             )
-            freshness_database_access = {
-                name: allowed for name, allowed in cur.fetchall()
-            }
-            if any(
-                allowed != (name == database)
-                for name, allowed in freshness_database_access.items()
-            ):
-                raise RuntimeError(
-                    "freshness-worker login must connect only to its configured database"
-                )
+            freshness_database_access = {name: allowed for name, allowed in cur.fetchall()}
+            if any(allowed != (name == database) for name, allowed in freshness_database_access.items()):
+                raise RuntimeError("freshness-worker login must connect only to its configured database")
         if clickhouse_outbox_user is not None:
             cur.execute(
                 """SELECT datname, has_database_privilege(%s, oid, 'CONNECT')
@@ -3316,16 +3887,20 @@ def provision_runtime_role(
                     ORDER BY datname""",
                 (clickhouse_outbox_user,),
             )
-            clickhouse_outbox_database_access = {
-                name: allowed for name, allowed in cur.fetchall()
-            }
-            if any(
-                allowed != (name == database)
-                for name, allowed in clickhouse_outbox_database_access.items()
-            ):
-                raise RuntimeError(
-                    "ClickHouse outbox login must connect only to its configured database"
-                )
+            clickhouse_outbox_database_access = {name: allowed for name, allowed in cur.fetchall()}
+            if any(allowed != (name == database) for name, allowed in clickhouse_outbox_database_access.items()):
+                raise RuntimeError("ClickHouse outbox login must connect only to its configured database")
+        if report_snapshot_export_user is not None:
+            cur.execute(
+                """SELECT datname, has_database_privilege(%s, oid, 'CONNECT')
+                     FROM pg_database
+                    WHERE datallowconn OR datname = 'template1'
+                    ORDER BY datname""",
+                (report_snapshot_export_user,),
+            )
+            report_snapshot_export_database_access = {name: allowed for name, allowed in cur.fetchall()}
+            if any(allowed != (name == database) for name, allowed in report_snapshot_export_database_access.items()):
+                raise RuntimeError("report snapshot export login must connect only to its configured database")
         if notification_delivery_user is not None:
             cur.execute(
                 """SELECT datname, has_database_privilege(%s, oid, 'CONNECT')
@@ -3334,16 +3909,9 @@ def provision_runtime_role(
                     ORDER BY datname""",
                 (notification_delivery_user,),
             )
-            notification_delivery_database_access = {
-                name: allowed for name, allowed in cur.fetchall()
-            }
-            if any(
-                allowed != (name == database)
-                for name, allowed in notification_delivery_database_access.items()
-            ):
-                raise RuntimeError(
-                    "notification-delivery login must connect only to its configured database"
-                )
+            notification_delivery_database_access = {name: allowed for name, allowed in cur.fetchall()}
+            if any(allowed != (name == database) for name, allowed in notification_delivery_database_access.items()):
+                raise RuntimeError("notification-delivery login must connect only to its configured database")
         if event_dispatch_user is not None:
             cur.execute(
                 """SELECT datname, has_database_privilege(%s, oid, 'CONNECT')
@@ -3352,16 +3920,9 @@ def provision_runtime_role(
                     ORDER BY datname""",
                 (event_dispatch_user,),
             )
-            event_dispatch_database_access = {
-                name: allowed for name, allowed in cur.fetchall()
-            }
-            if any(
-                allowed != (name == database)
-                for name, allowed in event_dispatch_database_access.items()
-            ):
-                raise RuntimeError(
-                    "event-dispatch login must connect only to its configured database"
-                )
+            event_dispatch_database_access = {name: allowed for name, allowed in cur.fetchall()}
+            if any(allowed != (name == database) for name, allowed in event_dispatch_database_access.items()):
+                raise RuntimeError("event-dispatch login must connect only to its configured database")
         if sensor_ingestion_user is not None:
             cur.execute(
                 """SELECT datname, has_database_privilege(%s, oid, 'CONNECT')
@@ -3392,21 +3953,15 @@ def provision_runtime_role(
                     ORDER BY datname""",
                 (sensor_anomaly_ml_source_user,),
             )
-            sensor_anomaly_ml_source_database_access = {
-                name: allowed for name, allowed in cur.fetchall()
-            }
-            if any(
-                allowed != (name == database)
-                for name, allowed in sensor_anomaly_ml_source_database_access.items()
-            ):
-                raise RuntimeError(
-                    "sensor-anomaly ML source login must connect only to its configured database"
-                )
+            sensor_anomaly_ml_source_database_access = {name: allowed for name, allowed in cur.fetchall()}
+            if any(allowed != (name == database) for name, allowed in sensor_anomaly_ml_source_database_access.items()):
+                raise RuntimeError("sensor-anomaly ML source login must connect only to its configured database")
 
     return {
         "status": "provisioned",
         "database": database,
         "runtime_user": runtime_user,
+        "legacy_compatibility_grants_applied": runtime_compatibility_grants_applied,
         "operator_auth_user": operator_auth_user,
         "notification_enqueue_user": notification_enqueue_user,
         "market_data_user": market_data_user,
@@ -3416,11 +3971,13 @@ def provision_runtime_role(
         "baal_indexer_user": baal_indexer_user,
         "freshness_user": freshness_user,
         "clickhouse_outbox_user": clickhouse_outbox_user,
+        "report_snapshot_export_user": report_snapshot_export_user,
         "notification_delivery_user": notification_delivery_user,
         "event_dispatch_user": event_dispatch_user,
         "sensor_ingestion_user": sensor_ingestion_user,
         "remote_sensing_user": remote_sensing_user,
         "sensor_anomaly_ml_source_user": sensor_anomaly_ml_source_user,
+        "rate_limit_maintenance_user": rate_limit_maintenance_user,
         "public_connect_revoked_from": sorted(database_names),
         "runtime_connect_grants": runtime_database_access,
         "operator_auth_connect_grants": auth_database_access,
@@ -3431,11 +3988,13 @@ def provision_runtime_role(
         "baal_indexer_connect_grants": baal_indexer_database_access,
         "freshness_worker_connect_grants": freshness_database_access,
         "clickhouse_outbox_worker_connect_grants": clickhouse_outbox_database_access,
+        "report_snapshot_export_worker_connect_grants": report_snapshot_export_database_access,
         "notification_delivery_worker_connect_grants": notification_delivery_database_access,
         "event_dispatch_worker_connect_grants": event_dispatch_database_access,
         "sensor_ingestion_connect_grants": sensor_ingestion_database_access,
         "remote_sensing_connect_grants": remote_sensing_database_access,
         "sensor_anomaly_ml_source_connect_grants": sensor_anomaly_ml_source_database_access,
+        "rate_limit_maintenance_connect_grants": rate_limit_maintenance_database_access,
         "runtime_table_privileges": ["SELECT", "INSERT", "UPDATE", "DELETE"],
         "runtime_table_privilege_scope": "existing_public_tables_only",
         "runtime_future_object_privileges": [],
@@ -3445,14 +4004,32 @@ def provision_runtime_role(
             "mobile_device_enrollment": "explicit column allowlist; no table-wide UPDATE or DELETE",
             "operator_session": "bounded functions only",
             "farm_activity_operator_event": "read-only SELECT; trigger owner appends; no direct write",
+            "data_access_log": "append-only evidence; runtime SELECT and INSERT only",
+            "access_audit_log": (
+                "capability-access audit evidence; runtime SELECT and INSERT only; "
+                "retention cleanup requires separately authorized administration"
+            ),
+            "farm_activity_workflow_event": (
+                "append-only Field Collector lifecycle ledger; runtime SELECT and INSERT only"
+            ),
+            "governance circle, role, assignment, tactical item/session and Delphi report writes": (
+                "direct runtime mutations are denied; audited Gateway functions own writes"
+            ),
+            "governance action/decision/request ledgers, operator party bindings, "
+            "location identity cases/decisions, Delphi recommendation/stopping/minority-review ledgers": (
+                "no direct runtime access"
+            ),
             "solution_stage_gate": "bounded security-definer functions only; no direct runtime access",
             "solution_experiment": (
                 "bounded Gateway protocol creation; lifecycle updates limited to status and timestamps"
             ),
+            "gateway_rate_bucket": ("bounded consume/cleanup functions only; no direct runtime table access"),
         },
         "runtime_mobile_credential_privileges": mobile_credential_grants,
         "runtime_api_key_privileges": api_key_grants,
         "runtime_farm_activity_operator_event_privileges": farm_activity_event_grants,
+        "runtime_scoped_write_privileges": scoped_write_grants,
+        "runtime_append_only_privileges": append_only_grants,
         "runtime_solution_stage_gate_privileges": solution_stage_gate_grants,
         "runtime_solution_experiment_protocol_privileges": solution_experiment_protocol_grants,
         "farm_activity_event_owner_restored": farm_activity_event_owner_ready,
@@ -3472,6 +4049,7 @@ def provision_runtime_role(
         "rpc_indexer_owns_relations": False,
         "sensor_ingestion_owns_relations": False,
         "remote_sensing_owns_relations": False,
+        "rate_limit_maintenance_owns_relations": False,
     }
 
 
@@ -3486,68 +4064,48 @@ def main() -> int:
     notification_enqueue_user = os.environ.get(
         "KOKONUT_NOTIFICATION_ENQUEUE_USER", "kokonut_notification_enqueue_login"
     )
-    notification_enqueue_password = os.environ.get(
-        "KOKONUT_NOTIFICATION_ENQUEUE_PASSWORD", ""
-    )
-    market_data_user = os.environ.get(
-        "KOKONUT_MARKET_DATA_USER", "kokonut_market_data_login"
-    )
+    notification_enqueue_password = os.environ.get("KOKONUT_NOTIFICATION_ENQUEUE_PASSWORD", "")
+    market_data_user = os.environ.get("KOKONUT_MARKET_DATA_USER", "kokonut_market_data_login")
     market_data_password = os.environ.get("KOKONUT_MARKET_DATA_PASSWORD", "")
-    eas_indexer_user = os.environ.get(
-        "KOKONUT_EAS_INDEXER_USER", "kokonut_eas_indexer_login"
-    )
+    eas_indexer_user = os.environ.get("KOKONUT_EAS_INDEXER_USER", "kokonut_eas_indexer_login")
     eas_indexer_password = os.environ.get("KOKONUT_EAS_INDEXER_PASSWORD", "")
-    rpc_indexer_user = os.environ.get(
-        "KOKONUT_RPC_INDEXER_USER", "kokonut_rpc_indexer_login"
-    )
+    rpc_indexer_user = os.environ.get("KOKONUT_RPC_INDEXER_USER", "kokonut_rpc_indexer_login")
     rpc_indexer_password = os.environ.get("KOKONUT_RPC_INDEXER_PASSWORD", "")
-    gnosis_indexer_user = os.environ.get(
-        "KOKONUT_GNOSIS_INDEXER_USER", "kokonut_gnosis_indexer_login"
-    )
+    gnosis_indexer_user = os.environ.get("KOKONUT_GNOSIS_INDEXER_USER", "kokonut_gnosis_indexer_login")
     gnosis_indexer_password = os.environ.get("KOKONUT_GNOSIS_INDEXER_PASSWORD", "")
-    baal_indexer_user = os.environ.get(
-        "KOKONUT_BAAL_INDEXER_USER", "kokonut_baal_indexer_login"
-    )
+    baal_indexer_user = os.environ.get("KOKONUT_BAAL_INDEXER_USER", "kokonut_baal_indexer_login")
     baal_indexer_password = os.environ.get("KOKONUT_BAAL_INDEXER_PASSWORD", "")
-    freshness_user = os.environ.get(
-        "KOKONUT_FRESHNESS_USER", "kokonut_freshness_login"
-    )
+    freshness_user = os.environ.get("KOKONUT_FRESHNESS_USER", "kokonut_freshness_login")
     freshness_password = os.environ.get("KOKONUT_FRESHNESS_PASSWORD", "")
-    clickhouse_outbox_user = os.environ.get(
-        "KOKONUT_CLICKHOUSE_OUTBOX_USER", "kokonut_clickhouse_outbox_login"
+    clickhouse_outbox_user = os.environ.get("KOKONUT_CLICKHOUSE_OUTBOX_USER", "kokonut_clickhouse_outbox_login")
+    clickhouse_outbox_password = os.environ.get("KOKONUT_CLICKHOUSE_OUTBOX_PASSWORD", "")
+    report_snapshot_export_user = os.environ.get(
+        "KOKONUT_REPORT_SNAPSHOT_EXPORT_USER",
+        "kokonut_report_snapshot_export_login",
     )
-    clickhouse_outbox_password = os.environ.get(
-        "KOKONUT_CLICKHOUSE_OUTBOX_PASSWORD", ""
-    )
+    report_snapshot_export_password = os.environ.get("KOKONUT_REPORT_SNAPSHOT_EXPORT_PASSWORD", "")
     notification_delivery_user = os.environ.get(
         "KOKONUT_NOTIFICATION_DELIVERY_USER", "kokonut_notification_delivery_login"
     )
-    notification_delivery_password = os.environ.get(
-        "KOKONUT_NOTIFICATION_DELIVERY_PASSWORD", ""
-    )
-    event_dispatch_user = os.environ.get(
-        "KOKONUT_EVENT_DISPATCH_USER", "kokonut_event_dispatch_login"
-    )
+    notification_delivery_password = os.environ.get("KOKONUT_NOTIFICATION_DELIVERY_PASSWORD", "")
+    event_dispatch_user = os.environ.get("KOKONUT_EVENT_DISPATCH_USER", "kokonut_event_dispatch_login")
     event_dispatch_password = os.environ.get("KOKONUT_EVENT_DISPATCH_PASSWORD", "")
-    sensor_ingestion_user = os.environ.get(
-        "KOKONUT_SENSOR_INGESTION_USER", "kokonut_sensor_ingestion_login"
-    )
+    sensor_ingestion_user = os.environ.get("KOKONUT_SENSOR_INGESTION_USER", "kokonut_sensor_ingestion_login")
     sensor_ingestion_password = os.environ.get("KOKONUT_SENSOR_INGESTION_PASSWORD", "")
-    remote_sensing_user = os.environ.get(
-        "KOKONUT_REMOTE_SENSING_USER", "kokonut_remote_sensing_login"
-    )
+    remote_sensing_user = os.environ.get("KOKONUT_REMOTE_SENSING_USER", "kokonut_remote_sensing_login")
     remote_sensing_password = os.environ.get("KOKONUT_REMOTE_SENSING_PASSWORD", "")
     sensor_anomaly_ml_source_user = os.environ.get(
         "KOKONUT_SENSOR_ANOMALY_ML_SOURCE_USER",
         "kokonut_sensor_anomaly_ml_source_login",
     )
-    sensor_anomaly_ml_source_password = os.environ.get(
-        "KOKONUT_SENSOR_ANOMALY_ML_SOURCE_PASSWORD", ""
+    sensor_anomaly_ml_source_password = os.environ.get("KOKONUT_SENSOR_ANOMALY_ML_SOURCE_PASSWORD", "")
+    rate_limit_maintenance_user = os.environ.get(
+        "KOKONUT_RATE_LIMIT_MAINTENANCE_USER",
+        "kokonut_rate_limit_maintenance_login",
     )
+    rate_limit_maintenance_password = os.environ.get("KOKONUT_RATE_LIMIT_MAINTENANCE_PASSWORD", "")
     if not admin_password or not runtime_password or not operator_auth_password:
-        raise SystemExit(
-            "admin, runtime, and operator-auth credentials must be provided through the environment"
-        )
+        raise SystemExit("admin, runtime, and operator-auth credentials must be provided through the environment")
 
     conn = psycopg2.connect(
         host=os.environ.get("PG_HOST", "database"),
@@ -3567,65 +4125,43 @@ def main() -> int:
             runtime_password=runtime_password,
             operator_auth_user=operator_auth_user,
             operator_auth_password=operator_auth_password,
-            notification_enqueue_user=(
-                notification_enqueue_user if notification_enqueue_password else None
-            ),
-            notification_enqueue_password=(
-                notification_enqueue_password if notification_enqueue_password else None
-            ),
+            notification_enqueue_user=(notification_enqueue_user if notification_enqueue_password else None),
+            notification_enqueue_password=(notification_enqueue_password if notification_enqueue_password else None),
             market_data_user=market_data_user if market_data_password else None,
             market_data_password=market_data_password if market_data_password else None,
             eas_indexer_user=eas_indexer_user if eas_indexer_password else None,
             eas_indexer_password=eas_indexer_password if eas_indexer_password else None,
             rpc_indexer_user=rpc_indexer_user if rpc_indexer_password else None,
             rpc_indexer_password=rpc_indexer_password if rpc_indexer_password else None,
-            gnosis_indexer_user=(
-                gnosis_indexer_user if gnosis_indexer_password else None
-            ),
-            gnosis_indexer_password=(
-                gnosis_indexer_password if gnosis_indexer_password else None
-            ),
-            baal_indexer_user=(
-                baal_indexer_user if baal_indexer_password else None
-            ),
-            baal_indexer_password=(
-                baal_indexer_password if baal_indexer_password else None
-            ),
+            gnosis_indexer_user=(gnosis_indexer_user if gnosis_indexer_password else None),
+            gnosis_indexer_password=(gnosis_indexer_password if gnosis_indexer_password else None),
+            baal_indexer_user=(baal_indexer_user if baal_indexer_password else None),
+            baal_indexer_password=(baal_indexer_password if baal_indexer_password else None),
             freshness_user=freshness_user if freshness_password else None,
             freshness_password=freshness_password if freshness_password else None,
-            clickhouse_outbox_user=(
-                clickhouse_outbox_user if clickhouse_outbox_password else None
+            clickhouse_outbox_user=(clickhouse_outbox_user if clickhouse_outbox_password else None),
+            clickhouse_outbox_password=(clickhouse_outbox_password if clickhouse_outbox_password else None),
+            report_snapshot_export_user=(report_snapshot_export_user if report_snapshot_export_password else None),
+            report_snapshot_export_password=(
+                report_snapshot_export_password if report_snapshot_export_password else None
             ),
-            clickhouse_outbox_password=(
-                clickhouse_outbox_password if clickhouse_outbox_password else None
-            ),
-            notification_delivery_user=(
-                notification_delivery_user if notification_delivery_password else None
-            ),
-            notification_delivery_password=(
-                notification_delivery_password if notification_delivery_password else None
-            ),
-            event_dispatch_user=(
-                event_dispatch_user if event_dispatch_password else None
-            ),
-            event_dispatch_password=(
-                event_dispatch_password if event_dispatch_password else None
-            ),
-            sensor_ingestion_user=(
-                sensor_ingestion_user if sensor_ingestion_password else None
-            ),
-            sensor_ingestion_password=(
-                sensor_ingestion_password if sensor_ingestion_password else None
-            ),
+            notification_delivery_user=(notification_delivery_user if notification_delivery_password else None),
+            notification_delivery_password=(notification_delivery_password if notification_delivery_password else None),
+            event_dispatch_user=(event_dispatch_user if event_dispatch_password else None),
+            event_dispatch_password=(event_dispatch_password if event_dispatch_password else None),
+            sensor_ingestion_user=(sensor_ingestion_user if sensor_ingestion_password else None),
+            sensor_ingestion_password=(sensor_ingestion_password if sensor_ingestion_password else None),
             remote_sensing_user=(remote_sensing_user if remote_sensing_password else None),
-            remote_sensing_password=(
-                remote_sensing_password if remote_sensing_password else None
-            ),
+            remote_sensing_password=(remote_sensing_password if remote_sensing_password else None),
             sensor_anomaly_ml_source_user=(
                 sensor_anomaly_ml_source_user if sensor_anomaly_ml_source_password else None
             ),
             sensor_anomaly_ml_source_password=(
                 sensor_anomaly_ml_source_password if sensor_anomaly_ml_source_password else None
+            ),
+            rate_limit_maintenance_user=(rate_limit_maintenance_user if rate_limit_maintenance_password else None),
+            rate_limit_maintenance_password=(
+                rate_limit_maintenance_password if rate_limit_maintenance_password else None
             ),
         )
     finally:

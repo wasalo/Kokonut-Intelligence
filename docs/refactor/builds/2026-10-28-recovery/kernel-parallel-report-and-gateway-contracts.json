@@ -1,0 +1,70 @@
+{
+  "date": "2026-10-28",
+  "batch": "Parallel Directus, report-scope, and Gateway response contracts",
+  "changes": {
+    "directus_same_location_references": [
+      {
+        "collection": "farm_activity",
+        "field": "farm_task_id",
+        "target": "farm_task",
+        "operations": ["create", "update"],
+        "schema_basis": [
+          "schemas/postgres/061_impact_value_chain.sql",
+          "schemas/postgres/359_activity_scope_and_outputs.sql"
+        ]
+      },
+      {
+        "collection": "expense_event",
+        "field": "weekly_plan_id",
+        "target": "weekly_plan",
+        "operations": ["create", "update"],
+        "schema_basis": [
+          "schemas/postgres/061_impact_value_chain.sql",
+          "schemas/postgres/365_expense_weekly_plan_scope_exception.sql"
+        ]
+      }
+    ],
+    "report_location_preflight": [
+      "crop_noi",
+      "resource_efficiency",
+      "holistic_wellbeing",
+      "revenue_multiplier"
+    ],
+    "strict_gateway_response_contracts": [
+      "GET /operator/api/farm-activity-records/{activity_id}",
+      "GET /operator/api/farm-activity-records/published/{activity_id}",
+      "GET /operator/api/governance/{location_id}/roles/{role_id}",
+      "GET /operator/api/report-review-queue"
+    ],
+    "directus_workflow_history_approval": {
+      "code_changed": false,
+      "reason": "Both use polymorphic collection/record identifiers without a tenant key; historical lineage and approval visibility need populated-data review."
+    }
+  },
+  "verification": {
+    "integrated_python_tests": {"result": "passed", "count": 411},
+    "directus_tenant_hook_tests": {"result": "passed", "count": 27},
+    "directus_typescript_check": "passed",
+    "ruff": "passed",
+    "python_compilation": "passed",
+    "report_source_inventory": "current",
+    "report_query_scope_inventory": "current",
+    "capability_matrix": {
+      "result": "valid",
+      "rows": 67,
+      "baseline_retained": 24,
+      "deployed": 7,
+      "prepared": 36,
+      "strict_private_gateway_response_endpoints": 66
+    },
+    "checklist": {"complete": 1455, "open": 25},
+    "todo_ledger": {"complete": 162, "open": 16},
+    "diff_check": "passed"
+  },
+  "scope_limits": [
+    "No migration or database was used.",
+    "No provider, candidate, legacy service, or live network was used.",
+    "No capability classification or MAN-CAP acceptance changed.",
+    "Directus workflow_history/approval population and scope remain open."
+  ]
+}

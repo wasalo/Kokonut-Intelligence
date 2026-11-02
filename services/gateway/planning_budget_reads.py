@@ -86,14 +86,15 @@ def list_location_budget_summaries(
             )
             rows = [_mapping(cursor, row) for row in cursor.fetchall()]
 
-        has_more = len(rows) > page_size
+        next_offset = page_offset + page_size
+        has_more = len(rows) > page_size and next_offset <= 10000
         plans = rows[:page_size]
         return {
             "location_id": location_id,
             "offset": page_offset,
             "plans": plans,
             "has_more": has_more,
-            "next_offset": page_offset + page_size if has_more else None,
+            "next_offset": next_offset if has_more else None,
         }
     except Exception:
         connection.rollback()

@@ -1,0 +1,36 @@
+{
+  "result": "passed",
+  "candidate_or_legacy_modified": false,
+  "database_or_provider_used": false,
+  "checks": {
+    "authenticated_service_health_response": {
+      "command": "python3 -m pytest tests/test_gateway_auth.py -k 'detailed_service_health or anonymous_detailed_service_health' -q",
+      "passed": 9,
+      "coverage": [
+        "valid checked, disabled, and unmonitored dependency states",
+        "required versus optional service health semantics",
+        "aggregate health/readiness/critical-failure consistency",
+        "duplicate service names and malformed strict values rejected",
+        "exact OpenAPI success response schema",
+        "generic sanitized no-store response for malformed health output",
+        "anonymous access denied before dependency probes"
+      ]
+    },
+    "pest_management_report_projections": {
+      "command": "python3 -m pytest tests/test_pest_management.py -k TestPestManagementReportProjection -q",
+      "passed": 2,
+      "coverage": [
+        "exact migration-047 ordered columns for pest trends and biocontrol effectiveness",
+        "location and optional period bindings retain their five-value order",
+        "date filters and descending chronology remain unchanged",
+        "serialized row dictionaries and report aggregates remain unchanged",
+        "unbounded date selection preserves the existing optional-filter contract"
+      ]
+    },
+    "static": {
+      "ruff_changed_files": "passed",
+      "python_compileall_changed_files": "passed",
+      "git_diff_check": "passed"
+    }
+  }
+}

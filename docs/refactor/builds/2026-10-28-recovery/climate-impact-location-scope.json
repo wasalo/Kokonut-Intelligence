@@ -1,0 +1,18 @@
+{
+  "date": "2026-10-28",
+  "report_type": "climate_impact",
+  "finding": "The CLI and report registry require one location, but a direct Python caller could pass None or an empty string; the generator opened a cursor before rejecting the missing scope.",
+  "change": "The generator now rejects a missing location_id before importing analytics helpers or opening a database cursor.",
+  "verification": {
+    "command": "python3 -m pytest -q tests/test_climate_impact_report.py",
+    "result": "passed",
+    "tests": 2,
+    "ruff": "passed",
+    "py_compile": "passed"
+  },
+  "limitations": [
+    "The accepted path still reads active operations protocols as shared reference metadata while all climate evidence and analytics helpers receive the selected location.",
+    "Tests use a mock connection; no database, provider, candidate, legacy, or external network was used.",
+    "This closes the missing-scope direct-call path only; it does not establish tenant isolation or populated report parity."
+  ]
+}

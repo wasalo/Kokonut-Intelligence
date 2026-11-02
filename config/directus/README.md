@@ -1,10 +1,13 @@
 # Directus RBAC Permissions
 
-SQL seed file that creates the complete Directus role-based access control system.
+SQL seed file for the optional Directus compatibility/admin adapter. It creates
+the repository-managed roles and permissions, but does not establish complete
+runtime permission parity or define authorization for the native Kernel
+Gateway. Directus is not required by the Kernel base profile.
 
 ## Extension Build Prerequisite
 
-The base Compose service mounts the hook package at
+The legacy root Compose service mounts the hook package at
 `/directus/extensions/directus-extension-kokonut-hooks`. Directus loads its
 compiled entry point from the ignored `extensions/kokonut-hooks/dist/`
 directory, so a fresh checkout must build it before starting Compose:
@@ -27,19 +30,23 @@ does not require a build step.
 
 ## How It's Applied
 
-`scripts/seed.sh` pipes this file to PostgreSQL:
+`scripts/seed.sh` applies this file to PostgreSQL only when the Directus catalog
+is present:
 
-```bash
-cat config/directus/permissions.sql | docker exec -i kokonut-database psql -U kokonut -d kokonut_intelligence
-```
+Use `./scripts/seed.sh` from the repository root after selecting the intended
+legacy Compose target and loading its secrets. The script uses the configured
+Compose service name; this README does not assume a fixed container name.
 
-The SQL uses `ON CONFLICT` / `IF NOT EXISTS` guards — safe to re-run.
+The SQL is designed to be re-applied; it uses conflict guards and repairs
+repository-managed rules. This does not verify a deployed Directus user's
+effective access or make optional Directus permissions equivalent to Gateway
+authorization.
 
 ## Roles
 
 | Role | Description | Access Level |
 |---|---|---|
-| Field Worker | Field data entry staff | Create/read/update own location records (draft only) |
+| Field Worker | Field data entry staff | Intended field-data role; effective access is limited to the permissions actually declared below |
 | Supervisor | Field supervisors | Read all, submit for approval |
 | Manager | Farm/location managers | Full status transitions including rejection |
 | Finance | Finance/accounting staff | Expense, sales, revenue focus |
@@ -63,6 +70,11 @@ Agent roles are restricted from `verified`/`published` status on all governed co
 2. Follow the existing pattern: `INSERT INTO directus_permissions (collection, action, fields, permissions, presets, ...)` with appropriate `role_id` and `policy_id`
 3. Re-apply via `./scripts/seed.sh`
 4. Test with `python3 -m tests.test_directus_metadata`
+
+These roles are the seed's intended role catalogue, not a verified effective
+permission matrix for a running Directus instance. The JSON dashboards under
+`dashboards/directus/` are design/import templates and their `$CURRENT_USER`
+filters are not an authorization boundary.
 
 `farm_activity` is intentionally excluded from Directus role permissions. The
 Kokonut Gateway owns Field Collector and operator farm-activity operations,

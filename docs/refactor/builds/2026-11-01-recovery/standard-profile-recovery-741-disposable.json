@@ -1,0 +1,64 @@
+{
+  "result": "passed",
+  "evidence_capture": "Structured summary of the successful check-kernel-standard-recovery-disposable.py stdout; the harness does not currently persist stdout itself.",
+  "profile": "standard",
+  "project": "kokonut-standard-recovery-66e0c0b29b",
+  "candidate_legacy_production_touched": false,
+  "host_ports_published": false,
+  "runtime_network_internal": true,
+  "api_worker_split": true,
+  "database_image": "postgis/postgis:16-3.4@sha256:44126d872ac91993766c341e369c539e8196614321765d36a6f1bab0419a5fa5",
+  "migration_snapshot": {
+    "schema_count": 732,
+    "latest_migration": "schema:741_runtime_quality_grade_catalog_read_only.sql",
+    "sha256": "683cae4865e7a04777ff1d2a0d696e76381a1d846d7066c102509140be6359cd",
+    "app_image_matches": true,
+    "worker_image_matches": true
+  },
+  "migrations": {
+    "schemas_applied": 732,
+    "schemas_failed": 0,
+    "seed_rows": 0,
+    "latest_schema_migration": "schema:741_runtime_quality_grade_catalog_read_only.sql"
+  },
+  "runtime_role": {
+    "app_database_user": "kokonut_runtime",
+    "worker_database_user": "kokonut_runtime",
+    "optional_directus_role": "provisioned",
+    "role_attributes_preserved_after_reapply": true,
+    "runtime_reference_tables_read_only_after_initial_provision": true,
+    "runtime_reference_tables_read_only_after_provisioner_reapply": true,
+    "directus_reference_tables_read_only_after_initial_provision": true,
+    "directus_reference_tables_read_only_after_provisioner_reapply": true,
+    "freshness_worker_read_after_provisioner_reapply": true,
+    "schema_version_insert_denied_after_provisioner_reapply": true
+  },
+  "startup": {
+    "api_healthy": true,
+    "worker_healthy": true,
+    "worker_children_alive_and_progressing": true,
+    "proxy_running": true,
+    "private_heartbeat_permissions_and_shape_valid": true
+  },
+  "database_outage_recovery": {
+    "worker_degraded_state_observed": "unhealthy",
+    "worker_healthy_after_restart": true,
+    "api_healthy_after_restart": true,
+    "worker_restart_count": 0,
+    "stalled_child_state_observed": "worker_child_stalled",
+    "health_state_after_restore": "healthy"
+  },
+  "shutdown": {
+    "worker_container_stopped": true,
+    "supervisor_heartbeat_removed": true,
+    "active_work_leases_after_shutdown": 0
+  },
+  "cleanup": "Harness returned success after its finally cleanup; no project resources remained.",
+  "limitations": [
+    "Short disposable restart/recovery check, not 24-hour endurance or scale acceptance.",
+    "Internal network has no Internet egress; no providers, seeds, farm data, candidate, legacy stack, or production data were used.",
+    "API and worker are separate services but use the same kokonut_runtime database login.",
+    "Child heartbeat freshness measures process responsiveness, not task completion or business success."
+  ],
+  "runner": "scripts/check-kernel-standard-recovery-disposable.py"
+}

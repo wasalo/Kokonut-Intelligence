@@ -1,0 +1,44 @@
+{
+  "result": "passed",
+  "candidate_or_legacy_touched": false,
+  "seeds_applied": 0,
+  "farm_data_loaded": false,
+  "source_network": "internal; no host port",
+  "restore_network": "internal; no host port",
+  "plaintext_dump_written_to_disk": false,
+  "age_identity_path_recorded": false,
+  "cleanup": {
+    "attempted": true,
+    "completed": true
+  },
+  "limitations": [
+    "Synthetic sentinel only; no populated farm records or external media/provider state is represented.",
+    "Database-only checkpoint excludes cluster roles and external volumes; the documented role prerequisites are applied separately.",
+    "This is a bounded restore rehearsal, not production RPO/RTO, R2, multi-provider, or 24-hour recovery acceptance."
+  ],
+  "image": {
+    "platform": "linux/amd64",
+    "image_id": "sha256:b573e82124b3530c454ea6d5ae8aefce1fb7ee137467f66f75a5079f8569ee6b"
+  },
+  "source_schema": {
+    "applied": 643,
+    "migration_digest_md5": "38910013821f25409bf1597f9d752fb9",
+    "latest": "schema:652_runtime_append_only_data_access_log.sql"
+  },
+  "source_container": "kokonut-kernel-recovery-fixture-6334dee1-database-1",
+  "checkpoint": {
+    "bytes": 8422368,
+    "sha256": "5f74e117e7c8f6fd8d54f92c4ef604e232468e673240a840f4e5fcfc3fbd11eb",
+    "age_encrypted": true,
+    "manifest_sha256_matches": true,
+    "scope": "Single PostgreSQL database; ownership/grants excluded. No roles, other databases, volumes or external media."
+  },
+  "restore": {
+    "database": "fresh template0-derived kokonut_restore",
+    "role_prerequisites_applied": true,
+    "schema_fingerprint_matches": true,
+    "migration_count": 643,
+    "latest_migration": "schema:652_runtime_append_only_data_access_log.sql",
+    "synthetic_sentinel_matches": true
+  }
+}

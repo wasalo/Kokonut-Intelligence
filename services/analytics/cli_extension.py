@@ -7,6 +7,7 @@ queries/business logic. Reachable via:
 """
 
 import argparse
+from uuid import UUID
 
 from ..common.cli import print_json
 from .extension import (
@@ -30,7 +31,7 @@ from .extension import (
 # CLI
 # ============================================================
 
-def main():
+def main(argv=None):
     parser = argparse.ArgumentParser(description="Digital extension services")
     sub = parser.add_subparsers(dest="command")
 
@@ -125,6 +126,7 @@ def main():
     ra = sub.add_parser("record-assessment", help="Record skill assessment")
     ra.add_argument("--farmer-id", required=True)
     ra.add_argument("--module-id", required=True)
+    ra.add_argument("--location-id", required=True)
     ra.add_argument("--type", required=True, dest="assessment_type")
     ra.add_argument("--score", type=float, required=True)
     ra.add_argument("--max-score", type=float, default=100)
@@ -146,13 +148,19 @@ def main():
     rc.add_argument("--location-id", required=True)
     rc.add_argument("--json", action="store_true")
 
-    args = parser.parse_args()
-
-    from ..ingestion.base import get_db
+    args = parser.parse_args(argv)
 
     if args.command is None:
         parser.print_help()
         return
+
+    if getattr(args, "location_id", None) is not None:
+        try:
+            args.location_id = str(UUID(args.location_id))
+        except (AttributeError, TypeError, ValueError):
+            parser.error(f"--location-id must be a valid UUID for {args.command}")
+
+    from ..ingestion.base import get_db
 
     db = get_db()
 
@@ -206,7 +214,7 @@ def main():
         elif args.command == "record-assessment":
             result = record_assessment(
                 db, args.farmer_id, args.module_id, args.assessment_type,
-                args.score, max_score=args.max_score,
+                args.score, location_id=args.location_id, max_score=args.max_score,
                 questions_total=args.questions_total,
                 questions_correct=args.questions_correct,
                 time_spent_min=args.time_spent_min,

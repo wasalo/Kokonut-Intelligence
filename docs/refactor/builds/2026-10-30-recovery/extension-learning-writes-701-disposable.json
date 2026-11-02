@@ -1,0 +1,16 @@
+{
+  "date": "2026-10-30",
+  "migration": "701_location_scoped_extension_learning_writes.sql",
+  "result": "passed",
+  "database": "network-disabled disposable PostgreSQL 16 container",
+  "candidate_legacy_production_touched": false,
+  "assertions": [
+    "migration 701 applied and replayed transactionally on network-disabled PostgreSQL 16",
+    "runtime can execute the two bounded functions, Directus cannot, and receipt ledgers are private",
+    "peer-network create is location-bound and exact retries return the original receipt without duplication",
+    "content collisions, missing exact grants, and signed-location mismatch fail closed",
+    "progress update preserves legacy completion/metadata semantics, accumulates time once, and omits identity",
+    "progress conflicts, cross-location IDs, and invalid lifecycle values are rejected without extra writes",
+    "runtime direct table writes remain denied in the isolated privilege fixture"
+  ]
+}

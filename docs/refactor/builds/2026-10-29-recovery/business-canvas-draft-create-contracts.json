@@ -1,0 +1,24 @@
+{
+  "result": "passed",
+  "date": "2026-10-29",
+  "scope": "private business-canvas draft create response contracts",
+  "tests": {
+    "command": "python3 -m pytest tests/test_gateway_business_planning_writes.py -q",
+    "passed": 28,
+    "failed": 0
+  },
+  "acceptance": [
+    "caller-composed and generated draft create routes declare exact OpenAPI response models for 201 creation and 200 replay",
+    "response models reject undeclared and malformed fields and bind location_id to the requested path",
+    "generated_from and populated_blocks are restricted to source-defined values and duplicates are rejected",
+    "draft lifecycle status, replay flag, version, UUIDs, and timezone-aware creation timestamp are validated",
+    "malformed service output returns a sanitized no-store 500 without disclosing response content"
+  ],
+  "environment": {
+    "database": "not used",
+    "provider": "not used",
+    "candidate": "untouched",
+    "legacy": "untouched"
+  },
+  "rollback": "Revert the route response models, contract checks, focused tests, and this evidence file; no database rollback is required."
+}

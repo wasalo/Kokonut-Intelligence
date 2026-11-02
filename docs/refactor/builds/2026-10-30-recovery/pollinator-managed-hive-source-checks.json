@@ -1,0 +1,45 @@
+{
+  "result": "passed",
+  "date": "2026-10-30",
+  "scope": "migration 692 managed-hive legacy writer retirement",
+  "checks": [
+    {
+      "command": "python3 -m pytest -q tests/test_pollinator_health.py tests/test_runtime_role_boundary.py",
+      "result": "passed",
+      "passed": 98,
+      "failed": 0,
+      "duration_seconds": 177.93
+    },
+    {
+      "command": "ruff check services/analytics/pollinator_health.py services/migration/runtime_role.py scripts/check-pollinator-health-disposable.py scripts/check-runtime-scoped-write-boundary-disposable.py scripts/runtime-privilege-callsite-report.py tests/test_pollinator_health.py tests/test_runtime_role_boundary.py",
+      "result": "passed"
+    },
+    {
+      "command": "python3 -m py_compile services/analytics/pollinator_health.py services/migration/runtime_role.py scripts/check-pollinator-health-disposable.py scripts/check-runtime-scoped-write-boundary-disposable.py scripts/runtime-privilege-callsite-report.py tests/test_pollinator_health.py tests/test_runtime_role_boundary.py",
+      "result": "passed"
+    },
+    {
+      "command": "python3 scripts/runtime_sql_inventory.py --check docs/refactor/runtime-sql-inventory.json",
+      "result": "passed",
+      "execution_sites": 4959,
+      "relation_candidates": 1253,
+      "static_write_target_relations": 585,
+      "unresolved_write_candidates": 42
+    },
+    {
+      "command": "git diff --check",
+      "result": "passed"
+    }
+  ],
+  "candidate_legacy_or_production_touched": false,
+  "notes": [
+    "The pollinator reporting acceptance used synthetic fixture inserts rather than retired application writer helpers.",
+    "This DML boundary does not establish tenant-isolated SELECT behavior."
+  ],
+  "related_evidence": [
+    "runtime-pollinator-hives-692-disposable.json",
+    "pollinator-health-reporting-disposable.json",
+    "native-resource-limited-schema-692-operator-probe.json",
+    "arm64-resource-limited-schema-692-operator-probe-retry.json"
+  ]
+}

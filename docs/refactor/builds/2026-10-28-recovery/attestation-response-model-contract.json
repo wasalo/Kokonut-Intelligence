@@ -1,0 +1,44 @@
+{
+  "date": "2026-10-28",
+  "route": "GET /operator/api/attestations/{location_id}",
+  "change": "Publish a strict OpenAPI and runtime response model for stored location-attestation metadata, preserving the existing data/location_id payload and privacy-filtered SQL projection.",
+  "contract": {
+    "data_max_items": 100,
+    "fields": [
+      "id",
+      "attestation_uid",
+      "schema_uid",
+      "schema_name",
+      "claim_type",
+      "status",
+      "chain",
+      "tx_hash",
+      "attested_at",
+      "expiration_date",
+      "revocation_date",
+      "schema_version",
+      "created_at"
+    ],
+    "rejected_private_fields": ["claim_data", "evidence_hash", "evidence_cids", "evidence_urls", "review_notes"]
+  },
+  "authorization_preserved": {
+    "resource": "attestation",
+    "action": "read",
+    "location_scoped": true,
+    "headers": ["Cache-Control: no-store", "Vary: Cookie"]
+  },
+  "verification": {
+    "pytest": {
+      "command": "python3 -m pytest -q tests/test_gateway_attestations.py tests/test_gateway_pagination_openapi_contract.py tests/test_operator_route_policy_inventory.py",
+      "result": "passed",
+      "tests": 20
+    },
+    "ruff": "passed",
+    "py_compile": "passed",
+    "diff_check": "passed"
+  },
+  "limitations": [
+    "Stored attestation metadata does not prove current on-chain validity.",
+    "No database, provider, external network, candidate, or legacy service was used."
+  ]
+}

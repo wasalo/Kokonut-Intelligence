@@ -1,5 +1,6 @@
 """Tests for independent exact-location learning proposal review."""
 
+from datetime import datetime, timezone
 from types import SimpleNamespace
 from unittest.mock import patch
 from uuid import uuid4
@@ -37,7 +38,9 @@ QUEUE_ITEM = {
     "is_source_result_reviewer": False,
 }
 DETAIL = {
+    "location_id": LOCATION_ID,
     **QUEUE_ITEM,
+    "created_at": datetime(2026, 10, 20, 12, 0, tzinfo=timezone.utc),
     "finding": "A locally tailored training schedule improved participation.",
     "affected_assumptions": [{"assumption": "seasonal availability"}],
     "affected_metrics": [{"metric": "attendance_rate"}],
@@ -255,10 +258,50 @@ def test_learning_review_routes_are_no_store_and_reject_extra_fields(monkeypatch
         assert response.headers["cache-control"] == "no-store"
         assert response.headers["vary"] == "Cookie"
     assert queue.status_code == 200 and queue.json()["items"] == [QUEUE_ITEM]
-    assert detail.status_code == 200 and detail.json() == DETAIL
+    assert detail.status_code == 200
+    assert detail.json() == {**DETAIL, "created_at": "2026-10-20T12:00:00+00:00"}
     assert decision.status_code == 201 and decision.json() == RESULT
     assert invalid.status_code == 400
     assert calls == [((OPERATOR_ID, LOCATION_ID, LEARNING_ID, REQUEST_ID, "accepted", None, True), {})]
+
+
+def test_learning_review_detail_openapi_declares_the_strict_private_projection(monkeypatch):
+    app = _app(monkeypatch)
+    path = "/operator/api/solution-lifecycle/{location_id}/learning/{learning_record_id}/review"
+    operation = app.openapi()["paths"][path]
+    schema_ref = operation["get"]["responses"]["200"]["content"]["application/json"]["schema"]["$ref"]
+    assert schema_ref == "#/components/schemas/SolutionLifecycleLearningReviewDetailResponse"
+    schema = app.openapi()["components"]["schemas"]["SolutionLifecycleLearningReviewDetailResponse"]
+    assert schema["additionalProperties"] is False
+    assert {
+        "location_id", "learning_record_id", "finding", "recommended_action",
+        "affected_assumptions", "affected_metrics", "evidence", "source_is_current",
+    }.issubset(schema["required"])
+
+
+@pytest.mark.parametrize(
+    "mutate",
+    [
+        lambda value: value.update(operator_id=OPERATOR_ID),
+        lambda value: value.update(location_id=str(uuid4())),
+        lambda value: value.update(learning_record_id=str(uuid4())),
+        lambda value: value.update(confidence="certain"),
+        lambda value: value.pop("finding"),
+    ],
+)
+def test_learning_review_detail_rejects_malformed_or_mismatched_service_output(monkeypatch, mutate):
+    malformed = dict(DETAIL)
+    mutate(malformed)
+    app = _app(monkeypatch, detail=lambda *_args, **_kwargs: malformed)
+
+    with TestClient(app) as client:
+        response = client.get(_detail_path())
+
+    assert response.status_code == 500
+    assert response.json() == {"error": "Solution learning review detail unavailable"}
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["vary"] == "Cookie"
+    assert OPERATOR_ID not in response.text
 
 
 def test_learning_review_routes_fail_closed_without_oidc_or_tenant_context(monkeypatch):

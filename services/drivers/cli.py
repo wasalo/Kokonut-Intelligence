@@ -13,6 +13,17 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+from uuid import UUID
+
+
+def _preflight_install_location(parser: argparse.ArgumentParser, args) -> None:
+    """Validate an optional install scope before DriverRegistry opens PostgreSQL."""
+    if args.location_id is None:
+        return
+    try:
+        args.location_id = str(UUID(args.location_id))
+    except (AttributeError, TypeError, ValueError):
+        parser.error("--location-id must be a valid UUID")
 
 
 def cmd_list(args):
@@ -94,8 +105,8 @@ def cmd_test(args):
 
 
 def cmd_test_instance(args):
-    from services.drivers.registry import DriverRegistry
     from services.common.database import get_db
+    from services.drivers.registry import DriverRegistry
 
     registry = DriverRegistry()
     conn = get_db()
@@ -153,6 +164,7 @@ def main():
     elif args.install:
         if not args.driver or not args.instance_name:
             parser.error("--install requires --driver and --instance-name")
+        _preflight_install_location(parser, args)
         rc = cmd_install(args)
     elif args.test:
         if not args.driver:

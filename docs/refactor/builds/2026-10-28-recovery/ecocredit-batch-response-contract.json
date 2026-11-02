@@ -1,0 +1,30 @@
+{
+  "date": "2026-10-28",
+  "slice": "C2 location-scoped ecocredit batch response contract",
+  "route": "GET /operator/api/ecocredits/{location_id}/batches",
+  "changes": [
+    "Added an explicit, bounded OpenAPI/runtime response model for batch and aggregate ledger fields.",
+    "Moved success responses through FastAPI response validation so undeclared service fields are excluded.",
+    "Preserved no-store and cookie Vary headers and existing tenant authorization/error responses."
+  ],
+  "privacy_contract": {
+    "wallet_and_account_identifiers_exposed": false,
+    "unexpected_service_fields_serialized": false,
+    "tenant_scope_changed": false
+  },
+  "validation": {
+    "command": "python3 -m pytest -q tests/test_gateway_ecocredits.py tests/test_gateway_pagination_openapi_contract.py",
+    "result": "13 passed",
+    "ruff": "passed",
+    "python_compile": "passed",
+    "git_diff_check": "passed"
+  },
+  "environment": {
+    "database_used": false,
+    "candidate_or_legacy_modified": false,
+    "external_provider_called": false
+  },
+  "limitations": [
+    "This verifies the API contract with synthetic responses; it does not establish populated-farm parity or live OIDC acceptance."
+  ]
+}

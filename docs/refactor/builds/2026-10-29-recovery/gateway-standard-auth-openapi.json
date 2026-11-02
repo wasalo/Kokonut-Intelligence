@@ -1,0 +1,36 @@
+{
+  "date": "2026-10-29",
+  "scope": "mocked-gateway-openapi-contract",
+  "credential_alternatives": [
+    {
+      "name": "GatewayApiKey",
+      "type": "apiKey",
+      "in": "header",
+      "header": "x-api-key"
+    },
+    {
+      "name": "GatewayCapabilityToken",
+      "type": "apiKey",
+      "in": "header",
+      "header": "x-capability-token"
+    }
+  ],
+  "protected_operations": [
+    "POST /api/data-stream/post",
+    "GET /api/data-stream/posts",
+    "GET /api/data-stream/posts/{post_id}/files",
+    "GET /api/data-stream/posts/{post_id}/attestation",
+    "GET /api/health/services"
+  ],
+  "unmarked_operations": [
+    "GET /api/drivers",
+    "GET /health",
+    "POST /api/mobile/sync"
+  ],
+  "focused_tests_passed": 2,
+  "ruff": "passed",
+  "python_compile": "passed",
+  "diff_check": "passed",
+  "database_contacted": false,
+  "provider_contacted": false
+}

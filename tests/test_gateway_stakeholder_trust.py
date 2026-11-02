@@ -189,11 +189,26 @@ def test_trust_response_contract_contains_no_global_score_or_private_feedback():
         response = client.get(
             f"/operator/api/stakeholder-trust/{LOCATION_ID}/parties/{PARTY_ID}/identity-evidence"
         )
+        assert response.status_code == 200
+        assert response.headers["cache-control"] == "no-store"
+        body = response.json()
+        assert body["evidence"][0]["evidence_code"] == "document_review"
+        assert "score" not in body
+        assert "summary" not in str(body).lower()
+        assert "feedback" not in str(body).lower()
 
-    assert response.status_code == 200
-    assert response.headers["cache-control"] == "no-store"
-    body = response.json()
-    assert body["evidence"][0]["evidence_code"] == "document_review"
-    assert "score" not in body
-    assert "summary" not in str(body).lower()
-    assert "feedback" not in str(body).lower()
+        payload["global_score"] = 0.99
+        rejected = client.get(
+            f"/operator/api/stakeholder-trust/{LOCATION_ID}/parties/{PARTY_ID}/identity-evidence"
+        )
+        assert rejected.status_code == 500
+        assert rejected.headers["cache-control"] == "no-store"
+        assert rejected.json() == {"error": "Stakeholder trust evidence unavailable"}
+
+        payload.pop("global_score")
+        payload["party_id"] = str(uuid4())
+        mismatched = client.get(
+            f"/operator/api/stakeholder-trust/{LOCATION_ID}/parties/{PARTY_ID}/identity-evidence"
+        )
+        assert mismatched.status_code == 500
+        assert mismatched.headers["cache-control"] == "no-store"

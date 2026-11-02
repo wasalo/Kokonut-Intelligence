@@ -1,0 +1,67 @@
+{
+  "date": "2026-10-29",
+  "base_head": "d1b6bf38",
+  "scope": "Strict competency-review queue contract and explicit PESTEL read projections",
+  "files": [
+    "services/gateway/operating_pilot_routes.py",
+    "tests/test_gateway_operating_pilot_reads.py",
+    "services/analytics/pestel.py",
+    "tests/test_pestel.py"
+  ],
+  "source_migrations": [
+    "schemas/postgres/577_location_operating_pilot_competency_review.sql",
+    "schemas/postgres/203_pestel_analysis.sql"
+  ],
+  "competency_review_queue": {
+    "page_fields": ["location_id", "limit", "offset", "items", "has_more", "next_offset", "total"],
+    "item_fields": ["draft_id", "competency_key", "current_level", "target_level", "evidence_note", "status", "updated_at"],
+    "invariants": [
+      "location_id, limit, and offset match the request",
+      "levels are finite numeric values from zero through five with at most two decimal places, and target is not below current",
+      "competency_key follows the migration-defined lowercase key pattern",
+      "status is submitted and private actor/reviewer fields are excluded",
+      "item count, has_more, and next_offset agree with total and the 10000 offset cap",
+      "draft IDs are unique and results follow updated_at DESC, id DESC",
+      "Gateway suppresses SQL continuations beyond the request offset cap and the console reports remaining records",
+      "OpenAPI documents the NUMERIC(4,2) precision with multipleOf 0.01",
+      "malformed responses return a generic no-store error"
+    ]
+  },
+  "pestel_projections": {
+    "analysis_columns": [
+      "id", "location_id", "title", "period_start", "period_end", "status",
+      "political_score", "economic_score", "social_score", "technological_score",
+      "environmental_score", "legal_score", "overall_score", "factor_count",
+      "metadata", "created_by", "updated_by", "created_at", "updated_at", "location_name"
+    ],
+    "factor_columns": [
+      "id", "analysis_id", "location_id", "category", "factor_type", "title",
+      "description", "impact_score", "likelihood", "evidence_source", "status",
+      "created_by", "updated_by", "created_at", "updated_at"
+    ],
+    "preserved_behavior": [
+      "optional location filter remains unchanged and omission still lists all analyses",
+      "analysis ordering remains created_at DESC",
+      "factor filtering remains analysis_id and factor ordering remains category, factor_type",
+      "dictionary row serialization is unchanged"
+    ]
+  },
+  "verification": {
+    "competency_test_command": "python3 -m pytest tests/test_gateway_operating_pilot_reads.py -k 'competency_review_queue' -q",
+    "competency_tests_passed": 25,
+    "operator_console_test_command": "python3 -m pytest tests/test_operator_console_operating_pilot.py -k 'competency_review_console_is_grant_gated_private_and_retry_safe' -q",
+    "operator_console_tests_passed": 1,
+    "pestel_test_command": "python3 -m pytest tests/test_pestel.py -k 'list_analyses_uses_explicit or list_analyses_preserves_intentional or get_analysis_uses_explicit' -q",
+    "pestel_tests_passed": 3,
+    "ruff": "passed",
+    "python_compileall": "passed",
+    "capability_matrix": "passed: 67 rows; 24 baseline-retained, 7 deployed, 36 prepared",
+    "git_diff_check": "passed"
+  },
+  "environment": {
+    "database_used": false,
+    "external_provider_used": false,
+    "candidate_or_legacy_state_changed": false,
+    "errors": 0
+  }
+}

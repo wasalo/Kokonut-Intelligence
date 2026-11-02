@@ -1,0 +1,59 @@
+{
+  "date": "2026-10-28",
+  "batch": "kernel-parallel-directus-mobile-report-scope-contracts",
+  "base_commit": "4807034536f4639b6f38c3df0eccc44f47aa1d56",
+  "changes": [
+    {
+      "area": "directus-analyst-feedback",
+      "result": "The curated Analyst stakeholder_feedback read permission now exposes only id, location and farm scope, type/group/date, sentiment, themes, public summary, and evidence maturity. Existing row filters are unchanged. The permission inventory was regenerated. This is source-level policy evidence, not effective runtime permission acceptance."
+    },
+    {
+      "area": "farm-summary-direct-call-scope",
+      "result": "generate_farm_summary rejects missing, aggregate, malformed, and multi-location IDs before cursor creation. SQL projections and report semantics are unchanged."
+    },
+    {
+      "area": "mobile-collection-review-queue",
+      "result": "The private queue now publishes an exact OpenAPI response model for its migration-backed projection, binds rows to the requested location, checks review state and eligibility consistency, rejects undeclared fields, and preserves no-store and tenant-denial behavior."
+    },
+    {
+      "area": "regenerative-outcomes-direct-call-scope",
+      "result": "generate_regenerative_outcomes rejects missing, aggregate, malformed, and multi-location IDs before cursor creation. Its SQL projections and report semantics are unchanged."
+    },
+    {
+      "area": "farm-activity-intake-queue",
+      "result": "The private queue now publishes a strict request-location-bound response contract for the fixed Field Collector 1.2.0 projection. It excludes payload and free text, rejects undeclared fields, and preserves authorization and no-store behavior."
+    },
+    {
+      "area": "directus-wildcard-field-audit",
+      "result": "No further field-only narrowing was justified. Auditor feedback access intentionally covers private/all-status rows for forensic review, and the repository has no owner-approved field contract; other operational projections also lack an evidenced narrower field policy. The Auditor rule and other permissions remain unchanged."
+    }
+  ],
+  "validation": {
+    "integrated_pytest_command": "python3 -m pytest tests/test_operator_auth.py tests/test_operator_mobile_review_contract.py tests/test_operator_farm_activity_intake_contract.py tests/test_farm_activity_workflow.py tests/test_consent_privacy_p0.py tests/test_directus_permission_inventory.py tests/test_farm_summary_report_scope.py tests/test_report_state_cursor_cleanup.py tests/test_regenerative_outcomes_scope.py tests/test_regenerative_outcomes.py -q",
+    "integrated_pytest_result": "400 passed",
+    "report_scope_focused_pytest_result": "18 passed",
+    "farm_activity_queue_focused_pytest_result": "28 passed",
+    "ruff": "passed",
+    "python_compileall": "passed",
+    "capability_matrix": "passed; 67 rows",
+    "report_source_inventory": "passed",
+    "report_query_scope_inventory": "passed",
+    "directus_permission_source_inventory": "passed",
+    "git_diff_check": "passed"
+  },
+  "report_field_audit": {
+    "location_fields_returned": 33,
+    "farm_fields_returned": 28,
+    "plot_fields_returned": 24,
+    "crop_cycle_fields_returned": 30,
+    "decision": "No report output projection or lifecycle measure was changed. Broad-stakeholder field allowlisting and consistent measure semantics remain open because the current output includes sensitive operational, identity, geometry, metadata, yield, and financial fields."
+  },
+  "environment": {
+    "migration": false,
+    "database": false,
+    "provider": false,
+    "directus_runtime": false,
+    "candidate_or_legacy_service": false,
+    "live_network": false
+  }
+}

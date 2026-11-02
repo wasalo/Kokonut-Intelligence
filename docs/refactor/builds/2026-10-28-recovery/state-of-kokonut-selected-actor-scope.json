@@ -1,0 +1,20 @@
+{
+  "date": "2026-10-28",
+  "report": "state_of_kokonut",
+  "finding": "A selected-location report filtered its per-location sections but built actor funding/participation summaries from all funding_round rows. Empty comma-separated location input could also produce an empty selection that the location reader treated as an all-location request.",
+  "change": "Bind selected location IDs into all four actor/funding queries and reject a selected-location request that normalizes to no IDs before opening a database cursor. Network/all-locations mode remains unfiltered.",
+  "verification": {
+    "pytest": {
+      "command": "python3 -m pytest -q tests/test_state_of_kokonut.py tests/test_report_state_cursor_cleanup.py",
+      "result": "passed",
+      "tests": 285
+    },
+    "ruff": "passed",
+    "py_compile": "passed",
+    "diff_check": "passed"
+  },
+  "limitations": [
+    "This is source/mock query-scope evidence only; no populated output parity or tenant authorization is established.",
+    "No database, provider, candidate, or legacy service was used."
+  ]
+}

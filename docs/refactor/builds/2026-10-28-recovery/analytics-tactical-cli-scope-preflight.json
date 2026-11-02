@@ -1,0 +1,27 @@
+{
+  "record_version": 1,
+  "date": "2026-10-28",
+  "slice": "analytics-tactical-cli-scope-preflight",
+  "status": "focused checks passed",
+  "finding": "Promotion-ladder and zwischenzug CLI operations accepted an omitted location, silently selecting network-wide data. The tactical-layer report rejected missing scope only after the CLI opened PostgreSQL. The two zwischenzug branches also imported an analytics automation module that does not exist; the implementation lives under services.feedback.",
+  "changes": [
+    "Require a valid UUID location for tactical-layer reports before opening PostgreSQL.",
+    "Require an explicit location or --all-locations for promotion-ladder and zwischenzug CLI commands.",
+    "Reject combining a specific location with --all-locations; tactical-layer does not support all-locations.",
+    "Import zwischenzug implementations from services.feedback.automation."
+  ],
+  "checks": {
+    "command": "python3 -m pytest -q tests/test_analytics_cli_scope.py",
+    "result": "passed",
+    "passed": 13,
+    "ruff": "passed",
+    "python_compilation": "passed",
+    "invalid_scope_database_preflight": "get_connection was not called",
+    "database_or_provider_used": false
+  },
+  "all_location_behavior": "Existing network-wide capability is preserved for promotion-ladder and zwischenzug behind explicit --all-locations.",
+  "limitations": [
+    "This is CLI preflight coverage; it does not establish runtime tenant authorization for direct function callers.",
+    "No live database, provider, or candidate/legacy service was used."
+  ]
+}

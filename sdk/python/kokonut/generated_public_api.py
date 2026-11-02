@@ -28,6 +28,23 @@ class ApiPublicCrispAssessmentEnvelope(TypedDict):
     data: ApiPublicCrispAssessment
 
 
+class ApiPublicDriverCatalogEntry(TypedDict):
+    driver_name: str
+    driver_type: Literal['sensor', 'remote_sensing', 'market', 'blockchain', 'weather', 'climate', 'gis']
+    driver_version: str
+
+
+class ApiPublicDriverCatalogEnvelope(TypedDict):
+    data: ApiPublicDriverCatalogResponse
+
+
+class ApiPublicDriverCatalogResponse(TypedDict):
+    drivers: list[ApiPublicDriverCatalogEntry]
+    has_more: bool
+    limit: int
+    offset: int
+
+
 class ApiPublicError(TypedDict):
     error: str
 
@@ -88,5 +105,6 @@ PUBLIC_API_PATHS_V1 = {
     'getPublicLocationSummaryV1': '/analytics/{location_id}/summary',
     'getPublicLocationV1': '/locations/{location_id}',
     'getPublicMetricSummaryV1': '/metrics/{location_id}',
+    'listPublicDriversV1': '/drivers',
     'listPublicLocationsV1': '/locations',
 }

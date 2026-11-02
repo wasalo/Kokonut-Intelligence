@@ -14,7 +14,6 @@ from typing import Any, Dict, List, Optional
 import psycopg2
 import psycopg2.extras
 
-
 # Grade thresholds based on health score (0-100, higher = better).
 GRADE_THRESHOLDS = {
     "flourishing": (80, 101),
@@ -40,6 +39,13 @@ DIMENSION_KEYS = [
     "financial",
     "implementation",
 ]
+
+
+def _canonical_location_id(location_id: str) -> str:
+    try:
+        return str(uuid.UUID(str(location_id)))
+    except (TypeError, ValueError, AttributeError) as exc:
+        raise ValueError("location_id must be a valid UUID") from exc
 
 
 class SituationAssessor:
@@ -70,6 +76,7 @@ class SituationAssessor:
         Returns:
             Dict with assessment_id, situation_grade, composite_score, etc.
         """
+        location_id = _canonical_location_id(location_id)
         conn = self._get_conn()
         cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
@@ -297,11 +304,13 @@ class SituationAssessor:
         self, cur, location_id: str
     ) -> List[Dict[str, Any]]:
         """Gather signals from recent anomalies."""
+        location_id = _canonical_location_id(location_id)
         cur.execute("""
-            SELECT sa.*
+            SELECT sa.id, sa.severity
             FROM sensor_alert sa
             JOIN sensor_device sd ON sd.id = sa.sensor_device_id
             WHERE sd.location_id = %s
+            AND sa.location_id = sd.location_id
             AND sa.created_at > NOW() - INTERVAL '7 days'
             ORDER BY sa.created_at DESC
             LIMIT 20
@@ -497,6 +506,7 @@ class SituationAssessor:
         self, cur, location_id: str
     ) -> Dict[str, int]:
         """Count recent anomalies by severity."""
+        location_id = _canonical_location_id(location_id)
         cur.execute("""
             SELECT
                 sa.severity,
@@ -504,6 +514,7 @@ class SituationAssessor:
             FROM sensor_alert sa
             JOIN sensor_device sd ON sd.id = sa.sensor_device_id
             WHERE sd.location_id = %s
+            AND sa.location_id = sd.location_id
             AND sa.created_at > NOW() - INTERVAL '7 days'
             GROUP BY sa.severity
         """, (location_id,))

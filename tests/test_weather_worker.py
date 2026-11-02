@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import sys
+import traceback
 from unittest.mock import MagicMock, patch
 from uuid import uuid4
 
@@ -212,6 +213,32 @@ def test_provider_failure_is_audited_without_leaking_key_or_url():
     assert PROVIDER_KEY not in store.call_args.kwargs["error_text"]
     assert store.call_args.kwargs["record"] is None
     assert store.call_args.kwargs["provider_payload_hash"] is None
+
+
+def test_provider_and_failure_audit_errors_are_redacted_from_traceback(caplog):
+    provider_url = f"https://provider.invalid/weather?appid={PROVIDER_KEY}"
+    provider_error = RuntimeError(f"request failed: {provider_url}")
+    audit_error = RuntimeError(f"audit persistence failed for {PROVIDER_KEY}")
+
+    with patch.object(worker, "_provider_api_key", return_value=PROVIDER_KEY), \
+            patch.object(worker, "get_worker_credential", return_value=RAW_CREDENTIAL), \
+            patch.object(worker, "_load_location", return_value=(18.5, -69.9)), \
+            patch.object(worker, "_fetch_weather", side_effect=provider_error), \
+            patch.object(worker, "_store_observation", side_effect=audit_error):
+        with pytest.raises(RuntimeError, match="weather fetch or parsing failed") as raised:
+            worker.ingest(LOCATION_ID)
+
+    formatted = "".join(
+        traceback.format_exception(raised.type, raised.value, raised.value.__traceback__)
+    )
+    assert PROVIDER_KEY not in str(raised.value)
+    assert provider_url not in str(raised.value)
+    assert PROVIDER_KEY not in formatted
+    assert provider_url not in formatted
+    assert raised.value.__cause__ is None
+    assert raised.value.__context__ is None
+    assert PROVIDER_KEY not in caplog.text
+    assert "Weather failure audit could not be persisted (RuntimeError)" in caplog.text
 
 
 def test_disabled_cli_fails_before_ingestion():

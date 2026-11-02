@@ -1,0 +1,54 @@
+{
+  "check": "scaling_roadmap direct generator location scope",
+  "date": "2026-10-28",
+  "source_revision": "753b464508c42e744e714512a587af437c8ca42a",
+  "finding": {
+    "registry_scope": "location-required",
+    "cli_scope": "The report is absent from NETWORK_LEVEL_REPORTS and ALL_LOCATION_REPORTS, so CLI generation requires one explicit --location-id and rejects --all.",
+    "issue": "The direct generator accepted None or an empty location_id and queried every published public milestone without a location predicate.",
+    "preserved_global_rows": "For an explicitly selected location, the query continues to include published rows whose location_id is NULL, preserving reviewed network-wide roadmap milestones."
+  },
+  "change": {
+    "files": [
+      "services/export/reports/wellbeing.py",
+      "tests/test_financial_resilience.py",
+      "tests/test_report_state_cursor_cleanup.py"
+    ],
+    "behavior": "Reject missing location_id before opening a cursor; remove the unscoped query fallback; retain the selected-location-or-NULL predicate and parameterized date filters.",
+    "test_coverage": "Direct calls with None and empty location fail before database access. A scoped query binds the location and preserves global NULL rows in the total."
+  },
+  "verification": {
+    "passed": [
+      {
+        "command": "python3 -m pytest tests/test_financial_resilience.py -q",
+        "result": "10 passed"
+      },
+      {
+        "command": "python3 -m pytest tests/test_financial_resilience.py tests/test_report_state_cursor_cleanup.py tests/test_report_generator_cli.py -q -k 'not replication_readiness'",
+        "result": "399 passed, 4 deselected"
+      },
+      {
+        "command": "python3 -m pytest tests/test_bio_factory_operations.py tests/test_capital_efficiency.py tests/test_commons_liberation.py tests/test_open_source_capitalist_scaling.py tests/test_regenerative_outcomes.py tests/test_financial_resilience.py tests/test_stakeholder_foundation.py tests/test_report_generator_cli.py tests/test_report_generator_query_scope_inventory.py tests/test_report_state_cursor_cleanup.py -q",
+        "result": "516 passed, 4 skipped"
+      },
+      {
+        "command": "python3 -m ruff check services/export/reports/wellbeing.py tests/test_financial_resilience.py tests/test_report_state_cursor_cleanup.py",
+        "result": "All checks passed"
+      },
+      {
+        "command": "python3 -m py_compile services/export/reports/wellbeing.py tests/test_financial_resilience.py",
+        "result": "Passed"
+      },
+      {
+        "command": "git diff --check",
+        "result": "Passed"
+      }
+    ],
+    "database_or_provider_access": false
+  },
+  "rollback": "Revert the scaling_roadmap function and its focused regression/test-case changes; no schema or data migration was applied.",
+  "limitations": [
+    "The CLI and report registry classifications were inspected but not modified.",
+    "The shared report-query inventory is intentionally left for the parent to regenerate after all parallel slices finish."
+  ]
+}

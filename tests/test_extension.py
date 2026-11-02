@@ -3,29 +3,31 @@
 Tests for Digital Extension Services
 """
 
-import sys
 import os
+import sys
+
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 import unittest
-from unittest.mock import MagicMock, patch
 from datetime import datetime, timezone
+from unittest.mock import MagicMock
+from uuid import uuid4
 
 from services.analytics.extension import (
+    add_peer_member,
     create_module,
-    list_modules,
+    create_peer_group,
+    deliver_content,
     enroll_farmer,
-    update_progress,
+    get_delivery_stats,
+    get_extension_effectiveness,
     get_farmer_progress,
     get_module_stats,
-    create_peer_group,
-    add_peer_member,
     get_peer_groups,
-    deliver_content,
-    get_delivery_stats,
-    record_assessment,
-    get_extension_effectiveness,
+    list_modules,
     recommend_modules,
+    record_assessment,
+    update_progress,
 )
 
 
@@ -317,13 +319,13 @@ class TestRecordAssessment(unittest.TestCase):
         self.mock_cursor = MagicMock()
         self.conn.cursor.return_value = self.mock_cursor
         self.mock_cursor.fetchone.side_effect = [
-            ("loc-001",),  # location from learning_progress
             ("assess-001", datetime(2026, 1, 1, tzinfo=timezone.utc)),  # insert result
         ]
 
     def test_record_assessment_returns_assessment_id(self):
         result = record_assessment(
             self.conn, "farmer-001", "mod-001", "pre_test", 60.0,
+            location_id=str(uuid4()),
         )
         self.assertIn("assessment_id", result)
         self.assertEqual(result["farmer_id"], "farmer-001")
@@ -333,9 +335,20 @@ class TestRecordAssessment(unittest.TestCase):
     def test_record_assessment_with_max_score(self):
         result = record_assessment(
             self.conn, "farmer-001", "mod-001", "post_test", 85.0,
-            max_score=100,
+            location_id=str(uuid4()), max_score=100,
         )
         self.assertEqual(result["max_score"], 100)
+
+    def test_record_assessment_requires_valid_location_before_cursor(self):
+        for location_id in (None, "not-a-uuid"):
+            with self.subTest(location_id=location_id):
+                conn = MagicMock()
+                with self.assertRaisesRegex(ValueError, "location_id"):
+                    record_assessment(
+                        conn, "farmer-001", "mod-001", "pre_test", 60.0,
+                        location_id=location_id,
+                    )
+                conn.cursor.assert_not_called()
 
 
 class TestGetExtensionEffectiveness(unittest.TestCase):

@@ -1,0 +1,10 @@
+# Additive lean application image with no optional Web3/export/media packages.
+# Combine only with docker-compose.kernel-candidate.yml.
+services:
+  app:
+    build:
+      target: kernel-core
+      args:
+        KOKONUT_CORE_WEB3: "false"
+        KOKONUT_CORE_EXPORTS: "false"
+        KOKONUT_CORE_LOCAL_MEDIA: "false"

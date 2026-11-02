@@ -1,0 +1,47 @@
+{
+  "candidate_legacy_production_touched": false,
+  "completed_at_utc": "2026-11-01T20:20:05Z",
+  "container_network": "dedicated disposable bridge; no external service calls",
+  "database": "disposable PostgreSQL 16 only",
+  "directus_role_provisioner": "provisioned",
+  "directus_select_and_denied_mutation_before_and_after_provisioning": "passed",
+  "docker_image": "postgis/postgis:16-3.4@sha256:44126d872ac91993766c341e369c539e8196614321765d36a6f1bab0419a5fa5",
+  "host_binding": "ephemeral 127.0.0.1 only",
+  "isolated_freshness_worker_read": {
+    "migration-645 bounded config reader": "preserved and callable"
+  },
+  "migration_apply_and_replay": "passed",
+  "migration_sha256": {
+    "735_runtime_location_baseline_read_only.sql": "669a29c20bfd675f623a50c0a227cdd8f17392ce0725055f1c2b998ef012304d",
+    "736_runtime_bio_ingredient_composition_reference_read_only.sql": "8824d85c90a0589adc54c4854769f85a02d8f3b1253e6f1421604544805ba71e",
+    "737_runtime_data_freshness_config_read_only.sql": "cbf242598d75b03d0f65beebd8be4aa6d389d4b5fa60adbdfa466a78f909a921",
+    "738_directus_reference_relations_read_only.sql": "bba1b8a6b87d9586a54cc78b8765415837ed8b6dadd064d1ca965c89bfec1a0c"
+  },
+  "migrations": [
+    "735_runtime_location_baseline_read_only.sql",
+    "736_runtime_bio_ingredient_composition_reference_read_only.sql",
+    "737_runtime_data_freshness_config_read_only.sql",
+    "738_directus_reference_relations_read_only.sql"
+  ],
+  "ok": true,
+  "relations": [
+    "location_baseline",
+    "bio_ingredient_composition_reference",
+    "bio_regional_input_availability",
+    "data_freshness_config"
+  ],
+  "runtime_provisioner_reapplication": "passed",
+  "runtime_select": "preserved for all four reviewed relations",
+  "runtime_table_and_column_dml": "denied for all four reviewed relations",
+  "seed_admin_and_owner_access": {
+    "bio_ingredient_composition_reference": "owner and seed/admin writes preserved",
+    "bio_regional_input_availability": "owner and seed/admin writes preserved",
+    "data_freshness_config": "owner and seed/admin writes preserved",
+    "location_baseline": "owner and seed/admin writes preserved"
+  },
+  "seed_style_upserts": {
+    "bio_ingredient_composition_reference": "synthetic ON CONFLICT seed upsert succeeded",
+    "bio_regional_input_availability": "synthetic ON CONFLICT seed upsert succeeded",
+    "data_freshness_config": "synthetic ON CONFLICT seed upsert succeeded"
+  }
+}

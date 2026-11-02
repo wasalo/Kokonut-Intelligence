@@ -22,8 +22,7 @@ CREATE TABLE IF NOT EXISTS remote_sensing_events
 )
 ENGINE = MergeTree()
 PARTITION BY toYYYYMM(timestamp)
-ORDER BY (location_id, source, timestamp)
-TTL toDateTime(timestamp) + INTERVAL 2 YEAR;
+ORDER BY (location_id, source, timestamp);
 
 -- ============================================================
 -- ClickHouse: Attestation events
@@ -45,5 +44,4 @@ CREATE TABLE IF NOT EXISTS attestation_events
 )
 ENGINE = MergeTree()
 PARTITION BY toYYYYMM(timestamp)
-ORDER BY (chain, attestation_uid)
-TTL toDateTime(timestamp) + INTERVAL 2 YEAR;
+ORDER BY (chain, attestation_uid);

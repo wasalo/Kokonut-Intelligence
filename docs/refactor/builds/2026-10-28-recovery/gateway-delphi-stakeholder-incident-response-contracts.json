@@ -1,0 +1,54 @@
+{
+  "batch": "Private Delphi, stakeholder, and pollution-incident response contracts",
+  "date": "2026-10-28",
+  "branch": "chore/kernel-next-sprint-plan",
+  "scope": {
+    "route_templates": [
+      "GET /operator/api/delphi/{location_id}/consent-notices",
+      "GET /operator/api/delphi/{location_id}/studies",
+      "GET /operator/api/delphi/{location_id}/minority-reports",
+      "GET /operator/api/delphi/{location_id}/recommendations",
+      "GET /operator/api/stakeholder-identity/{location_id}/cases",
+      "GET /operator/api/stakeholder-trust/{location_id}/parties/{party_id}/identity-evidence",
+      "GET /operator/api/waste/{location_id}/incidents"
+    ],
+    "contracts": [
+      "strict bounded projections and OpenAPI success schemas",
+      "location, party, page, and cursor request binding",
+      "cursor ordering and continuation validation",
+      "Delphi participant privacy floor and independent-review blockers",
+      "aware ISO parsing for nested Delphi JSONB timestamps",
+      "pollution incident projection allowlist and offset ceiling"
+    ]
+  },
+  "checks": {
+    "focused_gateway_pytest": {
+      "command": "python3 -m pytest tests/test_gateway_delphi_consent_notices.py tests/test_gateway_delphi_consultation.py tests/test_gateway_delphi_minority_review.py tests/test_gateway_delphi_recommendation_review.py tests/test_gateway_stakeholder_identity.py tests/test_gateway_stakeholder_identity_pagination_openapi.py tests/test_gateway_stakeholder_identity_resolution.py tests/test_gateway_stakeholder_trust.py tests/test_gateway_stakeholder_trust_pagination_openapi.py tests/test_gateway_waste_management_incidents.py -q",
+      "result": "198 passed"
+    },
+    "ruff": "passed",
+    "python_compilation": "passed",
+    "runtime_sql_inventory_python_3_11": "current; 37 unresolved candidates retained",
+    "runtime_sql_inventory_python_3_12": "current; 37 unresolved candidates retained",
+    "capability_matrix": "valid; 67 rows (24 baseline-retained, 7 deployed, 36 prepared)",
+    "git_diff_check": "passed"
+  },
+  "database_migration": "none",
+  "database_grants_changed": false,
+  "live_database_or_provider_used": false,
+  "candidate_or_legacy_touched": false,
+  "capability_classification_changed": false,
+  "man_cap_acceptance_changed": false,
+  "remaining_acceptance": [
+    "live OIDC and browser behavior",
+    "populated-data parity",
+    "broader tenant isolation"
+  ],
+  "checklist": {
+    "batches_complete": 1422,
+    "batches_open": 25,
+    "todo_checked": 129,
+    "todo_open": 16,
+    "strict_private_gateway_response_endpoints": 51
+  }
+}

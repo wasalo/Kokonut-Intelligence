@@ -8,6 +8,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 OPTIONAL_SUBSETS = {"ml-anomaly.txt": "analytics.txt"}
+CI_ONLY_MANIFESTS = {"ci-tools.txt"}
 
 
 def requirements(path: Path) -> list[str]:
@@ -23,7 +24,9 @@ def main() -> int:
     actual = Counter()
     manifests = sorted((ROOT / "requirements").glob("*.txt"))
     for path in manifests:
-        if path.name not in OPTIONAL_SUBSETS:
+        # Security and workflow tooling is installed into its own isolated
+        # virtual environment, so these packages are not app dependency groups.
+        if path.name not in OPTIONAL_SUBSETS and path.name not in CI_ONLY_MANIFESTS:
             actual.update(requirements(path))
     for subset_name, parent_name in OPTIONAL_SUBSETS.items():
         subset = Counter(requirements(ROOT / "requirements" / subset_name))

@@ -13,12 +13,13 @@ Usage:
     python -m services.analytics.equipment --cost --location-id UUID
 """
 
+import argparse
 import json
 import uuid
-from datetime import datetime, timezone, date, timedelta
-from typing import Optional
+from datetime import date, datetime
 
 from services.common.commands import CommandLine
+
 from ..common.logging import get_logger
 
 logger = get_logger("analytics.equipment")
@@ -160,7 +161,7 @@ def get_equipment_status(conn, location_id: str) -> list[dict]:
 
 def compute_oee(conn, asset_id: str, period_days: int = 30) -> dict:
     """Compute Overall Equipment Effectiveness for an asset.
-    
+
     OEE = Availability × Performance × Quality
     """
     cur = conn.cursor()
@@ -442,20 +443,39 @@ def _format_cost(r: dict) -> str:
 
 
 def _cmd_log(db, a):
-    start = datetime.fromisoformat(a.start)
-    end = datetime.fromisoformat(a.end) if a.end else None
     return log_equipment_usage(
-        db, a.location_id, a.asset_id, start, end,
+        db, a.location_id, a.asset_id, a.start, a.end,
         a.operation, a.output, a.output_unit,
         a.fuel, a.energy, a.operator,
     )
 
 
+def _parse_usage_datetime(value: str) -> datetime:
+    """Parse an offset-aware ISO datetime before a CLI command opens PostgreSQL."""
+    try:
+        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except (AttributeError, TypeError, ValueError) as exc:
+        raise argparse.ArgumentTypeError(
+            "must be an ISO-8601 datetime with an explicit timezone offset"
+        ) from exc
+    if parsed.tzinfo is None or parsed.utcoffset() is None:
+        raise argparse.ArgumentTypeError(
+            "must be an ISO-8601 datetime with an explicit timezone offset"
+        )
+    return parsed
+
+
 cli.subcommand("log", "Log equipment usage") \
     .add("--location-id", required=True) \
     .add("--asset-id", required=True) \
-    .add("--start", required=True, help="ISO datetime") \
-    .add("--end", help="ISO datetime") \
+    .add(
+        "--start", required=True, type=_parse_usage_datetime,
+        help="ISO-8601 datetime with an explicit timezone offset",
+    ) \
+    .add(
+        "--end", type=_parse_usage_datetime,
+        help="ISO-8601 datetime with an explicit timezone offset",
+    ) \
     .add("--operation", help="Operation type") \
     .add("--output", type=float, help="Output produced") \
     .add("--output-unit", help="Output unit") \

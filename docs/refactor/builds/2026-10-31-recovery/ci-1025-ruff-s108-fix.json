@@ -1,0 +1,98 @@
+{
+  "date": "2026-10-31",
+  "linked_run": {
+    "run_id": 41172853331,
+    "run_number": 1014,
+    "first_attempt": {
+      "result": "failure",
+      "head_sha": "aa6a01ab053ff48f886766e19212096528b41d6d",
+      "job_log": "expired; GitHub returned 404 when queried"
+    },
+    "second_attempt": {
+      "result": "cancelled",
+      "job_id": 124544129455,
+      "cancelled_during": "ARM64 Buildx dependency installation (jsonschema wheel download); no source assertion was logged"
+    },
+    "interpretation": "The original failure cannot be identified from the expired attempt-1 log. The available retry was cancelled during ARM64 image dependency installation, before a source assertion. Later runs exposed and fixed the actionable Ruff S108 and stale runtime-SQL inventory failures."
+  },
+  "actual_failed_run": {
+    "run_id": 41222846441,
+    "run_number": 1025,
+    "pr": 71,
+    "pr_head_sha": "19f7e65850515ed21910ce04509dfcba9bcd1b4f",
+    "merge_sha": "2f014067df7fdb4a19b5a5266d2071b363d1d743",
+    "job_id": 124600808367,
+    "job": "full-ci",
+    "failed_gate": "Ruff security scan",
+    "diagnosis": "Two S108 findings rejected the duplicated default path /tmp/kokonut-worker-progress/supervisor.json in services/core/runtime.py and services/core/worker_progress.py."
+  },
+  "repair": {
+    "heartbeat_path": "/var/lib/kokonut/worker-progress/supervisor.json",
+    "standard_compose_path": "/var/lib/kokonut/worker-progress/supervisor.json",
+    "directory_mode": "0700",
+    "directory_owner": "appuser",
+    "compose_path_matches_image": true,
+    "child_liveness": "Supervisor heartbeat includes enabled child PIDs; health fails before PostgreSQL if an enabled child is missing or exited and returns no PID values."
+  },
+  "local_validation": {
+    "ruff_command": "ruff check --select S,BLE --ignore S101,S104,S105,S110,S112,S310,S311,S404,S603,S607,S608,RUF012,BLE001 services/",
+    "ruff": "passed",
+    "py_compile": "passed",
+    "kernel_release_inputs": "passed; Dockerfile.kernel SHA-256 lock refreshed",
+    "focused_tests": {
+      "command": "python3 -m pytest -q tests/test_worker_progress.py tests/test_kernel_runtime_supervisor.py tests/test_kernel_profile.py",
+      "passed": 118,
+      "failed": 0
+    },
+    "git_diff_check": "passed"
+  },
+  "repair_commit": "1c6643dee39ab43174e3ea54fd6cbb7120e10f09",
+  "pushed_to": "chore/kernel-next-sprint-plan",
+  "hosted_repair_run": {
+    "ci": {
+      "run_id": 41223534758,
+      "run_number": 1026,
+      "status": "failed",
+      "failure": "runtime SQL inventory was stale after the source changes on commit 1c6643de",
+      "repair": "regenerated docs/refactor/runtime-sql-inventory.json; its local freshness check passes"
+    },
+    "security": {
+      "run_id": 41223534795,
+      "run_number": 750,
+      "status": "passed"
+    }
+  },
+  "follow_up_hosted_runs": {
+    "ci_1027": {
+      "run_id": 41224945743,
+      "head_sha": "450ae3d2ecd142222d8e653d4b7bfeed98b3c4a7",
+      "attempt_1": {
+        "result": "cancelled",
+        "reason_observed": "Hosted runner shutdown signal while the complete CI step was still executing; no source assertion was reported."
+      },
+      "attempt_2": {
+        "result": "cancelled",
+        "reason_observed": "Hosted runner shutdown signal while the complete CI step was still executing; Gateway and gRPC returned healthy responses immediately beforehand and no source assertion was reported."
+      },
+      "kernel_image": "passed",
+      "security_run": {
+        "run_id": 41224945812,
+        "run_number": 751,
+        "result": "passed"
+      },
+      "complete_hosted_ci_gate": "open; the environmental cause of repeated runner shutdown is unconfirmed"
+    }
+  },
+  "next_hosted_run": "obtain a complete hosted full-CI run after investigating the repeated hosted-runner shutdown; do not treat the cancelled attempts as source failures or green CI",
+  "follow_up_pre_push": {
+    "code_default_path": "~/.local/state/kokonut/worker-progress/supervisor.json",
+    "standard_compose_path": "/var/lib/kokonut/worker-progress/supervisor.json",
+    "focused_tests": {
+      "passed": 119,
+      "failed": 0
+    },
+    "runtime_sql_inventory": "regenerated and freshness check passed on source including migration 709",
+    "release_inputs": "passed",
+    "migration_source_validation": "822 files passed"
+  }
+}

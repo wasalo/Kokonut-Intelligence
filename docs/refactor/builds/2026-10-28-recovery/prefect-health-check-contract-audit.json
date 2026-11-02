@@ -1,0 +1,39 @@
+{
+  "date": "2026-10-28",
+  "operation": "services.flows.health_check::health_check_flow",
+  "catalog_status": {
+    "registered_job_spec": false,
+    "allowed_scheduled_module": false,
+    "prefect_pipeline_entry": false,
+    "seeded_schedule": false
+  },
+  "source_findings": {
+    "entrypoint": "scripts/health-check.sh --json",
+    "required_service_probes": [
+      "PostgreSQL",
+      "Directus",
+      "ClickHouse",
+      "Docker container names"
+    ],
+    "optional_service_probes": [
+      "Metabase when HEALTH_CHECK_METABASE=true",
+      "SMTP/webhook notification when --alert is supplied"
+    ],
+    "kernel_minimal_profile_compatible": false,
+    "scheduled_module_has_cli_entrypoint": false
+  },
+  "decision": "Do not add this as a Kernel JobSpec or activate a Prefect schedule. The shell checker encodes legacy stack assumptions and does not run under the allowlisted scheduled-command contract. Revisit after health probes are capability/profile-aware and a provider-independent health-check command contract exists.",
+  "evidence": [
+    "services/flows/health_check.py",
+    "scripts/health-check.sh",
+    "services/security/execution_allowlist.py",
+    "services/core/jobs.py",
+    "services/flows/pipelines.py",
+    "config/prefect/deployment.yaml",
+    "docs/refactor/worker-job-contract-inventory.json"
+  ],
+  "limitations": [
+    "Repository-source analysis only; no provider, database, container, persisted schedule, or external Prefect state was queried.",
+    "No catalog, schedule, credential, candidate, or legacy state was changed."
+  ]
+}

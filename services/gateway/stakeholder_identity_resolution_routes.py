@@ -1,8 +1,47 @@
 """OIDC route for location-scoped approved identity resolution."""
 
+from datetime import datetime
+from typing import Annotated
+from uuid import UUID
+
+from pydantic import AwareDatetime, BaseModel, BeforeValidator, ConfigDict, ValidationError
+
+
+def _response_uuid(value):
+    if isinstance(value, UUID):
+        return value
+    if isinstance(value, str):
+        try:
+            return UUID(value)
+        except ValueError as exc:
+            raise ValueError("UUID value is invalid") from exc
+    raise ValueError("UUID value is invalid")
+
+
+def _response_datetime(value):
+    if isinstance(value, datetime):
+        return value
+    if isinstance(value, str):
+        try:
+            return datetime.fromisoformat(value.replace("Z", "+00:00"))
+        except ValueError as exc:
+            raise ValueError("timestamp value is invalid") from exc
+    raise ValueError("timestamp value is invalid")
+
+
+_ResponseUUID = Annotated[UUID, BeforeValidator(_response_uuid)]
+_ResponseDatetime = Annotated[AwareDatetime, BeforeValidator(_response_datetime)]
+
+
+class StakeholderIdentityResolutionResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+    location_id: _ResponseUUID
+    party_id: _ResponseUUID
+    resolved_at: _ResponseDatetime
+
 
 def register_stakeholder_identity_resolution_routes(router, provider, run_in_threadpool, psycopg2):
-    from fastapi.encoders import jsonable_encoder
     from fastapi.responses import JSONResponse
     from starlette.requests import Request
 
@@ -15,7 +54,8 @@ def register_stakeholder_identity_resolution_routes(router, provider, run_in_thr
     headers = {"Cache-Control": "no-store", "Vary": "Cookie"}
 
     @router.get(
-        "/operator/api/stakeholder-identity/{location_id}/resolve/{source_profile_id}"
+        "/operator/api/stakeholder-identity/{location_id}/resolve/{source_profile_id}",
+        response_model=StakeholderIdentityResolutionResponse,
     )
     async def resolve_identity(request: Request, location_id: str, source_profile_id: str):
         if provider is None:
@@ -72,7 +112,27 @@ def register_stakeholder_identity_resolution_routes(router, provider, run_in_thr
                 content={"error": "Identity mapping is not available"},
                 headers=headers,
             )
+        try:
+            if not isinstance(result, dict) or set(result) != {"party_id", "resolved_at"}:
+                raise ValueError("identity response projection is invalid")
+            response = StakeholderIdentityResolutionResponse.model_validate(
+                {"location_id": location_id, **result}
+            )
+            if response.location_id != UUID(location_id):
+                raise ValueError("identity response does not match the requested location")
+        except (ValidationError, TypeError, ValueError) as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.stakeholder_identity_resolution").warning(
+                "Stakeholder identity response rejected (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=500,
+                content={"error": "Stakeholder identity resolution unavailable"},
+                headers=headers,
+            )
+        from fastapi.encoders import jsonable_encoder
+
         return JSONResponse(
-            jsonable_encoder({"location_id": location_id, **result}),
-            headers=headers,
+            jsonable_encoder(response.model_dump()), headers=headers
         )

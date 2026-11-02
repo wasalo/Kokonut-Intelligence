@@ -2,6 +2,7 @@
 
 from datetime import datetime, timezone
 from typing import Any, Optional
+from uuid import UUID
 
 import psycopg2
 import psycopg2.extras
@@ -13,6 +14,7 @@ from .scope import require_network_scope
 
 def generate_data_stream_summary(conn, location_id: str, period_start: str = None, period_end: str = None) -> dict:
     """Generate a summary of data stream activity for a location."""
+    _require_location_scope("data_stream_summary", location_id)
     conditions = ["dsp.location_id = :location_id"]
     params: dict[str, Any] = {"location_id": location_id}
 
@@ -65,8 +67,19 @@ def generate_data_stream_summary(conn, location_id: str, period_start: str = Non
     }
 
 
+def _require_location_scope(report_type: str, location_id: str | None) -> None:
+    """Require a well-formed UUID for reports the registry marks location-scoped."""
+    try:
+        if not location_id:
+            raise ValueError
+        UUID(str(location_id))
+    except (AttributeError, TypeError, ValueError):
+        raise ValueError(f"{report_type} requires an explicit location_id") from None
+
+
 def generate_business_model_canvas(conn, location_id: str, period_start: str = None, period_end: str = None) -> dict:
     """Generate a Business Model Canvas report for a location."""
+    _require_location_scope("business_model_canvas", location_id)
     from services.analytics.business_model_canvas import compute_health, get, list_canvas
 
     canvases = list_canvas(conn, location_id=location_id)
@@ -102,6 +115,7 @@ def generate_business_model_canvas(conn, location_id: str, period_start: str = N
 
 
 def generate_pitch_deck(conn, location_id: str, period_start: str = None, period_end: str = None) -> dict:
+    _require_location_scope("pitch_deck", location_id)
     from services.analytics.pitch import generate_pitch, render_markdown
 
     pitch_data = generate_pitch(conn, location_id, "elevator")
@@ -214,7 +228,13 @@ def generate_technology_roadmap(conn, location_id=None, period_start=None, perio
     """Generate an executive technology roadmap report."""
     require_network_scope("technology_roadmap", location_id)
     with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
-        cur.execute("SELECT * FROM v_technology_roadmap_overview ORDER BY name")
+        cur.execute(
+            "SELECT roadmap_id, name, entity_type, entity_id, planning_horizon_start, "
+            "planning_horizon_end, detail_level, sponsor, owner, status, next_review_at, "
+            "requirement_count, technology_area_count, driver_count, alternative_count, "
+            "selected_alternative_count, last_reviewed_at "
+            "FROM v_technology_roadmap_overview ORDER BY name"
+        )
         roadmaps = [dict(row) for row in cur.fetchall()]
         for roadmap in roadmaps:
             cur.execute(
@@ -242,16 +262,25 @@ def generate_technology_roadmap(conn, location_id=None, period_start=None, perio
 
 
 def generate_stakeholder_landscape(conn, location_id=None, period_start=None, period_end=None):
-    """Generate a network- or location-scoped stakeholder landscape report."""
+    """Generate a location-scoped stakeholder landscape report."""
+    _require_location_scope("stakeholder_landscape", location_id)
     if location_id:
         query = (
-            "SELECT * FROM v_stakeholder_landscape_by_location "
+            "SELECT location_id, party_id, party_type, display_name, party_status, privacy_level, "
+            "identifier_count, active_relationship_count, open_interest_count, advisory_score, "
+            "salience_review_status, last_updated_at "
+            "FROM v_stakeholder_landscape_by_location "
             "WHERE location_id = %s::uuid "
             "ORDER BY advisory_score DESC NULLS LAST, display_name"
         )
         params = [location_id]
     else:
-        query = "SELECT * FROM v_stakeholder_landscape ORDER BY advisory_score DESC NULLS LAST, display_name"
+        query = (
+            "SELECT party_id, party_type, display_name, party_status, privacy_level, "
+            "identifier_count, active_relationship_count, open_interest_count, advisory_score, "
+            "salience_review_status, last_updated_at "
+            "FROM v_stakeholder_landscape ORDER BY advisory_score DESC NULLS LAST, display_name"
+        )
         params = []
     with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
         cur.execute(query, params)
@@ -276,7 +305,13 @@ def generate_stakeholder_landscape(conn, location_id=None, period_start=None, pe
 
 def generate_stakeholder_engagement(conn, location_id=None, period_start=None, period_end=None):
     """Generate stakeholder engagement plan and commitment health report."""
-    query = "SELECT * FROM v_stakeholder_engagement_summary"
+    _require_location_scope("stakeholder_engagement", location_id)
+    query = (
+        "SELECT plan_id, name, status, engagement_mode, stakeholder_party_id, stakeholder_name, "
+        "objective_count, touchpoint_count, commitment_count, open_commitment_count, "
+        "fulfilled_commitment_count, overdue_commitment_count, outcome_count, last_outcome_at, "
+        "scope_type, scope_id FROM v_stakeholder_engagement_summary"
+    )
     params = []
     if location_id:
         query += " WHERE scope_type = 'location' AND scope_id = %s::uuid"
@@ -288,7 +323,11 @@ def generate_stakeholder_engagement(conn, location_id=None, period_start=None, p
         health = []
         for plan in plans:
             cur.execute(
-                "SELECT * FROM v_stakeholder_commitment_health WHERE plan_id = %s AND is_overdue = TRUE ORDER BY due_at NULLS LAST",
+                "SELECT commitment_id, plan_id, plan_name, stakeholder_name, owner_name, "
+                "title, status, due_at, work_item_id, work_item_status, responsibility_id, "
+                "is_overdue, outcome_count, last_outcome_at "
+                "FROM v_stakeholder_commitment_health WHERE plan_id = %s AND is_overdue = TRUE "
+                "ORDER BY due_at NULLS LAST",
                 (plan["plan_id"],),
             )
             health.extend(dict(row) for row in cur.fetchall())
@@ -308,7 +347,13 @@ def generate_stakeholder_engagement(conn, location_id=None, period_start=None, p
 
 def generate_stakeholder_grievance(conn, location_id=None, period_start=None, period_end=None):
     """Generate an internal grievance, remedy, and appeal health report."""
-    query = "SELECT * FROM v_stakeholder_grievance_health"
+    _require_location_scope("stakeholder_grievance", location_id)
+    query = (
+        "SELECT case_id, case_number, category, severity, confidentiality, status, summary, "
+        "location_id, complainant_name, affected_party_name, owner_name, received_at, due_at, "
+        "work_item_id, investigation_count, evidence_count, remedy_count, open_remedy_count, "
+        "appeal_count, satisfaction_score, is_overdue FROM v_stakeholder_grievance_health"
+    )
     params = []
     if location_id:
         query += " WHERE location_id = %s::uuid"
@@ -335,9 +380,37 @@ def generate_stakeholder_representation(conn, location_id=None, period_start=Non
     """Generate privacy-aware stakeholder representation and equity metrics."""
     require_network_scope("stakeholder_representation", location_id)
     with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
-        cur.execute("SELECT * FROM v_public_stakeholder_representation ORDER BY activity_type, activity_id")
+        cur.execute(
+            """
+            SELECT activity_type,
+                   activity_id,
+                   invited_count,
+                   participated_count,
+                   participation_rate_pct,
+                   contribution_rate_pct,
+                   minority_view_count,
+                   minority_view_preserved_count
+            FROM v_public_stakeholder_representation
+            ORDER BY activity_type, activity_id
+            """
+        )
         representation = [dict(row) for row in cur.fetchall()]
-        cur.execute("SELECT * FROM v_stakeholder_equity_distribution ORDER BY distribution_type, metric_name")
+        cur.execute(
+            """
+            SELECT scope_type,
+                   scope_id,
+                   distribution_type,
+                   metric_name,
+                   unit,
+                   record_count,
+                   beneficiary_count,
+                   total_amount,
+                   earliest_period,
+                   latest_period
+            FROM v_stakeholder_equity_distribution
+            ORDER BY distribution_type, metric_name
+            """
+        )
         distributions = [dict(row) for row in cur.fetchall()]
     return {
         "report_type": "stakeholder_representation",
@@ -356,7 +429,15 @@ def generate_stakeholder_representation(conn, location_id=None, period_start=Non
 
 def generate_stakeholder_decision_lineage(conn, location_id=None, period_start=None, period_end=None):
     """Generate an internal stakeholder decision, trade-off, and evidence report."""
-    query = "SELECT * FROM v_stakeholder_decision_lineage"
+    _require_location_scope("stakeholder_decision_lineage", location_id)
+    query = (
+        "SELECT decision_id, decision_key, title, decision_type, scope_type, scope_id, status, "
+        "approval_status, approval_actor_type, approval_role, material_harm_review_status, "
+        "minority_review_status, created_by_name, approved_by_name, approved_at, decision_log_id, "
+        "work_item_id, participant_count, participating_count, minority_participant_count, "
+        "tradeoff_count, unresolved_harm_count, evidence_count, verified_evidence_count, "
+        "outcome_count, last_outcome_at FROM v_stakeholder_decision_lineage"
+    )
     params = []
     if location_id:
         query += " WHERE scope_type = 'location' AND scope_id = %s::uuid"
@@ -383,13 +464,50 @@ def generate_stakeholder_ecosystem(conn, location_id=None, period_start=None, pe
     """Generate the internal stakeholder ecosystem cockpit report."""
     require_network_scope("stakeholder_ecosystem", location_id)
     with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
-        cur.execute("SELECT * FROM v_stakeholder_cockpit_internal")
+        cur.execute(
+            """
+            SELECT active_party_count,
+                   active_relationship_count,
+                   open_interest_count,
+                   active_engagement_plan_count,
+                   overdue_commitment_count,
+                   open_grievance_count,
+                   active_decision_count,
+                   unresolved_harm_count,
+                   open_relationship_risk_count,
+                   pending_buyer_verification_count,
+                   contested_trust_evidence_count,
+                   stewardship_action_count,
+                   unverified_value_stream_outcome_count,
+                   generated_at,
+                   active_alliance_count,
+                   slow_cycle_alliance_count,
+                   fast_cycle_alliance_count,
+                   open_coordination_conflict_count,
+                   open_coordination_remedy_count,
+                   overdue_alliance_review_count
+            FROM v_stakeholder_cockpit_internal
+            """
+        )
         cockpit = dict(cur.fetchone())
-        cur.execute("SELECT * FROM v_stakeholder_landscape ORDER BY advisory_score DESC NULLS LAST, display_name")
+        cur.execute(
+            "SELECT party_id, party_type, display_name, party_status, privacy_level, "
+            "identifier_count, active_relationship_count, open_interest_count, advisory_score, "
+            "salience_review_status, last_updated_at "
+            "FROM v_stakeholder_landscape ORDER BY advisory_score DESC NULLS LAST, display_name"
+        )
         landscape = [dict(row) for row in cur.fetchall()]
-        cur.execute("SELECT * FROM relationship_risk_indicator ORDER BY created_at DESC")
+        cur.execute(
+            "SELECT id, subject_party_id, relationship_party_id, risk_key, severity, rationale, "
+            "evidence_ids, uncertainty, status, reviewed_by_party_id, created_at "
+            "FROM relationship_risk_indicator ORDER BY created_at DESC"
+        )
         risks = [dict(row) for row in cur.fetchall()]
-        cur.execute("SELECT * FROM v_party_relationship_recommendations ORDER BY recommendation, display_name")
+        cur.execute(
+            "SELECT party_id, display_name, recommendation, evidence_count, maximum_uncertainty, "
+            "human_review_required, limitation FROM v_party_relationship_recommendations "
+            "ORDER BY recommendation, display_name"
+        )
         recommendations = [dict(row) for row in cur.fetchall()]
     return {
         "report_type": "stakeholder_ecosystem",
@@ -408,42 +526,32 @@ def generate_stakeholder_ecosystem(conn, location_id=None, period_start=None, pe
 
 
 def generate_stakeholder_outcomes(conn, location_id=None, period_start=None, period_end=None):
-    """Generate stakeholder outcomes from governed outcomes and architecture links.
-
-    The architecture view is network-wide and has no location lineage. Include
-    it only for an explicitly network-wide report; a location report must not
-    expose another farm's stakeholder relationships.
-    """
+    """Generate governed stakeholder outcomes for one explicitly selected farm."""
+    _require_location_scope("stakeholder_outcomes", location_id)
     with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
-        query = "SELECT * FROM stakeholder_outcome WHERE status IN ('verified', 'published')"
-        params = []
-        if location_id:
-            query += " AND location_id = %s::uuid"
-            params.append(location_id)
+        query = (
+            "SELECT id, location_id, farm_id, outcome_name, outcome_description, "
+            "stakeholder_group, stakeholder_description, importance, "
+            "importance_perspective, is_underserved, framework_key, "
+            "dimension_key, sdg_number, capital_key, pillar_key, "
+            "evidence_maturity, status, metadata, created_at, updated_at, "
+            "created_by, updated_by FROM stakeholder_outcome "
+            "WHERE status IN ('verified', 'published') AND location_id = %s::uuid"
+        )
+        params = [location_id]
         query += " ORDER BY created_at DESC"
         cur.execute(query, params)
         outcomes = [dict(row) for row in cur.fetchall()]
-        architecture = []
-        if not location_id:
-            cur.execute(
-                "SELECT * FROM v_stakeholder_capability_value_stream "
-                "ORDER BY entity_type, entity_name, party_name"
-            )
-            architecture = [dict(row) for row in cur.fetchall()]
     limitations = [
         "Only verified or published governed outcomes are included.",
         "Outcome presence does not establish causal attribution or satisfaction without supporting evidence.",
     ]
-    if location_id:
-        limitations.append(
-            "Network-wide capability and value-stream links are omitted because their source view has no location lineage."
-        )
     return {
         "report_type": "stakeholder_outcomes",
         "location_id": location_id,
         "outcome_count": len(outcomes),
         "outcomes": outcomes,
-        "capability_and_value_stream_links": architecture,
+        "capability_and_value_stream_links": [],
         "limitations": limitations,
         "generated_at": datetime.now(timezone.utc).isoformat(),
     }
@@ -453,15 +561,31 @@ def generate_stakeholder_trust(conn, location_id=None, period_start=None, period
     """Generate explainable trust profiles, evidence timelines, and disputes."""
     require_network_scope("stakeholder_trust", location_id)
     with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
-        cur.execute("SELECT * FROM v_party_trust_profile ORDER BY open_risk_count DESC, display_name")
+        cur.execute(
+            "SELECT party_id, display_name, party_type, evidence_count, supporting_evidence_count, "
+            "contradicting_evidence_count, contested_evidence_count, open_risk_count, "
+            "latest_evidence_at, earliest_evidence_at, latest_snapshot_at, latest_uncertainty, "
+            "interpretation FROM v_party_trust_profile ORDER BY open_risk_count DESC, display_name"
+        )
         profiles = [dict(row) for row in cur.fetchall()]
-        cur.execute("SELECT * FROM v_market_dispute_performance")
+        cur.execute(
+            "SELECT dispute_count, resolved_count, open_count, average_resolution_days, "
+            "open_appeal_count, correction_request_count FROM v_market_dispute_performance"
+        )
         disputes = dict(cur.fetchone())
         cur.execute(
-            "SELECT * FROM relationship_risk_indicator WHERE status IN ('open', 'monitoring') ORDER BY created_at DESC"
+            "SELECT id, subject_party_id, relationship_party_id, risk_key, severity, rationale, "
+            "evidence_ids, uncertainty, status, reviewed_by_party_id, created_at "
+            "FROM relationship_risk_indicator WHERE status IN ('open', 'monitoring') "
+            "ORDER BY created_at DESC"
         )
         risks = [dict(row) for row in cur.fetchall()]
-        cur.execute("SELECT * FROM v_party_financing_eligibility_inputs ORDER BY open_risk_count DESC, display_name")
+        cur.execute(
+            "SELECT party_id, display_name, identity_evidence_count, payment_support_count, "
+            "contradicting_evidence_count, open_risk_count, maximum_uncertainty, "
+            "human_review_required, limitation FROM v_party_financing_eligibility_inputs "
+            "ORDER BY open_risk_count DESC, display_name"
+        )
         eligibility_inputs = [dict(row) for row in cur.fetchall()]
     return {
         "report_type": "stakeholder_trust",
@@ -483,16 +607,34 @@ def generate_stakeholder_value_streams(conn, location_id=None, period_start=None
     """Generate stakeholder-aware capability and value-stream outcomes."""
     require_network_scope("stakeholder_value_streams", location_id)
     with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
-        cur.execute("SELECT * FROM v_stakeholder_capability_value_stream ORDER BY entity_type, entity_name, party_name")
+        cur.execute(
+            "SELECT entity_type, entity_id, entity_name, party_id, party_name, relationship_type, "
+            "desired_outcome, demand_level, criticality, harm_exposure, dependency_risk, "
+            "stakeholder_promise, service_quality_target, satisfaction_target, status "
+            "FROM v_stakeholder_capability_value_stream "
+            "ORDER BY entity_type, entity_name, party_name"
+        )
         links = [dict(row) for row in cur.fetchall()]
-        cur.execute("SELECT * FROM v_value_stream_performance")
+        cur.execute(
+            "SELECT stream_id, stream_name, stakeholder_type, trigger_event, end_state, "
+            "stream_status, stage_id, stage_name, sequence_order, process_key, "
+            "target_lead_time_hours, target_fty_pct, observation_count, avg_lead_time_hours, "
+            "avg_fty_pct, last_observed_at FROM v_value_stream_performance"
+        )
         performance = [dict(row) for row in cur.fetchall()]
         cur.execute(
-            "SELECT * FROM stakeholder_bottleneck_priority WHERE status IN ('reviewed', 'active') ORDER BY priority, reviewed_at DESC NULLS LAST"
+            "SELECT id, stage_id, party_id, outcome_id, process_key, priority, harm_if_unresolved, "
+            "value_at_risk, value_unit, evidence, reviewed_by_party_id, reviewed_at, status "
+            "FROM stakeholder_bottleneck_priority WHERE status IN ('reviewed', 'active') "
+            "ORDER BY priority, reviewed_at DESC NULLS LAST"
         )
         bottlenecks = [dict(row) for row in cur.fetchall()]
         cur.execute(
-            "SELECT * FROM technology_alternative_stakeholder_outcome WHERE status IN ('reviewed', 'approved') ORDER BY reviewed_at DESC NULLS LAST"
+            "SELECT id, alternative_id, party_id, outcome_id, expected_benefit, expected_harm_reduction, "
+            "access_effects, equity_effects, estimated_value, estimated_value_unit, uncertainty, evidence, "
+            "reviewed_by_party_id, reviewed_at, status "
+            "FROM technology_alternative_stakeholder_outcome WHERE status IN ('reviewed', 'approved') "
+            "ORDER BY reviewed_at DESC NULLS LAST"
         )
         alternatives = [dict(row) for row in cur.fetchall()]
     return {
@@ -514,9 +656,50 @@ def generate_stakeholder_cockpit(conn, location_id=None, period_start=None, peri
     """Generate a composite internal/public-safe stakeholder cockpit snapshot."""
     require_network_scope("stakeholder_cockpit", location_id)
     with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
-        cur.execute("SELECT * FROM v_stakeholder_cockpit_internal")
+        cur.execute(
+            """
+            SELECT active_party_count,
+                   active_relationship_count,
+                   open_interest_count,
+                   active_engagement_plan_count,
+                   overdue_commitment_count,
+                   open_grievance_count,
+                   active_decision_count,
+                   unresolved_harm_count,
+                   open_relationship_risk_count,
+                   pending_buyer_verification_count,
+                   contested_trust_evidence_count,
+                   stewardship_action_count,
+                   unverified_value_stream_outcome_count,
+                   generated_at,
+                   active_alliance_count,
+                   slow_cycle_alliance_count,
+                   fast_cycle_alliance_count,
+                   open_coordination_conflict_count,
+                   open_coordination_remedy_count,
+                   overdue_alliance_review_count
+            FROM v_stakeholder_cockpit_internal
+            """
+        )
         internal = dict(cur.fetchone())
-        cur.execute("SELECT * FROM v_public_stakeholder_cockpit")
+        cur.execute(
+            """
+            SELECT public_party_count,
+                   representation_summary_count,
+                   verified_outcome_count,
+                   verified_impact_claim_count,
+                   verified_distribution_count,
+                   ecological_stewardship_count,
+                   published_feedback_count,
+                   privacy_limitation,
+                   uncertainty_limitation,
+                   generated_at,
+                   published_alliance_count,
+                   verified_alliance_benefit_count,
+                   published_alliance_knowledge_count
+            FROM v_public_stakeholder_cockpit
+            """
+        )
         public = dict(cur.fetchone())
     return {
         "report_type": "stakeholder_cockpit",
@@ -535,9 +718,32 @@ def generate_coordination_cockpit(conn, location_id=None, period_start=None, per
     """Generate internal coordination controls and public-safe alliance output."""
     require_network_scope("coordination_cockpit", location_id)
     with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
-        cur.execute("SELECT * FROM v_coordination_cockpit_internal ORDER BY name")
+        cur.execute(
+            """
+            SELECT alliance_id, name, coordination_type, market_cycle, status,
+                   review_due_at, ends_at, work_item_id, proxy_authority_id,
+                   active_participant_count, shared_objective_count,
+                   contribution_count, verified_benefit_count, open_harm_count,
+                   open_knowledge_exchange_count, open_conflict_count,
+                   trust_risk_count, open_coordination_risk_count,
+                   open_remedy_count, preserved_minority_view_count,
+                   verified_outcome_change_count, ecological_obligation_count
+            FROM v_coordination_cockpit_internal
+            ORDER BY name
+            """
+        )
         internal = [dict(row) for row in cur.fetchall()]
-        cur.execute("SELECT * FROM v_public_coordination_alliance ORDER BY name")
+        cur.execute(
+            """
+            SELECT alliance_id, name, coordination_type, market_cycle, public_summary,
+                   public_evidence, public_limitations, review_due_at,
+                   verified_benefit_count, published_knowledge_count,
+                   verified_outcome_change_count, privacy_limitation,
+                   uncertainty_limitation
+            FROM v_public_coordination_alliance
+            ORDER BY name
+            """
+        )
         public = [dict(row) for row in cur.fetchall()]
     return {
         "report_type": "coordination_cockpit",
@@ -557,15 +763,45 @@ def generate_governance_coordination_health(conn, location_id=None, period_start
     """Generate internal governance health and public-safe throughput output."""
     require_network_scope("governance_coordination_health", location_id)
     with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
-        cur.execute("SELECT * FROM v_governance_cockpit_internal")
+        cur.execute(
+            "SELECT active_circle_count, active_role_count, unassigned_role_count, "
+            "overdue_assignment_review_count, unresolved_tension_count, "
+            "high_severity_tension_count, proposals_awaiting_review_count, "
+            "open_objection_count, material_objection_count, links_expiring_soon_count, "
+            "overdue_tactical_item_count, open_tactical_item_count, generated_at "
+            "FROM v_governance_cockpit_internal"
+        )
         internal = dict(cur.fetchone())
-        cur.execute("SELECT * FROM v_governance_cockpit_public")
+        cur.execute(
+            "SELECT active_circle_count, active_role_count, resolved_tension_count, "
+            "implemented_proposal_count, privacy_limitation, generated_at "
+            "FROM v_governance_cockpit_public"
+        )
         public = dict(cur.fetchone())
-        cur.execute("SELECT * FROM v_governance_tension_health ORDER BY severity DESC, urgency DESC")
+        cur.execute(
+            "SELECT tension_id, tension_key, title, description, tension_type, severity, urgency, "
+            "circle_id, circle_key, circle_name, scope_type, scope_id, status, reported_by_party_id, "
+            "reported_by_name, affected_party_id, affected_party_name, owner_role_id, owner_role_key, "
+            "owner_party_id, owner_party_name, work_item_id, decision_id, grievance_id, review_due_at, "
+            "deferred_until, link_count, is_overdue FROM v_governance_tension_health "
+            "ORDER BY severity DESC, urgency DESC"
+        )
         tensions = [dict(row) for row in cur.fetchall()]
-        cur.execute("SELECT * FROM v_governance_proposal_lineage ORDER BY approved_at DESC NULLS LAST, proposal_id")
+        cur.execute(
+            "SELECT proposal_id, proposal_key, circle_id, circle_key, proposal_type, title, status, "
+            "tension_id, proposed_by_party_id, proposer_name, proposed_by_role_id, proposer_role_key, "
+            "harm_review_status, minority_review_status, approved_by_party_id, approver_name, approved_at, "
+            "implementation_work_item_id, review_due_at, objection_count, open_objection_count, "
+            "open_material_objection_count, review_count FROM v_governance_proposal_lineage "
+            "ORDER BY approved_at DESC NULLS LAST, proposal_id"
+        )
         proposals = [dict(row) for row in cur.fetchall()]
-        cur.execute("SELECT * FROM v_governance_circle_links ORDER BY term_end NULLS LAST")
+        cur.execute(
+            "SELECT link_id, source_circle_id, source_circle_key, target_circle_id, target_circle_key, "
+            "link_type, role_id, role_key, party_id, party_name, mandate, scope_type, scope_id, "
+            "term_start, term_end, status, recusal_status, approved_by_party_id, approved_by_name "
+            "FROM v_governance_circle_links ORDER BY term_end NULLS LAST"
+        )
         links = [dict(row) for row in cur.fetchall()]
     return {
         "report_type": "governance_coordination_health",
@@ -590,6 +826,7 @@ def generate_governance_coordination_health(conn, location_id=None, period_start
 
 
 def generate_pestel_assessment(conn, location_id: str, period_start: str = None, period_end: str = None) -> dict:
+    _require_location_scope("pestel_assessment", location_id)
     from services.analytics.pestel import list_analyses, render_markdown
 
     analyses = list_analyses(conn, location_id)
@@ -616,6 +853,7 @@ def generate_pestel_assessment(conn, location_id: str, period_start: str = None,
 
 
 def generate_regional_readiness(conn, location_id: str, period_start: str = None, period_end: str = None) -> dict:
+    _require_location_scope("regional_readiness", location_id)
     from services.analytics.regional_readiness import list_assessments, render_markdown
 
     assessments = list_assessments(conn, location_id)
@@ -642,6 +880,7 @@ def generate_regional_readiness(conn, location_id: str, period_start: str = None
 
 
 def generate_publics_market_landscape(conn, location_id: str, period_start: str = None, period_end: str = None) -> dict:
+    _require_location_scope("publics_market_landscape", location_id)
     from services.analytics.publics import influence_interest_matrix, list_publics, list_segments
 
     publics = list_publics(conn, location_id)
@@ -671,6 +910,7 @@ def generate_publics_market_landscape(conn, location_id: str, period_start: str 
 
 
 def generate_env_scan_report(conn, location_id: str, period_start: str = None, period_end: str = None) -> dict:
+    _require_location_scope("env_scan_report", location_id)
     from services.analytics.env_scanning import list_scans, render_markdown
 
     scans = list_scans(conn, location_id)
@@ -704,6 +944,7 @@ def generate_fork_opportunities(
     conn, location_id: str = None, period_start: str = None, period_end: str = None
 ) -> dict:
     """Fork tactic: a single event that reveals/creates multiple high-value opportunities."""
+    _require_location_scope("fork_opportunities", location_id)
     from services.events.fork_detector import detect_fork_opportunities
 
     result = detect_fork_opportunities(conn, location_id=location_id)
@@ -721,6 +962,7 @@ def generate_fork_opportunities(
 
 def generate_pin_dependency(conn, location_id: str = None, period_start: str = None, period_end: str = None) -> dict:
     """Pin tactic: governed records blocked (pinned) by an unverified upstream."""
+    _require_location_scope("pin_dependency", location_id)
     from services.analytics.pin_dependency import detect_pin_blocks
 
     result = detect_pin_blocks(conn, location_id=location_id)
@@ -739,6 +981,7 @@ def generate_pin_dependency(conn, location_id: str = None, period_start: str = N
 
 def generate_promotion_ladder(conn, location_id: str = None, period_start: str = None, period_end: str = None) -> dict:
     """Promotion tactic: the regenerative value chain funnel per location."""
+    _require_location_scope("promotion_ladder", location_id)
     from services.analytics.promotion_ladder import compute_promotion_ladder
 
     result = compute_promotion_ladder(conn, location_id=location_id)
@@ -756,6 +999,7 @@ def generate_promotion_ladder(conn, location_id: str = None, period_start: str =
 
 def generate_tactical_layer(conn, location_id: str = None, period_start: str = None, period_end: str = None) -> dict:
     """Composite Tactical Layer view: fork, discovered double-check, pin, zwischenzug, promotion."""
+    _require_location_scope("tactical_layer", location_id)
     from services.analytics.pin_dependency import detect_pin_blocks
     from services.analytics.promotion_ladder import compute_promotion_ladder
     from services.events.fork_detector import detect_fork_opportunities
@@ -806,6 +1050,7 @@ def generate_simulation_wargame(
     No governed state is written; the "opposing force" is shocks/threats vs.
     reserves, never stakeholders or communities (see AGENTS.md).
     """
+    _require_location_scope("simulation_wargame", location_id)
     from services.analytics.digital_twin import list_twins, monte_carlo_yield
     from services.simulation.clash_examples import stress_reserve
 
@@ -848,10 +1093,8 @@ def generate_capital_accounting(
 
     No governed state is written; the credit ledger is a read-only view here.
     """
+    _require_location_scope("capital_accounting", location_id)
     from services.capital import accounting_report
-
-    if not location_id:
-        raise ValueError("capital_accounting report requires a location_id")
 
     return accounting_report.build_capital_accounting(conn, location_id, period_start, period_end)
 

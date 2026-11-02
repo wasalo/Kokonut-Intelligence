@@ -14,5 +14,5 @@ def health_check_flow():
         env=worker_subprocess_environment(),
     )
     if result.returncode != 0:
-        raise RuntimeError(f"Health check failed: {result.stderr}")
+        raise RuntimeError(f"Health check failed (exit code {result.returncode})")
     return {"status": "success", "output": result.stdout[-500:]}

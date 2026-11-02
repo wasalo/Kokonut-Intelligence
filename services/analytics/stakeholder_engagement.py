@@ -68,7 +68,14 @@ def list_plans(conn, *, stakeholder_party_id: Optional[str] = None, status: Opti
         params.append(status)
     where = " WHERE " + " AND ".join(clauses) if clauses else ""
     with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
-        cur.execute(f"SELECT * FROM v_stakeholder_engagement_summary{where} ORDER BY name", params)
+        cur.execute(
+            "SELECT plan_id, name, status, engagement_mode, stakeholder_party_id, "
+            "stakeholder_name, objective_count, touchpoint_count, commitment_count, "
+            "open_commitment_count, fulfilled_commitment_count, "
+            "overdue_commitment_count, outcome_count, last_outcome_at, scope_type, "
+            f"scope_id FROM v_stakeholder_engagement_summary{where} ORDER BY name",
+            params,
+        )
         return [_row(row) for row in cur.fetchall()]
 
 
@@ -197,7 +204,14 @@ def update_commitment(
 
 def get_commitment(conn, commitment_id: str) -> Optional[Dict[str, Any]]:
     with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
-        cur.execute("SELECT * FROM v_stakeholder_commitment_health WHERE commitment_id = %s::uuid", (commitment_id,))
+        cur.execute(
+            "SELECT commitment_id, plan_id, plan_name, stakeholder_name, owner_name, "
+            "title, status, due_at, work_item_id, work_item_status, "
+            "responsibility_id, is_overdue, outcome_count, last_outcome_at "
+            "FROM v_stakeholder_commitment_health "
+            "WHERE commitment_id = %s::uuid",
+            (commitment_id,),
+        )
         return _row(cur.fetchone())
 
 
@@ -211,7 +225,14 @@ def list_commitment_health(conn, *, plan_id: Optional[str] = None, overdue_only:
         clauses.append("is_overdue = TRUE")
     where = " WHERE " + " AND ".join(clauses) if clauses else ""
     with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
-        cur.execute(f"SELECT * FROM v_stakeholder_commitment_health{where} ORDER BY due_at NULLS LAST, title", params)
+        cur.execute(
+            "SELECT commitment_id, plan_id, plan_name, stakeholder_name, owner_name, "
+            "title, status, due_at, work_item_id, work_item_status, "
+            "responsibility_id, is_overdue, outcome_count, last_outcome_at "
+            f"FROM v_stakeholder_commitment_health{where} "
+            "ORDER BY due_at NULLS LAST, title",
+            params,
+        )
         return [_row(row) for row in cur.fetchall()]
 
 

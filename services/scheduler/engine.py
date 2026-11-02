@@ -15,9 +15,9 @@ from datetime import datetime, timedelta, timezone
 from services.common.errors import safe_exception_class
 from services.common.logging import get_logger
 from services.common.worker_environment import (
-    scheduled_module_worker_key,
-    worker_subprocess_environment,
+    scheduled_module_worker_environment,
 )
+from services.core.worker_progress import pulse_worker_progress
 from services.scheduler.parser import next_run_time
 from services.scheduler.resources import ResourcePool
 from services.security.scheduled_command_contracts import (
@@ -26,6 +26,29 @@ from services.security.scheduled_command_contracts import (
 )
 
 logger = get_logger("scheduler.engine")
+WORKER_PROGRESS_POLL_SECONDS = 5
+
+
+def _communicate_with_progress(process, command: list[str], timeout: int):
+    """Wait for a bounded task while keeping the supervising worker responsive."""
+    deadline = time.monotonic() + timeout
+    while True:
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            if process.poll() is None:
+                process.kill()
+            stdout, stderr = process.communicate()
+            raise subprocess.TimeoutExpired(command, timeout, output=stdout, stderr=stderr)
+        try:
+            return process.communicate(timeout=min(remaining, WORKER_PROGRESS_POLL_SECONDS))
+        except subprocess.TimeoutExpired:
+            try:
+                pulse_worker_progress()
+            except Exception:
+                if process.poll() is None:
+                    process.kill()
+                process.communicate()
+                raise
 
 
 class SchedulerLeaseLostError(RuntimeError):
@@ -233,17 +256,16 @@ class SchedulerEngine:
         start_time = time.monotonic()
         try:
             validated_args = validate_scheduled_command(module_path, command_args)
-            worker_key = scheduled_module_worker_key(module_path)
-            result = subprocess.run(
-                [sys.executable, "-m", module_path, *validated_args],
-                capture_output=True,
+            command = [sys.executable, "-m", module_path, *validated_args]
+            process = subprocess.Popen(
+                command,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
                 text=True,
-                timeout=timeout,
-                env=worker_subprocess_environment(
-                    allowed_worker_keys=(worker_key,) if worker_key is not None else (),
-                    isolated_database_credentials=worker_key is not None,
-                ),
+                env=scheduled_module_worker_environment(module_path, validated_args),
             )
+            stdout, stderr = _communicate_with_progress(process, command, timeout)
+            result = subprocess.CompletedProcess(command, process.returncode, stdout, stderr)
             duration_ms = int((time.monotonic() - start_time) * 1000)
 
             if result.returncode == 0:

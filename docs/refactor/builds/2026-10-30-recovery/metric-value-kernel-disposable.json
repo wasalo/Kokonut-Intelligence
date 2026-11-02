@@ -1,0 +1,18 @@
+{
+  "check": "location-scoped metric-value Kernel SQL",
+  "postgres_image": "postgres:16",
+  "network": "none",
+  "candidate_or_legacy_database_touched": false,
+  "started_at": "2026-10-31T03:22:34.311502+00:00",
+  "checks": [
+    "migration 703 applies and replays on a disposable PostgreSQL 16 fixture",
+    "runtime has bounded function access; Directus and runtime cannot read private receipts",
+    "draft creation is unverified, location-bound, and request-id replay-safe",
+    "request-id reuse with changed metric input is rejected",
+    "a signed context without the exact compute grant is denied",
+    "metric list uses the exact identity-minimized projection, stable pagination, and location filter",
+    "verification requires another operator, sets reviewer attribution, and replays idempotently"
+  ],
+  "status": "passed",
+  "finished_at": "2026-10-31T03:22:41.893713+00:00"
+}

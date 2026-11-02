@@ -1,0 +1,38 @@
+{
+  "date": "2026-10-29",
+  "base_commit": "0e362126",
+  "scope": "Exact token-reward, capital-provider, and stakeholder report projections plus the private governance assignment-proposal response contract",
+  "python_test_command": [
+    "python3",
+    "-m",
+    "pytest",
+    "-q",
+    "tests/test_gateway_governance_assignment_proposal_reads.py",
+    "tests/test_remaining_gaps.py::test_token_rewards_report_public_safe",
+    "tests/test_capital_efficiency.py::test_capital_provider_utility_selects_exact_public_view_projection",
+    "tests/test_report_generator_cli.py::test_stakeholder_representation_uses_exact_public_projection_and_preserves_payload"
+  ],
+  "python_test_result": {
+    "passed": 22,
+    "failed": 0
+  },
+  "checks": {
+    "ruff": "passed on all changed source and test files",
+    "python_compile": "passed on all changed source and test files",
+    "report_source_inventory": "passed",
+    "report_query_scope_inventory": "passed",
+    "report_helper_scope_inventory": "passed",
+    "capability_matrix": "passed; 67 rows (24 baseline-retained, 7 deployed, 36 prepared)",
+    "git_diff_check": "passed"
+  },
+  "contracts": {
+    "token_rewards": "Selects the exact ordered 16-column distribution view and 15-column calibration view. Location bindings, date ordering, serialized distribution dates, totals, and report payload are preserved.",
+    "capital_provider_utility": "Selects the exact ordered 16-column public summary view while preserving location filtering, utility ordering, scenario rows, and output metadata.",
+    "stakeholder_representation": "Selects the exact ordered 8-column public representation view and 10-column equity-distribution view, preserving network scope, ordering, shared rows, distribution data, and report counts.",
+    "governance_assignment_proposals": "Publishes and enforces the exact private assignment-proposal page schema, allowed item fields, location and page bounds, aware timestamps, unique descending assignment IDs, input-cursor exclusion, and full-page continuation matching. Malformed service output returns a sanitized no-store 500; successful UTC timestamps are normalized to Z. Authorization and SQL behavior remain unchanged."
+  },
+  "limitations": "The checks use synthetic/mock data. They do not establish populated-data parity, content-level privacy, live OIDC, database behavior, tenant isolation, or production acceptance.",
+  "candidate_or_legacy_database_touched": false,
+  "provider_or_production_service_touched": false,
+  "migration_added": false
+}

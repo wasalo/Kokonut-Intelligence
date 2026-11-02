@@ -1,0 +1,19 @@
+{
+  "date": "2026-10-31",
+  "migration": "011_retention_policy_no_prune.sql",
+  "result": "passed",
+  "database": "network-disabled disposable ClickHouse",
+  "image": "clickhouse/clickhouse-server:25.8@sha256:a9d328123ff8a61bf6b16448528b577d59deb85758172e13b09054b0727f8adf",
+  "assertions_passed": 6,
+  "candidate_database_touched": false,
+  "legacy_database_touched": false,
+  "production_database_touched": false,
+  "checks": [
+    "fresh bootstrap skips TTL removal when no fixed table TTL exists",
+    "all ordered ClickHouse schema files apply on a clean database",
+    "fresh event tables have no table TTL",
+    "forward schema removes all eight existing fixed TTLs",
+    "forward schema replays successfully after all TTLs are absent",
+    "old-dated synthetic event survives a merge after TTL removal"
+  ]
+}

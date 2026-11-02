@@ -1,0 +1,30 @@
+{
+  "date": "2026-10-29",
+  "scope": "Strict AI-summary human review decision request and response contracts",
+  "focused_test_command": "python3 -m pytest tests/test_gateway_ai_summary_review.py tests/test_gateway_ai_summary_draft.py -q",
+  "focused_test_result": {
+    "passed": 77,
+    "failed": 0
+  },
+  "additional_checks": {
+    "ruff": "passed",
+    "python_compilation": "passed",
+    "capability_matrix": "passed",
+    "git_diff_check": "passed"
+  },
+  "checks_cover": [
+    "OpenAPI publishes strict request/response schemas for the location-scoped review decision endpoint",
+    "Approve/reject and migration-defined reason codes are allowlisted and semantically paired before service dispatch",
+    "Malformed path UUIDs fail before service dispatch",
+    "The exact five-field response binds summary ID and decision to the request and maps approval to verified and rejection to rejected",
+    "Malformed or mismatched service output returns a generic no-store failure",
+    "The route retains its existing HTTP 200 response and human review boundary"
+  ],
+  "database_or_provider_used": false,
+  "candidate_database_touched": false,
+  "legacy_database_touched": false,
+  "production_or_external_state_used": false,
+  "migration_required": false,
+  "database_idempotency_exercised": false,
+  "rollback": "Revert the shared decision contracts, route validation, focused tests, and evidence; no database rollback is required."
+}

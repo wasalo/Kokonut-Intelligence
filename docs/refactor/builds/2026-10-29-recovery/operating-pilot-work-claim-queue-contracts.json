@@ -1,0 +1,48 @@
+{
+  "date": "2026-10-29",
+  "base_head": "e8154d1b",
+  "scope": "Strict Gateway response contracts for the work-claim review and allocation queues",
+  "files": [
+    "services/gateway/operating_pilot_routes.py",
+    "tests/test_gateway_operating_pilot_work_claim_reviews.py",
+    "tests/test_gateway_operating_pilot_work_claim_allocations.py",
+    "tests/test_gateway_operating_pilot_pagination_openapi.py"
+  ],
+  "source_migrations": [
+    "schemas/postgres/565_location_operating_pilot_work_claim_review.sql",
+    "schemas/postgres/566_location_operating_pilot_work_claim_allocation.sql"
+  ],
+  "review_queue": {
+    "page_fields": ["location_id", "scope_configured", "limit", "offset", "items", "has_more", "next_offset"],
+    "item_fields": ["claim_id", "work_item_id", "title", "work_type", "priority", "estimated_effort_hours", "proposed_effort_hours", "due_at", "created_at", "decision_status"],
+    "identity_boundary": "claimant identity is excluded from the review projection",
+    "tenant_action": "review"
+  },
+  "allocation_queue": {
+    "page_fields": ["location_id", "scope_configured", "limit", "offset", "items", "has_more", "next_offset"],
+    "item_fields": ["claim_id", "work_item_id", "claimant_name", "title", "work_type", "priority", "estimated_effort_hours", "proposed_effort_hours", "due_at", "accepted_at"],
+    "identity_boundary": "claimant_name is present only on the separately granted allocation projection",
+    "tenant_action": "allocate"
+  },
+  "shared_invariants": [
+    "returned location, limit, and offset match the request",
+    "scope must be configured",
+    "page length and next_offset agree with has_more",
+    "duplicate claim IDs and ordering inconsistent with the SQL projection are rejected",
+    "malformed service results return generic no-store 503 responses"
+  ],
+  "verification": {
+    "focused_test_command": "python3 -m pytest tests/test_gateway_operating_pilot_work_claim_reviews.py tests/test_gateway_operating_pilot_work_claim_allocations.py tests/test_gateway_operating_pilot_pagination_openapi.py -q",
+    "focused_tests_passed": 70,
+    "ruff": "passed",
+    "python_compileall": "passed",
+    "capability_matrix": "passed: 67 rows; 24 baseline-retained, 7 deployed, 36 prepared",
+    "git_diff_check": "passed"
+  },
+  "environment": {
+    "database_used": false,
+    "external_provider_used": false,
+    "candidate_or_legacy_state_changed": false,
+    "errors": 0
+  }
+}

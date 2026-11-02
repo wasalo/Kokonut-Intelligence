@@ -6,6 +6,8 @@ SCHEMA = Path("schemas/postgres/077_telemetry_infrastructure.sql")
 WORLDCLIM_SCHEMA = Path("schemas/postgres/074_dsm_soc_prediction.sql")
 WORLDCLIM_KEY_MIGRATION = Path("schemas/postgres/397_worldclim_location_baseline_key.sql")
 CLIMATE_KEY_MIGRATION = Path("schemas/postgres/428_climate_summary_idempotency.sql")
+SIGNED_CLIMATE_MIGRATION = Path("schemas/postgres/713_signed_climate_summary_audit_parity.sql")
+CLIMATE_V1_RETIREMENT_MIGRATION = Path("schemas/postgres/716_retire_climate_summary_v1_worker_grant.sql")
 
 
 def test_schema_file_exists() -> None:
@@ -67,80 +69,113 @@ def test_estimate_bioclim_precipitation_range() -> None:
             assert value >= 0, f"bio_{bio} = {value} is negative"
 
 
-def test_worldclim_insert_pattern() -> None:
-    """The location baseline upsert must match the partial unique index."""
-    content = Path("services/ingestion/climate_data.py").read_text()
-    assert "ON CONFLICT (location_id) WHERE plot_id IS NULL DO UPDATE SET" in content
-
-
-class _WorldclimCursor:
-    def __init__(self) -> None:
-        self.statement = ""
-        self.parameters = None
-
-    def execute(self, statement, parameters=None) -> None:
-        self.statement = statement
-        self.parameters = parameters
-
-    def fetchone(self):
-        if "FROM location" in self.statement:
-            return {"lat": 18.5, "lon": -69.9}
-        return ("synthetic-worldclim-record",)
-
-    def close(self) -> None:
-        pass
-
-
-class _WorldclimConnection:
-    def __init__(self) -> None:
-        self.cursors = []
-        self.committed = False
-
-    def cursor(self, **_kwargs):
-        cursor = _WorldclimCursor()
-        self.cursors.append(cursor)
-        return cursor
-
-    def commit(self) -> None:
-        self.committed = True
-
-
-def test_worldclim_proxy_write_matches_schema_and_records_provenance(monkeypatch) -> None:
-    import json
-    import re
-
+def test_climate_compatibility_selectors_use_the_signed_worker(monkeypatch) -> None:
     from services.ingestion import climate_data
 
-    connection = _WorldclimConnection()
-    ingestion_records = []
-    monkeypatch.setattr(climate_data, "log_ingestion", lambda **record: ingestion_records.append(record))
+    connection = object()
+    worker_calls = []
+    source_results = {
+        "worldclim": {"status": "success", "record_id": "worldclim-id"},
+        "era5_land": {"status": "success", "record_id": "era5-id"},
+        "modis_lst": {"status": "success", "record_id": "modis-id"},
+        "smap_moisture": {"status": "success", "record_id": "smap-id"},
+        "sentinel1_sar": {"status": "success", "record_id": "sentinel-id"},
+    }
 
-    result = climate_data.fetch_worldclim(connection, "synthetic-location")
+    def dispatch(location_id, source=None):
+        worker_calls.append((location_id, source))
+        if source is None:
+            return {
+                "status": "success",
+                "location_id": location_id,
+                "results": {
+                    key: source_results[key]
+                    for key in climate_data._CLIMATE_SOURCE_KEYS
+                },
+                "success": 5,
+                "skipped": 0,
+                "failed": 0,
+                "total": 5,
+            }
+        return {
+            "status": "success",
+            "location_id": location_id,
+            "results": {source: source_results[source]},
+        }
 
-    sql = connection.cursors[1].statement
-    params = connection.cursors[1].parameters
-    insert_columns = re.search(r"INSERT INTO worldclim_climate\s*\((.*?)\)\s*VALUES", sql, re.DOTALL)
-    assert insert_columns is not None
-    columns = {column.strip() for column in insert_columns.group(1).split(",")}
-    schema = WORLDCLIM_SCHEMA.read_text()
-    table_ddl = re.search(r"CREATE TABLE IF NOT EXISTS worldclim_climate\s*\((.*?)\);", schema, re.DOTALL)
-    assert table_ddl is not None
-    schema_columns = set(re.findall(r"^\s{4}([a-z][a-z0-9_]*)\s+", table_ddl.group(1), re.MULTILINE))
+    monkeypatch.setattr(climate_data, "_dispatch_signed_climate_worker", dispatch)
+    selectors = (
+        (climate_data.fetch_worldclim, "worldclim"),
+        (climate_data.fetch_ncep, "era5_land"),
+        (climate_data.fetch_modis, "modis_lst"),
+        (climate_data.fetch_smap, "smap_moisture"),
+        (climate_data.fetch_sentinel1, "sentinel1_sar"),
+    )
+    for function, source in selectors:
+        assert function(connection, "synthetic-location") == source_results[source]
+    report = climate_data.run_all(connection, "synthetic-location")
+    assert report["total"] == 5
+    assert list(report["results"]) == ["worldclim", "ncep", "modis", "smap", "sentinel1"]
+    assert report["results"]["ncep"] == source_results["era5_land"]
+    assert worker_calls == [
+        ("synthetic-location", "worldclim"),
+        ("synthetic-location", "era5_land"),
+        ("synthetic-location", "modis_lst"),
+        ("synthetic-location", "smap_moisture"),
+        ("synthetic-location", "sentinel1_sar"),
+        ("synthetic-location", None),
+    ]
 
-    assert columns <= schema_columns
-    assert "ST_Y(center)" in connection.cursors[0].statement
-    assert "centroid" not in connection.cursors[0].statement
-    assert "reference_period" not in columns
-    assert "ON CONFLICT (location_id) WHERE plot_id IS NULL DO UPDATE SET" in sql
-    assert connection.committed
-    assert len(params) == 11
-    assert json.loads(params[-1])["estimation_method"] == "latitude_proxy_v1"
-    assert len(json.loads(params[-1])["estimated_bioclimatic_variables"]) == 19
-    assert result["source"] == "latitude_proxy_v1"
-    assert result["estimated"] is True
-    assert ingestion_records[0]["source_system"] == "latitude_proxy"
-    assert ingestion_records[0]["db"] is connection
-    assert ingestion_records[0]["location_id"] == "synthetic-location"
+
+def test_climate_application_modules_contain_no_summary_table_writers() -> None:
+    climate_source = Path("services/ingestion/climate_data.py").read_text()
+    gee_source = Path("services/ingestion/gee_climate.py").read_text()
+    for table in (
+        "worldclim_climate",
+        "ncep_weather_summary",
+        "modis_lst_summary",
+        "smap_soil_moisture",
+        "sentinel1_sar_summary",
+    ):
+        assert f"INSERT INTO {table}" not in climate_source
+        assert f"INSERT INTO {table}" not in gee_source
+        assert f"UPDATE {table}" not in climate_source
+        assert f"UPDATE {table}" not in gee_source
+    assert "get_db" not in climate_source
+    assert "log_ingestion" not in gee_source
+
+
+def test_signed_climate_migration_preserves_audit_hash_and_runtime_read_boundary() -> None:
+    migration = SIGNED_CLIMATE_MIGRATION.read_text()
+    assert "store_climate_summary_v2" in migration
+    assert "public.digest(convert_to(legacy_audit_payload, 'UTF8'), 'sha256')" in migration
+    assert "execution_duration_ms" in migration
+    assert "0, processing_time_ms, '1.0.0'" in migration
+    assert "FROM kokonut_runtime" in migration
+    assert "CREATE OR REPLACE FUNCTION kokonut_security.climate_location" in migration
+    assert "AND (location.center IS NOT NULL" not in migration
+    for table in (
+        "worldclim_climate",
+        "ncep_weather_summary",
+        "modis_lst_summary",
+        "smap_soil_moisture",
+        "sentinel1_sar_summary",
+    ):
+        assert table in migration
+    assert "GRANT EXECUTE ON FUNCTION kokonut_security.store_climate_summary_v2" in migration
+
+
+def test_legacy_climate_writer_is_unavailable_to_application_roles() -> None:
+    migration = CLIMATE_V1_RETIREMENT_MIGRATION.read_text()
+
+    assert migration.count("BEGIN;") == 1
+    assert migration.count("COMMIT;") == 1
+    assert "store_climate_summary_v2" in migration
+    assert "REVOKE ALL ON FUNCTION kokonut_security.store_climate_summary(" in migration
+    assert "FROM PUBLIC, kokonut_worker_execution, kokonut_runtime" in migration
+    assert "kokonut_directus_runtime" in migration
+    assert "FROM kokonut_directus_runtime" in migration
+    assert "REVOKE ALL ON FUNCTION kokonut_security.store_climate_summary_v2" not in migration
 
 
 def test_worldclim_baseline_migration_refuses_unreviewed_duplicate_rows() -> None:
@@ -192,34 +227,41 @@ def test_climate_data_uses_logging() -> None:
 
 
 def test_freshness_queries_config_table() -> None:
-    content = Path("services/ingestion/data_freshness.py").read_text()
-    assert "data_freshness_config" in content
+    content = Path("services/ingestion/freshness_worker.py").read_text()
+    assert "kokonut_security.list_freshness_configs" in content
+    assert "FROM public.data_freshness_config" not in content
 
 
 def test_freshness_inserts_check_results() -> None:
-    content = Path("services/ingestion/data_freshness.py").read_text()
-    assert "data_freshness_check" in content
+    content = Path("services/ingestion/freshness_worker.py").read_text()
+    assert "kokonut_security.create_freshness_check" in content
+    assert "INSERT INTO public.data_freshness_check" not in content
 
 
 def test_freshness_has_alert_channels() -> None:
-    content = Path("services/ingestion/data_freshness.py").read_text()
-    assert "_publish_alert_event" in content
-    assert '"data_stale"' in content
+    content = Path("services/ingestion/freshness_worker.py").read_text()
+    assert "kokonut_security.enqueue_freshness_event" in content
+    migration = Path("schemas/postgres/645_isolated_data_freshness_worker.sql").read_text()
+    assert "data_stale" in migration
 
 
 def test_climate_data_pipeline_targets_all_tables() -> None:
     entrypoint = Path("services/ingestion/climate_data.py").read_text()
     gee_fetchers = Path("services/ingestion/gee_climate.py").read_text()
+    worker = Path("services/ingestion/climate_worker.py").read_text()
+    migration = SIGNED_CLIMATE_MIGRATION.read_text()
 
-    assert "worldclim_climate" in entrypoint
-    assert "return fetch_era5_land" in entrypoint
-    assert "return fetch_modis_lst" in entrypoint
-    assert "return fetch_smap_moisture" in entrypoint
-    assert "return fetch_sentinel1_sar" in entrypoint
-    assert "ncep_weather_summary" in gee_fetchers
-    assert "modis_lst_summary" in gee_fetchers
-    assert "smap_soil_moisture" in gee_fetchers
-    assert "sentinel1_sar_summary" in gee_fetchers
+    for table in (
+        "worldclim_climate",
+        "ncep_weather_summary",
+        "modis_lst_summary",
+        "smap_soil_moisture",
+        "sentinel1_sar_summary",
+    ):
+        assert table in migration
+    assert "persist_summary" in gee_fetchers
+    assert "_dispatch_signed_climate_worker" in entrypoint
+    assert "store_climate_summary_v2" in worker
 
 
 class _FakeInfo:
@@ -311,119 +353,47 @@ class _FakeEarthEngine:
         return _FakeCollection(dataset)
 
 
-class _ClimateCursor:
-    def __init__(self, connection):
-        self.connection = connection
-        self.statement = ""
-        self.parameters = None
-
-    def __enter__(self):
-        return self
-
-    def __exit__(self, *_args):
-        return False
-
-    def execute(self, statement, parameters=None):
-        self.statement = statement
-        self.parameters = parameters
-        self.connection.statements.append((statement, parameters))
-        if self.connection.fail_insert and "INSERT INTO" in statement:
-            raise RuntimeError("synthetic write failure")
-
-    def fetchone(self):
-        return ("synthetic-climate-record",)
-
-
-class _ClimateConnection:
-    def __init__(self, fail_insert=False):
-        self.statements = []
-        self.commits = 0
-        self.rollbacks = 0
-        self.fail_insert = fail_insert
-
-    def cursor(self, **_kwargs):
-        return _ClimateCursor(self)
-
-    def commit(self):
-        self.commits += 1
-
-    def rollback(self):
-        self.rollbacks += 1
-
-    def close(self):
-        pass
-
-
 def _install_fake_gee(monkeypatch):
     from services.ingestion import gee_climate
 
-    monkeypatch.setattr(gee_climate, "_get_gee_client", lambda: _FakeEarthEngine)
+    monkeypatch.setattr(
+        gee_climate,
+        "_get_gee_client",
+        lambda *, worker_credentials=False: _FakeEarthEngine if worker_credentials else None,
+    )
     records = []
-    monkeypatch.setattr(gee_climate, "log_ingestion", lambda **record: records.append(record))
-    return gee_climate, records
+    def persist(summary, payload):
+        records.append((summary, payload))
+        return f"record-{summary['source_key']}"
+
+    return gee_climate, records, persist
 
 
-def test_gee_provider_upserts_match_canonical_schema_and_audit_transaction(monkeypatch) -> None:
-    import json
-    import re
-
-    gee_climate, audits = _install_fake_gee(monkeypatch)
-    connection = _ClimateConnection()
+def test_gee_provider_summaries_keep_the_legacy_output_and_audit_payload(monkeypatch) -> None:
+    gee_climate, persisted, persist = _install_fake_gee(monkeypatch)
+    location_id = "11111111-1111-4111-8111-111111111111"
     bbox = {"west": -70.0, "south": 18.0, "east": -69.0, "north": 19.0}
-    schema = WORLDCLIM_SCHEMA.read_text()
     checks = [
-        (gee_climate.fetch_modis_lst, "modis_lst_summary", "modis_lst_summary"),
-        (gee_climate.fetch_smap_moisture, "smap_soil_moisture", "smap_soil_moisture"),
-        (gee_climate.fetch_sentinel1_sar, "sentinel1_sar_summary", "sentinel1_sar_summary"),
-        (gee_climate.fetch_era5_land, "ncep_weather_summary", "ncep_weather_summary"),
+        (gee_climate.fetch_modis_lst, "modis_lst", "MODIS/061/MOD11A2"),
+        (gee_climate.fetch_smap_moisture, "smap_moisture", "NASA/SMAP/SPL3SMP_E/006"),
+        (gee_climate.fetch_sentinel1_sar, "sentinel1_sar", "COPERNICUS/S1_GRD"),
+        (gee_climate.fetch_era5_land, "era5_land", "ECMWF/ERA5_LAND/DAILY_AGGR"),
     ]
 
-    for fetcher, table, expected_insert_table in checks:
-        result = fetcher(connection, "synthetic-location", bbox)
+    for fetcher, source_key, provider_id in checks:
+        result = fetcher(
+            None,
+            location_id,
+            bbox,
+            worker_credentials=True,
+            persist_summary=persist,
+        )
         assert result["status"] == "success"
-        statement, parameters = connection.statements[-1]
-        insert = re.search(
-            rf"INSERT INTO {expected_insert_table}\s*\((.*?)\)\s*VALUES",
-            statement,
-            re.DOTALL,
-        )
-        assert insert is not None, table
-        columns = {column.strip() for column in insert.group(1).split(",")}
-        table_ddl = re.search(
-            rf"CREATE TABLE IF NOT EXISTS {table}\s*\((.*?)\);", schema, re.DOTALL
-        )
-        assert table_ddl is not None, table
-        schema_columns = set(
-            re.findall(r"^\s{4}([a-z][a-z0-9_]*)\s+", table_ddl.group(1), re.MULTILINE)
-        )
-        assert columns <= schema_columns, (table, columns - schema_columns)
-        assert "ON CONFLICT (location_id, target_date, source)" in statement
-        assert "WHERE plot_id IS NULL AND source IS NOT NULL" in statement
-        assert parameters[0] == "synthetic-location"
-
-    assert connection.commits == 4
-    assert len(audits) == 4
-    assert all(audit["db"] is connection for audit in audits)
-    assert all(audit["location_id"] == "synthetic-location" for audit in audits)
-    assert audits[0]["source_id"] == "MODIS/061/MOD11A2"
-    assert audits[1]["source_id"] == "NASA/SMAP/SPL3SMP_E/006"
-    assert audits[2]["source_id"] == "COPERNICUS/S1_GRD"
-    assert audits[3]["source_id"] == "ECMWF/ERA5_LAND/DAILY_AGGR"
-
-    modis_params = connection.statements[0][1]
-    smap_params = connection.statements[1][1]
-    sentinel_params = connection.statements[2][1]
-    era5_params = connection.statements[3][1]
-    assert modis_params[4:6] == (26.85, 6.85)
-    assert smap_params[4] == 0.28
-    assert sentinel_params[4:6] == (-18.4, -11.2)
-    assert era5_params[4:9] == (0.25, 27.0, 28.0, 26.0, 120.0)
-    metadata = [
-        json.loads(modis_params[6]),
-        json.loads(smap_params[5]),
-        json.loads(sentinel_params[6]),
-        json.loads(era5_params[9]),
-    ]
+        assert result["record_id"] == f"record-{source_key}"
+    assert len(persisted) == 4
+    assert [summary["source_key"] for summary, _ in persisted] == [item[1] for item in checks]
+    assert [summary["source_id"] for summary, _ in persisted] == [item[2] for item in checks]
+    metadata = [summary["metadata"] for summary, _ in persisted]
     assert [entry["temporal_reducer"] for entry in metadata] == [
         "mean", "mean", "median", "mean (temperature/soil); sum (precipitation)"
     ]
@@ -432,19 +402,35 @@ def test_gee_provider_upserts_match_canonical_schema_and_audit_transaction(monke
     assert metadata[1]["value_units"]["soil_moisture_6m"] == "volume_fraction"
     assert metadata[2]["value_units"]["vh_median_6m"] == "dB"
     assert metadata[3]["value_units"]["precipitation_6m"] == "mm"
+    assert persisted[0][1] == {"lst_day_mean_6m_c": 26.85, "lst_night_mean_6m_c": 6.85}
+    assert persisted[1][1] == {"soil_moisture_6m_volume_fraction": 0.28}
+    assert persisted[2][1] == {"vh_median_6m_db": -18.4, "vv_median_6m_db": -11.2}
+    assert persisted[3][1] == {
+        "soil_moisture_6m_volume_fraction": 0.25,
+        "mean_temp_6m_c": 27.0,
+        "max_temp_6m_c": 28.0,
+        "min_temp_6m_c": 26.0,
+        "precipitation_6m_mm": 120.0,
+    }
 
 
-def test_gee_provider_write_failure_rolls_back_and_returns_error(monkeypatch) -> None:
-    gee_climate, _audits = _install_fake_gee(monkeypatch)
-    connection = _ClimateConnection(fail_insert=True)
+def test_gee_provider_requires_the_signed_persistence_callback(monkeypatch) -> None:
+    gee_climate, _persisted, persist = _install_fake_gee(monkeypatch)
     result = gee_climate.fetch_modis_lst(
-        connection,
-        "synthetic-location",
+        None,
+        "11111111-1111-4111-8111-111111111111",
         {"west": -70.0, "south": 18.0, "east": -69.0, "north": 19.0},
+        worker_credentials=True,
     )
     assert result["status"] == "error"
-    assert connection.commits == 0
-    assert connection.rollbacks == 1
+    result = gee_climate.fetch_modis_lst(
+        None,
+        "11111111-1111-4111-8111-111111111111",
+        {"west": -70.0, "south": 18.0, "east": -69.0, "north": 19.0},
+        worker_credentials=True,
+        persist_summary=persist,
+    )
+    assert result["status"] == "success"
 
 
 def test_climate_summary_migration_refuses_duplicates_and_adds_partial_keys() -> None:
@@ -463,30 +449,42 @@ def test_climate_summary_migration_refuses_duplicates_and_adds_partial_keys() ->
         assert index_name in migration
 
 
-def test_climate_batch_reports_provider_errors_as_failed() -> None:
+def test_climate_batch_reports_provider_errors_as_failed(monkeypatch) -> None:
     from services.ingestion import climate_data
 
-    names = ("fetch_worldclim", "fetch_ncep", "fetch_modis", "fetch_smap", "fetch_sentinel1")
-    originals = {name: getattr(climate_data, name) for name in names}
-    try:
-        for name in names:
-            setattr(climate_data, name, lambda *_args: {"status": "error"})
-        result = climate_data.run_all(object(), "synthetic-location")
-    finally:
-        for name, function in originals.items():
-            setattr(climate_data, name, function)
+    report = {
+        "status": "error",
+        "location_id": "synthetic-location",
+        "results": {key: {"status": "error"} for key in climate_data._CLIMATE_SOURCE_KEYS},
+        "success": 0,
+        "skipped": 0,
+        "failed": 5,
+        "total": 5,
+    }
+    assert climate_data._valid_worker_report(
+        report,
+        location_id="synthetic-location",
+        expected_sources=set(climate_data._CLIMATE_SOURCE_KEYS),
+        exit_code=1,
+    )
+    monkeypatch.setattr(climate_data, "_dispatch_signed_climate_worker", lambda *_args: report)
+    result = climate_data.run_all(object(), "synthetic-location")
 
     assert result["status"] == "error"
     assert result["failed"] == 5
-    assert result["success"] == 0
+    assert result["total"] == 5
+    assert set(result["results"]) == {"worldclim", "ncep", "modis", "smap", "sentinel1"}
 
 
 def test_climate_cli_returns_failure_for_provider_error(monkeypatch) -> None:
     from services.ingestion import climate_data
 
-    monkeypatch.setattr(climate_data, "get_db", lambda: _ClimateConnection())
+    monkeypatch.setattr(
+        climate_data,
+        "_dispatch_signed_climate_source",
+        lambda *_args: {"status": "error", "message": "signed climate worker is disabled"},
+    )
     monkeypatch.setattr(climate_data, "print_json", lambda _result: None)
-    monkeypatch.setattr(climate_data, "fetch_modis", lambda *_args: {"status": "error"})
     assert climate_data.main(["--modis", "--location-id", "12345678-1234-5678-1234-567812345678"]) == 1
 
 

@@ -211,6 +211,8 @@ def list_location_pollution_incidents(
                     and not isinstance(incident.get("affected_area"), str)
                 ):
                     raise RuntimeError("Incident review queue returned an invalid incident")
+            if offset + 100 > 1_000_000:
+                result["has_more"] = False
         return result
     finally:
         try:

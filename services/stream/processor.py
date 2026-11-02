@@ -9,6 +9,8 @@ from services.common.logging import get_logger
 
 logger = get_logger("stream.processor")
 
+MAX_PROCESS_BATCH_SIZE = 500
+
 
 class StreamProcessor:
     """Lightweight stream processor for real-time sensor data."""
@@ -93,8 +95,17 @@ class StreamProcessor:
             logger.error("Batch ingest failed (%s)", safe_exception_class(exc))
             return count
 
-    def process_buffer(self, batch_size: int = 500) -> dict[str, int]:
+    def process_buffer(
+        self, batch_size: int = MAX_PROCESS_BATCH_SIZE
+    ) -> dict[str, int]:
         """Process pending buffer entries into windowed aggregations."""
+        if isinstance(batch_size, bool) or not isinstance(batch_size, int):
+            raise ValueError("batch_size must be an integer")
+        if not 1 <= batch_size <= MAX_PROCESS_BATCH_SIZE:
+            raise ValueError(
+                f"batch_size must be between 1 and {MAX_PROCESS_BATCH_SIZE}"
+            )
+
         from services.stream.windows import WindowAggregator
 
         conn = self._get_conn()

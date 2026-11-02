@@ -1,0 +1,67 @@
+{
+  "date": "2026-10-28",
+  "source_revision": "73e0c748562ddb4903360328d29b35e776be6e4d",
+  "working_tree_dirty": true,
+  "scope": "C1 code-first boundary for the global, deployment-managed service_registry catalog: preserve Kernel reads and capability mappings while removing runtime catalog mutation rights.",
+  "migration": {
+    "file": "schemas/postgres/682_runtime_service_registry_read_only.sql",
+    "disposable_postgresql_replay": "passed",
+    "runtime_select_allowed": true,
+    "insert_update_delete_truncate_denied": true,
+    "references_trigger_and_column_write_grants_denied": true,
+    "compatibility_grants_then_runtime_provisioner_reapplication": "passed",
+    "directus_runtime_crud_unchanged": true,
+    "capability_service_mapping_remains_writable": true,
+    "tables_exercised": 128,
+    "database_scope": "PostgreSQL 16 temporary empty database with synthetic relation definitions"
+  },
+  "checks": [
+    {
+      "command": "python3 -m pytest tests/test_service_catalog_runtime_write_boundary.py tests/test_runtime_role_boundary.py tests/test_runtime_sql_inventory.py tests/test_runtime_privilege_callsite_report.py -q",
+      "result": "passed",
+      "passed": 118
+    },
+    {
+      "command": "python3 -m pytest tests/test_migration.py -q",
+      "result": "passed",
+      "passed": 37
+    },
+    {
+      "command": "python3 -m pytest tests/test_runtime_sql_inventory.py tests/test_runtime_privilege_callsite_report.py -q after ledger reconciliation",
+      "result": "passed",
+      "passed": 32
+    },
+    {
+      "command": "python3 scripts/runtime_sql_inventory.py --check docs/refactor/runtime-sql-inventory.json",
+      "result": "passed",
+      "unresolved_candidates_tracked": 37
+    },
+    {
+      "command": "Ruff, Python compilation, capability-matrix validation, and git diff hygiene",
+      "result": "passed"
+    }
+  ],
+  "progress": {
+    "checklist_complete": 1517,
+    "checklist_open": 25,
+    "todo_complete": 222,
+    "todo_open": 16,
+    "capability_rows": 67,
+    "strict_private_gateway_response_endpoints": 87,
+    "cli_groups_with_location_uuid_preflight": 27
+  },
+  "environment": {
+    "candidate_or_legacy_database_touched": false,
+    "temporary_database_used": true,
+    "provider_called": false,
+    "live_network_used": false
+  },
+  "limitations": [
+    "service_registry remains global platform reference data; this is a DML boundary, not RLS or tenant isolation.",
+    "Directus administrator access and the separate Directus database role were intentionally left unchanged.",
+    "The full-schema ACL snapshot remains through migration 681; migration 682 was tested in the dedicated scoped boundary harness.",
+    "The generate_farm_summary WITH fingerprint was source-reviewed as SELECT-only and moved to reviewed_unresolved; it remains a conservative scanner candidate, and the review is not an ACL approval.",
+    "Capability classifications and MAN-CAP acceptance remain unchanged."
+  ],
+  "postgres_evidence": "service-registry-runtime-read-only-disposable.json"
+}

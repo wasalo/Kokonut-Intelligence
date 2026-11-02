@@ -7,7 +7,6 @@ from typing import Any, Dict, List, Optional
 
 from psycopg2.extras import RealDictCursor
 
-
 SCOPES = ("internal", "adelphi")
 
 
@@ -112,5 +111,11 @@ def list_gaps(conn, *, scope_type: Optional[str] = None, scope_id: Optional[str]
         params.append(scope_id)
     where = " WHERE " + " AND ".join(clauses) if clauses else ""
     with conn.cursor(cursor_factory=RealDictCursor) as cur:
-        cur.execute(f"SELECT * FROM v_operating_capacity_gap{where} ORDER BY period_start, priority_rank DESC, work_type", params)
+        cur.execute(
+            "SELECT scope_type, scope_id, work_type, period_start, period_end, "
+            "available_hours, required_hours, net_hours, coverage_status, "
+            f"priority_rank FROM v_operating_capacity_gap{where} "
+            "ORDER BY period_start, priority_rank DESC, work_type",
+            params,
+        )
         return _rows(cur)

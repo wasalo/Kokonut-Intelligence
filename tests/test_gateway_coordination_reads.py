@@ -8,6 +8,8 @@ import pytest
 
 from services.common.tenant_context import TenantContextDenied
 from services.gateway import coordination_reads as reads
+from services.gateway.coordination_reads import CoordinationReadInvalid
+from services.gateway.coordination_routes import register_coordination_routes
 from services.gateway.operator_auth import auth_route_policy
 
 pytest.importorskip("fastapi")
@@ -27,6 +29,30 @@ COLUMNS = (
     "rejected_metric_observation_count",
 )
 ROW = (3, 1, 0, 0, 1, 1, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 2, 1, 1)
+
+
+def _summary_payload():
+    return {"location_id": LOCATION_ID, **dict(zip(COLUMNS, ROW))}
+
+
+def _route_test_app(provider, psycopg2):
+    app = FastAPI()
+    router = APIRouter()
+
+    async def run_in_threadpool(function, *args, **kwargs):
+        return function(*args, **kwargs)
+
+    register_coordination_routes(router, provider, run_in_threadpool, psycopg2)
+    app.include_router(router)
+
+    @app.middleware("http")
+    async def add_operator(request, call_next):
+        request.state.operator_session = SimpleNamespace(
+            operator=SimpleNamespace(operator_id=OPERATOR_ID)
+        )
+        return await call_next(request)
+
+    return app
 
 
 class _Connection:
@@ -150,32 +176,111 @@ def test_route_policy_requires_exact_location_coordination_read_grant():
 
 
 def test_http_projection_is_no_store_and_operator_authenticated(monkeypatch):
-    from services.gateway.coordination_routes import register_coordination_routes
-
     monkeypatch.setattr(
         "services.gateway.coordination_reads.get_location_coordination_governance_summary",
-        lambda *_args, **_kwargs: {"location_id": LOCATION_ID, "alliance_count": 3},
+        lambda *_args, **_kwargs: _summary_payload(),
     )
-    app = FastAPI()
-    router = APIRouter()
-
-    async def run_in_threadpool(function, *args, **kwargs):
-        return function(*args, **kwargs)
-
-    register_coordination_routes(router, object(), run_in_threadpool, SimpleNamespace(Error=Exception))
-    app.include_router(router)
-
-    @app.middleware("http")
-    async def add_operator(request, call_next):
-        request.state.operator_session = SimpleNamespace(
-            operator=SimpleNamespace(operator_id=OPERATOR_ID)
-        )
-        return await call_next(request)
-
+    app = _route_test_app(object(), SimpleNamespace(Error=Exception))
     with TestClient(app) as client:
         response = client.get(f"/operator/api/coordination/{LOCATION_ID}/summary")
 
     assert response.status_code == 200
     assert response.headers["cache-control"] == "no-store"
     assert response.headers["vary"] == "Cookie"
-    assert response.json()["alliance_count"] == 3
+    assert response.json() == _summary_payload()
+
+
+def test_coordination_summary_response_model_is_published_and_strict():
+    app = _route_test_app(object(), SimpleNamespace(Error=Exception))
+    openapi = app.openapi()
+
+    response_schema = openapi["paths"][
+        "/operator/api/coordination/{location_id}/summary"
+    ]["get"]["responses"]["200"]["content"]["application/json"]["schema"]
+    assert response_schema == {
+        "$ref": "#/components/schemas/CoordinationGovernanceSummaryResponse"
+    }
+    schema = openapi["components"]["schemas"]["CoordinationGovernanceSummaryResponse"]
+    assert schema["additionalProperties"] is False
+    assert set(schema["properties"]) == {"location_id", *COLUMNS}
+    for field in COLUMNS:
+        assert schema["properties"][field]["type"] == "integer"
+        assert schema["properties"][field]["minimum"] == 0
+
+
+@pytest.mark.parametrize("invalid_field", ["extra", "negative_count", "string_count"])
+def test_coordination_summary_rejects_invalid_projection(monkeypatch, invalid_field):
+    result = _summary_payload()
+    if invalid_field == "extra":
+        result["party_id"] = str(uuid4())
+    elif invalid_field == "negative_count":
+        result["alliance_count"] = -1
+    else:
+        result["alliance_count"] = "3"
+    monkeypatch.setattr(
+        "services.gateway.coordination_reads.get_location_coordination_governance_summary",
+        lambda *_args, **_kwargs: result,
+    )
+    app = _route_test_app(object(), SimpleNamespace(Error=Exception))
+
+    with TestClient(app) as client:
+        response = client.get(f"/operator/api/coordination/{LOCATION_ID}/summary")
+
+    assert response.status_code == 500
+    assert response.json() == {"error": "Coordination summary unavailable"}
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["vary"] == "Cookie"
+
+
+class _SyntheticDatabaseError(Exception):
+    def __init__(self, message, pgcode=None):
+        super().__init__(message)
+        self.pgcode = pgcode
+
+
+@pytest.mark.parametrize(
+    ("provider", "error", "status_code", "body", "retry_after"),
+    [
+        (None, None, 404, {"error": "Operator OIDC is disabled"}, None),
+        (
+            object(), TenantContextDenied("denied"), 403,
+            {"error": "Tenant-qualified coordination access is required"}, None,
+        ),
+        (
+            object(), CoordinationReadInvalid("Invalid location identifier"), 400,
+            {"error": "Invalid location identifier"}, None,
+        ),
+        (
+            object(), _SyntheticDatabaseError("denied", pgcode="42501"), 403,
+            {"error": "A current location coordination read grant is required"}, None,
+        ),
+        (
+            object(), _SyntheticDatabaseError("database failure"), 503,
+            {"error": "Coordination summary unavailable"}, "30",
+        ),
+    ],
+)
+def test_coordination_summary_preserves_error_and_cache_contracts(
+    monkeypatch, provider, error, status_code, body, retry_after
+):
+    if error is not None:
+        def fail_summary(*_args, **_kwargs):
+            raise error
+
+        monkeypatch.setattr(
+            "services.gateway.coordination_reads.get_location_coordination_governance_summary",
+            fail_summary,
+        )
+    app = _route_test_app(provider, SimpleNamespace(Error=_SyntheticDatabaseError))
+
+    with TestClient(app) as client:
+        response = client.get(f"/operator/api/coordination/{LOCATION_ID}/summary")
+
+    assert response.status_code == status_code
+    assert response.json() == body
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["vary"] == "Cookie"
+    if retry_after is None:
+        assert "retry-after" not in response.headers
+    else:
+        assert response.headers["retry-after"] == retry_after

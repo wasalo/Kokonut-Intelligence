@@ -1,0 +1,57 @@
+{
+  "date": "2026-10-28",
+  "source_revision": "bd578902",
+  "working_tree_dirty": true,
+  "scope": "Parallel code-only batch: renewable-energy report scope preflight, pollinator-health CLI UUID checks, signed own-capacity response contract, and read-only Directus attestation_plan tenant boundary.",
+  "checks": [
+    {
+      "command": "python3 -m pytest tests/test_renewable_energy_report_scope.py tests/test_report_state_cursor_cleanup.py tests/test_gnh_alignment.py tests/test_gnh_alignment_report_scope.py tests/test_capital_provider_utility_report_scope.py tests/test_cultural_preservation_report_scope.py tests/test_cli_pollinator_health_scope.py tests/test_pollinator_health.py tests/test_gateway_operating_pilot_own_capacity_response.py tests/test_gateway_operating_pilot_reads.py tests/test_gateway_operating_pilot_pagination_openapi.py tests/test_operator_console_operating_pilot.py tests/test_operator_route_policy_inventory.py -q",
+      "result": "passed",
+      "passed": 573
+    },
+    {
+      "command": "npm test",
+      "working_directory": "extensions/kokonut-hooks",
+      "result": "passed",
+      "passed": 142
+    },
+    {
+      "command": "npm run build",
+      "working_directory": "extensions/kokonut-hooks",
+      "result": "passed",
+      "details": "Directus extension bundle and TypeScript no-emit check"
+    },
+    {
+      "command": "Ruff check and Python compilation for changed report, CLI, Gateway, and test files",
+      "result": "passed"
+    },
+    {
+      "command": "python3 scripts/report_generator_inventory.py --check docs/refactor/report-generator-source-inventory.json",
+      "result": "passed"
+    },
+    {
+      "command": "python3 scripts/report_generator_query_scope_inventory.py --check docs/refactor/report-generator-query-scope-inventory.json",
+      "result": "passed"
+    },
+    {
+      "command": "python3 scripts/check-capability-matrix.py",
+      "result": "passed",
+      "matrix_rows": 67
+    },
+    {
+      "command": "git diff --check",
+      "result": "passed"
+    }
+  ],
+  "environment": {
+    "live_database_used": false,
+    "candidate_or_legacy_touched": false,
+    "provider_called": false,
+    "directus_runtime_used": false
+  },
+  "limitations": [
+    "The Directus attestation_plan boundary is source/unit tested, not live API, runtime-role, or PostgreSQL RLS acceptance.",
+    "The own-capacity contract validates only the existing signed read projection and does not compare populated profiles to legacy output.",
+    "CLI checks establish that malformed IDs fail before database setup; they do not execute live queries."
+  ]
+}

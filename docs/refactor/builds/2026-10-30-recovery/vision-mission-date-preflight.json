@@ -1,0 +1,37 @@
+{
+  "date": "2026-10-30",
+  "branch": "chore/kernel-next-sprint-plan",
+  "scope": [
+    "Vision/Mission CLI date preflight"
+  ],
+  "contract": {
+    "date_format": "Canonical YYYY-MM-DD calendar dates",
+    "database_boundary": "Malformed, impossible, and noncanonical effective/review dates are rejected by argparse before the service can acquire a database connection",
+    "service_compatibility": "Valid canonical date strings are passed unchanged; omitted dates are passed as null"
+  },
+  "verification": {
+    "focused_pytest": {
+      "command": "python3 -m pytest tests/test_vision_mission_cli_dates.py -q",
+      "result": "8 passed"
+    },
+    "ruff": {
+      "command": "ruff check services/analytics/cli_vision_mission.py tests/test_vision_mission_cli_dates.py",
+      "result": "Passed"
+    },
+    "python_compile": {
+      "command": "python3 -m py_compile services/analytics/cli_vision_mission.py tests/test_vision_mission_cli_dates.py",
+      "result": "Passed"
+    },
+    "diff_check": {
+      "command": "git diff --check -- services/analytics/cli_vision_mission.py tests/test_vision_mission_cli_dates.py",
+      "result": "Passed"
+    }
+  },
+  "isolation": {
+    "database_access": false,
+    "provider_access": false,
+    "candidate_or_legacy_access": false,
+    "migration_applied": false
+  },
+  "rollback": "Revert the Vision/Mission CLI date validation, focused tests, evidence, and progress updates; no data rollback is needed."
+}

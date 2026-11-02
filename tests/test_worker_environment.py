@@ -8,6 +8,7 @@ from pathlib import Path
 import pytest
 
 from services.common.worker_environment import (
+    DENY_SHARED_DATABASE_ENV,
     ISOLATED_WORKER_KEY_ENV,
     scheduled_module_worker_key,
     worker_subprocess_environment,
@@ -31,6 +32,45 @@ def test_default_child_environment_removes_all_worker_secrets():
         "PATH": "/synthetic/bin",
         "DATABASE_URL": "postgresql://application",
         "KOKONUT_PROVIDER_API_KEY": "provider-config",
+    }
+
+
+def test_keyless_isolated_child_gets_deny_marker_and_no_shared_database_values():
+    source = {
+        DENY_SHARED_DATABASE_ENV: "false",
+        "PATH": "/synthetic/bin",
+        "PG_USER": "kokonut_runtime",
+        "PG_PASSWORD": "shared-secret",
+        "POSTGRES_PASSWORD": "admin-secret",
+        "DATABASE_URL": "postgresql://shared",
+    }
+
+    assert worker_subprocess_environment(
+        strip_shared_database_credentials=True,
+        environ=source,
+    ) == {DENY_SHARED_DATABASE_ENV: "true", "PATH": "/synthetic/bin"}
+
+
+def test_non_isolated_child_does_not_inherit_a_stale_deny_marker():
+    child = worker_subprocess_environment(
+        environ={DENY_SHARED_DATABASE_ENV: "true", "PATH": "/synthetic/bin"}
+    )
+
+    assert child == {"PATH": "/synthetic/bin"}
+
+
+def test_scheduled_subprocess_does_not_inherit_supervisor_worker_progress_identity():
+    child = worker_subprocess_environment(
+        environ={
+            "PATH": "/synthetic/bin",
+            "KOKONUT_WORKER_PROGRESS_NAME": "scheduler",
+            "KOKONUT_WORKER_PROGRESS_HEARTBEAT_FILE": "/private/worker-progress/supervisor.json",
+        }
+    )
+
+    assert child == {
+        "PATH": "/synthetic/bin",
+        "KOKONUT_WORKER_PROGRESS_HEARTBEAT_FILE": "/private/worker-progress/supervisor.json",
     }
 
 
@@ -74,6 +114,7 @@ def test_scheduled_noi_worker_receives_only_its_exact_secret_pair():
         "KOKONUT_NOI_SNAPSHOT_DATABASE_URL": "postgresql://noi-worker",
         "KOKONUT_NOI_SNAPSHOT_WORKER_CREDENTIAL": "noi-secret",
         ISOLATED_WORKER_KEY_ENV: "noi_snapshot",
+        DENY_SHARED_DATABASE_ENV: "true",
     }
     assert scheduled_module_worker_key("services.metrics") is None
     assert scheduled_module_worker_key("services.metrics.noi_snapshot_worker.extra") is None
@@ -87,6 +128,8 @@ def test_isolated_clickhouse_outbox_receives_only_its_dedicated_dsn():
         "PG_USER": "kokonut_runtime",
         "PG_PASSWORD": "shared-secret",
         "DATABASE_URL": "postgresql://shared/app",
+        "CLICKHOUSE_PASSWORD": "synthetic-clickhouse-sink-secret",
+        "ETH_RPC_URL": "https://rpc.example.invalid/?key=synthetic-rpc-secret",
     }
     module = "services.ingestion.clickhouse_outbox_worker"
     worker_key = scheduled_module_worker_key(module)
@@ -98,8 +141,38 @@ def test_isolated_clickhouse_outbox_receives_only_its_dedicated_dsn():
         environ=source,
     ) == {
         "KOKONUT_CLICKHOUSE_OUTBOX_DATABASE_URL": "postgresql://clickhouse-worker",
+        "CLICKHOUSE_PASSWORD": "synthetic-clickhouse-sink-secret",
         ISOLATED_WORKER_KEY_ENV: "clickhouse_outbox",
+        DENY_SHARED_DATABASE_ENV: "true",
     }
+
+
+def test_other_isolated_workers_do_not_receive_clickhouse_sink_password():
+    source = {
+        "KOKONUT_WEATHER_DATABASE_URL": "postgresql://weather-worker",
+        "CLICKHOUSE_PASSWORD": "synthetic-clickhouse-sink-secret",
+        "CLICKHOUSE_HOST": "clickhouse.internal",
+    }
+
+    assert worker_subprocess_environment(
+        allowed_worker_keys=("weather",),
+        isolated_database_credentials=True,
+        environ=source,
+    ) == {
+        "KOKONUT_WEATHER_DATABASE_URL": "postgresql://weather-worker",
+        "CLICKHOUSE_HOST": "clickhouse.internal",
+        ISOLATED_WORKER_KEY_ENV: "weather",
+        DENY_SHARED_DATABASE_ENV: "true",
+    }
+
+
+def test_non_isolated_supervisor_keeps_clickhouse_configuration():
+    source = {
+        "CLICKHOUSE_HOST": "clickhouse.internal",
+        "CLICKHOUSE_PASSWORD": "synthetic-clickhouse-sink-secret",
+    }
+
+    assert worker_subprocess_environment(environ=source) == source
 
 
 def test_scheduled_anomaly_replay_receives_only_its_existing_worker_identity():
@@ -122,6 +195,7 @@ def test_scheduled_anomaly_replay_receives_only_its_existing_worker_identity():
         "KOKONUT_SENSOR_ANOMALY_DATABASE_URL": "postgresql://anomaly-worker",
         "KOKONUT_SENSOR_ANOMALY_WORKER_CREDENTIAL": "anomaly-secret",
         ISOLATED_WORKER_KEY_ENV: "sensor_anomaly",
+        DENY_SHARED_DATABASE_ENV: "true",
     }
 
 
@@ -150,6 +224,7 @@ def test_scheduled_credit_adjustment_worker_receives_only_its_exact_secret_pair(
         "KOKONUT_CREDIT_ADJUSTMENT_DATABASE_URL": "postgresql://credit-worker",
         "KOKONUT_CREDIT_ADJUSTMENT_WORKER_CREDENTIAL": "credit-secret",
         ISOLATED_WORKER_KEY_ENV: "credit_adjustment",
+        DENY_SHARED_DATABASE_ENV: "true",
     }
 
 
@@ -178,6 +253,7 @@ def test_scheduled_weather_forecast_worker_receives_only_its_exact_secret_pair()
         "KOKONUT_WEATHER_FORECAST_DATABASE_URL": "postgresql://forecast-worker",
         "KOKONUT_WEATHER_FORECAST_WORKER_CREDENTIAL": "forecast-secret",
         ISOLATED_WORKER_KEY_ENV: "weather_forecast",
+        DENY_SHARED_DATABASE_ENV: "true",
     }
 
 
@@ -206,6 +282,7 @@ def test_scheduled_current_weather_worker_receives_only_its_exact_secrets():
         "KOKONUT_WEATHER_WORKER_CREDENTIAL": "weather-worker-secret",
         "KOKONUT_WEATHER_OPENWEATHERMAP_API_KEY": "weather-provider-secret",
         ISOLATED_WORKER_KEY_ENV: "weather",
+        DENY_SHARED_DATABASE_ENV: "true",
     }
 
     forecast_environment = worker_subprocess_environment(
@@ -237,6 +314,7 @@ def test_scheduled_market_data_worker_receives_only_its_named_database_url():
     ) == {
         "KOKONUT_MARKET_DATA_DATABASE_URL": "postgresql://market-data-worker",
         ISOLATED_WORKER_KEY_ENV: "market_data",
+        DENY_SHARED_DATABASE_ENV: "true",
     }
 
 
@@ -260,6 +338,7 @@ def test_scheduled_eas_worker_receives_only_its_named_database_url():
     ) == {
         "KOKONUT_EAS_INDEXER_DATABASE_URL": "postgresql://eas-indexer-worker",
         ISOLATED_WORKER_KEY_ENV: "eas_indexer",
+        DENY_SHARED_DATABASE_ENV: "true",
     }
 
 
@@ -286,6 +365,7 @@ def test_scheduled_rpc_worker_receives_only_its_database_and_provider_endpoints(
         "KOKONUT_RPC_INDEXER_DATABASE_URL": "postgresql://rpc-indexer",
         "KOKONUT_RPC_INDEXER_RPC_ENDPOINTS": '{"celo":"https://rpc.example/?token=rpc-secret"}',
         ISOLATED_WORKER_KEY_ENV: "rpc_indexer",
+        DENY_SHARED_DATABASE_ENV: "true",
     }
 
 
@@ -311,6 +391,7 @@ def test_scheduled_sensor_worker_receives_only_its_named_credentials():
         "KOKONUT_SENSOR_INGESTION_DATABASE_URL": "postgresql://sensor-worker",
         "KOKONUT_SENSOR_INGESTION_WORKER_CREDENTIAL": "sensor-worker-secret",
         ISOLATED_WORKER_KEY_ENV: "sensor_ingestion",
+        DENY_SHARED_DATABASE_ENV: "true",
     }
 
 
@@ -343,12 +424,14 @@ def test_scheduled_remote_sensing_worker_receives_only_its_identity_and_provider
         "KOKONUT_REMOTE_SENSING_COPERNICUS_CLIENT_ID": "synthetic-client",
         "KOKONUT_REMOTE_SENSING_COPERNICUS_CLIENT_SECRET": "synthetic-secret",
         ISOLATED_WORKER_KEY_ENV: "remote_sensing",
+        DENY_SHARED_DATABASE_ENV: "true",
     }
 
 
 def test_isolated_worker_marker_is_generated_and_source_marker_never_passes_through():
     source = {
         ISOLATED_WORKER_KEY_ENV: "attacker-supplied",
+        DENY_SHARED_DATABASE_ENV: "false",
         "KOKONUT_WEATHER_DATABASE_URL": "postgresql://worker",
         "PG_PASSWORD": "shared-secret",
     }
@@ -359,12 +442,14 @@ def test_isolated_worker_marker_is_generated_and_source_marker_never_passes_thro
     ) == {
         "KOKONUT_WEATHER_DATABASE_URL": "postgresql://worker",
         ISOLATED_WORKER_KEY_ENV: "weather",
+        DENY_SHARED_DATABASE_ENV: "true",
     }
 
 
 def test_isolated_event_dispatcher_keeps_only_its_database_and_registered_handler_keys():
     source = {
         ISOLATED_WORKER_KEY_ENV: "untrusted",
+        DENY_SHARED_DATABASE_ENV: "false",
         "PG_PASSWORD": "shared-secret",
         "DATABASE_URL": "postgresql://shared",
         "GNOSIS_RPC_URL": "https://provider-secret",
@@ -383,6 +468,7 @@ def test_isolated_event_dispatcher_keeps_only_its_database_and_registered_handle
         environ=source,
     ) == {
         ISOLATED_WORKER_KEY_ENV: "event_dispatch",
+        DENY_SHARED_DATABASE_ENV: "true",
         "KOKONUT_EVENT_DISPATCH_DATABASE_URL": "postgresql://event-dispatch",
         "KOKONUT_SENSOR_ANOMALY_DATABASE_URL": "postgresql://anomaly",
         "KOKONUT_SENSOR_ANOMALY_WORKER_CREDENTIAL": "anomaly-secret",
@@ -422,6 +508,7 @@ def test_worker_environment_rejects_invalid_allowlists(keys):
         "services.metrics.noi_snapshot_worker",
         "services.ingestion.weather_worker",
         "services.ingestion.weather_forecast_worker",
+        "services.ingestion.climate_data",
         "services.ingestion.climate_worker",
         "services.ingestion.market_data_worker",
         "services.ingestion.eas_worker",
@@ -479,12 +566,31 @@ def test_every_service_subprocess_uses_the_shared_environment_policy():
             ):
                 continue
             environment = next((item.value for item in node.keywords if item.arg == "env"), None)
-            if not (
+            direct_policy = (
                 isinstance(environment, ast.Call)
                 and isinstance(environment.func, ast.Name)
                 and environment.func.id
-                in {"worker_subprocess_environment", "_handler_child_environment"}
-            ):
+                in {
+                    "worker_subprocess_environment",
+                    "scheduled_module_worker_environment",
+                    "_handler_child_environment",
+                }
+            )
+            policy_variable = (
+                isinstance(environment, ast.Name)
+                and any(
+                    isinstance(statement, ast.Assign)
+                    and any(
+                        isinstance(target, ast.Name) and target.id == environment.id
+                        for target in statement.targets
+                    )
+                    and isinstance(statement.value, ast.Call)
+                    and isinstance(statement.value.func, ast.Name)
+                    and statement.value.func.id == "worker_subprocess_environment"
+                    for statement in ast.walk(tree)
+                )
+            )
+            if not (direct_policy or policy_variable):
                 violations.append(f"{path.relative_to(ROOT)}:{node.lineno}")
 
     assert violations == []

@@ -1,0 +1,46 @@
+{
+  "status": "passed",
+  "checked_at": "2026-10-30T02:23:46.876928+00:00",
+  "batch": "bounded CLI inputs and location-qualified farm-task linkage",
+  "focused_checks": {
+    "pytest_passed": 126,
+    "unittest_subtests_passed": 2,
+    "scopes": [
+      "stakeholder salience finite 0-10 range at CLI and service boundaries",
+      "training-assessment explicit location UUID and removal of location guessing",
+      "value-stream observation limits from 1 through 500 at CLI and service boundaries",
+      "Gateway farm-task UUID/null normalization and location-qualified validation before write",
+      "farm-task create/edit/detail/list response and OpenAPI parity",
+      "operator-console farm-task form and response binding"
+    ],
+    "database_scope": "mock-only Python tests; no candidate or legacy database access"
+  },
+  "disposable_postgresql": {
+    "status": "passed",
+    "version": "16.15",
+    "migrations": [
+      "359_activity_scope_and_outputs.sql",
+      "404_gateway_farm_activity_operations.sql"
+    ],
+    "container": "fresh temporary PostgreSQL 16 with synthetic fixtures, no mounted volumes",
+    "host_binding": "random port on 127.0.0.1 only",
+    "checks": 13,
+    "verified": [
+      "same-location task linkage survives a governed activity create",
+      "migration 359 trigger rejects a cross-location task reference",
+      "existing activity lifecycle, tenant grant, audit immutability, and role boundaries remain intact"
+    ],
+    "candidate_or_legacy_database_touched": false
+  },
+  "static_checks": {
+    "ruff": "passed",
+    "python_compilation": "passed",
+    "git_diff_check": "passed",
+    "runtime_sql_inventory": "current; 42 unresolved write candidates remain tracked",
+    "capability_matrix": "valid; 67 rows (24 baseline-retained, 7 deployed, 36 prepared)",
+    "requirement_groups": "aligned; 14 groups and 33 requirements",
+    "provider_boundaries": "passed; 17 vendor import sites"
+  },
+  "migration_or_candidate_rollout": false,
+  "rollback": "Revert the application, console, tests, inventory, and progress/evidence changes. No persistent data changed."
+}

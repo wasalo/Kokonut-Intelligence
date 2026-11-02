@@ -1,0 +1,32 @@
+{
+  "candidate_legacy_production_touched": false,
+  "classification": "global curated reference catalog",
+  "cleanup": {
+    "client_container_removed": true,
+    "database_container_removed": true,
+    "network_removed": true
+  },
+  "client_image": "kokonut-kernel-candidate-app:latest",
+  "directus_provisioner_reapplication": "passed",
+  "directus_select_and_dml_denial": "passed",
+  "external_writers": "none known; user-confirmed",
+  "host_ports_published": false,
+  "migration": "741_runtime_quality_grade_catalog_read_only.sql",
+  "migration_apply_and_replay_roles_absent": "passed",
+  "migration_apply_and_replay_roles_present": "passed",
+  "network": "internal Docker network",
+  "network_internal": true,
+  "ordered_migration_sources_validated": 732,
+  "owner_maintenance_write": "passed",
+  "postgres_image": "postgis/postgis:16-3.4@sha256:44126d872ac91993766c341e369c539e8196614321765d36a6f1bab0419a5fa5",
+  "public_table_and_column_write_denial": "passed",
+  "relation": "public.quality_grade",
+  "result": "passed",
+  "rls_unchanged": [
+    false,
+    false
+  ],
+  "runtime_provisioner_reapplication": "passed",
+  "runtime_select_and_dml_denial": "passed",
+  "timestamp": "2026-11-01T23:34:02Z"
+}

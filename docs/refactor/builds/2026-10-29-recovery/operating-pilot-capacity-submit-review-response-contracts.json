@@ -1,0 +1,29 @@
+{
+  "date": "2026-10-29",
+  "purpose": "Mock-only acceptance for private operating-pilot capacity submission and independent review response contracts.",
+  "command": "python3 -m pytest -q tests/test_gateway_operating_pilot_writes.py -k 'capacity_submission or capacity_review'",
+  "result": {
+    "passed": 25,
+    "failed": 0,
+    "deselected": 190
+  },
+  "coverage": [
+    "OpenAPI declares strict submission and independent-review response models",
+    "Responses bind location and profile identity to the route",
+    "First submission is submitted; an exact retry preserves the current lifecycle",
+    "Review status matches its approved or rejected decision, including replay",
+    "Malformed, mismatched, or undeclared output returns sanitized no-store 503"
+  ],
+  "environment": {
+    "database_used": false,
+    "provider_used": false,
+    "candidate_or_legacy_state_touched": false,
+    "fixtures": "Synthetic service dictionaries and in-process FastAPI TestClient."
+  },
+  "static_checks": {
+    "ruff": "passed",
+    "python_compile": "passed",
+    "capability_matrix": "passed",
+    "git_diff_check": "passed"
+  }
+}

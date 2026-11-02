@@ -1,12 +1,16 @@
 # Worker Cron Schedule
 
-Crontab for the `kokonut-worker` container, running periodic ingestion, computation, and maintenance tasks.
+Crontab installed in the legacy `kokonut-worker` image. The current active
+crontab runs only the health-check/alert script; scheduled ingestion and
+computation examples below it are commented out and are managed by the legacy
+database scheduler when enabled. The Kernel candidate uses its native worker
+runtime and does not depend on this crontab.
 
 ## Files
 
 | File | Purpose |
 |---|---|
-| `crontab` | Cron job definitions for the worker container |
+| `crontab` | Legacy cron definitions installed in the worker image |
 
 ## How It's Installed
 
@@ -17,7 +21,7 @@ COPY config/worker/crontab /tmp/kokonut-crontab
 RUN crontab -u appuser /tmp/kokonut-crontab
 ```
 
-Changes require rebuilding the worker image:
+Changes require rebuilding the legacy worker image:
 
 ```bash
 docker compose -f docker-compose.yml -f docker-compose.worker.yml build kokonut-worker
@@ -28,17 +32,11 @@ docker compose -f docker-compose.yml -f docker-compose.worker.yml --profile work
 
 | Job | Schedule | Command |
 |---|---|---|
-| Weather ingestion | Every 6 hours | `python3 -m services.ingestion.weather --all-locations` |
-| Market data | Daily 06:00 UTC | `python3 -m services.ingestion.market_data --source world_bank` |
-| EAS indexer | Every 15 minutes | `python3 -m services.ingestion.eas_indexer` |
-| RPC wallet indexer | Every 30 minutes | `python3 -m services.ingestion.rpc_indexer` |
-| Gnosis Chain indexer | Every 2 hours | `python3 -m services.ingestion.gnosis_indexer` |
-| Anomaly detection | Every hour | `python3 -m services.ingestion.anomaly_detector --all-locations` |
-| Metrics computation | Every 4 hours | `python3 -m services.metrics --compute --all-locations` |
 | Health check + alerting | Every 5 minutes | `bash scripts/health-alert.sh` |
-| Dashboard dataset refresh | Every 6 hours | `python3 -m services.export.dataset_refresh --all` |
-| Data freshness check | Every hour | `python3 -m services.ingestion.data_freshness --check` |
-| Climate data refresh | Sundays 03:00 UTC | `python3 -m services.ingestion.climate_data --all --location-id ...` |
+
+The other ingestion/computation examples in `crontab` are commented out and
+marked deprecated. They are not active jobs. Enable or configure work through
+the selected scheduler, with the appropriate feature, source, and review gates.
 
 Sensor ingestion is source-driven and is not a recurring cron job. Use the
 explicit CSV or single-reading CLI, or configure the HTTP/MQTT receiver for a
@@ -61,4 +59,7 @@ container checks are disabled because the worker has no Docker CLI or socket.
 
 ## Timing Adjustments
 
-Adjust timing via environment variables in `docker-compose.worker.yml` if needed, or edit the crontab directly. The crontab is baked into the image — changes are not hot-reloaded.
+For the active legacy health-alert cron, edit the crontab directly. Its
+contents are baked into the image and are not hot-reloaded. Kernel schedule
+cadence is defined by the native scheduler configuration and database state,
+not by this file.

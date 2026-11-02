@@ -1,0 +1,62 @@
+{
+  "date": "2026-10-28",
+  "source_revision": "17c6e43f",
+  "working_tree_dirty": true,
+  "scope": "Strict private response contract for location-scoped landscape conservation aggregates.",
+  "route": {
+    "method": "GET",
+    "path": "/operator/api/landscape/{location_id}/summary",
+    "response_model": "LandscapeSummaryResponse",
+    "nested_sections": [
+      "habitats",
+      "corridors",
+      "hedgerows",
+      "verified_buffer_checks",
+      "verified_assessments",
+      "dashboard_calculations"
+    ],
+    "constraints": {
+      "extra_fields": "forbidden at every response object level",
+      "enums": "match migration 154 checks for habitat, corridor, and hedgerow values",
+      "counts": "strict nonnegative integers; grouped record counts are positive",
+      "numeric_values": "finite; only verified buffer compliance is constrained to 0..100",
+      "group_bounds": "200 habitats, 30 corridors, 25 hedgerows, and 9 verified-buffer groups from schema dimensions",
+      "request_path": "top-level location identifier must match the requested path",
+      "privacy": "aggregate-only projection; row identifiers, names, geometry, notes, assessor, and metadata are excluded by the service"
+    }
+  },
+  "error_contract": {
+    "disabled_oidc": "existing 404 preserved",
+    "tenant_denial": "existing 403 preserved",
+    "invalid_input": "existing 400 preserved",
+    "database_failure": "existing sanitized 503 and Retry-After: 30 preserved",
+    "invalid_projection": "sanitized 500 with Cache-Control: no-store and Vary: Cookie"
+  },
+  "checks": [
+    {
+      "command": "python3 -m pytest tests/test_gateway_landscape_response.py -q",
+      "result": "passed",
+      "passed": 9
+    },
+    {
+      "command": "python3 -m ruff check services/gateway/landscape_conservation_routes.py tests/test_gateway_landscape_response.py",
+      "result": "passed"
+    },
+    {
+      "command": "python3 -m py_compile services/gateway/landscape_conservation_routes.py tests/test_gateway_landscape_response.py",
+      "result": "passed"
+    },
+    {
+      "command": "git diff --check",
+      "result": "passed"
+    }
+  ],
+  "environment": {
+    "live_database_used": false,
+    "candidate_or_legacy_touched": false,
+    "provider_called": false
+  },
+  "limitations": [
+    "This closes one source/API response-contract slice only; live OIDC behavior, populated-data parity, and broader tenant isolation remain separate gates."
+  ]
+}

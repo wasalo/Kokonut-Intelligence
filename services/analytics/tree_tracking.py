@@ -54,6 +54,7 @@ def compute_tree_density(conn, location_id: str) -> dict[str, Any]:
                COUNT(DISTINCT t.species_name) AS species_count
         FROM tree_record t
         JOIN plot p ON t.plot_id = p.id
+        JOIN farm f ON f.id = p.farm_id AND f.location_id = t.location_id
         WHERE t.location_id = %s
         GROUP BY t.plot_id, p.name, p.area, p.area_unit
         ORDER BY p.name

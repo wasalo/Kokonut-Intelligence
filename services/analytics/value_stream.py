@@ -12,6 +12,7 @@ from __future__ import annotations
 import argparse
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
+from uuid import UUID
 
 import psycopg2
 import psycopg2.extras
@@ -276,6 +277,13 @@ def generate_value_stream_map(
     period_start: Optional[str] = None, period_end: Optional[str] = None,
 ) -> Dict[str, Any]:
     """Report-generator compatible entry point (returns the current-state map)."""
+    if location_id is not None:
+        try:
+            if not isinstance(location_id, str):
+                raise ValueError
+            location_id = str(UUID(location_id))
+        except (ValueError, TypeError, AttributeError) as exc:
+            raise ValueError("value_stream_map requires a valid location_id") from exc
     return current_state_map(conn, location_id, period_start, period_end)
 
 

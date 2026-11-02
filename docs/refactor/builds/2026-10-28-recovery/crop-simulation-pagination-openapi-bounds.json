@@ -1,0 +1,27 @@
+{
+  "result": "passed",
+  "date": "2026-10-28",
+  "source_revision": "753b4645",
+  "working_tree_dirty": true,
+  "scope": "Gateway pagination contract for crop-simulation run and detail routes",
+  "finding": "Both routes accepted unbounded integer pagination values at the HTTP boundary even though the service enforces limit 1 through 50 and offset 0 through 10000.",
+  "change": "Both route endpoints now use FastAPI Query bounds matching the service validator: limit default 25, minimum 1, maximum 50, and offset default 0, minimum 0, maximum 10000. OpenAPI publishes those bounds and invalid query values fail before service invocation.",
+  "checks": {
+    "focused_tests": {
+      "command": "python3 -m pytest tests/test_gateway_irrigation_status.py tests/test_gateway_crop_simulations.py -q",
+      "result": "40 passed"
+    },
+    "targeted_ruff": "passed",
+    "python_compilation": "passed",
+    "diff_check": "passed"
+  },
+  "external_services": {
+    "database": false,
+    "network": false,
+    "provider": false
+  },
+  "rollback": "Revert the Query bounds and focused regression; no migration or persisted data changed.",
+  "limitations": [
+    "The checks cover OpenAPI generation and in-process request validation only; they do not establish live proxy behavior or database/service availability."
+  ]
+}

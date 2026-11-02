@@ -1,0 +1,27 @@
+{
+  "result": "passed",
+  "date": "2026-10-28",
+  "source_revision": "753b4645",
+  "working_tree_dirty": true,
+  "scope": "Community governance report direct-call location scope",
+  "change": "generate_community_governance now rejects missing or empty location_id before opening a cursor and uses only the selected-location query, retaining intentionally public global mechanism rows.",
+  "checks": {
+    "command": "python3 -m pytest tests/test_regenerative_outcomes.py tests/test_report_state_cursor_cleanup.py tests/test_report_generator_query_scope_inventory.py -q",
+    "result": "341 passed",
+    "query_scope_inventory": "passed; 173 direct sites, 172 statically counted positional bind sites, zero unresolved sites",
+    "ruff": "passed",
+    "python_compilation": "passed",
+    "diff_check": "passed"
+  },
+  "external_services": {
+    "database": false,
+    "provider": false,
+    "network": false,
+    "candidate_or_legacy": false
+  },
+  "rollback": "Restore the unscoped branch, remove the missing-location regression, restore the prior cursor-failure cases, and regenerate the query-scope inventory; no migration or persisted data changed.",
+  "limitations": [
+    "The guard prevents accidental unscoped calls but does not establish tenant authorization or RLS.",
+    "Populated report parity and owner review remain open."
+  ]
+}

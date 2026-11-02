@@ -3,22 +3,110 @@
 from __future__ import annotations
 
 import argparse
+import json
 import math
 import os
 import signal
+import stat
 import subprocess
 import sys
+import tempfile
 import time
 import uuid
+from pathlib import Path
+from typing import Callable
 
 from services.common.logging import get_logger
 from services.common.worker_environment import (
-    EVENT_HANDLER_WORKER_KEYS,
     SCHEDULED_WORKER_KEYS,
+    event_dispatch_worker_keys,
     worker_subprocess_environment,
+)
+from services.core.worker_progress import (
+    WORKER_PROGRESS_NAME_ENV,
+    remove_worker_progress_heartbeat,
 )
 
 logger = get_logger("core.runtime")
+
+SUPERVISOR_HEARTBEAT_FILE_ENV = "KOKONUT_WORKER_PROGRESS_HEARTBEAT_FILE"
+DEFAULT_SUPERVISOR_HEARTBEAT_FILE = str(
+    Path.home() / ".local" / "state" / "kokonut" / "worker-progress" / "supervisor.json"
+)
+SUPERVISOR_HEARTBEAT_INTERVAL_SECONDS = 5
+
+
+class _SupervisorHeartbeat:
+    """Atomically publish private, process-local supervisor liveness state."""
+
+    def __init__(
+        self,
+        path: str | Path,
+        *,
+        pid: int | None = None,
+        generation: str | None = None,
+        monotonic_ns: Callable[[], int] = time.monotonic_ns,
+    ) -> None:
+        self.path = Path(path)
+        self.pid = os.getpid() if pid is None else pid
+        self.generation = uuid.uuid4().hex if generation is None else generation
+        self._monotonic_ns = monotonic_ns
+
+    def pulse(self, children: dict[str, int] | None = None) -> None:
+        parent = self.path.parent
+        parent.mkdir(mode=0o700, parents=True, exist_ok=True)
+        directory = parent.lstat()
+        if (
+            not stat.S_ISDIR(directory.st_mode)
+            or directory.st_uid != os.getuid()
+            or directory.st_mode & 0o077
+        ):
+            raise OSError("worker heartbeat directory is not private")
+
+        payload = {
+            "children": children or {},
+            "generation": self.generation,
+            "monotonic_ns": self._monotonic_ns(),
+            "pid": self.pid,
+        }
+        descriptor, temporary_name = tempfile.mkstemp(
+            prefix=f".{self.path.name}.", dir=parent
+        )
+        try:
+            os.fchmod(descriptor, 0o600)
+            with os.fdopen(descriptor, "w", encoding="utf-8") as handle:
+                json.dump(payload, handle, separators=(",", ":"), sort_keys=True)
+                handle.write("\n")
+                handle.flush()
+                os.fsync(handle.fileno())
+            os.replace(temporary_name, self.path)
+        except BaseException:
+            try:
+                os.close(descriptor)
+            except OSError:
+                pass
+            try:
+                os.unlink(temporary_name)
+            except FileNotFoundError:
+                pass
+            raise
+
+    def close(self) -> None:
+        """Remove only the heartbeat generation owned by this supervisor."""
+        try:
+            payload = json.loads(self.path.read_text(encoding="utf-8"))
+            if payload.get("generation") == self.generation:
+                self.path.unlink(missing_ok=True)
+        except (OSError, ValueError, AttributeError):
+            pass
+
+
+def _supervisor_heartbeat() -> _SupervisorHeartbeat:
+    path = os.environ.get(
+        SUPERVISOR_HEARTBEAT_FILE_ENV,
+        DEFAULT_SUPERVISOR_HEARTBEAT_FILE,
+    )
+    return _SupervisorHeartbeat(path)
 
 
 def commands(port: int, with_workers: bool, workers_only: bool = False) -> list[tuple[str, list[str]]]:
@@ -43,25 +131,32 @@ def commands(port: int, with_workers: bool, workers_only: bool = False) -> list[
             ("events", [sys.executable, "-m", "services.events", event_command, "--worker-id", f"{worker_id}-events"])
         )
     if (with_workers or workers_only) and is_enabled("notification_delivery"):
+        notification_command = (
+            "--isolated-notification-worker"
+            if is_enabled("isolated_notification_delivery")
+            else "--notification-worker"
+        )
         children.append(
-            ("notifications", [sys.executable, "-m", "services.events", "--notification-worker",
+            ("notifications", [sys.executable, "-m", "services.events", notification_command,
                                "--worker-id", f"{worker_id}-notifications"])
         )
     return children
 
 
 def run(port: int = 8099, with_workers: bool = False, shutdown_seconds: float = 30,
-        workers_only: bool = False, require_schema: bool = False) -> int:
+        workers_only: bool = False, require_schema: bool = False,
+        require_runtime_role: bool = False) -> int:
     """Exit on any unexpected child exit; Compose owns restart policy."""
     stopping = False
     children: list[tuple[str, subprocess.Popen]] = []
     old_handlers = {}
+    heartbeat: _SupervisorHeartbeat | None = None
 
-    if require_schema:
+    if require_schema or require_runtime_role:
         from services.core.schema_readiness import SchemaReadinessError, require_schema_ready
 
         try:
-            require_schema_ready()
+            require_schema_ready(require_runtime_role=require_runtime_role)
         except SchemaReadinessError as exc:
             logger.error("Kernel schema readiness failed (%s); review migration status before startup", exc)
             return 1
@@ -88,36 +183,70 @@ def run(port: int = 8099, with_workers: bool = False, shutdown_seconds: float = 
         child_commands = commands(port, with_workers, workers_only)
         if not child_commands:
             raise ValueError("Workers-only runtime requires at least one enabled worker")
+        if workers_only or with_workers:
+            heartbeat = _supervisor_heartbeat()
+            heartbeat.pulse()
+        next_heartbeat = time.monotonic() + SUPERVISOR_HEARTBEAT_INTERVAL_SECONDS
         for name, argv in child_commands:
             if stopping:
                 break
-            worker_key = {
-                "scheduler": "scheduler",
-                "events": "event_bus",
-                "notifications": "notification_enqueue",
-            }.get(name)
-            allowed_worker_keys = (
-                ("scheduler", *SCHEDULED_WORKER_KEYS)
-                if name == "scheduler"
-                else ("event_bus", *EVENT_HANDLER_WORKER_KEYS)
-                if name == "events"
-                else (worker_key,) if worker_key is not None else ()
-            )
             isolated_event_dispatch = (
                 name == "events" and "--isolated-event-worker" in argv
             )
+            isolated_notification_delivery = (
+                name == "notifications" and "--isolated-notification-worker" in argv
+            )
             if isolated_event_dispatch:
-                allowed_worker_keys = ("event_dispatch", *EVENT_HANDLER_WORKER_KEYS)
-            environment_options = {"allowed_worker_keys": allowed_worker_keys}
-            if isolated_event_dispatch:
-                environment_options["isolated_worker_key"] = "event_dispatch"
+                environment_options = {
+                    "allowed_worker_keys": event_dispatch_worker_keys(),
+                    "isolated_worker_key": "event_dispatch",
+                }
+            elif isolated_notification_delivery:
+                environment_options = {
+                    "allowed_worker_keys": ("notification_delivery",),
+                    "isolated_worker_key": "notification_delivery",
+                }
+            elif name == "api":
+                # The Gateway still uses the Standard application's shared
+                # runtime login. Preserve PG_* for this child while the
+                # environment helper removes unrelated worker DSNs/secrets.
+                environment_options = {"allowed_worker_keys": ()}
+            elif name == "scheduler":
+                environment_options = {
+                    "allowed_worker_keys": (
+                        "scheduler",
+                        *SCHEDULED_WORKER_KEYS,
+                        *event_dispatch_worker_keys(),
+                    ),
+                }
+            else:
+                # Default-off event and notification workers remain supervised
+                # but carry no shared database credentials until their
+                # dedicated login and feature flag are configured.
+                environment_options = {
+                    "allowed_worker_keys": (),
+                    "strip_shared_database_credentials": True,
+                }
+            child_environment = worker_subprocess_environment(**environment_options)
+            if name in {"scheduler", "events", "notifications"}:
+                child_environment[WORKER_PROGRESS_NAME_ENV] = name
             process = subprocess.Popen(
                 argv,
                 start_new_session=True,
-                env=worker_subprocess_environment(**environment_options),
+                env=child_environment,
             )
             children.append((name, process))
             logger.info("Started Kernel process %s (pid=%s)", name, process.pid)
+
+        def worker_children() -> dict[str, int]:
+            return {
+                name: process.pid
+                for name, process in children
+                if name in {"scheduler", "events", "notifications"}
+            }
+
+        if heartbeat is not None:
+            heartbeat.pulse(worker_children())
 
         while not stopping:
             for name, process in children:
@@ -125,6 +254,10 @@ def run(port: int = 8099, with_workers: bool = False, shutdown_seconds: float = 
                 if code is not None:
                     logger.error("Kernel process %s exited unexpectedly (code=%s)", name, code)
                     return 1
+            now = time.monotonic()
+            if heartbeat is not None and now >= next_heartbeat:
+                heartbeat.pulse(worker_children())
+                next_heartbeat = now + SUPERVISOR_HEARTBEAT_INTERVAL_SECONDS
             time.sleep(0.25)
         return 0
     finally:
@@ -140,8 +273,13 @@ def run(port: int = 8099, with_workers: bool = False, shutdown_seconds: float = 
         for _, process in children:
             send_group(process, signal.SIGKILL)
             process.wait()
+        for name, process in children:
+            if name in {"scheduler", "events", "notifications"}:
+                remove_worker_progress_heartbeat(name, process.pid)
         for signum, handler in old_handlers.items():
             signal.signal(signum, handler)
+        if heartbeat is not None:
+            heartbeat.close()
 
 
 def main() -> None:
@@ -153,13 +291,15 @@ def main() -> None:
     parser.add_argument("--shutdown-seconds", type=float, default=30)
     parser.add_argument("--require-schema", action="store_true",
                         help="Require applied checksums for bundled schemas before spawning processes")
+    parser.add_argument("--require-runtime-role", action="store_true",
+                        help="Require a non-owner, non-privileged database login before schema readiness and child startup")
     args = parser.parse_args()
     if not 1 <= args.port <= 65535:
         parser.error("--port must be between 1 and 65535")
     if not math.isfinite(args.shutdown_seconds) or args.shutdown_seconds <= 0:
         parser.error("--shutdown-seconds must be positive")
     raise SystemExit(run(args.port, args.with_workers, args.shutdown_seconds,
-                        args.workers_only, args.require_schema))
+                        args.workers_only, args.require_schema, args.require_runtime_role))
 
 
 if __name__ == "__main__":

@@ -1,0 +1,15 @@
+# Optional authenticated local-media package and encrypted media volume.
+services:
+  app:
+    build:
+      args:
+        KOKONUT_CORE_LOCAL_MEDIA: "true"
+    environment:
+      MOBILE_MEDIA_PROVIDER: local
+      MOBILE_MEDIA_LOCAL_DIRECTORY: /app/private-media
+      MOBILE_MEDIA_LOCAL_KEY: ${MOBILE_MEDIA_LOCAL_KEY:?MOBILE_MEDIA_LOCAL_KEY must be supplied from encrypted secrets for local media}
+    volumes:
+      - kernel-private-media:/app/private-media
+
+volumes:
+  kernel-private-media:

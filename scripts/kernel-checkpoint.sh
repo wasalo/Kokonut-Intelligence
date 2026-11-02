@@ -13,7 +13,15 @@ case "$container" in
     kokonut-kernel-portability-database-1|kokonut-kernel-candidate-database-1|kokonut-intelligence-database-1) ;;
     kokonut-kernel-recovery-fixture-database-1)
         python3 "$(dirname "$0")/kernel-recovery-fixture.py" >/dev/null ;;
-    *) echo "Unsupported source container" >&2; exit 2 ;;
+    *)
+        if [[ "$container" =~ ^(kokonut-kernel-recovery-fixture-[0-9a-f]{8})-database-1$ ]]; then
+            KOKONUT_RECOVERY_FIXTURE_PROJECT="${BASH_REMATCH[1]}" \
+                python3 "$(dirname "$0")/kernel-recovery-fixture.py" >/dev/null
+        else
+            echo "Unsupported source container" >&2
+            exit 2
+        fi
+        ;;
 esac
 command -v age >/dev/null
 command -v docker >/dev/null

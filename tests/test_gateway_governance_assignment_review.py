@@ -26,6 +26,25 @@ REVIEWER_PARTY_ID = str(uuid4())
 CREATED_AT = datetime(2026, 10, 18, tzinfo=timezone.utc)
 
 
+def _review_item(assignment_id, created_at):
+    return {
+        "assignment_id": assignment_id,
+        "request_id": REQUEST_ID,
+        "role_id": ROLE_ID,
+        "role_key": "field_coordinator",
+        "role_name": "Field Coordinator",
+        "nominee_party_id": REVIEWER_PARTY_ID,
+        "nominee_name": "Nominee",
+        "nominee_status": "active",
+        "submitted_by_party_id": str(uuid4()),
+        "submitted_by_name": "Submitter",
+        "assignment_type": "primary",
+        "mandate": None,
+        "role_status": "active",
+        "created_at": created_at,
+    }
+
+
 class _Cursor:
     def __init__(self, connection):
         self.connection = connection
@@ -289,42 +308,140 @@ def _client(monkeypatch, allowed_actions):
     return client
 
 
-def test_http_review_and_decision_routes_require_scopes_csrf_and_no_store(monkeypatch):
-    queue_result = {"location_id": LOCATION_ID, "items": [], "next_cursor": None}
-    decision_result = {
+def _decision_result(decision, assignment_status):
+    return {
         "decision_id": DECISION_ID,
         "assignment_id": ASSIGNMENT_ID,
-        "decision": "approve",
-        "assignment_status": "active",
+        "decision": decision,
+        "assignment_status": assignment_status,
+        "reviewer_party_id": REVIEWER_PARTY_ID,
+        "created_at": "2026-10-18T00:00:00Z",
     }
+
+
+def test_http_review_and_decision_routes_require_scopes_csrf_and_no_store(monkeypatch):
+    queue_result = {"location_id": LOCATION_ID, "items": [], "next_cursor": None}
+    approved = _decision_result("approve", "active")
+    rejected = _decision_result("reject", "rejected")
     with patch(
         "services.gateway.governance_assignment_review.list_governance_assignment_reviews",
         return_value=queue_result,
     ) as list_call, patch(
         "services.gateway.governance_assignment_review.decide_governance_assignment",
-        return_value=decision_result,
+        side_effect=[approved, approved, rejected, rejected],
     ) as decide_call:
-        with _client(monkeypatch, {"review", "approve"}) as client:
+        with _client(monkeypatch, {"review", "approve", "reject"}) as client:
             response = client.get(
                 f"/operator/api/governance/{LOCATION_ID}/assignment-review-queue"
             )
-            decision = client.post(
+            invalid_request = client.post(
+                f"/operator/api/governance/{LOCATION_ID}/roles/{ROLE_ID}/assignments/{ASSIGNMENT_ID}/approve",
+                json={**_payload(), "reviewer_party_id": REVIEWER_PARTY_ID},
+                headers={"x-csrf-token": "synthetic-csrf"},
+            )
+            approval = client.post(
                 f"/operator/api/governance/{LOCATION_ID}/roles/{ROLE_ID}/assignments/{ASSIGNMENT_ID}/approve",
                 json=_payload(),
                 headers={"x-csrf-token": "synthetic-csrf"},
             )
+            approval_retry = client.post(
+                f"/operator/api/governance/{LOCATION_ID}/roles/{ROLE_ID}/assignments/{ASSIGNMENT_ID}/approve",
+                json=_payload(),
+                headers={"x-csrf-token": "synthetic-csrf"},
+            )
+            rejection = client.post(
+                f"/operator/api/governance/{LOCATION_ID}/roles/{ROLE_ID}/assignments/{ASSIGNMENT_ID}/reject",
+                json=_payload(),
+                headers={"x-csrf-token": "synthetic-csrf"},
+            )
+            rejection_retry = client.post(
+                f"/operator/api/governance/{LOCATION_ID}/roles/{ROLE_ID}/assignments/{ASSIGNMENT_ID}/reject",
+                json=_payload(),
+                headers={"x-csrf-token": "synthetic-csrf"},
+            )
+            openapi = client.app.openapi()
 
     assert response.status_code == 200
     assert response.headers["cache-control"] == "no-store"
     assert "Cookie" in response.headers["vary"]
     assert response.json() == queue_result
-    assert decision.status_code == 200
-    assert decision.headers["cache-control"] == "no-store"
-    assert decision.json() == decision_result
+    assert invalid_request.status_code == 400
+    for decision_response, result in (
+        (approval, approved),
+        (approval_retry, approved),
+        (rejection, rejected),
+        (rejection_retry, rejected),
+    ):
+        assert decision_response.status_code == 200
+        assert decision_response.headers["cache-control"] == "no-store"
+        assert "Cookie" in decision_response.headers["vary"]
+        assert decision_response.json() == {
+            key: value
+            for key, value in result.items()
+            if key not in {"reviewer_party_id", "created_at"}
+        } | {"created_at": "2026-10-18T00:00:00+00:00"}
+        assert "reviewer_party_id" not in decision_response.json()
     list_call.assert_called_once()
-    decide_call.assert_called_once_with(
-        OPERATOR_ID, LOCATION_ID, ROLE_ID, ASSIGNMENT_ID, "approve", _payload()
-    )
+    assert decide_call.call_count == 4
+    for call, decision in zip(decide_call.call_args_list, ("approve", "approve", "reject", "reject")):
+        assert call.args == (OPERATOR_ID, LOCATION_ID, ROLE_ID, ASSIGNMENT_ID, decision, _payload())
+        assert not call.kwargs
+
+    paths = openapi["paths"]
+    approve = paths[
+        "/operator/api/governance/{location_id}/roles/{role_id}/assignments/{assignment_id}/approve"
+    ]["post"]
+    reject = paths[
+        "/operator/api/governance/{location_id}/roles/{role_id}/assignments/{assignment_id}/reject"
+    ]["post"]
+    request_schema = approve["requestBody"]["content"]["application/json"]["schema"]
+    assert request_schema["additionalProperties"] is False
+    assert set(request_schema["required"]) == {"decision_request_id", "reason"}
+    assert reject["requestBody"]["content"]["application/json"]["schema"] == request_schema
+    approve_schema = approve["responses"]["200"]["content"]["application/json"]["schema"]
+    reject_schema = reject["responses"]["200"]["content"]["application/json"]["schema"]
+    assert approve_schema == {"$ref": "#/components/schemas/GovernanceAssignmentApprovedResponse"}
+    assert reject_schema == {"$ref": "#/components/schemas/GovernanceAssignmentRejectedResponse"}
+    approved_schema = openapi["components"]["schemas"]["GovernanceAssignmentApprovedResponse"]
+    rejected_schema = openapi["components"]["schemas"]["GovernanceAssignmentRejectedResponse"]
+    assert "reviewer_party_id" not in approved_schema["properties"]
+    assert "reviewer_party_id" not in rejected_schema["properties"]
+    assert approved_schema["properties"]["decision"]["const"] == "approve"
+    assert approved_schema["properties"]["assignment_status"]["const"] == "active"
+    assert rejected_schema["properties"]["decision"]["const"] == "reject"
+    assert rejected_schema["properties"]["assignment_status"]["const"] == "rejected"
+
+
+def test_http_decision_route_rejects_malformed_result_and_denies_missing_grant(monkeypatch):
+    malformed = _decision_result("approve", "active")
+    malformed["assignment_id"] = str(uuid4())
+    with patch(
+        "services.gateway.governance_assignment_review.decide_governance_assignment",
+        return_value=malformed,
+    ):
+        with _client(monkeypatch, {"approve"}) as client:
+            response = client.post(
+                f"/operator/api/governance/{LOCATION_ID}/roles/{ROLE_ID}/assignments/{ASSIGNMENT_ID}/approve",
+                json=_payload(),
+                headers={"x-csrf-token": "synthetic-csrf"},
+            )
+    assert response.status_code == 500
+    assert response.headers["cache-control"] == "no-store"
+    assert response.json() == {"error": "Governance assignment decision unavailable"}
+    assert REVIEWER_PARTY_ID not in response.text
+
+    with patch(
+        "services.gateway.governance_assignment_review.decide_governance_assignment",
+        side_effect=AssertionError("missing action grant must not reach the service"),
+    ):
+        with _client(monkeypatch, set()) as client:
+            denied = client.post(
+                f"/operator/api/governance/{LOCATION_ID}/roles/{ROLE_ID}/assignments/{ASSIGNMENT_ID}/approve",
+                json=_payload(),
+                headers={"x-csrf-token": "synthetic-csrf"},
+            )
+    assert denied.status_code == 403
+    assert denied.headers["cache-control"] == "no-store"
 
 
 def test_http_review_route_denies_missing_grant_before_service(monkeypatch):
@@ -338,4 +455,96 @@ def test_http_review_route_denies_missing_grant_before_service(monkeypatch):
             )
     assert response.status_code == 403
     assert response.headers["cache-control"] == "no-store"
+
+
+def test_http_review_queue_validates_exact_location_bound_page_and_cursor(monkeypatch):
+    item = _review_item(ASSIGNMENT_ID, "2026-10-18T00:00:00+00:00")
+    queue_result = {
+        "location_id": LOCATION_ID,
+        "items": [item],
+        "next_cursor": {"created_at": item["created_at"], "assignment_id": ASSIGNMENT_ID},
+    }
+    with patch(
+        "services.gateway.governance_assignment_review.list_governance_assignment_reviews",
+        return_value=queue_result,
+    ):
+        with _client(monkeypatch, {"review"}) as client:
+            response = client.get(
+                f"/operator/api/governance/{LOCATION_ID}/assignment-review-queue?limit=1"
+            )
+
+    assert response.status_code == 200
+    assert response.headers["cache-control"] == "no-store"
+    assert response.json()["location_id"] == LOCATION_ID
+    assert response.json()["items"] == [{
+        **item,
+        "created_at": "2026-10-18T00:00:00Z",
+    }]
+    assert response.json()["next_cursor"]["assignment_id"] == ASSIGNMENT_ID
+
+
+@pytest.mark.parametrize(
+    "result",
+    [
+        {"location_id": str(uuid4()), "items": [], "next_cursor": None},
+        {"location_id": LOCATION_ID, "items": [{"unexpected": True}], "next_cursor": None},
+        {
+            "location_id": LOCATION_ID,
+            "items": [],
+            "next_cursor": {"created_at": CREATED_AT.isoformat(), "assignment_id": ASSIGNMENT_ID},
+        },
+    ],
+)
+def test_http_review_queue_rejects_malformed_service_page_no_store(monkeypatch, result):
+    with patch(
+        "services.gateway.governance_assignment_review.list_governance_assignment_reviews",
+        return_value=result,
+    ):
+        with _client(monkeypatch, {"review"}) as client:
+            response = client.get(
+                f"/operator/api/governance/{LOCATION_ID}/assignment-review-queue"
+            )
+
+    assert response.status_code == 500
+    assert response.headers["cache-control"] == "no-store"
+    assert response.json() == {"error": "Governance assignment review queue unavailable"}
+
+
+@pytest.mark.parametrize(
+    ("items", "query"),
+    [
+        (
+            [
+                _review_item(ASSIGNMENT_ID, "2026-10-18T00:00:00+00:00"),
+                _review_item(str(uuid4()), "2026-10-19T00:00:00+00:00"),
+            ],
+            "limit=2",
+        ),
+        (
+            [_review_item(ASSIGNMENT_ID, "2026-10-18T00:00:00+00:00")],
+            f"limit=1&cursor_created_at=2026-10-18T00%3A00%3A00%2B00%3A00&cursor_assignment_id={ASSIGNMENT_ID}",
+        ),
+        (
+            [
+                _review_item(ASSIGNMENT_ID, "2026-10-18T00:00:00+00:00"),
+                _review_item(str(uuid4()), "2026-10-17T00:00:00+00:00"),
+            ],
+            "limit=1",
+        ),
+    ],
+)
+def test_http_review_queue_rejects_order_cursor_and_page_bound_violations(monkeypatch, items, query):
+    result = {"location_id": LOCATION_ID, "items": items, "next_cursor": None}
+    with patch(
+        "services.gateway.governance_assignment_review.list_governance_assignment_reviews",
+        return_value=result,
+    ):
+        with _client(monkeypatch, {"review"}) as client:
+            response = client.get(
+                f"/operator/api/governance/{LOCATION_ID}/assignment-review-queue?{query}"
+            )
+
+    assert response.status_code == 500
+    assert response.headers["cache-control"] == "no-store"
+    assert response.json() == {"error": "Governance assignment review queue unavailable"}
 

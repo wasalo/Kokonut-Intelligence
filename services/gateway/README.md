@@ -4,8 +4,14 @@
 
 ## Run
 
+The Compose command below starts the **legacy** integration service. For the
+Kernel candidate, use `python3 scripts/kernel-profile.py minimal --action up`
+and review the printed isolated Compose command; its application service is
+named `app`, and the candidate status guide documents the current port and
+acceptance limits.
+
 ```bash
-# Compose (preferred; Caddy proxies /mobile and /api/mobile/*)
+# Legacy Compose only (Caddy routes /mobile and /api/mobile/*)
 docker compose up -d gateway
 
 # Host process
@@ -13,7 +19,12 @@ python3 -m services.gateway.cli --serve --port 8099
 python3 -m services.gateway.cli --help
 ```
 
-Field Collector: `https://localhost/mobile/` (or `https://<lan-ip>/mobile/` on the LAN).
+Legacy Caddy Field Collector: `https://localhost/mobile/` (or
+`https://<lan-ip>/mobile/` on the LAN). The Kernel candidate's local route is
+served from the candidate origin; see the
+[Field Collector guide](../../docs/field-data-collection-guide.md) and
+[current candidate status](../../docs/refactor/current-state-and-implementation.md)
+for its deployment and HTTPS acceptance limits.
 
 The OIDC operator API exposes a location-scoped, aggregate-only true-cost read
 at `GET /operator/api/true-cost/{location_id}/summary`. It requires the
@@ -46,10 +57,9 @@ the exact location-specific `governance_tension:read` grant and signed tenant
 context. Only submitted, triaged, in-progress, and deferred records appear;
 page size is capped at 100 and event history at 100 entries. The projection
 omits reporter and affected-party identities, evidence, private metadata,
-event notes, and actor IDs. The console renders these reads as text and has no
-triage, assignment, resolution, verification, publication, or approval action.
-Underlying legacy tables do not yet have domain-table RLS, so these protected
-routes do not establish universal tenant isolation.
+event notes, and actor IDs. The console renders the review projection as text.
+These route checks and their bounded database functions do not establish
+universal tenant isolation or domain-table RLS.
 
 Location governance roles are available at `GET
 /operator/api/governance/{location_id}/roles` with the exact
@@ -113,10 +123,10 @@ an immutable idempotency/attribution record; it cannot activate or reject an
 assignment. A distinct review queue and approve/reject routes require their
 own grants, active person binding, and a reviewer different from the proposer.
 Direct assignment-table writes are revoked from the runtime and Directus roles.
-The candidate still uses the administrative `kokonut` login and remains at
-migration 437; migrations 438–444 are not applied there. Do not treat these
-ACLs as a database isolation boundary until the candidate is switched to its
-least-privilege runtime role.
+Before rollout, inspect the selected target's ordered migration ledger and
+effective runtime-role membership. Repository source does not establish which
+migrations or credentials are active in a database, and these function/table
+boundaries do not imply universal tenant isolation.
 
 The operator console lets a separately authorized creator submit a nomination
 using an active person-party UUID and review the status of their own submissions
@@ -138,9 +148,9 @@ and Directus direct writes. The editor loads circle fields from the no-store
 requires both exact `governance_roles:read` and `:update` grants; aggregate
 summaries continue to exclude circle free text. Lifecycle review and activation
 remain separate routes and grants; accountabilities, authority domains, and
-policies are not part of this editor. The candidate still uses administrative
-`kokonut`; do not apply migrations 442–443 until its app uses the least-privilege
-runtime role.
+policies are not part of this editor. Before applying migrations 442–443 to a
+target, verify its database identity and runtime-role configuration using the
+selected deployment's migration ledger and Compose profile.
 
 Governance tension intake is available at `POST
 /operator/api/governance/{location_id}/tensions` with a caller-generated UUID
@@ -149,8 +159,18 @@ The same operator may submit its own draft through `POST
 /operator/api/governance/{location_id}/tensions/{tension_id}/submit`. Both routes
 require exact `governance_tension:create` or `governance_tension:submit`
 location grants, OIDC/CSRF, and signed tenant context. Submission only moves a
-report from draft to submitted; the Gateway does not expose triage, verification,
-publication, tension disposition, or governance approval actions.
+report from draft to submitted. The lifecycle endpoint
+`POST /operator/api/governance/{location_id}/tensions/{tension_id}/actions/{action}`
+supports `triage`, `start`, `link`, `link_work_item`, `resolve`, and `defer`;
+each action requires its matching location grant
+(`governance_tension:<action>`), CSRF, signed tenant context, a current operator
+person binding, and a reason/request ID. Triage assigns an owner and may set a
+review deadline; links are location-validated; resolution and deferral carry
+bounded summaries or timestamps. The database function applies state changes,
+idempotency receipts, and lifecycle history atomically. Migration 700 must be
+present in the selected target's ordered migration ledger before these actions
+can run. Verification, publication, and governance approval remain separate
+human-controlled processes.
 
 An administrator maps OIDC operators to governance people using explicit UUIDs
 with `python3 -m services.cli operator identity party bind|revoke|list`. This
@@ -200,6 +220,33 @@ The same grant can list the paginated active, public module catalog at
 `GET /operator/api/extension-learning/{location_id}/modules`, with optional
 category, difficulty, and content-type filters. Course URLs and free-text
 descriptions are withheld pending content review.
+
+Two location-scoped extension-learning writes are also available: create a peer
+network with `POST /operator/api/extension-learning/{location_id}/peer-networks`
+under `extension_learning:create_peer_network`, and update a progress record
+with `PATCH /operator/api/extension-learning/{location_id}/progress/{progress_id}`
+under `extension_learning:update_progress`. Both require signed tenant context,
+CSRF, bounded request bodies, and idempotent database receipts; migration 701
+must be present in the target ledger. These routes do not enroll learners,
+deliver courses, or create assessments.
+
+Landscape conservation has an aggregate read at
+`GET /operator/api/landscape/{location_id}/summary` and capture routes at
+`POST /operator/api/landscape/{location_id}/habitats`, `/corridors`,
+`/hedgerows`, `/buffer-checks`, and `/biodiversity-assessments`. They require
+the exact location `landscape_conservation:read` or `:create` grant. Captures
+are location-bound, idempotent, and stored in their source lifecycle's initial
+state; they do not verify or publish ecological claims. Migration 702 must be
+present in the selected target's ledger.
+
+Metric values can be listed at
+`GET /operator/api/metrics/{location_id}/values` and created as unverified
+drafts with `POST` to the same route, using the respective location-scoped
+`metric_value:read` and `metric_value:compute` grants. A separate human
+verification uses `POST
+/operator/api/metrics/{location_id}/values/{metric_value_id}/verify` and the
+`metric_value:verify` grant. Migration 703 must be present in the selected
+target's ledger; computation creates a draft and is not verification.
 
 Completed crop-simulation run summaries are available at
 `GET /operator/api/crop-simulations/{location_id}/runs` with an exact
@@ -258,6 +305,14 @@ plain text by clients. Large share, loot, and vote quantities are returned as
 decimal strings to preserve exact values. OIDC location grants do not imply
 global DAO access.
 
+The versioned public read API also exposes the enabled driver catalog at
+`GET /api/v1/drivers`. It returns only driver name, version, and type, ordered
+by type and name. `limit` is bounded to 1–50 and `offset` to 0–5000; the
+`data` envelope includes `has_more` only while another bounded page can be
+requested. Loader paths, configuration, credentials, and disabled drivers are
+not returned. The route is an explicit anonymous read policy and has no write
+methods.
+
 ## Modules
 
 - `app` — Gateway application — FastAPI app with auth, routing, rate limiting, and audit.
@@ -270,8 +325,10 @@ global DAO access.
 - `cli` — CLI for the API gateway.
 - `operator_auth` — OIDC operator sessions, scope policies, and protected operator routes.
 - `emergency_response` and `emergency_response_routes` — scoped emergency aggregates.
-- `governance` — bounded, read-only Baal Gateway projections for global DAO state.
-- `governance` — bounded, read-only Baal Gateway projections for global DAO state.
+- `extension_learning_routes` — location-scoped extension-learning reads and bounded writes.
+- `governance_role_routes`, `governance_tension_review`, and `governance_tension_actions` — location-scoped governance reads and human-attributed definition, assignment, tactical, and tension lifecycle operations; global Baal projections remain read-only.
+- `landscape_conservation_routes` and `landscape_conservation_mutation_routes` — location-scoped landscape summaries and draft capture.
+- `metric_value_routes`, `metric_value_reads`, and `metric_value_writes` — metric draft computation, scoped reads, and separate human verification.
 - `rate_limiter` — Gateway rate limiter — per-caller token bucket rate limiting.
 - `router` — Gateway router — route definitions and backend proxying.
 - `true_cost` and `true_cost_routes` — tenant-scoped aggregate true-cost reads.

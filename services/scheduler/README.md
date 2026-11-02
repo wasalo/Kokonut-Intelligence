@@ -1,6 +1,8 @@
 # scheduler
 
-`services.scheduler` — Task scheduler — database-driven replacement for crontab.
+`services.scheduler` — Native database-backed task scheduler. It is the
+Kernel-owned scheduling path; legacy cron and optional Prefect integrations
+remain separate adapters and are not prerequisites for Kernel scheduling.
 
 ## CLI Usage
 

@@ -1,0 +1,54 @@
+{
+  "date": "2026-10-29",
+  "base_head": "62f5ce7e",
+  "scope": "Strict Gateway response contracts for business-canvas block and metadata edits",
+  "files": [
+    "services/gateway/business_planning_edit_routes.py",
+    "tests/test_gateway_business_planning_edits.py",
+    "tests/test_gateway_business_planning_metadata.py"
+  ],
+  "source_migrations": [
+    "schemas/postgres/464_location_scoped_business_canvas_edit.sql",
+    "schemas/postgres/465_location_scoped_business_canvas_metadata_edit.sql"
+  ],
+  "block_edit": {
+    "fields": ["location_id", "canvas_id", "status", "version", "updated_at", "replayed", "block_name"],
+    "block_names": [
+      "key_partners",
+      "key_activities",
+      "key_resources",
+      "value_propositions",
+      "customer_relationships",
+      "channels",
+      "customer_segments",
+      "revenue_streams",
+      "cost_structure"
+    ]
+  },
+  "metadata_edit": {
+    "fields": ["location_id", "canvas_id", "status", "version", "updated_at", "replayed", "changed_fields"],
+    "changed_field_allowlist": ["canvas_name", "description", "fiscal_year", "tags"]
+  },
+  "shared_invariants": [
+    "exact response fields are published in OpenAPI and returned at runtime",
+    "location and canvas IDs match the route and status remains draft",
+    "version equals expected_version plus one for original writes and exact retries",
+    "updated_at must be timezone-aware",
+    "block_name matches the route; metadata changed_fields match submitted editable fields in sorted unique order",
+    "malformed, mismatched, or undeclared service output returns a generic no-store 503 with bounded retry guidance"
+  ],
+  "verification": {
+    "focused_test_command": "python3 -m pytest tests/test_gateway_business_planning_edits.py tests/test_gateway_business_planning_metadata.py -q",
+    "focused_tests_passed": 71,
+    "ruff": "passed",
+    "python_compileall": "passed",
+    "capability_matrix": "passed: 67 rows; 24 baseline-retained, 7 deployed, 36 prepared",
+    "git_diff_check": "passed"
+  },
+  "environment": {
+    "database_used": false,
+    "external_provider_used": false,
+    "candidate_or_legacy_state_changed": false,
+    "errors": 0
+  }
+}

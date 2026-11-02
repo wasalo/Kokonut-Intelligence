@@ -1,0 +1,28 @@
+{
+  "date": "2026-10-29",
+  "scope": "Strict signed trend-forecast creation request and response contract",
+  "focused_test_command": "python3 -m pytest tests/test_gateway_trend_analysis_reads.py tests/test_gateway_trend_forecast_compute.py -q",
+  "focused_test_result": {
+    "passed": 66,
+    "failed": 0
+  },
+  "additional_checks": {
+    "ruff": "passed",
+    "python_compilation": "passed",
+    "git_diff_check": "passed"
+  },
+  "checks_cover": [
+    "Strict allowlisted request and OpenAPI bounds for metric key, forecast horizon, and confidence values",
+    "Invalid request fields are rejected before the compute service and return no-store errors",
+    "Created forecasts return the existing 201 shape including forecast_at",
+    "Matching active forecasts return the existing 200 shape without forecast_at",
+    "Malformed service output and request-location/metric/horizon mismatches fail closed",
+    "Forecast computation continues to use signed location context and verified source metrics"
+  ],
+  "database_or_provider_used": false,
+  "candidate_database_touched": false,
+  "legacy_database_touched": false,
+  "production_or_external_state_used": false,
+  "migration_required": false,
+  "rollback": "Revert the forecast route models/validation, focused route tests, and evidence; no database rollback is required."
+}

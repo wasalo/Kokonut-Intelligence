@@ -26,6 +26,16 @@ def _out(data):
     print_json(data)
 
 
+def _observation_limit(value: str) -> int:
+    try:
+        limit = int(value)
+    except ValueError as exc:
+        raise argparse.ArgumentTypeError("limit must be an integer from 1 to 500") from exc
+    if not 1 <= limit <= 500:
+        raise argparse.ArgumentTypeError("limit must be between 1 and 500")
+    return limit
+
+
 def cmd_create(args):
     data = create_stream(
         args.name,
@@ -108,7 +118,7 @@ def cmd_observe(args):
 
 
 def cmd_observations(args):
-    data = get_observations(args.stage_id, limit=args.limit or 50)
+    data = get_observations(args.stage_id, limit=args.limit)
     _out(data)
 
 
@@ -148,10 +158,10 @@ def build_parser(p):
     g.add_argument("id")
     g.set_defaults(func=cmd_get)
 
-    l = sub.add_parser("list", help="List value streams")
-    l.add_argument("--stakeholder", default=None)
-    l.add_argument("--status", default="active")
-    l.set_defaults(func=cmd_list)
+    listing = sub.add_parser("list", help="List value streams")
+    listing.add_argument("--stakeholder", default=None)
+    listing.add_argument("--status", default="active")
+    listing.set_defaults(func=cmd_list)
 
     u = sub.add_parser("update", help="Update value stream")
     u.add_argument("id")
@@ -191,7 +201,7 @@ def build_parser(p):
 
     sol = sub.add_parser("observations", help="List observations")
     sol.add_argument("stage_id")
-    sol.add_argument("--limit", type=int, default=50)
+    sol.add_argument("--limit", type=_observation_limit, default=50)
     sol.set_defaults(func=cmd_observations)
 
     # performance

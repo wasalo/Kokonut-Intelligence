@@ -1,0 +1,67 @@
+{
+  "date": "2026-10-28",
+  "source_revision": "7d2e0653",
+  "working_tree_dirty": true,
+  "scope": "Strict OpenAPI and runtime response contracts for the private location-scoped extension-learning module catalog and aggregate summary.",
+  "routes": [
+    {
+      "method": "GET",
+      "path": "/operator/api/extension-learning/{location_id}/modules",
+      "response_model": "ExtensionModulePage",
+      "fields": ["location_id", "items", "limit", "offset", "has_more"],
+      "constraints": {
+        "items": "at most 50; only ID, module name, schema-constrained category/difficulty/content type, optional duration, and language",
+        "pagination": "limit 1..50 and offset 0..10000",
+        "extra_fields": "forbidden at every object level",
+        "request_path": "response location must match requested path"
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/operator/api/extension-learning/{location_id}/summary",
+      "response_model": "ExtensionLearningSummary",
+      "fields": ["location_id", "learning_progress", "content_delivery", "assessments", "peer_networks"],
+      "constraints": {
+        "groups": "bounded by exact category/status/channel/type enum products: 55, 48, 5, and 18 maximum entries",
+        "counts": "strict nonnegative integers",
+        "extra_fields": "forbidden at every object level",
+        "request_path": "response location must match requested path",
+        "privacy": "aggregate fields only; no learner identity, score, free text, contact, error, or metadata fields"
+      }
+    }
+  ],
+  "error_contract": {
+    "disabled_oidc": "existing 404 preserved",
+    "tenant_denial": "existing 403 preserved",
+    "invalid_input": "existing 400 preserved",
+    "database_failure": "existing sanitized 503 and Retry-After: 30 preserved",
+    "invalid_projection": "sanitized route-specific 500 with Cache-Control: no-store and Vary: Cookie"
+  },
+  "checks": [
+    {
+      "command": "python3 -m pytest tests/test_gateway_extension_learning_reads.py tests/test_gateway_extension_learning_pagination_openapi.py -q",
+      "result": "passed",
+      "passed": 20
+    },
+    {
+      "command": "python3 -m ruff check services/gateway/extension_learning_routes.py tests/test_gateway_extension_learning_reads.py tests/test_gateway_extension_learning_pagination_openapi.py",
+      "result": "passed"
+    },
+    {
+      "command": "python3 -m py_compile services/gateway/extension_learning_routes.py tests/test_gateway_extension_learning_reads.py tests/test_gateway_extension_learning_pagination_openapi.py",
+      "result": "passed"
+    },
+    {
+      "command": "git diff --check",
+      "result": "passed"
+    }
+  ],
+  "environment": {
+    "live_database_used": false,
+    "candidate_or_legacy_touched": false,
+    "provider_called": false
+  },
+  "limitations": [
+    "This closes the code-level API response contract only; live OIDC, populated-data parity, and broader tenant isolation remain separate gates."
+  ]
+}

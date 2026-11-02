@@ -1,0 +1,31 @@
+{
+  "date": "2026-11-01",
+  "pull_request": 71,
+  "branch": "chore/kernel-next-sprint-plan",
+  "failed_run": {
+    "url": "https://github.com/wasalo/Kokonut-Intelligence/actions/runs/41255043315",
+    "run_number": 1033,
+    "head": "042eebfda43c55ac3656f318a22749a60ea9b657",
+    "full_ci_job_id": 124696427354,
+    "failed_check": "Runtime SQL inventory and unresolved-write review ledger",
+    "observed_error": "Runtime SQL inventory is stale: docs/refactor/runtime-sql-inventory.json",
+    "kernel_image_job": "passed",
+    "security_run": {
+      "url": "https://github.com/wasalo/Kokonut-Intelligence/actions/runs/41255043418",
+      "run_number": 757,
+      "conclusion": "passed"
+    }
+  },
+  "root_cause": "Commit 042eebf added a receipt name to services/migration/runtime_role.py without regenerating the tracked runtime SQL inventory. Inventory execution-site IDs include source line/column, so the insertion shifted recorded call sites. The unresolved-write review ledger itself remained current.",
+  "repair": "After migration 715's 23 audited private receipt names were added to the same policy list, regenerate docs/refactor/runtime-sql-inventory.json from the final source tree.",
+  "local_validation": {
+    "runtime_sql_inventory": "current",
+    "unresolved_write_review_ledger": "current; 38 tracked candidates",
+    "migration_source_validation": "706 files passed",
+    "runtime_role_and_migration_tests": "142 passed",
+    "migration_715_disposable_postgresql_16": "apply/replay and ACL/provisioner checks passed; 23 receipt relations",
+    "ruff": "passed",
+    "git_diff_check": "passed"
+  },
+  "scope": "The inventory describes source call sites; it is not ACL proof. No candidate, legacy, or production database or role was accessed or changed. Hosted confirmation is pending on the repair commit."
+}

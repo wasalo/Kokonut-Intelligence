@@ -1,22 +1,29 @@
-# Developer Sandbox
+# Developer Sandbox (Legacy Compose Fixtures)
 
-The developer sandbox runs the normal Compose stack with a one-shot seed container and sample farm data. It is for local development only. It does not create a separate static API key or provide production-safe credentials.
+> [!WARNING]
+> This sandbox is tied to the legacy `docker-compose.yml` stack, Directus, and
+> historical fixture seeds. It is not the isolated Kernel candidate. Its demo
+> location and example records are not authoritative owner mappings, a real
+> farm baseline, or approved production data. Review the seed SQL before running
+> it, use a dedicated legacy Compose project/database, and never copy this
+> sandbox's data or volumes into the Kernel candidate.
+
+For current Kernel development, use the [Kernel candidate path](deployment.md#kernel-candidate-current-development-path).
 
 ## Quick Start
 
 ```bash
-# 1. Create local configuration and replace every placeholder with a strong value.
-cp .env.example .env
-
-# Alternatively load encrypted secrets into the environment:
-# source scripts/load-secrets.sh
+# 1. Load local encrypted settings; never commit plaintext credentials.
+source scripts/load-secrets.sh
 
 # 2. Start the sandbox seeder and opt-in Metabase profiles. The seed service runs
 #    once after PostgreSQL and Directus become healthy, then exits successfully.
-docker compose -f docker-compose.yml -f docker-compose.sandbox.yml --profile sandbox --profile metabase up -d
+docker compose -p kokonut-legacy-sandbox -f docker-compose.yml \
+  -f docker-compose.sandbox.yml --profile sandbox --profile metabase up -d
 
 # 3. Inspect the one-shot seed output
-docker compose -f docker-compose.yml -f docker-compose.sandbox.yml --profile sandbox --profile metabase logs sandbox-seed
+docker compose -p kokonut-legacy-sandbox -f docker-compose.yml \
+  -f docker-compose.sandbox.yml --profile sandbox --profile metabase logs sandbox-seed
 
 # 4. Open Directus through Caddy. The local certificate is self-signed.
 open https://localhost/admin       # Directus admin
@@ -29,7 +36,8 @@ The seed container waits up to two minutes for Directus, authenticates using
 templates, and seeds sample data. To rerun the idempotent seed manually:
 
 ```bash
-docker compose -f docker-compose.yml -f docker-compose.sandbox.yml --profile sandbox run --rm sandbox-seed
+docker compose -p kokonut-legacy-sandbox -f docker-compose.yml \
+  -f docker-compose.sandbox.yml --profile sandbox run --rm sandbox-seed
 ```
 
 Do not commit `.env`, printed tokens, or other local secrets.
@@ -46,21 +54,14 @@ Do not commit `.env`, printed tokens, or other local secrets.
 
 The base Compose file publishes Directus on `127.0.0.1:8055`. Metabase is excluded by default; the sandbox overlay maps it to loopback port `3001` only when the `metabase` profile is enabled. Embedding is disabled by default. PostgreSQL and ClickHouse are not published to the host by default; use the Compose service names from containers.
 
-### Pre-seeded Data
+### Historical Fixture Data
 
-- **Location**: Kokonut Demo Farm — Costa Rica (Guanacaste)
-- **Farm**: Finca El Naranjo (45 ha agroforestry)
-- **Plots**: 3 plots (Coffee, Cacao, Timber)
-- **Crops**: Arabica Coffee, Trinitario Cacao, Plantain
-- **Crop Cycles**: 3 sample cycles with expected yields; two are `active` and one is `harvesting`
-- **Harvest Events**: 3 verified harvests
-- **Expenses**: Sample verified expenses generated across January-June 2026 for five seeded categories
-- **Cost Allocations**: Up to 20 direct allocations to randomly selected crop cycles
-- **Attestation Schema**: `Harvest MRV Claim` sample schema on Optimism
-- **Attestation Record**: 1 published sample record with an Optimism attestation UID
-- **Base-seeded metadata**: Governed metric definitions, metric versions, and standard expense categories
-
-The sample location is `costa-rica-demo` and the farm is `finca-el-naranjo`. Seed statements use conflict guards, but generated expense and allocation rows can vary across reruns.
+The sandbox seeder and seed SQL define historical sample records. Their
+presence is not evidence of a current Kokonut Network farm, real owner mapping,
+verified agronomic/financial data, or an accepted external attestation. Inspect
+`scripts/sandbox-setup.sh` and the exact seed files selected by the current
+checkout before running or interpreting these fixtures. Generated records may
+vary between runs. Do not copy this fixture database into the Kernel candidate.
 
 ### Dashboard Templates
 
@@ -153,15 +154,18 @@ curl -sk -X POST "$DIRECTUS_URL/items/field_note" \
 
 The sandbox overlay passes `PGHOST=database`, `PGDATABASE=kokonut_intelligence`, and `PGUSER=kokonut` to the seed container. Do not use host database settings inside the container.
 
-## Stopping the Sandbox
+## Stopping the Legacy Sandbox
 
 ```bash
-# Stop containers (preserves data)
-docker compose -f docker-compose.yml -f docker-compose.sandbox.yml --profile sandbox stop
-
-# Full teardown (destroys data volumes)
-docker compose -f docker-compose.yml -f docker-compose.sandbox.yml --profile sandbox down -v
+docker compose -p kokonut-legacy-sandbox \
+  -f docker-compose.yml -f docker-compose.sandbox.yml \
+  --profile sandbox --profile metabase stop
 ```
+
+Use the same explicit Compose project name that was used when the stack was
+created. `stop` preserves the volumes. A normal `down` also preserves volumes;
+`down -v` deletes persistent data and is intentionally not included as a routine
+cleanup command.
 
 ## Troubleshooting
 
@@ -170,7 +174,7 @@ docker compose -f docker-compose.yml -f docker-compose.sandbox.yml --profile san
 Directus is still starting or Caddy is not ready. Wait 30 seconds and retry. Check logs:
 
 ```bash
-docker compose logs directus | tail -20
+docker compose -p kokonut-legacy-sandbox logs directus | tail -20
 ```
 
 ### "relation does not exist" during seed
@@ -178,7 +182,9 @@ docker compose logs directus | tail -20
 The schema hasn't been applied yet. Run the base seed first:
 
 ```bash
-./scripts/seed.sh
+docker compose -p kokonut-legacy-sandbox \
+  -f docker-compose.yml -f docker-compose.sandbox.yml \
+  --profile sandbox run --rm sandbox-seed
 ```
 
 ### Metabase shows "Database not found"
@@ -186,8 +192,8 @@ The schema hasn't been applied yet. Run the base seed first:
 Metabase needs the `kokonut` database to exist. Ensure PostgreSQL is healthy:
 
 ```bash
-docker compose ps database
-docker compose logs database | tail -10
+docker compose -p kokonut-legacy-sandbox ps database
+docker compose -p kokonut-legacy-sandbox logs database | tail -10
 ```
 
 ### Sandbox seed container exits immediately
@@ -195,7 +201,8 @@ docker compose logs database | tail -10
 The seed container is a one-shot job and exits after setup — this is expected. Check output:
 
 ```bash
-docker compose -f docker-compose.yml -f docker-compose.sandbox.yml --profile sandbox logs sandbox-seed
+docker compose -p kokonut-legacy-sandbox \
+  -f docker-compose.yml -f docker-compose.sandbox.yml --profile sandbox logs sandbox-seed
 ```
 
 ### Port conflict on 80 or 443

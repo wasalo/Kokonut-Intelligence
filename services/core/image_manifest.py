@@ -11,7 +11,7 @@ def main():
     parser.add_argument("--root", type=Path, default=Path("/app"))
     parser.add_argument(
         "--target", required=True,
-        choices=("kernel", "grpc", "mqtt", "oidc", "ml-anomaly"),
+        choices=("kernel", "kernel-core", "grpc", "mqtt", "oidc", "ml-anomaly"),
     )
     args = parser.parse_args()
     root = args.root.resolve()
@@ -23,6 +23,9 @@ def main():
     for suffix in (".html", ".js", ".css"):
         paths.extend((root / "apps").rglob(f"*{suffix}"))
     paths.extend(root / name for name in ("VERSION", "pyproject.toml", "Dockerfile.kernel"))
+    if args.target == "kernel-core":
+        paths.extend((root / "requirements").glob("kernel-core*.in"))
+        paths.extend((root / "requirements").glob("kernel-core*.lock"))
     files = {}
     for path in sorted(set(paths)):
         if path.is_file() and "__pycache__" not in path.parts:

@@ -1,6 +1,6 @@
 # Reporting Principles
 
-Kokonut Green Paper reports should be useful to partners without overstating evidence quality, hiding adverse signals, or exposing private stakeholder evidence. PostgreSQL/Directus remains the canonical governance, consent, lifecycle, and evidence layer. Reports, dashboards, and CIDS exports are derived presentation or compatibility layers.
+Kokonut Green Paper reports should be useful to partners without overstating evidence quality, hiding adverse signals, or exposing private stakeholder evidence. PostgreSQL remains the canonical governance, consent, lifecycle, and evidence store. Native Gateway/Python services enforce application contracts; Directus is an optional compatibility/admin adapter. Reports, dashboards, and CIDS exports are derived presentation or compatibility layers.
 
 ## Public-Interest Defaults
 
@@ -149,7 +149,7 @@ Use these dashboards before publishing Green Paper materials:
 
 Treat missing evidence links, public claims below applicable thresholds, carbon gaps, unresolved privacy issues, and insufficient calibration as review items rather than public proof.
 
-CIDS export is a compatibility layer. It emits maturity labels and mapped public-safe evidence, but it does not create or publish canonical records. Source lifecycle, consent, registry, and evidence gates remain authoritative in PostgreSQL/Directus.
+CIDS export is a compatibility layer. It emits maturity labels and mapped public-safe evidence, but it does not create or publish canonical records. Source lifecycle, consent, registry, and evidence gates remain authoritative in PostgreSQL and its governed views/services.
 
 ## Agent And Human Review Boundaries
 

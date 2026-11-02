@@ -16,6 +16,13 @@ import psycopg2.extras
 from .config import LEVERAGE_POINTS
 
 
+def _canonical_location_id(location_id: str) -> str:
+    try:
+        return str(uuid.UUID(str(location_id)))
+    except (TypeError, ValueError, AttributeError) as exc:
+        raise ValueError("location_id must be a valid UUID") from exc
+
+
 class LeverageAnalyzer:
     """Analyzes leverage points for farm intervention prioritization."""
 
@@ -35,6 +42,7 @@ class LeverageAnalyzer:
 
         Returns a ranked list of leverage points with impact scores.
         """
+        location_id = _canonical_location_id(location_id)
         conn = self._get_conn()
         cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
@@ -257,10 +265,12 @@ class LeverageAnalyzer:
 
     def _assess_negative_feedback(self, cur, location_id: str, point: Dict) -> Dict:
         """Level 8: Strength of Negative Feedback Loops."""
+        location_id = _canonical_location_id(location_id)
         cur.execute("""
             SELECT COUNT(*) as cnt FROM sensor_alert
-            WHERE acknowledged = FALSE
-        """)
+            WHERE location_id = %s
+              AND acknowledged = FALSE
+        """, (location_id,))
         unacked = cur.fetchone()["cnt"]
 
         cur.execute("""

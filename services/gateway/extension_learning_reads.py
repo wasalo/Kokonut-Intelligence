@@ -9,7 +9,7 @@ from uuid import UUID
 from services.common.tenant_context import set_operator_tenant_context
 
 _MAX_PAGE_SIZE = 50
-_MAX_OFFSET = 10_000
+MAX_OFFSET = 10_000
 _MODULE_CATEGORIES = frozenset(
     {
         "soil_health",
@@ -58,8 +58,8 @@ def _catalog_filter(value: str | None, allowed: frozenset[str], label: str) -> s
 def _page(limit: int, offset: int) -> tuple[int, int]:
     if isinstance(limit, bool) or not isinstance(limit, int) or not 1 <= limit <= _MAX_PAGE_SIZE:
         raise ValueError(f"limit must be between 1 and {_MAX_PAGE_SIZE}")
-    if isinstance(offset, bool) or not isinstance(offset, int) or not 0 <= offset <= _MAX_OFFSET:
-        raise ValueError(f"offset must be between 0 and {_MAX_OFFSET}")
+    if isinstance(offset, bool) or not isinstance(offset, int) or not 0 <= offset <= MAX_OFFSET:
+        raise ValueError(f"offset must be between 0 and {MAX_OFFSET}")
     return limit, offset
 
 
@@ -127,7 +127,7 @@ def list_location_extension_modules(
             "items": rows[:limit],
             "limit": limit,
             "offset": offset,
-            "has_more": len(rows) > limit,
+            "has_more": len(rows) > limit and offset + limit <= MAX_OFFSET,
         }
     except Exception:
         connection.rollback()

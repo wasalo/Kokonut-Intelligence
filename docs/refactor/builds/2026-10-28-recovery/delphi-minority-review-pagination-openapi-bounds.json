@@ -1,0 +1,24 @@
+{
+  "date": "2026-10-28",
+  "slice": "delphi_minority_review_pagination_openapi_bounds",
+  "result": "passed",
+  "route": "/operator/api/delphi/{location_id}/minority-reports",
+  "contract": {
+    "limit_default": 50,
+    "limit_minimum": 1,
+    "limit_maximum": 50,
+    "offset_default": 0,
+    "offset_minimum": 0,
+    "offset_maximum": 10000,
+    "invalid_values_rejected_before_service": ["limit=0", "limit=51", "offset=-1", "offset=10001"]
+  },
+  "verification": {
+    "pytest_command": "python3 -m pytest tests/test_gateway_delphi_minority_review.py -q",
+    "pytest_result": "20 passed",
+    "ruff": "passed",
+    "py_compile": "passed",
+    "diff_check": "passed"
+  },
+  "scope": "FastAPI/OpenAPI and mocked service-boundary checks only; no database, provider, network, candidate, or legacy service was used.",
+  "baseline_head": "753b4645"
+}

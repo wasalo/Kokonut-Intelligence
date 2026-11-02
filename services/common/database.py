@@ -22,7 +22,7 @@ import psycopg2
 import psycopg2.extras
 
 from .db import PG_DB, PG_HOST, PG_PASSWORD, PG_PORT, PG_USER
-from .worker_environment import ISOLATED_WORKER_KEY_ENV
+from .worker_environment import DENY_SHARED_DATABASE_ENV, ISOLATED_WORKER_KEY_ENV
 
 _NAMED_PARAMETER = re.compile(r"(?<!:):([A-Za-z_][A-Za-z0-9_]*)")
 
@@ -40,7 +40,9 @@ def get_db(*, connect_timeout: int | None = None):
     delegate here to ensure a consistent default database name and
     connection parameters.
     """
-    if os.environ.get(ISOLATED_WORKER_KEY_ENV):
+    if os.environ.get(ISOLATED_WORKER_KEY_ENV) or (
+        os.environ.get(DENY_SHARED_DATABASE_ENV, "").strip().lower() == "true"
+    ):
         raise RuntimeError(
             "shared database access is unavailable to isolated worker processes"
         )

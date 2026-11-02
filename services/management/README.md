@@ -19,7 +19,7 @@ python3 -m services.management.cli --help
 - `learning_plans` — Competency evidence and learning plans for role development.
 - `model` — Management domain constants and spec-derived helpers.
 - `operating_pilot` — Bootstrap and inspect the dual-scope operating pilot.
-- `operating_support` — Legacy unscoped coaching and resource-request mutations fail closed before database access. The Kernel currently exposes aggregate-only coaching counts; private session writes must use a signed location-scoped Gateway workflow when available.
+- `operating_support` — Legacy unscoped coaching and resource-request mutations fail closed before database access. Authenticated location-scoped coaching and resource-request create, review, and fulfillment workflows are provided by the Gateway; coaching writes require a current participant link and consent.
 - `responsibility` — RACI responsibility assignments linking governed entities to parties.
 - `work_selection` — Governed work opportunities and bounded self-selection.
 - `workbench` — Work item workbench: create, assign, transition, and SLA sweeps.

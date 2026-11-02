@@ -10,12 +10,13 @@ def test_ingestion_reliability_indexes_are_database_backed():
     assert "uq_sensor_reading_timestamp" in schema
 
 
-def test_remote_sensing_due_jobs_are_claimed_with_row_locks():
-    content = Path("services/ingestion/remote_sensing_fetcher.py").read_text()
-    assert "FOR UPDATE SKIP LOCKED" in content
-    assert "LIMIT 1\n            FOR UPDATE SKIP LOCKED" in content
-    assert "def _claim_due_jobs" in content
-    assert "jobs = _claim_due_jobs(conn, location_id=location_id)" in content
+def test_remote_sensing_due_jobs_use_the_signed_worker_claim():
+    legacy = Path("services/ingestion/remote_sensing_fetcher.py").read_text()
+    worker = Path("services/ingestion/remote_sensing_worker.py").read_text()
+    migration = Path("schemas/postgres/432_signed_remote_sensing_worker.sql").read_text()
+    assert "legacy remote-sensing due-job execution is disabled" in legacy
+    assert "kokonut_security.claim_remote_sensing_job(%s::uuid)" in worker
+    assert "CREATE OR REPLACE FUNCTION kokonut_security.claim_remote_sensing_job" in migration
 
 
 def test_ingestion_entry_points_close_connections_in_finally():

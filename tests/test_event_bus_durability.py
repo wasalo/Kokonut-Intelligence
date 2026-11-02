@@ -5,7 +5,10 @@ import subprocess
 import sys
 from unittest.mock import MagicMock, patch
 
+import pytest
+
 from services.events.bus import EventBus, _handler_child_environment, resolve_handler
+from services.events.dispatch_worker import IsolatedEventBus
 
 REGISTERED_HANDLERS = (
     ("services.ingestion.anomaly_detector", "handle_sensor_reading"),
@@ -21,6 +24,13 @@ def test_every_registered_handler_resolves_to_a_callable():
         assert callable(resolve_handler(module_path, function_name))
 
 
+def test_shared_event_bus_publishes_but_only_isolated_worker_dispatches():
+    assert not hasattr(EventBus, "process_pending")
+    assert not hasattr(EventBus, "_claim")
+    assert hasattr(EventBus, "publish")
+    assert callable(getattr(IsolatedEventBus, "process_pending", None))
+
+
 def test_lazy_event_bus_connection_uses_configured_timeout():
     connection = MagicMock()
     with patch("services.common.database.get_db", return_value=connection) as get_db:
@@ -31,6 +41,65 @@ def test_lazy_event_bus_connection_uses_configured_timeout():
     get_db.assert_called_once_with(connect_timeout=5)
     bus.close()
     connection.close.assert_called_once()
+
+
+def test_supervised_event_handler_wait_refreshes_progress_without_changing_result():
+    bus = EventBus()
+    process = MagicMock(returncode=0)
+    process.communicate.side_effect = [
+        subprocess.TimeoutExpired(["handler"], 5),
+        ('{"succeeded": true}', ""),
+    ]
+    with (
+        patch("services.events.bus.subprocess.Popen", return_value=process),
+        patch("services.events.bus.time.monotonic", side_effect=(0, 1, 2)),
+        patch("services.core.worker_progress.pulse_worker_progress") as pulse,
+    ):
+        result = bus._invoke_handler("module", "handler", "event", {}, 10)
+
+    assert result == ("success", None)
+    assert process.communicate.call_count == 2
+    pulse.assert_called_once_with()
+
+
+@pytest.mark.parametrize("lease_seconds", [29, 3601, 0, -1, True, False, 30.0, "30", None])
+def test_event_bus_rejects_invalid_lease_before_database_access(lease_seconds):
+    with patch("services.common.database.get_db") as get_db:
+        with pytest.raises(ValueError, match="lease must be between 30 and 3600"):
+            EventBus(lease_seconds=lease_seconds)
+
+    get_db.assert_not_called()
+
+
+@pytest.mark.parametrize("lease_seconds", [30, 3600])
+def test_event_bus_accepts_lease_bounds(lease_seconds):
+    connection = MagicMock()
+
+    bus = EventBus(conn=connection, lease_seconds=lease_seconds)
+
+    assert bus.lease_seconds == lease_seconds
+    assert bus._get_conn() is connection
+
+
+def test_isolated_worker_bounds_lease_extension_for_maximum_handler_timeout():
+    bus = IsolatedEventBus(conn=MagicMock(), lease_seconds=30)
+    handler = ("handler", "module", "function", 3570, None)
+    calls = []
+    results = iter(([handler], (True,), (True,), (True,), (True,)))
+
+    def function(query, parameters, **kwargs):
+        calls.append((query, parameters))
+        return next(results)
+
+    with patch.object(bus, "_function", side_effect=function), patch.object(
+        bus, "_invoke_handler", return_value=("success", None)
+    ) as invoke:
+        assert bus._process_event("event", "kind", {}, "worker", "lease") == "success"
+
+    renew_query = "SELECT kokonut_security.renew_platform_event_lease(%s, %s, %s, %s)"
+    renew = next(parameters for query, parameters in calls if query == renew_query)
+    assert renew == ("event", "worker", "lease", 3600)
+    invoke.assert_called_once_with("module", "function", "kind", {}, 3570, event_id="event")
 
 
 def test_unregistered_event_handler_is_rejected_before_import():
@@ -51,47 +120,31 @@ def _connection(fetchall=None, fetchone=None):
     return conn, cursor
 
 
-def test_claim_commits_before_event_processing():
-    conn, _ = _connection(fetchall=[("event", "kind", {}, 0, 3)])
-    bus = EventBus(conn=conn)
-    order = []
-    conn.commit.side_effect = lambda: order.append("commit")
+def test_isolated_dispatch_rolls_back_failed_bounded_call():
+    conn, cursor = _connection()
+    bus = IsolatedEventBus(conn=conn)
+    failure = RuntimeError("bounded call failed")
+    cursor.execute.side_effect = failure
 
-    with patch.object(bus, "_process_event", side_effect=lambda *args: order.append("handler") or "success"):
-        bus.process_pending(worker_id="worker")
-
-    assert order.index("commit") < order.index("handler")
-
-
-def test_process_pending_redacts_database_exception_and_rolls_back(caplog):
-    conn, _ = _connection()
-    conn.rollback.side_effect = lambda: None
-    bus = EventBus(conn=conn)
-    conn = bus._get_conn()
-    failure = RuntimeError("postgresql://operator:secret@db.internal/kokonut")
-
-    with patch.object(bus, "_claim", side_effect=failure):
-        try:
-            bus.process_pending(worker_id="worker")
-            assert False, "database failure should be re-raised"
-        except RuntimeError as exc:
-            assert str(exc) == "postgresql://operator:secret@db.internal/kokonut"
+    with pytest.raises(RuntimeError, match="bounded call failed"):
+        bus._function("SELECT bounded_function()", ())
 
     assert conn.rollback.call_count == 1
-    assert "postgresql://operator:secret" not in caplog.text
-    assert "RuntimeError" in caplog.text
-    assert "Traceback" not in caplog.text
 
 
 def test_successful_delivery_is_not_invoked_again():
     handler_id = "handler"
-    conn, _ = _connection(fetchall=[
-        (handler_id, "module", "function", 30, "success")
-    ])
-    bus = EventBus(conn=conn)
+    bus = IsolatedEventBus(conn=MagicMock())
 
-    with patch.object(bus, "_invoke_handler") as invoke, patch.object(bus, "_complete"):
-        assert bus._process_event("event", "kind", {}, "worker") == "success"
+    with (
+        patch.object(
+            bus,
+            "_function",
+            side_effect=[[(handler_id, "module", "function", 30, "success")], (True,)],
+        ),
+        patch.object(bus, "_invoke_handler") as invoke,
+    ):
+        assert bus._process_event("event", "kind", {}, "worker", "lease") == "success"
 
     invoke.assert_not_called()
 
@@ -118,6 +171,7 @@ def test_handler_child_environment_allows_only_exact_anomaly_worker_identity():
         "KOKONUT_SENSOR_ANOMALY_DATABASE_URL": "postgresql://worker",
         "KOKONUT_SENSOR_ANOMALY_WORKER_CREDENTIAL": "worker-secret",
         "KOKONUT_ISOLATED_WORKER_KEY": "sensor_anomaly",
+        "KOKONUT_DENY_SHARED_DATABASE": "true",
     }
 
 
@@ -150,6 +204,7 @@ def test_cache_handlers_receive_only_their_exact_worker_identity():
             "KOKONUT_CACHE_INVALIDATION_WORKER_CREDENTIAL": "cache-secret",
             "KOKONUT_ISOLATED_WORKER_KEY": "cache_invalidation",
             "KOKONUT_FEATURE_SIGNED_CACHE_INVALIDATION": "true",
+            "KOKONUT_DENY_SHARED_DATABASE": "true",
         }
 
 
@@ -172,10 +227,11 @@ def test_notification_handlers_receive_only_their_enqueue_identity():
         "KOKONUT_NOTIFICATION_ENQUEUE_DATABASE_URL": "postgresql://notification-enqueue",
         "KOKONUT_ISOLATED_WORKER_KEY": "notification_enqueue",
         "KOKONUT_FEATURE_ISOLATED_NOTIFICATION_ENQUEUE": "true",
+        "KOKONUT_DENY_SHARED_DATABASE": "true",
     }
 
 
-def test_feature_off_notification_handler_keeps_shared_database_and_strips_worker_secrets():
+def test_feature_off_notification_handler_has_no_database_identity():
     env = _handler_child_environment(
         "services.events.handlers",
         "handle_alert_notification",
@@ -187,13 +243,10 @@ def test_feature_off_notification_handler_keeps_shared_database_and_strips_worke
         },
     )
 
-    assert env == {
-        "DATABASE_URL": "application-config",
-        "PG_PASSWORD": "shared-secret",
-    }
+    assert env == {"KOKONUT_DENY_SHARED_DATABASE": "true"}
 
 
-def test_feature_off_cache_handler_keeps_shared_database_and_strips_worker_secrets():
+def test_feature_off_cache_handler_has_no_database_identity():
     env = _handler_child_environment(
         "services.cache.events",
         "handle_metric_computed",
@@ -204,7 +257,7 @@ def test_feature_off_cache_handler_keeps_shared_database_and_strips_worker_secre
         },
     )
 
-    assert env == {"PG_PASSWORD": "shared-secret"}
+    assert env == {"KOKONUT_DENY_SHARED_DATABASE": "true"}
 
 
 def test_unmapped_event_handler_receives_no_worker_identity():
@@ -220,10 +273,7 @@ def test_unmapped_event_handler_receives_no_worker_identity():
         },
     )
 
-    assert env == {
-        "DATABASE_URL": "application-config",
-        "PG_PASSWORD": "legacy-runtime-secret",
-    }
+    assert env == {"KOKONUT_DENY_SHARED_DATABASE": "true"}
 
 
 def test_handler_success_uses_filtered_environment_and_stdin_request():
@@ -257,6 +307,7 @@ def test_handler_success_uses_filtered_environment_and_stdin_request():
         "KOKONUT_SENSOR_ANOMALY_DATABASE_URL": "postgresql://worker",
         "KOKONUT_SENSOR_ANOMALY_WORKER_CREDENTIAL": "worker-secret",
         "KOKONUT_ISOLATED_WORKER_KEY": "sensor_anomaly",
+        "KOKONUT_DENY_SHARED_DATABASE": "true",
     }
     assert "KOKONUT_EVENT_BUS_WORKER_CREDENTIAL" not in kwargs["env"]
     assert kwargs["stdin"] == subprocess.PIPE
@@ -316,8 +367,12 @@ def test_handler_timeout_kills_and_reaps_child():
         subprocess.TimeoutExpired("handler", 1),
         ("", ""),
     ]
+    process.poll.return_value = None
 
-    with patch("services.events.bus.subprocess.Popen", return_value=process):
+    with (
+        patch("services.events.bus.subprocess.Popen", return_value=process),
+        patch("services.events.bus.time.monotonic", side_effect=(0, 0, 2)),
+    ):
         status, error = bus._invoke_handler("module", "function", "kind", {}, 1)
 
     assert status == "timeout"
@@ -416,36 +471,35 @@ def test_cleanup_fails_closed_without_approved_retention_feature(monkeypatch):
     bus._conn.cursor.assert_not_called()
 
 
-def test_claim_query_recovers_expired_processing_lease():
-    conn, cursor = _connection()
-    EventBus(conn=conn)._claim(10, "worker")
-    sql = cursor.execute.call_args.args[0]
-    assert "status = 'processing' AND lease_expires_at < NOW()" in sql
-    assert "FOR UPDATE SKIP LOCKED" in sql
+def test_completion_reports_lost_lease_from_bounded_function():
+    bus = IsolatedEventBus(conn=MagicMock())
+    with patch.object(bus, "_function", return_value=(False,)) as function:
+        assert bus._complete("event", "stale-worker", "lease") is False
 
-
-def test_completion_reports_lost_lease_when_update_changes_no_row():
-    conn, cursor = _connection(fetchone=None)
-    bus = EventBus(conn=conn)
-
-    assert bus._complete("event", "stale-worker") is False
-    assert "status = 'processing'" in cursor.execute.call_args.args[0]
+    function.assert_called_once_with(
+        "SELECT kokonut_security.complete_platform_event(%s, %s, %s)",
+        ("event", "stale-worker", "lease"),
+    )
 
 
 def test_process_event_does_not_report_success_after_lease_loss():
-    conn, _ = _connection(fetchall=[])
-    bus = EventBus(conn=conn)
-    with patch.object(bus, "_complete", return_value=False):
-        assert bus._process_event("event", "kind", {}, "worker") == "lease_lost"
+    bus = IsolatedEventBus(conn=MagicMock())
+    with patch.object(bus, "_function", side_effect=[[], (False,)]):
+        assert bus._process_event("event", "kind", {}, "worker", "lease") == "lease_lost"
 
 
 def test_process_pending_reports_lease_loss_separately_from_handler_failure():
-    conn, _ = _connection(fetchall=[("event", "kind", {}, 0, 3)])
-    bus = EventBus(conn=conn)
+    bus = IsolatedEventBus(conn=MagicMock())
 
-    with patch.object(bus, "_process_event", return_value="lease_lost"), patch.object(
-        bus, "_retry_or_dead_letter"
-    ) as retry:
+    with (
+        patch.object(
+            bus,
+            "_claim",
+            return_value=[("event", "kind", {}, 0, 3, "lease")],
+        ),
+        patch.object(bus, "_process_event", return_value="lease_lost"),
+        patch.object(bus, "_retry_or_dead_letter") as retry,
+    ):
         stats = bus.process_pending(worker_id="stale-worker")
 
     assert stats == {"processed": 0, "failed": 0, "skipped": 0, "lease_lost": 1}

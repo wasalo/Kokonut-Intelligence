@@ -1,6 +1,14 @@
 # PostgreSQL runtime-role policy
 
-Status: opt-in application and operator-auth roles are implemented. Operator
+> **Current status reference:** This role design and its early candidate
+> observations are historical acceptance snapshots, not a current deployment
+> report. The source branch includes migrations through 710; their deployment
+> and a fresh role-provisioner run against the candidate are not claimed here. Use
+> the [current refactor status guide](current-state-and-implementation.md)
+> for verified gates and recheck the selected target's role catalog before
+> making operational changes.
+
+Historical status: opt-in application and operator-auth roles are implemented. Operator
 session, mobile credential, and bounded device-revocation boundaries passed
 disposable PostgreSQL 16 role checks, including forced RLS; the synthetic and
 populated-restore role fixtures use the second credential. Separate Directus, Metabase metadata, and
@@ -8,8 +16,8 @@ analytics-source role boundaries also passed on isolated populated copies. No
 candidate or legacy ACL was changed by these role fixtures. Separately,
 migrations 392–400 were applied schema-only to the local candidate after an
 encrypted checkpoint; its application-table RLS remains
-disabled. The candidate still connects as the `kokonut` superuser because
-dedicated runtime credentials are not provisioned.
+disabled. In that recorded candidate snapshot, the app connected as the
+`kokonut` superuser because dedicated runtime credentials were not provisioned.
 Metabase dashboard/source parity and full domain-workflow acceptance remain open; see
 [optional consumer roles](optional-database-roles.md).
 
@@ -21,7 +29,13 @@ owner. Application code now reads `PG_PASSWORD` first and falls back to
 dedicated `KOKONUT_RUNTIME_USER` and `KOKONUT_RUNTIME_PASSWORD` variables when
 combined with `docker-compose.kernel-runtime-role.yml`; the app receives only
 `PG_USER` and `PG_PASSWORD`, while the one-shot bootstrap receives the admin
-credential.
+credential. Standard selects this overlay automatically and requires explicit
+runtime credentials for both app and worker. Its supervisor performs a
+read-only pre-spawn check requiring the same session/login role, LOGIN,
+NOINHERIT, and no role memberships; it rejects superuser, database/role
+creation, replication, RLS-bypass, database-owner, or database-owner-member
+logins. This prevents owner credentials and membership grants from bypassing
+the separate bootstrap step.
 
 The bootstrap requires a dedicated Kernel PostgreSQL instance and distinct
 runtime and operator-auth passwords of at least 24 characters. It creates or
@@ -30,12 +44,15 @@ NOREPLICATION NOBYPASSRLS`, and refuses to reuse roles that own database
 objects. It removes their role memberships, revokes `PUBLIC CONNECT` on
 connectable databases and `CREATE` on the `public` schema, then grants both
 roles `CONNECT` only to the selected database. The runtime role receives
-`USAGE` on `public`, DML on public tables and sequence use that exist when the
-bootstrap runs. The bootstrap revokes global and `public`-schema default
-privileges for future tables and sequences, so newly created objects fail
-closed until a reviewed grant is added. Do not rerun the broad bootstrap simply
-to grant a new table: it re-grants DML to every public table present at that
-time. The two
+`USAGE` on `public`. Only when the runtime login is first created, it also
+receives compatibility DML on all public tables and sequence use on all public
+sequences that exist at that time. Reprovisioning an existing login preserves
+its current relation grants and reapplies explicit boundaries, but does not
+grant access to relations created since the prior provisioning. The bootstrap
+revokes global and `public`-schema default privileges for future tables and
+sequences, so newly created objects fail closed until a reviewed grant is
+added. This guard does not remove broad grants from existing relations;
+per-relation migrations and reviewed writer boundaries must retire them. The two
 mobile credential tables replace that broad table grant with explicit column
 grants: the app can read non-credential device and enrollment fields and
 perform only the writes used by current mobile handlers. It cannot read
@@ -95,18 +112,40 @@ server, so the dedicated-instance requirement is a hard precondition. The
 populated restore contained the legacy `kokonut` superuser plus the new runtime
 role; candidate and legacy instances were not targeted.
 
-## Enable on a fresh or restored candidate
+## Standard profile sequence
+
+After the complete ordered migration ledger succeeds, load the encrypted
+credentials and run these planner actions:
+
+```sh
+source scripts/load-secrets.sh
+python3 scripts/kernel-profile.py standard --action config
+python3 scripts/kernel-profile.py standard --action bootstrap-runtime-role
+python3 scripts/kernel-profile.py standard --action up
+```
+
+The bootstrap action runs between migrations and startup. The compatibility
+DML grant runs only when the runtime login is first created; later runs retain
+existing grants and reapply reviewed denials without sweeping newly added
+tables into the role. Do not run it during ordinary restarts or simply because
+a new table was added. New tables remain closed by default until their writer
+boundary is reviewed and explicitly granted. Both Standard processes refuse
+to spawn API/worker children if the connected role is privileged or owns the
+database.
+
+## Enable the optional role overlay on a non-Standard candidate
 
 Add `KOKONUT_RUNTIME_USER`, `KOKONUT_RUNTIME_PASSWORD`, and a separate
 `KOKONUT_OPERATOR_AUTH_PASSWORD` to the encrypted secrets file. Keep the host
 migration environment on the owner identity (`PG_USER=kokonut`, with
 `POSTGRES_PASSWORD`); do not set either service password as the migration
-CLI's `PG_PASSWORD`. Apply ordered migrations through 396 before provisioning
-these roles. OIDC also requires the operator-auth role variables in the app
-environment.
+CLI's `PG_PASSWORD`. Apply the complete current ordered migration ledger before
+provisioning these roles; migration 396 is only the historical introduction
+of the Gateway mobile context. OIDC also requires the operator-auth role
+variables in the app environment.
 
-For a fresh isolated candidate, load encrypted secrets and provision before
-starting the app or workers:
+For a fresh isolated candidate using the optional runtime-role overlay, load
+encrypted secrets and provision before starting the app or workers:
 
 ```sh
 source scripts/load-secrets.sh
@@ -119,11 +158,10 @@ docker compose -p kokonut-kernel-candidate --env-file /dev/null \
   -f docker-compose.kernel-runtime-role.yml up -d app
 ```
 
-For the split standard profile, include `docker-compose.kernel-standard.yml` in
-both commands and start the `worker` after the bootstrap completes. Optional
-HTTP, MQTT, and gRPC services read the same runtime variables when their
-overlays are included. The standalone portability manifest remains on the
-database owner credential until its separate role-bootstrap path is implemented.
+Optional HTTP, MQTT, and gRPC services read the same runtime variables when
+their overlays are included. The standalone portability manifest remains on
+the database owner credential until its separate role-bootstrap path is
+implemented.
 
 Do not apply this native-app bootstrap to the currently running candidate until
 its own rollout and full workflow acceptance are reviewed. A populated backup

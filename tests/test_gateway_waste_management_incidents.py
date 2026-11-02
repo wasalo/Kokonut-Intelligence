@@ -187,6 +187,39 @@ def test_review_queue_uses_exact_review_context_and_returns_bounded_projection(m
     assert connection.closed
 
 
+def test_review_queue_stops_advertising_continuation_at_offset_ceiling(monkeypatch):
+    queue = {
+        "location_id": _LOCATION,
+        "offset": 1_000_000,
+        "incidents": [
+            {
+                "incident_id": str(uuid4()),
+                "incident_date": date.today().isoformat(),
+                "incident_type": "air_emission",
+                "severity": "high",
+                "description": "Synthetic report",
+                "affected_area": None,
+                "status": "open",
+            }
+            for _ in range(100)
+        ],
+        "has_more": True,
+    }
+    connection = Connection(row=(queue,))
+    monkeypatch.setattr(incidents, "set_operator_tenant_context", lambda *_a, **_k: None)
+
+    result = incidents.list_location_pollution_incidents(
+        _OPERATOR,
+        _LOCATION,
+        offset=1_000_000,
+        connection_factory=lambda: connection,
+    )
+
+    assert result["offset"] == 1_000_000
+    assert result["has_more"] is False
+    assert len(result["incidents"]) == 100
+
+
 def test_resolve_uses_separate_review_grant_and_validates_location(monkeypatch):
     connection = Connection(row=({
         "incident_id": _INCIDENT,
@@ -269,6 +302,7 @@ def test_http_incident_capture_is_no_store_and_returns_open_only(monkeypatch):
         lambda operator, location, payload: {
             "incident_id": _INCIDENT,
             "location_id": location,
+            "incident_date": date.today().isoformat(),
             "status": "open",
             "replayed": False,
         },
@@ -281,6 +315,7 @@ def test_http_incident_capture_is_no_store_and_returns_open_only(monkeypatch):
     assert response.json() == {
         "incident_id": _INCIDENT,
         "location_id": _LOCATION,
+        "incident_date": date.today().isoformat(),
         "status": "open",
         "replayed": False,
     }
@@ -301,6 +336,7 @@ def test_http_incident_review_and_resolution_routes(monkeypatch):
         lambda operator, location, incident, payload: {
             "incident_id": incident,
             "location_id": location,
+            "resolution_date": date.today().isoformat(),
             "status": "resolved",
             "replayed": False,
         },
@@ -314,6 +350,114 @@ def test_http_incident_review_and_resolution_routes(monkeypatch):
     assert queue.status_code == 200
     assert queue.json()["location_id"] == _LOCATION
     assert queue.headers["cache-control"] == "no-store"
+    operation = client.app.openapi()["paths"][
+        "/operator/api/waste/{location_id}/incidents"
+    ]["get"]
+    assert operation["responses"]["200"]["content"]["application/json"]["schema"][
+        "$ref"
+    ].endswith("PollutionIncidentReviewQueueResponse")
     assert resolved.status_code == 200
     assert resolved.json()["status"] == "resolved"
+    resolve_operation = client.app.openapi()["paths"][
+        "/operator/api/waste/{location_id}/incidents/{incident_id}/resolve"
+    ]["post"]
+    assert resolve_operation["responses"]["200"]["content"]["application/json"]["schema"][
+        "$ref"
+    ].endswith("PollutionIncidentResolutionResponse")
     assert resolved.headers["cache-control"] == "no-store"
+
+
+@pytest.mark.parametrize(
+    "result",
+    [
+        {
+            "incident_id": _INCIDENT,
+            "location_id": _LOCATION,
+            "resolution_date": date.today().isoformat(),
+            "status": "resolved",
+            "replayed": False,
+            "private_note": "must not leak",
+        },
+        {
+            "incident_id": str(uuid4()),
+            "location_id": _LOCATION,
+            "resolution_date": date.today().isoformat(),
+            "status": "resolved",
+            "replayed": False,
+        },
+        {
+            "incident_id": _INCIDENT,
+            "location_id": _LOCATION,
+            "resolution_date": date.today().isoformat(),
+            "status": "open",
+            "replayed": False,
+        },
+    ],
+)
+def test_http_incident_resolution_rejects_malformed_or_mismatched_result(monkeypatch, result):
+    monkeypatch.setattr(
+        incidents,
+        "resolve_location_pollution_incident",
+        lambda *_args, **_kwargs: result,
+    )
+    response = _app(monkeypatch).post(
+        f"/operator/api/waste/{_LOCATION}/incidents/{_INCIDENT}/resolve",
+        json=_resolution_payload(),
+    )
+
+    assert response.status_code == 500
+    assert response.json() == {"error": "Incident resolution unavailable"}
+    assert "private_note" not in response.text
+    assert "must not leak" not in response.text
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["vary"] == "Cookie"
+
+
+def test_incident_review_route_rejects_mismatched_scope_and_private_fields(monkeypatch):
+    monkeypatch.setattr(
+        incidents,
+        "list_location_pollution_incidents",
+        lambda operator, location, offset=0: {
+            "location_id": "44444444-4444-4444-8444-444444444444",
+            "offset": offset,
+            "incidents": [],
+            "has_more": False,
+            "private_review_note": "must not leak",
+        },
+    )
+    response = _app(monkeypatch).get(
+        f"/operator/api/waste/{_LOCATION}/incidents"
+    )
+
+    assert response.status_code == 500
+    assert response.json() == {"error": "Incident review queue unavailable"}
+    assert "must not leak" not in response.text
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["vary"] == "Cookie"
+
+
+def test_incident_review_offset_openapi_matches_service_bounds(monkeypatch):
+    operation = _app(monkeypatch).app.openapi()["paths"][
+        "/operator/api/waste/{location_id}/incidents"
+    ]["get"]
+    offset = next(parameter for parameter in operation["parameters"] if parameter["name"] == "offset")
+
+    assert offset["schema"]["type"] == "integer"
+    assert offset["schema"]["minimum"] == 0
+    assert offset["schema"]["maximum"] == 1_000_000
+    assert offset["schema"]["default"] == 0
+
+
+@pytest.mark.parametrize("offset", [-1, 1_000_001, "not-an-integer"])
+def test_invalid_http_incident_review_offset_fails_before_service(monkeypatch, offset):
+    def unexpected_service(*_args, **_kwargs):
+        raise AssertionError("FastAPI should reject the offset before service access")
+
+    monkeypatch.setattr(incidents, "list_location_pollution_incidents", unexpected_service)
+    response = _app(monkeypatch).get(
+        f"/operator/api/waste/{_LOCATION}/incidents",
+        params={"offset": offset},
+    )
+
+    assert response.status_code == 422
+    assert response.json()["detail"][0]["loc"] == ["query", "offset"]

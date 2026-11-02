@@ -1,0 +1,40 @@
+{
+  "result": "passed",
+  "date": "2026-10-28",
+  "source_revision": "753b4645",
+  "working_tree_dirty": true,
+  "scope": "Operator report, Field Collector review, farm-activity, and inventory pagination contracts",
+  "finding": "Six operator list handlers relied only on service validation, so OpenAPI did not publish their bounds and invalid limits reached route handlers before rejection.",
+  "change": "All six routes now expose limit (or device_limit) with default 50 and bounds 1..100. FastAPI rejects invalid values before service access. Service-level regressions also confirm mobile review, farm-activity intake, and farm-activity lifecycle list bounds reject before opening a connection.",
+  "routes": [
+    "/operator/api/report-review-queue",
+    "/operator/api/mobile-collection-review-queue",
+    "/operator/api/farm-activity-intake-queue",
+    "/operator/api/farm-activities",
+    "/operator/api/farm-activities/published",
+    "/operator/api/mobile/locations/{location_id}/inventory"
+  ],
+  "contract": {
+    "default": 50,
+    "minimum": 1,
+    "maximum": 100,
+    "invalid_values_rejected_before_service_or_connection": [0, 101]
+  },
+  "checks": {
+    "command": "python3 -m pytest tests/test_operator_auth.py tests/test_operator_mobile_review.py tests/test_farm_activity_workflow.py tests/test_farm_activity_lifecycle.py tests/test_farm_activity_routes.py -q",
+    "result": "138 passed",
+    "ruff": "passed",
+    "python_compilation": "passed",
+    "diff_check": "passed"
+  },
+  "external_services": {
+    "database": false,
+    "provider": false,
+    "network": false,
+    "candidate_or_legacy": false
+  },
+  "rollback": "Revert the six Query annotations, focused route/service regressions, and this evidence file; no schema or persisted data changed.",
+  "limitations": [
+    "The checks establish in-process OpenAPI and validation behavior, not live ingress or database availability."
+  ]
+}

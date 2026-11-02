@@ -1,0 +1,31 @@
+{
+  "date": "2026-10-28",
+  "route": "GET /api/federation/nodes",
+  "change": "Bound the public federation-node list at the route, parameterize SQL pagination, and add exact continuation metadata while retaining the nodes field, ordering, and public access policy.",
+  "contract": {
+    "limit": {"default": 50, "minimum": 1, "maximum": 100},
+    "offset": {"default": 0, "minimum": 0, "maximum": 10000},
+    "response": ["nodes", "limit", "offset", "has_more", "next_offset", "continuation_capped"]
+  },
+  "authorization_preserved": {
+    "resource": "federation_node",
+    "action": "read",
+    "public": true,
+    "location_scope": "unchanged; this existing federation directory is network-wide"
+  },
+  "verification": {
+    "pytest": {
+      "command": "python3 -m pytest -q tests/test_federation_node_pagination.py tests/test_gateway_route_policy_inventory.py tests/test_federation_error_redaction.py",
+      "result": "passed",
+      "tests": 36
+    },
+    "ruff": "passed",
+    "py_compile": "passed",
+    "diff_check": "passed"
+  },
+  "limitations": [
+    "Existing clients that consumed the full unbounded response must follow next_offset when has_more is true; the nodes field is retained and response pagination metadata is additive. At the 10000 offset ceiling, continuation_capped signals that additional rows remain but the documented offset bound prevents another page.",
+    "The trusted CLI may still request the full list when it omits a page limit; only the Gateway endpoint is bounded by default.",
+    "No database, provider, external network, candidate, or legacy service was used."
+  ]
+}

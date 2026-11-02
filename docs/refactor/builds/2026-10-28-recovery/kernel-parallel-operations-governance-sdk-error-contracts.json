@@ -1,0 +1,50 @@
+{
+  "date": "2026-10-28",
+  "base_commit": "e9ba4b702b7314460db829e4f3a6cdfdd0676584",
+  "scope": "Strict governance tactical-session page contract, exact SDK application-error envelopes, and additional operations report projections",
+  "python_test_command": [
+    "python3",
+    "-m",
+    "pytest",
+    "tests/test_gateway_governance_operations.py",
+    "tests/test_gateway_governance_role_pagination_openapi.py",
+    "tests/test_public_api_sdk.py",
+    "tests/test_ecological_modeling_v2.py",
+    "tests/test_remaining_gaps.py",
+    "tests/test_organic_certification.py",
+    "tests/test_operations_report_scope.py",
+    "tests/test_report_state_cursor_cleanup.py",
+    "-q"
+  ],
+  "python_test_result": {"passed": 578, "failed": 0},
+  "javascript_test_command": [
+    "npm",
+    "test",
+    "--",
+    "--run",
+    "src/__tests__/public-api.test.ts"
+  ],
+  "javascript_working_directory": "sdk/javascript",
+  "javascript_test_result": {"passed": 131, "failed": 0},
+  "checks": {
+    "typescript_build": "passed with npm run build",
+    "ruff": "passed for changed source and focused tests; three pre-existing unused-name F401/F841 findings in three broad report test modules were excluded",
+    "python_compile": "passed for changed source and tests",
+    "report_source_inventory": "passed",
+    "report_helper_scope_inventory": "passed",
+    "report_query_scope_inventory": "passed",
+    "capability_matrix": "passed; 67 rows (24 baseline-retained, 7 deployed, 36 prepared)",
+    "git_diff_check": "passed"
+  },
+  "contracts": {
+    "governance_tactical_sessions": "The private session page has an exact OpenAPI/runtime projection, nonnegative aggregate counts, bounded page size and cursor checks, and requested-location binding. Malformed or mismatched output returns a sanitized no-store 500; titles remain available, while notes, agenda, outcome summaries, and creator identity remain excluded.",
+    "public_sdk_errors": "Python and TypeScript accept application error text only from an exact `{'error': string}` body. Extra or malformed fields preserve the existing PublicApiError type, HTTP status, and response with an HTTP-status fallback message; framework HTTP 422 detail bodies retain their existing behavior.",
+    "feature_importance": "Explicit ordered projection of all 13 current public-view columns; location filter, ordering, and serialized feature metrics are preserved.",
+    "livestock_feed_intake": "Explicit ordered projection of all 17 current public-view columns; location/date filtering, ordering, totals, and full report payload are preserved.",
+    "organic_compliance_dashboard": "Explicit ordered projection of all 25 current public-view columns; existing location filtering, order, and serialized dashboard payload are preserved."
+  },
+  "content_review": "Existing public notes, feed details, model metrics, and organic compliance/coordinate fields were already exposed by these public views. This projection work does not establish content-level privacy, tenant isolation, or populated-data parity.",
+  "candidate_or_legacy_database_touched": false,
+  "provider_or_production_service_touched": false,
+  "migration_added": false
+}

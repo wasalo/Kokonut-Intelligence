@@ -139,7 +139,7 @@ def get_location_soil_tests(
             "total_tests": total_tests,
             "limit": limit,
             "offset": offset,
-            "has_more": len(rows) > limit,
+            "has_more": len(rows) > limit and offset + limit <= _MAX_OFFSET,
             "soil_tests": tests,
         }
     finally:

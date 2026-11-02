@@ -159,22 +159,24 @@ def test_deterministic_summary_sql_helpers_follow_the_default_builder_registry()
 
 
 def test_clickhouse_outbox_compatibility_sql_follows_exact_callback_edges():
-    report = json.loads(INVENTORY_PATH.read_text(encoding="utf-8"))
-    operation_ref = "scheduled_module:services.ingestion.clickhouse_outbox"
-    expected_scopes = {
-        "_recover_expired",
-        "claim_batch",
-        "_finish",
-        "reconcile_pending",
-        "_operator_transition",
-        "list_dead_letters",
-    }
-    sites = [
+    report = build_inventory()
+    adapter_ref = "scheduled_module:services.ingestion.clickhouse_outbox"
+    worker_ref = "scheduled_module:services.ingestion.clickhouse_outbox_worker"
+    adapter_scopes = {"reconcile_pending", "_operator_transition", "list_dead_letters"}
+    adapter_sites = [
         site
         for site in report["execution_sites"]
         if site["source"] == "services/ingestion/clickhouse_outbox.py"
-        and site["scope"] in expected_scopes
+        and site["scope"] in adapter_scopes
+    ]
+    worker_sites = [
+        site
+        for site in report["execution_sites"]
+        if site["source"] == "services/ingestion/clickhouse_outbox_worker.py"
     ]
 
-    assert {site["scope"] for site in sites} == expected_scopes
-    assert all(operation_ref in site["statically_reachable_operations"] for site in sites)
+    assert {site["scope"] for site in adapter_sites} == adapter_scopes
+    assert all(adapter_ref in site["statically_reachable_operations"] for site in adapter_sites)
+    assert {site["scope"] for site in worker_sites} == {"_claim", "_finish"}
+    assert all(worker_ref in site["statically_reachable_operations"] for site in worker_sites)
+    assert all(adapter_ref in site["statically_reachable_operations"] for site in worker_sites)

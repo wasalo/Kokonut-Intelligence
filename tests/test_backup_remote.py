@@ -192,6 +192,45 @@ def test_remote_checkpoint_id_and_paths_are_validated(tmp_path):
         backup_remote._safe_relative_path("../outside")
 
 
+@pytest.mark.parametrize(
+    "endpoint",
+    [
+        "http://r2.example.invalid",
+        "https://user:secret@r2.example.invalid",
+        "https://r2.example.invalid?token=secret",
+        "https://r2.example.invalid#secret",
+        "https://r2.example.invalid:invalid",
+        "https://",
+    ],
+)
+def test_configuration_rejects_unsafe_or_malformed_endpoint_urls(monkeypatch, endpoint):
+    monkeypatch.setenv("KOKONUT_BACKUP_S3_ENDPOINT_URL", endpoint)
+    monkeypatch.setenv("KOKONUT_BACKUP_S3_BUCKET", "kokonut-backups")
+
+    with pytest.raises(backup_remote.BackupTransferError) as raised:
+        backup_remote._configuration()
+
+    assert "secret" not in str(raised.value)
+    assert "token" not in str(raised.value)
+
+
+def test_configuration_accepts_cloudflare_r2_https_endpoint(monkeypatch):
+    monkeypatch.setenv(
+        "KOKONUT_BACKUP_S3_ENDPOINT_URL",
+        "https://7219a605e3c2144a30987e20fd4cf397.r2.cloudflarestorage.com",
+    )
+    monkeypatch.setenv("KOKONUT_BACKUP_S3_BUCKET", "kokonut-backups")
+    monkeypatch.delenv("KOKONUT_BACKUP_S3_PREFIX", raising=False)
+    monkeypatch.delenv("KOKONUT_BACKUP_S3_REGION", raising=False)
+
+    assert backup_remote._configuration() == (
+        "https://7219a605e3c2144a30987e20fd4cf397.r2.cloudflarestorage.com",
+        "kokonut-backups",
+        "kokonut-kernel-backups",
+        "auto",
+    )
+
+
 def test_cli_requires_apply_for_remote_mutation_and_prints_dry_run(tmp_path):
     source = _checkpoint(tmp_path / "source")
     env = {

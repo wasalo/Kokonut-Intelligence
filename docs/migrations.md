@@ -3,8 +3,10 @@
 Kokonut Intelligence uses numbered SQL files as the source of truth for
 PostgreSQL schema evolution. The migration runner discovers schema files and
 seed files, gives each an immutable namespaced ID, validates source safety,
-tracks applied checksums, and applies pending files through the Compose
-PostgreSQL service.
+tracks applied checksums, and applies pending files through an explicitly
+selected Compose PostgreSQL service. If no explicit Compose selection is
+provided, legacy ambient Compose selection remains in effect; do not use that
+default when targeting a Kernel candidate.
 
 The normal runner path is:
 
@@ -20,7 +22,7 @@ discover schema files, then seed files
 ```
 
 The migration runner lives in `services/migration/cli.py` and executes SQL
-through the Compose `database` service.
+through the selected Compose `database` service. It does not start containers.
 
 ## Migration IDs And Discovery
 
@@ -61,6 +63,12 @@ python3 -m services.migration plan
 python3 -m services.migration migrate
 python3 -m services.migration migrate --schemas-only
 ```
+
+For an explicit deployment, include both `--compose-project` and
+`--compose-file`. Repeat `--compose-file` for ordered overlay manifests. The
+runner uses the repository root as the Compose project directory and disables
+implicit `.env` loading; export the required environment values through the
+approved secret loader first.
 
 ### Status
 
@@ -104,15 +112,62 @@ python3 -m services.migration migrate
 python3 -m services.migration migrate --schemas-only
 ```
 
-The runner uses:
+With explicit selection, the runner uses:
 
 ```text
 docker compose exec -T database psql -X -U <user> -d <database>
   -v ON_ERROR_STOP=1 -A -t -F "\t"
 ```
 
-The PostgreSQL service must be running under Compose. The command timeout for a
-psql invocation is one hour. `ON_ERROR_STOP=1` ensures SQL failures are loud.
+The PostgreSQL service must be running under the selected project. The command
+timeout for a psql invocation is one hour. `ON_ERROR_STOP=1` ensures SQL
+failures are loud.
+
+## Kernel Candidate Targeting
+
+The candidate has a separate Compose project and database volume. A fresh
+candidate does not seed or migrate itself, and its app may restart until the
+schema is ready. Start only its database first, then explicitly aim the
+migration runner at the same project and manifest. Example for a disposable
+local project (substitute your unique project name if needed):
+
+```bash
+source scripts/load-secrets.sh
+
+docker compose --project-directory . --env-file /dev/null \
+  -p kokonut-kernel-dev \
+  -f docker-compose.kernel-candidate.yml up -d database
+
+python3 -m services.migration validate --schemas-only
+python3 -m services.migration status \
+  --compose-project kokonut-kernel-dev \
+  --compose-file docker-compose.kernel-candidate.yml
+python3 -m services.migration plan --schemas-only \
+  --compose-project kokonut-kernel-dev \
+  --compose-file docker-compose.kernel-candidate.yml
+```
+
+Review the selected target and migration plan. When authorized for that target,
+apply schema migrations explicitly:
+
+```bash
+python3 -m services.migration migrate --schemas-only \
+  --compose-project kokonut-kernel-dev \
+  --compose-file docker-compose.kernel-candidate.yml
+
+docker compose --project-directory . --env-file /dev/null \
+  -p kokonut-kernel-dev \
+  -f docker-compose.kernel-candidate.yml up -d --build app
+```
+
+For the `standard` profile, include
+`docker-compose.kernel-standard.yml` in **both** the start and migration
+selection. If adding other overlays, pass them in the same order as the
+profile planner output. Do not apply seeds or pilot data as an implicit next
+step: candidate seed scope is separately curated. Never point the candidate
+runner at the legacy project, reuse legacy volumes, or use `scripts/seed.sh` as
+a substitute for this isolated flow. See [candidate setup](refactor/kernel-candidate.md)
+and the [profile planner](refactor/profile-selection.md).
 
 ## Tracking And Concurrency
 
@@ -128,8 +183,9 @@ the lock and rechecks its applied state in the same psql session that executes
 the migration and tracking insert. A concurrent runner therefore cannot pass a
 check and execute the same migration concurrently.
 
-Tracking inserts occur after the migration SQL. The tracking operation uses an
-`ON CONFLICT` update for the namespaced migration ID.
+The migration SQL and its `schema_migration` ledger insert run inside the same
+transaction. The tracking operation uses an `ON CONFLICT` update for the
+namespaced migration ID.
 
 ## Legacy Tracking Rows
 
@@ -156,30 +212,34 @@ Ambiguous or unmatched legacy rows are not silently reclassified as applied.
 
 ## Transaction Boundaries And Failure
 
-Repository SQL may contain its own `BEGIN`, `COMMIT`, or other transaction
-control. Therefore a migration file and its tracking insert cannot universally
-share one transaction.
+For SQL accepted by the runner, each migration body and its `applied` ledger
+row commit in the same PostgreSQL transaction while the advisory lock is held.
+Balanced top-level `BEGIN`/`START TRANSACTION` and `COMMIT` wrappers in source
+are normalized into that transaction; unbalanced or nested markers fail
+closed. With `ON_ERROR_STOP=1`, a statement error rolls back that migration and
+its ledger insert rather than leaving a committed prefix. The runner does not
+support SQL that requires escaping its transaction boundary.
 
-If a migration fails after some statements commit, the database may contain a
-partially applied file without an `applied` tracking row. Recovery is an
-operator decision, not an automatic retry:
+If a migration reports failure or the client loses its connection near
+completion, inspect the selected target and ledger before retrying:
 
 1. Stop concurrent migration attempts.
-2. Run `status` and inspect the failing SQL and live database state.
-3. Determine which statements committed.
-4. Do not blindly rerun destructive or non-idempotent SQL.
-5. Add a corrective migration, or make the never-tracked file safely idempotent
-   when that is appropriate.
-6. Run `validate`, then `plan`, then `migrate`.
-7. Run the relevant schema and application tests.
+2. Run `status` against the same explicit project and manifest.
+3. Confirm the migration is either fully applied with the current checksum or
+   still pending; investigate any other state before proceeding.
+4. Do not manually insert a tracking row or rewrite historical migration data.
+5. If the migration remains pending and the transaction rolled back, correct
+   its unapplied source through review or add a corrective migration as
+   appropriate; then run `validate`, `plan`, and the relevant acceptance.
 
-The advisory lock prevents concurrent runners; it does not make arbitrary SQL
-atomic or repair a partially applied migration.
+The advisory lock serializes runners, while the shared transaction protects
+schema and ledger consistency. Neither substitutes for reviewing the selected
+database, backup, migration content, and post-migration application behavior.
 
-## Default Bootstrap Path
+## Legacy Compose Bootstrap Path
 
-The default platform bootstrap is `scripts/seed.sh`, not an unrestricted
-`migrate` invocation:
+`scripts/seed.sh` is the legacy integration-stack bootstrap, not the Kernel
+candidate bootstrap:
 
 ```text
 init.sql and extensions.sql
@@ -189,7 +249,7 @@ init.sql and extensions.sql
         -> curated reference seeds, when enabled
 ```
 
-Run it with:
+Run it only when deliberately targeting the legacy stack:
 
 ```bash
 ./scripts/seed.sh

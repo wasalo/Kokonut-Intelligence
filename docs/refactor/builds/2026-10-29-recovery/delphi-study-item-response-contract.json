@@ -1,0 +1,18 @@
+{
+  "result": "passed",
+  "candidate_or_legacy_modified": false,
+  "database_or_provider_used": false,
+  "check": {
+    "command": "python3 -m pytest tests/test_gateway_delphi_study_items.py -q",
+    "passed": 37,
+    "coverage": [
+      "exact 11-field migration-aligned response",
+      "OpenAPI success schemas for create (201) and replay (200)",
+      "location and study IDs bound to the request path",
+      "strict item type, scale, label, description, timestamp, and replay fields",
+      "NUMERIC(8,4) score bounds and minimum-below-maximum invariant",
+      "malformed service result rejected with sanitized no-store response",
+      "create/replay status and numeric/timestamp JSON serialization preserved"
+    ]
+  }
+}

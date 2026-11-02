@@ -10,8 +10,7 @@ from dataclasses import dataclass
 from types import MappingProxyType
 
 from services.common.worker_environment import (
-    scheduled_module_worker_key,
-    worker_subprocess_environment,
+    scheduled_module_worker_environment,
 )
 from services.core.features import is_enabled
 from services.security.execution_allowlist import ALLOWED_SCHEDULED_MODULES
@@ -131,22 +130,9 @@ JOBS = MappingProxyType(
             "Anomaly detection",
             required_inputs=("location_id",),
         ),
-        "anomaly_legacy": JobSpec(
-            "services.ingestion.anomaly_detector",
-            (),
-            300,
-            2,
-            300,
-            "Anomaly detection (legacy compatibility)",
-            required_inputs=("location_id",),
-        ),
         "freshness": JobSpec(
             "services.ingestion.freshness_worker", ("--check",), 120, 2, 120,
             "Freshness check",
-        ),
-        "freshness_legacy": JobSpec(
-            "services.ingestion.data_freshness", ("--check",), 120, 2, 120,
-            "Freshness check (legacy compatibility)",
         ),
         "metrics": JobSpec(
             "services.metrics",
@@ -205,15 +191,6 @@ JOBS = MappingProxyType(
     }
 )
 
-_LEGACY_PROJECTIONS = JobSpec(
-    "services.ingestion.clickhouse_outbox",
-    ("--run-once", "--limit", "100"),
-    300,
-    0,
-    60,
-    "Sensor and ingestion projection delivery (legacy compatibility)",
-)
-
 _LEGACY_CREDIT_ADJUSTMENT = JobSpec(
     "services.analytics.carbon_credit_adjustment_check",
     (),
@@ -231,7 +208,9 @@ class JobFailed(RuntimeError):
     def __init__(self, label: str, result: subprocess.CompletedProcess):
         self.returncode = result.returncode
         self.output = (result.stderr or result.stdout)[-500:]
-        super().__init__(f"{label} failed: {result.stderr}")
+        # Prefect and other callers log exception text. Keep child output on
+        # the bounded compatibility attribute, but never expose it implicitly.
+        super().__init__(f"{label} failed (exit code {self.returncode})")
 
 
 def _run_job_spec(
@@ -265,7 +244,6 @@ def _run_job_spec(
         job_label = {
             "eas": "EAS indexing",
             "rpc": "RPC indexing",
-            "anomaly_legacy": "Anomaly",
         }.get(job_id, job_id.replace("_", " ").capitalize())
         raise ValueError(
             f"{job_label} refresh requires "
@@ -292,16 +270,12 @@ def _run_job_spec(
         arguments.extend(("--chain", chain))
     if spec.scheduler_allowed:
         validate_scheduled_command(spec.module, arguments)
-    worker_key = scheduled_module_worker_key(spec.module)
     result = subprocess.run(
         [sys.executable, "-m", spec.module, *arguments],
         capture_output=True,
         text=True,
         timeout=spec.timeout_seconds,
-        env=worker_subprocess_environment(
-            allowed_worker_keys=(worker_key,) if worker_key is not None else (),
-            isolated_database_credentials=worker_key is not None,
-        ),
+        env=scheduled_module_worker_environment(spec.module, arguments),
     )
     if result.returncode != 0:
         raise JobFailed(spec.label, result)
@@ -317,6 +291,27 @@ def run_job(
 ) -> dict[str, str]:
     """Invoke one known operation through its canonical JobSpec."""
     spec = JOBS[job_id]
+    if job_id == "anomaly":
+        if location_id is None:
+            raise ValueError("Anomaly refresh requires a location")
+        if driver_instance_id is not None or chain is not None:
+            raise ValueError("Anomaly does not accept driver_instance_id or chain")
+        from uuid import UUID
+
+        try:
+            location_id = str(UUID(str(location_id)))
+        except (TypeError, ValueError, AttributeError):
+            raise ValueError("location_id must be a UUID") from None
+        validate_scheduled_command(spec.module, ["--location-id", location_id])
+        if not is_enabled("isolated_sensor_anomaly_scan_worker"):
+            # The compatibility CLI now delegates to the signed worker too;
+            # it is no longer a safe shared-runtime fallback. Treat the
+            # default-off scheduled operation as a deliberate no-op until
+            # worker credentials, grants, and schedule activation are approved.
+            return {
+                "status": "skipped",
+                "reason": "isolated sensor anomaly worker is disabled",
+            }
     if job_id == "credit_adjustment" and not is_enabled("signed_credit_adjustment_worker"):
         # Keep the existing Prefect daily flow usable until the owner has
         # provisioned the signed login/grant and explicitly enabled the new
@@ -331,16 +326,6 @@ def run_job(
     if job_id == "baal" and not is_enabled("isolated_baal_indexer_worker"):
         job_id = "baal_legacy"
         spec = JOBS[job_id]
-    if job_id == "freshness" and not is_enabled("isolated_freshness_worker"):
-        job_id = "freshness_legacy"
-        spec = JOBS[job_id]
-    if job_id == "anomaly" and not is_enabled("isolated_sensor_anomaly_scan_worker"):
-        job_id = "anomaly_legacy"
-        spec = JOBS[job_id]
-    if job_id == "projections" and not is_enabled("isolated_clickhouse_outbox_worker"):
-        # Preserve deployed schedules while the dedicated login is not provisioned.
-        job_id = "projections_legacy"
-        spec = _LEGACY_PROJECTIONS
     return _run_job_spec(
         job_id,
         spec,
@@ -422,11 +407,22 @@ def run_job_for_kokonut_network_locations(job_id: str) -> dict:
 
     Native scheduled commands still take one explicit location per task. This
     helper preserves the optional Prefect adapter's historical fan-out without
-    selecting unassigned or other-organization locations.
+    selecting unassigned or other-organization locations. It cannot satisfy
+    additional per-location inputs such as a registered sensor driver instance.
     """
     spec = JOBS[job_id]
     if "location_id" not in spec.required_inputs:
         raise ValueError(f"{job_id.replace('_', ' ').capitalize()} is not location-scoped")
+    additional_inputs = tuple(
+        required_input
+        for required_input in spec.required_inputs
+        if required_input != "location_id"
+    )
+    if additional_inputs:
+        raise ValueError(
+            f"{job_id.replace('_', ' ').capitalize()} cannot fan out by location without explicit "
+            f"{', '.join(additional_inputs)}"
+        )
 
     location_ids = kokonut_network_location_ids()
     if not location_ids:

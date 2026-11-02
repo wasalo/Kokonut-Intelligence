@@ -572,7 +572,7 @@ The overall assessment confidence is the **minimum** evidence maturity across al
 ## Cross-References
 
 - [Agent Safety](agent-safety.md) — `crisp_risk_assessment` in governed collections
-- [Orientation](ooda-loop.md) — CRISP signals in the O Orient phase
+- [dMRV Architecture](dmrv-architecture.md#crisp) — CRISP assessment and orientation signals
 - [Metric Verification](metric-verification.md) — evidence maturity levels
 - [Platform Integrity](platform-integrity.md) — schema constraints and migrations
 - `schemas/postgres/076_crisp_risk_scoring.sql` — database schema

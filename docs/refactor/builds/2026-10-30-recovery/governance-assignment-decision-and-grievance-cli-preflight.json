@@ -1,0 +1,40 @@
+{
+  "date": "2026-10-30",
+  "branch": "chore/kernel-next-sprint-plan",
+  "scope": [
+    "Migration 440 governance role-assignment approve/reject Gateway contracts",
+    "Migration 218 grievance due-at CLI preflight"
+  ],
+  "governance_assignment_decisions": {
+    "request": "Strict decision_request_id UUID and bounded nonblank reason; unknown identity fields rejected before service access",
+    "internal_result": "Exact migration result validates decision, assignment, reviewer party, status, and aware timestamp",
+    "public_receipt": "Four fields omit reviewer_party_id",
+    "lifecycle": "Approve is constrained to active; reject is constrained to rejected; HTTP 200 replay behavior is preserved",
+    "authorization": "Exact location-scoped approve/reject grants and CSRF behavior preserved"
+  },
+  "grievance_due_at": {
+    "commands": ["create-case", "propose-remedy"],
+    "validation": "Optional ISO timestamp must contain an explicit timezone and is parsed before get_db()",
+    "service_value": "Aware datetime object; omitted value remains None"
+  },
+  "verification": {
+    "focused_pytest": {
+      "command": "python3 -m pytest tests/test_gateway_governance_assignment_review.py tests/test_stakeholder_grievances_cli_location_preflight.py -q",
+      "result": "36 passed"
+    },
+    "ruff": "Passed for implementation and focused tests",
+    "python_compile": "Passed for implementation and focused tests",
+    "diff_check": "Passed",
+    "capability_matrix": "Valid: 67 rows; 24 baseline-retained, 7 deployed, 36 prepared",
+    "runtime_sql_inventory": "Current; 42 tracked candidates remain review-only",
+    "provider_boundaries": "Passed: 17 vendor import sites",
+    "dependency_groups": "Aligned: 14 groups, 33 requirements"
+  },
+  "isolation": {
+    "database_access": false,
+    "provider_access": false,
+    "candidate_or_legacy_access": false,
+    "migration_applied": false
+  },
+  "rollback": "Revert the route/CLI changes, focused tests, evidence, and progress records; no data rollback is needed."
+}

@@ -6,6 +6,35 @@ from typing import Any, Dict, Optional
 
 import psycopg2.extras
 
+_RESOLUTION_QUEUE_PROJECTION = (
+    "resolution_case_id",
+    "source_system",
+    "source_type",
+    "source_id",
+    "candidate_party_id",
+    "candidate_name",
+    "proposed_party_type",
+    "match_method",
+    "confidence",
+    "status",
+    "created_at",
+    "reviewed_at",
+)
+
+_VERIFIED_SOURCE_LINK_PROJECTION = (
+    "source_system",
+    "source_id",
+    "identifier_type",
+    "identifier_value",
+    "party_id",
+    "party_type",
+    "display_name",
+    "verification_status",
+    "confidence",
+    "reviewed_by",
+    "reviewed_at",
+)
+
 
 def _row(row: Any) -> Optional[Dict[str, Any]]:
     return dict(row) if row else None
@@ -75,15 +104,19 @@ def review_link(conn, resolution_case_id: str, reviewer_party_id: str, *,
 
 
 def resolution_queue(conn):
+    projection = ", ".join(_RESOLUTION_QUEUE_PROJECTION)
     with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
-        cur.execute("SELECT * FROM v_party_resolution_queue ORDER BY created_at")
+        cur.execute(
+            f"SELECT {projection} FROM v_party_resolution_queue ORDER BY created_at"
+        )
         return [dict(row) for row in cur.fetchall()]
 
 
 def verified_party_for_source(conn, source_system: str, source_type: str, source_id: str):
+    projection = ", ".join(_VERIFIED_SOURCE_LINK_PROJECTION)
     with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
         cur.execute(
-            """SELECT * FROM v_canonical_party_source_links
+            f"""SELECT {projection} FROM v_canonical_party_source_links
                WHERE source_system = %s AND identifier_type = %s AND source_id = %s""",
             (source_system, source_type, source_id),
         )

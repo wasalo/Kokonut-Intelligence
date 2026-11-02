@@ -1,0 +1,55 @@
+{
+  "date": "2026-10-28",
+  "scope": "Read-only source reconciliation for the C4 worker/job contract summaries. No database, provider, Prefect server, persisted task row, candidate service, or external schedule was accessed.",
+  "source_facts": {
+    "job_specs": 23,
+    "job_contract_outcomes": {
+      "default_arguments_accepted": 9,
+      "required_runtime_inputs_validated": 14
+    },
+    "allowlisted_scheduled_modules": 32,
+    "operation_map_scheduled_modules": 32,
+    "isolated_worker_entrypoints": 3,
+    "signed_source_reader_functions": 7,
+    "event_handler_pairs": 7,
+    "operation_roots": 49,
+    "sensor_job_required_inputs": [
+      "location_id",
+      "driver_instance_id"
+    ],
+    "sensor_source_contract": "The default-off sensor worker resolves only a registered enabled instance assigned to the supplied location and dispatches through the source-controlled scheduled pull-driver allowlist."
+  },
+  "changes": [
+    "Refresh current worker/module/job and SQL/function/effect counts in the tenant call-site audit.",
+    "Replace the obsolete missing-sensor-contract statement with the source-instance and schedule-owner reconciliation limitation.",
+    "Refresh JobSpec/allowlist counts and distinguish legacy seed/task argument mismatches from native worker contracts.",
+    "Correct the hourly Prefect flow docstring and consolidate a source regression for omitted hourly sensor dispatch plus explicit location/driver flow inputs."
+  ],
+  "verification": {
+    "focused_pytest": {
+      "command": "python3 -m pytest -q tests/test_prefect_workflow.py tests/test_worker_job_contract_inventory.py tests/test_worker_operation_map.py",
+      "result": "passed",
+      "tests": 40
+    },
+    "ruff": {
+      "command": "python3 -m ruff check services/flows/pipelines.py tests/test_prefect_workflow.py",
+      "result": "passed"
+    },
+    "job_contract_inventory_freshness": {
+      "command": "python3 scripts/worker_job_contract_inventory.py --check docs/refactor/worker-job-contract-inventory.json",
+      "result": "passed"
+    },
+    "python_compile": {
+      "command": "python3 -m py_compile services/flows/pipelines.py tests/test_prefect_workflow.py",
+      "result": "passed"
+    },
+    "diff_check": {
+      "command": "git diff --check",
+      "result": "passed"
+    }
+  },
+  "limitations": [
+    "No evidence here establishes a configured sensor driver instance, live provider behavior, persisted task arguments, active Prefect state, worker credential provisioning, or schedule ownership.",
+    "The hourly composite remains unchanged and does not invoke the sensor flow; no schedule or deployment was changed."
+  ]
+}

@@ -200,23 +200,28 @@ forge script script/DeployKokonutGuildUpgradeTimelock.s.sol:DeployKokonutGuildUp
   --broadcast
 ```
 
-The deployed Gnosis Mainnet timelock is
+The source-controlled Gnosis deployment record lists the timelock at
 `0xefAeF01B3DDeF2041A1dbdCEbcA352eD2240920A`, bound to KGP proxy
-`0x136247fCad81c4BE6560754AF440D7B1A320516f` with a 48-hour delay.
+`0x136247fCad81c4BE6560754AF440D7B1A320516f` with a recorded 48-hour delay.
+Confirm the live contract and role state before relying on this configuration.
 
 ## Gnosis Mainnet Deployment Record
 
-The operational Guild protocol, KGP, timelock, Credit Token, Selective
-Disclosure, and Price Oracle are deployed on Gnosis Mainnet (chain ID `100`).
-The complete address and transaction record is maintained in
+The repository's deployment artifacts record the operational Guild protocol,
+KGP, timelock, Credit Token, Selective Disclosure, and Price Oracle on Gnosis
+Mainnet (chain ID `100`). This is a historical address/transaction snapshot,
+not a live chain-state verification. The full record is maintained in
 [`gnosis-mainnet-deployment.md`](gnosis-mainnet-deployment.md).
 
-The final KGP authority state is verified:
+The deployment record reports this KGP authority state:
 
 - The timelock has `UPGRADER_ROLE`.
 - The temporary upgrader has no `UPGRADER_ROLE`.
 - The timelock delay is `172800` seconds.
 - No implementation upgrade transaction has been executed yet.
+
+These authority assertions must be rechecked against the live chain before a
+new deployment, upgrade, attestation, or other external operation.
 
 ## Mainnet Readiness
 

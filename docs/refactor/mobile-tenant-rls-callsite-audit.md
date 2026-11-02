@@ -1,6 +1,6 @@
 # Field Collector tenant and RLS call-site audit
 
-Updated: 25 October 2026 (current source inventories refreshed)
+Updated: 28 October 2026 (current source inventories refreshed)
 
 ## Finding
 
@@ -21,14 +21,15 @@ migrations after encrypted checkpoints and isolated restore rehearsals; rollout
 state is tracked per migration in the batch evidence. Migration 644 is
 disposable-acceptance only and has not been rolled out to the candidate. No
 migration enables application-table RLS, which remains disabled. The current
-whole-service SQL inventory records 4,884 execution sites across 962 service
-source files. The worker source closure covers 36 operation roots and 105
-source files; the function graph records 774 function memberships, 1,050
-direct-call edges, and 24 dynamic-dispatch edges. The worker SQL inventory
-contains 351 sites, with 367 operation/site memberships on static paths, 271
-unique sites with a static operation path, and 80 without a static function
-match. These generated counts are source-navigation aids, not an authorization
-allowlist or proof of tenant isolation ([runtime SQL inventory](runtime-sql-inventory.json);
+whole-service SQL inventory records 4,945 execution sites across 969 service
+source files. The worker source closure covers 49 operation roots and 136
+source files; the function graph records 1,173 function memberships, 1,661
+direct-call edges, two callback edges, and 56 dynamic-dispatch edges. The worker
+SQL inventory contains 471 sites, with 585 operation/site memberships on
+static paths, 404 unique sites with a static operation path, and 67 without a
+static function match. These generated counts are source-navigation aids, not an authorization
+allowlist or proof of tenant isolation
+([runtime SQL inventory](runtime-sql-inventory.json);
 [worker map](worker-operation-map.md);
 [Baal disposable evidence](builds/2026-10-25-recovery/baal-indexer-worker-disposable.json)). Migration 395 removes runtime-role access to
 `operator_session` and gives OIDC a separate auth login for bounded session
@@ -153,17 +154,22 @@ bind every scheduled module or event handler to a database role or tenant.
   415–416 are applied on the candidate, but the feature remains off and no
   credential/grant is provisioned.
 
-The [worker operation map](worker-operation-map.md) covers all 29
-allowlisted scheduled modules and seven event-handler pairs, including their
+The [worker operation map](worker-operation-map.md) covers all 32
+allowlisted scheduled modules, three isolated worker entrypoints, seven signed
+source-reader functions, and seven event-handler pairs, including their
 source-visible data objects, source scope, external effects, and replay notes.
 `tests/test_worker_operation_map.py` ensures the inventory matches both
 executable allowlists and every entry has source references. The current graph
-covers 36 operation roots across 105 source files, with 774 function
-memberships, 1,050 direct-call edges, and 24 dynamic-dispatch edges. Its SQL
-map has 351 sites; 271 unique sites have static operation paths and 80 lack a
-resolved function path. The JobSpec inventory covers 21 jobs: eight
-no-input command templates and thirteen jobs whose modeled runtime inputs
-validate against their command contracts. The boundary preflight remains
+covers 49 operation roots across 136 source files, with 1,173 function
+memberships, 1,661 direct-call edges, two callback edges, and 56
+dynamic-dispatch edges. Its SQL map has 471 sites; 404 unique sites have static
+operation paths and 67 lack a resolved function path. The JobSpec inventory
+covers 23 jobs: nine no-input command templates and fourteen jobs whose
+modeled runtime inputs validate against their command contracts. The `sensors`
+JobSpec now requires both `location_id` and `driver_instance_id`; its
+source-controlled worker accepts only a location-bound, enabled scheduled-pull
+driver. This closes the missing source-contract claim, not source-instance
+provisioning or schedule activation. The boundary preflight remains
 `review_required`, with identity/RLS readiness not established. These are
 source-navigation aids, not an authorization inventory or grant list.
 Transitive effects, dynamic/provider callbacks, database-stored command
@@ -176,8 +182,8 @@ Therefore, the current allowlists protect against arbitrary module/function
 dispatch but do not make worker SQL safe under application RLS. Do not assign a
 single inferred tenant to a cross-location batch job, and do not enable RLS or
 remove runtime grants on this evidence. The current source-level effect
-inventory records 69 candidate process, filesystem, HTTP, email, EVM, and
-dynamic-import sites across 92 operation/site memberships and 36 roots
+inventory records 70 candidate process, filesystem, HTTP, email, EVM, and
+dynamic-import sites across 98 operation/site memberships and 49 roots
 ([inventory](worker-effect-inventory.json)).
 It can overcount mutually exclusive CLI branches in other workers and miss
 effects behind callbacks or provider adapters. The scheduled credit adjustment
@@ -192,10 +198,12 @@ command; it does not publish MQTT. The function graph now follows callbacks
 passed through the shared CLI `run(main)` wrapper. Remaining code-only work is
 to reconcile each candidate against its exact scheduler command contract,
 inspect dynamic/provider callbacks and transitive effect wrappers, then
-reconcile persisted task rows with those contracts. The
-The source-only JobSpec inventory now identifies eight accepted no-input templates,
-six validated required-location inputs (anomaly, weather, climate, metrics,
-credit adjustment, and remote sensing), and one missing sensor source contract. Native scheduled metric
+reconcile persisted task rows with those contracts.
+The source-only JobSpec inventory now identifies nine accepted no-input
+templates and fourteen validated required-input jobs. This includes the
+location-and-driver-instance contract for scheduled sensor ingestion; the
+remaining gap is source-instance and schedule-owner reconciliation; the sensor
+source contract is implemented. Native scheduled metric
 computation uses `--compute --all --location-id` and rejects the old global
 `--all-locations` command. Optional Prefect adapters preserve multi-location
 behavior by querying active locations directly assigned to the

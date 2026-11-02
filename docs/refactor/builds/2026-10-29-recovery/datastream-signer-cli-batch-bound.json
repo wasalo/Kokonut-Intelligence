@@ -1,0 +1,17 @@
+{
+  "date": "2026-10-29",
+  "scope": "mocked-cli-preflight",
+  "command": "python3 -m services.data_stream.cli process",
+  "batch_limit": {
+    "minimum": 1,
+    "maximum": 100,
+    "rejected_values": [0, -1, 101, 1000000],
+    "accepted_values_forwarded_unchanged": [1, 100]
+  },
+  "focused_tests_passed": 19,
+  "ruff": "passed",
+  "python_compile": "passed",
+  "diff_check": "passed",
+  "database_contacted": false,
+  "chain_or_provider_contacted": false
+}

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+from datetime import datetime
 
 from services.analytics.governance_links import approve_link, create_link, end_link, list_links
 from services.common.cli import print_json
@@ -15,6 +16,22 @@ def _connection():
 
 def _out(value):
     print_json(value)
+
+
+def _parse_term_end(value):
+    if value is None:
+        return None
+    try:
+        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except (AttributeError, TypeError, ValueError) as exc:
+        raise argparse.ArgumentTypeError(
+            "--term-end must be an ISO-8601 timestamp with a timezone"
+        ) from exc
+    if parsed.tzinfo is None or parsed.utcoffset() is None:
+        raise argparse.ArgumentTypeError(
+            "--term-end must include a UTC offset or Z timezone"
+        )
+    return parsed
 
 
 def _run_with_connection(operation) -> None:
@@ -40,7 +57,7 @@ def main() -> None:
     create.add_argument("mandate")
     create.add_argument("--scope-type", default="network")
     create.add_argument("--scope-id")
-    create.add_argument("--term-end")
+    create.add_argument("--term-end", type=_parse_term_end)
     create.set_defaults(func=lambda a: _out(create_link(
         _connection(), a.source_circle_id, a.target_circle_id, a.link_type,
         a.role_id, a.party_id, a.mandate, scope_type=a.scope_type,

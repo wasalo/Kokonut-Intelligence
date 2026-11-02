@@ -1,0 +1,23 @@
+{
+  "candidate_legacy_production_touched": false,
+  "cleanup": {
+    "client_container_removed": true,
+    "database_container_removed": true,
+    "network_removed": true
+  },
+  "client_image": "kokonut-kernel-candidate-app:latest",
+  "host_ports_published": false,
+  "migration": "743_runtime_public_ebf_scorecard_read_only.sql",
+  "migration_apply_and_replay_roles_absent": "passed",
+  "migration_apply_and_replay_roles_present": "passed",
+  "network_internal": true,
+  "ordered_migration_sources_validated": 736,
+  "postgres_image": "postgis/postgis:16-3.4@sha256:44126d872ac91993766c341e369c539e8196614321765d36a6f1bab0419a5fa5",
+  "public_select_preserved_and_mutation_acl_denied": "passed",
+  "relation": "public.v_public_ebf_scorecard",
+  "result": "passed",
+  "runtime_provisioner_reapplication": "passed",
+  "runtime_select_and_dml_denial": "passed",
+  "timestamp": "2026-11-02T01:50:39Z",
+  "view_non_updatable_guard": "passed"
+}

@@ -216,13 +216,14 @@ def test_study_draft_route_uses_session_identity_and_private_no_store_response(m
         "location_id": LOCATION_ID,
         "title": "Drought",
         "status": "draft",
-        "created_at": CREATED_AT.isoformat(),
+        "created_at": CREATED_AT.isoformat().replace("+00:00", "Z"),
         "replayed": False,
     }
+    service_result = {**expected, "created_at": CREATED_AT}
 
     async def run_in_threadpool(func, *args, **kwargs):
         calls.append((func, args, kwargs))
-        return expected
+        return service_result
 
     client = TestClient(_make_app(object(), run_in_threadpool))
     response = client.post(
@@ -245,13 +246,94 @@ def test_study_draft_route_uses_session_identity_and_private_no_store_response(m
 
 def test_study_draft_route_reports_exact_retry_as_replay():
     async def run_in_threadpool(*_args, **_kwargs):
-        return {"study_id": STUDY_ID, "replayed": True}
+        return {
+            "study_id": STUDY_ID,
+            "location_id": LOCATION_ID,
+            "title": "Drought",
+            "status": "draft",
+            "created_at": CREATED_AT,
+            "replayed": True,
+        }
 
     response = TestClient(_make_app(object(), run_in_threadpool)).post(
         f"/operator/api/delphi/{LOCATION_ID}/studies",
         json={"request_id": REQUEST_ID, "title": "Drought"},
     )
     assert response.status_code == 200
+    assert response.json() == {
+        "study_id": STUDY_ID,
+        "location_id": LOCATION_ID,
+        "title": "Drought",
+        "status": "draft",
+        "created_at": CREATED_AT.isoformat().replace("+00:00", "Z"),
+        "replayed": True,
+    }
+
+
+@pytest.mark.parametrize(
+    "service_result",
+    [
+        {"study_id": STUDY_ID, "location_id": LOCATION_ID, "title": "Drought"},
+        {
+            "study_id": STUDY_ID,
+            "location_id": LOCATION_ID,
+            "title": "Drought",
+            "status": "open",
+            "created_at": CREATED_AT,
+            "replayed": False,
+        },
+        {
+            "study_id": STUDY_ID,
+            "location_id": str(uuid4()),
+            "title": "Drought",
+            "status": "draft",
+            "created_at": CREATED_AT,
+            "replayed": False,
+        },
+        {
+            "study_id": STUDY_ID,
+            "location_id": LOCATION_ID,
+            "title": "Drought",
+            "status": "draft",
+            "created_at": CREATED_AT,
+            "replayed": False,
+            "private_internal": "must not leak",
+        },
+    ],
+)
+def test_study_draft_route_rejects_malformed_service_response(service_result):
+    async def run_in_threadpool(*_args, **_kwargs):
+        return service_result
+
+    response = TestClient(_make_app(object(), run_in_threadpool)).post(
+        f"/operator/api/delphi/{LOCATION_ID}/studies",
+        json={"request_id": REQUEST_ID, "title": "Drought"},
+    )
+
+    assert response.status_code == 500
+    assert response.json() == {"error": "Delphi study draft unavailable"}
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["vary"] == "Cookie"
+    assert "private_internal" not in response.text
+
+
+def test_study_draft_route_openapi_declares_create_and_replay_contracts():
+    async def run_in_threadpool(*_args, **_kwargs):
+        pytest.fail("OpenAPI inspection must not call the service")
+
+    operation = _make_app(object(), run_in_threadpool).openapi()["paths"][
+        "/operator/api/delphi/{location_id}/studies"
+    ]["post"]
+    response_schema = operation["responses"]["201"]["content"]["application/json"]["schema"]
+    replay_schema = operation["responses"]["200"]["content"]["application/json"]["schema"]
+    assert response_schema == replay_schema
+    schema = _make_app(object(), run_in_threadpool).openapi()["components"]["schemas"][
+        response_schema["$ref"].rsplit("/", 1)[1]
+    ]
+    assert set(schema["properties"]) == {
+        "study_id", "location_id", "title", "status", "created_at", "replayed"
+    }
+    assert schema["additionalProperties"] is False
 
 
 @pytest.mark.parametrize(

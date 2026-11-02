@@ -1,0 +1,48 @@
+{
+  "date": "2026-10-29",
+  "scope": "mocked-source-contracts",
+  "public_governance_cockpit": {
+    "migration": 249,
+    "view": "v_governance_cockpit_public",
+    "columns": [
+      "active_circle_count",
+      "active_role_count",
+      "resolved_tension_count",
+      "implemented_proposal_count",
+      "privacy_limitation",
+      "generated_at"
+    ],
+    "focused_cases_passed": 2,
+    "private_internal_view_changed": false
+  },
+  "sdk_generic_write_guard": {
+    "read_only_collections": [
+      "report_snapshot",
+      "noi_snapshot",
+      "attestation_record",
+      "export_log"
+    ],
+    "blocked_mutations": ["create", "create_many", "update", "delete"],
+    "python_focused_cases_passed": 5,
+    "javascript_client_suite_passed": 50,
+    "reads_preserved": true,
+    "ordinary_collection_write_preserved": true,
+    "typescript_grpc_sdk_affected": false
+  },
+  "report_snapshot_verify_cli": {
+    "accepted_identifiers": ["UUID", "64-character ASCII hexadecimal SHA-256"],
+    "sha256_case_normalized": true,
+    "malformed_identifiers_rejected_before_database_acquisition": true,
+    "focused_cli_cases_passed": 20,
+    "type_specific_lookup_predicates_passed": 2,
+    "snapshot_cursor_cleanup_cases_passed": 4
+  },
+  "validation": {
+    "ruff": "passed",
+    "python_compile": "passed",
+    "javascript_sdk_build": "passed",
+    "database_contacted": false,
+    "provider_contacted": false,
+    "live_service_contacted": false
+  }
+}

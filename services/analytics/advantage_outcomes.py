@@ -45,5 +45,15 @@ def record_renewal_event(conn, advantage_id: str, event_type: str, event_date: s
 
 def performance(conn, strategy_plan_id: str) -> list[Dict[str, Any]]:
     with conn.cursor(cursor_factory=RealDictCursor) as cur:
-        cur.execute("SELECT * FROM v_strategy_advantage_performance WHERE strategy_plan_id = %s::uuid ORDER BY defensibility_score DESC NULLS LAST, name", (strategy_plan_id,))
+        cur.execute(
+            """SELECT advantage_id, strategy_plan_id, name, advantage_status,
+                      defensibility_score, latest_outcome_type, baseline_value,
+                      actual_value, comparator_type, comparator_value,
+                      attribution_confidence, outcome_delta, renewal_event_count,
+                      erosion_event_count, completed_reinforcement_count
+               FROM v_strategy_advantage_performance
+               WHERE strategy_plan_id = %s::uuid
+               ORDER BY defensibility_score DESC NULLS LAST, name""",
+            (strategy_plan_id,),
+        )
         return [_clean(row) for row in cur.fetchall()]

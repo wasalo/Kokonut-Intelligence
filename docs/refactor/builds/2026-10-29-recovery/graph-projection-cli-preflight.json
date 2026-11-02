@@ -1,0 +1,25 @@
+{
+  "date": "2026-10-29",
+  "scope": "mock-only-cli-preflight",
+  "command_group": "services.graph_projection.cli",
+  "validation": {
+    "depth": {"minimum": 0, "maximum": 5},
+    "node_cap": {"minimum": 1, "maximum": 500},
+    "edge_type": "EDGE_TYPES allowlist",
+    "entity_key": "non-empty",
+    "generation_id": "UUID canonicalized before database acquisition",
+    "rebuild_actor": "non-blank"
+  },
+  "invalid_input_cases_fail_before_database": 8,
+  "valid_query_boundary_cases_forwarded": [
+    {"depth": 0, "node_cap": 1, "edge_type": "registers"},
+    {"depth": 5, "node_cap": 500, "edge_type": "attests"}
+  ],
+  "valid_generation_uuid_canonicalized": true,
+  "focused_tests_passed": 16,
+  "ruff": "passed",
+  "python_compile": "passed",
+  "diff_check": "passed",
+  "database_contacted": false,
+  "provider_contacted": false
+}

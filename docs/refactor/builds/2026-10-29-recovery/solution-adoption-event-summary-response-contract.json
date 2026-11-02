@@ -1,0 +1,46 @@
+{
+  "date": "2026-10-29",
+  "batch": "solution-adoption event-summary response contract",
+  "source": {
+    "migration": "schemas/postgres/493_location_solution_adoption_event_summary.sql",
+    "read_wrapper": "services/gateway/solution_lifecycle_reads.py",
+    "gateway": "services/gateway/solution_lifecycle_routes.py",
+    "route": "GET /operator/api/solution-lifecycle/{location_id}/adoption/{program_id}/events"
+  },
+  "contract": {
+    "fields": [
+      "location_id",
+      "program_id",
+      "engagement_reference_count",
+      "commitment_reference_count",
+      "use_reference_count",
+      "advocacy_reference_count",
+      "paused_or_abandoned_reference_count",
+      "breakdown_suppressed"
+    ],
+    "validation": "Strict exact-field OpenAPI/runtime model; both IDs bind to their path values. Counts are non-negative PostgreSQL BIGINT values. If breakdown_suppressed is true, every phase count is NULL; otherwise every phase count is present and is either zero or at least five. Phase counts are not additive and do not represent verified person totals.",
+    "privacy": "The response contains only coarse consent-filtered phase counts and suppression state. It excludes adopter references, cohorts, event types, timestamps, evidence, and identity.",
+    "authorization": "Existing private exact-location solution_lifecycle:read policy and signed tenant context are unchanged."
+  },
+  "verification": {
+    "focused_command": "python3 -m pytest tests/test_gateway_solution_lifecycle_reads.py -k adoption_event_summary -q",
+    "focused_tests": 7,
+    "focused_result": "passed; 110 deselected",
+    "ruff_default": "passed on changed source and tests",
+    "ruff_security_source": "passed on changed Gateway source",
+    "python_compile": "passed on changed source and tests",
+    "capability_matrix": "passed: 67 rows; 24 baseline-retained, 7 deployed, 36 prepared",
+    "runtime_sql_inventory": "current; unresolved-write review ledger current",
+    "report_generator_helper_scope_inventory": "current",
+    "provider_boundaries": "passed: 17 vendor import sites",
+    "dependency_groups": "passed: 14 groups, 33 requirements",
+    "git_diff_check": "passed"
+  },
+  "environment": {
+    "database": "not used",
+    "provider": "not used",
+    "candidate_or_legacy_state": "untouched",
+    "migration_applied": false
+  },
+  "rollback": "Revert the Gateway model/route, focused test, and progress/evidence records; no database rollback is needed."
+}

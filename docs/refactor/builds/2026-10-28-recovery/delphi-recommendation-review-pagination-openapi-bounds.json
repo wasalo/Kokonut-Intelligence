@@ -1,0 +1,20 @@
+{
+  "date": "2026-10-28",
+  "slice": "Delphi recommendation review pagination contract",
+  "result": "passed",
+  "route": "/operator/api/delphi/{location_id}/recommendations",
+  "service_contract": {
+    "limit": {"default": 50, "minimum": 1, "maximum": 50},
+    "offset": {"default": 0, "minimum": 0, "maximum": 10000}
+  },
+  "change": "The route now publishes the service's integer bounds in OpenAPI and FastAPI rejects invalid limit/offset values before invoking the review service.",
+  "verification": {
+    "pytest_command": "python3 -m pytest tests/test_gateway_delphi_recommendation_review.py -q",
+    "pytest_result": "21 passed",
+    "ruff": "passed",
+    "py_compile": "passed",
+    "diff_check": "passed"
+  },
+  "scope": "In-process OpenAPI and validation checks with mocked service access; no database, provider, or network was used.",
+  "rollback": "Revert the route Query declarations and focused regression; no persisted state or migration changed."
+}

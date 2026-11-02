@@ -1,0 +1,44 @@
+{
+  "date": "2026-10-30",
+  "branch": "chore/kernel-next-sprint-plan",
+  "scope": [
+    "Migration 438 governance-role nomination Gateway contract",
+    "Forecast-worker provider exception redaction"
+  ],
+  "governance_nomination": {
+    "request": "Strict four-field request with UUID request/party IDs, supported assignment type, bounded nullable mandate, and required mandate for delegate proposals",
+    "response": "Exact five-field migration result with role/type binding, proposed-only state, and timezone-aware creation timestamp; operator identity is not returned",
+    "authorization_and_transport": "Existing exact-location governance_roles:create policy and CSRF enforcement preserved; HTTP 201, no-store, and Cookie variance documented and preserved"
+  },
+  "weather_forecast_error_redaction": {
+    "behavior": "Persist only the sanitized exception class and raise the sanitized RuntimeError outside the provider exception handler with suppressed context",
+    "audit_write_failure": "Failure to persist the sanitized audit record logs only the persistence exception class and still raises the sanitized provider error",
+    "credential_check": "Synthetic provider URL/API-key material is absent from the raised exception, context/cause, and formatted traceback"
+  },
+  "verification": {
+    "focused_pytest": [
+      {
+        "command": "python3 -m pytest tests/test_gateway_governance_assignment_proposals.py -q",
+        "result": "26 passed"
+      },
+      {
+        "command": "python3 -m pytest tests/test_weather_forecast_worker.py -k 'provider_error_is_audited_without_persisting_exception_text or provider_error_remains_redacted_when_failure_audit_cannot_be_saved' -q",
+        "result": "2 passed"
+      }
+    ],
+    "ruff": "Passed for changed source and tests",
+    "python_compile": "Passed for changed source and tests",
+    "diff_check": "Passed",
+    "capability_matrix": "Valid: 67 rows; 24 baseline-retained, 7 deployed, 36 prepared",
+    "runtime_sql_inventory": "Current; 42 unresolved write candidates remain review-only",
+    "provider_boundaries": "Passed: 17 vendor import sites",
+    "dependency_groups": "Aligned: 14 groups, 33 requirements"
+  },
+  "isolation": {
+    "database_access": false,
+    "provider_access": false,
+    "candidate_or_legacy_access": false,
+    "migration_applied": false
+  },
+  "rollback": "Revert the Gateway and worker source, focused regressions, evidence, and progress records; no data rollback is needed."
+}

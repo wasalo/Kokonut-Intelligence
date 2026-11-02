@@ -32,6 +32,32 @@ STATEMENT_PATTERN = re.compile(
     r"^\s*(?:--[^\n]*\n\s*)*(SELECT|INSERT|UPDATE|DELETE|WITH|MERGE|CREATE|ALTER|DROP|TRUNCATE|CALL|COPY|SET|DO|SAVEPOINT|ROLLBACK|RELEASE)\b",
     re.IGNORECASE,
 )
+_SQL_RELATION = r'((?:"[^"\n]+"|[A-Za-z_][\w$]*)(?:\s*\.\s*(?:"[^"\n]+"|[A-Za-z_][\w$]*))?)'
+_TRUNCATE_TARGETS = re.compile(
+    r"^\s*(?:--[^\n]*\n\s*)*TRUNCATE\s+(?:TABLE\s+)?(?:ONLY\s+)?"
+    r"(?P<targets>.+?)\s*(?:\s+(?:RESTART|CONTINUE|CASCADE|RESTRICT)\b|;?\s*$)",
+    re.IGNORECASE | re.DOTALL,
+)
+_WRITE_TARGET_PATTERNS = {
+    "INSERT": re.compile(
+        r"^\s*(?:--[^\n]*\n\s*)*INSERT\s+INTO\s+(?:ONLY\s+)?"
+        + _SQL_RELATION,
+        re.IGNORECASE,
+    ),
+    "UPDATE": re.compile(
+        r"^\s*(?:--[^\n]*\n\s*)*UPDATE\s+(?:ONLY\s+)?" + _SQL_RELATION,
+        re.IGNORECASE,
+    ),
+    "DELETE": re.compile(
+        r"^\s*(?:--[^\n]*\n\s*)*DELETE\s+FROM\s+(?:ONLY\s+)?"
+        + _SQL_RELATION,
+        re.IGNORECASE,
+    ),
+    "MERGE": re.compile(
+        r"^\s*(?:--[^\n]*\n\s*)*MERGE\s+INTO\s+" + _SQL_RELATION,
+        re.IGNORECASE,
+    ),
+}
 
 
 def _query_template(node: ast.AST) -> tuple[str, str]:
@@ -66,13 +92,81 @@ def _normalized_query(query: str) -> str:
     return re.sub(r"\s+", " ", query).strip()
 
 
+def _canonical_relation(relation: str) -> str | None:
+    """Return PostgreSQL's effective spelling for a one/two-part identifier.
+
+    Unquoted identifiers fold to lower case; quoted identifiers preserve case
+    and unescape doubled quotes. Keeping this distinction lets the ACL report
+    join source candidates to catalog names without inventing a mixed-case
+    relation from an unquoted token such as ``towS_strategy``.
+    """
+    component = r'(?:"((?:""|[^"\n])*)"|([A-Za-z_][\w$]*))'
+    match = re.fullmatch(
+        rf"\s*{component}(?:\s*\.\s*{component})?\s*", relation
+    )
+    if match is None:
+        return None
+
+    def identifier(quoted: str | None, bare: str | None) -> str:
+        return quoted.replace('""', '"') if quoted is not None else bare.lower()
+
+    first = identifier(match.group(1), match.group(2))
+    second = (
+        identifier(match.group(3), match.group(4))
+        if match.group(3) is not None or match.group(4) is not None
+        else None
+    )
+    return f"{first}.{second}" if second is not None else first
+
+
 def _candidate_relations(query: str) -> list[str]:
     found = set()
     for match in RELATION_PATTERN.finditer(query):
-        relation = re.sub(r"\s*\.\s*", ".", match.group(1))
-        relation = relation.replace('"', "")
-        found.add(relation)
+        relation = _canonical_relation(match.group(1))
+        if relation is not None:
+            found.add(relation)
     return sorted(found)
+
+
+def _write_target_relations(query: str, statement_kind: str) -> list[str]:
+    """Extract simple leading mutation targets, not tables read by the query."""
+    if statement_kind == "TRUNCATE":
+        match = _TRUNCATE_TARGETS.match(query)
+        if match is None:
+            return []
+        target_clause = match.group("targets").strip().rstrip(";").strip()
+        parts = []
+        current = []
+        in_identifier = False
+        for character in target_clause:
+            if character == '"':
+                in_identifier = not in_identifier
+            if character == "," and not in_identifier:
+                parts.append("".join(current))
+                current = []
+            else:
+                current.append(character)
+        parts.append("".join(current))
+        targets = []
+        for part in parts:
+            target_match = re.fullmatch(
+                r"\s*" + _SQL_RELATION + r"\s*\*?\s*", part
+            )
+            if target_match is None:
+                return []
+            target = _canonical_relation(target_match.group(1))
+            if target is None:
+                return []
+            targets.append(target)
+        return sorted(set(targets))
+    pattern = _WRITE_TARGET_PATTERNS.get(statement_kind)
+    if pattern is None:
+        return []
+    match = pattern.match(query)
+    if match is None:
+        return []
+    relation = _canonical_relation(match.group(1))
+    return [relation] if relation is not None else []
 
 
 def _statement_kind(query: str) -> str:
@@ -445,10 +539,18 @@ def _target_binds_name(target: ast.expr, name: str) -> bool:
 
 
 class _SQLCallVisitor(ast.NodeVisitor):
-    def __init__(self, source: str, operations: list[str], tree: ast.Module):
+    def __init__(
+        self,
+        source: str,
+        operations: list[str],
+        tree: ast.Module,
+        *,
+        include_write_targets: bool = False,
+    ):
         self.source = source
         self.operations = operations
         self.tree = tree
+        self.include_write_targets = include_write_targets
         self.scope: list[str] = []
         self.functions: list[ast.FunctionDef | ast.AsyncFunctionDef] = []
         self.sites: list[dict] = []
@@ -518,6 +620,10 @@ class _SQLCallVisitor(ast.NodeVisitor):
             "static_sql_sha256": fingerprint,
             "operation_refs": self.operations,
         }
+        if self.include_write_targets:
+            site["write_target_relations"] = _write_target_relations(
+                query, statement_kind
+            )
         if statement_variants:
             site["statement_variants"] = statement_variants
         return site
