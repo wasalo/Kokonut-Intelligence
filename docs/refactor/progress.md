@@ -27100,3 +27100,12 @@ reduced available memory to 672 MiB and exited with SIGTERM (143). The remote
 The sharding helper/contract tests pass (16 tests), as do all 73 fast source checks,
 Ruff, runtime inventories, release checks, and diff hygiene. No persistent database
 or production ACL was touched.
+
+### 48-shard GitHub rerun — 4 November 2026 UTC
+
+The 48-shard integration run completed without the earlier runner SIGTERM, but
+reported 177 passed and one failure: the ingestion reliability test still expected
+the old `market_data.py` direct-connection cleanup shape. The CLI now uses the
+isolated `market_data_worker`, so the test was updated to verify that worker’s
+connection-finally boundary instead. The targeted ingestion and gRPC tests pass
+locally; a new GitHub rerun is pending.
