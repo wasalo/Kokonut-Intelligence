@@ -127,8 +127,14 @@ def test_scheduled_noi_worker_receives_only_its_exact_secret_pair():
         {DENY_SHARED_DATABASE_ENV: "true"},
         {ISOLATED_WORKER_KEY_ENV: "scheduler"},
         {"KOKONUT_SCHEDULER_DATABASE_URL": "postgresql://scheduler"},
+        {"KOKONUT_SCHEDULER_DATABASE_URL": ""},
     ],
-    ids=("deny-marker", "scheduler-marker", "dedicated-scheduler-dsn"),
+    ids=(
+        "deny-marker",
+        "scheduler-marker",
+        "dedicated-scheduler-dsn",
+        "empty-dedicated-scheduler-dsn",
+    ),
 )
 def test_unmapped_scheduled_child_preserves_isolation(
     isolation_environment: dict[str, str],

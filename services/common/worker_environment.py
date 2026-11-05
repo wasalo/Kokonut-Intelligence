@@ -165,7 +165,10 @@ def scheduled_module_worker_environment(
     scheduler_is_isolated = (
         source.get(DENY_SHARED_DATABASE_ENV, "").strip().lower() == "true"
         or source.get(ISOLATED_WORKER_KEY_ENV) == "scheduler"
-        or bool(source.get("KOKONUT_SCHEDULER_DATABASE_URL", "").strip())
+        # The scheduler runtime selects its dedicated connection based on
+        # variable presence, so an explicitly configured empty value must
+        # still keep unmapped children isolated from shared PG credentials.
+        or "KOKONUT_SCHEDULER_DATABASE_URL" in source
     )
     return worker_subprocess_environment(
         allowed_worker_keys=(worker_key,) if worker_key is not None else (),
