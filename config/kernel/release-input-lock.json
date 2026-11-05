@@ -39,7 +39,7 @@
     "requirements/kernel-core-storage.in": "33ddfcfb920e4bb7b9b51591a575da43c8475b8475ad143e0496243d693df4d1",
     "requirements/kernel-core-storage.lock": "e34f4138c02279044f016ddda963ab442b691e0da42d906f2ca0a1c98c66f149",
     "services/core/image_manifest.py": "3d9f2d39463e7c3ba25c0d8673182df7255b5c69bc43d6c5e4633f7032abed39",
-    "scripts/kernel-profile.py": "4befcc4f4df873982eb15910c07130f6b406d39b09e1902df0130325887bead2",
+    "scripts/kernel-profile.py": "7bc64e878db11df1dcac2b094fc0e9993aa42619bf5232cd6d4a0fdef9b82841",
     "scripts/check-kernel-release-inputs.py": "5283d4f189dd9ce42ec8d1e26edccfb21135270becea37fb90dcabd5986573e7",
     "scripts/build-kernel-multiarch.sh": "d3cab27970fea09c8f27a3bec73b53816dcd9f3191000054c38f41b103720dd5",
     "scripts/validate-kernel-postgis-source-run.py": "a67b16a7917f17295232859d6029c9865a1a60bab71f7f07978ec27933bbe517",

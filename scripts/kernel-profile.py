@@ -253,7 +253,11 @@ def main() -> None:
         # This is a final opt-in worker identity override and must merge after
         # Standard, runtime-role, and any selected architecture/service overlays.
         files.append(SCHEDULER_ROLE)
-    if args.scheduler_role and args.separate_api_worker_logins:
+    if (
+        args.scheduler_role
+        and args.separate_api_worker_logins
+        and args.action not in {"database-up", "migrate"}
+    ):
         # Keep the long-lived worker supervisor on its general worker login.
         # The scheduler child selects its dedicated DSN and strips these PG_*
         # values before it starts; this final overlay restores only the parent

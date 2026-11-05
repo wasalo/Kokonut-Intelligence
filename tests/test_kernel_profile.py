@@ -165,6 +165,23 @@ def test_api_worker_login_split_supports_standard_analytics_and_scheduler_compos
     assert "synthetic-worker-runtime-password" not in scheduler.stdout
     assert "synthetic-scheduler-password" not in scheduler.stdout
 
+    for action in ("database-up", "migrate"):
+        bootstrap_only = _run_planner(
+            "standard",
+            "--scheduler-role",
+            "--separate-api-worker-logins",
+            "--action",
+            action,
+            env={
+                "KOKONUT_WORKER_RUNTIME_PASSWORD": "",
+                "KOKONUT_SCHEDULER_PASSWORD": "synthetic-scheduler-password",
+                "KOKONUT_SCHEDULER_DATABASE_URL": "postgresql://synthetic",
+            },
+        )
+        assert bootstrap_only.returncode == 0, bootstrap_only.stderr
+        assert "docker-compose.kernel-worker-runtime-role.yml" not in bootstrap_only.stdout
+        assert "docker-compose.kernel-worker-runtime-supervisor.yml" not in bootstrap_only.stdout
+
 
 def test_standard_scheduler_role_is_opt_in_and_appended_last() -> None:
     default = _run_planner("standard")
