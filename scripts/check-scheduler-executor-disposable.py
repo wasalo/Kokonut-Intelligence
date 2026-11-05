@@ -26,6 +26,20 @@ def client():
             cur.execute(path.read_text())
     admin.commit()
     password = 'synthetic-scheduler-password-0123456789'
+    with admin.cursor() as cur:
+        cur.execute("""CREATE FUNCTION kokonut_security.unreviewed_scheduler_probe()
+            RETURNS text LANGUAGE sql SECURITY DEFINER SET search_path=pg_catalog
+            AS $$ SELECT 'not approved'::text $$""")
+    admin.commit()
+    try:
+        provision_scheduler_role(admin, database='postgres', password=password)
+    except RuntimeError as exc:
+        assert 'unexpected SECURITY DEFINER function' in str(exc)
+    else:
+        raise AssertionError('scheduler provisioning accepted a PUBLIC callable SECURITY DEFINER function')
+    with admin.cursor() as cur:
+        cur.execute('REVOKE EXECUTE ON FUNCTION kokonut_security.unreviewed_scheduler_probe() FROM PUBLIC')
+    admin.commit()
     provision_scheduler_role(admin, database='postgres', password=password)
     admin.autocommit = True
     provision_scheduler_role(admin, database='postgres', password=password)

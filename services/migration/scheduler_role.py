@@ -72,6 +72,27 @@ def provision_scheduler_role(conn, *, database: str, password: str, forbidden_pa
             )
             if cur.fetchone()[0]:
                 raise RuntimeError("scheduler retains mutation privileges outside execution state")
+            cur.execute(
+                """SELECT p.oid::regprocedure::text
+                     FROM pg_proc AS p
+                     JOIN pg_namespace AS n ON n.oid=p.pronamespace
+                    WHERE n.nspname NOT IN ('pg_catalog','information_schema')
+                      AND n.nspname NOT LIKE 'pg_toast%%'
+                      AND has_schema_privilege(%s,n.oid,'USAGE')
+                      AND p.prosecdef
+                      AND p.prorettype NOT IN ('trigger'::regtype,'event_trigger'::regtype)
+                      AND has_function_privilege(%s,p.oid,'EXECUTE')
+                      AND p.oid <> 'kokonut_security.enqueue_scheduler_run_event(uuid,text)'::regprocedure
+                    ORDER BY p.oid::regprocedure::text
+                    LIMIT 1""",
+                (name, name),
+            )
+            unexpected_function = cur.fetchone()
+            if unexpected_function:
+                raise RuntimeError(
+                    "scheduler can execute an unexpected SECURITY DEFINER function: "
+                    + unexpected_function[0]
+                )
             cur.execute(sql.SQL('GRANT CONNECT ON DATABASE {} TO {}').format(sql.Identifier(database),ident))
             cur.execute("SELECT datname FROM pg_database WHERE datallowconn AND datname <> %s", (database,))
             for (other,) in cur.fetchall():

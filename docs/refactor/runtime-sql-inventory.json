@@ -4,10 +4,10 @@
   "scope": "Direct Python SQL execution calls in services/**/*.py, including API, worker, and CLI modules. The scan is driver-neutral, so local non-PostgreSQL stores may also appear; it is not a PostgreSQL-only inventory. Relation names and simple leading DML targets are regex-derived candidates, not a parsed SQL AST. Unquoted PostgreSQL identifiers are normalized to lower case and quoted identifiers preserve case. A query held in a local variable is resolved only from one unambiguous local assignment; an unconditional same-module string or literal-only f-string constant is resolved only when no shadowing or reassignment is found. Dynamic table identifiers stay unresolved. The scan cannot prove query reachability, ORM/extension/external effects, complete database access, required columns, or authorization. It is not a grant allowlist.",
   "summary": {
     "source_files": 1006,
-    "execution_sites": 4979,
+    "execution_sites": 4980,
     "worker_operation_roots": 49,
     "sites_with_worker_operation_refs": 439,
-    "sites_without_worker_operation_refs": 4540,
+    "sites_without_worker_operation_refs": 4541,
     "statement_kinds": {
       "CREATE": 1,
       "DELETE": 42,
@@ -15,14 +15,14 @@
       "RELEASE": 20,
       "ROLLBACK": 12,
       "SAVEPOINT": 11,
-      "SELECT": 2893,
+      "SELECT": 2894,
       "SET": 684,
       "UNKNOWN": 278,
       "UPDATE": 405,
       "WITH": 28
     },
     "statement_groups": {
-      "read_candidate": 2893,
+      "read_candidate": 2894,
       "schema_change": 1,
       "transaction_or_session": 727,
       "unknown_requires_manual_review": 278,
@@ -33,7 +33,7 @@
       "composed": 40,
       "composed_or_variable": 378,
       "fstring": 307,
-      "literal": 4254
+      "literal": 4255
     },
     "relation_candidates": 1251,
     "write_target_relations": 562,
@@ -547,9 +547,9 @@
     },
     "migration": {
       "source_files": 8,
-      "execution_sites": 447,
+      "execution_sites": 448,
       "statement_groups": {
-        "read_candidate": 204,
+        "read_candidate": 205,
         "schema_change": 1,
         "transaction_or_session": 4,
         "unknown_requires_manual_review": 238
@@ -1615,8 +1615,8 @@
     "pg_default_acl": {"execution_site_count": 2,"statement_kinds": ["SELECT"],"statement_groups": ["read_candidate"],"source_files": ["services/migration/analytics_role.py","services/migration/runtime_role.py"]},
     "pg_depend": {"execution_site_count": 16,"statement_kinds": ["SELECT"],"statement_groups": ["read_candidate"],"source_files": ["services/analytics/reporting_reader.py","services/migration/analytics_role.py","services/migration/runtime_role.py"]},
     "pg_extension": {"execution_site_count": 5,"statement_kinds": ["SELECT"],"statement_groups": ["read_candidate"],"source_files": ["services/migration/analytics_role.py"]},
-    "pg_namespace": {"execution_site_count": 39,"statement_kinds": ["SELECT","WITH"],"statement_groups": ["read_candidate","with_requires_manual_review"],"source_files": ["services/analytics/data_governance.py","services/analytics/reporting_reader.py","services/migration/analytics_role.py","services/migration/directus_role.py","services/migration/runtime_role.py","services/migration/scheduler_role.py","services/mobile/tenant_preflight.py"]},
-    "pg_proc": {"execution_site_count": 11,"statement_kinds": ["SELECT"],"statement_groups": ["read_candidate"],"source_files": ["services/analytics/reporting_reader.py","services/migration/analytics_role.py","services/migration/runtime_role.py"]},
+    "pg_namespace": {"execution_site_count": 40,"statement_kinds": ["SELECT","WITH"],"statement_groups": ["read_candidate","with_requires_manual_review"],"source_files": ["services/analytics/data_governance.py","services/analytics/reporting_reader.py","services/migration/analytics_role.py","services/migration/directus_role.py","services/migration/runtime_role.py","services/migration/scheduler_role.py","services/mobile/tenant_preflight.py"]},
+    "pg_proc": {"execution_site_count": 12,"statement_kinds": ["SELECT"],"statement_groups": ["read_candidate"],"source_files": ["services/analytics/reporting_reader.py","services/migration/analytics_role.py","services/migration/runtime_role.py","services/migration/scheduler_role.py"]},
     "pg_roles": {"execution_site_count": 32,"statement_kinds": ["SELECT","WITH"],"statement_groups": ["read_candidate","with_requires_manual_review"],"source_files": ["services/analytics/reporting_reader.py","services/migration/analytics_role.py","services/migration/directus_role.py","services/migration/metabase_role.py","services/migration/runtime_role.py","services/mobile/tenant_preflight.py"]},
     "pillar_of_value": {"execution_site_count": 1,"statement_kinds": ["SELECT"],"statement_groups": ["read_candidate"],"source_files": ["services/registry/cids_export.py"]},
     "pitch_template": {"execution_site_count": 3,"statement_kinds": ["INSERT","SELECT"],"statement_groups": ["read_candidate","write_candidate"],"source_files": ["services/analytics/pitch.py"]},
@@ -6432,10 +6432,11 @@
     {"id": "services/migration/scheduler_role.py:51:16","source": "services/migration/scheduler_role.py","line": 51,"column": 16,"scope": "provision_scheduler_role","method": "execute","expression_kind": "literal","statement_kind": "SELECT","candidate_relations": [],"static_sql_sha256": "5dee0dded69ff0913da3e4e9d05824c3beb71739101c0eb111745ef860d3eaf7","operation_refs": [],"write_target_relations": [],"statement_group": "read_candidate"},
     {"id": "services/migration/scheduler_role.py:57:20","source": "services/migration/scheduler_role.py","line": 57,"column": 20,"scope": "provision_scheduler_role","method": "execute","expression_kind": "literal","statement_kind": "SELECT","candidate_relations": [],"static_sql_sha256": "88a6fc0be3cb9053d08f4a8c9c61201a9a88a329c86e672d68605caae525ddc8","operation_refs": [],"write_target_relations": [],"statement_group": "read_candidate"},
     {"id": "services/migration/scheduler_role.py:62:12","source": "services/migration/scheduler_role.py","line": 62,"column": 12,"scope": "provision_scheduler_role","method": "execute","expression_kind": "literal","statement_kind": "SELECT","candidate_relations": ["pg_class","pg_namespace"],"static_sql_sha256": "86e3d07c11b9cdfecd450fde58812a5e923eaea10d3c83628e90fab90e99fa78","operation_refs": [],"write_target_relations": [],"statement_group": "read_candidate"},
-    {"id": "services/migration/scheduler_role.py:75:12","source": "services/migration/scheduler_role.py","line": 75,"column": 12,"scope": "provision_scheduler_role","method": "execute","expression_kind": "composed_or_variable","statement_kind": "UNKNOWN","candidate_relations": [],"static_sql_sha256": null,"operation_refs": [],"write_target_relations": [],"statement_group": "unknown_requires_manual_review"},
-    {"id": "services/migration/scheduler_role.py:76:12","source": "services/migration/scheduler_role.py","line": 76,"column": 12,"scope": "provision_scheduler_role","method": "execute","expression_kind": "literal","statement_kind": "SELECT","candidate_relations": ["pg_database"],"static_sql_sha256": "f0e823be2fbb72e69c0b262ccfbb36cef56c9b547da9cb33ba7bc1ffa2cfafb6","operation_refs": [],"write_target_relations": [],"statement_group": "read_candidate"},
-    {"id": "services/migration/scheduler_role.py:78:16","source": "services/migration/scheduler_role.py","line": 78,"column": 16,"scope": "provision_scheduler_role","method": "execute","expression_kind": "composed_or_variable","statement_kind": "UNKNOWN","candidate_relations": [],"static_sql_sha256": null,"operation_refs": [],"write_target_relations": [],"statement_group": "unknown_requires_manual_review"},
-    {"id": "services/migration/scheduler_role.py:79:16","source": "services/migration/scheduler_role.py","line": 79,"column": 16,"scope": "provision_scheduler_role","method": "execute","expression_kind": "literal","statement_kind": "SELECT","candidate_relations": [],"static_sql_sha256": "13043d00835abef5b9434676f3e0803c1cbf8c28dd556e8fe3d6e377063e3923","operation_refs": [],"write_target_relations": [],"statement_group": "read_candidate"},
+    {"id": "services/migration/scheduler_role.py:75:12","source": "services/migration/scheduler_role.py","line": 75,"column": 12,"scope": "provision_scheduler_role","method": "execute","expression_kind": "literal","statement_kind": "SELECT","candidate_relations": ["pg_namespace","pg_proc"],"static_sql_sha256": "c71f1b040a4d96e22d53d74bc2473e9e07f5d19f53710b38e3894365813c7ff9","operation_refs": [],"write_target_relations": [],"statement_group": "read_candidate"},
+    {"id": "services/migration/scheduler_role.py:96:12","source": "services/migration/scheduler_role.py","line": 96,"column": 12,"scope": "provision_scheduler_role","method": "execute","expression_kind": "composed_or_variable","statement_kind": "UNKNOWN","candidate_relations": [],"static_sql_sha256": null,"operation_refs": [],"write_target_relations": [],"statement_group": "unknown_requires_manual_review"},
+    {"id": "services/migration/scheduler_role.py:97:12","source": "services/migration/scheduler_role.py","line": 97,"column": 12,"scope": "provision_scheduler_role","method": "execute","expression_kind": "literal","statement_kind": "SELECT","candidate_relations": ["pg_database"],"static_sql_sha256": "f0e823be2fbb72e69c0b262ccfbb36cef56c9b547da9cb33ba7bc1ffa2cfafb6","operation_refs": [],"write_target_relations": [],"statement_group": "read_candidate"},
+    {"id": "services/migration/scheduler_role.py:99:16","source": "services/migration/scheduler_role.py","line": 99,"column": 16,"scope": "provision_scheduler_role","method": "execute","expression_kind": "composed_or_variable","statement_kind": "UNKNOWN","candidate_relations": [],"static_sql_sha256": null,"operation_refs": [],"write_target_relations": [],"statement_group": "unknown_requires_manual_review"},
+    {"id": "services/migration/scheduler_role.py:100:16","source": "services/migration/scheduler_role.py","line": 100,"column": 16,"scope": "provision_scheduler_role","method": "execute","expression_kind": "literal","statement_kind": "SELECT","candidate_relations": [],"static_sql_sha256": "13043d00835abef5b9434676f3e0803c1cbf8c28dd556e8fe3d6e377063e3923","operation_refs": [],"write_target_relations": [],"statement_group": "read_candidate"},
     {"id": "services/mobile/api.py:159:8","source": "services/mobile/api.py","line": 159,"column": 8,"scope": "_set_mobile_mutation_timeouts","method": "execute","expression_kind": "literal","statement_kind": "SET","candidate_relations": [],"static_sql_sha256": "d9946d44ba3ecfd34d8e9419a4918e0cee4d99c52737f63b62043c82b60030e5","operation_refs": [],"write_target_relations": [],"statement_group": "transaction_or_session"},
     {"id": "services/mobile/api.py:160:8","source": "services/mobile/api.py","line": 160,"column": 8,"scope": "_set_mobile_mutation_timeouts","method": "execute","expression_kind": "literal","statement_kind": "SET","candidate_relations": [],"static_sql_sha256": "e7919abcde4ac704789f51f749423dc38cacd353c98fb8c089b4c0c316e4df9c","operation_refs": [],"write_target_relations": [],"statement_group": "transaction_or_session"},
     {"id": "services/mobile/api.py:169:4","source": "services/mobile/api.py","line": 169,"column": 4,"scope": "_verified_location_tenant","method": "execute","expression_kind": "literal","statement_kind": "SELECT","candidate_relations": ["location","location_tenant_owner_verification","organization"],"static_sql_sha256": "5eb7df9098994882590bc9aa2d6cdd0e2152769d8e9af3017dfbf7c452517ab7","operation_refs": [],"write_target_relations": [],"statement_group": "read_candidate"},
