@@ -51,7 +51,7 @@
     "action": "Copied the public Caddy local root certificate from the running proxy's persistent data volume to the existing CA bind source, then started only the existing app container.",
     "result": "App reached running/healthy state at 2026-11-05T14:44:24Z. No image was rebuilt and no Compose recreation was performed."
   },
-  "effect": "The database inventory ran in an explicit read-only transaction. The app container was started; worker, database, proxy, and ZITADEL containers were not restarted. No database rows, roles, or migrations were changed.",
+  "effect": "The database inventory ran in an explicit read-only transaction. The app container was started; worker, database, proxy, and ZITADEL containers were not restarted. No migration command was run, and no database row or role changes were observed.",
   "stale_project_observation": {
     "project": "kokonut-kernel-candidate",
     "state": "Older app/database/proxy containers were stopped and referenced a removed Compose network; they were not started."
