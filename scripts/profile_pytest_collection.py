@@ -93,18 +93,29 @@ def _memory_snapshot(pid: int, *, process_label: str) -> list[str]:
     return result
 
 
-def _run_probe(*, label: str, files: list[str], address_space_limit_mib: int) -> int:
-    command = [
-        sys.executable,
-        "-m",
-        "pytest",
-        "-v",
-        "--collect-only",
-        "-p",
-        "no:cacheprovider",
-        *files,
-    ]
-    print(f"=== Collection probe: {label} ({len(files)} file(s)) ===", flush=True)
+def _run_probe(
+    *,
+    label: str,
+    files: list[str],
+    address_space_limit_mib: int,
+    python_args: list[str] | None = None,
+) -> int:
+    if python_args is None:
+        command = [
+            sys.executable,
+            "-m",
+            "pytest",
+            "-v",
+            "--collect-only",
+            "-p",
+            "no:cacheprovider",
+            *files,
+        ]
+        probe_type = f"{len(files)} file(s)"
+    else:
+        command = [sys.executable, *python_args]
+        probe_type = "Python command"
+    print(f"=== Collection probe: {label} ({probe_type}) ===", flush=True)
     print(f"address_space_limit_mib={address_space_limit_mib}", flush=True)
     print("before: " + " ".join(_memory_snapshot(os.getpid(), process_label="profiler")), flush=True)
     peak_rss_kib = 0
@@ -145,7 +156,7 @@ def _run_probe(*, label: str, files: list[str], address_space_limit_mib: int) ->
     print(f"probe_exit_code={exit_code} peak_rss_mib={peak_rss_kib / 1024:.1f}", flush=True)
     print("after: " + " ".join(_memory_snapshot(os.getpid(), process_label="profiler")), flush=True)
     if tail:
-        print("--- pytest output tail ---")
+        print("--- probe output tail ---")
         print("".join(tail), end="", flush=True)
     return exit_code
 
@@ -175,6 +186,46 @@ def main() -> int:
             files=[test_file],
             address_space_limit_mib=arguments.address_space_limit_mib,
         )
+
+    import_probes = (
+        ("indexer-only", "from services.guilds.indexer import KGPIndexer"),
+        (
+            "worker-test-import-order",
+            "from unittest.mock import MagicMock, call, patch\n"
+            "import pytest\n"
+            "from services.guilds.indexer import KGPIndexer\n",
+        ),
+        (
+            "service-test-import-order",
+            "from eth_abi import encode\n"
+            "from web3 import Web3\n"
+            "from services.guilds.indexer import EVENT_TOPICS, KGP_EVENT_NAMES, decode_log\n"
+            "from services.guilds.kgp import build_claim_voucher, claim_typed_data, compute_award_id\n",
+        ),
+    )
+    for label, source in import_probes:
+        _run_probe(
+            label=f"importtime:{label}",
+            files=[],
+            address_space_limit_mib=arguments.address_space_limit_mib,
+            python_args=["-X", "importtime", "-c", source],
+        )
+    _run_probe(
+        label="importtime:pytest-worker-collection",
+        files=[],
+        address_space_limit_mib=arguments.address_space_limit_mib,
+        python_args=[
+            "-X",
+            "importtime",
+            "-m",
+            "pytest",
+            "-v",
+            "--collect-only",
+            "-p",
+            "no:cacheprovider",
+            "tests/test_kgp_worker_durability.py",
+        ],
+    )
 
     group_exit = _run_probe(
         label="complete-shard",
