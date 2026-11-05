@@ -30,6 +30,7 @@ def test_runtime_acl_policy_matches_all_recorded_migration_revokes():
     assert report["runtime_role_policy_source"]["sha256"] == hashlib.sha256(source).hexdigest()
     revokes = REPORTER["_source_revokes"]()
     configured_boundaries, _ = REPORTER["_runtime_role_boundaries"]()
+    assert configured_boundaries["clickhouse_outbox"] == "runtime_outbox_enqueue_only"
     expected_relations = {
         relation
         for relation in set(revokes) | set(REPORTER["_SOURCE_REVOKE_POLICY_OVERRIDES"])
@@ -374,10 +375,17 @@ def test_runtime_compatibility_grant_is_one_time_and_scoped_denials_are_reapplie
     broad_grant = source.index("GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public")
     broad_grant_guard = source.rindex("if runtime_compatibility_grants_applied:", 0, broad_grant)
     scoped_reapply = source.index("scoped_write_grants = _apply_scoped_write_boundary(")
+    outbox_reapply = source.index(
+        "clickhouse_outbox_runtime_write_boundary = _apply_clickhouse_outbox_runtime_write_boundary(",
+        broad_grant,
+    )
     scoped_verification = source.index("_verify_scoped_write_boundary(cur, runtime_user)")
+    outbox_boundary = source.split("def _apply_clickhouse_outbox_runtime_write_boundary", 1)[1].split("\ndef ", 1)[0]
 
     assert placeholder_marker_check < role_creation < broad_grant_guard < broad_grant
-    assert broad_grant_guard < scoped_reapply < scoped_verification
+    assert broad_grant_guard < scoped_reapply < outbox_reapply < scoped_verification
+    assert "clickhouse_outbox_operator_audit" in outbox_boundary
+    assert "clickhouse_outbox_operator_audit" in runtime_role._RUNTIME_MUTATION_TABLES
     assert "kokonut.compatibility_grant_state = 'applied'" in source
     assert '"legacy_compatibility_grants_applied": runtime_compatibility_grants_applied' in source
 
@@ -2870,7 +2878,21 @@ def test_global_indexer_logins_receive_only_configured_database_connect_grants()
         assert f"if {role_identifier} is not None:" in protected_login_block
         assert f"protected_login_idents.append({role_identifier})" in protected_login_block
 
+    assert "if clickhouse_outbox_operator_password is not None:" in protected_login_block
+    assert "protected_login_idents.append(clickhouse_outbox_operator_ident)" in protected_login_block
+    checked_login_block = source.split("checked_login_names = [runtime_user, operator_auth_user]", 1)[1]
+    checked_login_block = checked_login_block.split("for role_name in checked_login_names:", 1)[0]
+    assert "if clickhouse_outbox_operator_password is not None:" in checked_login_block
+    assert 'checked_login_names.append("kokonut_clickhouse_outbox_operator_login")' in checked_login_block
     assert '"GRANT CONNECT ON DATABASE {} TO {}"' in source
+
+
+def test_runtime_role_main_forwards_clickhouse_outbox_operator_password():
+    source = (Path(__file__).resolve().parents[1] / "services/migration/runtime_role.py").read_text()
+    main = source.split("def main()", 1)[1]
+
+    assert 'os.environ.get("KOKONUT_CLICKHOUSE_OUTBOX_OPERATOR_PASSWORD", "")' in main
+    assert "clickhouse_outbox_operator_password=(" in main
 
 
 def test_baal_indexer_dedicated_secret_stays_outside_worker_compose_profiles():

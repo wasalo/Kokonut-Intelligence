@@ -192,7 +192,11 @@ The shared runtime retains enqueue/read access and `updated_at` only, while the
 legacy CLI mutation flags fail closed before database access. The action
 password is routed to the API child and bootstrap, not the general worker. The
 disposable checks did not grant any live operator capability and do not establish
-tenant scope for these explicitly global actions.
+tenant scope for these explicitly global actions. The pending PR #73 follow-up
+reapplies the outbox write boundary after runtime compatibility grants, forwards
+the optional operator password, and scopes its database CONNECT grant. Its
+clean-bootstrap check uses and removes a separate network-disabled Compose
+project; GitHub integration validation remains pending.
 
 The **906 public-schema table** count below comes from the migration-745 native
 source/ACL report; it was not regenerated through migration 746. It measures

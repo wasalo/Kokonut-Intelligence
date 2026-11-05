@@ -27053,3 +27053,30 @@ because no 50.x x86_64 binary wheel is available; the CI script remains
 binary-only and contains no local index/wheel override. No database, ACL, RLS,
 candidate, or production target was changed. The CI/dependency follow-up remains
 uncommitted.
+
+### PR #73 CI failures and Codex review — 3 November 2026
+
+The Gitleaks finding was a 64-character SHA-256 source digest in the generated
+`runtime-role-attribution.json` inventory, not a credential. The existing
+source-digest allowlist now covers this file narrowly; Gitleaks 8.30.1 scanned
+981 commits with no leaks.
+
+The migration-542 integration failure came from `ci-check.sh --database-only`
+reusing the main `ki-ci` PostgreSQL cluster. Its clean-bootstrap check dropped
+only its temporary database, leaving cluster-global role memberships. It now
+uses a unique network-disabled `docker-compose.schema-bootstrap.yml` project and
+removes that project and volume on exit.
+
+Runtime reprovisioning now reapplies the ClickHouse outbox enqueue-only ACL after
+compatibility grants, keeps the operator audit table mutation-denied, forwards
+the optional operator password from the environment, and limits/checks the
+operator login's CONNECT privilege to its configured database. The privilege
+report classifies `clickhouse_outbox` as enqueue-only; SQL and role-attribution
+inventories are current, with the unresolved-write ledger unchanged.
+
+Local verification passed 131 runtime-role tests, 16 role/bootstrap and analytics
+inventory tests, all 73 fast source checks, Ruff, Gitleaks, release/dependency
+checks, and `git diff --check`. The Docker-backed integration rerun remains
+pending in GitHub Actions; no migration or persistent database/ACL was changed.
+New follow-up commits will use `94765983+wasabinetwork@users.noreply.github.com`;
+existing PR history was left unchanged.

@@ -5121,6 +5121,17 @@ effective runtime DML while RLS is disabled. C1 remains open; next review the
 3,636 unattributed sites and external callers without inferring privilege
 revocations from source absence.
 
+The PR #73 review follow-up re-applies migration 746's outbox enqueue-only
+runtime boundary after compatibility grants, denies runtime mutation of the
+operator audit table, forwards the optional operator password, and scopes its
+CONNECT grant to the configured database. `ci-check.sh` now runs the clean
+bootstrap against a separate network-disabled Compose project and removes that
+project, preventing migration 542's cluster-global role memberships from leaking
+into the main integration cluster. The Gitleaks finding was a SHA-256 source
+fingerprint and is covered by the existing narrow digest allowlist. Source tests
+and inventories pass; the GitHub integration rerun is still pending. No migration
+or persistent ACL changed.
+
 The scheduled sensor worker is source-mapped to its literal CSV-driver target,
 dedicated `sensor_ingestion` login, signed location context, and bounded batch
 functions. Its temporary-file test runs the real registry and safe CSV reader

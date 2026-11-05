@@ -1266,6 +1266,7 @@ _RUNTIME_MUTATION_TABLES = (
     "event_handler",
     "event_handler_delivery",
     "event_handler_log",
+    "clickhouse_outbox_operator_audit",
     "data_freshness_check",
     "data_freshness_alert_state",
     "data_freshness_alert_history",
@@ -1627,7 +1628,17 @@ def _verify_solution_experiment_protocol_boundary(cur, role_name: str) -> None:
         raise RuntimeError(f"{role_name} retains direct solution_experiment protocol privileges")
 
 
-def _apply_clickhouse_outbox_runtime_write_boundary(cur, runtime_ident, runtime_user):
+def _apply_clickhouse_outbox_runtime_write_boundary(cur, runtime_ident, runtime_user) -> bool:
+    cur.execute(
+        "SELECT to_regclass(%s), to_regclass(%s)",
+        ("public.clickhouse_outbox", "public.clickhouse_outbox_operator_audit"),
+    )
+    outbox_table, audit_table = cur.fetchone()
+    if outbox_table is None and audit_table is None:
+        return False
+    if outbox_table is None or audit_table is None:
+        raise RuntimeError("ClickHouse outbox operator migration is incomplete")
+
     cur.execute(
         sql.SQL(
             "REVOKE UPDATE, DELETE, TRUNCATE, REFERENCES, TRIGGER "
@@ -1663,6 +1674,7 @@ def _apply_clickhouse_outbox_runtime_write_boundary(cur, runtime_ident, runtime_
     table_update, updated_at_update, audit_insert = cur.fetchone()
     if table_update or not updated_at_update or audit_insert:
         raise RuntimeError("runtime role exceeds the ClickHouse outbox enqueue-only privilege boundary")
+    return True
 
 
 def provision_runtime_role(
@@ -1999,6 +2011,7 @@ def provision_runtime_role(
     baal_indexer_database_access: dict[str, bool] = {}
     freshness_database_access: dict[str, bool] = {}
     clickhouse_outbox_database_access: dict[str, bool] = {}
+    clickhouse_outbox_operator_database_access: dict[str, bool] = {}
     report_snapshot_export_database_access: dict[str, bool] = {}
     notification_delivery_database_access: dict[str, bool] = {}
     event_dispatch_database_access: dict[str, bool] = {}
@@ -2925,6 +2938,8 @@ def provision_runtime_role(
             protected_login_idents.append(freshness_ident)
         if clickhouse_outbox_ident is not None:
             protected_login_idents.append(clickhouse_outbox_ident)
+        if clickhouse_outbox_operator_password is not None:
+            protected_login_idents.append(clickhouse_outbox_operator_ident)
         if report_snapshot_export_ident is not None:
             protected_login_idents.append(report_snapshot_export_ident)
         if notification_delivery_ident is not None:
@@ -2968,6 +2983,9 @@ def provision_runtime_role(
         api_key_grants = _apply_api_key_boundary(cur, runtime_ident)
         farm_activity_event_grants = _apply_farm_activity_operator_event_boundary(cur, runtime_ident)
         scoped_write_grants = _apply_scoped_write_boundary(cur, runtime_ident)
+        clickhouse_outbox_runtime_write_boundary = _apply_clickhouse_outbox_runtime_write_boundary(
+            cur, runtime_ident, runtime_user
+        )
         cur.execute(
             sql.SQL("GRANT SELECT ON TABLE public.alert_rule TO {}").format(runtime_ident)
         )
@@ -3290,6 +3308,8 @@ def provision_runtime_role(
             checked_login_names.append(freshness_user)
         if clickhouse_outbox_user is not None:
             checked_login_names.append(clickhouse_outbox_user)
+        if clickhouse_outbox_operator_password is not None:
+            checked_login_names.append("kokonut_clickhouse_outbox_operator_login")
         if report_snapshot_export_user is not None:
             checked_login_names.append(report_snapshot_export_user)
         if notification_delivery_user is not None:
@@ -3307,6 +3327,8 @@ def provision_runtime_role(
                 (role_name,),
             )
             access = {name: allowed for name, allowed in cur.fetchall()}
+            if role_name == "kokonut_clickhouse_outbox_operator_login":
+                clickhouse_outbox_operator_database_access = access
             if role_name == rate_limit_maintenance_user:
                 rate_limit_maintenance_database_access = access
             if access.get(database) is not True or any(allowed for name, allowed in access.items() if name != database):
@@ -4117,6 +4139,11 @@ def provision_runtime_role(
         "baal_indexer_user": baal_indexer_user,
         "freshness_user": freshness_user,
         "clickhouse_outbox_user": clickhouse_outbox_user,
+        "clickhouse_outbox_operator_user": (
+            "kokonut_clickhouse_outbox_operator_login"
+            if clickhouse_outbox_operator_password is not None
+            else None
+        ),
         "report_snapshot_export_user": report_snapshot_export_user,
         "notification_delivery_user": notification_delivery_user,
         "event_dispatch_user": event_dispatch_user,
@@ -4134,6 +4161,8 @@ def provision_runtime_role(
         "baal_indexer_connect_grants": baal_indexer_database_access,
         "freshness_worker_connect_grants": freshness_database_access,
         "clickhouse_outbox_worker_connect_grants": clickhouse_outbox_database_access,
+        "clickhouse_outbox_operator_connect_grants": clickhouse_outbox_operator_database_access,
+        "clickhouse_outbox_runtime_write_boundary": clickhouse_outbox_runtime_write_boundary,
         "report_snapshot_export_worker_connect_grants": report_snapshot_export_database_access,
         "notification_delivery_worker_connect_grants": notification_delivery_database_access,
         "event_dispatch_worker_connect_grants": event_dispatch_database_access,
@@ -4225,6 +4254,7 @@ def main() -> int:
     freshness_password = os.environ.get("KOKONUT_FRESHNESS_PASSWORD", "")
     clickhouse_outbox_user = os.environ.get("KOKONUT_CLICKHOUSE_OUTBOX_USER", "kokonut_clickhouse_outbox_login")
     clickhouse_outbox_password = os.environ.get("KOKONUT_CLICKHOUSE_OUTBOX_PASSWORD", "")
+    clickhouse_outbox_operator_password = os.environ.get("KOKONUT_CLICKHOUSE_OUTBOX_OPERATOR_PASSWORD", "")
     report_snapshot_export_user = os.environ.get(
         "KOKONUT_REPORT_SNAPSHOT_EXPORT_USER",
         "kokonut_report_snapshot_export_login",
@@ -4287,6 +4317,9 @@ def main() -> int:
             freshness_password=freshness_password if freshness_password else None,
             clickhouse_outbox_user=(clickhouse_outbox_user if clickhouse_outbox_password else None),
             clickhouse_outbox_password=(clickhouse_outbox_password if clickhouse_outbox_password else None),
+            clickhouse_outbox_operator_password=(
+                clickhouse_outbox_operator_password if clickhouse_outbox_operator_password else None
+            ),
             report_snapshot_export_user=(report_snapshot_export_user if report_snapshot_export_password else None),
             report_snapshot_export_password=(
                 report_snapshot_export_password if report_snapshot_export_password else None

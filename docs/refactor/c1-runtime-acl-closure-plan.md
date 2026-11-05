@@ -62,6 +62,17 @@ live global capability was granted. See the [migration-746 disposable
 acceptance](builds/2026-11-03-recovery/clickhouse-outbox-operator-746-disposable.json)
 and [Standard recovery](builds/2026-11-03-recovery/standard-profile-recovery-746-disposable.json).
 
+The PR review follow-up keeps the migration immutable while reapplying its
+ClickHouse outbox enqueue-only runtime ACL after legacy compatibility grants.
+`clickhouse_outbox_operator_audit` is in the runtime mutation-denied policy, and
+`runtime_role.main()` now forwards the optional operator password and restricts
+that login's database CONNECT/isolation checks. The clean-bootstrap CI check now
+uses a separate network-disabled schema-bootstrap Compose project and removes
+its volume, preventing cluster-global role memberships from contaminating the
+main integration database. Local role/bootstrap tests and inventories pass; the
+GitHub integration rerun is still required. No persistent ACL, migration, or
+operator capability was changed.
+
 The runtime SQL review ledger now has 0 legacy-unreviewed fingerprints and 33
 reviewed-unresolved source records; this is source classification, not ACL
 approval. Current static role attribution covers 4,967 SQL sites: 1,000 API
