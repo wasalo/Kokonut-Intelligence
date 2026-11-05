@@ -171,6 +171,7 @@ Commands:
 - Check the migration-742 `readiness_dimension` catalog ACL in disposable PostgreSQL: `python3 scripts/check-readiness-dimension-runtime-boundary-disposable.py`
 - Check the migration-743 public EBF scorecard view ACL in disposable PostgreSQL: `python3 scripts/check-public-ebf-scorecard-runtime-boundary-disposable.py`
 - Check signed sensor baseline, event inventory, demo cleanup, and the `sensor_alert` runtime ACL in disposable PostgreSQL: `python3 scripts/check-sensor-anomaly-alert-write-disposable.py`
+- Check migration 431's signed sensor-worker scope, forced-RLS read/write boundary, atomic reading/outbox/event effects, duplicate handling, status audit, and denied direct access on synthetic PostgreSQL 16: `python3 scripts/check-sensor-ingestion-worker-disposable.py [EVIDENCE_JSON_PATH]`. It publishes only a random loopback port on Docker's default bridge (not an egress-isolated network); set `SENSOR_INGESTION_TEST_IMAGE` to a reviewed digest-pinned image when needed.
 - Check the migration-720 thesaurus function boundary in disposable PostgreSQL: `python3 scripts/check-thesaurus-runtime-boundary-disposable.py`
 - Check the migration-721 governance reference-catalog boundary in disposable PostgreSQL: `python3 scripts/check-governance-reference-catalog-runtime-boundary-disposable.py`
 - Check migration 723's isolated event/freshness/notification write boundary in disposable PostgreSQL: `python3 scripts/check-isolated-worker-runtime-write-boundary-disposable.py`

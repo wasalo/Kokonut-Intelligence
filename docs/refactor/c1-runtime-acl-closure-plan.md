@@ -114,15 +114,22 @@ symlinks, uses no-follow directory/file opens, and enforces the 64 MiB and 10,00
 record limits. The worker validates each record's location against the signed
 instance location before storage.
 
-Migration 431's bounded functions resolve the enabled instance, read that
-location's sensor catalog, store reading/ingestion-log/outbox/event effects in
-one batch transaction, and update driver status in a separate scoped call. The
-existing function-reachability test pins the four literal registry dispatch
-edges. The new CSV test is storage-free; it proves source loading and
-location-bound validation, not database function execution or schedule
-activation. The `signed_sensor_ingestion_worker` flag and dedicated secret
-provisioning remain deployment-controlled. No grants or RLS changed; the worker
-edge remains classified as dynamic in the 56-edge inventory.
+The storage-free Python test proves source loading and location-bound
+validation. Separately, the [migration 431 disposable acceptance](builds/2026-11-03-recovery/sensor-ingestion-worker-431-disposable.json)
+applies/replays migrations 405/419/431 on a synthetic PostgreSQL 16 fixture
+with forced RLS. It verifies signed instance/catalog reads, atomic reading,
+ingestion-log, outbox, and event effects; duplicate suppression; rejected and
+conflicting records; rollback; cross-location denial; status audit; and the
+login's lack of direct relation/function access. The checker used a pinned image,
+a random port bound to `127.0.0.1`, and Docker's default bridge (external network
+isolation was not enabled); its unique container was removed. No candidate,
+legacy, or production database was used.
+
+The `signed_sensor_ingestion_worker` flag and dedicated DSN/credential remain
+deployment-controlled; this does not prove an active schedule or credential
+provisioning. The existing function-reachability test pins the four literal
+registry dispatch edges, which remain classified as dynamic in the 56-edge
+inventory. No persistent grants or RLS changed.
 
 ### Previous C1 continuation — migrations 742–745 — 1 November 2026
 

@@ -5122,10 +5122,13 @@ without inferring privilege revocations from source absence.
 
 The scheduled sensor worker is source-mapped to its literal CSV-driver target,
 dedicated `sensor_ingestion` login, signed location context, and bounded batch
-functions. Its new temporary-file test runs the real registry and safe CSV reader
-without a database; it does not activate a schedule or provision the dedicated
-credential. The four registry dispatch edges remain included in the 56 dynamic
-worker edges. No grants or RLS changed. See
+functions. Its temporary-file test runs the real registry and safe CSV reader
+without a database. A separate migration-431 disposable acceptance passed
+forced-RLS scope, atomic side effects, duplicate/rollback, status audit, and direct
+privilege checks. It used a loopback-only host port on default bridge networking;
+only its synthetic fixture changed. The four registry edges remain among the 56
+dynamic worker edges, and the optional schedule/credential are not activated. No
+persistent grants or RLS changed. See
 [migration-746 acceptance](builds/2026-11-03-recovery/clickhouse-outbox-operator-746-disposable.json),
 [Standard recovery](builds/2026-11-03-recovery/standard-profile-recovery-746-disposable.json),
 and the [C1 closure plan](c1-runtime-acl-closure-plan.md).

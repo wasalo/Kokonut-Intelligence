@@ -26972,4 +26972,11 @@ four sensor registry edges among 56 worker dynamic-dispatch edges; no edge or
 ACL is reclassified. The feature flag and dedicated DSN/credential remain
 operator-controlled, and this source test does not establish an active schedule.
 All 65 focused sensor, registry, function-reachability, job-contract, and
-worker-SQL tests passed; no database or grant changed.
+worker-SQL tests passed. The migration-431 disposable acceptance then passed all
+five signed-scope, forced-RLS, atomic-effects, duplicate/rollback, status-audit,
+and direct-privilege checks
+([evidence](builds/2026-11-03-recovery/sensor-ingestion-worker-431-disposable.json)).
+It used a pinned image, a loopback-only ephemeral host port, and default bridge
+networking; the unique container was removed. Only the synthetic fixture
+changed; no candidate, legacy, or production database, credential, schedule,
+grant, or RLS policy changed.
