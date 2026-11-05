@@ -143,6 +143,7 @@ def scheduled_module_worker_environment(
     environ: Mapping[str, str] | None = None,
 ) -> dict[str, str]:
     """Build the least-privilege environment for one validated scheduled operation."""
+    source = os.environ if environ is None else environ
     arguments = tuple(command_args or ())
     if module_path == "services.events":
         if "--process" in arguments:
@@ -157,14 +158,20 @@ def scheduled_module_worker_environment(
             return worker_subprocess_environment(
                 allowed_worker_keys=("notification_delivery",),
                 isolated_worker_key="notification_delivery",
-                environ=environ,
+                environ=source,
             )
 
     worker_key = scheduled_module_worker_key(module_path, arguments)
+    scheduler_is_isolated = (
+        source.get(DENY_SHARED_DATABASE_ENV, "").strip().lower() == "true"
+        or source.get(ISOLATED_WORKER_KEY_ENV) == "scheduler"
+        or bool(source.get("KOKONUT_SCHEDULER_DATABASE_URL", "").strip())
+    )
     return worker_subprocess_environment(
         allowed_worker_keys=(worker_key,) if worker_key is not None else (),
         isolated_database_credentials=worker_key is not None,
-        environ=environ,
+        strip_shared_database_credentials=(worker_key is None and scheduler_is_isolated),
+        environ=source,
     )
 
 

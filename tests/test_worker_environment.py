@@ -10,6 +10,7 @@ import pytest
 from services.common.worker_environment import (
     DENY_SHARED_DATABASE_ENV,
     ISOLATED_WORKER_KEY_ENV,
+    scheduled_module_worker_environment,
     scheduled_module_worker_key,
     worker_subprocess_environment,
 )
@@ -118,6 +119,60 @@ def test_scheduled_noi_worker_receives_only_its_exact_secret_pair():
     }
     assert scheduled_module_worker_key("services.metrics") is None
     assert scheduled_module_worker_key("services.metrics.noi_snapshot_worker.extra") is None
+
+
+@pytest.mark.parametrize(
+    "isolation_environment",
+    [
+        {DENY_SHARED_DATABASE_ENV: "true"},
+        {ISOLATED_WORKER_KEY_ENV: "scheduler"},
+        {"KOKONUT_SCHEDULER_DATABASE_URL": "postgresql://scheduler"},
+    ],
+    ids=("deny-marker", "scheduler-marker", "dedicated-scheduler-dsn"),
+)
+def test_unmapped_scheduled_child_preserves_isolation(
+    isolation_environment: dict[str, str],
+):
+    source = {
+        "PATH": "/synthetic/bin",
+        "PG_HOST": "database",
+        "PG_PORT": "5432",
+        "PG_DB": "kokonut_intelligence",
+        "PG_USER": "kokonut_runtime",
+        "PG_PASSWORD": "shared-runtime-secret",
+        "POSTGRES_PASSWORD": "admin-secret",
+        "KOKONUT_RUNTIME_PASSWORD": "runtime-secret",
+        "KOKONUT_WEATHER_DATABASE_URL": "postgresql://weather-worker",
+        "KOKONUT_WEATHER_WORKER_CREDENTIAL": "weather-secret",
+        **isolation_environment,
+    }
+
+    child = scheduled_module_worker_environment(
+        "services.metrics", ("--compute",), environ=source
+    )
+
+    assert child == {"PATH": "/synthetic/bin", DENY_SHARED_DATABASE_ENV: "true"}
+    assert ISOLATED_WORKER_KEY_ENV not in child
+
+
+def test_unmapped_scheduled_child_keeps_legacy_shared_database_compatibility():
+    source = {
+        "PATH": "/synthetic/bin",
+        "PG_USER": "kokonut_runtime",
+        "PG_PASSWORD": "shared-runtime-secret",
+        "KOKONUT_WEATHER_DATABASE_URL": "postgresql://weather-worker",
+        "KOKONUT_WEATHER_WORKER_CREDENTIAL": "weather-secret",
+    }
+
+    child = scheduled_module_worker_environment(
+        "services.metrics", ("--compute",), environ=source
+    )
+
+    assert child == {
+        "PATH": "/synthetic/bin",
+        "PG_USER": "kokonut_runtime",
+        "PG_PASSWORD": "shared-runtime-secret",
+    }
 
 
 def test_isolated_clickhouse_outbox_receives_only_its_dedicated_dsn():
