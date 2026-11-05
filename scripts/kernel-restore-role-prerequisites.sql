@@ -182,7 +182,24 @@ BEGIN
         'kokonut_pollinator_review_writer',
         'kokonut_recycling_capture_writer',
         'kokonut_waste_stream_writer',
-        'kokonut_waste_summary_reader'
+        'kokonut_waste_summary_reader',
+        'kokonut_alert_rule_owner',
+        'kokonut_clickhouse_outbox_operator_login',
+        'kokonut_clickhouse_outbox_operator_owner',
+        'kokonut_directus_runtime',
+        'kokonut_energy_reading_writer',
+        'kokonut_environmental_baseline_capture_owner',
+        'kokonut_extension_learning_writer',
+        'kokonut_gateway_rate_limit_owner',
+        'kokonut_landscape_capture_writer',
+        'kokonut_metric_value_manager',
+        'kokonut_operator_capability_owner',
+        'kokonut_rate_limit_maintenance_login',
+        'kokonut_report_snapshot_export_login',
+        'kokonut_report_snapshot_export_owner',
+        'kokonut_sensor_baseline_owner',
+        'kokonut_sensor_mock_cleanup_owner',
+        'kokonut_thesaurus_owner'
     ] LOOP
         IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = role_name) THEN
             EXECUTE format(
