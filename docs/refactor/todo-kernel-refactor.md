@@ -5118,7 +5118,14 @@ uses signed context, but its shared-connection CLI caller remains outside the
 OIDC route graph. The native source/ACL report remains through migration 745 at
 906 public-schema tables with effective runtime DML while RLS is disabled. C1
 remains open; next review the 3,637 unattributed sites and external callers
-without inferring privilege revocations from source absence. See
+without inferring privilege revocations from source absence.
+
+The scheduled sensor worker is source-mapped to its literal CSV-driver target,
+dedicated `sensor_ingestion` login, signed location context, and bounded batch
+functions. Its new temporary-file test runs the real registry and safe CSV reader
+without a database; it does not activate a schedule or provision the dedicated
+credential. The four registry dispatch edges remain included in the 56 dynamic
+worker edges. No grants or RLS changed. See
 [migration-746 acceptance](builds/2026-11-03-recovery/clickhouse-outbox-operator-746-disposable.json),
 [Standard recovery](builds/2026-11-03-recovery/standard-profile-recovery-746-disposable.json),
 and the [C1 closure plan](c1-runtime-acl-closure-plan.md).

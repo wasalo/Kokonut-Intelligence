@@ -73,6 +73,39 @@ def _record(**overrides):
     }
 
 
+def test_prepare_records_uses_the_real_allowlisted_csv_driver(tmp_path, monkeypatch):
+    root = tmp_path / "sensor-inputs"
+    root.mkdir()
+    (root / "readings.csv").write_text(
+        "device_id,reading_date,reading_time,value,location_id\n"
+        f"{SENSOR_ID},2026-10-17,12:30:00,55.5,{LOCATION_ID}\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setenv("KOKONUT_SENSOR_CSV_ROOT", str(root))
+    instance = {
+        "instance_id": "00000000-0000-4000-8000-000000000004",
+        "instance_name": "temporary CSV source",
+        "driver_name": "sensor_csv",
+        "module_path": "services.ingestion.drivers.sensor_csv",
+        "class_name": "Driver",
+        "driver_type": "sensor",
+        "config": {"file_path": "readings.csv"},
+        "location_id": LOCATION_ID,
+    }
+
+    prepared, fetched = sensor_worker._prepare_records(
+        instance, LOCATION_ID, [_catalog_row()]
+    )
+
+    assert fetched == 1
+    assert len(prepared) == 1
+    assert prepared[0]["validation_status"] == "accepted"
+    assert prepared[0]["record"] == _record(location_id=LOCATION_ID)
+    assert prepared[0]["source_id_sha256"] == sensor_worker.hash_payload(
+        {"source_id": "readings.csv"}
+    )
+
+
 def test_prepare_records_validates_and_hashes_a_scoped_source(monkeypatch):
     monkeypatch.setattr(
         sensor_worker.DriverRegistry,

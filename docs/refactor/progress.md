@@ -26952,3 +26952,24 @@ The analytics CLI still calls `suggest` and `create-from-data` through separate
 The CLI execution identity and the authorization meaning of
 `business_planning:create` for the suggestion reads remain open. No live database,
 grant, or tenant policy changed; the focused callback/BMC suites passed 39 tests.
+
+### Sensor CSV worker dispatch and source validation — 3 November 2026
+
+The `sensors` job binds `sensor_worker` to a registered instance and exact
+`location_id`. The worker requires `KOKONUT_SENSOR_INGESTION_DATABASE_URL` and
+`KOKONUT_SENSOR_INGESTION_WORKER_CREDENTIAL`, verifies the dedicated
+`kokonut_sensor_ingestion_login`, and establishes signed `sensor_driver:ingest`
+context for its bounded lookup/catalog/batch/status functions. Migration 431's
+batch function stores the sensor reading, ingestion log, outbox projection, and
+pending event; driver status is updated in a separate signed call.
+
+The CSV driver target is code-allowlisted, and scheduled files must be opened
+under `KOKONUT_SENSOR_CSV_ROOT` without symlink traversal, with the configured
+size and row limits. The new test runs `_prepare_records` through the real
+registry/driver on a temporary CSV, verifies the location-bound record, and
+opens no database connection. The existing reachability graph still records the
+four sensor registry edges among 56 worker dynamic-dispatch edges; no edge or
+ACL is reclassified. The feature flag and dedicated DSN/credential remain
+operator-controlled, and this source test does not establish an active schedule.
+All 65 focused sensor, registry, function-reachability, job-contract, and
+worker-SQL tests passed; no database or grant changed.

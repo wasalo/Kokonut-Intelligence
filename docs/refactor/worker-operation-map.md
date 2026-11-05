@@ -141,7 +141,10 @@ application-wide RLS or proof for other workers.
   `CALCULATORS` registry as an explicit registry-dispatch edge. The scheduled
   sensor worker follows `SCHEDULED_SENSOR_DRIVER_TARGETS` to its literal CSV
   driver class, inherited constructor, and `discover`, `fetch_scheduled`, and
-  `transform` methods. The agent worker follows its literal task registry to
+  `transform` methods. A storage-free regression now runs `_prepare_records`
+  through the real registry and CSV driver under a temporary input root; this
+  verifies the parser path, not schedule activation or database effects. The
+  agent worker follows its literal task registry to
   the `synthesize` and `collect_source_references` methods for each of twelve
   registered agents. EventBus subprocess dispatch is described separately by
   the worker effect inventory, since the handler runner is selected by its

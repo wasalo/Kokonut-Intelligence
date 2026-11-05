@@ -96,6 +96,34 @@ entrypoints, outside the OIDC route. The deployed CLI caller identity remains
 unassessed; `business_planning:create` scope and location filters do not by
 themselves establish a broader read policy. No grants or RLS changed.
 
+### C1 worker-source cohort — scheduled sensor CSV — 3 November 2026
+
+The source-registered `sensors` job maps to
+`services.ingestion.sensor_worker` and accepts only the required
+`driver_instance_id` and `location_id` UUIDs. Its worker key is
+`sensor_ingestion`; `get_worker_db()` requires the dedicated
+`kokonut_sensor_ingestion_login` DSN, and `get_worker_credential()` requires a
+separate high-entropy credential with no `PG_*` fallback. The worker sets signed
+`sensor_driver:ingest` context for each bounded database call.
+
+The registry accepts only the source-controlled `sensor_csv` target; persisted
+module/class fields must match it and are never imported as executable paths.
+`_prepare_records` now has a regression that loads that real driver and reads a
+synthetic CSV beneath `KOKONUT_SENSOR_CSV_ROOT`. The driver rejects traversal and
+symlinks, uses no-follow directory/file opens, and enforces the 64 MiB and 10,000
+record limits. The worker validates each record's location against the signed
+instance location before storage.
+
+Migration 431's bounded functions resolve the enabled instance, read that
+location's sensor catalog, store reading/ingestion-log/outbox/event effects in
+one batch transaction, and update driver status in a separate scoped call. The
+existing function-reachability test pins the four literal registry dispatch
+edges. The new CSV test is storage-free; it proves source loading and
+location-bound validation, not database function execution or schedule
+activation. The `signed_sensor_ingestion_worker` flag and dedicated secret
+provisioning remain deployment-controlled. No grants or RLS changed; the worker
+edge remains classified as dynamic in the 56-edge inventory.
+
 ### Previous C1 continuation — migrations 742–745 — 1 November 2026
 
 Schema and callsite review treats `readiness_dimension` as a global curated
