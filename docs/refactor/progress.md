@@ -26524,3 +26524,28 @@ After this batch, `batches.md` has 2,263 complete / 43 open items (2,306
 total); the active TODO has 836 checked / 39 open (875 total). Capability
 classifications remain 24 baseline-retained, 7 deployed, and 36 prepared
 across 67 rows.
+
+### Local ZITADEL Gateway OIDC browser acceptance — 2 November 2026
+
+This supersedes the earlier CA-blocked checkpoint above. The isolated synthetic
+project was rebuilt with the local Caddy CA mounted read-only into the Gateway
+app. In-container OIDC discovery verified the
+configured issuer, token/JWKS endpoints, and TLS. A dedicated Web/Authorization
+Code/Basic client and synthetic operator identity were provisioned. The Gateway
+browser flow completed the PKCE callback and created an operator session. The
+session endpoint returned 200 with no grants; logout without CSRF returned 403,
+valid CSRF logout returned 200, and the next session request returned 401. A
+protected report-review read returned 403 with `operator_scope_denied`, and
+filtered Gateway logs attributed both session and denied-read audit events to
+the synthetic operator.
+
+The ZITADEL Console's `environment.json` still advertises an HTTP API base while
+the issuer is HTTPS. Local provisioning used a session-local agent-browser
+route to change only that API URL to HTTPS; this does not change the server
+response or establish a profile-level fix. See
+[`zitadel-provider.md`](zitadel-provider.md). No positive location-grant flow
+was tested because the disposable database had no verified test location or
+owner organization. The browser sessions were closed and cookies/storage
+cleared; the mode-restricted synthetic client env file remains in the
+scratchpad for the preserved test project. No production or legacy database
+was modified.

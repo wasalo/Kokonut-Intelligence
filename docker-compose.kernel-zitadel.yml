@@ -11,6 +11,10 @@ services:
       KOKONUT_ZITADEL_DOMAIN: ${KOKONUT_ZITADEL_DOMAIN:?Set the ZITADEL public hostname}
     volumes:
       - ./config/caddy/Caddyfile.kernel.zitadel:/etc/caddy/Caddyfile:ro
+    networks:
+      kernel:
+        aliases:
+          - ${KOKONUT_ZITADEL_DOMAIN:?Set the ZITADEL public hostname}
     depends_on:
       zitadel-api:
         condition: service_healthy

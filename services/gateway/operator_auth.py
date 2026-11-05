@@ -12,6 +12,7 @@ import hmac
 import os
 import re
 import secrets
+import ssl
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 from typing import Protocol
@@ -47,6 +48,7 @@ class OIDCSettings:
     state_secret: str
     operator_auth_user: str = field(repr=False)
     operator_auth_password: str = field(repr=False)
+    ca_bundle: str | None = None
     session_ttl_seconds: int = 1800
 
     @classmethod
@@ -69,6 +71,7 @@ class OIDCSettings:
             "operator_auth_password": "KOKONUT_OPERATOR_AUTH_PASSWORD",
         }
         values = {field: os.environ.get(variable, "").strip() for field, variable in required.items()}
+        ca_bundle = os.environ.get("KOKONUT_OPERATOR_OIDC_CA_BUNDLE", "").strip() or None
         missing = [variable for field, variable in required.items() if not values[field]]
         if missing:
             raise OperatorAuthConfigurationError(
@@ -121,7 +124,7 @@ class OIDCSettings:
             raise OperatorAuthConfigurationError(
                 "KOKONUT_OPERATOR_SESSION_TTL_SECONDS must be between 300 and 43200"
             )
-        return cls(**values, session_ttl_seconds=ttl)
+        return cls(**values, ca_bundle=ca_bundle, session_ttl_seconds=ttl)
 
 
 @dataclass(frozen=True)
@@ -202,12 +205,20 @@ class OIDCOperatorProvider:
             ) from exc
         self.settings = settings
         oauth = OAuth()
+        client_kwargs = {
+            "scope": "openid profile email",
+            "code_challenge_method": "S256",
+        }
+        if settings.ca_bundle is not None:
+            ssl_context = ssl.create_default_context()
+            ssl_context.load_verify_locations(cafile=settings.ca_bundle)
+            client_kwargs["verify"] = ssl_context
         oauth.register(
             name="operator",
             client_id=settings.client_id,
             client_secret=settings.client_secret,
             server_metadata_url=(settings.issuer.rstrip("/") + "/.well-known/openid-configuration"),
-            client_kwargs={"scope": "openid profile email", "code_challenge_method": "S256"},
+            client_kwargs=client_kwargs,
         )
         self.client = oauth.create_client("operator")
 
@@ -4140,10 +4151,25 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
     async def login(request: Request):
         if provider is None:
             return JSONResponse(status_code=404, content={"error": "Operator OIDC is disabled"})
+        from httpx2 import RequestError
+
         request.session.clear()
-        return await provider.client.authorize_redirect(
-            request, redirect_uri=provider.settings.redirect_uri
-        )
+        try:
+            return await provider.client.authorize_redirect(
+                request, redirect_uri=provider.settings.redirect_uri
+            )
+        except RequestError as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.operator_auth").warning(
+                "OIDC login redirect unavailable (%s)", type(exc).__name__
+            )
+            request.session.clear()
+            return JSONResponse(
+                status_code=503,
+                content={"error": "Operator identity provider unavailable"},
+                headers={"Retry-After": "30", "Cache-Control": "no-store"},
+            )
 
     @router.get("/operator/auth/callback")
     async def callback(request: Request):
@@ -4228,7 +4254,7 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
                 "operator": asdict(session.operator),
                 "scopes": scopes,
             },
-            headers={"Cache-Control": "no-store", "Vary": "Cookie"},
+            headers={"Cache-Control": "no-store", "Vary": "Cookie, Origin"},
         )
 
     @router.get(
