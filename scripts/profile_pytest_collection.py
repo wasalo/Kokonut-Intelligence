@@ -243,6 +243,23 @@ def main() -> int:
         ],
     )
 
+    _run_probe(
+        label="pytest-worker-collection-no-unittest-plugin",
+        files=[],
+        address_space_limit_mib=arguments.address_space_limit_mib,
+        python_args=[
+            "-m",
+            "pytest",
+            "-v",
+            "--collect-only",
+            "-p",
+            "no:unittest",
+            "-p",
+            "no:cacheprovider",
+            "tests/test_kgp_worker_durability.py",
+        ],
+    )
+
     group_exit = _run_probe(
         label="complete-shard",
         files=files,
