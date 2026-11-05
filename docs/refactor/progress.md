@@ -26997,3 +26997,33 @@ transaction wrapper. Its UPDATE is rejected and caught, so health is returned
 as null rather than persisted. Existing Gateway create/edit operations use the
 signed, location-scoped functions from migrations 463–465. No code, grant, or
 RLS change was made while the CLI identity boundary awaits an owner decision.
+
+### BMC CLI persistence retirement and read-only health — 3 November 2026
+
+The CLI now rejects `create`, `create-from-data`, `update-block`, and `version`
+in `main()` before dispatcher entry and again at the top of `_cmd()`, before
+`get_db()`; the commands remain visible with an explicit retirement message.
+Read-only CLI operations remain available. `compute_health()` now reads the
+canvas and uses a pure scorer without an UPDATE or commit, while the report
+calculates its summary from the already-loaded canvas. The migration-745 ACL
+evidence remains historical: Python write helpers and shared-runtime privileges
+were not changed, and their caller review remains open.
+
+The report-generator source, query-scope, and helper-scope inventories plus the
+runtime SQL and runtime-role attribution inventories were regenerated; all five
+`--check` gates passed. The unresolved-write ledger remained current and
+unchanged. Focused BMC, one-click, read-only report, and report-helper tests
+passed (43 passed, 8 database-dependent skips) with `PG_HOST=127.0.0.1` and
+`PG_PORT=1`; no persistent database was queried.
+
+The repository fast source checks passed all 73 gates using the explicit
+secrets-not-required development mode. Ruff and compilation passed; static
+analysis passed with zero actionable High/Medium or policy findings. Foundry
+format/build/tests passed (81 tests), and Directus hook tests passed (143 tests).
+`git diff --check` passed after the documentation and inventory updates.
+
+The complete `scripts/run-github-ci.sh --source-only` was attempted twice and
+stopped at `pip-audit -r requirements.txt`: each attempt's temporary resolver
+virtualenv `ensurepip` subprocess exited with SIGABRT. A standalone temporary
+venv succeeds; no weaker audit mode was substituted. No database, ACL, RLS,
+candidate, or production target was changed.

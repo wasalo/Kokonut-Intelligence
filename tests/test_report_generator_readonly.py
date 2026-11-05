@@ -5,9 +5,11 @@ import sys
 
 import pytest
 
+from services.analytics import business_model_canvas as bmc
 from services.export import report_generator
 from services.export.reports import REPORT_GENERATORS as REGISTERED_REPORT_GENERATORS
 from services.export.reports import business_plan as business_plan_reports
+from services.export.reports import strategy as strategy_reports
 
 
 class _Cursor:
@@ -98,6 +100,34 @@ def test_report_cli_runs_calculation_read_only_then_persists_draft(monkeypatch, 
     assert connection.session_modes == [True, False]
     assert connection.commits >= 1
     assert connection.closed
+
+
+def test_business_model_canvas_report_calculates_health_inside_read_only_wrapper(monkeypatch):
+    location_id = "11111111-1111-4111-8111-111111111111"
+    canvas_id = "22222222-2222-4222-8222-222222222222"
+    canvas = {block: [] for block in bmc.BMC_BLOCKS}
+    canvas["key_partners"] = [{"name": "Cooperative"}]
+    monkeypatch.setattr(
+        bmc,
+        "list_canvas",
+        lambda _conn, **_kwargs: [{"id": canvas_id}],
+    )
+    monkeypatch.setattr(bmc, "get", lambda _conn, _canvas_id: canvas)
+    connection = _Connection()
+
+    report = report_generator.generate_report_data_read_only(
+        connection,
+        strategy_reports.generate_business_model_canvas,
+        location_id,
+        None,
+        None,
+    )
+
+    assert report["health_summary"] == bmc._calculate_health(canvas)
+    assert report["health_summary"]["health_score"] == 11.1
+    assert connection.rollbacks == 1
+    assert connection.session_modes == [True, False]
+    assert connection.commits == 0
 
 
 def test_failed_read_only_generation_rolls_back_before_recording_failure(monkeypatch):

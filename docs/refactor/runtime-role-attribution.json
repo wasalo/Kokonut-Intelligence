@@ -3,12 +3,12 @@
   "generated_by": "scripts/runtime_role_attribution.py",
   "scope": "Conservative static attribution of direct Python SQL execution sites to source-registered Gateway route handlers and the existing supervisor worker operation graphs. Gateway route roots are collected from the Gateway app's local import closure; this does not prove every dynamically registered route is mounted. Worker roots are allowlisted modules/handlers, not proof of a live schedule or event. A site without a static path may be dynamic, callback-driven, imported, CLI-driven, or otherwise unresolved; it is not evidence that a site is dead. Relation names remain heuristic candidates. This report contains no SQL text, parameter values, secrets, live role grants, tenant policy, or ACL authorization and must not be used by itself to revoke privileges.",
   "summary": {
-    "sql_execution_sites": 4968,
+    "sql_execution_sites": 4967,
     "attribution_counts": {
       "api_candidate": 1000,
       "worker_candidate": 328,
       "shared_candidate": 3,
-      "unresolved": 3637
+      "unresolved": 3636
     },
     "api_route_root_count": 358,
     "api_static_function_count": 1134,
@@ -21,9 +21,9 @@
     "worker_operation_root_count": 49,
     "worker_dynamic_dispatch_edge_count": 56,
     "worker_static_sql_site_count": 331,
-    "worker_sites_without_static_function_match": 4637,
+    "worker_sites_without_static_function_match": 4636,
     "sites_in_both_api_and_worker_graphs": 3,
-    "unresolved_site_count": 3637
+    "unresolved_site_count": 3636
   },
   "process_and_credential_policy": {
     "standard_api": {
@@ -10125,9 +10125,9 @@
       ]
     },
     {
-      "id": "services/analytics/business_model_canvas.py:47:8",
+      "id": "services/analytics/business_model_canvas.py:54:8",
       "source": "services/analytics/business_model_canvas.py",
-      "line": 47,
+      "line": 54,
       "scope": "create",
       "method": "execute",
       "expression_kind": "literal",
@@ -10150,9 +10150,9 @@
       ]
     },
     {
-      "id": "services/analytics/business_model_canvas.py:126:8",
+      "id": "services/analytics/business_model_canvas.py:133:8",
       "source": "services/analytics/business_model_canvas.py",
-      "line": 126,
+      "line": 133,
       "scope": "list_canvas",
       "method": "execute",
       "expression_kind": "fstring",
@@ -10173,9 +10173,9 @@
       ]
     },
     {
-      "id": "services/analytics/business_model_canvas.py:142:8",
+      "id": "services/analytics/business_model_canvas.py:149:8",
       "source": "services/analytics/business_model_canvas.py",
-      "line": 142,
+      "line": 149,
       "scope": "get",
       "method": "execute",
       "expression_kind": "literal",
@@ -10196,9 +10196,9 @@
       ]
     },
     {
-      "id": "services/analytics/business_model_canvas.py:148:8",
+      "id": "services/analytics/business_model_canvas.py:155:8",
       "source": "services/analytics/business_model_canvas.py",
-      "line": 148,
+      "line": 155,
       "scope": "get",
       "method": "execute",
       "expression_kind": "literal",
@@ -10219,9 +10219,9 @@
       ]
     },
     {
-      "id": "services/analytics/business_model_canvas.py:153:8",
+      "id": "services/analytics/business_model_canvas.py:160:8",
       "source": "services/analytics/business_model_canvas.py",
-      "line": 153,
+      "line": 160,
       "scope": "get",
       "method": "execute",
       "expression_kind": "literal",
@@ -10242,9 +10242,9 @@
       ]
     },
     {
-      "id": "services/analytics/business_model_canvas.py:158:8",
+      "id": "services/analytics/business_model_canvas.py:165:8",
       "source": "services/analytics/business_model_canvas.py",
-      "line": 158,
+      "line": 165,
       "scope": "get",
       "method": "execute",
       "expression_kind": "literal",
@@ -10265,9 +10265,9 @@
       ]
     },
     {
-      "id": "services/analytics/business_model_canvas.py:173:8",
+      "id": "services/analytics/business_model_canvas.py:180:8",
       "source": "services/analytics/business_model_canvas.py",
-      "line": 173,
+      "line": 180,
       "scope": "update_block",
       "method": "execute",
       "expression_kind": "fstring",
@@ -10290,9 +10290,9 @@
       ]
     },
     {
-      "id": "services/analytics/business_model_canvas.py:195:8",
+      "id": "services/analytics/business_model_canvas.py:202:8",
       "source": "services/analytics/business_model_canvas.py",
-      "line": 195,
+      "line": 202,
       "scope": "create_version",
       "method": "execute",
       "expression_kind": "literal",
@@ -10313,9 +10313,9 @@
       ]
     },
     {
-      "id": "services/analytics/business_model_canvas.py:205:8",
+      "id": "services/analytics/business_model_canvas.py:212:8",
       "source": "services/analytics/business_model_canvas.py",
-      "line": 205,
+      "line": 212,
       "scope": "create_version",
       "method": "execute",
       "expression_kind": "literal",
@@ -10336,9 +10336,9 @@
       ]
     },
     {
-      "id": "services/analytics/business_model_canvas.py:210:8",
+      "id": "services/analytics/business_model_canvas.py:217:8",
       "source": "services/analytics/business_model_canvas.py",
-      "line": 210,
+      "line": 217,
       "scope": "create_version",
       "method": "execute",
       "expression_kind": "literal",
@@ -10361,9 +10361,9 @@
       ]
     },
     {
-      "id": "services/analytics/business_model_canvas.py:220:8",
+      "id": "services/analytics/business_model_canvas.py:227:8",
       "source": "services/analytics/business_model_canvas.py",
-      "line": 220,
+      "line": 227,
       "scope": "create_version",
       "method": "execute",
       "expression_kind": "literal",
@@ -10386,9 +10386,9 @@
       ]
     },
     {
-      "id": "services/analytics/business_model_canvas.py:230:8",
+      "id": "services/analytics/business_model_canvas.py:237:8",
       "source": "services/analytics/business_model_canvas.py",
-      "line": 230,
+      "line": 237,
       "scope": "list_versions",
       "method": "execute",
       "expression_kind": "literal",
@@ -10409,9 +10409,9 @@
       ]
     },
     {
-      "id": "services/analytics/business_model_canvas.py:245:12",
+      "id": "services/analytics/business_model_canvas.py:252:12",
       "source": "services/analytics/business_model_canvas.py",
-      "line": 245,
+      "line": 252,
       "scope": "_location_filter",
       "method": "execute",
       "expression_kind": "literal",
@@ -10432,9 +10432,9 @@
       ]
     },
     {
-      "id": "services/analytics/business_model_canvas.py:257:8",
+      "id": "services/analytics/business_model_canvas.py:264:8",
       "source": "services/analytics/business_model_canvas.py",
-      "line": 257,
+      "line": 264,
       "scope": "_suggestion_rows",
       "method": "execute",
       "expression_kind": "fstring",
@@ -10452,9 +10452,9 @@
       ]
     },
     {
-      "id": "services/analytics/business_model_canvas.py:259:12",
+      "id": "services/analytics/business_model_canvas.py:266:12",
       "source": "services/analytics/business_model_canvas.py",
-      "line": 259,
+      "line": 266,
       "scope": "_suggestion_rows",
       "method": "execute",
       "expression_kind": "composed_or_variable",
@@ -10472,9 +10472,9 @@
       ]
     },
     {
-      "id": "services/analytics/business_model_canvas.py:262:12",
+      "id": "services/analytics/business_model_canvas.py:269:12",
       "source": "services/analytics/business_model_canvas.py",
-      "line": 262,
+      "line": 269,
       "scope": "_suggestion_rows",
       "method": "execute",
       "expression_kind": "fstring",
@@ -10492,9 +10492,9 @@
       ]
     },
     {
-      "id": "services/analytics/business_model_canvas.py:263:12",
+      "id": "services/analytics/business_model_canvas.py:270:12",
       "source": "services/analytics/business_model_canvas.py",
-      "line": 263,
+      "line": 270,
       "scope": "_suggestion_rows",
       "method": "execute",
       "expression_kind": "fstring",
@@ -10512,9 +10512,9 @@
       ]
     },
     {
-      "id": "services/analytics/business_model_canvas.py:265:8",
+      "id": "services/analytics/business_model_canvas.py:272:8",
       "source": "services/analytics/business_model_canvas.py",
-      "line": 265,
+      "line": 272,
       "scope": "_suggestion_rows",
       "method": "execute",
       "expression_kind": "fstring",
@@ -10529,31 +10529,6 @@
       "review_labels": [
         "gateway_route_starlette_threadpool_callback_path",
         "worker_sql_site_not_statically_reached_dynamic_or_unresolved_possible"
-      ]
-    },
-    {
-      "id": "services/analytics/business_model_canvas.py:525:8",
-      "source": "services/analytics/business_model_canvas.py",
-      "line": 525,
-      "scope": "compute_health",
-      "method": "execute",
-      "expression_kind": "literal",
-      "statement_kind": "UPDATE",
-      "static_sql_sha256": "c3dfb2c17f1c119e87e7453fcd9619b7ec5a3277edfa4dac7bc7d8b9fc9264d7",
-      "candidate_relations": [
-        "business_model_canvas"
-      ],
-      "write_target_relations": [
-        "business_model_canvas"
-      ],
-      "api_static_reachability": "no_static_route_path",
-      "worker_static_operations": [],
-      "worker_static_review_status": "function_not_reached_by_any_static_worker_root",
-      "attribution": "unresolved",
-      "review_labels": [
-        "no_static_gateway_route_path_dynamic_or_non_api_possible",
-        "worker_sql_site_not_statically_reached_dynamic_or_unresolved_possible",
-        "gateway_import_closure_but_route_reachability_unresolved"
       ]
     },
     {
@@ -55000,9 +54975,9 @@
       ]
     },
     {
-      "id": "services/export/reports/strategy.py:231:8",
+      "id": "services/export/reports/strategy.py:225:8",
       "source": "services/export/reports/strategy.py",
-      "line": 231,
+      "line": 225,
       "scope": "generate_technology_roadmap",
       "method": "execute",
       "expression_kind": "literal",
@@ -55023,9 +54998,9 @@
       ]
     },
     {
-      "id": "services/export/reports/strategy.py:240:12",
+      "id": "services/export/reports/strategy.py:234:12",
       "source": "services/export/reports/strategy.py",
-      "line": 240,
+      "line": 234,
       "scope": "generate_technology_roadmap",
       "method": "execute",
       "expression_kind": "literal",
@@ -55046,9 +55021,9 @@
       ]
     },
     {
-      "id": "services/export/reports/strategy.py:246:12",
+      "id": "services/export/reports/strategy.py:240:12",
       "source": "services/export/reports/strategy.py",
-      "line": 246,
+      "line": 240,
       "scope": "generate_technology_roadmap",
       "method": "execute",
       "expression_kind": "literal",
@@ -55071,9 +55046,9 @@
       ]
     },
     {
-      "id": "services/export/reports/strategy.py:286:8",
+      "id": "services/export/reports/strategy.py:280:8",
       "source": "services/export/reports/strategy.py",
-      "line": 286,
+      "line": 280,
       "scope": "generate_stakeholder_landscape",
       "method": "execute",
       "expression_kind": "composed_or_variable",
@@ -55092,9 +55067,9 @@
       ]
     },
     {
-      "id": "services/export/reports/strategy.py:321:8",
+      "id": "services/export/reports/strategy.py:315:8",
       "source": "services/export/reports/strategy.py",
-      "line": 321,
+      "line": 315,
       "scope": "generate_stakeholder_engagement",
       "method": "execute",
       "expression_kind": "composed_or_variable",
@@ -55113,9 +55088,9 @@
       ]
     },
     {
-      "id": "services/export/reports/strategy.py:325:12",
+      "id": "services/export/reports/strategy.py:319:12",
       "source": "services/export/reports/strategy.py",
-      "line": 325,
+      "line": 319,
       "scope": "generate_stakeholder_engagement",
       "method": "execute",
       "expression_kind": "literal",
@@ -55136,9 +55111,9 @@
       ]
     },
     {
-      "id": "services/export/reports/strategy.py:363:8",
+      "id": "services/export/reports/strategy.py:357:8",
       "source": "services/export/reports/strategy.py",
-      "line": 363,
+      "line": 357,
       "scope": "generate_stakeholder_grievance",
       "method": "execute",
       "expression_kind": "composed_or_variable",
@@ -55157,9 +55132,9 @@
       ]
     },
     {
-      "id": "services/export/reports/strategy.py:383:8",
+      "id": "services/export/reports/strategy.py:377:8",
       "source": "services/export/reports/strategy.py",
-      "line": 383,
+      "line": 377,
       "scope": "generate_stakeholder_representation",
       "method": "execute",
       "expression_kind": "literal",
@@ -55180,9 +55155,9 @@
       ]
     },
     {
-      "id": "services/export/reports/strategy.py:398:8",
+      "id": "services/export/reports/strategy.py:392:8",
       "source": "services/export/reports/strategy.py",
-      "line": 398,
+      "line": 392,
       "scope": "generate_stakeholder_representation",
       "method": "execute",
       "expression_kind": "literal",
@@ -55203,9 +55178,9 @@
       ]
     },
     {
-      "id": "services/export/reports/strategy.py:447:8",
+      "id": "services/export/reports/strategy.py:441:8",
       "source": "services/export/reports/strategy.py",
-      "line": 447,
+      "line": 441,
       "scope": "generate_stakeholder_decision_lineage",
       "method": "execute",
       "expression_kind": "composed_or_variable",
@@ -55224,9 +55199,9 @@
       ]
     },
     {
-      "id": "services/export/reports/strategy.py:467:8",
+      "id": "services/export/reports/strategy.py:461:8",
       "source": "services/export/reports/strategy.py",
-      "line": 467,
+      "line": 461,
       "scope": "generate_stakeholder_ecosystem",
       "method": "execute",
       "expression_kind": "literal",
@@ -55247,9 +55222,9 @@
       ]
     },
     {
-      "id": "services/export/reports/strategy.py:493:8",
+      "id": "services/export/reports/strategy.py:487:8",
       "source": "services/export/reports/strategy.py",
-      "line": 493,
+      "line": 487,
       "scope": "generate_stakeholder_ecosystem",
       "method": "execute",
       "expression_kind": "literal",
@@ -55270,9 +55245,9 @@
       ]
     },
     {
-      "id": "services/export/reports/strategy.py:500:8",
+      "id": "services/export/reports/strategy.py:494:8",
       "source": "services/export/reports/strategy.py",
-      "line": 500,
+      "line": 494,
       "scope": "generate_stakeholder_ecosystem",
       "method": "execute",
       "expression_kind": "literal",
@@ -55293,9 +55268,9 @@
       ]
     },
     {
-      "id": "services/export/reports/strategy.py:506:8",
+      "id": "services/export/reports/strategy.py:500:8",
       "source": "services/export/reports/strategy.py",
-      "line": 506,
+      "line": 500,
       "scope": "generate_stakeholder_ecosystem",
       "method": "execute",
       "expression_kind": "literal",
@@ -55316,9 +55291,9 @@
       ]
     },
     {
-      "id": "services/export/reports/strategy.py:543:8",
+      "id": "services/export/reports/strategy.py:537:8",
       "source": "services/export/reports/strategy.py",
-      "line": 543,
+      "line": 537,
       "scope": "generate_stakeholder_outcomes",
       "method": "execute",
       "expression_kind": "composed_or_variable",
@@ -55337,9 +55312,9 @@
       ]
     },
     {
-      "id": "services/export/reports/strategy.py:564:8",
+      "id": "services/export/reports/strategy.py:558:8",
       "source": "services/export/reports/strategy.py",
-      "line": 564,
+      "line": 558,
       "scope": "generate_stakeholder_trust",
       "method": "execute",
       "expression_kind": "literal",
@@ -55360,9 +55335,9 @@
       ]
     },
     {
-      "id": "services/export/reports/strategy.py:571:8",
+      "id": "services/export/reports/strategy.py:565:8",
       "source": "services/export/reports/strategy.py",
-      "line": 571,
+      "line": 565,
       "scope": "generate_stakeholder_trust",
       "method": "execute",
       "expression_kind": "literal",
@@ -55383,9 +55358,9 @@
       ]
     },
     {
-      "id": "services/export/reports/strategy.py:576:8",
+      "id": "services/export/reports/strategy.py:570:8",
       "source": "services/export/reports/strategy.py",
-      "line": 576,
+      "line": 570,
       "scope": "generate_stakeholder_trust",
       "method": "execute",
       "expression_kind": "literal",
@@ -55406,9 +55381,9 @@
       ]
     },
     {
-      "id": "services/export/reports/strategy.py:583:8",
+      "id": "services/export/reports/strategy.py:577:8",
       "source": "services/export/reports/strategy.py",
-      "line": 583,
+      "line": 577,
       "scope": "generate_stakeholder_trust",
       "method": "execute",
       "expression_kind": "literal",
@@ -55429,9 +55404,9 @@
       ]
     },
     {
-      "id": "services/export/reports/strategy.py:610:8",
+      "id": "services/export/reports/strategy.py:604:8",
       "source": "services/export/reports/strategy.py",
-      "line": 610,
+      "line": 604,
       "scope": "generate_stakeholder_value_streams",
       "method": "execute",
       "expression_kind": "literal",
@@ -55452,9 +55427,9 @@
       ]
     },
     {
-      "id": "services/export/reports/strategy.py:618:8",
+      "id": "services/export/reports/strategy.py:612:8",
       "source": "services/export/reports/strategy.py",
-      "line": 618,
+      "line": 612,
       "scope": "generate_stakeholder_value_streams",
       "method": "execute",
       "expression_kind": "literal",
@@ -55475,9 +55450,9 @@
       ]
     },
     {
-      "id": "services/export/reports/strategy.py:625:8",
+      "id": "services/export/reports/strategy.py:619:8",
       "source": "services/export/reports/strategy.py",
-      "line": 625,
+      "line": 619,
       "scope": "generate_stakeholder_value_streams",
       "method": "execute",
       "expression_kind": "literal",
@@ -55498,9 +55473,9 @@
       ]
     },
     {
-      "id": "services/export/reports/strategy.py:632:8",
+      "id": "services/export/reports/strategy.py:626:8",
       "source": "services/export/reports/strategy.py",
-      "line": 632,
+      "line": 626,
       "scope": "generate_stakeholder_value_streams",
       "method": "execute",
       "expression_kind": "literal",
@@ -55521,9 +55496,9 @@
       ]
     },
     {
-      "id": "services/export/reports/strategy.py:659:8",
+      "id": "services/export/reports/strategy.py:653:8",
       "source": "services/export/reports/strategy.py",
-      "line": 659,
+      "line": 653,
       "scope": "generate_stakeholder_cockpit",
       "method": "execute",
       "expression_kind": "literal",
@@ -55544,9 +55519,9 @@
       ]
     },
     {
-      "id": "services/export/reports/strategy.py:685:8",
+      "id": "services/export/reports/strategy.py:679:8",
       "source": "services/export/reports/strategy.py",
-      "line": 685,
+      "line": 679,
       "scope": "generate_stakeholder_cockpit",
       "method": "execute",
       "expression_kind": "literal",
@@ -55567,9 +55542,9 @@
       ]
     },
     {
-      "id": "services/export/reports/strategy.py:721:8",
+      "id": "services/export/reports/strategy.py:715:8",
       "source": "services/export/reports/strategy.py",
-      "line": 721,
+      "line": 715,
       "scope": "generate_coordination_cockpit",
       "method": "execute",
       "expression_kind": "literal",
@@ -55590,9 +55565,9 @@
       ]
     },
     {
-      "id": "services/export/reports/strategy.py:736:8",
+      "id": "services/export/reports/strategy.py:730:8",
       "source": "services/export/reports/strategy.py",
-      "line": 736,
+      "line": 730,
       "scope": "generate_coordination_cockpit",
       "method": "execute",
       "expression_kind": "literal",
@@ -55613,9 +55588,9 @@
       ]
     },
     {
-      "id": "services/export/reports/strategy.py:766:8",
+      "id": "services/export/reports/strategy.py:760:8",
       "source": "services/export/reports/strategy.py",
-      "line": 766,
+      "line": 760,
       "scope": "generate_governance_coordination_health",
       "method": "execute",
       "expression_kind": "literal",
@@ -55636,9 +55611,9 @@
       ]
     },
     {
-      "id": "services/export/reports/strategy.py:775:8",
+      "id": "services/export/reports/strategy.py:769:8",
       "source": "services/export/reports/strategy.py",
-      "line": 775,
+      "line": 769,
       "scope": "generate_governance_coordination_health",
       "method": "execute",
       "expression_kind": "literal",
@@ -55659,9 +55634,9 @@
       ]
     },
     {
-      "id": "services/export/reports/strategy.py:781:8",
+      "id": "services/export/reports/strategy.py:775:8",
       "source": "services/export/reports/strategy.py",
-      "line": 781,
+      "line": 775,
       "scope": "generate_governance_coordination_health",
       "method": "execute",
       "expression_kind": "literal",
@@ -55682,9 +55657,9 @@
       ]
     },
     {
-      "id": "services/export/reports/strategy.py:790:8",
+      "id": "services/export/reports/strategy.py:784:8",
       "source": "services/export/reports/strategy.py",
-      "line": 790,
+      "line": 784,
       "scope": "generate_governance_coordination_health",
       "method": "execute",
       "expression_kind": "literal",
@@ -55705,9 +55680,9 @@
       ]
     },
     {
-      "id": "services/export/reports/strategy.py:799:8",
+      "id": "services/export/reports/strategy.py:793:8",
       "source": "services/export/reports/strategy.py",
-      "line": 799,
+      "line": 793,
       "scope": "generate_governance_coordination_health",
       "method": "execute",
       "expression_kind": "literal",

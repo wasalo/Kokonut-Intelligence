@@ -64,8 +64,8 @@ and [Standard recovery](builds/2026-11-03-recovery/standard-profile-recovery-746
 
 The runtime SQL review ledger now has 0 legacy-unreviewed fingerprints and 33
 reviewed-unresolved source records; this is source classification, not ACL
-approval. Current static role attribution covers 4,968 SQL sites: 1,000 API
-candidates, 328 worker candidates, three shared candidates, and 3,637
+approval. Current static role attribution covers 4,967 SQL sites: 1,000 API
+candidates, 328 worker candidates, three shared candidates, and 3,636
 unresolved. It resolves 358 API route roots and records 268 verified
 threadpool-callback edges; 56 worker dynamic-dispatch edges remain. The Standard
 API and general worker still share `kokonut_runtime`, and C1 remains open for
@@ -90,36 +90,41 @@ The callback resolver now records two Business Planning and five farm-activity
 helper edges after verifying that each route registrar receives Starlette's
 `run_in_threadpool` and that each helper call passes a literal, statically
 resolved writer. This moved 24 SQL sites from unresolved to API candidates; it
-does not prove route activation or make those sites API-exclusive. The analytics
-CLI also calls `suggest` and `create-from-data` through its own `get_db()`
-entrypoints, outside the OIDC route. The deployed CLI caller identity remains
-unassessed; `business_planning:create` scope and location filters do not by
-themselves establish a broader read policy. No grants or RLS changed.
+does not prove route activation or make those sites API-exclusive. The read-only
+analytics CLI `suggest` still uses its own `get_db()` entrypoint outside OIDC.
+The CLI persistence commands are now retired, while the Python
+`create_from_data()` helper remains a direct-write path whose external callers
+have not been ruled out. The CLI read identity for `suggest` remains unassessed;
+`business_planning:create` scope and location filters do not by themselves
+establish a broader read policy. No grants or RLS changed.
 
-### BMC legacy CLI writer boundary — owner decision pending — 3 November 2026
+### BMC legacy CLI writer boundary — approved CLI retirement — 3 November 2026
 
 The migration-745 runtime privilege report records effective DELETE, INSERT, and
 UPDATE on `business_model_canvas` and `canvas_version`, with RLS disabled and no
-explicit runtime DML revokes. Its source inventory identifies one canvas INSERT,
-three canvas UPDATE sites, and one `canvas_version` INSERT in
-`services/analytics/business_model_canvas.py`. Migration 746 does not change
-these BMC grants; no persistent target was re-queried for this source review
+explicit runtime DML revokes. The current source inventory identifies one
+`business_model_canvas` INSERT, two UPDATE sites, and one `canvas_version` INSERT
+remaining in `services/analytics/business_model_canvas.py`; the health-score
+UPDATE was removed. Migration 746 does not change these BMC grants, and no live
+ACL query or persistent-target change was made
 ([migration-745 ACL report](builds/2026-11-01-recovery/runtime-privilege-callsite-report-745.json)).
 
-The CLI `_cmd()` opens `get_db()` and calls direct `create`, `create-from-data`,
-`update-block`, `version`, and `health` operations without signed tenant
-context. `get_db()` uses the shared configured PG identity. The CLI accepts raw
-location, organization, or canvas identifiers. The report generator also calls
-`compute_health()`, but runs inside `generate_report_data_read_only()`; the
-UPDATE is rejected, caught, and the report returns a null health summary rather
-than persisting a score.
+The four CLI persistence commands `create`, `create-from-data`, `update-block`,
+and `version` fail closed in both `main()` and `_cmd()` before `get_db()` opens a
+connection. Their parser entries remain visible with a retirement message.
+Read-only `list`, `get`, `list-versions`, `suggest`, and `health` remain available.
+The health calculation is pure; `compute_health()` performs a read-only lookup,
+and the report generator calculates `health_summary` from its already-loaded
+canvas data without another query or attempted write.
 
-Signed Gateway alternatives exist for location-scoped create, block/metadata
-edits, and version listing via migrations 463–465. The remaining decision is
-whether to retire the legacy CLI mutation commands and make health calculation
-pure, or define a reviewed, separately scoped CLI identity and call contract.
-No CLI path, grant, or RLS policy was changed pending that decision; the direct
-DML test suite was not run against a persistent database.
+Authenticated Gateway alternatives cover location-scoped draft creation,
+from-data creation, block/metadata edits, and version-history reads through
+migrations 463–465. The Python `create`, `create_from_data`, `update_block`, and
+`create_version` helpers remain direct-write paths; external callers have not
+been ruled out. Their caller review and the effective shared-runtime table
+privileges remain unresolved and must be assessed separately before any ACL
+change. The direct-DML integration tests were run only with the database target
+pinned to unavailable loopback port 1; no persistent database was used.
 
 ### C1 worker-source cohort — scheduled sensor CSV — 3 November 2026
 
@@ -1266,13 +1271,15 @@ The detailed entries below are dated historical checkpoints through migration
   ([ACL report](builds/2026-11-01-recovery/runtime-privilege-callsite-report-745.json);
   [SQL review ledger](runtime-sql-unresolved-write-review.json)).
 - [x] Add and refresh the deterministic API/general-worker attribution map.
-  The current snapshot covers 4,968 SQL sites: 1,000 API candidates, 328 worker
-  candidates, three shared candidates, and 3,637 unresolved, including seven
-  verified helper callback edges across Business Planning and farm activity. The original
-  baseline covered 4,967 before later source retirements. The map records
-  Standard credential/default-child policy and separate OIDC/outbox route
-  identities; it reports 358 API route roots, 56 worker dynamic-dispatch edges,
-  and explicit unresolved labels ([inventory](runtime-role-attribution.json);
+  The current snapshot covers 4,967 SQL sites: 1,000 API candidates, 328 worker
+  candidates, three shared candidates, and 3,636 unresolved, including seven
+  verified helper callback edges across Business Planning and farm activity.
+  This is one fewer than the immediately prior 4,968-site capture after the BMC
+  health-score UPDATE was removed; the earlier pre-callback baseline also had
+  4,967 sites. The map records Standard credential/default-child policy and
+  separate OIDC/outbox route identities; it reports 358 API route roots, 56
+  worker dynamic-dispatch edges, and explicit unresolved labels
+  ([inventory](runtime-role-attribution.json);
   [generator](../../scripts/runtime_role_attribution.py)). The inventory
   checker passes; this is static source evidence only.
 - [x] Reconcile stale source-line metadata in the legacy write ledger and make
@@ -1381,7 +1388,7 @@ The detailed entries below are dated historical checkpoints through migration
   to a production operator, and provision the optional dedicated action login
   only after the complete ordered migration run. Disposable evidence does not
   activate the feature on a persistent target.
-- [ ] Review the current 3,637 unattributed SQL sites, 56 worker
+- [ ] Review the current 3,636 unattributed SQL sites, 56 worker
   dynamic-dispatch edges, persisted schedule activation, and external callers
   before defining any API/general-worker grants. Static attribution is not
   proof of runtime activation.

@@ -201,6 +201,9 @@ disabled; it is privilege reach, not confirmed writes, data leaks, or Internet
 exposure. C1 remains open for the rest of the writer/caller set,
 shared API/worker identity, external consumers and Directus API permissions,
 tenant/RLS boundaries, populated-data parity, and persistent-target rollout.
+The BMC CLI persistence commands are retired and its health score is now
+calculated read-only; direct Python write helpers and shared-runtime BMC
+privileges remain unchanged for separate caller/ACL review.
 See the [current C1 closure plan](c1-runtime-acl-closure-plan.md) and
 [migration-745 source/ACL report](builds/2026-11-01-recovery/runtime-privilege-callsite-report-745.json).
 

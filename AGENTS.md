@@ -767,8 +767,8 @@ Commands:
   - CLI: `python3 -m services.capital.cli capacity --location-id UUID` (output-capacity & under-mobilization per Form), `diversion --location-id UUID [--period-start DATE --period-end DATE]` (consumption-vs-reinvestment index), `capture --location-id UUID` (value-leakage / capture-risk signal), `credit propose --location-id UUID --source-type carbon_credit_surplus --amount N` (DRAFT only), `credit list --location-id UUID`, `credit capacity --location-id UUID` (network-underwritten deficit analog), `report --location-id UUID`.
   - Report type: `python3 -m services.export.report_generator --type capital_accounting --location-id UUID` (also surfaced inside `comprehensive_status` per location). Advisory-only; the `regenerative_credit_ledger` is a read-only view in the report. See boundary note under Persuasive technology above.
   - Single composite status report composing the canonical per-location sections (farm, crop NOI, environmental, climate impact, financial sustainability, capital efficiency, holistic + foundational wellbeing, community governance, GNH alignment, training impact, regenerative outcomes, stakeholder outcomes) into one document. `--all` / no location makes it network-wide: nests per-location bundles plus an ecosystem rollup (totals revenue/expenses/harvest). Each section is isolated; one failure is reported as an error, not breaking the composite.
-- Business Model Canvas 1-click: `python3 -m services.analytics.business_model_canvas create-from-data --location-id UUID [--canvas-name NAME] [--created-by UUID]`
-  - Derives all nine BMC blocks from existing Common-Data-Schema-derived tables (federation/cooperative/supplier, process_map, sensor/energy/cooperative assets, impact_claim, content_delivery channels, buyer_segment, revenue_event, expense_event, stakeholder_feedback) and persists a populated draft canvas in one call. Use `suggest --location-id UUID` for a read-only preview of the populated blocks and their data sources. Manual `create` (empty canvas) and `update-block` remain available.
+- Business Model Canvas 1-click draft: `POST /operator/api/business-planning/{location_id}/canvases/from-data`
+  - Creates a location-scoped draft through the authenticated Gateway and signed tenant context. The CLI persistence commands `create`, `create-from-data`, `update-block`, and `version` are retired. Use `suggest --location-id UUID` for a read-only preview; the Python write helpers and shared-runtime table privileges remain unchanged pending separate caller/ACL review.
 - Directus hook tests: `cd extensions/kokonut-hooks && npm test`
 - Directus hook build: `cd extensions/kokonut-hooks && npm run build`
 - Migration status: `python3 -m services.migration status`
@@ -1059,13 +1059,12 @@ Commands:
 - SWOT temporal list: `python3 -m services.analytics.swot temporal list --swot-id UUID`
 - SWOT action link: `python3 -m services.analytics.swot action link --swot-id UUID --description "Secure financing" [--factor-id UUID] [--strategy-id UUID]`
 - SWOT action list: `python3 -m services.analytics.swot action list --swot-id UUID`
-- BMC create: `python3 -m services.analytics.business_model_canvas create --location-id UUID [--canvas-name NAME] [--fiscal-year YEAR]`
+- BMC CLI persistence commands `create`, `create-from-data`, `update-block`, and `version` are retired; use authenticated location-scoped Gateway operations: `POST /operator/api/business-planning/{location_id}/canvases`, `POST /operator/api/business-planning/{location_id}/canvases/from-data`, `PATCH /operator/api/business-planning/{location_id}/canvases/{canvas_id}/blocks/{block_name}`, and `PATCH /operator/api/business-planning/{location_id}/canvases/{canvas_id}/metadata`.
 - BMC list: `python3 -m services.analytics.business_model_canvas list --location-id UUID`
 - BMC get: `python3 -m services.analytics.business_model_canvas get --canvas-id UUID`
-- BMC update-block: `python3 -m services.analytics.business_model_canvas update-block --canvas-id UUID --block key_partners --items '[{"name":"P1"}]'`
-- BMC version: `python3 -m services.analytics.business_model_canvas version --canvas-id UUID`
+- BMC version history: `python3 -m services.analytics.business_model_canvas list-versions --canvas-id UUID`
 - BMC suggest: `python3 -m services.analytics.business_model_canvas suggest --location-id UUID`
-- BMC health: `python3 -m services.analytics.business_model_canvas health --canvas-id UUID`
+- BMC health: `python3 -m services.analytics.business_model_canvas health --canvas-id UUID` (calculated on demand; no score is persisted)
 - Revenue stream create: `python3 -m services.analytics.revenue_model create-stream --location-id UUID --stream-name NAME --stream-type TYPE`
 - Revenue stream list: `python3 -m services.analytics.revenue_model list-streams --location-id UUID`
 - Pricing create: `python3 -m services.analytics.revenue_model create-pricing --location-id UUID --product-name NAME --pricing-type TYPE --base-price PRICE`

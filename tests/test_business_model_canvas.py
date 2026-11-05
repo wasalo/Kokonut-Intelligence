@@ -1,12 +1,14 @@
 """Tests for the Business Model Canvas service."""
 
-import json
+import sys
+from types import SimpleNamespace
+from unittest.mock import MagicMock
 
-import pytest
 import psycopg2
+import pytest
 
-from services.ingestion.base import get_db
 from services.analytics import business_model_canvas as bmc
+from services.ingestion.base import get_db
 
 
 def _db():
@@ -32,6 +34,56 @@ def test_module_shape():
     assert hasattr(bmc, "list_versions")
     assert hasattr(bmc, "suggest")
     assert hasattr(bmc, "compute_health")
+
+
+@pytest.mark.parametrize(
+    ("command", "command_args"),
+    [
+        ("create", []),
+        ("create-from-data", []),
+        ("update-block", ["--canvas-id", "canvas-id", "--block", "key_partners"]),
+        ("version", ["--canvas-id", "canvas-id"]),
+    ],
+)
+def test_retired_cli_persistence_commands_fail_before_database_access(
+    monkeypatch, capsys, command, command_args
+):
+    get_db_mock = MagicMock()
+    monkeypatch.setattr(bmc, "get_db", get_db_mock)
+    monkeypatch.setattr(sys, "argv", ["business_model_canvas", command, *command_args])
+
+    with pytest.raises(SystemExit) as exc_info:
+        bmc.main()
+
+    assert exc_info.value.code == 2
+    get_db_mock.assert_not_called()
+    assert bmc._BMC_CLI_RETIREMENT_MESSAGE in capsys.readouterr().err
+
+
+@pytest.mark.parametrize(
+    "command", ["create", "create-from-data", "update-block", "version"]
+)
+def test_cmd_rejects_retired_commands_before_database_access(monkeypatch, command):
+    get_db_mock = MagicMock()
+    monkeypatch.setattr(bmc, "get_db", get_db_mock)
+
+    with pytest.raises(ValueError, match="BMC CLI persistence is retired"):
+        bmc._cmd(SimpleNamespace(command=command))
+
+    get_db_mock.assert_not_called()
+
+
+def test_cli_help_keeps_retired_commands_visible(monkeypatch, capsys):
+    monkeypatch.setattr(sys, "argv", ["business_model_canvas", "--help"])
+
+    with pytest.raises(SystemExit) as exc_info:
+        bmc.main()
+
+    assert exc_info.value.code == 0
+    help_text = capsys.readouterr().out
+    for command in bmc._BMC_RETIRED_CLI_COMMANDS:
+        assert command in help_text
+    assert bmc._BMC_CLI_RETIREMENT_MESSAGE in " ".join(help_text.split())
 
 
 def test_create_and_list():
@@ -151,6 +203,35 @@ def test_suggest():
         pytest.skip("business_model_canvas table not present (migration not applied)")
     finally:
         conn.close()
+
+
+def test_calculate_health_scores_blocks_and_bonuses_without_database_access():
+    canvas = {block: [] for block in bmc.BMC_BLOCKS}
+    canvas["key_partners"] = [{"name": "Partner A"}, {"name": "Partner B"}]
+    canvas["value_propositions"] = [{"name": "Value"}]
+    canvas["cost_structure"] = {"USD": 100.0}
+    canvas["jobs"] = [{"name": "Customer job"}]
+
+    health = bmc._calculate_health(canvas)
+
+    assert health["health_score"] == 43.3
+    assert health["breakdown"]["key_partners"] == 13.1
+    assert health["breakdown"]["value_propositions"] == 11.1
+    assert health["breakdown"]["cost_structure"] == 11.1
+    assert health["breakdown"]["vpc_link_bonus"] == 5
+    assert health["breakdown"]["cost_data_bonus"] == 3
+
+
+def test_compute_health_reads_canvas_without_writing(monkeypatch):
+    conn = MagicMock()
+    canvas = {block: [] for block in bmc.BMC_BLOCKS}
+    monkeypatch.setattr(bmc, "get", lambda _conn, _canvas_id: canvas)
+
+    health = bmc.compute_health(conn, "canvas-id")
+
+    assert health["health_score"] == 0.0
+    conn.cursor.assert_not_called()
+    conn.commit.assert_not_called()
 
 
 def test_compute_health():

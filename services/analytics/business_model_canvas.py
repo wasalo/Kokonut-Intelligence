@@ -24,6 +24,13 @@ BMC_BLOCKS = [
     "value_propositions", "customer_relationships", "channels",
     "customer_segments", "revenue_streams", "cost_structure",
 ]
+_BMC_RETIRED_CLI_COMMANDS = frozenset(
+    {"create", "create-from-data", "update-block", "version"}
+)
+_BMC_CLI_RETIREMENT_MESSAGE = (
+    "BMC CLI persistence is retired; use the authenticated Gateway "
+    "business-planning routes."
+)
 
 
 def _entity(org_id: Optional[str], location_id: Optional[str]):
@@ -472,20 +479,9 @@ def suggest(
     }
 
 
-def compute_health(conn, canvas_id: str) -> Dict[str, Any]:
-    """Compute composite health score (0-100) across all 9 BMC blocks.
-
-    Scoring: each populated block adds ~11.1 points. Quality modifiers:
-    - Blocks with non-empty content: full points
-    - Blocks with structured data (lists with >1 item): bonus 2 points
-    - Value Propositions linked to customer jobs: bonus 5 points
-    - Cost Structure with actual data: bonus 3 points
-    """
-    canvas = get(conn, canvas_id)
-    if not canvas:
-        raise ValueError(f"canvas {canvas_id} not found")
-
-    base_per_block = 100.0 / 9  # ~11.11
+def _calculate_health(canvas: Dict[str, Any]) -> Dict[str, Any]:
+    """Compute composite health score (0-100) across all 9 BMC blocks."""
+    base_per_block = 100.0 / 9
     score = 0.0
     breakdown = {}
 
@@ -496,7 +492,7 @@ def compute_health(conn, canvas_id: str) -> Dict[str, Any]:
             if isinstance(value, list) and len(value) > 0:
                 block_score = base_per_block
                 if len(value) > 1:
-                    block_score += 2  # bonus for multiple items
+                    block_score += 2
             elif isinstance(value, dict) and value:
                 block_score = base_per_block
                 if len(value) > 1:
@@ -506,36 +502,33 @@ def compute_health(conn, canvas_id: str) -> Dict[str, Any]:
         breakdown[block] = round(block_score, 1)
         score += block_score
 
-    # Bonus: value propositions linked to jobs
     jobs = canvas.get("jobs", [])
     vps = canvas.get("value_propositions", [])
     if jobs and vps:
         score += 5
         breakdown["vpc_link_bonus"] = 5
 
-    # Bonus: cost structure has actual data
-    cs = canvas.get("cost_structure", {})
-    if cs and isinstance(cs, dict) and any(v > 0 for v in cs.values() if isinstance(v, (int, float))):
+    cost_structure = canvas.get("cost_structure", {})
+    if cost_structure and isinstance(cost_structure, dict) and any(
+        value > 0 for value in cost_structure.values() if isinstance(value, (int, float))
+    ):
         score += 3
         breakdown["cost_data_bonus"] = 3
 
-    score = min(100.0, round(score, 1))
+    return {"health_score": min(100.0, round(score, 1)), "breakdown": breakdown}
 
-    with conn.cursor() as cur:
-        cur.execute(
-            """
-            UPDATE business_model_canvas
-            SET health_score = %s, health_score_breakdown = %s, health_score_computed_at = NOW()
-            WHERE id = %s
-            """,
-            (score, json.dumps(breakdown), canvas_id),
-        )
-        conn.commit()
 
-    return {"health_score": score, "breakdown": breakdown}
+def compute_health(conn, canvas_id: str) -> Dict[str, Any]:
+    """Read a canvas and compute its health score without persisting it."""
+    canvas = get(conn, canvas_id)
+    if not canvas:
+        raise ValueError(f"canvas {canvas_id} not found")
+    return _calculate_health(canvas)
 
 
 def _cmd(args) -> None:
+    if args.command in _BMC_RETIRED_CLI_COMMANDS:
+        raise ValueError(_BMC_CLI_RETIREMENT_MESSAGE)
     conn = get_db()
     try:
         if args.command == "create":
@@ -583,14 +576,22 @@ def main() -> None:
     p.add_argument("--org-id", default=None)
     sub = p.add_subparsers(dest="command", required=True)
 
-    c = sub.add_parser("create")
+    c = sub.add_parser(
+        "create",
+        help=_BMC_CLI_RETIREMENT_MESSAGE,
+        description=_BMC_CLI_RETIREMENT_MESSAGE,
+    )
     c.add_argument("--canvas-name", default="Primary Canvas")
     c.add_argument("--description", default=None)
     c.add_argument("--fiscal-year", type=int, default=None)
     c.add_argument("--tags", nargs="*", default=[])
     c.add_argument("--created-by", default=None)
 
-    cf = sub.add_parser("create-from-data", help="One-click BMC derived from existing platform data")
+    cf = sub.add_parser(
+        "create-from-data",
+        help=_BMC_CLI_RETIREMENT_MESSAGE,
+        description=_BMC_CLI_RETIREMENT_MESSAGE,
+    )
     cf.add_argument("--canvas-name", default="Primary Canvas (auto)")
     cf.add_argument("--description", default=None)
     cf.add_argument("--fiscal-year", type=int, default=None)
@@ -602,13 +603,21 @@ def main() -> None:
     g = sub.add_parser("get")
     g.add_argument("--canvas-id", required=True)
 
-    u = sub.add_parser("update-block")
+    u = sub.add_parser(
+        "update-block",
+        help=_BMC_CLI_RETIREMENT_MESSAGE,
+        description=_BMC_CLI_RETIREMENT_MESSAGE,
+    )
     u.add_argument("--canvas-id", required=True)
     u.add_argument("--block", required=True, choices=BMC_BLOCKS)
     u.add_argument("--items", default="[]", help="JSON array or object")
     u.add_argument("--updated-by", default=None)
 
-    v = sub.add_parser("version")
+    v = sub.add_parser(
+        "version",
+        help=_BMC_CLI_RETIREMENT_MESSAGE,
+        description=_BMC_CLI_RETIREMENT_MESSAGE,
+    )
     v.add_argument("--canvas-id", required=True)
     v.add_argument("--changes", default=None)
     v.add_argument("--change_reason", default=None)
@@ -624,6 +633,8 @@ def main() -> None:
     h.add_argument("--canvas-id", required=True)
 
     args = p.parse_args()
+    if args.command in _BMC_RETIRED_CLI_COMMANDS:
+        p.error(_BMC_CLI_RETIREMENT_MESSAGE)
     _cmd(args)
 
 

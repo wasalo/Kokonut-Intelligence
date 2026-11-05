@@ -5109,16 +5109,17 @@ bootstrap/reapplication and outage/stalled-child recovery. No live capabilities
 were granted and no candidate, legacy, or production database was changed.
 
 The runtime SQL review ledger has 0 legacy-unreviewed and 33
-reviewed-unresolved source records. Static role attribution covers 4,968 SQL
-sites (1,000 API, 328 worker, 3 shared, 3,637 unresolved), 358 API route roots,
+reviewed-unresolved source records. Static role attribution covers 4,967 SQL
+sites (1,000 API, 328 worker, 3 shared, 3,636 unresolved), 358 API route roots,
 268 verified helper-callback edges, and 56 worker dynamic-dispatch edges. Seven
 literal callbacks now cross verified Gateway threadpool helpers; this source
-mapping adds no grants or RLS. The BMC `from-data` path is location-bound and
-uses signed context, but its shared-connection CLI caller remains outside the
-OIDC route graph. The native source/ACL report remains through migration 745 at
-906 public-schema tables with effective runtime DML while RLS is disabled. C1
-remains open; next review the 3,637 unattributed sites and external callers
-without inferring privilege revocations from source absence.
+mapping adds no grants or RLS. The BMC `from-data` Gateway path is location-bound
+and uses signed context; the legacy CLI persistence commands are retired, while
+the read-only `suggest` CLI remains outside the OIDC route graph. The native
+source/ACL report remains through migration 745 at 906 public-schema tables with
+effective runtime DML while RLS is disabled. C1 remains open; next review the
+3,636 unattributed sites and external callers without inferring privilege
+revocations from source absence.
 
 The scheduled sensor worker is source-mapped to its literal CSV-driver target,
 dedicated `sensor_ingestion` login, signed location context, and bounded batch
@@ -5133,9 +5134,14 @@ persistent grants or RLS changed. See
 [Standard recovery](builds/2026-11-03-recovery/standard-profile-recovery-746-disposable.json),
 and the [C1 closure plan](c1-runtime-acl-closure-plan.md).
 
-The migration-745 privilege report also shows effective shared-runtime DML on
-`business_model_canvas` and `canvas_version`, with RLS disabled. The legacy BMC
-CLI and its direct writes are separate from the signed Gateway functions; the
-report generator's `compute_health` update is denied by its read-only transaction
-and currently returns no health summary. The CLI boundary is awaiting an owner
-decision; no grant has been revoked or new identity introduced.
+The migration-745 privilege report continues to show effective shared-runtime
+DML on `business_model_canvas` and `canvas_version`, with RLS disabled. The four
+BMC CLI persistence commands (`create`, `create-from-data`, `update-block`, and
+`version`) are now retired and fail before database access. `health` calculates
+on demand without writing, and the report generator returns a populated health
+summary from its already-loaded canvas data inside the read-only wrapper.
+
+The Python `create`, `create_from_data`, `update_block`, and `create_version`
+helpers remain direct-write sources; no claim is made that external callers are
+absent. Their caller review and effective shared-runtime table privileges remain
+open. No migration, grant, RLS policy, or persistent database was changed.
