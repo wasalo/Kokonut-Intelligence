@@ -26915,9 +26915,10 @@ changed
 
 The unresolved-write ledger now contains zero legacy-unreviewed fingerprints
 and 33 reviewed-unresolved records; this is source review, not ACL approval.
-The static runtime-role report covers 4,968 SQL sites (976 API candidates, 328
-worker candidates, three shared candidates, and 3,661 unresolved), 358 API route
-roots, and 56 worker dynamic-dispatch edges. The worker inventory reports 49
+The static runtime-role report covers 4,968 SQL sites (1,000 API candidates,
+328 worker candidates, three shared candidates, and 3,637 unresolved), 358 API
+route roots, 268 verified helper-callback edges, and 56 worker dynamic-dispatch
+edges. The worker inventory reports 49
 operation roots, 439 SQL execution sites (350 literal and 89 composed/variable),
 1,152 function memberships, and 1,654 direct-call edges. The Standard API and
 general worker still share `kokonut_runtime`; broad C1 caller attribution,
@@ -26930,3 +26931,24 @@ run disabled the broken `platformdirs.pytest_plugin` autoload and pinned
 `PG_HOST=127.0.0.1 PG_PORT=1` so database-dependent tests could not connect to a
 persistent database. Ruff, compilation, `git diff --check`, and all runtime,
 worker, and report-helper inventory freshness gates passed.
+
+### BMC and farm-activity helper callback attribution — 3 November 2026
+
+The route graph now follows seven statically bound callback edges through
+verified Starlette threadpool helpers: two Business Planning writers and five
+farm-activity operations. The refreshed attribution report moves 24 SQL sites
+from unresolved to API candidates; it does not change worker/shared candidates,
+ACLs, or RLS.
+
+A TestClient regression exercises the actual BMC `from-data` route, the real
+writer and `suggest` helper, and the signed location-context setter using a
+synthetic session token and fake connection. It confirms context is established
+before all nine location-bound SELECT variants and that the bounded draft
+function uses the same transaction. Existing BMC tests retain verified/public,
+consent, and currency checks.
+
+The analytics CLI still calls `suggest` and `create-from-data` through separate
+`get_db()` entrypoints outside the OIDC route, so API candidacy is not API-only.
+The CLI execution identity and the authorization meaning of
+`business_planning:create` for the suggestion reads remain open. No live database,
+grant, or tenant policy changed; the focused callback/BMC suites passed 39 tests.

@@ -5,16 +5,16 @@
   "summary": {
     "sql_execution_sites": 4968,
     "attribution_counts": {
-      "api_candidate": 976,
+      "api_candidate": 1000,
       "worker_candidate": 328,
       "shared_candidate": 3,
-      "unresolved": 3661
+      "unresolved": 3637
     },
     "api_route_root_count": 358,
-    "api_static_function_count": 1112,
-    "api_verified_threadpool_callback_edge_count": 261,
-    "api_static_sql_site_count": 979,
-    "api_threadpool_callback_sql_site_count": 943,
+    "api_static_function_count": 1134,
+    "api_verified_threadpool_callback_edge_count": 268,
+    "api_static_sql_site_count": 1003,
+    "api_threadpool_callback_sql_site_count": 967,
     "api_dynamic_dispatch_edge_count": 0,
     "api_unresolved_route_registration_count": 0,
     "api_dynamic_import_site_count": 5,
@@ -23,7 +23,7 @@
     "worker_static_sql_site_count": 331,
     "worker_sites_without_static_function_match": 4637,
     "sites_in_both_api_and_worker_graphs": 3,
-    "unresolved_site_count": 3661
+    "unresolved_site_count": 3637
   },
   "process_and_credential_policy": {
     "standard_api": {
@@ -2128,6 +2128,20 @@
       "dispatch": "verified_starlette_run_in_threadpool_callback"
     },
     {
+      "caller": "services.gateway.business_planning_routes:register_business_planning_routes._create_canvas_response",
+      "callee": "services.gateway.business_planning_writes:create_location_business_model_canvas",
+      "source": "services/gateway/business_planning_routes.py",
+      "line": 220,
+      "dispatch": "verified_starlette_run_in_threadpool_callback"
+    },
+    {
+      "caller": "services.gateway.business_planning_routes:register_business_planning_routes._create_canvas_response",
+      "callee": "services.gateway.business_planning_writes:create_location_business_model_canvas_from_data",
+      "source": "services/gateway/business_planning_routes.py",
+      "line": 220,
+      "dispatch": "verified_starlette_run_in_threadpool_callback"
+    },
+    {
       "caller": "services.gateway.business_planning_routes:register_business_planning_routes.location_business_model_canvases",
       "callee": "services.gateway.business_planning_reads:list_location_business_model_canvases",
       "source": "services/gateway/business_planning_routes.py",
@@ -2363,6 +2377,41 @@
       "callee": "services.gateway.extension_learning_writes:update_location_extension_learning_progress",
       "source": "services/gateway/extension_learning_routes.py",
       "line": 649,
+      "dispatch": "verified_starlette_run_in_threadpool_callback"
+    },
+    {
+      "caller": "services.gateway.farm_activity_routes:register_farm_activity_record_routes._invoke",
+      "callee": "services.gateway.farm_activity_records:create_farm_activity_record",
+      "source": "services/gateway/farm_activity_routes.py",
+      "line": 335,
+      "dispatch": "verified_starlette_run_in_threadpool_callback"
+    },
+    {
+      "caller": "services.gateway.farm_activity_routes:register_farm_activity_record_routes._invoke",
+      "callee": "services.gateway.farm_activity_records:edit_farm_activity_record_draft",
+      "source": "services/gateway/farm_activity_routes.py",
+      "line": 335,
+      "dispatch": "verified_starlette_run_in_threadpool_callback"
+    },
+    {
+      "caller": "services.gateway.farm_activity_routes:register_farm_activity_record_routes._invoke",
+      "callee": "services.gateway.farm_activity_records:get_farm_activity_record",
+      "source": "services/gateway/farm_activity_routes.py",
+      "line": 335,
+      "dispatch": "verified_starlette_run_in_threadpool_callback"
+    },
+    {
+      "caller": "services.gateway.farm_activity_routes:register_farm_activity_record_routes._invoke",
+      "callee": "services.gateway.farm_activity_records:list_farm_activity_records",
+      "source": "services/gateway/farm_activity_routes.py",
+      "line": 335,
+      "dispatch": "verified_starlette_run_in_threadpool_callback"
+    },
+    {
+      "caller": "services.gateway.farm_activity_routes:register_farm_activity_record_routes._invoke",
+      "callee": "services.gateway.farm_activity_records:transition_farm_activity_record",
+      "source": "services/gateway/farm_activity_routes.py",
+      "line": 335,
       "dispatch": "verified_starlette_run_in_threadpool_callback"
     },
     {
@@ -10393,14 +10442,13 @@
       "static_sql_sha256": null,
       "candidate_relations": [],
       "write_target_relations": [],
-      "api_static_reachability": "no_static_route_path",
+      "api_static_reachability": "linked",
       "worker_static_operations": [],
       "worker_static_review_status": "function_not_reached_by_any_static_worker_root",
-      "attribution": "unresolved",
+      "attribution": "api_candidate",
       "review_labels": [
-        "no_static_gateway_route_path_dynamic_or_non_api_possible",
-        "worker_sql_site_not_statically_reached_dynamic_or_unresolved_possible",
-        "gateway_import_closure_but_route_reachability_unresolved"
+        "gateway_route_starlette_threadpool_callback_path",
+        "worker_sql_site_not_statically_reached_dynamic_or_unresolved_possible"
       ]
     },
     {
@@ -10414,14 +10462,13 @@
       "static_sql_sha256": null,
       "candidate_relations": [],
       "write_target_relations": [],
-      "api_static_reachability": "no_static_route_path",
+      "api_static_reachability": "linked",
       "worker_static_operations": [],
       "worker_static_review_status": "function_not_reached_by_any_static_worker_root",
-      "attribution": "unresolved",
+      "attribution": "api_candidate",
       "review_labels": [
-        "no_static_gateway_route_path_dynamic_or_non_api_possible",
-        "worker_sql_site_not_statically_reached_dynamic_or_unresolved_possible",
-        "gateway_import_closure_but_route_reachability_unresolved"
+        "gateway_route_starlette_threadpool_callback_path",
+        "worker_sql_site_not_statically_reached_dynamic_or_unresolved_possible"
       ]
     },
     {
@@ -10435,14 +10482,13 @@
       "static_sql_sha256": null,
       "candidate_relations": [],
       "write_target_relations": [],
-      "api_static_reachability": "no_static_route_path",
+      "api_static_reachability": "linked",
       "worker_static_operations": [],
       "worker_static_review_status": "function_not_reached_by_any_static_worker_root",
-      "attribution": "unresolved",
+      "attribution": "api_candidate",
       "review_labels": [
-        "no_static_gateway_route_path_dynamic_or_non_api_possible",
-        "worker_sql_site_not_statically_reached_dynamic_or_unresolved_possible",
-        "gateway_import_closure_but_route_reachability_unresolved"
+        "gateway_route_starlette_threadpool_callback_path",
+        "worker_sql_site_not_statically_reached_dynamic_or_unresolved_possible"
       ]
     },
     {
@@ -10456,14 +10502,13 @@
       "static_sql_sha256": null,
       "candidate_relations": [],
       "write_target_relations": [],
-      "api_static_reachability": "no_static_route_path",
+      "api_static_reachability": "linked",
       "worker_static_operations": [],
       "worker_static_review_status": "function_not_reached_by_any_static_worker_root",
-      "attribution": "unresolved",
+      "attribution": "api_candidate",
       "review_labels": [
-        "no_static_gateway_route_path_dynamic_or_non_api_possible",
-        "worker_sql_site_not_statically_reached_dynamic_or_unresolved_possible",
-        "gateway_import_closure_but_route_reachability_unresolved"
+        "gateway_route_starlette_threadpool_callback_path",
+        "worker_sql_site_not_statically_reached_dynamic_or_unresolved_possible"
       ]
     },
     {
@@ -10477,14 +10522,13 @@
       "static_sql_sha256": null,
       "candidate_relations": [],
       "write_target_relations": [],
-      "api_static_reachability": "no_static_route_path",
+      "api_static_reachability": "linked",
       "worker_static_operations": [],
       "worker_static_review_status": "function_not_reached_by_any_static_worker_root",
-      "attribution": "unresolved",
+      "attribution": "api_candidate",
       "review_labels": [
-        "no_static_gateway_route_path_dynamic_or_non_api_possible",
-        "worker_sql_site_not_statically_reached_dynamic_or_unresolved_possible",
-        "gateway_import_closure_but_route_reachability_unresolved"
+        "gateway_route_starlette_threadpool_callback_path",
+        "worker_sql_site_not_statically_reached_dynamic_or_unresolved_possible"
       ]
     },
     {
@@ -61072,14 +61116,13 @@
         "kokonut_security.create_location_business_model_canvas"
       ],
       "write_target_relations": [],
-      "api_static_reachability": "no_static_route_path",
+      "api_static_reachability": "linked",
       "worker_static_operations": [],
       "worker_static_review_status": "function_not_reached_by_any_static_worker_root",
-      "attribution": "unresolved",
+      "attribution": "api_candidate",
       "review_labels": [
-        "no_static_gateway_route_path_dynamic_or_non_api_possible",
-        "worker_sql_site_not_statically_reached_dynamic_or_unresolved_possible",
-        "gateway_import_closure_but_route_reachability_unresolved"
+        "gateway_route_starlette_threadpool_callback_path",
+        "worker_sql_site_not_statically_reached_dynamic_or_unresolved_possible"
       ]
     },
     {
@@ -61093,14 +61136,13 @@
       "static_sql_sha256": "7346ddf58ceeb31a31fd4f44990faf92a5bf015f93c675513e2bc17e5c3619db",
       "candidate_relations": [],
       "write_target_relations": [],
-      "api_static_reachability": "no_static_route_path",
+      "api_static_reachability": "linked",
       "worker_static_operations": [],
       "worker_static_review_status": "function_not_reached_by_any_static_worker_root",
-      "attribution": "unresolved",
+      "attribution": "api_candidate",
       "review_labels": [
-        "no_static_gateway_route_path_dynamic_or_non_api_possible",
-        "worker_sql_site_not_statically_reached_dynamic_or_unresolved_possible",
-        "gateway_import_closure_but_route_reachability_unresolved"
+        "gateway_route_starlette_threadpool_callback_path",
+        "worker_sql_site_not_statically_reached_dynamic_or_unresolved_possible"
       ]
     },
     {
@@ -61114,14 +61156,13 @@
       "static_sql_sha256": "e7919abcde4ac704789f51f749423dc38cacd353c98fb8c089b4c0c316e4df9c",
       "candidate_relations": [],
       "write_target_relations": [],
-      "api_static_reachability": "no_static_route_path",
+      "api_static_reachability": "linked",
       "worker_static_operations": [],
       "worker_static_review_status": "function_not_reached_by_any_static_worker_root",
-      "attribution": "unresolved",
+      "attribution": "api_candidate",
       "review_labels": [
-        "no_static_gateway_route_path_dynamic_or_non_api_possible",
-        "worker_sql_site_not_statically_reached_dynamic_or_unresolved_possible",
-        "gateway_import_closure_but_route_reachability_unresolved"
+        "gateway_route_starlette_threadpool_callback_path",
+        "worker_sql_site_not_statically_reached_dynamic_or_unresolved_possible"
       ]
     },
     {
@@ -64533,14 +64574,13 @@
       "static_sql_sha256": "d9946d44ba3ecfd34d8e9419a4918e0cee4d99c52737f63b62043c82b60030e5",
       "candidate_relations": [],
       "write_target_relations": [],
-      "api_static_reachability": "no_static_route_path",
+      "api_static_reachability": "linked",
       "worker_static_operations": [],
       "worker_static_review_status": "function_not_reached_by_any_static_worker_root",
-      "attribution": "unresolved",
+      "attribution": "api_candidate",
       "review_labels": [
-        "no_static_gateway_route_path_dynamic_or_non_api_possible",
-        "worker_sql_site_not_statically_reached_dynamic_or_unresolved_possible",
-        "gateway_import_closure_but_route_reachability_unresolved"
+        "gateway_route_starlette_threadpool_callback_path",
+        "worker_sql_site_not_statically_reached_dynamic_or_unresolved_possible"
       ]
     },
     {
@@ -64554,14 +64594,13 @@
       "static_sql_sha256": "e7919abcde4ac704789f51f749423dc38cacd353c98fb8c089b4c0c316e4df9c",
       "candidate_relations": [],
       "write_target_relations": [],
-      "api_static_reachability": "no_static_route_path",
+      "api_static_reachability": "linked",
       "worker_static_operations": [],
       "worker_static_review_status": "function_not_reached_by_any_static_worker_root",
-      "attribution": "unresolved",
+      "attribution": "api_candidate",
       "review_labels": [
-        "no_static_gateway_route_path_dynamic_or_non_api_possible",
-        "worker_sql_site_not_statically_reached_dynamic_or_unresolved_possible",
-        "gateway_import_closure_but_route_reachability_unresolved"
+        "gateway_route_starlette_threadpool_callback_path",
+        "worker_sql_site_not_statically_reached_dynamic_or_unresolved_possible"
       ]
     },
     {
@@ -64575,14 +64614,13 @@
       "static_sql_sha256": "2c10ce6be2080436ebcdce49c814e0f0e625c1f737e7278a2f54c88dab6fe5b4",
       "candidate_relations": [],
       "write_target_relations": [],
-      "api_static_reachability": "no_static_route_path",
+      "api_static_reachability": "linked",
       "worker_static_operations": [],
       "worker_static_review_status": "function_not_reached_by_any_static_worker_root",
-      "attribution": "unresolved",
+      "attribution": "api_candidate",
       "review_labels": [
-        "no_static_gateway_route_path_dynamic_or_non_api_possible",
-        "worker_sql_site_not_statically_reached_dynamic_or_unresolved_possible",
-        "gateway_import_closure_but_route_reachability_unresolved"
+        "gateway_route_starlette_threadpool_callback_path",
+        "worker_sql_site_not_statically_reached_dynamic_or_unresolved_possible"
       ]
     },
     {
@@ -64598,14 +64636,13 @@
         "farm_task"
       ],
       "write_target_relations": [],
-      "api_static_reachability": "no_static_route_path",
+      "api_static_reachability": "linked",
       "worker_static_operations": [],
       "worker_static_review_status": "function_not_reached_by_any_static_worker_root",
-      "attribution": "unresolved",
+      "attribution": "api_candidate",
       "review_labels": [
-        "no_static_gateway_route_path_dynamic_or_non_api_possible",
-        "worker_sql_site_not_statically_reached_dynamic_or_unresolved_possible",
-        "gateway_import_closure_but_route_reachability_unresolved"
+        "gateway_route_starlette_threadpool_callback_path",
+        "worker_sql_site_not_statically_reached_dynamic_or_unresolved_possible"
       ]
     },
     {
@@ -64621,14 +64658,13 @@
         "farm_activity"
       ],
       "write_target_relations": [],
-      "api_static_reachability": "no_static_route_path",
+      "api_static_reachability": "linked",
       "worker_static_operations": [],
       "worker_static_review_status": "function_not_reached_by_any_static_worker_root",
-      "attribution": "unresolved",
+      "attribution": "api_candidate",
       "review_labels": [
-        "no_static_gateway_route_path_dynamic_or_non_api_possible",
-        "worker_sql_site_not_statically_reached_dynamic_or_unresolved_possible",
-        "gateway_import_closure_but_route_reachability_unresolved"
+        "gateway_route_starlette_threadpool_callback_path",
+        "worker_sql_site_not_statically_reached_dynamic_or_unresolved_possible"
       ]
     },
     {
@@ -64646,14 +64682,13 @@
         "lateral"
       ],
       "write_target_relations": [],
-      "api_static_reachability": "no_static_route_path",
+      "api_static_reachability": "linked",
       "worker_static_operations": [],
       "worker_static_review_status": "function_not_reached_by_any_static_worker_root",
-      "attribution": "unresolved",
+      "attribution": "api_candidate",
       "review_labels": [
-        "no_static_gateway_route_path_dynamic_or_non_api_possible",
-        "worker_sql_site_not_statically_reached_dynamic_or_unresolved_possible",
-        "gateway_import_closure_but_route_reachability_unresolved"
+        "gateway_route_starlette_threadpool_callback_path",
+        "worker_sql_site_not_statically_reached_dynamic_or_unresolved_possible"
       ]
     },
     {
@@ -64671,14 +64706,13 @@
       "write_target_relations": [
         "farm_activity"
       ],
-      "api_static_reachability": "no_static_route_path",
+      "api_static_reachability": "linked",
       "worker_static_operations": [],
       "worker_static_review_status": "function_not_reached_by_any_static_worker_root",
-      "attribution": "unresolved",
+      "attribution": "api_candidate",
       "review_labels": [
-        "no_static_gateway_route_path_dynamic_or_non_api_possible",
-        "worker_sql_site_not_statically_reached_dynamic_or_unresolved_possible",
-        "gateway_import_closure_but_route_reachability_unresolved"
+        "gateway_route_starlette_threadpool_callback_path",
+        "worker_sql_site_not_statically_reached_dynamic_or_unresolved_possible"
       ]
     },
     {
@@ -64694,14 +64728,13 @@
         "farm_activity_operator_event"
       ],
       "write_target_relations": [],
-      "api_static_reachability": "no_static_route_path",
+      "api_static_reachability": "linked",
       "worker_static_operations": [],
       "worker_static_review_status": "function_not_reached_by_any_static_worker_root",
-      "attribution": "unresolved",
+      "attribution": "api_candidate",
       "review_labels": [
-        "no_static_gateway_route_path_dynamic_or_non_api_possible",
-        "worker_sql_site_not_statically_reached_dynamic_or_unresolved_possible",
-        "gateway_import_closure_but_route_reachability_unresolved"
+        "gateway_route_starlette_threadpool_callback_path",
+        "worker_sql_site_not_statically_reached_dynamic_or_unresolved_possible"
       ]
     },
     {
@@ -64717,14 +64750,13 @@
         "farm_activity"
       ],
       "write_target_relations": [],
-      "api_static_reachability": "no_static_route_path",
+      "api_static_reachability": "linked",
       "worker_static_operations": [],
       "worker_static_review_status": "function_not_reached_by_any_static_worker_root",
-      "attribution": "unresolved",
+      "attribution": "api_candidate",
       "review_labels": [
-        "no_static_gateway_route_path_dynamic_or_non_api_possible",
-        "worker_sql_site_not_statically_reached_dynamic_or_unresolved_possible",
-        "gateway_import_closure_but_route_reachability_unresolved"
+        "gateway_route_starlette_threadpool_callback_path",
+        "worker_sql_site_not_statically_reached_dynamic_or_unresolved_possible"
       ]
     },
     {
@@ -64742,14 +64774,13 @@
       "write_target_relations": [
         "farm_activity"
       ],
-      "api_static_reachability": "no_static_route_path",
+      "api_static_reachability": "linked",
       "worker_static_operations": [],
       "worker_static_review_status": "function_not_reached_by_any_static_worker_root",
-      "attribution": "unresolved",
+      "attribution": "api_candidate",
       "review_labels": [
-        "no_static_gateway_route_path_dynamic_or_non_api_possible",
-        "worker_sql_site_not_statically_reached_dynamic_or_unresolved_possible",
-        "gateway_import_closure_but_route_reachability_unresolved"
+        "gateway_route_starlette_threadpool_callback_path",
+        "worker_sql_site_not_statically_reached_dynamic_or_unresolved_possible"
       ]
     },
     {
@@ -64765,14 +64796,13 @@
         "farm_activity_operator_event"
       ],
       "write_target_relations": [],
-      "api_static_reachability": "no_static_route_path",
+      "api_static_reachability": "linked",
       "worker_static_operations": [],
       "worker_static_review_status": "function_not_reached_by_any_static_worker_root",
-      "attribution": "unresolved",
+      "attribution": "api_candidate",
       "review_labels": [
-        "no_static_gateway_route_path_dynamic_or_non_api_possible",
-        "worker_sql_site_not_statically_reached_dynamic_or_unresolved_possible",
-        "gateway_import_closure_but_route_reachability_unresolved"
+        "gateway_route_starlette_threadpool_callback_path",
+        "worker_sql_site_not_statically_reached_dynamic_or_unresolved_possible"
       ]
     },
     {
@@ -64788,14 +64818,13 @@
         "farm_activity"
       ],
       "write_target_relations": [],
-      "api_static_reachability": "no_static_route_path",
+      "api_static_reachability": "linked",
       "worker_static_operations": [],
       "worker_static_review_status": "function_not_reached_by_any_static_worker_root",
-      "attribution": "unresolved",
+      "attribution": "api_candidate",
       "review_labels": [
-        "no_static_gateway_route_path_dynamic_or_non_api_possible",
-        "worker_sql_site_not_statically_reached_dynamic_or_unresolved_possible",
-        "gateway_import_closure_but_route_reachability_unresolved"
+        "gateway_route_starlette_threadpool_callback_path",
+        "worker_sql_site_not_statically_reached_dynamic_or_unresolved_possible"
       ]
     },
     {
@@ -64813,14 +64842,13 @@
       "write_target_relations": [
         "farm_activity"
       ],
-      "api_static_reachability": "no_static_route_path",
+      "api_static_reachability": "linked",
       "worker_static_operations": [],
       "worker_static_review_status": "function_not_reached_by_any_static_worker_root",
-      "attribution": "unresolved",
+      "attribution": "api_candidate",
       "review_labels": [
-        "no_static_gateway_route_path_dynamic_or_non_api_possible",
-        "worker_sql_site_not_statically_reached_dynamic_or_unresolved_possible",
-        "gateway_import_closure_but_route_reachability_unresolved"
+        "gateway_route_starlette_threadpool_callback_path",
+        "worker_sql_site_not_statically_reached_dynamic_or_unresolved_possible"
       ]
     },
     {
@@ -64838,14 +64866,13 @@
       "write_target_relations": [
         "farm_activity"
       ],
-      "api_static_reachability": "no_static_route_path",
+      "api_static_reachability": "linked",
       "worker_static_operations": [],
       "worker_static_review_status": "function_not_reached_by_any_static_worker_root",
-      "attribution": "unresolved",
+      "attribution": "api_candidate",
       "review_labels": [
-        "no_static_gateway_route_path_dynamic_or_non_api_possible",
-        "worker_sql_site_not_statically_reached_dynamic_or_unresolved_possible",
-        "gateway_import_closure_but_route_reachability_unresolved"
+        "gateway_route_starlette_threadpool_callback_path",
+        "worker_sql_site_not_statically_reached_dynamic_or_unresolved_possible"
       ]
     },
     {
@@ -64863,14 +64890,13 @@
       "write_target_relations": [
         "farm_activity"
       ],
-      "api_static_reachability": "no_static_route_path",
+      "api_static_reachability": "linked",
       "worker_static_operations": [],
       "worker_static_review_status": "function_not_reached_by_any_static_worker_root",
-      "attribution": "unresolved",
+      "attribution": "api_candidate",
       "review_labels": [
-        "no_static_gateway_route_path_dynamic_or_non_api_possible",
-        "worker_sql_site_not_statically_reached_dynamic_or_unresolved_possible",
-        "gateway_import_closure_but_route_reachability_unresolved"
+        "gateway_route_starlette_threadpool_callback_path",
+        "worker_sql_site_not_statically_reached_dynamic_or_unresolved_possible"
       ]
     },
     {
@@ -64886,14 +64912,13 @@
         "farm_activity_operator_event"
       ],
       "write_target_relations": [],
-      "api_static_reachability": "no_static_route_path",
+      "api_static_reachability": "linked",
       "worker_static_operations": [],
       "worker_static_review_status": "function_not_reached_by_any_static_worker_root",
-      "attribution": "unresolved",
+      "attribution": "api_candidate",
       "review_labels": [
-        "no_static_gateway_route_path_dynamic_or_non_api_possible",
-        "worker_sql_site_not_statically_reached_dynamic_or_unresolved_possible",
-        "gateway_import_closure_but_route_reachability_unresolved"
+        "gateway_route_starlette_threadpool_callback_path",
+        "worker_sql_site_not_statically_reached_dynamic_or_unresolved_possible"
       ]
     },
     {

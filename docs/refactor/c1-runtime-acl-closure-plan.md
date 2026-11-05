@@ -64,12 +64,37 @@ and [Standard recovery](builds/2026-11-03-recovery/standard-profile-recovery-746
 
 The runtime SQL review ledger now has 0 legacy-unreviewed fingerprints and 33
 reviewed-unresolved source records; this is source classification, not ACL
-approval. Current static role attribution covers 4,968 SQL sites: 976 API
-candidates, 328 worker candidates, three shared candidates, and 3,661
-unresolved. It resolves 358 API route roots; 56 worker dynamic-dispatch edges
-remain. The Standard API and general worker still share `kokonut_runtime`, and
-C1 remains open for broader writer/caller attribution, tenant/RLS review,
-Directus/external consumers, populated-data parity, and persistent rollout.
+approval. Current static role attribution covers 4,968 SQL sites: 1,000 API
+candidates, 328 worker candidates, three shared candidates, and 3,637
+unresolved. It resolves 358 API route roots and records 268 verified
+threadpool-callback edges; 56 worker dynamic-dispatch edges remain. The Standard
+API and general worker still share `kokonut_runtime`, and C1 remains open for
+broader writer/caller attribution, tenant/RLS review, Directus/external
+consumers, populated-data parity, and persistent rollout.
+
+### C1 source-review cohort — BMC from-data suggestions — 3 November 2026
+
+The OIDC-protected `POST /operator/api/business-planning/{location_id}/canvases/from-data`
+route passes a concrete writer through the verified
+`_create_canvas_response` threadpool helper. The writer uses the Standard shared
+`kokonut_runtime` connection, establishes signed `business_planning:create`
+context for the requested location, and then invokes the real
+`business_model_canvas.suggest` path on that same connection. The helper
+executes nine fixed SELECT variants; a route-level TestClient regression checks
+that context precedes all nine reads, every query binds the requested
+`location_id`, and the final bounded draft function shares the transaction.
+Existing service tests additionally pin verified/published filters, consented
+public-feedback aggregation, and currency preservation.
+
+The callback resolver now records two Business Planning and five farm-activity
+helper edges after verifying that each route registrar receives Starlette's
+`run_in_threadpool` and that each helper call passes a literal, statically
+resolved writer. This moved 24 SQL sites from unresolved to API candidates; it
+does not prove route activation or make those sites API-exclusive. The analytics
+CLI also calls `suggest` and `create-from-data` through its own `get_db()`
+entrypoints, outside the OIDC route. The deployed CLI caller identity remains
+unassessed; `business_planning:create` scope and location filters do not by
+themselves establish a broader read policy. No grants or RLS changed.
 
 ### Previous C1 continuation — migrations 742–745 — 1 November 2026
 
@@ -1181,8 +1206,9 @@ The detailed entries below are dated historical checkpoints through migration
   ([ACL report](builds/2026-11-01-recovery/runtime-privilege-callsite-report-745.json);
   [SQL review ledger](runtime-sql-unresolved-write-review.json)).
 - [x] Add and refresh the deterministic API/general-worker attribution map.
-  The current snapshot covers 4,968 SQL sites: 976 API candidates, 328 worker
-  candidates, three shared candidates, and 3,661 unresolved. The original
+  The current snapshot covers 4,968 SQL sites: 1,000 API candidates, 328 worker
+  candidates, three shared candidates, and 3,637 unresolved, including seven
+  verified helper callback edges across Business Planning and farm activity. The original
   baseline covered 4,967 before later source retirements. The map records
   Standard credential/default-child policy and separate OIDC/outbox route
   identities; it reports 358 API route roots, 56 worker dynamic-dispatch edges,
@@ -1295,7 +1321,7 @@ The detailed entries below are dated historical checkpoints through migration
   to a production operator, and provision the optional dedicated action login
   only after the complete ordered migration run. Disposable evidence does not
   activate the feature on a persistent target.
-- [ ] Review the current 3,661 unattributed SQL sites, 56 worker
+- [ ] Review the current 3,637 unattributed SQL sites, 56 worker
   dynamic-dispatch edges, persisted schedule activation, and external callers
   before defining any API/general-worker grants. Static attribution is not
   proof of runtime activation.

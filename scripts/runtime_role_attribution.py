@@ -461,6 +461,118 @@ def _api_threadpool_callback_roots(
                     edges[(function_key, target, node.lineno)] = edge
             pending.extend(ast.iter_child_nodes(node))
 
+    for route_key in sorted(threadpool_names):
+        route_function = definitions.get(route_key)
+        if route_function is None:
+            continue
+        module, _, route_qualname = route_key.partition(":")
+        registrar = route_qualname.partition(".")[0]
+        threadpool_name = trusted_registrars.get((module, registrar))
+        if not threadpool_name:
+            continue
+
+        route_calls = []
+
+        class RouteCalls(_OuterFunctionVisitor):
+            def visit_Call(self, node: ast.Call) -> None:
+                route_calls.append(node)
+                self.generic_visit(node)
+
+        RouteCalls(route_function["node"]).visit(route_function["node"])
+        for helper_call in route_calls:
+            helper_targets = worker_function_reachability._resolve_call_targets(
+                route_function, helper_call, definitions, classes, contexts, {}
+            )
+            for helper_target in helper_targets:
+                helper = definitions.get(helper_target)
+                if (
+                    helper is None
+                    or helper["module"] != module
+                    or helper["qualname"].rpartition(".")[0] != registrar
+                    or helper_target == route_key
+                ):
+                    continue
+                helper_node = helper["node"]
+                helper_parameters = [
+                    *helper_node.args.posonlyargs,
+                    *helper_node.args.args,
+                    *helper_node.args.kwonlyargs,
+                ]
+                if (
+                    any(parameter.arg == threadpool_name for parameter in helper_parameters)
+                    or any(
+                        isinstance(candidate, ast.Name)
+                        and candidate.id == threadpool_name
+                        and isinstance(candidate.ctx, ast.Store)
+                        for candidate in ast.walk(helper_node)
+                    )
+                ):
+                    continue
+                helper_calls = []
+
+                class HelperCalls(_OuterFunctionVisitor):
+                    def visit_Call(self, node: ast.Call) -> None:
+                        helper_calls.append(node)
+                        self.generic_visit(node)
+
+                HelperCalls(helper_node).visit(helper_node)
+                positional_parameters = [
+                    *helper_node.args.posonlyargs,
+                    *helper_node.args.args,
+                ]
+                positional_names = [parameter.arg for parameter in positional_parameters]
+                parameter_names = {parameter.arg for parameter in helper_parameters}
+                for threadpool_call in helper_calls:
+                    if (
+                        not isinstance(threadpool_call.func, ast.Name)
+                        or threadpool_call.func.id != threadpool_name
+                        or not threadpool_call.args
+                        or not isinstance(threadpool_call.args[0], ast.Name)
+                        or threadpool_call.args[0].id not in parameter_names
+                    ):
+                        continue
+                    callback_parameter = threadpool_call.args[0].id
+                    if callback_parameter in positional_names:
+                        callback_position = positional_names.index(callback_parameter)
+                        callback_expression = (
+                            helper_call.args[callback_position]
+                            if callback_position < len(helper_call.args)
+                            else None
+                        )
+                    else:
+                        callback_expression = None
+                    if callback_expression is None:
+                        callback_expression = next(
+                            (
+                                keyword.value
+                                for keyword in helper_call.keywords
+                                if keyword.arg == callback_parameter
+                            ),
+                            None,
+                        )
+                    if not isinstance(callback_expression, (ast.Name, ast.Attribute)):
+                        continue
+                    callback_call = ast.Call(
+                        func=callback_expression, args=[], keywords=[]
+                    )
+                    callback_target = worker_function_reachability._resolve_call_target(
+                        route_function, callback_call, definitions, contexts
+                    )
+                    if not callback_target or callback_target not in definitions:
+                        continue
+                    callbacks[callback_target] = {
+                        "function": callback_target,
+                        "source": definitions[callback_target]["source"],
+                    }
+                    edge = {
+                        "caller": helper_target,
+                        "callee": callback_target,
+                        "source": helper["source"],
+                        "line": threadpool_call.lineno,
+                        "dispatch": "verified_starlette_run_in_threadpool_callback",
+                    }
+                    edges[(helper_target, callback_target, threadpool_call.lineno)] = edge
+
     callback_roots = [callbacks[key] for key in sorted(callbacks)]
     callback_edges = [edges[key] for key in sorted(edges)]
     return callback_roots, callback_edges

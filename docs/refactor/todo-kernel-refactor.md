@@ -5110,11 +5110,15 @@ were granted and no candidate, legacy, or production database was changed.
 
 The runtime SQL review ledger has 0 legacy-unreviewed and 33
 reviewed-unresolved source records. Static role attribution covers 4,968 SQL
-sites (976 API, 328 worker, 3 shared, 3,661 unresolved), 358 API route roots,
-and 56 worker dynamic-dispatch edges. The native source/ACL report remains
-through migration 745 at 906 public-schema tables with effective runtime DML
-while RLS is disabled. C1 remains open; next review the 3,661 unattributed sites
-and external callers without inferring privilege revocations from source absence.
-See [migration-746 acceptance](builds/2026-11-03-recovery/clickhouse-outbox-operator-746-disposable.json),
+sites (1,000 API, 328 worker, 3 shared, 3,637 unresolved), 358 API route roots,
+268 verified helper-callback edges, and 56 worker dynamic-dispatch edges. Seven
+literal callbacks now cross verified Gateway threadpool helpers; this source
+mapping adds no grants or RLS. The BMC `from-data` path is location-bound and
+uses signed context, but its shared-connection CLI caller remains outside the
+OIDC route graph. The native source/ACL report remains through migration 745 at
+906 public-schema tables with effective runtime DML while RLS is disabled. C1
+remains open; next review the 3,637 unattributed sites and external callers
+without inferring privilege revocations from source absence. See
+[migration-746 acceptance](builds/2026-11-03-recovery/clickhouse-outbox-operator-746-disposable.json),
 [Standard recovery](builds/2026-11-03-recovery/standard-profile-recovery-746-disposable.json),
 and the [C1 closure plan](c1-runtime-acl-closure-plan.md).

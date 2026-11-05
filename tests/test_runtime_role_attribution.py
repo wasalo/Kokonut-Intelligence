@@ -90,6 +90,50 @@ def test_gateway_threadpool_callbacks_reach_known_sql_service_helpers():
         and edge["callee"].startswith("services.gateway.operating_pilot_writes:")
         for edge in callback_edges
     )
+    expected_helper_callbacks = {
+        (
+            "services.gateway.business_planning_routes:"
+            "register_business_planning_routes._create_canvas_response",
+            "services.gateway.business_planning_writes:create_location_business_model_canvas",
+        ),
+        (
+            "services.gateway.business_planning_routes:"
+            "register_business_planning_routes._create_canvas_response",
+            "services.gateway.business_planning_writes:create_location_business_model_canvas_from_data",
+        ),
+        (
+            "services.gateway.farm_activity_routes:"
+            "register_farm_activity_record_routes._invoke",
+            "services.gateway.farm_activity_records:create_farm_activity_record",
+        ),
+        (
+            "services.gateway.farm_activity_routes:"
+            "register_farm_activity_record_routes._invoke",
+            "services.gateway.farm_activity_records:edit_farm_activity_record_draft",
+        ),
+        (
+            "services.gateway.farm_activity_routes:"
+            "register_farm_activity_record_routes._invoke",
+            "services.gateway.farm_activity_records:get_farm_activity_record",
+        ),
+        (
+            "services.gateway.farm_activity_routes:"
+            "register_farm_activity_record_routes._invoke",
+            "services.gateway.farm_activity_records:list_farm_activity_records",
+        ),
+        (
+            "services.gateway.farm_activity_routes:"
+            "register_farm_activity_record_routes._invoke",
+            "services.gateway.farm_activity_records:transition_farm_activity_record",
+        ),
+    }
+    observed_helper_callbacks = {
+        (edge["caller"], edge["callee"])
+        for edge in callback_edges
+        if edge["caller"].endswith("._create_canvas_response")
+        or edge["caller"].endswith("._invoke")
+    }
+    assert observed_helper_callbacks == expected_helper_callbacks
 
     expanded = runtime_role_attribution.worker_function_reachability._operation_graph(
         {
@@ -111,6 +155,18 @@ def test_gateway_threadpool_callbacks_reach_known_sql_service_helpers():
     assert (
         "services/gateway/operating_pilot_writes.py",
         "create_location_operating_pilot_capacity_draft",
+    ) in reachable
+    assert (
+        "services/gateway/business_planning_writes.py",
+        "create_location_business_model_canvas_from_data",
+    ) in reachable
+    assert (
+        "services/analytics/business_model_canvas.py",
+        "suggest",
+    ) in reachable
+    assert (
+        "services/analytics/business_model_canvas.py",
+        "_suggestion_rows",
     ) in reachable
 
 
