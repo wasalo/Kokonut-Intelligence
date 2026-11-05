@@ -91,6 +91,7 @@ def test_manual_collection_profile_is_capped_and_outside_required_gate() -> None
     assert '"-X", "importtime"' in profiler
     assert "worker-test-import-order" in profiler
     assert "service-test-import-order" in profiler
+    assert '"--assert=plain"' in profiler
 
     result = subprocess.run(
         [sys.executable, str(ROOT / "scripts/profile_pytest_collection.py"), "--help"],
