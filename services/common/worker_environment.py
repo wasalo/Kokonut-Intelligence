@@ -27,6 +27,7 @@ _SHARED_DATABASE_ENV = frozenset({
     "KOKONUT_OPERATOR_AUTH_USER",
     "KOKONUT_RUNTIME_PASSWORD",
     "KOKONUT_RUNTIME_USER",
+    "KOKONUT_RUNTIME_PARENT_ROLE",
 })
 
 # A scheduled operation receives worker credentials only when its exact

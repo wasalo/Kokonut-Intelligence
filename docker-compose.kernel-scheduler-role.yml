@@ -9,3 +9,4 @@ services:
       PG_USER: kokonut_scheduler_login
       PG_PASSWORD: ${KOKONUT_SCHEDULER_PASSWORD:?dedicated scheduler password required}
       KOKONUT_SCHEDULER_DATABASE_URL: ${KOKONUT_SCHEDULER_DATABASE_URL:?dedicated scheduler DSN required}
+      KOKONUT_RUNTIME_PARENT_ROLE: ""

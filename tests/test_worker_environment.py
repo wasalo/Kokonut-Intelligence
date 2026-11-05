@@ -188,6 +188,7 @@ def test_isolated_clickhouse_outbox_receives_only_its_dedicated_dsn():
         "PG_HOST": "database",
         "PG_USER": "kokonut_runtime",
         "PG_PASSWORD": "shared-secret",
+        "KOKONUT_RUNTIME_PARENT_ROLE": "kokonut_runtime",
         "DATABASE_URL": "postgresql://shared/app",
         "CLICKHOUSE_PASSWORD": "synthetic-clickhouse-sink-secret",
         "ETH_RPC_URL": "https://rpc.example.invalid/?key=synthetic-rpc-secret",

@@ -420,6 +420,145 @@ def _ensure_login_role(cur, *, name: str, identifier: sql.Identifier, password: 
     return role_oid
 
 
+def _ensure_worker_runtime_login(
+    cur,
+    *,
+    name: str,
+    identifier: sql.Identifier,
+    password: str,
+    runtime_user: str,
+    runtime_identifier: sql.Identifier,
+) -> None:
+    """Provision a worker login that inherits the legacy runtime ACL unchanged.
+
+    This is an identity-attribution transition only. It deliberately does not
+    narrow the privileges inherited from ``runtime_user``; C1 remains open
+    until the caller map is reviewed and a later grant migration is approved.
+    """
+    if name == runtime_user:
+        raise ValueError("worker runtime login must differ from the API runtime login")
+
+    cur.execute("SELECT oid FROM pg_roles WHERE rolname = %s", (name,))
+    existing = cur.fetchone()
+    if existing:
+        role_oid = existing[0]
+        cur.execute(
+            """SELECT EXISTS (
+                       SELECT 1
+                         FROM pg_catalog.pg_db_role_setting AS setting
+                        CROSS JOIN LATERAL unnest(setting.setconfig) AS config(value)
+                        WHERE setting.setrole = %s AND setting.setdatabase = 0
+                          AND config.value = 'kokonut.worker_runtime_identity=v1'
+                   )""",
+            (role_oid,),
+        )
+        if not cur.fetchone()[0]:
+            raise RuntimeError(
+                f"{name} already exists without the worker-runtime provisioning marker; review it before reuse"
+            )
+        cur.execute(
+            """SELECT EXISTS (
+                       SELECT 1 FROM pg_catalog.pg_class
+                        WHERE relowner = %s
+                   ) OR EXISTS (
+                       SELECT 1 FROM pg_catalog.pg_namespace
+                        WHERE nspowner = %s AND nspname NOT LIKE 'pg_%%'
+                          AND nspname <> 'information_schema'
+                   ) OR EXISTS (
+                       SELECT 1 FROM pg_catalog.pg_database WHERE datdba = %s
+                   )""",
+            (role_oid, role_oid, role_oid),
+        )
+        if cur.fetchone()[0]:
+            raise RuntimeError(f"{name} role owns database objects; review and transfer them first")
+        cur.execute(
+            """SELECT granted.rolname
+                 FROM pg_catalog.pg_auth_members AS membership
+                 JOIN pg_catalog.pg_roles AS granted ON granted.oid = membership.roleid
+                WHERE membership.member = %s AND granted.rolname <> %s""",
+            (role_oid, runtime_user),
+        )
+        if cur.fetchone() is not None:
+            raise RuntimeError(f"{name} has an unexpected role membership")
+        cur.execute(
+            """SELECT member.rolname
+                 FROM pg_catalog.pg_auth_members AS membership
+                 JOIN pg_catalog.pg_roles AS member ON member.oid = membership.member
+                WHERE membership.roleid = %s""",
+            (role_oid,),
+        )
+        if cur.fetchone() is not None:
+            raise RuntimeError(f"{name} is a parent role for another login")
+
+        cur.execute(
+            """SELECT EXISTS (
+                       SELECT 1
+                         FROM pg_catalog.pg_class AS object
+                        CROSS JOIN LATERAL pg_catalog.aclexplode(object.relacl) AS acl
+                        WHERE acl.grantee = %s
+                   ) OR EXISTS (
+                       SELECT 1
+                         FROM pg_catalog.pg_attribute AS attribute
+                        CROSS JOIN LATERAL pg_catalog.aclexplode(attribute.attacl) AS acl
+                        WHERE attribute.attacl IS NOT NULL AND acl.grantee = %s
+                   ) OR EXISTS (
+                       SELECT 1
+                         FROM pg_catalog.pg_proc AS function
+                        CROSS JOIN LATERAL pg_catalog.aclexplode(function.proacl) AS acl
+                        WHERE function.proacl IS NOT NULL AND acl.grantee = %s
+                   ) OR EXISTS (
+                       SELECT 1
+                         FROM pg_catalog.pg_namespace AS schema
+                        CROSS JOIN LATERAL pg_catalog.aclexplode(schema.nspacl) AS acl
+                        WHERE schema.nspacl IS NOT NULL AND acl.grantee = %s
+                   ) OR EXISTS (
+                       SELECT 1
+                         FROM pg_catalog.pg_database AS database
+                        CROSS JOIN LATERAL pg_catalog.aclexplode(database.datacl) AS acl
+                        WHERE database.datacl IS NOT NULL AND acl.grantee = %s
+                   ) OR EXISTS (
+                       SELECT 1
+                         FROM pg_catalog.pg_default_acl AS defaults
+                        CROSS JOIN LATERAL pg_catalog.aclexplode(defaults.defaclacl) AS acl
+                        WHERE acl.grantee = %s
+                   )""",
+            (role_oid,) * 6,
+        )
+        if cur.fetchone()[0]:
+            raise RuntimeError(f"{name} has direct database privileges; review it before reuse")
+
+    _ensure_login_role(cur, name=name, identifier=identifier, password=password)
+    cur.execute(
+        sql.SQL("ALTER ROLE {} SET kokonut.worker_runtime_identity = 'v1'").format(identifier)
+    )
+    cur.execute(
+        sql.SQL("GRANT {} TO {} WITH INHERIT TRUE, SET FALSE, ADMIN FALSE").format(
+            runtime_identifier, identifier
+        )
+    )
+    cur.execute(
+        """SELECT role.rolcanlogin, role.rolinherit, role.rolsuper,
+                  role.rolcreatedb, role.rolcreaterole, role.rolreplication,
+                  role.rolbypassrls, has_schema_privilege(role.oid, 'public', 'CREATE'),
+                  (SELECT count(*) FROM pg_catalog.pg_auth_members AS membership
+                    WHERE membership.member = role.oid),
+                  (SELECT bool_and(granted.rolname = %s
+                                   AND membership.inherit_option
+                                   AND NOT membership.set_option
+                                   AND NOT membership.admin_option)
+                     FROM pg_catalog.pg_auth_members AS membership
+                     JOIN pg_catalog.pg_roles AS granted ON granted.oid = membership.roleid
+                    WHERE membership.member = role.oid)
+             FROM pg_catalog.pg_roles AS role
+            WHERE role.rolname = %s""",
+        (runtime_user, name),
+    )
+    if cur.fetchone() != (True, False, False, False, False, False, False, False, 1, True):
+        raise RuntimeError(
+            f"{name} must inherit only {runtime_user} with SET and ADMIN disabled"
+        )
+
+
 def _remove_role_memberships(cur, *, role_name: str, identifier: sql.Identifier) -> None:
     """Make a dedicated login neither inherit nor lend its privileges."""
     cur.execute(
@@ -1690,6 +1829,8 @@ def provision_runtime_role(
     runtime_password: str,
     operator_auth_user: str,
     operator_auth_password: str,
+    worker_runtime_user: str | None = None,
+    worker_runtime_password: str | None = None,
     notification_enqueue_user: str | None = None,
     notification_enqueue_password: str | None = None,
     market_data_user: str | None = None,
@@ -1732,6 +1873,9 @@ def provision_runtime_role(
     run. ``operator_session``, mobile credentials, ``api_key``, and
     ``solution_stage_gate`` use additional explicit least-privilege grants.
     New public tables and sequences receive no automatic runtime privileges.
+    When configured, the separate worker login inherits the current runtime
+    ACL with ``SET ROLE`` disabled; this is identity attribution only and does
+    not close the C1 caller/grant review.
     The dedicated auth role can only execute
     the three bounded functions from migration 395. This is scoped to a
     dedicated Kernel PostgreSQL instance. When configured, the optional
@@ -1789,6 +1933,8 @@ def provision_runtime_role(
         raise ValueError("sensor-anomaly ML source user and password must be provided together")
     if (rate_limit_maintenance_user is None) != (rate_limit_maintenance_password is None):
         raise ValueError("rate-limit maintenance user and password must be provided together")
+    if (worker_runtime_user is None) != (worker_runtime_password is None):
+        raise ValueError("worker runtime user and password must be provided together")
     enqueue_ident = (
         _role_identifier(notification_enqueue_user, "notification_enqueue_user")
         if notification_enqueue_user is not None
@@ -1842,7 +1988,14 @@ def provision_runtime_role(
         if rate_limit_maintenance_user is not None
         else None
     )
+    worker_runtime_ident = (
+        _role_identifier(worker_runtime_user, "worker_runtime_user")
+        if worker_runtime_user is not None
+        else None
+    )
     role_names = [admin_user, runtime_user, operator_auth_user, "kokonut_clickhouse_outbox_operator_login"]
+    if worker_runtime_user is not None:
+        role_names.append(worker_runtime_user)
     if notification_enqueue_user is not None:
         role_names.append(notification_enqueue_user)
     if market_data_user is not None:
@@ -1925,7 +2078,7 @@ def provision_runtime_role(
         raise ValueError("rate-limit maintenance must use kokonut_rate_limit_maintenance_login")
     if len(set(role_names)) != len(role_names):
         raise ValueError(
-            "admin, runtime, operator-auth, notification-enqueue, notification-delivery, event-dispatch, market-data, EAS-indexer, RPC-indexer, Gnosis-indexer, Baal-indexer, freshness, ClickHouse outbox, report snapshot export, sensor-ingestion, remote-sensing, sensor-anomaly ML source, and rate-limit maintenance roles must be distinct"
+            "admin, runtime, worker-runtime, operator-auth, notification-enqueue, notification-delivery, event-dispatch, market-data, EAS-indexer, RPC-indexer, Gnosis-indexer, Baal-indexer, freshness, ClickHouse outbox, report snapshot export, sensor-ingestion, remote-sensing, sensor-anomaly ML source, and rate-limit maintenance roles must be distinct"
         )
     if not admin_password:
         raise ValueError("admin password must be provided")
@@ -1933,6 +2086,8 @@ def provision_runtime_role(
         ("runtime_password", runtime_password),
         ("operator_auth_password", operator_auth_password),
     ]
+    if worker_runtime_password is not None:
+        credential_pairs.append(("worker_runtime_password", worker_runtime_password))
     if notification_enqueue_password is not None:
         credential_pairs.append(("notification_enqueue_password", notification_enqueue_password))
     if market_data_password is not None:
@@ -2001,11 +2156,14 @@ def provision_runtime_role(
         passwords.append(sensor_anomaly_ml_source_password)
     if rate_limit_maintenance_password is not None:
         passwords.append(rate_limit_maintenance_password)
+    if worker_runtime_password is not None:
+        passwords.append(worker_runtime_password)
     if len(set(passwords)) != len(passwords):
         raise ValueError("admin and dedicated application-role passwords must be distinct")
     if not database or "\x00" in database:
         raise ValueError("database name is required")
 
+    worker_runtime_database_access: dict[str, bool] = {}
     market_data_database_access: dict[str, bool] = {}
     market_data_functions: tuple[str, ...] = (_MARKET_DATA_FUNCTION,)
     eas_indexer_database_access: dict[str, bool] = {}
@@ -2351,6 +2509,16 @@ def provision_runtime_role(
         runtime_role_exists, runtime_placeholder_pending = cur.fetchone()
         runtime_compatibility_grants_applied = not runtime_role_exists or runtime_placeholder_pending
         _ensure_login_role(cur, name=runtime_user, identifier=runtime_ident, password=runtime_password)
+        if worker_runtime_user is not None:
+            assert worker_runtime_ident is not None and worker_runtime_password is not None
+            _ensure_worker_runtime_login(
+                cur,
+                name=worker_runtime_user,
+                identifier=worker_runtime_ident,
+                password=worker_runtime_password,
+                runtime_user=runtime_user,
+                runtime_identifier=runtime_ident,
+            )
         cur.execute("SELECT to_regprocedure('kokonut_security.enqueue_scheduler_run_event(uuid,text)')")
         if cur.fetchone()[0] is not None:
             cur.execute(sql.SQL(
@@ -3311,6 +3479,8 @@ def provision_runtime_role(
             if cur.fetchone()[0]:
                 raise RuntimeError("remote-sensing login retains application sequence privileges")
         checked_login_names = [runtime_user, operator_auth_user]
+        if worker_runtime_user is not None:
+            checked_login_names.append(worker_runtime_user)
         if notification_enqueue_user is not None:
             checked_login_names.append(notification_enqueue_user)
         if freshness_user is not None:
@@ -3336,6 +3506,8 @@ def provision_runtime_role(
                 (role_name,),
             )
             access = {name: allowed for name, allowed in cur.fetchall()}
+            if role_name == worker_runtime_user:
+                worker_runtime_database_access = access
             if role_name == "kokonut_clickhouse_outbox_operator_login":
                 clickhouse_outbox_operator_database_access = access
             if role_name == rate_limit_maintenance_user:
@@ -4138,6 +4310,12 @@ def provision_runtime_role(
         "status": "provisioned",
         "database": database,
         "runtime_user": runtime_user,
+        "worker_runtime_user": worker_runtime_user,
+        "worker_runtime_privilege_model": (
+            "inherits_runtime_grants_for_identity_attribution_only; C1_remains_open"
+            if worker_runtime_user is not None
+            else None
+        ),
         "legacy_compatibility_grants_applied": runtime_compatibility_grants_applied,
         "operator_auth_user": operator_auth_user,
         "notification_enqueue_user": notification_enqueue_user,
@@ -4162,6 +4340,7 @@ def provision_runtime_role(
         "rate_limit_maintenance_user": rate_limit_maintenance_user,
         "public_connect_revoked_from": sorted(database_names),
         "runtime_connect_grants": runtime_database_access,
+        "worker_runtime_inherited_connect_access": worker_runtime_database_access,
         "operator_auth_connect_grants": auth_database_access,
         "market_data_connect_grants": market_data_database_access,
         "eas_indexer_connect_grants": eas_indexer_database_access,
@@ -4243,6 +4422,8 @@ def main() -> int:
     admin_password = os.environ.get("KOKONUT_DB_ADMIN_PASSWORD", "")
     runtime_user = os.environ.get("KOKONUT_RUNTIME_USER", "kokonut_runtime")
     runtime_password = os.environ.get("KOKONUT_RUNTIME_PASSWORD", "")
+    worker_runtime_user = os.environ.get("KOKONUT_WORKER_RUNTIME_USER", "kokonut_worker_runtime")
+    worker_runtime_password = os.environ.get("KOKONUT_WORKER_RUNTIME_PASSWORD", "")
     operator_auth_user = os.environ.get("KOKONUT_OPERATOR_AUTH_USER", "kokonut_operator_auth")
     operator_auth_password = os.environ.get("KOKONUT_OPERATOR_AUTH_PASSWORD", "")
     notification_enqueue_user = os.environ.get(
@@ -4310,6 +4491,8 @@ def main() -> int:
             runtime_password=runtime_password,
             operator_auth_user=operator_auth_user,
             operator_auth_password=operator_auth_password,
+            worker_runtime_user=worker_runtime_user if worker_runtime_password else None,
+            worker_runtime_password=worker_runtime_password if worker_runtime_password else None,
             notification_enqueue_user=(notification_enqueue_user if notification_enqueue_password else None),
             notification_enqueue_password=(notification_enqueue_password if notification_enqueue_password else None),
             market_data_user=market_data_user if market_data_password else None,
@@ -4358,7 +4541,16 @@ def main() -> int:
 
             result.update(provision_scheduler_role(
                 conn, database=database, password=scheduler_password,
-                forbidden_passwords=(admin_password, runtime_password, operator_auth_password),
+                forbidden_passwords=tuple(
+                    password
+                    for password in (
+                        admin_password,
+                        runtime_password,
+                        operator_auth_password,
+                        worker_runtime_password,
+                    )
+                    if password
+                ),
             ))
     finally:
         conn.close()

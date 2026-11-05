@@ -3471,3 +3471,41 @@ def test_readiness_dimension_disposable_checker_covers_seed_replay_and_overrides
     assert "READINESS_SEED_SQL" in checker
     assert "_query_location_weights" in checker
     assert "per-location override writes were not preserved" in checker
+
+
+def test_worker_runtime_login_requires_a_distinct_paired_credential():
+    common = {
+        "database": "kokonut_intelligence",
+        "admin_user": "kokonut",
+        "admin_password": "a" * 32,
+        "runtime_user": "kokonut_runtime",
+        "runtime_password": "r" * 32,
+        "operator_auth_user": "kokonut_operator_auth",
+        "operator_auth_password": "o" * 32,
+    }
+    with pytest.raises(ValueError, match="worker runtime user and password must be provided together"):
+        runtime_role.provision_runtime_role(
+            None,
+            **common,
+            worker_runtime_user="kokonut_worker_runtime",
+        )
+    with pytest.raises(ValueError, match="worker runtime user and password must be provided together"):
+        runtime_role.provision_runtime_role(
+            None,
+            **common,
+            worker_runtime_password="w" * 32,
+        )
+    with pytest.raises(ValueError, match="roles must be distinct"):
+        runtime_role.provision_runtime_role(
+            None,
+            **common,
+            worker_runtime_user="kokonut_runtime",
+            worker_runtime_password="w" * 32,
+        )
+    with pytest.raises(ValueError, match="passwords must be distinct"):
+        runtime_role.provision_runtime_role(
+            None,
+            **common,
+            worker_runtime_user="kokonut_worker_runtime",
+            worker_runtime_password=common["runtime_password"],
+        )

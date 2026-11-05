@@ -23,6 +23,7 @@ ARM64_DIRECTUS = "docker-compose.kernel-arm64-directus.yml"
 ARM64_ANALYTICS = "docker-compose.kernel-arm64-analytics.yml"
 ARM64_SENSOR_ANOMALY_ML = "docker-compose.kernel-arm64-sensor-anomaly-ml.yml"
 SCHEDULER_ROLE = "docker-compose.kernel-scheduler-role.yml"
+WORKER_RUNTIME_ROLE = "docker-compose.kernel-worker-runtime-role.yml"
 PROFILES = {
     "minimal": [],
     "core": ["docker-compose.kernel-core.yml"],
@@ -82,6 +83,11 @@ def main() -> None:
         help="select the opt-in restricted scheduler executor for Standard",
     )
     parser.add_argument(
+        "--separate-api-worker-logins",
+        action="store_true",
+        help="give Standard (or separate-worker analytics) distinct API and worker logins",
+    )
+    parser.add_argument(
         "--project", help="Explicit Compose project name (for example, a unique disposable test project)"
     )
     for name in OPTIONAL:
@@ -133,6 +139,16 @@ def main() -> None:
     if args.separate_workers and args.profile != "analytics":
         parser.error("--separate-workers applies only to analytics; standard already separates roles")
     role_separated = args.profile == "standard" or args.separate_workers
+    if args.separate_api_worker_logins and not role_separated:
+        parser.error("--separate-api-worker-logins applies only to Standard or analytics with --separate-workers")
+    if args.separate_api_worker_logins and args.scheduler_role:
+        parser.error("--separate-api-worker-logins cannot be combined with --scheduler-role")
+    if args.separate_api_worker_logins and args.action not in {"database-up", "migrate"} and not os.environ.get(
+        "KOKONUT_WORKER_RUNTIME_PASSWORD"
+    ):
+        parser.error(
+            "--separate-api-worker-logins requires KOKONUT_WORKER_RUNTIME_PASSWORD loaded from encrypted secrets"
+        )
     if args.action in {"database-up", "migrate", "bootstrap-runtime-role"} and not role_separated:
         parser.error(f"--action {args.action} applies only to standard or analytics with --separate-workers")
     if args.edge and args.profile != "standard":
@@ -160,6 +176,8 @@ def main() -> None:
     files.extend(PROFILES[args.profile])
     if role_separated:
         files.append("docker-compose.kernel-runtime-role.yml")
+    if args.separate_api_worker_logins and args.action not in {"database-up", "migrate"}:
+        files.append(WORKER_RUNTIME_ROLE)
     if args.edge:
         # Add the Edge limits and local-media provider to the API app after
         # Standard splits the app and worker. The worker has no local-media

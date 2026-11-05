@@ -140,6 +140,21 @@ denials without granting newly created tables to the login. Existing broad
 grants remain until a reviewed migration retires them; do not run the bootstrap
 during routine `up` or simply to add a newly migrated table.
 
+For G2 identity attribution, add `--separate-api-worker-logins` to Standard
+`config`, `build`, `up`, `release-up`, `ps`, or `bootstrap-runtime-role` after
+loading a distinct `KOKONUT_WORKER_RUNTIME_PASSWORD` from encrypted secrets.
+The runtime-role bootstrap creates the marked worker login; the worker uses
+that login while the API retains `KOKONUT_RUNTIME_USER`. Startup verifies the
+worker has only the expected inheriting membership and cannot `SET ROLE` to
+the API login. Until the caller map is reviewed, the worker inherits the same
+existing ACL as the API. This separates attribution, not capability. The flag
+cannot be combined with `--scheduler-role`, which provisions its own worker
+identity. Do not describe this staged identity split as least privilege or as
+closing C1. Verify the role membership, API/worker session identities, inherited
+ACL behavior, and `SET ROLE` denial on a disposable PostgreSQL 16 instance with
+`python3 scripts/check-worker-runtime-identity-disposable.py`; this synthetic
+acceptance does not change a candidate database.
+
 Manual ClickHouse outbox actions require migration 746, the optional
 `KOKONUT_CLICKHOUSE_OUTBOX_OPERATOR_PASSWORD`, and a separate post-migration
 runtime-role bootstrap. Compose passes that credential to the Gateway API and
