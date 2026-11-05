@@ -27088,13 +27088,14 @@ heartbeat showed the Python process reaching approximately 13.8 GiB RSS with les
 than 700 MiB available on the 16 GiB runner; the workflow specifies a 90-minute
 job timeout, and no test assertion was reached. Runner labels match `ubuntu-24.04`.
 
-The full suite now runs in 24 deterministic contiguous shards, sequentially against
+The full suite now runs in 48 deterministic contiguous shards, sequentially against
 the same seeded database. No test modules are skipped or run concurrently, and
 shard failures are aggregated. A local collect-only run passed in all 12 shards,
 covering all 970 test modules with 738–2,218 collected items per shard and no
 database connection. The first remote 12-shard run passed shards 1–6, then shard 7
-reduced available memory to 672 MiB and exited with SIGTERM (143); the 24-shard
-runner is pending its next GitHub Actions run.
+reduced available memory to 672 MiB and exited with SIGTERM (143). The remote
+24-shard run reached shard 14 but its Python process reached 14 GiB RSS with about
+452 MiB available, then received SIGTERM; the 48-shard runner is pending CI.
 
 The sharding helper/contract tests pass (16 tests), as do all 73 fast source checks,
 Ruff, runtime inventories, release checks, and diff hygiene. No persistent database
