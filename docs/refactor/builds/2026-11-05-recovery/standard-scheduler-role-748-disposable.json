@@ -31,6 +31,14 @@
     "isolated_run_now_rejected_before_database_access": true,
     "definition_enable_disable_remain_operator_only": true
   },
+  "profile_planner": {
+    "scheduler_overlay_opt_in_only": true,
+    "scheduler_overlay_included_after_other_overlays": true,
+    "release_up_accepts_overlay_without_additional_image": true,
+    "scheduler_secret_values_omitted_from_printed_command": true,
+    "arm64_overlay_ordering_verified": true,
+    "focused_profile_tests": 112
+  },
   "runtime_role": {
     "bootstrap_profile": "runtime-admin",
     "bootstrap_ran_explicitly_after_migrations": true,

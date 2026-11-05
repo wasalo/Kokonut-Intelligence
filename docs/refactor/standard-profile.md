@@ -29,14 +29,16 @@ ingress, not public TLS or Internet exposure.
 
 The supervisor starts the scheduler and the event-dispatch and notification
 delivery child processes, generates distinct UUID-based identities for each
-supervisor lifetime, and refuses an empty worker role. The event-bus and
+supervisor lifetime, and refuses an empty worker role. By default the
+scheduler retains the shared control-plane login for compatibility; the
+explicit `--scheduler-role` Standard overlay selects the restricted executor
+identity described below. The event-bus and
 notification feature switches may default on, but their isolated database
 worker switches default off. In that state they remain paused without opening
 a shared database connection. Enabling either operation requires its dedicated
 DSN, login, and migration-backed bounded functions. CLI worker modes are
-mutually exclusive. The scheduler retains the shared control-plane login, but
-filters scheduled commands to only the dedicated worker credentials selected
-by the source allowlist. Freshness and ClickHouse outbox delivery follow the
+mutually exclusive. The scheduler filters scheduled commands to only the
+dedicated worker credentials selected by the source allowlist. Freshness and ClickHouse outbox delivery follow the
 same explicit-worker model; disabled paths do not use shared-runtime writes.
 Notification enqueue also uses its separate migration-417 identity when
 configured destinations exist, and fails closed if that path is unavailable.
@@ -82,6 +84,40 @@ operation identities do not complete C1. See the
 [migration-647 disposable acceptance](builds/2026-10-25-recovery/notification-delivery-worker-disposable.json),
 the [focused supervisor/profile checks](../../tests/test_kernel_runtime_supervisor.py),
 and the current [C1 status](current-state-and-implementation.md#c1-runtime-acl-work-current-batch).
+
+### Opt-in scheduler executor identity
+
+`python3 scripts/kernel-profile.py standard --scheduler-role` appends
+`docker-compose.kernel-scheduler-role.yml` after Standard, runtime-role, and
+selected architecture/service overlays. Standard does not select this identity
+by default. The overlay changes only the worker-side PostgreSQL identity and
+scheduler DSN; the Gateway API continues to use `kokonut_runtime`. It grants
+scheduler claim/run/resource execution columns and queue-health reads, but not
+schedule definition edits or direct completion-event writes. Completion events
+use migration 747's bounded function. The bootstrap rejects unreviewed callable
+`SECURITY DEFINER` access and broad/stale scheduler grants.
+
+Load `KOKONUT_SCHEDULER_PASSWORD` and
+`KOKONUT_SCHEDULER_DATABASE_URL` from the encrypted environment before asking
+the planner for any scheduler-role command. Use a distinct password of at least
+32 UTF-8 bytes. Apply the complete ordered migration set (including 747/748),
+run the explicit `bootstrap-runtime-role` action with the overlay selected,
+then start Standard with the same `--scheduler-role` selection. The scheduler
+one-shot `--tick` uses this selected identity. `--run-now` is disabled in the
+isolated scheduler environment because it bypasses durable claims; `--enable`
+and `--disable` require a separate approved operator connection. The profile
+planner keeps both secrets out of its printed command. `release-up` accepts
+this configuration because the overlay introduces no additional image; the
+same reviewed digest-pinned application image remains in use.
+
+Example after loading the encrypted environment:
+
+```sh
+python3 scripts/kernel-profile.py standard --scheduler-role --action config
+python3 scripts/kernel-profile.py standard --scheduler-role --action migrate
+python3 scripts/kernel-profile.py standard --scheduler-role --action bootstrap-runtime-role
+python3 scripts/kernel-profile.py standard --scheduler-role --action up
+```
 
 ## Deployment prerequisites
 

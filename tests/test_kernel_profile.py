@@ -94,6 +94,109 @@ def test_standard_profile_selects_runtime_role_after_app_and_worker_overlays() -
     assert "--profile" not in command
 
 
+def test_standard_scheduler_role_is_opt_in_and_appended_last() -> None:
+    default = _run_planner("standard")
+    assert "docker-compose.kernel-scheduler-role.yml" not in default.stdout
+
+    result = _run_planner(
+        "standard", "--scheduler-role",
+        env={
+            "KOKONUT_SCHEDULER_PASSWORD": "synthetic-scheduler-password-0123456789",
+            "KOKONUT_SCHEDULER_DATABASE_URL": (
+                "postgresql://kokonut_scheduler_login:synthetic@database:5432/kokonut_intelligence"
+            ),
+        },
+    )
+    command = shlex.split(result.stdout)
+    manifests = [
+        command[index + 1]
+        for index, value in enumerate(command[:-1])
+        if value == "-f"
+    ]
+    candidate = str(ROOT / "docker-compose.kernel-candidate.yml")
+    standard = str(ROOT / "docker-compose.kernel-standard.yml")
+    runtime_role = str(ROOT / "docker-compose.kernel-runtime-role.yml")
+    scheduler_role = str(ROOT / "docker-compose.kernel-scheduler-role.yml")
+    assert result.returncode == 0, result.stderr
+    assert manifests.index(candidate) < manifests.index(standard) < manifests.index(runtime_role)
+    assert manifests[-1] == scheduler_role
+    assert "synthetic-scheduler-password" not in result.stdout
+    assert "postgresql://" not in result.stdout
+
+
+@pytest.mark.parametrize("profile", ["minimal", "core", "edge", "analytics"])
+def test_scheduler_role_is_standard_only(profile: str) -> None:
+    result = _run_planner(
+        profile,
+        "--scheduler-role",
+        env={
+            "KOKONUT_SCHEDULER_PASSWORD": "synthetic-scheduler-password-0123456789",
+            "KOKONUT_SCHEDULER_DATABASE_URL": "postgresql://synthetic",
+        },
+    )
+    assert result.returncode != 0
+    assert "--scheduler-role applies only to standard" in result.stderr
+
+
+def test_scheduler_role_requires_loaded_encrypted_environment_values() -> None:
+    result = _run_planner(
+        "standard",
+        "--scheduler-role",
+        env={
+            "KOKONUT_SCHEDULER_PASSWORD": "",
+            "KOKONUT_SCHEDULER_DATABASE_URL": "",
+        },
+    )
+    assert result.returncode != 0
+    assert "KOKONUT_SCHEDULER_PASSWORD" in result.stderr
+    assert "KOKONUT_SCHEDULER_DATABASE_URL" in result.stderr
+
+
+def test_scheduler_role_release_up_keeps_credentials_out_of_command() -> None:
+    image = "ghcr.io/wasalo/kokonut-kernel@sha256:" + ("b" * 64)
+    password = "synthetic-scheduler-password-0123456789"
+    dsn = f"postgresql://kokonut_scheduler_login:{password}@database:5432/kokonut_intelligence"
+    result = _run_planner(
+        "standard",
+        "--scheduler-role",
+        "--action",
+        "release-up",
+        env={
+            "KOKONUT_KERNEL_APP_IMAGE": image,
+            "KOKONUT_SCHEDULER_PASSWORD": password,
+            "KOKONUT_SCHEDULER_DATABASE_URL": dsn,
+        },
+    )
+    assert result.returncode == 0, result.stderr
+    assert "docker-compose.kernel-scheduler-role.yml" in result.stdout
+    assert password not in result.stdout
+    assert dsn not in result.stdout
+    assert "--no-build" in result.stdout
+
+
+def test_scheduler_role_is_composed_after_arm64_standard_overlays() -> None:
+    result = _run_planner(
+        "standard",
+        "--target-platform",
+        "linux/arm64",
+        "--scheduler-role",
+        env={
+            "KOKONUT_SCHEDULER_PASSWORD": "synthetic-scheduler-password-0123456789",
+            "KOKONUT_SCHEDULER_DATABASE_URL": "postgresql://synthetic",
+        },
+    )
+    command = shlex.split(result.stdout)
+    manifests = [
+        command[index + 1]
+        for index, value in enumerate(command[:-1])
+        if value == "-f"
+    ]
+    assert result.returncode == 0, result.stderr
+    assert str(ROOT / "docker-compose.kernel-arm64.yml") in manifests
+    assert str(ROOT / "docker-compose.kernel-arm64-standard.yml") in manifests
+    assert manifests[-1] == str(ROOT / "docker-compose.kernel-scheduler-role.yml")
+
+
 def test_standard_edge_composition_orders_edge_after_the_split_role_overlays() -> None:
     result = _run_planner("standard", "--edge")
     command = shlex.split(result.stdout)

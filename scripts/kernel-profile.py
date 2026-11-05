@@ -22,6 +22,7 @@ ARM64_HTTP_SENSORS = "docker-compose.kernel-arm64-http-sensors.yml"
 ARM64_DIRECTUS = "docker-compose.kernel-arm64-directus.yml"
 ARM64_ANALYTICS = "docker-compose.kernel-arm64-analytics.yml"
 ARM64_SENSOR_ANOMALY_ML = "docker-compose.kernel-arm64-sensor-anomaly-ml.yml"
+SCHEDULER_ROLE = "docker-compose.kernel-scheduler-role.yml"
 PROFILES = {
     "minimal": [],
     "core": ["docker-compose.kernel-core.yml"],
@@ -74,6 +75,11 @@ def main() -> None:
         "--edge",
         action="store_true",
         help="add Edge local-media and resource settings to the Standard profile",
+    )
+    parser.add_argument(
+        "--scheduler-role",
+        action="store_true",
+        help="select the opt-in restricted scheduler executor for Standard",
     )
     parser.add_argument(
         "--project", help="Explicit Compose project name (for example, a unique disposable test project)"
@@ -131,6 +137,20 @@ def main() -> None:
         parser.error(f"--action {args.action} applies only to standard or analytics with --separate-workers")
     if args.edge and args.profile != "standard":
         parser.error("--edge applies only to standard; use the edge profile for a standalone Edge deployment")
+    if args.scheduler_role and args.profile != "standard":
+        parser.error("--scheduler-role applies only to standard")
+    if args.scheduler_role:
+        missing_scheduler_values = [
+            name for name in (
+                "KOKONUT_SCHEDULER_PASSWORD",
+                "KOKONUT_SCHEDULER_DATABASE_URL",
+            ) if not os.environ.get(name)
+        ]
+        if missing_scheduler_values:
+            parser.error(
+                "--scheduler-role requires these variables to be loaded from the encrypted environment: "
+                + ", ".join(missing_scheduler_values)
+            )
     if args.oidc and "proxy" not in selected_optional and not args.zitadel and args.profile != "standard":
         parser.error("--oidc requires --proxy so operator session cookies use the HTTPS origin")
 
@@ -212,6 +232,10 @@ def main() -> None:
             files.append(ARM64_DIRECTUS)
         if "sensor_anomaly_ml" in selected_optional:
             files.append(ARM64_SENSOR_ANOMALY_ML)
+    if args.scheduler_role:
+        # This is a final opt-in worker identity override and must merge after
+        # Standard, runtime-role, and any selected architecture/service overlays.
+        files.append(SCHEDULER_ROLE)
     for filename in files:
         if not (ROOT / filename).is_file():
             parser.error(f"Required manifest is missing: {filename}")
