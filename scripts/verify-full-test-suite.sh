@@ -8,6 +8,13 @@ PYTHON_BIN="${PYTHON_BIN:-python3}"
 PYTEST_BIN="${PYTEST_BIN:-$PYTHON_BIN}"
 HEARTBEAT_INTERVAL_SECONDS="${PYTEST_HEARTBEAT_INTERVAL_SECONDS:-15}"
 SHARD_COUNT="${KOKONUT_PYTEST_SHARDS:-96}"
+PROFILE_SHARD="${KOKONUT_PYTEST_PROFILE_SHARD:-}"
+if [ -n "$PROFILE_SHARD" ]; then
+    exec "$PYTHON_BIN" "$SCRIPT_DIR/profile_pytest_collection.py" \
+        --shard-count "$SHARD_COUNT" \
+        --shard-number "$PROFILE_SHARD" \
+        --address-space-limit-mib "${KOKONUT_PYTEST_PROFILE_MEMORY_LIMIT_MIB:-8192}"
+fi
 REPORT_FILE="$(mktemp)"
 PYTEST_PID=""
 HEARTBEAT_PID=""

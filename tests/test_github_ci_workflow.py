@@ -9,6 +9,7 @@ ROOT = Path(__file__).resolve().parents[1]
 WORKFLOW = ROOT / ".github/workflows/ci.yml"
 SECURITY_WORKFLOW = ROOT / ".github/workflows/security.yml"
 FULL_CI_RUNNER = ROOT / "scripts/run-github-ci.sh"
+FULL_TEST_SUITE_RUNNER = ROOT / "scripts/verify-full-test-suite.sh"
 
 
 def _job_block(workflow: str, job_id: str, next_job_id: str) -> str:
@@ -27,7 +28,7 @@ def test_parallel_image_gate_keeps_the_required_ci_status_as_aggregate() -> None
     aggregate = "  ci:\n" + aggregate
 
     assert "name: ci" in aggregate
-    assert "if: ${{ always() && !cancelled() }}" in aggregate
+    assert "if: ${{ always() && !cancelled() && !(github.event_name == 'workflow_dispatch' && inputs.profile_collection) }}" in aggregate
     assert "needs: [preflight, source-checks, full-ci, kernel-image]" in aggregate
     assert "cancel-in-progress: ${{ github.event_name == 'pull_request' }}" in workflow
     assert "PREFLIGHT_RESULT: ${{ needs.preflight.result }}" in aggregate
@@ -55,6 +56,46 @@ def test_parallel_image_gate_keeps_the_required_ci_status_as_aggregate() -> None
     assert "needs:" not in preflight
     for expensive_job in (source_checks, full_ci, kernel_image):
         assert "needs: preflight" in expensive_job
+
+
+def test_manual_collection_profile_is_capped_and_outside_required_gate() -> None:
+    workflow = WORKFLOW.read_text(encoding="utf-8")
+    runner = FULL_TEST_SUITE_RUNNER.read_text(encoding="utf-8")
+    profiler = (ROOT / "scripts/profile_pytest_collection.py").read_text(encoding="utf-8")
+    dispatch = workflow.split("\n  workflow_dispatch:\n", 1)[1].split("\n\npermissions:", 1)[0]
+    preflight = _job_block(workflow, "preflight", "source-checks")
+    aggregate = _job_block(workflow, "ci", "collection-diagnostics")
+    diagnostics = workflow.split("\n  collection-diagnostics:\n", 1)[1]
+
+    assert "profile_collection:" in dispatch
+    assert "default: false" in dispatch
+    assert "type: boolean" in dispatch
+    assert "github.event_name != 'workflow_dispatch' || !inputs.profile_collection" in preflight
+    assert "github.event_name == 'workflow_dispatch' && inputs.profile_collection" in diagnostics
+    assert 'needs: [preflight, source-checks, full-ci, kernel-image]' in aggregate
+    assert "collection-diagnostics" not in aggregate.split("needs:", 1)[1].splitlines()[0]
+    assert 'KOKONUT_PYTEST_PROFILE_SHARD: "55"' in diagnostics
+    assert 'KOKONUT_PYTEST_SHARDS: "96"' in diagnostics
+    assert 'python-version: "3.12"' in diagnostics
+    assert "python -m pip freeze" in diagnostics
+    assert "scripts/verify-full-test-suite.sh" in diagnostics
+    assert 'PROFILE_SHARD="${KOKONUT_PYTEST_PROFILE_SHARD:-}"' in runner
+    assert 'SHARD_COUNT="${KOKONUT_PYTEST_SHARDS:-96}"' in runner
+    assert 'exec "$PYTHON_BIN" "$SCRIPT_DIR/profile_pytest_collection.py"' in runner
+    assert "pytest_test_sharding.py" in profiler
+    assert '"--collect-only"' in profiler
+    assert "resource.RLIMIT_AS" in profiler
+    assert "memory.events" in profiler
+
+    result = subprocess.run(
+        [sys.executable, str(ROOT / "scripts/profile_pytest_collection.py"), "--help"],
+        check=False,
+        capture_output=True,
+        cwd=ROOT,
+        text=True,
+    )
+    assert result.returncode == 0
+    assert "--address-space-limit-mib" in result.stdout
 
 
 def test_full_ci_no_longer_waits_for_multiarch_build_before_running_tests() -> None:
@@ -274,6 +315,47 @@ def test_full_test_suite_runner_emits_heartbeat_without_masking_failure(tmp_path
     runner = (ROOT / "scripts/verify-full-test-suite.sh").read_text(encoding="utf-8")
     assert "ps -axo pid=,ppid=,rss=,etime=,comm=" in runner
     assert "/proc/meminfo" in runner
+
+
+def test_collection_profile_mode_executes_only_the_diagnostic_tool(tmp_path: Path) -> None:
+    fake_python = tmp_path / "fake-python"
+    fake_python.write_text(
+        "#!/bin/sh\nprintf '%s\\n' \"$@\" > \"$PROFILE_ARGS_LOG\"\n",
+        encoding="utf-8",
+    )
+    fake_python.chmod(0o755)
+    args_log = tmp_path / "profile-args.log"
+    environment = os.environ.copy()
+    environment.update(
+        {
+            "PYTHON_BIN": str(fake_python),
+            "KOKONUT_PYTEST_PROFILE_SHARD": "55",
+            "KOKONUT_PYTEST_SHARDS": "96",
+            "KOKONUT_PYTEST_PROFILE_MEMORY_LIMIT_MIB": "8192",
+            "PROFILE_ARGS_LOG": str(args_log),
+        }
+    )
+
+    result = subprocess.run(
+        ["bash", str(ROOT / "scripts/verify-full-test-suite.sh")],
+        capture_output=True,
+        check=False,
+        cwd=ROOT,
+        env=environment,
+        text=True,
+    )
+
+    assert result.returncode == 0
+    args = args_log.read_text(encoding="utf-8").splitlines()
+    assert args[0].endswith("scripts/profile_pytest_collection.py")
+    assert args[1:] == [
+        "--shard-count",
+        "96",
+        "--shard-number",
+        "55",
+        "--address-space-limit-mib",
+        "8192",
+    ]
 
 
 def test_full_suite_runner_assigns_every_test_file_once_across_sequential_shards(tmp_path: Path) -> None:
