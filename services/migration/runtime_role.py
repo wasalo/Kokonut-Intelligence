@@ -2348,6 +2348,12 @@ def provision_runtime_role(
         runtime_role_exists, runtime_placeholder_pending = cur.fetchone()
         runtime_compatibility_grants_applied = not runtime_role_exists or runtime_placeholder_pending
         _ensure_login_role(cur, name=runtime_user, identifier=runtime_ident, password=runtime_password)
+        cur.execute("SELECT to_regprocedure('kokonut_security.enqueue_scheduler_run_event(uuid,text)')")
+        if cur.fetchone()[0] is not None:
+            cur.execute(sql.SQL(
+                "GRANT EXECUTE ON FUNCTION kokonut_security.enqueue_scheduler_run_event(uuid,text) TO {}"
+            ).format(runtime_ident))
+
         cur.execute(
             sql.SQL("GRANT EXECUTE ON FUNCTION {} TO {}").format(
                 sql.SQL(_ALERT_RULE_DEFAULT_FUNCTION), runtime_ident

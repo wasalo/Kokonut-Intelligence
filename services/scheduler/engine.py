@@ -412,19 +412,10 @@ class SchedulerEngine:
                 self._conn.rollback()
                 raise SchedulerLeaseLostError(f"Lease for task {task_id} was lost by worker {self._worker_id}")
 
-            # Publish event
-            event_type = "task_completed" if status == "completed" else "task_failed"
+            # Derive the event from the persisted terminal run in this transaction.
             cur.execute(
-                """
-                INSERT INTO platform_event (event_type, source_table, source_id, payload, priority)
-                VALUES (%s, 'task_run', %s, %s, 'normal')
-                """,
-                (
-                    event_type,
-                    run_id,
-                    f'{{"task_id": "{task_id}", "run_id": "{run_id}", '
-                    f'"status": "{status}", "duration_ms": {duration_ms}}}',
-                ),
+                "SELECT kokonut_security.enqueue_scheduler_run_event(%s, %s)",
+                (run_id, self._worker_id),
             )
 
         self._conn.commit()

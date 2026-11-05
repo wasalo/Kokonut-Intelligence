@@ -27107,3 +27107,8 @@ was touched.
 ## Documentation consolidation — 5 November 2026
 
 The owner selected candidate acceptance as the refactor finish line. The current-state guide now owns G1–G7, 67 capability acceptance rows, 119 historical unchecked requirement references, and the index of 165 pre-consolidation Markdown records. Former trackers carry supersession notices; historical evidence remains unchanged. The previous current-state snapshot is preserved in current-state-baseline-2026-11-05.md. No runtime, migration, grant, or deployment changed. Capability matrix validation and local master-link checks passed. CI #1091 was still running and Security #807 passed on cd65f1d9 when checked; this is not acceptance of the documentation commit.
+
+
+## Scheduler event boundary — 5 November 2026
+
+Migration 747 and the scheduler source replace direct event DML with a bounded terminal-run enqueue and transactional idempotency receipt. Network-disabled PostgreSQL fixture passes replay, duplicate, denied access and rollback checks; scheduler/runtime-role regression selection passes 146 tests. Inventories refreshed. This is focused source/disposable acceptance only; no candidate migration, login provisioning or API/general-worker separation acceptance. See the current-state guide for remaining G2 work.

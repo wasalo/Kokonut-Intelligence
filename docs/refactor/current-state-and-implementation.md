@@ -189,6 +189,14 @@ The scheduler loop now accepts the explicit `KOKONUT_SCHEDULER_DATABASE_URL` pat
 
 Before enabling this path, implement migration-backed scheduler grants, bootstrap/Compose routing, schema-readiness and worker-health reads, and fresh/upgrade disposable acceptance. The scheduler owns claims, runs and resource slots, but completion also directly inserts `platform_event`; migrate that event intent behind a bounded contract rather than restoring shared-runtime event DML. Keep definition administration distinct from execution updates. Preserve API child PG settings and exact isolated job-secret filtering. This is source preparation, not API/general-worker separation acceptance or candidate rollout.
 
+## G2 implementation checkpoint — bounded scheduler events (migration 747)
+
+Source now replaces the scheduler's direct `platform_event` INSERT with `kokonut_security.enqueue_scheduler_run_event(run_id, worker_id)`. It derives event type/payload from the persisted terminal run, checks worker binding, and records an event receipt atomically for retry-safe enqueue. A non-login owner has only the required source columns and event insert columns; PUBLIC execution is revoked. The dedicated scheduler role receives function execution but no direct event or receipt access. Runtime provisioning reapplies the compatibility caller's execute grant when the function exists.
+
+The network-disabled disposable PostgreSQL checker applies/reapplies migration 747 and verifies duplicate enqueue, denied wrong-worker/nonterminal access, denied direct event/receipt access, and transaction rollback. The scheduler/durability/runtime-role selection passed 146 tests; Ruff and source migration validation pass. This is focused synthetic acceptance, not full-schema/RLS acceptance, scheduler-login provisioning, or candidate rollout. Source now contains 738 migrations; the inspected candidate remains through 745. Before cutover, finish execution-column grants, bootstrap/Compose credentials, readiness/health access, full-schema fresh/upgrade checks, and API/general-worker privilege separation. G2 stays open.
+
+Run `python3 scripts/check-scheduler-run-event-disposable.py` for this focused fixture; it starts only a temporary network-disabled PostgreSQL container, uses no persistent target, and removes the container afterward.
+
 ## Owner inputs and deferred milestones
 
 Existing decisions stand: Gateway-native farm activity, optional Directus, self-hosted ZITADEL, all repository-backed reports first, Kokonut Network's five named locations, Maileroo SMTP, R2 production/backups buckets, USA/Dominican Republic dynamic retention, and 24-hour recovery target. Do not re-ask settled choices. Keep unconfirmed tenant sharing ungranted.
