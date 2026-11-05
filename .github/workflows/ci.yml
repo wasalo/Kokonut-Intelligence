@@ -203,6 +203,33 @@ jobs:
         with:
           persist-credentials: false
 
+      - name: Prepare disposable CI environment
+        run: |
+          umask 077
+          cat > .env <<'EOF'
+          KOKONUT_ENV=ci
+          KOKONUT_ALLOW_PLAINTEXT_ENV=true
+          POSTGRES_PASSWORD=ci-placeholder
+          PG_HOST=database
+          PG_DB=kokonut_intelligence
+          PG_USER=kokonut
+          PG_PASSWORD=ci-placeholder
+          CLICKHOUSE_PASSWORD=ci-placeholder
+          BACKUP_ENCRYPTION_KEY=ci-backup-key
+          REDIS_PASSWORD=ci-placeholder
+          DIRECTUS_SECRET=ci-secret
+          ADMIN_EMAIL=ci@kokonut.network
+          ADMIN_PASSWORD=ci-password
+          PUBLIC_URL=http://localhost:8055
+          METABASE_EMBEDDING_SECRET_KEY=ci-embedding-secret
+          CI_PG_HOST_PORT=127.0.0.1:15432
+          CI_CH_HOST_PORT=127.0.0.1:18123
+          DIRECTUS_HOST_PORT=127.0.0.1:18055
+          GATEWAY_HOST_PORT=127.0.0.1:18099
+          GRPC_HOST_PORT=127.0.0.1:50052
+          EOF
+          rm -f .env.sops
+
       - name: Set up Python
         uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:

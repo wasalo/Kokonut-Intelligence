@@ -76,6 +76,8 @@ def test_manual_collection_profile_is_capped_and_outside_required_gate() -> None
     assert "collection-diagnostics" not in aggregate.split("needs:", 1)[1].splitlines()[0]
     assert 'KOKONUT_PYTEST_PROFILE_SHARD: "55"' in diagnostics
     assert 'KOKONUT_PYTEST_SHARDS: "96"' in diagnostics
+    assert "Prepare disposable CI environment" in diagnostics
+    assert "rm -f .env.sops" in diagnostics
     assert 'python-version: "3.12"' in diagnostics
     assert "python -m pip freeze" in diagnostics
     assert "scripts/verify-full-test-suite.sh" in diagnostics
