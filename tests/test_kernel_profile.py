@@ -123,7 +123,7 @@ def test_standard_api_worker_login_split_is_explicit_and_requires_its_secret() -
     assert "synthetic-worker-runtime-password" not in result.stdout
 
 
-def test_api_worker_login_split_is_limited_to_general_standard_workers() -> None:
+def test_api_worker_login_split_supports_standard_analytics_and_scheduler_composition() -> None:
     minimal = _run_planner(
         "minimal",
         "--separate-api-worker-logins",
@@ -151,8 +151,19 @@ def test_api_worker_login_split_is_limited_to_general_standard_workers() -> None
             "KOKONUT_SCHEDULER_DATABASE_URL": "postgresql://synthetic",
         },
     )
-    assert scheduler.returncode != 0
-    assert "cannot be combined with --scheduler-role" in scheduler.stderr
+    command = shlex.split(scheduler.stdout)
+    manifests = [
+        command[index + 1]
+        for index, value in enumerate(command[:-1])
+        if value == "-f"
+    ]
+    worker_role = str(ROOT / "docker-compose.kernel-worker-runtime-role.yml")
+    scheduler_role = str(ROOT / "docker-compose.kernel-scheduler-role.yml")
+    worker_supervisor = str(ROOT / "docker-compose.kernel-worker-runtime-supervisor.yml")
+    assert scheduler.returncode == 0, scheduler.stderr
+    assert manifests.index(worker_role) < manifests.index(scheduler_role) < manifests.index(worker_supervisor)
+    assert "synthetic-worker-runtime-password" not in scheduler.stdout
+    assert "synthetic-scheduler-password" not in scheduler.stdout
 
 
 def test_standard_scheduler_role_is_opt_in_and_appended_last() -> None:
@@ -918,6 +929,82 @@ def test_standard_resolved_compose_separates_api_and_worker_runtime_logins() -> 
     )
     assert "KOKONUT_WORKER_RUNTIME_PASSWORD" not in app_environment
     assert environment["KOKONUT_WORKER_RUNTIME_PASSWORD"] not in json.dumps(model["services"]["app"])
+
+
+def test_standard_resolved_compose_composes_worker_and_scheduler_child_logins() -> None:
+    docker = shutil.which("docker")
+    if docker is None:
+        pytest.skip("Docker CLI is required to resolve the Standard Compose model")
+
+    worker_password = "synthetic-worker-runtime-password"
+    scheduler_password = "synthetic-scheduler-password-0123456789"
+    scheduler_dsn = (
+        "postgresql://kokonut_scheduler_login:synthetic-scheduler-password-0123456789"
+        "@database:5432/kokonut_intelligence"
+    )
+    environment = {
+        "HOME": str(Path.home()),
+        "PATH": os.environ.get("PATH", ""),
+        "POSTGRES_PASSWORD": "synthetic-postgres-password",
+        "KOKONUT_RUNTIME_USER": "kokonut_runtime",
+        "KOKONUT_RUNTIME_PASSWORD": "synthetic-runtime-password",
+        "KOKONUT_WORKER_RUNTIME_USER": "kokonut_worker_runtime",
+        "KOKONUT_WORKER_RUNTIME_PASSWORD": worker_password,
+        "KOKONUT_OPERATOR_AUTH_PASSWORD": "synthetic-operator-password",
+        "KOKONUT_SCHEDULER_PASSWORD": scheduler_password,
+        "KOKONUT_SCHEDULER_DATABASE_URL": scheduler_dsn,
+    }
+    command = [
+        docker,
+        "compose",
+        "--env-file",
+        os.devnull,
+        "-p",
+        "kokonut-standard-three-login-test",
+        "-f",
+        str(ROOT / "docker-compose.kernel-candidate.yml"),
+        "-f",
+        str(ROOT / "docker-compose.kernel-standard.yml"),
+        "-f",
+        str(ROOT / "docker-compose.kernel-runtime-role.yml"),
+        "-f",
+        str(ROOT / "docker-compose.kernel-worker-runtime-role.yml"),
+        "-f",
+        str(ROOT / "docker-compose.kernel-scheduler-role.yml"),
+        "-f",
+        str(ROOT / "docker-compose.kernel-worker-runtime-supervisor.yml"),
+        "--profile",
+        "runtime-admin",
+        "config",
+        "--format",
+        "json",
+    ]
+    result = subprocess.run(
+        command,
+        cwd=ROOT,
+        env=environment,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    assert result.returncode == 0, result.stderr
+    model = json.loads(result.stdout)
+    app_environment = model["services"]["app"]["environment"]
+    worker_environment = model["services"]["worker"]["environment"]
+    bootstrap_environment = model["services"]["runtime-role-bootstrap"]["environment"]
+
+    assert app_environment["PG_USER"] == "kokonut_runtime"
+    assert app_environment["PG_PASSWORD"] == "synthetic-runtime-password"
+    assert worker_environment["PG_USER"] == "kokonut_worker_runtime"
+    assert worker_environment["PG_PASSWORD"] == worker_password
+    assert worker_environment["KOKONUT_RUNTIME_PARENT_ROLE"] == "kokonut_runtime"
+    assert worker_environment["KOKONUT_SCHEDULER_DATABASE_URL"] == scheduler_dsn
+    assert "KOKONUT_SCHEDULER_PASSWORD" not in worker_environment
+    assert bootstrap_environment["KOKONUT_WORKER_RUNTIME_PASSWORD"] == worker_password
+    assert bootstrap_environment["KOKONUT_SCHEDULER_PASSWORD"] == scheduler_password
+    assert "KOKONUT_WORKER_RUNTIME_PASSWORD" not in app_environment
+    assert "KOKONUT_SCHEDULER_PASSWORD" not in app_environment
 
 
 def test_analytics_separate_workers_resolved_compose_keeps_runtime_and_clickhouse_environment() -> None:

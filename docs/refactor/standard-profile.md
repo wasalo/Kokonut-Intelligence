@@ -32,7 +32,9 @@ delivery child processes, generates distinct UUID-based identities for each
 supervisor lifetime, and refuses an empty worker role. By default the
 scheduler retains the shared control-plane login for compatibility; the
 explicit `--scheduler-role` Standard overlay selects the restricted executor
-identity described below. The event-bus and
+identity described below. When composed with `--separate-api-worker-logins`,
+the supervisor stays on `kokonut_worker_runtime` while the scheduler child
+uses its dedicated connection. The event-bus and
 notification feature switches may default on, but their isolated database
 worker switches default off. In that state they remain paused without opening
 a shared database connection. Enabling either operation requires its dedicated
@@ -111,6 +113,22 @@ planner keeps both secrets out of its printed command. `release-up` accepts
 this configuration because the overlay introduces no additional image; the
 same reviewed digest-pinned application image remains in use.
 
+The scheduler profile can be combined with G2 API/worker attribution:
+
+```sh
+python3 scripts/kernel-profile.py standard --separate-api-worker-logins --scheduler-role --action config
+```
+
+In the combined profile, the Gateway uses `kokonut_runtime`, the worker
+supervisor uses `kokonut_worker_runtime`, and the scheduler child uses
+`kokonut_scheduler_login` through `KOKONUT_SCHEDULER_DATABASE_URL`. The final
+supervisor overlay restores the worker login after the scheduler overlay; the
+scheduler child still selects its dedicated DSN and strips inherited `PG_*`
+credentials. Both worker and scheduler secrets must be provisioned during the
+explicit runtime-role bootstrap. The worker login still inherits the existing
+runtime grants, so this composition improves attribution but does not narrow
+the worker's privileges or close C1.
+
 Example after loading the encrypted environment:
 
 ```sh
@@ -148,12 +166,13 @@ that login while the API retains `KOKONUT_RUNTIME_USER`. Startup verifies the
 worker has only the expected inheriting membership and cannot `SET ROLE` to
 the API login. Until the caller map is reviewed, the worker inherits the same
 existing ACL as the API. This separates attribution, not capability. The flag
-cannot be combined with `--scheduler-role`, which provisions its own worker
-identity. Do not describe this staged identity split as least privilege or as
-closing C1. Verify the role membership, API/worker session identities, inherited
-ACL behavior, and `SET ROLE` denial on a disposable PostgreSQL 16 instance with
-`python3 scripts/check-worker-runtime-identity-disposable.py`; this synthetic
-acceptance does not change a candidate database.
+can be combined with `--scheduler-role`: the worker supervisor keeps the
+general worker login while the scheduler child uses its dedicated login as
+described above. Do not describe this staged identity split as least privilege
+or as closing C1. Verify the role membership, API/worker session identities,
+inherited ACL behavior, and `SET ROLE` denial on a disposable PostgreSQL 16
+instance with `python3 scripts/check-worker-runtime-identity-disposable.py`;
+this synthetic acceptance does not change a candidate database.
 
 Manual ClickHouse outbox actions require migration 746, the optional
 `KOKONUT_CLICKHOUSE_OUTBOX_OPERATOR_PASSWORD`, and a separate post-migration

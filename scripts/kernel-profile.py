@@ -24,6 +24,7 @@ ARM64_ANALYTICS = "docker-compose.kernel-arm64-analytics.yml"
 ARM64_SENSOR_ANOMALY_ML = "docker-compose.kernel-arm64-sensor-anomaly-ml.yml"
 SCHEDULER_ROLE = "docker-compose.kernel-scheduler-role.yml"
 WORKER_RUNTIME_ROLE = "docker-compose.kernel-worker-runtime-role.yml"
+WORKER_RUNTIME_SUPERVISOR = "docker-compose.kernel-worker-runtime-supervisor.yml"
 PROFILES = {
     "minimal": [],
     "core": ["docker-compose.kernel-core.yml"],
@@ -85,7 +86,7 @@ def main() -> None:
     parser.add_argument(
         "--separate-api-worker-logins",
         action="store_true",
-        help="give Standard (or separate-worker analytics) distinct API and worker logins",
+        help="give Standard (or separate-worker analytics) distinct API and worker logins; composes with --scheduler-role",
     )
     parser.add_argument(
         "--project", help="Explicit Compose project name (for example, a unique disposable test project)"
@@ -141,8 +142,6 @@ def main() -> None:
     role_separated = args.profile == "standard" or args.separate_workers
     if args.separate_api_worker_logins and not role_separated:
         parser.error("--separate-api-worker-logins applies only to Standard or analytics with --separate-workers")
-    if args.separate_api_worker_logins and args.scheduler_role:
-        parser.error("--separate-api-worker-logins cannot be combined with --scheduler-role")
     if args.separate_api_worker_logins and args.action not in {"database-up", "migrate"} and not os.environ.get(
         "KOKONUT_WORKER_RUNTIME_PASSWORD"
     ):
@@ -254,6 +253,12 @@ def main() -> None:
         # This is a final opt-in worker identity override and must merge after
         # Standard, runtime-role, and any selected architecture/service overlays.
         files.append(SCHEDULER_ROLE)
+    if args.scheduler_role and args.separate_api_worker_logins:
+        # Keep the long-lived worker supervisor on its general worker login.
+        # The scheduler child selects its dedicated DSN and strips these PG_*
+        # values before it starts; this final overlay restores only the parent
+        # service identity after the scheduler profile has selected its role.
+        files.append(WORKER_RUNTIME_SUPERVISOR)
     for filename in files:
         if not (ROOT / filename).is_file():
             parser.error(f"Required manifest is missing: {filename}")
