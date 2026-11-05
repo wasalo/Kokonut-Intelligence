@@ -20,7 +20,7 @@ try:
     run('docker', 'run', '-d', '--rm', '--network', 'none', '--name', name,
         '-e', 'POSTGRES_HOST_AUTH_METHOD=trust', 'postgres:16-alpine')
     for attempt in range(120):
-        if subprocess.run(['docker','exec',name,'pg_isready','-U','postgres'], capture_output=True).returncode == 0:
+        if subprocess.run(['docker','exec',name,'pg_isready','-h','127.0.0.1','-U','postgres'], capture_output=True).returncode == 0:
             break
         time.sleep(.25)
     else:

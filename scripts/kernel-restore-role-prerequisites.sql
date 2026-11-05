@@ -173,6 +173,8 @@ BEGIN
         'kokonut_incident_review_reader',
         'kokonut_notification_delivery_login',
         'kokonut_notification_delivery_owner',
+        'kokonut_scheduler_event_owner',
+        'kokonut_scheduler_login',
         'kokonut_pesticide_impact_writer',
         'kokonut_pollinator_habitat_lifecycle_writer',
         'kokonut_pollinator_habitat_writer',
