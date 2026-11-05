@@ -128,7 +128,7 @@ python3 -m services.scheduler.cli --list-runs
 python3 -m services.scheduler.cli --worker --tick-interval 30
 ```
 
-- Use `--tick` for an ordinary durable scheduler claim. `--run-now` bypasses claim/run bookkeeping and completion events; it is disabled in the isolated scheduler environment and remains only for legacy diagnostics. `--enable TASK` and `--disable TASK` are privileged definition changes; use an approved operator database connection. The dedicated scheduler executor cannot enable or disable tasks.
+- Use `--tick` for an ordinary durable scheduler claim. `--run-now` bypasses claim/run bookkeeping and completion events; it is disabled in the isolated scheduler environment and remains only for legacy diagnostics. `--enable TASK` and `--disable TASK` are privileged legacy definition changes and fail in the isolated scheduler environment. The candidate has no authenticated, audited schedule-administration path yet; do not use the shared runtime login as a substitute.
 - Scheduler claims use database leases and row locking. Preserve non-overlap, retry/backoff, expired-lease recovery, and durable run state when troubleshooting.
 - Run the event bus continuously when delivery is required:
 

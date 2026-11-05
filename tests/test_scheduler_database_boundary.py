@@ -55,6 +55,24 @@ def test_scheduler_tick_cli_uses_the_selected_scheduler_connection(monkeypatch):
     connection.close.assert_called_once_with()
 
 
+@pytest.mark.parametrize("command_name", ["cmd_enable", "cmd_disable"])
+def test_schedule_definition_cli_fails_before_database_in_isolated_mode(monkeypatch, command_name):
+    from argparse import Namespace
+
+    from services.scheduler import cli
+
+    monkeypatch.setattr(connections, "scheduler_database_is_selected", Mock(return_value=True))
+    get_connection = Mock()
+    get_db = Mock()
+    monkeypatch.setattr("services.common.cli.get_connection", get_connection)
+    monkeypatch.setattr("services.common.database.get_db", get_db)
+    command = getattr(cli, command_name)
+    with pytest.raises(RuntimeError, match="authenticated, audited operator path is not configured"):
+        command(Namespace(task_name="fixture", task_name_graph=None))
+    get_connection.assert_not_called()
+    get_db.assert_not_called()
+
+
 @pytest.mark.parametrize("selection", [
     {"KOKONUT_SCHEDULER_DATABASE_URL": ""},
     {"KOKONUT_ISOLATED_WORKER_KEY": "scheduler"},

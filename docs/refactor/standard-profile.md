@@ -105,7 +105,8 @@ run the explicit `bootstrap-runtime-role` action with the overlay selected,
 then start Standard with the same `--scheduler-role` selection. The scheduler
 one-shot `--tick` uses this selected identity. `--run-now` is disabled in the
 isolated scheduler environment because it bypasses durable claims; `--enable`
-and `--disable` require a separate approved operator connection. The profile
+and `--disable` fail in that environment because the candidate has no
+authenticated, audited schedule-administration path yet. The profile
 planner keeps both secrets out of its printed command. `release-up` accepts
 this configuration because the overlay introduces no additional image; the
 same reviewed digest-pinned application image remains in use.

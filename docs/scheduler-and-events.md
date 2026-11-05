@@ -47,7 +47,7 @@ Default resources are `db_connection` (5), `clickhouse_connection` (3), `network
 
 `--tick` uses the selected scheduler database identity and creates ordinary durable claims/run history. `--run-now` validates the module and executes it directly with its configured arguments and timeout. It does not create scheduler claim/run bookkeeping or publish scheduler completion events; it is disabled whenever the isolated scheduler identity or shared-database denial marker is selected. Its compatibility behavior is limited to an explicitly unselected legacy environment.
 
-`--enable` and `--disable` are privileged schedule-definition operations. The scheduler executor identity cannot perform them. Use a separately approved operator database connection; an authenticated, audited Kernel administration route remains open work.
+`--enable` and `--disable` are privileged schedule-definition operations. They fail before database access when the isolated scheduler identity is selected. A supported authenticated, audited Kernel administration path does not yet exist; keep schedule changes out of candidate operation until that path and its owner-approved authorization are defined. The CLI behavior remains only for unselected legacy compatibility.
 
 `--status` reports enabled, disabled, running, and failing task counts, task cadence/status, and resource usage. `--list-runs` shows recent run history; use `--limit N` to change its default limit of 20. `--worker` runs the continuous tick loop and responds to SIGTERM/SIGINT.
 
