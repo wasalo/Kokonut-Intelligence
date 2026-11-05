@@ -11,6 +11,7 @@ import secrets
 import shutil
 import subprocess
 import sys
+import time
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -160,6 +161,39 @@ $$;
 """
 
 
+def wait_for_stable_postgres(docker: str, container: str) -> None:
+    """Wait for TCP readiness after the PostGIS entrypoint's socket-only bootstrap."""
+    deadline = time.monotonic() + 90
+    consecutive_successes = 0
+    while time.monotonic() < deadline:
+        probe = subprocess.run(
+            [
+                docker,
+                "exec",
+                container,
+                "pg_isready",
+                "-h",
+                "127.0.0.1",
+                "-U",
+                "postgres",
+                "-d",
+                "postgres",
+                "-q",
+            ],
+            text=True,
+            capture_output=True,
+            check=False,
+        )
+        if probe.returncode == 0:
+            consecutive_successes += 1
+            if consecutive_successes == 3:
+                return
+        else:
+            consecutive_successes = 0
+        time.sleep(1)
+    raise RuntimeError("disposable PostgreSQL did not remain TCP-ready for three checks")
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("output", nargs="?", type=Path)
@@ -184,7 +218,7 @@ def main() -> int:
         command.extend(("-e", f"POSTGRES_PASSWORD={secrets.token_urlsafe(24)}", args.image))
         outbox.run(command)
         created = True
-        outbox.wait_ready(docker, container)
+        wait_for_stable_postgres(docker, container)
         architecture = outbox.run([docker, "exec", container, "uname", "-m"]).strip()
         expected_architecture = {
             "linux/amd64": "x86_64",
