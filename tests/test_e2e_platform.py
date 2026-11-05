@@ -19,6 +19,7 @@ Usage:
 from __future__ import annotations
 
 import os
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -26,6 +27,39 @@ from pathlib import Path
 # Pilot location UUID
 ADELPHI = "a0000000-0000-0000-0000-000000000001"
 GENESIS = "a0000000-0000-0000-0000-000000000002"
+_POSTGRES_IDENTIFIER = r'(?:"(?:""|[^"])*"|[A-Za-z_][A-Za-z0-9_$]*)'
+_POSTGRES_RELATION = rf"{_POSTGRES_IDENTIFIER}(?:[ \t]*\.[ \t]*{_POSTGRES_IDENTIFIER})?"
+
+
+def _declared_postgres_relations(schema_dir: Path, declaration: str) -> set[str]:
+    """Return statically declared PostgreSQL relations with schema and case."""
+    patterns = {
+        "table": re.compile(
+            rf"^[ \t]*CREATE\s+TABLE\s+IF\s+NOT\s+EXISTS\s+({_POSTGRES_RELATION})(?=[\s(;])",
+            re.IGNORECASE | re.MULTILINE,
+        ),
+        "view": re.compile(
+            rf"^[ \t]*CREATE\s+(?:OR\s+REPLACE\s+)?(?:MATERIALIZED\s+)?VIEW\s+"
+            rf"(?:IF\s+NOT\s+EXISTS\s+)?({_POSTGRES_RELATION})(?=[\s(;])",
+            re.IGNORECASE | re.MULTILINE,
+        ),
+    }
+    pattern = patterns[declaration]
+    relations = set()
+    for sql_file in schema_dir.glob("*.sql"):
+        content = sql_file.read_text()
+        for match in pattern.finditer(content):
+            identifiers = re.findall(
+                r'"((?:""|[^"])*)"|([A-Za-z_][A-Za-z0-9_$]*)',
+                match.group(1),
+            )
+            parts = [quoted.replace('""', '"') if quoted else bare.lower() for quoted, bare in identifiers]
+            if len(parts) == 1:
+                parts.insert(0, "public")
+            if len(parts) != 2:
+                raise ValueError(f"Unsupported PostgreSQL relation name: {match.group(1)!r}")
+            relations.add(".".join(parts))
+    return relations
 
 
 def _run_sql(sql: str, *, tuples_only: bool = False) -> str:
@@ -138,17 +172,15 @@ def _parse_count(result: str) -> int:
 # ============================================================
 
 def test_all_tables_exist():
-    """Verify all 363 tables exist."""
+    """Verify all statically declared PostgreSQL tables exist."""
     schema_dir = Path("schemas/postgres")
-    all_tables = set()
-    for sql_file in schema_dir.glob("*.sql"):
-        content = sql_file.read_text()
-        for match in __import__("re").findall(r"CREATE TABLE IF NOT EXISTS (\w+)", content):
-            all_tables.add(match)
+    all_tables = _declared_postgres_relations(schema_dir, "table")
 
     existing_tables = set(_run_sql(
-        "SELECT table_name FROM information_schema.tables "
-        "WHERE table_schema = 'public' ORDER BY table_name",
+        "SELECT table_schema || '.' || table_name FROM information_schema.tables "
+        "WHERE table_type = 'BASE TABLE' "
+        "AND table_schema !~ '^(pg_|information_schema$)' "
+        "ORDER BY table_schema, table_name",
         tuples_only=True,
     ).splitlines())
     missing = sorted(all_tables - existing_tables)
@@ -159,19 +191,16 @@ def test_all_tables_exist():
 
 def test_all_views_exist():
     """Verify all views exist in their respective databases."""
-    import re
-
-    # PostgreSQL views
-    pg_views = set()
     pg_dir = Path("schemas/postgres")
-    for sql_file in pg_dir.glob("*.sql"):
-        content = sql_file.read_text()
-        for match in re.findall(r"CREATE (?:OR REPLACE )?VIEW (\w+)", content):
-            pg_views.add(match)
+    pg_views = _declared_postgres_relations(pg_dir, "view")
 
     existing_pg_views = set(_run_sql(
-        "SELECT table_name FROM information_schema.views "
-        "WHERE table_schema = 'public' ORDER BY table_name",
+        "SELECT schemaname || '.' || viewname FROM pg_catalog.pg_views "
+        "WHERE schemaname !~ '^(pg_|information_schema$)' "
+        "UNION ALL "
+        "SELECT schemaname || '.' || matviewname FROM pg_catalog.pg_matviews "
+        "WHERE schemaname !~ '^(pg_|information_schema$)' "
+        "ORDER BY 1",
         tuples_only=True,
     ).splitlines())
     pg_missing = sorted(pg_views - existing_pg_views)
@@ -201,22 +230,14 @@ def test_catalog_presence_checks_use_one_query_per_database(monkeypatch):
     from unittest.mock import Mock
 
     pg_dir = Path("schemas/postgres")
-    expected_tables = {
-        table
-        for sql_file in pg_dir.glob("*.sql")
-        for table in re.findall(r"CREATE TABLE IF NOT EXISTS (\w+)", sql_file.read_text())
-    }
+    expected_tables = _declared_postgres_relations(pg_dir, "table")
     table_query = Mock(return_value="\n".join(sorted(expected_tables)))
     monkeypatch.setattr(sys.modules[__name__], "_run_sql", table_query)
     test_all_tables_exist()
     table_query.assert_called_once()
     assert "information_schema.tables" in table_query.call_args.args[0]
 
-    expected_pg_views = {
-        view
-        for sql_file in pg_dir.glob("*.sql")
-        for view in re.findall(r"CREATE (?:OR REPLACE )?VIEW (\w+)", sql_file.read_text())
-    }
+    expected_pg_views = _declared_postgres_relations(pg_dir, "view")
     ch_dir = Path("schemas/clickhouse")
     expected_ch_views = {
         view
