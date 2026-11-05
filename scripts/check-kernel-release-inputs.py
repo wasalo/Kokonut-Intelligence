@@ -79,9 +79,6 @@ def _validate_inputs(lock: dict) -> None:
     apt_sources = package_record.get("apt_sources")
     if not isinstance(apt_sources, dict):
         raise LockError("PostGIS package record has no apt_sources lock")
-    snapshot_timestamp = apt_sources.get("debian_snapshot_timestamp", "")
-    if not re.fullmatch(r"\d{8}T\d{6}Z", snapshot_timestamp):
-        raise LockError("PostGIS Debian snapshot timestamp must be an exact UTC timestamp")
     sources_path = apt_sources.get("source_file")
     preferences_path = apt_sources.get("preferences_file")
     bootstrap_sources_path = apt_sources.get("bootstrap_source_file")
@@ -92,26 +89,30 @@ def _validate_inputs(lock: dict) -> None:
     except (TypeError, OSError) as error:
         raise LockError(f"cannot read locked PostGIS apt source inputs: {error}") from error
     expected_source_entries = (
-        f"https://snapshot.debian.org/archive/debian/{snapshot_timestamp}/",
-        f"https://snapshot.debian.org/archive/debian-security/{snapshot_timestamp}/",
+        "https://deb.debian.org/debian",
+        "https://deb.debian.org/debian-security",
         "Suites: bookworm bookworm-updates",
         "Suites: bookworm-security",
         apt_sources.get("pgdg_archive_uri"),
         apt_sources.get("pgdg_archive_suite"),
     )
     if any(not entry or entry not in sources for entry in expected_source_entries):
-        raise LockError("PostGIS apt source file differs from the package-record snapshot lock")
+        raise LockError("PostGIS apt sources differ from the maintained Debian/PGDG policy")
+    for source_text in (sources, bootstrap_sources):
+        if any(marker in source_text.lower() for marker in (
+            "snapshot.debian.org", "check-valid-until: no", "trusted: yes", "allow-insecure: yes",
+        )):
+            raise LockError("PostGIS maintained repositories must retain APT freshness and signature checks")
     expected_bootstrap_entries = (
-        f"http://snapshot.debian.org/archive/debian/{snapshot_timestamp}/",
+        "http://deb.debian.org/debian",
         "Suites: bookworm",
         "Components: main",
         "Signed-By: /usr/share/keyrings/debian-archive-keyring.gpg",
-        "Check-Valid-Until: no",
     )
     if any(entry not in bootstrap_sources for entry in expected_bootstrap_entries):
-        raise LockError("PostGIS CA bootstrap source differs from the Debian snapshot lock")
+        raise LockError("PostGIS CA bootstrap source differs from the signed Debian repository policy")
     if "https://" in bootstrap_sources or "apt-archive.postgresql.org" in bootstrap_sources:
-        raise LockError("PostGIS CA bootstrap source must use only the signed Debian HTTP snapshot")
+        raise LockError("PostGIS CA bootstrap source must use only the signed Debian HTTP repository")
     postgis_dockerfile = (ROOT / "Dockerfile.kernel-postgis").read_text(encoding="utf-8")
     bootstrap_stage = postgis_dockerfile.find("FROM postgres-base AS ca-bootstrap")
     ca_install = postgis_dockerfile.find("apt-get install -y --no-install-recommends ca-certificates")

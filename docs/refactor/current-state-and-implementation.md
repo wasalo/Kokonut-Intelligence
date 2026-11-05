@@ -109,6 +109,22 @@ been performed.
 
 ## Current implementation and evidence
 
+### Database image build policy follow-up
+
+The finalization branch replaces Debian's dated snapshot download dependency
+with maintained signed bookworm repositories. The PostgreSQL base digest and
+exact PostGIS selections remain pinned; Debian transitive versions may change
+between base-image builds. Installed inventories and architecture differences
+remain checked. Runtime release reproducibility requires the tested immutable
+image digest, rather than rebuilding old Debian package URLs. This source change
+does not constitute a published image, candidate migration, or release acceptance.
+See the [finalization work queue](finalization-plan.md) for scope and remaining gates.
+The local AMD64 and ARM64/QEMU build and OCI inventory acceptance passed
+(229/228 packages, only the existing documented `libquadmath0` difference),
+along with 134 profile/release tests. See the
+[5 November build evidence](builds/2026-11-05-recovery/maintained-debian-postgis-multiarch.json).
+Hosted CI, publication, database runtime/restore, and candidate acceptance remain open.
+
 ### Capability and phase snapshot
 
 The tracked matrix has **67 capabilities**: 24 baseline-retained, 7 deployed,

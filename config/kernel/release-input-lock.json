@@ -7,7 +7,7 @@
   },
   "sha256_inputs": {
     "Dockerfile.kernel": "8f5a7aea75dc6e761be8be20aa591d7a50919197a9d5cdbf4870aa480bf2273d",
-    "Dockerfile.kernel-postgis": "d21025c93d2dfcf06d6556a7c118de2202f94e15796a93ee2ce8f23dc676f036",
+    "Dockerfile.kernel-postgis": "dce8ac00f0291f2e2a92def4bba2179876c56f55b4cd9da3953a8be05226f9a4",
     "requirements/kernel.txt": "bcafcb498d1d0551cc5a400e0b45ecd903fd996cafd974792f4e67f6cefb7e83",
     "requirements/web3.txt": "be91e5a4302c32cf7b3035cca8bc538eaeba5e85997348081632c2286fb4da33",
     "requirements/exports.txt": "1780570edca5518251d507d39d9c9fed24db4451315d73e75f9c8faceec36c71",
@@ -21,10 +21,10 @@
     "requirements/ml-anomaly.txt": "47739b7c732e8cbb203f1aca416dd03339ac0c0f16e8a17f108fcd89e307da22",
     "requirements/oidc.txt": "7c0cdabab997baae5b5cf7c140c549d4e08621543a92561f4a0520ceaf6874ea",
     "requirements/ml-anomaly-runtime.in": "ced2ea751e17c00b41755469c7df18e690bbafea17a429cbdcdbf281dc292dd8",
-    "config/postgres/kernel-postgis-packages.json": "c436d6268f440f7ac54bf298b65529199680cf48526f0504cb1bceed02bec79c",
-    "config/postgres/kernel-apt.sources": "1bc6a4368d8284b4e8a35f24e381449e493eff6f9993869987f5193538f0cd42",
+    "config/postgres/kernel-postgis-packages.json": "48ef903f295528034e6faf8cb749e670c79fc0877089e9a9ee817eb493a7ae9f",
+    "config/postgres/kernel-apt.sources": "e6dc43db7112b8dd01de3ee6e5c126841b0421a2ec9db8796c9779eab661eb22",
     "config/postgres/kernel-pgdg.pref": "cfb19023faf4c4b54c39f471cc8287a022922f159adbae1a8c4bf26f7077a4ec",
-    "config/postgres/kernel-bootstrap.sources": "a4bf76ae4956dcda020029113fb722f0dd35c9597331554a96f63883dfda1f51",
+    "config/postgres/kernel-bootstrap.sources": "c5773b56511b29bfa0573162e92b97250baa697b649e0bb3e605bfb7910f94f4",
     "requirements/ml-anomaly-runtime.lock": "70fc5fc6c0f4ea896444fe4f55ae6d1ace3d86391daecdcd111db47d87aaa677",
     "docker-compose.kernel-core.yml": "aabccbe6ae34c87d0c39b90115d592f08a4dbf8183ad60f28a3b927aece697a5",
     "docker-compose.kernel-core-web3.yml": "d24c466ebffecac2780b9421efac4456ed7b90b00746bcbc67533a1773e44e61",
@@ -40,7 +40,7 @@
     "requirements/kernel-core-storage.lock": "e34f4138c02279044f016ddda963ab442b691e0da42d906f2ca0a1c98c66f149",
     "services/core/image_manifest.py": "3d9f2d39463e7c3ba25c0d8673182df7255b5c69bc43d6c5e4633f7032abed39",
     "scripts/kernel-profile.py": "ffbc06db9867eb066eea4d59b2ae830cee93552d4292e5578cb3e3e793f96997",
-    "scripts/check-kernel-release-inputs.py": "4116116c380c2d407f8e315f0057cbf30fdbf64ba58a43f0172a8bcdaf989402",
+    "scripts/check-kernel-release-inputs.py": "5283d4f189dd9ce42ec8d1e26edccfb21135270becea37fb90dcabd5986573e7",
     "scripts/build-kernel-multiarch.sh": "d3cab27970fea09c8f27a3bec73b53816dcd9f3191000054c38f41b103720dd5",
     "scripts/validate-kernel-postgis-source-run.py": "a67b16a7917f17295232859d6029c9865a1a60bab71f7f07978ec27933bbe517",
     "scripts/verify-kernel-postgis-published.py": "39c2c9f715e7499fc7fc28886282ee97e288874e9667de9809eb743d910eb2db",
@@ -63,6 +63,6 @@
   "dependency_lock_status": {
     "python_direct_inputs": "SHA-256-locked source requirement manifests",
     "python_transitive_dependencies": "Hash-locked default, ClickHouse, opt-in lean core and capability-overlay, and optional ML dependency closures; existing default/ClickHouse/ML image acceptance passed, while lean core base and full capability-union multiarch OCI acceptance runs in CI.",
-    "apt_transitive_dependencies": "Debian dependencies resolve from timestamped bookworm snapshots; exact PGDG PostGIS packages come from its archive; release gate compares complete installed package inventories against exact locked architecture-specific expectations; multi-architecture acceptance pending"
+    "apt_transitive_dependencies": "Maintained signed Debian bookworm repositories and exact PGDG PostGIS versions; resolved package inventories are checked across architectures. Transitive Debian versions may change between base-image builds; runtime releases require verified immutable image digests."
   }
 }
