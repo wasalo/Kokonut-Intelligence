@@ -3,12 +3,12 @@
   "generated_by": "scripts/runtime_role_attribution.py",
   "scope": "Conservative static attribution of direct Python SQL execution sites to source-registered Gateway route handlers and the existing supervisor worker operation graphs. Gateway route roots are collected from the Gateway app's local import closure; this does not prove every dynamically registered route is mounted. Worker roots are allowlisted modules/handlers, not proof of a live schedule or event. A site without a static path may be dynamic, callback-driven, imported, CLI-driven, or otherwise unresolved; it is not evidence that a site is dead. Relation names remain heuristic candidates. This report contains no SQL text, parameter values, secrets, live role grants, tenant policy, or ACL authorization and must not be used by itself to revoke privileges.",
   "summary": {
-    "sql_execution_sites": 4995,
+    "sql_execution_sites": 4999,
     "attribution_counts": {
       "api_candidate": 1010,
       "worker_candidate": 328,
       "shared_candidate": 3,
-      "unresolved": 3654
+      "unresolved": 3658
     },
     "api_route_root_count": 361,
     "api_static_function_count": 1152,
@@ -21,9 +21,9 @@
     "worker_operation_root_count": 49,
     "worker_dynamic_dispatch_edge_count": 56,
     "worker_static_sql_site_count": 331,
-    "worker_sites_without_static_function_match": 4664,
+    "worker_sites_without_static_function_match": 4668,
     "sites_in_both_api_and_worker_graphs": 3,
-    "unresolved_site_count": 3654
+    "unresolved_site_count": 3658
   },
   "process_and_credential_policy": {
     "standard_api": {
@@ -263,7 +263,7 @@
       "docker-compose.kernel-runtime-role.yml": "8944606fd80afa24c727cdce88c7c1bd72abcde092259bcf4dc3d657ae8c6f4a",
       "services/core/features.py": "f0df94a3a5915df6f298c930dbc62fe2f2797659c6259139d620b9f47b725a78",
       "services/core/schema_readiness.py": "dfd69ac128fedf6921a36f814cf2099389825cedecf4230fc24a835af737073f",
-      "services/common/worker_environment.py": "1552e59b97dcdf535c738b89e051c4c380a7fd3f038d440a9e2076096cc6136f",
+      "services/common/worker_environment.py": "fbfd24227348009446a2f6e6e76db2b048bb8375f58aba0a0d343de2410c949e",
       "services/core/runtime.py": "2af39df88fbb6ccbaea8643ed91533a4b55801ba8dc35d48a914df75a3ea33ed",
       "services/gateway/operator_auth.py": "a2828b9ebb74494a146e09e92eea1ffea95eb337e4decb310631bc9d7d0fd1df",
       "services/gateway/clickhouse_outbox_operator.py": "86b0c5afe1f796230b24d675a93842d9fb11b8ae9cb8fa7bb38c035d82f524d1",
@@ -107557,9 +107557,103 @@
       ]
     },
     {
-      "id": "services/scheduler/engine.py:104:16",
+      "id": "services/scheduler/engine.py:109:16",
       "source": "services/scheduler/engine.py",
-      "line": 104,
+      "line": 109,
+      "scope": "SchedulerEngine._preflight_isolated_tasks",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "static_sql_sha256": "b3cc20921044f4cc6440f90ed3b8889df46fa92692ab5ff1f190747a3948bc99",
+      "candidate_relations": [
+        "scheduled_task"
+      ],
+      "write_target_relations": [],
+      "api_static_reachability": "no_static_route_path",
+      "worker_static_operations": [],
+      "worker_static_review_status": "function_not_reached_by_any_static_worker_root",
+      "attribution": "unresolved",
+      "review_labels": [
+        "no_static_gateway_route_path_dynamic_or_non_api_possible",
+        "worker_sql_site_not_statically_reached_dynamic_or_unresolved_possible"
+      ]
+    },
+    {
+      "id": "services/scheduler/engine.py:143:12",
+      "source": "services/scheduler/engine.py",
+      "line": 143,
+      "scope": "SchedulerEngine._recover_isolated_expired_tasks",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "static_sql_sha256": "bcf182ddf86cab5017e0e5474cbe841827ffc855891917464715eb881c365bc6",
+      "candidate_relations": [
+        "of",
+        "scheduled_task"
+      ],
+      "write_target_relations": [],
+      "api_static_reachability": "no_static_route_path",
+      "worker_static_operations": [],
+      "worker_static_review_status": "function_not_reached_by_any_static_worker_root",
+      "attribution": "unresolved",
+      "review_labels": [
+        "no_static_gateway_route_path_dynamic_or_non_api_possible",
+        "worker_sql_site_not_statically_reached_dynamic_or_unresolved_possible"
+      ]
+    },
+    {
+      "id": "services/scheduler/engine.py:162:12",
+      "source": "services/scheduler/engine.py",
+      "line": 162,
+      "scope": "SchedulerEngine._recover_isolated_expired_tasks",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "UPDATE",
+      "static_sql_sha256": "de511328526be69bf07e07afdd11d162bdbb53c417eecb6bb832bd467e437510",
+      "candidate_relations": [
+        "scheduled_task",
+        "task_run"
+      ],
+      "write_target_relations": [
+        "task_run"
+      ],
+      "api_static_reachability": "no_static_route_path",
+      "worker_static_operations": [],
+      "worker_static_review_status": "function_not_reached_by_any_static_worker_root",
+      "attribution": "unresolved",
+      "review_labels": [
+        "no_static_gateway_route_path_dynamic_or_non_api_possible",
+        "worker_sql_site_not_statically_reached_dynamic_or_unresolved_possible"
+      ]
+    },
+    {
+      "id": "services/scheduler/engine.py:172:12",
+      "source": "services/scheduler/engine.py",
+      "line": 172,
+      "scope": "SchedulerEngine._recover_isolated_expired_tasks",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "UPDATE",
+      "static_sql_sha256": "db0555d0af92249d865ecac5d9a1f65827f2152dd0d231e479cd23681f46f19e",
+      "candidate_relations": [
+        "scheduled_task"
+      ],
+      "write_target_relations": [
+        "scheduled_task"
+      ],
+      "api_static_reachability": "no_static_route_path",
+      "worker_static_operations": [],
+      "worker_static_review_status": "function_not_reached_by_any_static_worker_root",
+      "attribution": "unresolved",
+      "review_labels": [
+        "no_static_gateway_route_path_dynamic_or_non_api_possible",
+        "worker_sql_site_not_statically_reached_dynamic_or_unresolved_possible"
+      ]
+    },
+    {
+      "id": "services/scheduler/engine.py:192:20",
+      "source": "services/scheduler/engine.py",
+      "line": 192,
       "scope": "SchedulerEngine._claim_next",
       "method": "execute",
       "expression_kind": "literal",
@@ -107582,9 +107676,9 @@
       ]
     },
     {
-      "id": "services/scheduler/engine.py:114:16",
+      "id": "services/scheduler/engine.py:202:20",
       "source": "services/scheduler/engine.py",
-      "line": 114,
+      "line": 202,
       "scope": "SchedulerEngine._claim_next",
       "method": "execute",
       "expression_kind": "literal",
@@ -107606,14 +107700,14 @@
       ]
     },
     {
-      "id": "services/scheduler/engine.py:126:16",
+      "id": "services/scheduler/engine.py:227:20",
       "source": "services/scheduler/engine.py",
-      "line": 126,
+      "line": 227,
       "scope": "SchedulerEngine._claim_next",
       "method": "execute",
-      "expression_kind": "literal",
+      "expression_kind": "composed",
       "statement_kind": "SELECT",
-      "static_sql_sha256": "60a4720c405d0f24668a766d2aa9d7e3fd95b7b3ef7f41aec7cdfafd2c364fdc",
+      "static_sql_sha256": null,
       "candidate_relations": [
         "of",
         "scheduled_task",
@@ -107631,9 +107725,9 @@
       ]
     },
     {
-      "id": "services/scheduler/engine.py:187:16",
+      "id": "services/scheduler/engine.py:299:20",
       "source": "services/scheduler/engine.py",
-      "line": 187,
+      "line": 299,
       "scope": "SchedulerEngine._claim_next",
       "method": "execute",
       "expression_kind": "literal",
@@ -107655,9 +107749,9 @@
       ]
     },
     {
-      "id": "services/scheduler/engine.py:196:16",
+      "id": "services/scheduler/engine.py:308:20",
       "source": "services/scheduler/engine.py",
-      "line": 196,
+      "line": 308,
       "scope": "SchedulerEngine._claim_next",
       "method": "execute",
       "expression_kind": "literal",
@@ -107679,9 +107773,9 @@
       ]
     },
     {
-      "id": "services/scheduler/engine.py:233:12",
+      "id": "services/scheduler/engine.py:346:12",
       "source": "services/scheduler/engine.py",
-      "line": 233,
+      "line": 346,
       "scope": "SchedulerEngine._release_unstarted",
       "method": "execute",
       "expression_kind": "literal",
@@ -107703,9 +107797,9 @@
       ]
     },
     {
-      "id": "services/scheduler/engine.py:237:12",
+      "id": "services/scheduler/engine.py:350:12",
       "source": "services/scheduler/engine.py",
-      "line": 237,
+      "line": 350,
       "scope": "SchedulerEngine._release_unstarted",
       "method": "execute",
       "expression_kind": "literal",
@@ -107727,9 +107821,9 @@
       ]
     },
     {
-      "id": "services/scheduler/engine.py:338:12",
+      "id": "services/scheduler/engine.py:451:12",
       "source": "services/scheduler/engine.py",
-      "line": 338,
+      "line": 451,
       "scope": "SchedulerEngine._complete_task",
       "method": "execute",
       "expression_kind": "literal",
@@ -107751,9 +107845,9 @@
       ]
     },
     {
-      "id": "services/scheduler/engine.py:352:12",
+      "id": "services/scheduler/engine.py:465:12",
       "source": "services/scheduler/engine.py",
-      "line": 352,
+      "line": 465,
       "scope": "SchedulerEngine._complete_task",
       "method": "execute",
       "expression_kind": "literal",
@@ -107774,9 +107868,9 @@
       ]
     },
     {
-      "id": "services/scheduler/engine.py:360:16",
+      "id": "services/scheduler/engine.py:473:16",
       "source": "services/scheduler/engine.py",
-      "line": 360,
+      "line": 473,
       "scope": "SchedulerEngine._complete_task",
       "method": "execute",
       "expression_kind": "literal",
@@ -107799,9 +107893,9 @@
       ]
     },
     {
-      "id": "services/scheduler/engine.py:381:16",
+      "id": "services/scheduler/engine.py:494:16",
       "source": "services/scheduler/engine.py",
-      "line": 381,
+      "line": 494,
       "scope": "SchedulerEngine._complete_task",
       "method": "execute",
       "expression_kind": "literal",
@@ -107824,9 +107918,9 @@
       ]
     },
     {
-      "id": "services/scheduler/engine.py:416:12",
+      "id": "services/scheduler/engine.py:529:12",
       "source": "services/scheduler/engine.py",
-      "line": 416,
+      "line": 529,
       "scope": "SchedulerEngine._complete_task",
       "method": "execute",
       "expression_kind": "literal",
@@ -107844,9 +107938,9 @@
       ]
     },
     {
-      "id": "services/scheduler/engine.py:428:12",
+      "id": "services/scheduler/engine.py:541:12",
       "source": "services/scheduler/engine.py",
-      "line": 428,
+      "line": 541,
       "scope": "SchedulerEngine.get_status",
       "method": "execute",
       "expression_kind": "literal",
@@ -107866,9 +107960,9 @@
       ]
     },
     {
-      "id": "services/scheduler/engine.py:441:12",
+      "id": "services/scheduler/engine.py:554:12",
       "source": "services/scheduler/engine.py",
-      "line": 441,
+      "line": 554,
       "scope": "SchedulerEngine.get_status",
       "method": "execute",
       "expression_kind": "literal",

@@ -128,10 +128,10 @@ _EVENT_HANDLER_ISOLATION_FEATURES = {
 def scheduled_module_worker_key(
     module_path: str, command_args: Sequence[str] | None = None
 ) -> str | None:
-    """Return the one worker identity mapped to an exact scheduled module."""
+    """Return the database worker identity mapped to one scheduled operation."""
     if module_path == "services.events" and command_args is not None:
-        # Route notification delivery through its dedicated identity while
-        # preserving the independent event-dispatch operation policy.
+        if "--process" in command_args:
+            return "event_dispatch"
         if "--notification-process" in command_args:
             return "notification_delivery"
     return _SCHEDULED_MODULE_WORKERS.get(module_path)
@@ -146,8 +146,9 @@ def scheduled_module_worker_environment(
     """Build the least-privilege environment for one validated scheduled operation."""
     source = os.environ if environ is None else environ
     arguments = tuple(command_args or ())
+    worker_key = scheduled_module_worker_key(module_path, arguments)
     if module_path == "services.events":
-        if "--process" in arguments:
+        if worker_key == "event_dispatch":
             # The dispatcher needs its own database identity and the exact
             # handler identities that its source-controlled registry may spawn.
             return worker_subprocess_environment(
@@ -155,14 +156,12 @@ def scheduled_module_worker_environment(
                 isolated_worker_key="event_dispatch",
                 environ=environ,
             )
-        if "--notification-process" in arguments:
+        if worker_key == "notification_delivery":
             return worker_subprocess_environment(
                 allowed_worker_keys=("notification_delivery",),
                 isolated_worker_key="notification_delivery",
                 environ=source,
             )
-
-    worker_key = scheduled_module_worker_key(module_path, arguments)
     scheduler_is_isolated = (
         source.get(DENY_SHARED_DATABASE_ENV, "").strip().lower() == "true"
         or source.get(ISOLATED_WORKER_KEY_ENV) == "scheduler"

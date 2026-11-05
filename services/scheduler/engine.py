@@ -16,8 +16,10 @@ from services.common.errors import safe_exception_class
 from services.common.logging import get_logger
 from services.common.worker_environment import (
     scheduled_module_worker_environment,
+    scheduled_module_worker_key,
 )
 from services.core.worker_progress import pulse_worker_progress
+from services.scheduler.connections import scheduler_database_is_selected
 from services.scheduler.parser import next_run_time
 from services.scheduler.resources import ResourcePool
 from services.security.scheduled_command_contracts import (
@@ -71,8 +73,9 @@ class SchedulerEngine:
     def tick(self) -> dict[str, int]:
         """Run one scheduler tick. Returns execution stats."""
         stats = {"launched": 0, "failed": 0, "skipped": 0, "no_resources": 0}
+        isolated_skips = self._preflight_isolated_tasks() if scheduler_database_is_selected() else None
         while True:
-            task = self._claim_next()
+            task = self._claim_next(isolated_skips)
             if not task:
                 break
             run_id, task_id, name, module_path, command_args, priority, timeout = task
@@ -93,126 +96,236 @@ class SchedulerEngine:
                 if resource_name:
                     self._resources.release(resource_name)
 
+        if isolated_skips is not None:
+            # Count unique enabled tasks withheld from this isolated scheduler
+            # tick. Keep names, module paths, and arguments out of logs.
+            stats["skipped"] = len(isolated_skips)
         return stats
 
-    def _claim_next(self):
+    def _preflight_isolated_tasks(self) -> dict[str, str]:
+        """Find enabled commands that have no valid isolated worker path."""
+        try:
+            with self._conn.cursor() as cur:
+                cur.execute(
+                    """
+                    SELECT id, module_path, command_args
+                    FROM scheduled_task
+                    WHERE is_enabled = TRUE
+                    """
+                )
+                rows = cur.fetchall()
+            self._conn.commit()
+        except Exception:
+            self._conn.rollback()
+            raise
+
+        skipped: dict[str, str] = {}
+        for task_id, module_path, command_args in rows:
+            reason = self._isolated_task_skip_reason(module_path, command_args)
+            if reason is not None:
+                skipped[str(task_id)] = reason
+        return skipped
+
+    @staticmethod
+    def _isolated_task_skip_reason(module_path, command_args) -> str | None:
+        """Return a safe reason class when an enabled command cannot be isolated."""
+        try:
+            validated_args = validate_scheduled_command(module_path, command_args)
+        except ScheduledCommandRejected:
+            return "invalid_command_contract"
+        if scheduled_module_worker_key(module_path, validated_args) is None:
+            return "unmapped_worker_identity"
+        return None
+
+    def _recover_isolated_expired_tasks(self, cur, now) -> None:
+        """Clear expired leases before claims, including for disabled schedules."""
+        while True:
+            cur.execute(
+                """
+                SELECT st.id
+                FROM scheduled_task st
+                WHERE st.last_status = 'running'
+                  AND st.lease_expires_at <= %s
+                ORDER BY st.lease_expires_at
+                FOR UPDATE OF st SKIP LOCKED
+                LIMIT 1
+                """,
+                (now,),
+            )
+            row = cur.fetchone()
+            if not row:
+                return
+            (task_id,) = row
+
+            # This only closes an expired run; it does not execute or claim the
+            # task. Claim selection below still excludes unsupported IDs.
+            cur.execute(
+                """
+                UPDATE task_run tr SET status = 'failed', completed_at = %s,
+                    error_message = 'Scheduler lease expired'
+                FROM scheduled_task st
+                WHERE tr.task_id = st.id AND tr.status = 'running'
+                  AND st.id = %s AND st.lease_expires_at <= %s
+                """,
+                (now, task_id, now),
+            )
+            cur.execute(
+                """
+                UPDATE scheduled_task SET
+                    retry_at = CASE WHEN retry_attempt < max_retries THEN %s END,
+                    retry_attempt = CASE WHEN retry_attempt < max_retries
+                                         THEN retry_attempt + 1 ELSE 0 END,
+                    lease_owner = NULL, lease_token = NULL, lease_expires_at = NULL,
+                    last_status = 'failed', updated_at = %s
+                WHERE id = %s AND lease_expires_at <= %s AND last_status = 'running'
+                """,
+                (now, now, task_id, now),
+            )
+
+    def _claim_next(self, isolated_skips: dict[str, str] | None = None):
         """Atomically lease one due task, create its run, and advance its cadence."""
         now = datetime.now(timezone.utc)
         try:
             with self._conn.cursor() as cur:
-                # Recover work whose worker died. A later claim gets a fresh run.
-                cur.execute(
-                    """
-                    UPDATE task_run tr SET status = 'failed', completed_at = %s,
-                        error_message = 'Scheduler lease expired'
-                    FROM scheduled_task st
-                    WHERE tr.task_id = st.id AND tr.status = 'running'
-                      AND st.lease_expires_at <= %s
-                    """,
-                    (now, now),
-                )
-                cur.execute(
-                    """
-                    UPDATE scheduled_task SET
-                        retry_at = CASE WHEN retry_attempt < max_retries THEN %s END,
-                        retry_attempt = CASE WHEN retry_attempt < max_retries
-                                             THEN retry_attempt + 1 ELSE 0 END,
-                        lease_owner = NULL, lease_token = NULL, lease_expires_at = NULL,
-                        last_status = 'failed', updated_at = %s
-                    WHERE lease_expires_at <= %s AND last_status = 'running'
-                    """,
-                    (now, now, now),
-                )
-                cur.execute(
-                    """
-                    SELECT st.id, st.name, st.module_path, st.command_args,
-                           st.cron_expression, st.priority, st.timeout_seconds,
-                           st.retry_attempt, st.retry_at, st.allow_overlap,
-                           CASE WHEN st.retry_at IS NOT NULL THEN st.run_window_at
-                                ELSE COALESCE(st.next_run_at, %s) END AS scheduled_for
-                    FROM scheduled_task st
-                    WHERE st.is_enabled = TRUE
-                      AND (st.lease_expires_at IS NULL OR st.lease_expires_at <= %s)
-                      AND (st.retry_at <= %s OR
-                           (st.retry_at IS NULL AND (st.next_run_at IS NULL OR st.next_run_at <= %s)))
-                      AND (st.dependency_mode <> 'same_window' OR
-                           CASE WHEN st.retry_at IS NOT NULL THEN st.run_window_at
-                                ELSE st.next_run_at END IS NOT NULL)
-                      AND NOT EXISTS (
-                          SELECT 1 FROM unnest(st.depends_on) dep
-                          LEFT JOIN scheduled_task dependency ON dependency.id = dep
-                          WHERE (st.dependency_mode = 'last_completed'
-                                 AND dependency.last_status IS DISTINCT FROM 'completed')
-                             OR (st.dependency_mode = 'same_window' AND NOT EXISTS (
-                                 SELECT 1 FROM task_run prerequisite
-                                 WHERE prerequisite.task_id = dep
-                                   AND prerequisite.status = 'completed'
-                                   AND prerequisite.scheduled_for =
-                                       CASE WHEN st.retry_at IS NOT NULL THEN st.run_window_at
-                                            ELSE st.next_run_at END
-                             ))
-                      )
-                      AND (st.allow_overlap OR NOT EXISTS (
-                          SELECT 1 FROM task_run tr
-                          WHERE tr.task_id = st.id AND tr.status = 'running'
-                      ))
-                    ORDER BY CASE st.priority WHEN 'critical' THEN 0 WHEN 'high' THEN 1
-                             WHEN 'normal' THEN 2 ELSE 3 END,
-                             COALESCE(st.retry_at, st.next_run_at, '-infinity')
-                    FOR UPDATE OF st SKIP LOCKED
-                    LIMIT 1
-                    """,
-                    (now, now, now, now),
-                )
-                row = cur.fetchone()
-                if not row:
-                    self._conn.commit()
-                    return None
-                (
-                    task_id,
-                    name,
-                    module_path,
-                    args,
-                    cron,
-                    priority,
-                    timeout,
-                    retry_attempt,
-                    retry_at,
-                    overlap,
-                    scheduled_for,
-                ) = row
-                run_id = str(uuid.uuid4())
-                attempt = retry_attempt + 1
-                next_run = next_run_time(cron, after=now) if retry_at is None else None
-                cur.execute(
-                    """
-                    INSERT INTO task_run
-                        (id, task_id, status, worker_id, lease_token, heartbeat_at,
-                         attempt_count, retry_count, allow_overlap, scheduled_for)
-                    VALUES (%s, %s, 'running', %s, %s, %s, %s, %s, %s, %s)
-                    """,
-                    (run_id, task_id, self._worker_id, run_id, now, attempt, attempt - 1, overlap, scheduled_for),
-                )
-                cur.execute(
-                    """
-                    UPDATE scheduled_task SET
-                        last_run_at = %s, last_status = 'running',
-                        next_run_at = COALESCE(%s, next_run_at), retry_at = NULL,
-                        run_window_at = %s,
-                         lease_owner = %s, lease_token = %s, lease_expires_at = %s, updated_at = %s
-                    WHERE id = %s
-                    """,
+                if isolated_skips is None:
+                    # Preserve the general worker's existing recovery path.
+                    cur.execute(
+                        """
+                        UPDATE task_run tr SET status = 'failed', completed_at = %s,
+                            error_message = 'Scheduler lease expired'
+                        FROM scheduled_task st
+                        WHERE tr.task_id = st.id AND tr.status = 'running'
+                          AND st.lease_expires_at <= %s
+                        """,
+                        (now, now),
+                    )
+                    cur.execute(
+                        """
+                        UPDATE scheduled_task SET
+                            retry_at = CASE WHEN retry_attempt < max_retries THEN %s END,
+                            retry_attempt = CASE WHEN retry_attempt < max_retries
+                                                 THEN retry_attempt + 1 ELSE 0 END,
+                            lease_owner = NULL, lease_token = NULL, lease_expires_at = NULL,
+                            last_status = 'failed', updated_at = %s
+                        WHERE lease_expires_at <= %s AND last_status = 'running'
+                        """,
+                        (now, now, now),
+                    )
+                else:
+                    # Lease recovery is maintenance only. It must also clean
+                    # disabled schedules, whose expired children cannot return.
+                    self._recover_isolated_expired_tasks(cur, now)
+                while True:
+                    excluded_ids = sorted(isolated_skips) if isolated_skips else []
+                    excluded_clause = (
+                        " AND NOT (st.id = ANY(%s::uuid[]))\n" if excluded_ids else ""
+                    )
+                    params = [now]
+                    if excluded_ids:
+                        params.append(excluded_ids)
+                    params.extend((now, now, now))
+                    cur.execute(
+                        """
+                        SELECT st.id, st.name, st.module_path, st.command_args,
+                               st.cron_expression, st.priority, st.timeout_seconds,
+                               st.retry_attempt, st.retry_at, st.allow_overlap,
+                               CASE WHEN st.retry_at IS NOT NULL THEN st.run_window_at
+                                    ELSE COALESCE(st.next_run_at, %s) END AS scheduled_for
+                        FROM scheduled_task st
+                        WHERE st.is_enabled = TRUE
+                        """
+                        + excluded_clause
+                        + """
+                          AND (st.lease_expires_at IS NULL OR st.lease_expires_at <= %s)
+                          AND (st.retry_at <= %s OR
+                               (st.retry_at IS NULL AND (st.next_run_at IS NULL OR st.next_run_at <= %s)))
+                          AND (st.dependency_mode <> 'same_window' OR
+                               CASE WHEN st.retry_at IS NOT NULL THEN st.run_window_at
+                                    ELSE st.next_run_at END IS NOT NULL)
+                          AND NOT EXISTS (
+                              SELECT 1 FROM unnest(st.depends_on) dep
+                              LEFT JOIN scheduled_task dependency ON dependency.id = dep
+                              WHERE (st.dependency_mode = 'last_completed'
+                                     AND dependency.last_status IS DISTINCT FROM 'completed')
+                                 OR (st.dependency_mode = 'same_window' AND NOT EXISTS (
+                                     SELECT 1 FROM task_run prerequisite
+                                     WHERE prerequisite.task_id = dep
+                                       AND prerequisite.status = 'completed'
+                                       AND prerequisite.scheduled_for =
+                                           CASE WHEN st.retry_at IS NOT NULL THEN st.run_window_at
+                                                ELSE st.next_run_at END
+                                 ))
+                          )
+                          AND (st.allow_overlap OR NOT EXISTS (
+                              SELECT 1 FROM task_run tr
+                              WHERE tr.task_id = st.id AND tr.status = 'running'
+                          ))
+                        ORDER BY CASE st.priority WHEN 'critical' THEN 0 WHEN 'high' THEN 1
+                                 WHEN 'normal' THEN 2 ELSE 3 END,
+                                 COALESCE(st.retry_at, st.next_run_at, '-infinity')
+                        FOR UPDATE OF st SKIP LOCKED
+                        LIMIT 1
+                        """,
+                        params,
+                    )
+                    row = cur.fetchone()
+                    if not row:
+                        self._conn.commit()
+                        return None
                     (
-                        now,
-                        next_run,
-                        scheduled_for,
-                        self._worker_id,
-                        run_id,
-                        now + timedelta(seconds=timeout + 60),
-                        now,
                         task_id,
-                    ),
-                )
+                        name,
+                        module_path,
+                        args,
+                        cron,
+                        priority,
+                        timeout,
+                        retry_attempt,
+                        retry_at,
+                        overlap,
+                        scheduled_for,
+                    ) = row
+                    if isolated_skips is not None:
+                        reason = self._isolated_task_skip_reason(module_path, args)
+                        if reason is not None:
+                            # A task changed after preflight. Remember its ID
+                            # so this loop cannot select and lock it again.
+                            isolated_skips[str(task_id)] = reason
+                            continue
+
+                    run_id = str(uuid.uuid4())
+                    attempt = retry_attempt + 1
+                    next_run = next_run_time(cron, after=now) if retry_at is None else None
+                    cur.execute(
+                        """
+                        INSERT INTO task_run
+                            (id, task_id, status, worker_id, lease_token, heartbeat_at,
+                             attempt_count, retry_count, allow_overlap, scheduled_for)
+                        VALUES (%s, %s, 'running', %s, %s, %s, %s, %s, %s, %s)
+                        """,
+                        (run_id, task_id, self._worker_id, run_id, now, attempt, attempt - 1, overlap, scheduled_for),
+                    )
+                    cur.execute(
+                        """
+                        UPDATE scheduled_task SET
+                            last_run_at = %s, last_status = 'running',
+                            next_run_at = COALESCE(%s, next_run_at), retry_at = NULL,
+                            run_window_at = %s,
+                            lease_owner = %s, lease_token = %s, lease_expires_at = %s, updated_at = %s
+                        WHERE id = %s
+                        """,
+                        (
+                            now,
+                            next_run,
+                            scheduled_for,
+                            self._worker_id,
+                            run_id,
+                            now + timedelta(seconds=timeout + 60),
+                            now,
+                            task_id,
+                        ),
+                    )
+                    break
             self._conn.commit()
             logger.info("Claimed task %s (run %s, attempt %d)", name, run_id[:8], attempt)
             return run_id, task_id, name, module_path, args, priority, timeout
