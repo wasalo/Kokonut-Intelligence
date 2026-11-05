@@ -1,0 +1,65 @@
+{
+  "checked_at_utc": "2026-11-05T14:46:13Z",
+  "docker_context": "desktop-linux",
+  "candidate_project": "kokonut-refactor-oidc-b639a7a2",
+  "inspection_type": "read_only_database_refresh_and_app_container_recovery",
+  "containers": {
+    "app": {
+      "state": "running",
+      "health": "healthy",
+      "image": "kokonut-refactor-oidc:b639a7a2",
+      "started_at_utc": "2026-11-05T14:44:24Z"
+    },
+    "worker": {
+      "state": "running",
+      "health": "healthy",
+      "image": "kokonut-refactor-app:b639a7a2"
+    },
+    "database": {
+      "state": "running",
+      "health": "healthy",
+      "image": "postgis/postgis:16-3.4@sha256:44126d872ac91993766c341e369c539e8196614321765d36a6f1bab0419a5fa5"
+    },
+    "proxy": {
+      "state": "running",
+      "image": "caddy:2-alpine@sha256:5f5c8640aae01df9654968d946d8f1a56c497f1dd5c5cda4cf95ab7c14d58648"
+    },
+    "zitadel_api": {
+      "state": "running",
+      "health": "healthy"
+    },
+    "zitadel_login": {
+      "state": "running",
+      "health": "healthy"
+    }
+  },
+  "database": {
+    "name": "kokonut_intelligence",
+    "applied_schema_count": 736,
+    "maximum_applied_migration": "schema:745_runtime_public_wellbeing_metric_summary_read_only.sql",
+    "scheduler_task_count": 0,
+    "enabled_scheduler_task_count": 0,
+    "disabled_scheduler_task_count": 0,
+    "scheduler_task_rows": []
+  },
+  "read_only_query": "BEGIN READ ONLY; SELECT count(*) FROM scheduled_task; SELECT count(*) FILTER (WHERE is_enabled), count(*) FILTER (WHERE NOT is_enabled) FROM scheduled_task; ROLLBACK",
+  "database_login": "kokonut",
+  "app_recovery": {
+    "prior_state": "The app had been observed serving repeated /health 200 responses through 13:53 UTC. Before recovery it was exited with code 127.",
+    "start_failure": "A docker start attempt failed before process initialization: the saved OIDC CA bind source in the temporary command scratchpad was a directory, not a certificate file.",
+    "compose_inputs": "Container labels still refer to temporary ZITADEL override and environment files that no longer exist. The persisted container configuration was used for this app-only restart; reliable Compose recreation needs stable inputs.",
+    "action": "Copied the public Caddy local root certificate from the running proxy's persistent data volume to the existing CA bind source, then started only the existing app container.",
+    "result": "App reached running/healthy state at 2026-11-05T14:44:24Z. No image was rebuilt and no Compose recreation was performed."
+  },
+  "effect": "The database inventory ran in an explicit read-only transaction. The app container was started; worker, database, proxy, and ZITADEL containers were not restarted. No database rows, roles, or migrations were changed.",
+  "stale_project_observation": {
+    "project": "kokonut-kernel-candidate",
+    "state": "Older app/database/proxy containers were stopped and referenced a removed Compose network; they were not started."
+  },
+  "limitations": [
+    "The active candidate app and worker images predate this source branch and have no revision labels.",
+    "The historical scheduled-task seed was not applied to the candidate; source seed entries are not live candidate schedules.",
+    "The existing app container is healthy, but its temporary Compose override and environment inputs are unavailable for reliable recreation.",
+    "Full checksum validation and candidate acceptance remain open; no candidate migration after 745 was applied."
+  ]
+}
