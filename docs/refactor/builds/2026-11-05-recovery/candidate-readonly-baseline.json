@@ -1,26 +1,107 @@
 {
-  "source_head": "bdebebf56c0af8c9ba618b3357bd0b053106313c",
+  "observed_at_utc": "2026-11-05 13:01:18 UTC",
+  "repository_head_at_inspection": "811a9e43149bdf7ba78ff71b245086993827e054",
   "project": "kokonut-refactor-oidc-b639a7a2",
+  "compose_profiles": [
+    "docker-compose.kernel-candidate.yml",
+    "docker-compose.kernel-standard.yml",
+    "docker-compose.kernel-runtime-role.yml",
+    "docker-compose.kernel-proxy.yml",
+    "docker-compose.kernel-oidc.yml",
+    "docker-compose.kernel-zitadel.yml"
+  ],
+  "services": {
+    "app": {
+      "image": "kokonut-refactor-oidc:b639a7a2",
+      "image_id": "sha256:a465d46496a6db233e7028fd38d26afbb4ce4aa865ea3c1bd0bcbd7fad185d41",
+      "created_at_utc": "2026-11-02T20:55:58.261960696Z",
+      "health": "healthy"
+    },
+    "worker": {
+      "image": "kokonut-refactor-app:b639a7a2",
+      "image_id": "sha256:0d5c14845db9393a4b6606a793b418800cf16b1785a284c671c135db42dca4ff",
+      "created_at_utc": "2026-11-02T18:05:53.383178826Z",
+      "health": "healthy"
+    },
+    "database": {
+      "image": "postgis/postgis:16-3.4@sha256:44126d872ac91993766c341e369c539e8196614321765d36a6f1bab0419a5fa5",
+      "image_id": "sha256:44126d872ac91993766c341e369c539e8196614321765d36a6f1bab0419a5fa5",
+      "created_at_utc": "2026-11-02T15:12:21.907050456Z",
+      "health": "healthy"
+    },
+    "proxy": {
+      "state": "running",
+      "health": "not configured"
+    },
+    "zitadel-login": {
+      "health": "healthy"
+    },
+    "zitadel-api": {
+      "health": "healthy"
+    },
+    "zitadel-db": {
+      "health": "healthy"
+    }
+  },
   "operational_login": "kokonut_runtime",
-  "database": "kokonut_intelligence",
-  "ledger_status_counts": {
-    "applied": 736
+  "database_name": "kokonut_intelligence",
+  "service_database_configuration": {
+    "app": {
+      "user": "kokonut_runtime",
+      "host": "database",
+      "database": "kokonut_intelligence"
+    },
+    "worker": {
+      "user": "kokonut_runtime",
+      "host": "database",
+      "database": "kokonut_intelligence"
+    }
   },
-  "maximum_schema_id": "schema:745_runtime_public_wellbeing_metric_summary_read_only.sql",
-  "image_ids": {
-    "app": "sha256:a465d46496a6db233e7028fd38d26afbb4ce4aa865ea3c1bd0bcbd7fad185d41",
-    "worker": "sha256:0d5c14845db9393a4b6606a793b418800cf16b1785a284c671c135db42dca4ff",
-    "database": "sha256:44126d872ac91993766c341e369c539e8196614321765d36a6f1bab0419a5fa5"
+  "migration_ledger": {
+    "applied_count": 736,
+    "non_applied_count": 0,
+    "maximum_migration": "schema:745_runtime_public_wellbeing_metric_summary_read_only.sql",
+    "recent_applied": [
+      {
+        "migration": "schema:741_runtime_quality_grade_catalog_read_only.sql",
+        "checksum": "c6839d0318ce4dee8f2aaf40252025f54064e21afa9c15784fa313cbead246fe"
+      },
+      {
+        "migration": "schema:742_runtime_readiness_dimension_catalog_read_only.sql",
+        "checksum": "d6db49d9cf8bbcc7f5994ebb88533d2ba2399e127a06a8480d2e1602f9a9125f"
+      },
+      {
+        "migration": "schema:743_runtime_public_ebf_scorecard_read_only.sql",
+        "checksum": "f0f59490388367d078a3ea3a21832f539c2bd503d68423c7e9433d4b2bea4424"
+      },
+      {
+        "migration": "schema:744_runtime_public_metric_summary_read_only.sql",
+        "checksum": "676410527f53630b1ce018d684bd67567bb510c176aeba548a46c35b1b5ff71d"
+      },
+      {
+        "migration": "schema:745_runtime_public_wellbeing_metric_summary_read_only.sql",
+        "checksum": "38e2112e68d405c7fe498d391b41d0360840239d9397141d06da68fab46a1139"
+      }
+    ]
   },
-  "health": {
-    "app": "healthy",
-    "worker": "healthy",
-    "database": "healthy"
+  "runtime_roles": {
+    "kokonut_runtime": {
+      "can_login": true,
+      "superuser": false,
+      "create_database": false,
+      "create_role": false,
+      "inherit": false,
+      "bypass_rls": false
+    },
+    "kokonut_scheduler_login": "absent",
+    "kokonut_scheduler_event_owner": "absent"
   },
-  "scope": "read-only container metadata, allowlisted non-secret environment, read-only operational database transaction; no farm rows",
+  "scope": "read-only container metadata, allowlisted non-secret environment, and one read-only operational database transaction; no farm rows",
   "limitations": [
-    "Image tags do not establish full source identity",
-    "Ledger aggregates do not validate migration checksums",
-    "No candidate change or acceptance sign-off"
+    "Image tags and IDs do not establish full source identity; images expose no revision label",
+    "Migration ledger aggregates and sampled checksums do not validate every migration checksum against a source archive",
+    "The candidate has not received migrations 746–748 or the scheduler executor roles",
+    "The repository source head at inspection is newer than the running candidate images",
+    "No candidate record, role, service, or secret was changed; no acceptance sign-off"
   ]
 }

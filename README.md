@@ -238,6 +238,7 @@ integrations must be selected and configured explicitly.
 | **External** | gRPC API | Optional type-safe transport with Protobuf schemas and API-key policy; it is not required by the native Kernel profile |
 | | Business Model Canvas | 1-click BMC derivation from canonical tables; 14-section comprehensive status with an exact-location Gateway read and network-wide CLI rollup |
 | | State of Kokonut | Ecosystem report across locations with ecosystem-actor funding view; Mermaid + JSON visual timelines (ecosystem tree, Ikigai, farm phases, crop timelines) |
+| | Kokonut Protocol execution bridge | Prepared approval-bound, location-linked intent and reconciliation records with a transport-injected connector; execution remains disabled, with no built-in signing or broadcast |
 
 > [!NOTE]
 > Agents can draft and submit governed records but **cannot** verify, publish, attest, or score. Contract identity, payments, escrow, and marketplace logic remain external to this repository.
