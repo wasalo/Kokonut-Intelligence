@@ -4499,6 +4499,9 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
             detail = SubmittedReportDetailResponse.model_validate({"data": row})
             if detail.data.id != requested_report_id:
                 raise ValueError("Submitted report does not match the requested identifier")
+            from fastapi.encoders import jsonable_encoder
+
+            response_content = jsonable_encoder(detail.model_dump(mode="python"))
         except (ValidationError, TypeError, ValueError, RecursionError) as exc:
             from services.common.logging import get_logger
 
@@ -4510,12 +4513,8 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
                 content={"error": "Report review service unavailable"},
                 headers=detail_headers,
             )
-        from fastapi.encoders import jsonable_encoder
 
-        return JSONResponse(
-            jsonable_encoder(detail.model_dump(mode="python")),
-            headers=detail_headers,
-        )
+        return JSONResponse(response_content, headers=detail_headers)
 
     @router.post(
         "/operator/api/report-exports",
