@@ -1,0 +1,26 @@
+{
+  "source_head": "bdebebf56c0af8c9ba618b3357bd0b053106313c",
+  "project": "kokonut-refactor-oidc-b639a7a2",
+  "operational_login": "kokonut_runtime",
+  "database": "kokonut_intelligence",
+  "ledger_status_counts": {
+    "applied": 736
+  },
+  "maximum_schema_id": "schema:745_runtime_public_wellbeing_metric_summary_read_only.sql",
+  "image_ids": {
+    "app": "sha256:a465d46496a6db233e7028fd38d26afbb4ce4aa865ea3c1bd0bcbd7fad185d41",
+    "worker": "sha256:0d5c14845db9393a4b6606a793b418800cf16b1785a284c671c135db42dca4ff",
+    "database": "sha256:44126d872ac91993766c341e369c539e8196614321765d36a6f1bab0419a5fa5"
+  },
+  "health": {
+    "app": "healthy",
+    "worker": "healthy",
+    "database": "healthy"
+  },
+  "scope": "read-only container metadata, allowlisted non-secret environment, read-only operational database transaction; no farm rows",
+  "limitations": [
+    "Image tags do not establish full source identity",
+    "Ledger aggregates do not validate migration checksums",
+    "No candidate change or acceptance sign-off"
+  ]
+}

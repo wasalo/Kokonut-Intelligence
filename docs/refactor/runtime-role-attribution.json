@@ -265,7 +265,7 @@
       "services/core/schema_readiness.py": "6cb4ecfd3f3b674085c8441e861630ada12999d09ccabcb32e4ec32568a4f580",
       "services/common/worker_environment.py": "0d3ebc0e80bc1be46b7485e077311c7a00aa1adad7b61a2e817c5d425a2082f0",
       "services/core/runtime.py": "2ee6ff6c90393a9c220b20e0c684e872294a19a69a2ad73f384c4a169810dbde",
-      "services/gateway/operator_auth.py": "94a6d1d14bff87f2368e95ce796db9f047a4e49e75c0cc2d15598c7d427d7704",
+      "services/gateway/operator_auth.py": "24820d9cf9a30d3bc0507102e423720fa7d06d4766d70e239a9132707ff69576",
       "services/gateway/clickhouse_outbox_operator.py": "86b0c5afe1f796230b24d675a93842d9fb11b8ae9cb8fa7bb38c035d82f524d1",
       "services/migration/runtime_role.py": "a23f39e2cb5ec13cd98f7d128e0504e726b7d37a476129b86948f86ac62eb085"
     }
@@ -1124,47 +1124,47 @@
     {
       "function": "services.gateway.operator_auth:create_auth_router.download_report_export",
       "source": "services/gateway/operator_auth.py",
-      "line": 4870
+      "line": 4869
     },
     {
       "function": "services.gateway.operator_auth:create_auth_router.edit_farm_activity_draft_route",
       "source": "services/gateway/operator_auth.py",
-      "line": 5751
+      "line": 5750
     },
     {
       "function": "services.gateway.operator_auth:create_auth_router.farm_activity_detail",
       "source": "services/gateway/operator_auth.py",
-      "line": 5697
+      "line": 5696
     },
     {
       "function": "services.gateway.operator_auth:create_auth_router.farm_activity_intake_detail",
       "source": "services/gateway/operator_auth.py",
-      "line": 5300
+      "line": 5299
     },
     {
       "function": "services.gateway.operator_auth:create_auth_router.farm_activity_intake_queue",
       "source": "services/gateway/operator_auth.py",
-      "line": 5236
+      "line": 5235
     },
     {
       "function": "services.gateway.operator_auth:create_auth_router.farm_activity_queue",
       "source": "services/gateway/operator_auth.py",
-      "line": 5537
+      "line": 5536
     },
     {
       "function": "services.gateway.operator_auth:create_auth_router.get_report_export",
       "source": "services/gateway/operator_auth.py",
-      "line": 4782
+      "line": 4781
     },
     {
       "function": "services.gateway.operator_auth:create_auth_router.list_exportable_report_snapshots",
       "source": "services/gateway/operator_auth.py",
-      "line": 4694
+      "line": 4693
     },
     {
       "function": "services.gateway.operator_auth:create_auth_router.list_report_exports",
       "source": "services/gateway/operator_auth.py",
-      "line": 4613
+      "line": 4612
     },
     {
       "function": "services.gateway.operator_auth:create_auth_router.login",
@@ -1174,27 +1174,27 @@
     {
       "function": "services.gateway.operator_auth:create_auth_router.logout",
       "source": "services/gateway/operator_auth.py",
-      "line": 6058
+      "line": 6057
     },
     {
       "function": "services.gateway.operator_auth:create_auth_router.mobile_collection_disposition_inventory",
       "source": "services/gateway/operator_auth.py",
-      "line": 5100
+      "line": 5099
     },
     {
       "function": "services.gateway.operator_auth:create_auth_router.mobile_collection_review_detail",
       "source": "services/gateway/operator_auth.py",
-      "line": 5013
+      "line": 5012
     },
     {
       "function": "services.gateway.operator_auth:create_auth_router.mobile_collection_review_event",
       "source": "services/gateway/operator_auth.py",
-      "line": 5181
+      "line": 5180
     },
     {
       "function": "services.gateway.operator_auth:create_auth_router.mobile_collection_review_queue",
       "source": "services/gateway/operator_auth.py",
-      "line": 4950
+      "line": 4949
     },
     {
       "function": "services.gateway.operator_auth:create_auth_router.operator_console",
@@ -1204,47 +1204,47 @@
     {
       "function": "services.gateway.operator_auth:create_auth_router.operator_create_mobile_enrollment",
       "source": "services/gateway/operator_auth.py",
-      "line": 5884
+      "line": 5883
     },
     {
       "function": "services.gateway.operator_auth:create_auth_router.operator_create_mobile_participant_link",
       "source": "services/gateway/operator_auth.py",
-      "line": 5840
+      "line": 5839
     },
     {
       "function": "services.gateway.operator_auth:create_auth_router.operator_mobile_inventory",
       "source": "services/gateway/operator_auth.py",
-      "line": 5999
+      "line": 5998
     },
     {
       "function": "services.gateway.operator_auth:create_auth_router.operator_revoke_mobile_device",
       "source": "services/gateway/operator_auth.py",
-      "line": 5970
+      "line": 5969
     },
     {
       "function": "services.gateway.operator_auth:create_auth_router.operator_revoke_mobile_enrollment",
       "source": "services/gateway/operator_auth.py",
-      "line": 5942
+      "line": 5941
     },
     {
       "function": "services.gateway.operator_auth:create_auth_router.operator_revoke_mobile_participant_link",
       "source": "services/gateway/operator_auth.py",
-      "line": 5860
+      "line": 5859
     },
     {
       "function": "services.gateway.operator_auth:create_auth_router.promote_farm_activity_draft",
       "source": "services/gateway/operator_auth.py",
-      "line": 5364
+      "line": 5363
     },
     {
       "function": "services.gateway.operator_auth:create_auth_router.published_farm_activity_detail",
       "source": "services/gateway/operator_auth.py",
-      "line": 5639
+      "line": 5638
     },
     {
       "function": "services.gateway.operator_auth:create_auth_router.published_farm_activity_queue",
       "source": "services/gateway/operator_auth.py",
-      "line": 5587
+      "line": 5586
     },
     {
       "function": "services.gateway.operator_auth:create_auth_router.report_review_queue",
@@ -1254,7 +1254,7 @@
     {
       "function": "services.gateway.operator_auth:create_auth_router.request_report_export",
       "source": "services/gateway/operator_auth.py",
-      "line": 4525
+      "line": 4524
     },
     {
       "function": "services.gateway.operator_auth:create_auth_router.submitted_report_detail",
@@ -1264,7 +1264,7 @@
     {
       "function": "services.gateway.operator_auth:create_auth_router.transition_farm_activity_route",
       "source": "services/gateway/operator_auth.py",
-      "line": 5444
+      "line": 5443
     },
     {
       "function": "services.gateway.planning_budget_routes:register_planning_budget_routes.location_planning_budgets",
@@ -2978,119 +2978,119 @@
       "caller": "services.gateway.operator_auth:create_auth_router.download_report_export",
       "callee": "services.gateway.report_exports:download_report_export",
       "source": "services/gateway/operator_auth.py",
-      "line": 4887,
+      "line": 4886,
       "dispatch": "verified_starlette_run_in_threadpool_callback"
     },
     {
       "caller": "services.gateway.operator_auth:create_auth_router.edit_farm_activity_draft_route",
       "callee": "services.gateway.farm_activity_lifecycle:edit_farm_activity_draft",
       "source": "services/gateway/operator_auth.py",
-      "line": 5774,
+      "line": 5773,
       "dispatch": "verified_starlette_run_in_threadpool_callback"
     },
     {
       "caller": "services.gateway.operator_auth:create_auth_router.farm_activity_detail",
       "callee": "services.gateway.farm_activity_lifecycle:get_farm_activity",
       "source": "services/gateway/operator_auth.py",
-      "line": 5708,
+      "line": 5707,
       "dispatch": "verified_starlette_run_in_threadpool_callback"
     },
     {
       "caller": "services.gateway.operator_auth:create_auth_router.farm_activity_intake_detail",
       "callee": "services.gateway.farm_activity_workflow:get_farm_activity_intake",
       "source": "services/gateway/operator_auth.py",
-      "line": 5312,
+      "line": 5311,
       "dispatch": "verified_starlette_run_in_threadpool_callback"
     },
     {
       "caller": "services.gateway.operator_auth:create_auth_router.farm_activity_intake_queue",
       "callee": "services.gateway.farm_activity_workflow:list_farm_activity_intake",
       "source": "services/gateway/operator_auth.py",
-      "line": 5245,
+      "line": 5244,
       "dispatch": "verified_starlette_run_in_threadpool_callback"
     },
     {
       "caller": "services.gateway.operator_auth:create_auth_router.farm_activity_queue",
       "callee": "services.gateway.farm_activity_lifecycle:list_farm_activities",
       "source": "services/gateway/operator_auth.py",
-      "line": 5550,
+      "line": 5549,
       "dispatch": "verified_starlette_run_in_threadpool_callback"
     },
     {
       "caller": "services.gateway.operator_auth:create_auth_router.get_report_export",
       "callee": "services.gateway.report_exports:get_report_export",
       "source": "services/gateway/operator_auth.py",
-      "line": 4798,
+      "line": 4797,
       "dispatch": "verified_starlette_run_in_threadpool_callback"
     },
     {
       "caller": "services.gateway.operator_auth:create_auth_router.list_exportable_report_snapshots",
       "callee": "services.gateway.report_exports:list_exportable_report_snapshots",
       "source": "services/gateway/operator_auth.py",
-      "line": 4712,
+      "line": 4711,
       "dispatch": "verified_starlette_run_in_threadpool_callback"
     },
     {
       "caller": "services.gateway.operator_auth:create_auth_router.list_report_exports",
       "callee": "services.gateway.report_exports:list_report_exports",
       "source": "services/gateway/operator_auth.py",
-      "line": 4628,
+      "line": 4627,
       "dispatch": "verified_starlette_run_in_threadpool_callback"
     },
     {
       "caller": "services.gateway.operator_auth:create_auth_router.mobile_collection_disposition_inventory",
       "callee": "services.gateway.operator_mobile_review:get_mobile_collection_disposition_inventory",
       "source": "services/gateway/operator_auth.py",
-      "line": 5115,
+      "line": 5114,
       "dispatch": "verified_starlette_run_in_threadpool_callback"
     },
     {
       "caller": "services.gateway.operator_auth:create_auth_router.mobile_collection_review_detail",
       "callee": "services.gateway.operator_mobile_review:get_mobile_collection",
       "source": "services/gateway/operator_auth.py",
-      "line": 5029,
+      "line": 5028,
       "dispatch": "verified_starlette_run_in_threadpool_callback"
     },
     {
       "caller": "services.gateway.operator_auth:create_auth_router.mobile_collection_review_event",
       "callee": "services.gateway.operator_mobile_review:record_mobile_review_event",
       "source": "services/gateway/operator_auth.py",
-      "line": 5193,
+      "line": 5192,
       "dispatch": "verified_starlette_run_in_threadpool_callback"
     },
     {
       "caller": "services.gateway.operator_auth:create_auth_router.mobile_collection_review_queue",
       "callee": "services.gateway.operator_mobile_review:list_mobile_collections",
       "source": "services/gateway/operator_auth.py",
-      "line": 4959,
+      "line": 4958,
       "dispatch": "verified_starlette_run_in_threadpool_callback"
     },
     {
       "caller": "services.gateway.operator_auth:create_auth_router.operator_mobile_inventory",
       "callee": "services.gateway.operator_mobile_review:get_mobile_operations_inventory",
       "source": "services/gateway/operator_auth.py",
-      "line": 6009,
+      "line": 6008,
       "dispatch": "verified_starlette_run_in_threadpool_callback"
     },
     {
       "caller": "services.gateway.operator_auth:create_auth_router.promote_farm_activity_draft",
       "callee": "services.gateway.farm_activity_workflow:create_farm_activity_draft",
       "source": "services/gateway/operator_auth.py",
-      "line": 5382,
+      "line": 5381,
       "dispatch": "verified_starlette_run_in_threadpool_callback"
     },
     {
       "caller": "services.gateway.operator_auth:create_auth_router.published_farm_activity_detail",
       "callee": "services.gateway.farm_activity_lifecycle:get_farm_activity",
       "source": "services/gateway/operator_auth.py",
-      "line": 5652,
+      "line": 5651,
       "dispatch": "verified_starlette_run_in_threadpool_callback"
     },
     {
       "caller": "services.gateway.operator_auth:create_auth_router.published_farm_activity_queue",
       "callee": "services.gateway.farm_activity_lifecycle:list_farm_activities",
       "source": "services/gateway/operator_auth.py",
-      "line": 5600,
+      "line": 5599,
       "dispatch": "verified_starlette_run_in_threadpool_callback"
     },
     {
@@ -3104,7 +3104,7 @@
       "caller": "services.gateway.operator_auth:create_auth_router.request_report_export",
       "callee": "services.gateway.report_exports:request_report_export",
       "source": "services/gateway/operator_auth.py",
-      "line": 4546,
+      "line": 4545,
       "dispatch": "verified_starlette_run_in_threadpool_callback"
     },
     {
@@ -3118,7 +3118,7 @@
       "caller": "services.gateway.operator_auth:create_auth_router.transition_farm_activity_route",
       "callee": "services.gateway.farm_activity_lifecycle:transition_farm_activity",
       "source": "services/gateway/operator_auth.py",
-      "line": 5471,
+      "line": 5470,
       "dispatch": "verified_starlette_run_in_threadpool_callback"
     },
     {
