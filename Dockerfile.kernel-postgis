@@ -35,6 +35,9 @@ RUN apt-get -o Acquire::Retries=5 update \
 
 FROM apt-snapshot-base AS kernel-postgis
 
+ARG KOKONUT_SOURCE_REPOSITORY=
+LABEL org.opencontainers.image.source="${KOKONUT_SOURCE_REPOSITORY}"
+
 ARG POSTGIS_PACKAGE_VERSION
 ARG POSTGIS_SCRIPTS_VERSION
 RUN test -n "$POSTGIS_PACKAGE_VERSION" \

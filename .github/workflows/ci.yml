@@ -163,7 +163,23 @@ jobs:
         uses: docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c # v4
 
       - name: Build and verify Kernel images
-        run: bash scripts/build-kernel-multiarch.sh
+        shell: bash
+        run: |
+          if [[ "$GITHUB_EVENT_NAME" == push && "$GITHUB_REF" == refs/heads/main ]]; then
+            bash scripts/build-kernel-multiarch.sh \
+              --postgis-oci-output "$RUNNER_TEMP/kernel-postgis-${GITHUB_SHA}-${GITHUB_RUN_ID}/kernel-postgis.oci.tar"
+          else
+            bash scripts/build-kernel-multiarch.sh
+          fi
+
+      - name: Upload checked PostGIS OCI artifact
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: kokonut-kernel-postgis-${{ github.sha }}-${{ github.run_id }}
+          path: ${{ runner.temp }}/kernel-postgis-${{ github.sha }}-${{ github.run_id }}/kernel-postgis.oci.tar
+          if-no-files-found: error
+          retention-days: 7
 
   ci:
     name: ci
