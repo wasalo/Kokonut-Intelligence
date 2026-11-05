@@ -4349,6 +4349,14 @@ def main() -> int:
                 rate_limit_maintenance_password if rate_limit_maintenance_password else None
             ),
         )
+        scheduler_password = os.environ.get("KOKONUT_SCHEDULER_PASSWORD", "")
+        if scheduler_password:
+            from services.migration.scheduler_role import provision_scheduler_role
+
+            result.update(provision_scheduler_role(
+                conn, database=database, password=scheduler_password,
+                forbidden_passwords=(admin_password, runtime_password, operator_auth_password),
+            ))
     finally:
         conn.close()
     print(json.dumps(result, sort_keys=True))

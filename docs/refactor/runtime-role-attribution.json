@@ -3,12 +3,12 @@
   "generated_by": "scripts/runtime_role_attribution.py",
   "scope": "Conservative static attribution of direct Python SQL execution sites to source-registered Gateway route handlers and the existing supervisor worker operation graphs. Gateway route roots are collected from the Gateway app's local import closure; this does not prove every dynamically registered route is mounted. Worker roots are allowlisted modules/handlers, not proof of a live schedule or event. A site without a static path may be dynamic, callback-driven, imported, CLI-driven, or otherwise unresolved; it is not evidence that a site is dead. Relation names remain heuristic candidates. This report contains no SQL text, parameter values, secrets, live role grants, tenant policy, or ACL authorization and must not be used by itself to revoke privileges.",
   "summary": {
-    "sql_execution_sites": 4970,
+    "sql_execution_sites": 4979,
     "attribution_counts": {
       "api_candidate": 1000,
       "worker_candidate": 328,
       "shared_candidate": 3,
-      "unresolved": 3639
+      "unresolved": 3648
     },
     "api_route_root_count": 358,
     "api_static_function_count": 1134,
@@ -21,9 +21,9 @@
     "worker_operation_root_count": 49,
     "worker_dynamic_dispatch_edge_count": 56,
     "worker_static_sql_site_count": 331,
-    "worker_sites_without_static_function_match": 4639,
+    "worker_sites_without_static_function_match": 4648,
     "sites_in_both_api_and_worker_graphs": 3,
-    "unresolved_site_count": 3639
+    "unresolved_site_count": 3648
   },
   "process_and_credential_policy": {
     "standard_api": {
@@ -263,11 +263,11 @@
       "docker-compose.kernel-runtime-role.yml": "8944606fd80afa24c727cdce88c7c1bd72abcde092259bcf4dc3d657ae8c6f4a",
       "services/core/features.py": "f0df94a3a5915df6f298c930dbc62fe2f2797659c6259139d620b9f47b725a78",
       "services/core/schema_readiness.py": "6cb4ecfd3f3b674085c8441e861630ada12999d09ccabcb32e4ec32568a4f580",
-      "services/common/worker_environment.py": "0d3ebc0e80bc1be46b7485e077311c7a00aa1adad7b61a2e817c5d425a2082f0",
-      "services/core/runtime.py": "2ee6ff6c90393a9c220b20e0c684e872294a19a69a2ad73f384c4a169810dbde",
+      "services/common/worker_environment.py": "20ce57eb0d1093183099f07b68c85e5280e80daa23407d141efd1731c5d10898",
+      "services/core/runtime.py": "2af39df88fbb6ccbaea8643ed91533a4b55801ba8dc35d48a914df75a3ea33ed",
       "services/gateway/operator_auth.py": "24820d9cf9a30d3bc0507102e423720fa7d06d4766d70e239a9132707ff69576",
       "services/gateway/clickhouse_outbox_operator.py": "86b0c5afe1f796230b24d675a93842d9fb11b8ae9cb8fa7bb38c035d82f524d1",
-      "services/migration/runtime_role.py": "c910552e2fda42d78d8248b995386fa72b5822aa8d99012501972cf0e6ce8df3"
+      "services/migration/runtime_role.py": "5b4fe43864e55d1116bc11efccaf345a07acdf3afc56c4a502cc9f35997f46a7"
     }
   },
   "api_roots": [
@@ -101562,6 +101562,193 @@
       "candidate_relations": [
         "pg_database"
       ],
+      "write_target_relations": [],
+      "api_static_reachability": "no_static_route_path",
+      "worker_static_operations": [],
+      "worker_static_review_status": "function_not_reached_by_any_static_worker_root",
+      "attribution": "unresolved",
+      "review_labels": [
+        "no_static_gateway_route_path_dynamic_or_non_api_possible",
+        "worker_sql_site_not_statically_reached_dynamic_or_unresolved_possible"
+      ]
+    },
+    {
+      "id": "services/migration/scheduler_role.py:19:12",
+      "source": "services/migration/scheduler_role.py",
+      "line": 19,
+      "scope": "provision_scheduler_role",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "static_sql_sha256": "1bc256e78908fb7465c005e83eb7316f3479829b2b95567833181433f6f9637d",
+      "candidate_relations": [],
+      "write_target_relations": [],
+      "api_static_reachability": "no_static_route_path",
+      "worker_static_operations": [],
+      "worker_static_review_status": "function_not_reached_by_any_static_worker_root",
+      "attribution": "unresolved",
+      "review_labels": [
+        "no_static_gateway_route_path_dynamic_or_non_api_possible",
+        "worker_sql_site_not_statically_reached_dynamic_or_unresolved_possible"
+      ]
+    },
+    {
+      "id": "services/migration/scheduler_role.py:31:16",
+      "source": "services/migration/scheduler_role.py",
+      "line": 31,
+      "scope": "provision_scheduler_role",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "static_sql_sha256": "00a4a83a5b947e513922a69efd60aca8680b12002ef3f8fdda597c28dee5f6aa",
+      "candidate_relations": [
+        "pg_attribute"
+      ],
+      "write_target_relations": [],
+      "api_static_reachability": "no_static_route_path",
+      "worker_static_operations": [],
+      "worker_static_review_status": "function_not_reached_by_any_static_worker_root",
+      "attribution": "unresolved",
+      "review_labels": [
+        "no_static_gateway_route_path_dynamic_or_non_api_possible",
+        "worker_sql_site_not_statically_reached_dynamic_or_unresolved_possible"
+      ]
+    },
+    {
+      "id": "services/migration/scheduler_role.py:51:16",
+      "source": "services/migration/scheduler_role.py",
+      "line": 51,
+      "scope": "provision_scheduler_role",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "static_sql_sha256": "5dee0dded69ff0913da3e4e9d05824c3beb71739101c0eb111745ef860d3eaf7",
+      "candidate_relations": [],
+      "write_target_relations": [],
+      "api_static_reachability": "no_static_route_path",
+      "worker_static_operations": [],
+      "worker_static_review_status": "function_not_reached_by_any_static_worker_root",
+      "attribution": "unresolved",
+      "review_labels": [
+        "no_static_gateway_route_path_dynamic_or_non_api_possible",
+        "worker_sql_site_not_statically_reached_dynamic_or_unresolved_possible"
+      ]
+    },
+    {
+      "id": "services/migration/scheduler_role.py:57:20",
+      "source": "services/migration/scheduler_role.py",
+      "line": 57,
+      "scope": "provision_scheduler_role",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "static_sql_sha256": "88a6fc0be3cb9053d08f4a8c9c61201a9a88a329c86e672d68605caae525ddc8",
+      "candidate_relations": [],
+      "write_target_relations": [],
+      "api_static_reachability": "no_static_route_path",
+      "worker_static_operations": [],
+      "worker_static_review_status": "function_not_reached_by_any_static_worker_root",
+      "attribution": "unresolved",
+      "review_labels": [
+        "no_static_gateway_route_path_dynamic_or_non_api_possible",
+        "worker_sql_site_not_statically_reached_dynamic_or_unresolved_possible"
+      ]
+    },
+    {
+      "id": "services/migration/scheduler_role.py:62:12",
+      "source": "services/migration/scheduler_role.py",
+      "line": 62,
+      "scope": "provision_scheduler_role",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "static_sql_sha256": "86e3d07c11b9cdfecd450fde58812a5e923eaea10d3c83628e90fab90e99fa78",
+      "candidate_relations": [
+        "pg_class",
+        "pg_namespace"
+      ],
+      "write_target_relations": [],
+      "api_static_reachability": "no_static_route_path",
+      "worker_static_operations": [],
+      "worker_static_review_status": "function_not_reached_by_any_static_worker_root",
+      "attribution": "unresolved",
+      "review_labels": [
+        "no_static_gateway_route_path_dynamic_or_non_api_possible",
+        "worker_sql_site_not_statically_reached_dynamic_or_unresolved_possible"
+      ]
+    },
+    {
+      "id": "services/migration/scheduler_role.py:75:12",
+      "source": "services/migration/scheduler_role.py",
+      "line": 75,
+      "scope": "provision_scheduler_role",
+      "method": "execute",
+      "expression_kind": "composed_or_variable",
+      "statement_kind": "UNKNOWN",
+      "static_sql_sha256": null,
+      "candidate_relations": [],
+      "write_target_relations": [],
+      "api_static_reachability": "no_static_route_path",
+      "worker_static_operations": [],
+      "worker_static_review_status": "function_not_reached_by_any_static_worker_root",
+      "attribution": "unresolved",
+      "review_labels": [
+        "no_static_gateway_route_path_dynamic_or_non_api_possible",
+        "worker_sql_site_not_statically_reached_dynamic_or_unresolved_possible"
+      ]
+    },
+    {
+      "id": "services/migration/scheduler_role.py:76:12",
+      "source": "services/migration/scheduler_role.py",
+      "line": 76,
+      "scope": "provision_scheduler_role",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "static_sql_sha256": "f0e823be2fbb72e69c0b262ccfbb36cef56c9b547da9cb33ba7bc1ffa2cfafb6",
+      "candidate_relations": [
+        "pg_database"
+      ],
+      "write_target_relations": [],
+      "api_static_reachability": "no_static_route_path",
+      "worker_static_operations": [],
+      "worker_static_review_status": "function_not_reached_by_any_static_worker_root",
+      "attribution": "unresolved",
+      "review_labels": [
+        "no_static_gateway_route_path_dynamic_or_non_api_possible",
+        "worker_sql_site_not_statically_reached_dynamic_or_unresolved_possible"
+      ]
+    },
+    {
+      "id": "services/migration/scheduler_role.py:78:16",
+      "source": "services/migration/scheduler_role.py",
+      "line": 78,
+      "scope": "provision_scheduler_role",
+      "method": "execute",
+      "expression_kind": "composed_or_variable",
+      "statement_kind": "UNKNOWN",
+      "static_sql_sha256": null,
+      "candidate_relations": [],
+      "write_target_relations": [],
+      "api_static_reachability": "no_static_route_path",
+      "worker_static_operations": [],
+      "worker_static_review_status": "function_not_reached_by_any_static_worker_root",
+      "attribution": "unresolved",
+      "review_labels": [
+        "no_static_gateway_route_path_dynamic_or_non_api_possible",
+        "worker_sql_site_not_statically_reached_dynamic_or_unresolved_possible"
+      ]
+    },
+    {
+      "id": "services/migration/scheduler_role.py:79:16",
+      "source": "services/migration/scheduler_role.py",
+      "line": 79,
+      "scope": "provision_scheduler_role",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "static_sql_sha256": "13043d00835abef5b9434676f3e0803c1cbf8c28dd556e8fe3d6e377063e3923",
+      "candidate_relations": [],
       "write_target_relations": [],
       "api_static_reachability": "no_static_route_path",
       "worker_static_operations": [],

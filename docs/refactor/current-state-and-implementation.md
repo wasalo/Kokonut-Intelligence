@@ -197,6 +197,16 @@ The network-disabled disposable PostgreSQL checker applies/reapplies migration 7
 
 Run `python3 scripts/check-scheduler-run-event-disposable.py` for this focused fixture; it starts only a temporary network-disabled PostgreSQL container, uses no persistent target, and removes the container afterward.
 
+## G2 implementation checkpoint — scheduler executor provisioning (migration 748)
+
+Migration 748 gives the dedicated scheduler role read access to definitions/run state and column-specific execution writes, not definition administration, run deletion, resource-limit changes or direct event writes. Queue health can read status/timing columns only; readiness can read migration IDs/checksums/status. The optional runtime bootstrap provisions `kokonut_scheduler_login` only when `KOKONUT_SCHEDULER_PASSWORD` is supplied. Its transaction handles both normal and existing-bootstrap autocommit connections, rejects weak/reused primary credentials, unexpected execution-column grants, foreign mutations, ownership/privileged attributes and other-database CONNECT access. No caller receives broad cloned runtime grants.
+
+The explicit `docker-compose.kernel-scheduler-role.yml` overlay must be appended **after** Standard and runtime-role manifests. It sets only worker PG credentials and the required `KOKONUT_SCHEDULER_DATABASE_URL`; API settings remain unchanged. Configure matching scheduler DSN/password through SOPS; never copy the API password. Provision after migrations 747/748, before enabling the overlay. This overlay is not yet integrated into the profile planner or immutable-release selection, and is not an accepted default. The scheduler child strips shared PG credentials and uses its dedicated connector; the raw bootstrap password is excluded from all child environments.
+
+The network-disabled disposable checker runs actual scheduler claim/resource/completion/event code and queue-health/readiness reads under the restricted role. Provision/reprovision and stale broad-grant rejection pass; 91 focused regressions and Ruff pass. Synthetic Compose rendering preserves the API environment. This is focused fixture acceptance, not full-schema upgrade/RLS acceptance or candidate cutover. Source now has 739 migrations; the candidate remains unchanged through 745. API legacy scheduler privileges remain pending caller review, so mutual API/general-worker privilege separation and G2 are still open.
+
+Next acceptance: run the complete schema/bootstrap/upgrade and recovery checks with the overlay, audit effective callable functions and surviving API scheduler writers, then review candidate rollout. Run `python3 scripts/check-scheduler-executor-disposable.py` for the focused fixture; it uses only synthetic configuration, a temporary network-disabled server and a local client image, and removes its container afterward.
+
 ## Owner inputs and deferred milestones
 
 Existing decisions stand: Gateway-native farm activity, optional Directus, self-hosted ZITADEL, all repository-backed reports first, Kokonut Network's five named locations, Maileroo SMTP, R2 production/backups buckets, USA/Dominican Republic dynamic retention, and 24-hour recovery target. Do not re-ask settled choices. Keep unconfirmed tenant sharing ungranted.

@@ -1,0 +1,11 @@
+# Explicit opt-in: apply migrations 747/748 and provision the login first.
+# Append after Standard/runtime-role manifests. No API credentials are changed.
+services:
+  runtime-role-bootstrap:
+    environment:
+      KOKONUT_SCHEDULER_PASSWORD: ${KOKONUT_SCHEDULER_PASSWORD:?dedicated scheduler password required}
+  worker:
+    environment:
+      PG_USER: kokonut_scheduler_login
+      PG_PASSWORD: ${KOKONUT_SCHEDULER_PASSWORD:?dedicated scheduler password required}
+      KOKONUT_SCHEDULER_DATABASE_URL: ${KOKONUT_SCHEDULER_DATABASE_URL:?dedicated scheduler DSN required}

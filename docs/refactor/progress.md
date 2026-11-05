@@ -27112,3 +27112,8 @@ The owner selected candidate acceptance as the refactor finish line. The current
 ## Scheduler event boundary — 5 November 2026
 
 Migration 747 and the scheduler source replace direct event DML with a bounded terminal-run enqueue and transactional idempotency receipt. Network-disabled PostgreSQL fixture passes replay, duplicate, denied access and rollback checks; scheduler/runtime-role regression selection passes 146 tests. Inventories refreshed. This is focused source/disposable acceptance only; no candidate migration, login provisioning or API/general-worker separation acceptance. See the current-state guide for remaining G2 work.
+
+
+## Scheduler executor source path — 5 November 2026
+
+Migration 748, optional scheduler bootstrap and an explicit opt-in Compose overlay prepare the dedicated scheduler identity. The real engine passes claims, resources, completion/event, queue-health/readiness and denied administration checks on network-disabled disposable PostgreSQL. Provisioning rejects stale broad grants and works transactionally with bootstrap autocommit. Synthetic Compose leaves API settings unchanged; 91 focused regressions and Ruff pass. No candidate change. Full-schema acceptance, planner integration and API legacy scheduler privilege review remain open in the current-state guide.
