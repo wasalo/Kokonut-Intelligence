@@ -40,7 +40,7 @@ ARG POSTGIS_SCRIPTS_VERSION
 RUN test -n "$POSTGIS_PACKAGE_VERSION" \
     && test -n "$POSTGIS_SCRIPTS_VERSION" \
     && apt-get update \
-    && apt-get install -y --no-install-recommends \
+    && apt-get -o Acquire::Retries=5 install -y --no-install-recommends \
        ca-certificates \
        "postgresql-16-postgis-3=$POSTGIS_PACKAGE_VERSION" \
        "postgresql-16-postgis-3-scripts=$POSTGIS_SCRIPTS_VERSION" \
