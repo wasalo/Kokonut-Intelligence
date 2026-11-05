@@ -239,14 +239,20 @@ if [ "${GITHUB_ACTIONS:-false}" != true ] && command -v apt-get >/dev/null 2>&1;
 else
     echo 'Skipping apt bootstrap: hosted runners and non-apt hosts use Python wheels.'
 fi
-python3 -m venv .venv
-. .venv/bin/activate
+APP_VENV="$CI_STATE_DIR/app"
+python3 -m venv "$APP_VENV"
+. "$APP_VENV/bin/activate"
 python -m pip --version
+if ! run_ci_timeout 10m python -m pip install --upgrade --only-binary=:all: --retries 5 --timeout 60 pip setuptools; then
+    echo 'Application bootstrap dependency installation failed or exceeded 10 minutes.' >&2
+    exit 1
+fi
 if ! run_ci_timeout 25m python -m pip install --only-binary=:all: --retries 5 --timeout 60 -r requirements.txt; then
     echo 'Application dependency installation failed or exceeded 25 minutes.' >&2
     exit 1
 fi
 python -m pip check
+APP_SITE_PACKAGES="$(python -c 'import sysconfig; print(sysconfig.get_path("purelib"))')"
 if [ "$RUN_MODE" != --integration-only ]; then
     CI_TOOLS_VENV="$CI_STATE_DIR/ci-tools"
     python3 -m venv "$CI_TOOLS_VENV"
@@ -273,7 +279,7 @@ if [ "$RUN_MODE" != --integration-only ]; then
     "$CI_TOOLS_BIN/ruff" check --select S,BLE --ignore S101,S104,S105,S110,S112,S310,S311,S404,S603,S607,S608,RUF012,BLE001 services/
 
     echo '=== pip-audit ==='
-    "$CI_TOOLS_BIN/pip-audit" -r requirements.txt
+    PIPAPI_PYTHON_LOCATION="$APP_VENV/bin/python" "$CI_TOOLS_BIN/pip-audit" --path "$APP_SITE_PACKAGES"
 
     ci_phase_start 'Fast-fail source, import, CLI, and hook checks'
     echo '=== Fast-fail source checks ==='

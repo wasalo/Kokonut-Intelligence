@@ -113,7 +113,23 @@ def test_python_tooling_is_isolated_from_application_dependencies() -> None:
     assert 'export PATH="$CI_TOOLS_VENV/bin:$PATH"' not in runner
     assert 'PATH="$CI_TOOLS_BIN:$PATH" ./scripts/verify-ci-toolchain.sh' in runner
     assert '"$CI_TOOLS_BIN/ruff" check' in runner
-    assert '"$CI_TOOLS_BIN/pip-audit" -r requirements.txt' in runner
+    assert 'APP_VENV="$CI_STATE_DIR/app"' in runner
+    assert 'python3 -m venv "$APP_VENV"' in runner
+    bootstrap_install = runner.index(
+        "python -m pip install --upgrade --only-binary=:all: --retries 5 --timeout 60 pip setuptools"
+    )
+    requirements_install = runner.index(
+        "python -m pip install --only-binary=:all: --retries 5 --timeout 60 -r requirements.txt"
+    )
+    site_packages = runner.index('APP_SITE_PACKAGES="$(python -c')
+    requirements_audit = runner.index(
+        'PIPAPI_PYTHON_LOCATION="$APP_VENV/bin/python" "$CI_TOOLS_BIN/pip-audit" --path "$APP_SITE_PACKAGES"'
+    )
+    assert bootstrap_install < requirements_install < site_packages < requirements_audit
+    assert 'sysconfig.get_path("purelib")' in runner
+    cryptography_floor = "cryptography>=50.0.0,<51.0.0"
+    assert cryptography_floor in (ROOT / "requirements.txt").read_text(encoding="utf-8")
+    assert cryptography_floor in (ROOT / "requirements/oidc.txt").read_text(encoding="utf-8")
     assert 'PATH="$CI_TOOLS_BIN:$PATH" ./scripts/static-analysis.sh' in runner
     assert "python -m pip check" in runner
     assert "slither-analyzer==0.11.5" in tools

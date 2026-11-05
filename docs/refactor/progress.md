@@ -27027,3 +27027,29 @@ stopped at `pip-audit -r requirements.txt`: each attempt's temporary resolver
 virtualenv `ensurepip` subprocess exited with SIGABRT. A standalone temporary
 venv succeeds; no weaker audit mode was substituted. No database, ACL, RLS,
 candidate, or production target was changed.
+
+### Source-only CI audit and release-input remediation — 3 November 2026
+
+The source-only runner now creates its application venv under `$CI_STATE_DIR`,
+upgrades bootstrap `pip`/`setuptools`, and runs `pip-audit --path` against that
+venv's `purelib`, explicitly binding `PIPAPI_PYTHON_LOCATION` to the app
+interpreter. This avoids pip-audit's copied-interpreter resolver venv and audits
+the full installed app environment, including the upgraded bootstrap tools.
+
+Added `cryptography>=50.0.0,<51.0.0` to the aligned full-runtime and OIDC
+manifests; the clean app audit with cryptography 50.0.2 reported no known
+vulnerabilities. Refreshed the five stale release-input hashes for the OIDC
+requirements, Kernel planner, profile-selection guide, runtime-role Compose
+overlay, and OIDC Compose overlay. Dependency-group and release-input checks
+passed; all 12 CI workflow contract tests passed.
+
+The full source-only CI run completed successfully: Ruff/security and
+pip-audit passed, all 73 fast source checks passed, static analysis completed,
+Foundry passed 81 tests, and Directus hooks passed 143 tests. The completed run
+preceded the explicit `PIPAPI_PYTHON_LOCATION` binding; that final target was
+then verified directly against the clean app `purelib` with no warning and no
+known vulnerabilities. This Mac needed a scratchpad-only cryptography wheel
+because no 50.x x86_64 binary wheel is available; the CI script remains
+binary-only and contains no local index/wheel override. No database, ACL, RLS,
+candidate, or production target was changed. The CI/dependency follow-up remains
+uncommitted.
