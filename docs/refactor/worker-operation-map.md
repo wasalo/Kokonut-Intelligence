@@ -56,9 +56,18 @@ application-wide RLS or proof for other workers.
   claims/receipts; migration 647 bounds notification delivery; migration 723
   removes direct runtime DML from their reviewed receipt/state tables. Handler
   logs stay on stderr while JSON remains on stdout.
-- The scheduler control plane still uses the shared runtime PostgreSQL identity.
-  Scheduled child environments receive only source-allowlisted worker
-  credentials. Event dispatch and notification delivery pause without their
+- The scheduler control plane uses `kokonut_runtime` by default. The opt-in
+  `--separate-api-worker-logins` profile keeps the API on `kokonut_runtime` and
+  moves the general worker supervisor to `kokonut_worker_runtime`; adding
+  `--scheduler-role` gives the scheduler child `kokonut_scheduler_login`.
+  These are identity boundaries, not narrowed grants: the worker login inherits
+  the current runtime ACL with `SET ROLE` disabled. In isolated scheduler mode,
+  enabled commands are checked against their argument contract and exact
+  worker identity before claim; invalid or unmapped jobs remain unclaimed while
+  normal expired-lease recovery continues. Metrics and dataset refresh have no
+  isolated scheduler identity and remain unavailable there. Scheduled child
+  environments receive only source-allowlisted worker credentials. Event
+  dispatch and notification delivery pause without their
   dedicated identity and never fall back to shared DML. The anomaly handler and all four registered
   cache invalidators have exact source-controlled worker credential routing
   and dedicated connection paths; the cache path remains disabled by default.

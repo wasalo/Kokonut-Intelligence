@@ -217,6 +217,18 @@ def test_standard_role_contract_records_route_specific_operator_database_identit
     contract = runtime_role_attribution._standard_role_contract()
 
     assert contract["standard_api"]["database_login"].startswith("kokonut_runtime")
+    assert contract["standard_general_worker"]["database_login"].startswith(
+        "kokonut_runtime by default"
+    )
+    profiles = {
+        profile["selection"]: profile
+        for profile in contract["api_worker_login_profiles"]
+    }
+    split_profile = profiles["Standard --separate-api-worker-logins --scheduler-role"]
+    assert split_profile["api_database_login"] == "kokonut_runtime"
+    assert split_profile["general_worker_database_login"] == "kokonut_worker_runtime"
+    assert split_profile["scheduler_database_login"] == "kokonut_scheduler_login"
+    assert "not close C1" in contract["role_bootstrap"]["api_worker_identity_split"]
     assert contract["api_route_specific_database_identities"] == [
         {
             "database_login": "kokonut_operator_auth",

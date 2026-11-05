@@ -31,7 +31,7 @@
       "started_by_default": true,
       "database_login": "kokonut_runtime via PG_USER/PG_PASSWORD from docker-compose.kernel-runtime-role.yml",
       "startup_check": "generic non-owner/non-privileged current_user==session_user; no API-role identity assertion",
-      "credential_scope": "shared kokonut_runtime login for Gateway domain queries and migration-749 scheduler definition actions (OIDC-capability-gated and audited); OIDC session/capability and ClickHouse outbox actions use the separate credentials listed below; API/general-worker identity separation remains open",
+      "credential_scope": "kokonut_runtime for Gateway domain queries and migration-749 scheduler definition actions (OIDC-capability-gated and audited); the opt-in API/worker split keeps the API on this login while moving the general worker to kokonut_worker_runtime; OIDC session/capability and ClickHouse outbox actions use the separate credentials listed below",
       "notification_provider_environment": "ALERT_WEBHOOK_URL is cleared after deriving a non-secret configured flag; ALERT_SMTP_USER/PASSWORD are explicitly blanked; non-secret SMTP routing fields may remain"
     },
     "api_route_specific_database_identities": [
@@ -59,7 +59,7 @@
     ],
     "standard_general_worker": {
       "process": "services.core.runtime --workers-only supervisor",
-      "database_login": "kokonut_runtime via PG_USER/PG_PASSWORD from docker-compose.kernel-standard.yml and docker-compose.kernel-runtime-role.yml",
+      "database_login": "kokonut_runtime by default; the opt-in --separate-api-worker-logins profile sets PG_USER/PG_PASSWORD to kokonut_worker_runtime",
       "startup_check": "same generic non-owner/non-privileged check as API; no worker-role identity assertion",
       "container_secret_environment_variable_names": [
         "KOKONUT_ANALYTICS_PASSWORD",
@@ -112,6 +112,12 @@
         "name": "scheduler",
         "enabled_by": "KOKONUT_FEATURE_SCHEDULER defaults true in services/core/features.py; Standard Compose does not override it",
         "shared_login_by_default": true,
+        "database_login_by_profile": {
+          "standard": "kokonut_runtime",
+          "standard --separate-api-worker-logins": "kokonut_worker_runtime",
+          "standard --scheduler-role": "kokonut_scheduler_login",
+          "standard --separate-api-worker-logins --scheduler-role": "kokonut_scheduler_login"
+        },
         "activation_limit": "source-allowlisted modules do not prove a persisted task is active; live schedule state is unassessed"
       },
       {
@@ -243,13 +249,48 @@
     },
     "role_bootstrap": {
       "source": "docker-compose.kernel-runtime-role.yml runtime-role-bootstrap",
-      "purpose": "provisions shared kokonut_runtime and dedicated operation logins",
+      "purpose": "provisions shared kokonut_runtime and dedicated operation logins; the optional worker-runtime overlay provisions kokonut_worker_runtime",
       "initial_runtime_compatibility_grant": "existing public table/sequence DML compatibility grants are not removed by later reprovisioning; exact relation ACLs require separate cohort review",
-      "api_worker_identity_split": "not implemented"
+      "api_worker_identity_split": "optional source path implemented by --separate-api-worker-logins; worker login inherits the current kokonut_runtime ACL with SET ROLE disabled, so this does not close C1 or prove candidate activation"
     },
+    "api_worker_login_profiles": [
+      {
+        "selection": "Standard default",
+        "api_database_login": "kokonut_runtime",
+        "general_worker_database_login": "kokonut_runtime",
+        "scheduler_database_login": "kokonut_runtime",
+        "status": "default profile; API/general-worker login remains shared"
+      },
+      {
+        "selection": "Standard --separate-api-worker-logins",
+        "api_database_login": "kokonut_runtime",
+        "general_worker_database_login": "kokonut_worker_runtime",
+        "scheduler_database_login": "kokonut_worker_runtime",
+        "status": "opt-in source path; worker inherits current runtime ACL, and candidate rollout is not implied"
+      },
+      {
+        "selection": "Standard --scheduler-role",
+        "api_database_login": "kokonut_runtime",
+        "general_worker_database_login": "kokonut_runtime",
+        "scheduler_database_login": "kokonut_scheduler_login",
+        "status": "opt-in scheduler identity; API/general-worker login remains shared"
+      },
+      {
+        "selection": "Standard --separate-api-worker-logins --scheduler-role",
+        "api_database_login": "kokonut_runtime",
+        "general_worker_database_login": "kokonut_worker_runtime",
+        "scheduler_database_login": "kokonut_scheduler_login",
+        "status": "opt-in composed profile; candidate rollout is not implied"
+      }
+    ],
+    "identity_profile_scope": "The login matrix describes Standard runtime service composition. The planner omits the worker-runtime overlay for database-up and migrate actions, so those actions do not require or receive the separate worker login values; bootstrap-runtime-role provisions selected logins.",
     "source_inputs": [
       "docker-compose.kernel-standard.yml",
       "docker-compose.kernel-runtime-role.yml",
+      "docker-compose.kernel-worker-runtime-role.yml",
+      "docker-compose.kernel-worker-runtime-supervisor.yml",
+      "docker-compose.kernel-scheduler-role.yml",
+      "scripts/kernel-profile.py",
       "services/core/features.py",
       "services/core/schema_readiness.py",
       "services/core/runtime.py",
@@ -261,6 +302,10 @@
     "source_digests_sha256": {
       "docker-compose.kernel-standard.yml": "dbb7b4c1ed70f144e099a9b8f8b60992d3b8043144c814b137dfe028ddbb17dc",
       "docker-compose.kernel-runtime-role.yml": "8944606fd80afa24c727cdce88c7c1bd72abcde092259bcf4dc3d657ae8c6f4a",
+      "docker-compose.kernel-worker-runtime-role.yml": "0be12dc72185e783a01c6ace8b313919f7ec2a09c2e55de202a6d66052c89dec",
+      "docker-compose.kernel-worker-runtime-supervisor.yml": "e7859dcfa2b58b9dbfb33cdb638999b73981faef0b2889840b53e10b4849517d",
+      "docker-compose.kernel-scheduler-role.yml": "b02e2df20763cff2a528e4c693a00ce92a7a85a3067565c917b63c6f86470efe",
+      "scripts/kernel-profile.py": "7bc64e878db11df1dcac2b094fc0e9993aa42619bf5232cd6d4a0fdef9b82841",
       "services/core/features.py": "f0df94a3a5915df6f298c930dbc62fe2f2797659c6259139d620b9f47b725a78",
       "services/core/schema_readiness.py": "dfd69ac128fedf6921a36f814cf2099389825cedecf4230fc24a835af737073f",
       "services/common/worker_environment.py": "fbfd24227348009446a2f6e6e76db2b048bb8375f58aba0a0d343de2410c949e",
