@@ -11,7 +11,7 @@
       "unresolved": 3658
     },
     "api_route_root_count": 361,
-    "api_static_function_count": 1152,
+    "api_static_function_count": 1153,
     "api_verified_threadpool_callback_edge_count": 268,
     "api_static_sql_site_count": 1013,
     "api_threadpool_callback_sql_site_count": 967,
@@ -2059,67 +2059,67 @@
     {
       "function": "services.mobile.api:create_enrollment",
       "source": "services/mobile/api.py",
-      "line": 788
+      "line": 816
     },
     {
       "function": "services.mobile.api:create_participant_link",
       "source": "services/mobile/api.py",
-      "line": 672
+      "line": 700
     },
     {
       "function": "services.mobile.api:list_forms",
       "source": "services/mobile/api.py",
-      "line": 596
+      "line": 624
     },
     {
       "function": "services.mobile.api:mobile_app",
       "source": "services/mobile/api.py",
-      "line": 430
+      "line": 458
     },
     {
       "function": "services.mobile.api:mobile_service_worker",
       "source": "services/mobile/api.py",
-      "line": 442
+      "line": 470
     },
     {
       "function": "services.mobile.api:mobile_vault_script",
       "source": "services/mobile/api.py",
-      "line": 436
+      "line": 464
     },
     {
       "function": "services.mobile.api:register_device",
       "source": "services/mobile/api.py",
-      "line": 898
+      "line": 926
     },
     {
       "function": "services.mobile.api:revoke_device",
       "source": "services/mobile/api.py",
-      "line": 1030
+      "line": 1058
     },
     {
       "function": "services.mobile.api:revoke_enrollment",
       "source": "services/mobile/api.py",
-      "line": 950
+      "line": 978
     },
     {
       "function": "services.mobile.api:revoke_participant_link",
       "source": "services/mobile/api.py",
-      "line": 739
+      "line": 767
     },
     {
       "function": "services.mobile.api:sync_collections",
       "source": "services/mobile/api.py",
-      "line": 1165
+      "line": 1198
     },
     {
       "function": "services.mobile.api:sync_status",
       "source": "services/mobile/api.py",
-      "line": 1460
+      "line": 1493
     },
     {
       "function": "services.mobile.api:upload_private_media",
       "source": "services/mobile/api.py",
-      "line": 455
+      "line": 483
     }
   ],
   "api_dynamic_dispatch_edges": [],
@@ -102181,9 +102181,9 @@
       ]
     },
     {
-      "id": "services/mobile/api.py:159:8",
+      "id": "services/mobile/api.py:187:8",
       "source": "services/mobile/api.py",
-      "line": 159,
+      "line": 187,
       "scope": "_set_mobile_mutation_timeouts",
       "method": "execute",
       "expression_kind": "literal",
@@ -102201,9 +102201,9 @@
       ]
     },
     {
-      "id": "services/mobile/api.py:160:8",
+      "id": "services/mobile/api.py:188:8",
       "source": "services/mobile/api.py",
-      "line": 160,
+      "line": 188,
       "scope": "_set_mobile_mutation_timeouts",
       "method": "execute",
       "expression_kind": "literal",
@@ -102221,9 +102221,9 @@
       ]
     },
     {
-      "id": "services/mobile/api.py:169:4",
+      "id": "services/mobile/api.py:197:4",
       "source": "services/mobile/api.py",
-      "line": 169,
+      "line": 197,
       "scope": "_verified_location_tenant",
       "method": "execute",
       "expression_kind": "literal",
@@ -102245,9 +102245,9 @@
       ]
     },
     {
-      "id": "services/mobile/api.py:202:4",
+      "id": "services/mobile/api.py:230:4",
       "source": "services/mobile/api.py",
-      "line": 202,
+      "line": 230,
       "scope": "_consent_decision_at",
       "method": "execute",
       "expression_kind": "literal",
@@ -102267,9 +102267,9 @@
       ]
     },
     {
-      "id": "services/mobile/api.py:258:4",
+      "id": "services/mobile/api.py:286:4",
       "source": "services/mobile/api.py",
-      "line": 258,
+      "line": 286,
       "scope": "_validate_required_consent",
       "method": "execute",
       "expression_kind": "literal",
@@ -102289,9 +102289,9 @@
       ]
     },
     {
-      "id": "services/mobile/api.py:295:4",
+      "id": "services/mobile/api.py:323:4",
       "source": "services/mobile/api.py",
-      "line": 295,
+      "line": 323,
       "scope": "_participant_link_for_ref",
       "method": "execute",
       "expression_kind": "literal",
@@ -102311,9 +102311,9 @@
       ]
     },
     {
-      "id": "services/mobile/api.py:310:4",
+      "id": "services/mobile/api.py:338:4",
       "source": "services/mobile/api.py",
-      "line": 310,
+      "line": 338,
       "scope": "_form_revision_for_sync",
       "method": "execute",
       "expression_kind": "literal",
@@ -102333,9 +102333,9 @@
       ]
     },
     {
-      "id": "services/mobile/api.py:411:8",
+      "id": "services/mobile/api.py:439:8",
       "source": "services/mobile/api.py",
-      "line": 411,
+      "line": 439,
       "scope": "_device_for_token",
       "method": "execute",
       "expression_kind": "literal",
@@ -102355,9 +102355,9 @@
       ]
     },
     {
-      "id": "services/mobile/api.py:540:8",
+      "id": "services/mobile/api.py:568:8",
       "source": "services/mobile/api.py",
-      "line": 540,
+      "line": 568,
       "scope": "upload_private_media",
       "method": "execute",
       "expression_kind": "literal",
@@ -102379,9 +102379,9 @@
       ]
     },
     {
-      "id": "services/mobile/api.py:628:12",
+      "id": "services/mobile/api.py:656:12",
       "source": "services/mobile/api.py",
-      "line": 628,
+      "line": 656,
       "scope": "list_forms",
       "method": "execute",
       "expression_kind": "literal",
@@ -102401,9 +102401,9 @@
       ]
     },
     {
-      "id": "services/mobile/api.py:644:12",
+      "id": "services/mobile/api.py:672:12",
       "source": "services/mobile/api.py",
-      "line": 644,
+      "line": 672,
       "scope": "list_forms",
       "method": "execute",
       "expression_kind": "literal",
@@ -102423,9 +102423,9 @@
       ]
     },
     {
-      "id": "services/mobile/api.py:688:8",
+      "id": "services/mobile/api.py:716:8",
       "source": "services/mobile/api.py",
-      "line": 688,
+      "line": 716,
       "scope": "create_participant_link",
       "method": "execute",
       "expression_kind": "literal",
@@ -102445,9 +102445,9 @@
       ]
     },
     {
-      "id": "services/mobile/api.py:691:8",
+      "id": "services/mobile/api.py:719:8",
       "source": "services/mobile/api.py",
-      "line": 691,
+      "line": 719,
       "scope": "create_participant_link",
       "method": "execute",
       "expression_kind": "literal",
@@ -102469,9 +102469,9 @@
       ]
     },
     {
-      "id": "services/mobile/api.py:749:8",
+      "id": "services/mobile/api.py:777:8",
       "source": "services/mobile/api.py",
-      "line": 749,
+      "line": 777,
       "scope": "revoke_participant_link",
       "method": "execute",
       "expression_kind": "literal",
@@ -102493,9 +102493,9 @@
       ]
     },
     {
-      "id": "services/mobile/api.py:854:8",
+      "id": "services/mobile/api.py:882:8",
       "source": "services/mobile/api.py",
-      "line": 854,
+      "line": 882,
       "scope": "_create_enrollment",
       "method": "execute",
       "expression_kind": "literal",
@@ -102517,9 +102517,9 @@
       ]
     },
     {
-      "id": "services/mobile/api.py:904:8",
+      "id": "services/mobile/api.py:932:8",
       "source": "services/mobile/api.py",
-      "line": 904,
+      "line": 932,
       "scope": "register_device",
       "method": "execute",
       "expression_kind": "literal",
@@ -102539,9 +102539,9 @@
       ]
     },
     {
-      "id": "services/mobile/api.py:998:8",
+      "id": "services/mobile/api.py:1026:8",
       "source": "services/mobile/api.py",
-      "line": 998,
+      "line": 1026,
       "scope": "_revoke_enrollment",
       "method": "execute",
       "expression_kind": "literal",
@@ -102563,9 +102563,9 @@
       ]
     },
     {
-      "id": "services/mobile/api.py:1087:8",
+      "id": "services/mobile/api.py:1120:8",
       "source": "services/mobile/api.py",
-      "line": 1087,
+      "line": 1120,
       "scope": "_revoke_device",
       "method": "execute",
       "expression_kind": "literal",
@@ -102585,9 +102585,9 @@
       ]
     },
     {
-      "id": "services/mobile/api.py:1207:12",
+      "id": "services/mobile/api.py:1240:12",
       "source": "services/mobile/api.py",
-      "line": 1207,
+      "line": 1240,
       "scope": "sync_collections",
       "method": "execute",
       "expression_kind": "literal",
@@ -102607,9 +102607,9 @@
       ]
     },
     {
-      "id": "services/mobile/api.py:1269:12",
+      "id": "services/mobile/api.py:1302:12",
       "source": "services/mobile/api.py",
-      "line": 1269,
+      "line": 1302,
       "scope": "sync_collections",
       "method": "execute",
       "expression_kind": "literal",
@@ -102629,9 +102629,9 @@
       ]
     },
     {
-      "id": "services/mobile/api.py:1308:16",
+      "id": "services/mobile/api.py:1341:16",
       "source": "services/mobile/api.py",
-      "line": 1308,
+      "line": 1341,
       "scope": "sync_collections",
       "method": "execute",
       "expression_kind": "literal",
@@ -102651,9 +102651,9 @@
       ]
     },
     {
-      "id": "services/mobile/api.py:1322:20",
+      "id": "services/mobile/api.py:1355:20",
       "source": "services/mobile/api.py",
-      "line": 1322,
+      "line": 1355,
       "scope": "sync_collections",
       "method": "execute",
       "expression_kind": "literal",
@@ -102673,9 +102673,9 @@
       ]
     },
     {
-      "id": "services/mobile/api.py:1353:12",
+      "id": "services/mobile/api.py:1386:12",
       "source": "services/mobile/api.py",
-      "line": 1353,
+      "line": 1386,
       "scope": "sync_collections",
       "method": "execute",
       "expression_kind": "literal",
@@ -102697,9 +102697,9 @@
       ]
     },
     {
-      "id": "services/mobile/api.py:1397:20",
+      "id": "services/mobile/api.py:1430:20",
       "source": "services/mobile/api.py",
-      "line": 1397,
+      "line": 1430,
       "scope": "sync_collections",
       "method": "execute",
       "expression_kind": "literal",
@@ -102721,9 +102721,9 @@
       ]
     },
     {
-      "id": "services/mobile/api.py:1411:16",
+      "id": "services/mobile/api.py:1444:16",
       "source": "services/mobile/api.py",
-      "line": 1411,
+      "line": 1444,
       "scope": "sync_collections",
       "method": "execute",
       "expression_kind": "literal",
@@ -102743,9 +102743,9 @@
       ]
     },
     {
-      "id": "services/mobile/api.py:1428:8",
+      "id": "services/mobile/api.py:1461:8",
       "source": "services/mobile/api.py",
-      "line": 1428,
+      "line": 1461,
       "scope": "sync_collections",
       "method": "execute",
       "expression_kind": "literal",
@@ -102767,9 +102767,9 @@
       ]
     },
     {
-      "id": "services/mobile/api.py:1432:8",
+      "id": "services/mobile/api.py:1465:8",
       "source": "services/mobile/api.py",
-      "line": 1432,
+      "line": 1465,
       "scope": "sync_collections",
       "method": "execute",
       "expression_kind": "literal",
@@ -102791,9 +102791,9 @@
       ]
     },
     {
-      "id": "services/mobile/api.py:1474:8",
+      "id": "services/mobile/api.py:1507:8",
       "source": "services/mobile/api.py",
-      "line": 1474,
+      "line": 1507,
       "scope": "sync_status",
       "method": "execute",
       "expression_kind": "literal",
@@ -102813,9 +102813,9 @@
       ]
     },
     {
-      "id": "services/mobile/api.py:1486:8",
+      "id": "services/mobile/api.py:1519:8",
       "source": "services/mobile/api.py",
-      "line": 1486,
+      "line": 1519,
       "scope": "sync_status",
       "method": "execute",
       "expression_kind": "literal",
