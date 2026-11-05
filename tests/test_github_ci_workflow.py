@@ -99,6 +99,8 @@ def test_manual_collection_profile_is_capped_and_outside_required_gate() -> None
     assert "_worker_collection_variants" in profiler
     assert "ast.unparse" in profiler
     assert "TemporaryDirectory" in profiler
+    assert "call-only" in profiler
+    assert "mocks-no-call-and-indexer" in profiler
 
     result = subprocess.run(
         [sys.executable, str(ROOT / "scripts/profile_pytest_collection.py"), "--help"],

@@ -103,14 +103,30 @@ def _worker_collection_variants(directory: Path) -> list[tuple[str, str]]:
         for node in module.body
         if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node.name.startswith("test_")
     ]
-    imports_module = ast.Module(body=imports, type_ignores=[])
-    imports_path = directory / "test_imports_only.py"
-    imports_path.write_text(ast.unparse(imports_module) + chr(10), encoding="utf-8")
-    variants = [("imports-only", str(imports_path.relative_to(ROOT)))]
+    newline = chr(10)
+    import_sources = (
+        ("no-imports", ""),
+        ("pytest-only", "import pytest"),
+        ("magicmock-only", "from unittest.mock import MagicMock"),
+        ("call-only", "from unittest.mock import call"),
+        ("patch-only", "from unittest.mock import patch"),
+        ("mocks-no-call", "from unittest.mock import MagicMock, patch"),
+        ("call-and-indexer", newline.join(("from unittest.mock import call", "from services.guilds.indexer import KGPIndexer"))),
+        (
+            "mocks-no-call-and-indexer",
+            newline.join(("from unittest.mock import MagicMock, patch", "from services.guilds.indexer import KGPIndexer")),
+        ),
+        ("imports-only", ast.unparse(ast.Module(body=imports, type_ignores=[]))),
+    )
+    variants: list[tuple[str, str]] = []
+    for label, import_source in import_sources:
+        import_path = directory / f"test_{label.replace('-', '_')}.py"
+        import_path.write_text(import_source + newline, encoding="utf-8")
+        variants.append((label, str(import_path.relative_to(ROOT))))
     for function in functions:
         function_module = ast.Module(body=[*imports, function], type_ignores=[])
         function_path = directory / f"test_{function.name}_profile.py"
-        function_path.write_text(ast.unparse(function_module) + chr(10), encoding="utf-8")
+        function_path.write_text(ast.unparse(function_module) + newline, encoding="utf-8")
         variants.append((function.name, str(function_path.relative_to(ROOT))))
     return variants
 
