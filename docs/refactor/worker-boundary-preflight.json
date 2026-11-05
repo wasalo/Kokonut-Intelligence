@@ -30,8 +30,8 @@
     "status": "not_tenant_bound"
   },
   "sql_reachability": {
-    "execution_site_count": 440,
-    "sites_with_static_operation_path": 332,
+    "execution_site_count": 439,
+    "sites_with_static_operation_path": 331,
     "sites_without_static_function_match": 108,
     "site_refs_for_review": [
       {
@@ -220,7 +220,7 @@
         "import_closure_operation_count": 1
       },
       {
-        "site": "services/core/worker_progress.py:490:8",
+        "site": "services/core/worker_progress.py:524:8",
         "review_status": "function_not_reached_by_any_static_worker_root",
         "import_closure_operation_count": 9
       },

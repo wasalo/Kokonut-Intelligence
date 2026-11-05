@@ -3,6 +3,11 @@
 **Planning baseline:** `develop` at `ef29f193992717653251b325e99ae24afc62ccef`,
 26 October 2026 local time. This is a plan, not an acceptance record.
 
+**Current status (3 November 2026):** The baseline and dated progress below are
+historical planning context. Use the [current-state guide](current-state-and-implementation.md)
+for the latest source, tracker, and migration-746 disposable evidence. Candidate
+rollout and production acceptance remain separate, open gates.
+
 ## Sprint outcome
 
 Demonstrate one repeatable, end-to-end farm workflow on an isolated Kernel:

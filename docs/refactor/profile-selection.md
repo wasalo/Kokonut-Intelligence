@@ -63,7 +63,7 @@ starting children. Load the encrypted environment, then execute the planner
 actions and their printed commands in this order:
 
 1. `python3 scripts/kernel-profile.py standard --action database-up` starts
-   only PostgreSQL.
+   only PostgreSQL and waits for its healthcheck before returning.
 2. `python3 scripts/kernel-profile.py standard --action migrate` prints the
    Python command for the complete ordered schema migration. Run that command
    as the database owner.

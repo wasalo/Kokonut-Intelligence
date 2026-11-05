@@ -153,6 +153,8 @@ class OperatorIdentityProvider(Protocol):
 
     def has_scope(self, operator_id: str, resource: str, action: str, location_id: str) -> bool: ...
 
+    def has_global_capability(self, session_token_hash: str, capability: str) -> bool: ...
+
     def list_scopes(self, operator_id: str) -> list[dict]: ...
 
     def revoke_session(self, session_id: str) -> None: ...
@@ -323,6 +325,31 @@ class OIDCOperatorProvider:
             return False
         return hmac.compare_digest(_digest(header), session.csrf_token_hash)
 
+    def has_global_capability(self, session_token_hash: str, capability: str) -> bool:
+        if (
+            not re.fullmatch(r"[0-9a-f]{64}", session_token_hash)
+            or capability
+            not in {
+                "clickhouse_outbox:read",
+                "clickhouse_outbox:replay",
+                "clickhouse_outbox:resolve",
+                "clickhouse_outbox:discard",
+            }
+        ):
+            return False
+        conn = _get_operator_auth_db(self.settings)
+        try:
+            with conn.cursor() as cur:
+                cur.execute(
+                    "SELECT kokonut_security.operator_global_capability_allows(%s, %s)",
+                    (session_token_hash, capability),
+                )
+                row = cur.fetchone()
+            conn.rollback()
+            return bool(row and row[0])
+        finally:
+            conn.close()
+
     @staticmethod
     def has_scope(operator_id: str, resource: str, action: str, location_id: str) -> bool:
         if not all(_IDENTIFIER_RE.fullmatch(value) for value in (resource, action)):
@@ -394,6 +421,42 @@ def create_provider() -> OIDCOperatorProvider | None:
 
 def auth_route_policy(method: str, path: str, *, enabled: bool) -> dict | None:
     """Return middleware policy only for the small, explicit OIDC endpoint set."""
+    outbox_routes = {
+        ("GET", "/operator/api/clickhouse-outbox/dead-letters"): (
+            "read",
+            "clickhouse_outbox:read",
+        ),
+        ("POST", "/operator/api/clickhouse-outbox/dead-letters/{outbox_id}/replay"): (
+            "replay",
+            "clickhouse_outbox:replay",
+        ),
+        ("POST", "/operator/api/clickhouse-outbox/dead-letters/{outbox_id}/resolve"): (
+            "resolve",
+            "clickhouse_outbox:resolve",
+        ),
+        ("POST", "/operator/api/clickhouse-outbox/dead-letters/{outbox_id}/discard"): (
+            "discard",
+            "clickhouse_outbox:discard",
+        ),
+    }
+    normalized_method = method.upper()
+    if enabled:
+        for (route_method, route_path), (action, capability) in outbox_routes.items():
+            match = re.fullmatch(
+                re.escape(route_path).replace(r"\{outbox_id\}", r"([0-9a-fA-F-]{36})"),
+                path,
+            )
+            if route_method == normalized_method and match:
+                return {
+                    "resource": "clickhouse_outbox",
+                    "action": action,
+                    "public": False,
+                    "location_id": None,
+                    "scope_required": False,
+                    "operator_auth": True,
+                    "global_capability": capability,
+                }
+
     environmental_baseline_capture_match = re.fullmatch(
         r"/operator/api/environmental-baselines/([0-9a-fA-F-]{36})/captures", path
     )
@@ -4072,6 +4135,29 @@ def authorize_auth_request(
                 "scope_checked": True,
                 **policy,
             }
+    required_global_capability = policy.get("global_capability")
+    if required_global_capability is not None:
+        try:
+            capability_allowed = provider.has_global_capability(
+                session_token_hash,
+                required_global_capability,
+            )
+        except Exception:
+            return {
+                "authenticated": False,
+                "caller": f"operator:{operator_session.operator.operator_id}",
+                "reason": "operator_global_capability_unavailable",
+                "scope_checked": scope_checked,
+                **policy,
+            }
+        if not capability_allowed:
+            return {
+                "authenticated": False,
+                "caller": f"operator:{operator_session.operator.operator_id}",
+                "reason": "operator_global_capability_denied",
+                "scope_checked": scope_checked,
+                **policy,
+            }
     if request.method.upper() not in {"GET", "HEAD", "OPTIONS"} and not provider.csrf_valid(
         request, operator_session
     ):
@@ -6123,4 +6209,7 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
     register_stakeholder_identity_resolution_routes(
         router, provider, run_in_threadpool, psycopg2
     )
+    from services.gateway.clickhouse_outbox_operator import create_clickhouse_outbox_router
+
+    router.include_router(create_clickhouse_outbox_router())
     return router

@@ -10,7 +10,7 @@ from services.events import cli
 
 def test_cleanup_cli_requires_enabled_policy_gate(monkeypatch):
     monkeypatch.delenv("KOKONUT_FEATURE_EVENT_RETENTION_CLEANUP", raising=False)
-    monkeypatch.setattr(sys, "argv", ["services.events", "--cleanup"])
+    monkeypatch.setattr(sys, "argv", ["services.events", "--cleanup", "--actor", "operator"])
 
     with pytest.raises(SystemExit) as exc_info:
         cli.main()
@@ -20,7 +20,7 @@ def test_cleanup_cli_requires_enabled_policy_gate(monkeypatch):
 
 def test_cleanup_cli_rejects_caller_supplied_window(monkeypatch):
     monkeypatch.setenv("KOKONUT_FEATURE_EVENT_RETENTION_CLEANUP", "true")
-    monkeypatch.setattr(sys, "argv", ["services.events", "--cleanup", "--days", "30"])
+    monkeypatch.setattr(sys, "argv", ["services.events", "--cleanup", "--days", "30", "--actor", "operator"])
     store_factory = MagicMock()
     monkeypatch.setattr("services.events.backend.get_event_store", store_factory)
 
@@ -33,7 +33,7 @@ def test_cleanup_cli_rejects_caller_supplied_window(monkeypatch):
 
 def test_disabled_cleanup_cli_stops_before_opening_event_store(monkeypatch, capsys):
     monkeypatch.delenv("KOKONUT_FEATURE_EVENT_RETENTION_CLEANUP", raising=False)
-    monkeypatch.setattr(sys, "argv", ["services.events", "--cleanup"])
+    monkeypatch.setattr(sys, "argv", ["services.events", "--cleanup", "--actor", "operator"])
     store_factory = MagicMock()
     monkeypatch.setattr("services.events.backend.get_event_store", store_factory)
 
@@ -58,3 +58,17 @@ def test_enabled_cleanup_cli_uses_the_approved_policy_and_records_actor(monkeypa
     assert exc_info.value.code == 0
     bus.cleanup_old_events.assert_called_once_with(actor="operator")
     bus.close.assert_called_once()
+
+
+def test_cleanup_cli_requires_explicit_actor_before_opening_event_store(monkeypatch, capsys):
+    monkeypatch.setenv("KOKONUT_FEATURE_EVENT_RETENTION_CLEANUP", "true")
+    monkeypatch.setattr(sys, "argv", ["services.events", "--cleanup"])
+    store_factory = MagicMock()
+    monkeypatch.setattr("services.events.backend.get_event_store", store_factory)
+
+    with pytest.raises(SystemExit) as exc_info:
+        cli.main()
+
+    assert exc_info.value.code == 2
+    assert "a non-empty --actor is required" in capsys.readouterr().err
+    store_factory.assert_not_called()

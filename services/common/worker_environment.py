@@ -301,6 +301,14 @@ def worker_subprocess_environment(
             and name not in allowed_provider_secrets
         ):
             continue
+        if name in {"KOKONUT_OPERATOR_AUTH_USER", "KOKONUT_OPERATOR_AUTH_PASSWORD"}:
+            if not isolated and "OPERATOR_AUTH" in allowed:
+                child_environment[name] = value
+            continue
+        if name == "KOKONUT_CLICKHOUSE_OUTBOX_OPERATOR_PASSWORD":
+            if not isolated and "CLICKHOUSE_OUTBOX_OPERATOR" in allowed:
+                child_environment[name] = value
+            continue
         match = _WORKER_SECRET_ENV.fullmatch(name)
         if match is None or match.group(1) in allowed:
             child_environment[name] = value

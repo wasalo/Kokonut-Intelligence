@@ -2,6 +2,7 @@
 
 import re
 from pathlib import Path
+from unittest.mock import MagicMock
 
 import psycopg2
 import pytest
@@ -77,3 +78,64 @@ def test_flow_metric_definitions_seeded():
         pytest.skip("metric_definition.category not present (migrations not applied)")
     finally:
         conn.close()
+
+
+def test_first_time_through_query_is_read_only_and_location_bound():
+    connection = MagicMock()
+    cursor = connection.cursor.return_value
+    cursor.fetchone.return_value = {"total": 2, "fty": 1}
+
+    result = compute_first_time_through_yield(
+        connection, "location-1", "2026-10-01", "2026-10-31"
+    )
+
+    query, params = cursor.execute.call_args.args
+    assert "WITH entity_loc AS" in query
+    assert "WHERE location_id = %(loc)s" in query
+    assert "farm_activity_source_eligible_for_use" in query
+    assert "LEFT JOIN rej r USING (entity_type, entity_id)" in query
+    assert not any(token in query.upper() for token in ("INSERT INTO", "UPDATE ", "DELETE FROM", "MERGE INTO"))
+    assert params == {"loc": "location-1", "ps": "2026-10-01", "pe": "2026-10-31"}
+    assert result["value"] == 50.0
+
+
+def test_governed_lead_time_query_is_read_only_and_location_bound():
+    connection = MagicMock()
+    cursor = connection.cursor.return_value
+    cursor.fetchone.return_value = {"avg_lead_days": 1.25, "n": 3}
+
+    result = compute_governed_lead_time(
+        connection, "location-1", "2026-10-01", "2026-10-31"
+    )
+
+    query, params = cursor.execute.call_args.args
+    assert "WITH entity_loc AS" in query
+    assert "WHERE location_id = %(loc)s" in query
+    assert "farm_activity_source_eligible_for_use" in query
+    assert not any(token in query.upper() for token in ("INSERT INTO", "UPDATE ", "DELETE FROM", "MERGE INTO"))
+    assert params == {"loc": "location-1", "ps": "2026-10-01", "pe": "2026-10-31"}
+    assert result["value"] == 1.25
+
+
+def test_rework_rate_query_is_read_only_and_location_bound():
+    connection = MagicMock()
+    cursor = connection.cursor.return_value
+    cursor.fetchone.return_value = {
+        "total": 2,
+        "reworked": 1,
+        "source_ids": ["source-1"],
+        "reworked_source_ids": ["source-1"],
+    }
+
+    result = compute_rework_rate(
+        connection, "location-1", "2026-10-01", "2026-10-31"
+    )
+
+    query, params = cursor.execute.call_args.args
+    assert "WITH entity_loc AS" in query
+    assert "WHERE location_id = %(loc)s" in query
+    assert "farm_activity_source_eligible_for_use" in query
+    assert not any(token in query.upper() for token in ("INSERT INTO", "UPDATE ", "DELETE FROM", "MERGE INTO"))
+    assert params == {"loc": "location-1", "ps": "2026-10-01", "pe": "2026-10-31"}
+    assert result["value"] == 50.0
+    assert result["source_record_ids"] == ["source-1"]

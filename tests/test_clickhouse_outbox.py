@@ -1,5 +1,7 @@
 import re
+import sys
 from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -418,3 +420,45 @@ def test_run_once_cli_accepts_empty_or_successful_batch(capsys):
 
     assert '"failed": 0' in capsys.readouterr().out
     run_once.assert_called_once_with("worker-cli", 100)
+
+
+@pytest.mark.parametrize(
+    "arguments",
+    [
+        ["--replay-dead-letter", "row-1"],
+        ["--dispose-dead-letter", "row-1"],
+    ],
+)
+def test_operator_transition_cli_fails_closed_before_connection(
+    monkeypatch, capsys, arguments
+):
+    monkeypatch.setattr(
+        clickhouse_outbox,
+        "get_connection",
+        lambda: pytest.fail("retired operator actions must fail before PostgreSQL opens"),
+    )
+    monkeypatch.setattr(sys, "argv", ["clickhouse-outbox", *arguments])
+
+    with pytest.raises(SystemExit) as exc_info:
+        clickhouse_outbox.main()
+
+    assert exc_info.value.code == 2
+    assert "authenticated Gateway operator" in capsys.readouterr().err
+
+
+def test_operator_transition_command_fails_closed_before_connection(monkeypatch):
+    monkeypatch.setattr(
+        clickhouse_outbox,
+        "get_connection",
+        lambda: pytest.fail("retired operator actions must fail before PostgreSQL opens"),
+    )
+
+    with pytest.raises(ValueError, match="authenticated Gateway operator"):
+        clickhouse_outbox.command(
+            SimpleNamespace(
+                replay_dead_letter="row-1",
+                dispose_dead_letter=None,
+                run_once=False,
+                limit=100,
+            )
+        )

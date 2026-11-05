@@ -39,7 +39,39 @@ external-client audit. RLS is unchanged
 ([migration](../../schemas/postgres/741_runtime_quality_grade_catalog_read_only.sql);
 [acceptance](builds/2026-11-01-recovery/quality-grade-runtime-boundary-741-disposable.json)).
 
-### Current C1 continuation — migrations 742–745 — 1 November 2026
+### Current C1 continuation — migration 746 — 3 November 2026
+
+Migration 746 moves ClickHouse outbox dead-letter administration behind
+OIDC-authenticated Gateway routes and separate global capabilities: read, replay,
+resolve, and discard. The operator-auth identity checks capabilities through a
+bounded function; the action connection uses a dedicated optional login and
+security-definer list/transition functions. The action login has no direct table
+access. Runtime retains outbox enqueue/read plus `updated_at`, but cannot change
+status or write operator audit. Legacy CLI mutation flags fail closed before
+opening a database connection. The dedicated credential is routed to the API
+child/bootstrap, not the general worker.
+
+The network-disabled migration-746 fixture verifies session binding, DBA-only
+grants/revocations, audit rows, bounded page limits/actions/reasons, denied
+direct writes, and runtime enqueue-only privileges. Standard recovery applied
+737 ordered schemas through 746 with matching API/worker snapshots, runtime-role
+bootstrap/reapplication, health, outage/stalled-child recovery, and clean
+shutdown. The latest native and ARM64/QEMU two-tenant probes remain through
+migration 745; migration 746 has not been applied to any persistent target. No
+live global capability was granted. See the [migration-746 disposable
+acceptance](builds/2026-11-03-recovery/clickhouse-outbox-operator-746-disposable.json)
+and [Standard recovery](builds/2026-11-03-recovery/standard-profile-recovery-746-disposable.json).
+
+The runtime SQL review ledger now has 0 legacy-unreviewed fingerprints and 33
+reviewed-unresolved source records; this is source classification, not ACL
+approval. Current static role attribution covers 4,968 SQL sites: 976 API
+candidates, 328 worker candidates, three shared candidates, and 3,661
+unresolved. It resolves 358 API route roots; 56 worker dynamic-dispatch edges
+remain. The Standard API and general worker still share `kokonut_runtime`, and
+C1 remains open for broader writer/caller attribution, tenant/RLS review,
+Directus/external consumers, populated-data parity, and persistent rollout.
+
+### Previous C1 continuation — migrations 742–745 — 1 November 2026
 
 Schema and callsite review treats `readiness_dimension` as a global curated
 catalog: migration 204 provides its global defaults, while per-location
@@ -217,7 +249,7 @@ Evidence: [focused tests and sensor ACL/behavior acceptance](builds/2026-11-01-r
 [source/ACL report](builds/2026-11-01-recovery/runtime-privilege-callsite-report-732.json).
 No candidate, legacy, or production database or role was changed.
 
-### Latest C1 continuation — reference-table boundaries, migrations 735–738 — 1 November 2026
+### Previous C1 continuation — reference-table boundaries, migrations 735–738 — 1 November 2026
 
 Migrations 735–737 preserve `kokonut_runtime` SELECT while removing table and
 residual column DML from `location_baseline`,
@@ -604,10 +636,11 @@ operation graph to every direct SQL site. It keeps `api_candidate`,
 `worker_candidate`, `shared_candidate`, and `unresolved` explicit, records
 default-on supervisor children separately from whether a persisted schedule or
 event is actually active, and documents the shared `PG_*` and worker-secret
-environment paths. Its current source snapshot covers 4,956 SQL sites: 34
-API-only candidates, 367 worker-only candidates, one site reached by both
-graphs, and 4,554 unresolved sites. It discovers 349 API route roots and 478
-statically reachable functions; four dynamic route factories remain unresolved.
+environment paths. The migration-723 source snapshot covered 4,956 SQL sites:
+34 API-only candidates, 367 worker-only candidates, one site reached by both
+graphs, and 4,554 unresolved sites. It discovered 349 API route roots and 478
+statically reachable functions; four dynamic route factories were unresolved
+in that dated snapshot.
 The worker graph has 50 roots, 368 reachable SQL sites, and 56 registered
 dynamic-dispatch edges. These are static candidates, not observed executions.
 The map does not establish mounted dynamic routes, live schedule state, complete
@@ -1142,22 +1175,130 @@ The detailed entries below are dated historical checkpoints through migration
 - [x] Reconcile the current native C1 inventories through migration 745: the
   ACL report records 202 unprotected DML relations without candidate SQL
   sites and 357 without candidate write sites. The separate runtime SQL
-  review ledger contains 27 legacy-unreviewed fingerprints and eight
-  entries in its reviewed-sites ledger. These are different units; source review is not ACL approval.
-  Refresh both records as operations are migrated ([ACL report](builds/2026-11-01-recovery/runtime-privilege-callsite-report-745.json);
+  review ledger contains 0 legacy-unreviewed fingerprints and 33
+  reviewed-unresolved source entries. These are different units; source review
+  is not ACL approval. Refresh both records as operations are migrated
+  ([ACL report](builds/2026-11-01-recovery/runtime-privilege-callsite-report-745.json);
   [SQL review ledger](runtime-sql-unresolved-write-review.json)).
 - [x] Add and refresh the deterministic API/general-worker attribution map.
-  The current snapshot covers 4,951 SQL sites: 975 API candidates, 329 worker
-  candidates, three shared candidates, and 3,644 unresolved. The original
-  baseline covered 4,967 before later source retirements. The map includes
-  Standard credential/default-child policy and explicit unresolved labels
-  ([inventory](runtime-role-attribution.json);
+  The current snapshot covers 4,968 SQL sites: 976 API candidates, 328 worker
+  candidates, three shared candidates, and 3,661 unresolved. The original
+  baseline covered 4,967 before later source retirements. The map records
+  Standard credential/default-child policy and separate OIDC/outbox route
+  identities; it reports 358 API route roots, 56 worker dynamic-dispatch edges,
+  and explicit unresolved labels ([inventory](runtime-role-attribution.json);
   [generator](../../scripts/runtime_role_attribution.py)). The inventory
   checker passes; this is static source evidence only.
-- [ ] Review the current 3,644 unattributed SQL sites, four dynamic Gateway
-  route registrations, 56 worker dynamic-dispatch edges, persisted schedule
-  activation, and external callers before defining any API/general-worker
-  grants. Static attribution is not proof of runtime activation.
+- [x] Reconcile stale source-line metadata in the legacy write ledger and make
+  the checker reject future metadata drift. Source-review
+  `graph_projection.query_graph` as a bounded recursive SELECT; its CTE remains
+  conservatively classified as `WITH` but moves to `reviewed_unresolved`. The
+  ledger now has 0 legacy-unreviewed and 33 reviewed entries; this is not ACL
+  approval ([tests](../../tests/test_runtime_sql_inventory.py);
+  [graph tests](../../tests/test_graph_projection.py)).
+- [x] Source-review the `value_stream` `wip_by_stage`, `stage_lead_times`, and
+   `first_time_through` CTEs as fixed-source, read-only summaries. Their scope
+   and parameters are pinned in service tests; the farm-activity eligibility helper
+   is STABLE. Omitted location remains explicit network aggregation, not tenant
+   isolation; these reviews do not authorize DML.
+- [x] Fix the velocity feedback trend’s missing `location_id` predicate; the
+   schema requires that column and first-party writers populate it. Tests pin the
+   location/period parameter order. The cycle-time and time-to-action CTEs are
+   also location-bound reads; all three remain source-reviewed SELECTs, not ACL
+   approval or a tenant-isolation claim.
+- [x] Source-review the process-control `_cycle_time_mean` and `_fty_pct` CTEs
+   as SELECT-only, bound by `entity_type`. They intentionally aggregate across
+   locations because these helpers expose no `location_id`; this is source
+   classification, not tenant isolation or ACL approval.
+- [x] Source-review the flow-metric CTEs in `compute_first_time_through_yield`,
+    `compute_governed_lead_time`, and `compute_rework_rate`. Each uses the fixed
+    `_ENTITY_LOC` SELECT/UNION fragment, bound location/period values, and the
+    STABLE farm-activity eligibility helper; focused tests assert no DML. The
+  rework metric returns location-scoped source IDs whose endpoint visibility
+  remains governed separately. This is not ACL or tenant-isolation approval.
+- [x] Resolve `governed_transition`'s dynamic table/status/id identifiers to the
+  allowlisted `financial_plan` table and fixed SQL. Invalid tables fail before
+  connection; only budget wrappers call it. The target is now known, but
+  runtime-role/tenant grants remain open; no privileges changed.
+- [x] Source-review the regional-cluster CTE after dropping unused neighbor
+   identifiers, names, and coordinates. It now returns only distance values for
+   the intentional network-neighbor analysis; that result is not tenant isolation
+   ([test](../../tests/test_revenue_multiplier_error_redaction.py)).
+- [x] Source-review `list_location_ecocredit_batches` as a read-only CTE after
+   signed `ecocredit:read` context, with bound location/limit and no wallet fields.
+   Tests cover location denial and no-store output; this does not prove
+   platform-wide tenant isolation ([test](../../tests/test_gateway_ecocredits.py)).
+- [x] Source-review `portfolio_theme_summary` as a verified/published claim
+   roll-up grouped by theme. It returns aggregate counts without row identifiers;
+   its network scope is intentional and is not tenant isolation or ACL approval
+   ([test](../../tests/test_portfolio.py)).
+- [x] Resolve the four literal local endpoint factories in
+  `services/gateway/governance_role_routes.py` in the API route-root inventory.
+  The report now records their local endpoint functions and zero unresolved
+  factory registrations. This does not prove those routes are mounted or
+   accepted for authorization/lifecycle parity.
+- [x] Fix the EBF trust-graph `public_safe` defect by filtering final connected
+  nodes; the regression test covers a public edge to a non-public node. This
+  enforces the explicit output flag but is not authorization or tenant isolation.
+  The SQL fingerprint is `reviewed_unresolved`; no ACL changed.
+- [x] Source-review the dynamic `enforce_retention_policies` soft-delete
+  candidate (`data_governance.py`, fingerprint
+  `4aca5b9e9e98337e9c9ba48c612a1b5e5d3bc5b39dec2c69a8f07e7feb0a2b3d`). The
+  function requires an active, non-overlapping, explicitly approved policy;
+  validates the identifier and required columns; applies only configured scope
+  columns; and excludes active legal holds. A focused unit test pins the
+  generated UPDATE and bound scope parameters; a separate migration-401/402
+  disposable run validates supporting policy and hold schema behavior
+  ([unit test](../../tests/test_data_governance.py);
+  [disposable evidence](builds/2026-11-02-recovery/data-retention-policy-disposable.json)).
+  The fingerprint is `reviewed_unresolved` for source semantics only; owner/ACL
+  approval remains open, and no grants or RLS changed.
+- [x] Harden the GIS importer’s lower-level `import_record` boundary so direct
+  callers cannot interpolate a table name outside `VALID_TARGETS`, even when
+  they bypass the CLI preflight. The two dynamic SQL fingerprints are now
+  `reviewed_unresolved` for source behavior; the scanner does not infer function
+  guards, and no grants or ACL approvals changed.
+- [x] Guard coordination `_insert` and `_insert_idempotent` with a fixed
+  12-table allowlist. Static tests assert first-party helper callsites use
+  literal targets; negative tests reject unlisted/non-string targets before
+  opening a connection. Both dynamic INSERT fingerprints are now
+  `reviewed_unresolved` for source behavior because the inventory does not infer
+  the helper guard; no grants or ACL approvals changed.
+- [x] Map the legacy event dead-letter CLI path: `services.events.cli` calls
+  `get_event_store()` without an injected connection, and `EventBus` then opens
+  `get_db()` for a CTE that updates `platform_event` and `event_dead_letter`.
+  The CLI now requires a non-empty `--actor` for replay and actor/reason for
+  disposal, but that actor is self-asserted rather than bound to OIDC. No
+  Gateway route or scheduled replay operation was found; this is not the
+  isolated dispatcher child. The CTE is now `reviewed_unresolved` for source
+  semantics only; actor authentication and ACL approval remain open, and no
+  grants changed.
+- [x] Source-review `EventBus.cleanup_old_events`: the feature flag is off by
+  default; execution requires one active, non-overlapping, explicitly approved
+  global hard-delete policy and a non-empty actor. The CTE excludes pending
+  dead-letter rows, failed deliveries, and active legal holds; tests pin these
+  guards and the 401/402 disposable check covers supporting schema only. No
+  cleanup invocation or deletion was accepted in this cohort.
+- [ ] Confirm the event-retention policy/jurisdiction owner and review the
+  manual cleanup identity before enabling `KOKONUT_FEATURE_EVENT_RETENTION_CLEANUP`.
+  Keep the feature disabled and the shared-writer ACL review open until then.
+- [ ] Obtain owner/operations decision for the legacy replay/disposal writer:
+  bind it to an authenticated operator or dedicate a reviewed maintenance
+  identity before narrowing its table privileges. Preserve explicit replay,
+  audit, and retry semantics; do not infer caller retirement from source absence.
+- [x] Retire direct ClickHouse outbox replay/disposition from the legacy CLI and
+  route manual actions through OIDC session checks plus separate DBA-provisioned
+  global capabilities. Migration 746 narrows shared-runtime outbox writes and
+  provides bounded, audited actions; disposable migration and Standard recovery
+  checks pass. No live capability has been granted.
+- [ ] Obtain owner/operations approval before granting a global outbox capability
+  to a production operator, and provision the optional dedicated action login
+  only after the complete ordered migration run. Disposable evidence does not
+  activate the feature on a persistent target.
+- [ ] Review the current 3,661 unattributed SQL sites, 56 worker
+  dynamic-dispatch edges, persisted schedule activation, and external callers
+  before defining any API/general-worker grants. Static attribution is not
+  proof of runtime activation.
 - [ ] Reconcile Directus field/row permissions, extension hooks, ORM/dynamic SQL,
   API keys, saved reports, and external consumers per candidate relation.
 - [x] Verify migration 690 and the `capex_breakdown` boundary on network-

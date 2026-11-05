@@ -429,13 +429,13 @@
         },
         {
           "source": "services/core/worker_progress.py",
-          "line": 248,
+          "line": 282,
           "target": "services.core.features",
           "kind": "from"
         },
         {
           "source": "services/core/worker_progress.py",
-          "line": 631,
+          "line": 665,
           "target": "services.common.database",
           "kind": "from"
         },
@@ -657,43 +657,43 @@
         },
         {
           "source": "services/events/cli.py",
-          "line": 597,
+          "line": 622,
           "target": "services.events.fork_detector",
           "kind": "from"
         },
         {
           "source": "services/events/cli.py",
-          "line": 605,
+          "line": 630,
           "target": "services.events.fork_detector",
           "kind": "from"
         },
         {
           "source": "services/events/cli.py",
-          "line": 617,
+          "line": 642,
           "target": "services.events.insight_transfer",
           "kind": "from"
         },
         {
           "source": "services/events/cli.py",
-          "line": 629,
+          "line": 654,
           "target": "services.events.insight_transfer",
           "kind": "from"
         },
         {
           "source": "services/events/cli.py",
-          "line": 638,
+          "line": 663,
           "target": "services.events.insight_transfer",
           "kind": "from"
         },
         {
           "source": "services/events/cli.py",
-          "line": 647,
+          "line": 672,
           "target": "services.events.insight_transfer",
           "kind": "from"
         },
         {
           "source": "services/events/cli.py",
-          "line": 658,
+          "line": 683,
           "target": "services.common.database",
           "kind": "from"
         },
@@ -4947,13 +4947,13 @@
         },
         {
           "source": "services/core/worker_progress.py",
-          "line": 248,
+          "line": 282,
           "target": "services.core.features",
           "kind": "from"
         },
         {
           "source": "services/core/worker_progress.py",
-          "line": 631,
+          "line": 665,
           "target": "services.common.database",
           "kind": "from"
         },
@@ -5214,13 +5214,13 @@
         },
         {
           "source": "services/core/worker_progress.py",
-          "line": 248,
+          "line": 282,
           "target": "services.core.features",
           "kind": "from"
         },
         {
           "source": "services/core/worker_progress.py",
-          "line": 631,
+          "line": 665,
           "target": "services.common.database",
           "kind": "from"
         },
@@ -6906,13 +6906,13 @@
         },
         {
           "source": "services/core/worker_progress.py",
-          "line": 248,
+          "line": 282,
           "target": "services.core.features",
           "kind": "from"
         },
         {
           "source": "services/core/worker_progress.py",
-          "line": 631,
+          "line": 665,
           "target": "services.common.database",
           "kind": "from"
         },
@@ -8125,13 +8125,13 @@
         },
         {
           "source": "services/core/worker_progress.py",
-          "line": 248,
+          "line": 282,
           "target": "services.core.features",
           "kind": "from"
         },
         {
           "source": "services/core/worker_progress.py",
-          "line": 631,
+          "line": 665,
           "target": "services.common.database",
           "kind": "from"
         },
@@ -8326,13 +8326,13 @@
         },
         {
           "source": "services/core/worker_progress.py",
-          "line": 248,
+          "line": 282,
           "target": "services.core.features",
           "kind": "from"
         },
         {
           "source": "services/core/worker_progress.py",
-          "line": 631,
+          "line": 665,
           "target": "services.common.database",
           "kind": "from"
         },
@@ -11979,13 +11979,13 @@
         },
         {
           "source": "services/core/worker_progress.py",
-          "line": 248,
+          "line": 282,
           "target": "services.core.features",
           "kind": "from"
         },
         {
           "source": "services/core/worker_progress.py",
-          "line": 631,
+          "line": 665,
           "target": "services.common.database",
           "kind": "from"
         },
@@ -12212,13 +12212,13 @@
         },
         {
           "source": "services/core/worker_progress.py",
-          "line": 248,
+          "line": 282,
           "target": "services.core.features",
           "kind": "from"
         },
         {
           "source": "services/core/worker_progress.py",
-          "line": 631,
+          "line": 665,
           "target": "services.common.database",
           "kind": "from"
         },
@@ -12517,13 +12517,13 @@
         },
         {
           "source": "services/core/worker_progress.py",
-          "line": 248,
+          "line": 282,
           "target": "services.core.features",
           "kind": "from"
         },
         {
           "source": "services/core/worker_progress.py",
-          "line": 631,
+          "line": 665,
           "target": "services.common.database",
           "kind": "from"
         },

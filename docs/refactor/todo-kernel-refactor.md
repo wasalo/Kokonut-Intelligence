@@ -5095,3 +5095,26 @@ deployed, and 36 prepared across 67 rows.
   745: 736/736 schemas, 47 checks passed, zero failures/pending, cleanup
   complete. QEMU does not establish physical Raspberry Pi acceptance
   ([evidence](builds/2026-11-01-recovery/arm64-qemu-current-schema-745-operator-probe.json)).
+
+### Current C1 continuation — migration 746 and operator outbox boundary — 3 November 2026
+
+Migration 746 moves manual ClickHouse outbox dead-letter actions from the shared
+CLI connection to OIDC-authenticated Gateway routes with separate global
+capabilities and a dedicated optional action login. Runtime retains enqueue/read
+and `updated_at` only; the legacy mutating CLI flags fail closed. Network-disabled
+PostgreSQL acceptance covers grants/revocations, session binding, bounded
+replay/resolve/discard actions, audit, and denial of direct writes. Standard
+recovery passed all 737 schemas through 746, including runtime-role
+bootstrap/reapplication and outage/stalled-child recovery. No live capabilities
+were granted and no candidate, legacy, or production database was changed.
+
+The runtime SQL review ledger has 0 legacy-unreviewed and 33
+reviewed-unresolved source records. Static role attribution covers 4,968 SQL
+sites (976 API, 328 worker, 3 shared, 3,661 unresolved), 358 API route roots,
+and 56 worker dynamic-dispatch edges. The native source/ACL report remains
+through migration 745 at 906 public-schema tables with effective runtime DML
+while RLS is disabled. C1 remains open; next review the 3,661 unattributed sites
+and external callers without inferring privilege revocations from source absence.
+See [migration-746 acceptance](builds/2026-11-03-recovery/clickhouse-outbox-operator-746-disposable.json),
+[Standard recovery](builds/2026-11-03-recovery/standard-profile-recovery-746-disposable.json),
+and the [C1 closure plan](c1-runtime-acl-closure-plan.md).

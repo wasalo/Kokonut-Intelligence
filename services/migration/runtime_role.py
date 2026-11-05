@@ -105,6 +105,16 @@ _CLICKHOUSE_OUTBOX_WORKER_FUNCTIONS = (
     "kokonut_security.claim_clickhouse_outbox_batch(text,integer)",
     "kokonut_security.finish_clickhouse_outbox_delivery(uuid,text,uuid,boolean,text,integer,boolean)",
 )
+_CLICKHOUSE_OUTBOX_OPERATOR_FUNCTIONS = (
+    "kokonut_security.list_clickhouse_outbox_operator_dead_letters(text,integer)",
+    "kokonut_security.transition_clickhouse_outbox_operator_dead_letter(text,uuid,text,text)",
+)
+_OPERATOR_GLOBAL_CAPABILITY_FUNCTION = "kokonut_security.operator_global_capability_allows(text,text)"
+_CLICKHOUSE_OUTBOX_OPERATOR_SESSION_FUNCTION = "kokonut_security.resolve_clickhouse_outbox_operator_session(text)"
+_OPERATOR_GLOBAL_CAPABILITY_ADMIN_FUNCTIONS = (
+    "kokonut_security.grant_operator_global_capability(uuid,text,text,text)",
+    "kokonut_security.revoke_operator_global_capability(uuid,text,text)",
+)
 _REPORT_SNAPSHOT_EXPORT_RUNTIME_FUNCTIONS = (
     "kokonut_security.request_report_snapshot_export(uuid,uuid,uuid)",
     "kokonut_security.list_report_snapshot_exports(uuid,integer)",
@@ -236,6 +246,10 @@ _SECURITY_DEFINER_OWNERS = (
     *((function, "kokonut_baal_indexer_owner") for function in _BAAL_INDEXER_FUNCTIONS),
     *((function, "kokonut_freshness_owner") for function in _FRESHNESS_WORKER_FUNCTIONS),
     *((function, "kokonut_clickhouse_outbox_owner") for function in _CLICKHOUSE_OUTBOX_WORKER_FUNCTIONS),
+    (_CLICKHOUSE_OUTBOX_OPERATOR_SESSION_FUNCTION, "kokonut_clickhouse_outbox_operator_owner"),
+    *((function, "kokonut_clickhouse_outbox_operator_owner") for function in _CLICKHOUSE_OUTBOX_OPERATOR_FUNCTIONS),
+    (_OPERATOR_GLOBAL_CAPABILITY_FUNCTION, "kokonut_operator_capability_owner"),
+    *((function, "kokonut_operator_capability_owner") for function in _OPERATOR_GLOBAL_CAPABILITY_ADMIN_FUNCTIONS),
     *((function, "kokonut_report_snapshot_export_owner") for function in _REPORT_SNAPSHOT_EXPORT_FUNCTIONS),
     *((function, "kokonut_metric_value_manager") for function in _METRIC_VALUE_KERNEL_FUNCTIONS),
     *((function, "kokonut_governance_action_owner") for function in _GOVERNANCE_TENSION_ACTION_FUNCTIONS),
@@ -269,6 +283,10 @@ _PRIVATE_RUNTIME_FUNCTIONS = (
     *_BAAL_INDEXER_FUNCTIONS,
     *_FRESHNESS_WORKER_FUNCTIONS,
     *_CLICKHOUSE_OUTBOX_WORKER_FUNCTIONS,
+    _CLICKHOUSE_OUTBOX_OPERATOR_SESSION_FUNCTION,
+    *_CLICKHOUSE_OUTBOX_OPERATOR_FUNCTIONS,
+    _OPERATOR_GLOBAL_CAPABILITY_FUNCTION,
+    *_OPERATOR_GLOBAL_CAPABILITY_ADMIN_FUNCTIONS,
     *_REPORT_SNAPSHOT_EXPORT_FUNCTIONS,
     *_METRIC_VALUE_KERNEL_FUNCTIONS,
     *_GOVERNANCE_TENSION_ACTION_FUNCTIONS,
@@ -1609,6 +1627,44 @@ def _verify_solution_experiment_protocol_boundary(cur, role_name: str) -> None:
         raise RuntimeError(f"{role_name} retains direct solution_experiment protocol privileges")
 
 
+def _apply_clickhouse_outbox_runtime_write_boundary(cur, runtime_ident, runtime_user):
+    cur.execute(
+        sql.SQL(
+            "REVOKE UPDATE, DELETE, TRUNCATE, REFERENCES, TRIGGER "
+            "ON TABLE public.clickhouse_outbox FROM {}"
+        ).format(runtime_ident)
+    )
+    cur.execute(
+        "SELECT attname FROM pg_catalog.pg_attribute "
+        "WHERE attrelid = 'public.clickhouse_outbox'::regclass "
+        "AND attnum > 0 AND NOT attisdropped"
+    )
+    for (column_name,) in cur.fetchall():
+        cur.execute(
+            sql.SQL("REVOKE UPDATE ({}) ON TABLE public.clickhouse_outbox FROM {}").format(
+                sql.Identifier(column_name), runtime_ident
+            )
+        )
+    cur.execute(
+        sql.SQL("GRANT UPDATE (updated_at) ON TABLE public.clickhouse_outbox TO {}").format(runtime_ident)
+    )
+    cur.execute(
+        sql.SQL(
+            "REVOKE INSERT, UPDATE, DELETE, TRUNCATE, REFERENCES, TRIGGER "
+            "ON TABLE public.clickhouse_outbox_operator_audit FROM {}"
+        ).format(runtime_ident)
+    )
+    cur.execute(
+        "SELECT has_table_privilege(%s, 'public.clickhouse_outbox', 'UPDATE'), "
+        "has_column_privilege(%s, 'public.clickhouse_outbox', 'updated_at', 'UPDATE'), "
+        "has_table_privilege(%s, 'public.clickhouse_outbox_operator_audit', 'INSERT')",
+        (runtime_user, runtime_user, runtime_user),
+    )
+    table_update, updated_at_update, audit_insert = cur.fetchone()
+    if table_update or not updated_at_update or audit_insert:
+        raise RuntimeError("runtime role exceeds the ClickHouse outbox enqueue-only privilege boundary")
+
+
 def provision_runtime_role(
     conn,
     *,
@@ -1635,6 +1691,7 @@ def provision_runtime_role(
     freshness_password: str | None = None,
     clickhouse_outbox_user: str | None = None,
     clickhouse_outbox_password: str | None = None,
+    clickhouse_outbox_operator_password: str | None = None,
     report_snapshot_export_user: str | None = None,
     report_snapshot_export_password: str | None = None,
     notification_delivery_user: str | None = None,
@@ -1737,6 +1794,10 @@ def provision_runtime_role(
         if clickhouse_outbox_user is not None
         else None
     )
+    clickhouse_outbox_operator_ident = _role_identifier(
+        "kokonut_clickhouse_outbox_operator_login",
+        "clickhouse_outbox_operator_user",
+    )
     report_snapshot_export_ident = (
         _role_identifier(report_snapshot_export_user, "report_snapshot_export_user")
         if report_snapshot_export_user is not None
@@ -1766,7 +1827,7 @@ def provision_runtime_role(
         if rate_limit_maintenance_user is not None
         else None
     )
-    role_names = [admin_user, runtime_user, operator_auth_user]
+    role_names = [admin_user, runtime_user, operator_auth_user, "kokonut_clickhouse_outbox_operator_login"]
     if notification_enqueue_user is not None:
         role_names.append(notification_enqueue_user)
     if market_data_user is not None:
@@ -1813,6 +1874,10 @@ def provision_runtime_role(
         raise ValueError("application logins must differ from the freshness function owner")
     if "kokonut_clickhouse_outbox_owner" in role_names:
         raise ValueError("application logins must differ from the ClickHouse outbox function owner")
+    if "kokonut_clickhouse_outbox_operator_owner" in role_names:
+        raise ValueError("application logins must differ from the ClickHouse outbox operator function owner")
+    if "kokonut_operator_capability_owner" in role_names:
+        raise ValueError("application logins must differ from the operator capability function owner")
     if "kokonut_report_snapshot_export_owner" in role_names:
         raise ValueError("application logins must differ from the report snapshot export function owner")
     if "kokonut_metric_value_manager" in role_names:
@@ -1869,6 +1934,8 @@ def provision_runtime_role(
         credential_pairs.append(("freshness_password", freshness_password))
     if clickhouse_outbox_password is not None:
         credential_pairs.append(("clickhouse_outbox_password", clickhouse_outbox_password))
+    if clickhouse_outbox_operator_password is not None:
+        credential_pairs.append(("clickhouse_outbox_operator_password", clickhouse_outbox_operator_password))
     if report_snapshot_export_password is not None:
         credential_pairs.append(("report_snapshot_export_password", report_snapshot_export_password))
     if notification_delivery_password is not None:
@@ -1903,6 +1970,8 @@ def provision_runtime_role(
         passwords.append(freshness_password)
     if clickhouse_outbox_password is not None:
         passwords.append(clickhouse_outbox_password)
+    if clickhouse_outbox_operator_password is not None:
+        passwords.append(clickhouse_outbox_operator_password)
     if report_snapshot_export_password is not None:
         passwords.append(report_snapshot_export_password)
     if notification_delivery_password is not None:
@@ -2062,6 +2131,66 @@ def provision_runtime_role(
                 raise RuntimeError(
                     "migration 646 ClickHouse outbox functions must be applied before provisioning its dedicated login"
                 )
+        clickhouse_outbox_operator_role_name = "kokonut_clickhouse_outbox_operator_login"
+        cur.execute(
+            "SELECT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = %s)",
+            (clickhouse_outbox_operator_role_name,),
+        )
+        clickhouse_outbox_operator_role_exists = cur.fetchone()[0]
+        if clickhouse_outbox_operator_password is not None and not clickhouse_outbox_operator_role_exists:
+            raise RuntimeError("migration 746 must be applied before provisioning the outbox operator login")
+        if clickhouse_outbox_operator_role_exists:
+            if clickhouse_outbox_operator_password is not None:
+                _ensure_login_role(
+                    cur,
+                    name=clickhouse_outbox_operator_role_name,
+                    identifier=clickhouse_outbox_operator_ident,
+                    password=clickhouse_outbox_operator_password,
+                )
+            else:
+                cur.execute(
+                    sql.SQL("ALTER ROLE {} NOLOGIN PASSWORD NULL").format(clickhouse_outbox_operator_ident)
+                )
+            _remove_role_memberships(
+                cur,
+                role_name=clickhouse_outbox_operator_role_name,
+                identifier=clickhouse_outbox_operator_ident,
+            )
+            for object_kind in ("TABLES", "SEQUENCES"):
+                for schema in ("public", "kokonut_security"):
+                    cur.execute(
+                        sql.SQL("REVOKE ALL ON ALL {} IN SCHEMA {} FROM {}").format(
+                            sql.SQL(object_kind),
+                            sql.Identifier(schema),
+                            clickhouse_outbox_operator_ident,
+                        )
+                    )
+            for schema in ("public", "kokonut_security"):
+                cur.execute(
+                    sql.SQL("REVOKE ALL ON ALL FUNCTIONS IN SCHEMA {} FROM {}").format(
+                        sql.Identifier(schema),
+                        clickhouse_outbox_operator_ident,
+                    )
+                )
+                cur.execute(
+                    sql.SQL("REVOKE CREATE ON SCHEMA {} FROM {}").format(
+                        sql.Identifier(schema),
+                        clickhouse_outbox_operator_ident,
+                    )
+                )
+            if clickhouse_outbox_operator_password is not None:
+                cur.execute(
+                    sql.SQL("GRANT USAGE ON SCHEMA kokonut_security TO {}").format(
+                        clickhouse_outbox_operator_ident
+                    )
+                )
+                for function in _CLICKHOUSE_OUTBOX_OPERATOR_FUNCTIONS:
+                    cur.execute(
+                        sql.SQL("GRANT EXECUTE ON FUNCTION {} TO {}").format(
+                            sql.SQL(function),
+                            clickhouse_outbox_operator_ident,
+                        )
+                    )
         if report_snapshot_export_user is not None:
             cur.execute(
                 "SELECT " + ", ".join("to_regprocedure(%s)" for _ in _REPORT_SNAPSHOT_EXPORT_WORKER_FUNCTIONS),
@@ -2940,6 +3069,15 @@ def provision_runtime_role(
             cur.execute(sql.SQL("REVOKE ALL ON FUNCTION {} FROM PUBLIC").format(sql.SQL(function)))
             cur.execute(sql.SQL("REVOKE ALL ON FUNCTION {} FROM {}").format(sql.SQL(function), runtime_ident))
             cur.execute(sql.SQL("GRANT EXECUTE ON FUNCTION {} TO {}").format(sql.SQL(function), auth_ident))
+        cur.execute(
+            sql.SQL("REVOKE ALL ON FUNCTION {} FROM PUBLIC").format(sql.SQL(_OPERATOR_GLOBAL_CAPABILITY_FUNCTION))
+        )
+        cur.execute(
+            sql.SQL("REVOKE ALL ON FUNCTION {} FROM {}").format(sql.SQL(_OPERATOR_GLOBAL_CAPABILITY_FUNCTION), runtime_ident)
+        )
+        cur.execute(
+            sql.SQL("GRANT EXECUTE ON FUNCTION {} TO {}").format(sql.SQL(_OPERATOR_GLOBAL_CAPABILITY_FUNCTION), auth_ident)
+        )
 
         _verify_role_attributes(cur, runtime_user)
         _verify_role_attributes(cur, operator_auth_user)
@@ -3620,6 +3758,14 @@ def provision_runtime_role(
                 clickhouse_outbox_user,
                 _CLICKHOUSE_OUTBOX_WORKER_FUNCTIONS,
                 "ClickHouse outbox worker",
+                runtime_user,
+            )
+        if clickhouse_outbox_operator_password is not None:
+            _verify_bounded_indexer_login(
+                cur,
+                "kokonut_clickhouse_outbox_operator_login",
+                _CLICKHOUSE_OUTBOX_OPERATOR_FUNCTIONS,
+                "ClickHouse outbox operator",
                 runtime_user,
             )
         if report_snapshot_export_user is not None:

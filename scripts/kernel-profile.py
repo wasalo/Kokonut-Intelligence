@@ -124,10 +124,11 @@ def main() -> None:
         )
     if args.profile == "scale":
         parser.error("Scale is not implemented: shared rate limits and replica recovery acceptance are pending")
-    if args.action in {"database-up", "migrate", "bootstrap-runtime-role"} and args.profile != "standard":
-        parser.error(f"--action {args.action} applies only to standard")
     if args.separate_workers and args.profile != "analytics":
         parser.error("--separate-workers applies only to analytics; standard already separates roles")
+    role_separated = args.profile == "standard" or args.separate_workers
+    if args.action in {"database-up", "migrate", "bootstrap-runtime-role"} and not role_separated:
+        parser.error(f"--action {args.action} applies only to standard or analytics with --separate-workers")
     if args.edge and args.profile != "standard":
         parser.error("--edge applies only to standard; use the edge profile for a standalone Edge deployment")
     if args.oidc and "proxy" not in selected_optional and not args.zitadel and args.profile != "standard":
@@ -137,9 +138,7 @@ def main() -> None:
     if args.separate_workers:
         files.append("docker-compose.kernel-standard.yml")
     files.extend(PROFILES[args.profile])
-    if args.profile == "standard":
-        # Standard has separate app/worker logins. The overlay requires their
-        # credentials and supplies a separate post-migration bootstrap action.
+    if role_separated:
         files.append("docker-compose.kernel-runtime-role.yml")
     if args.edge:
         # Add the Edge limits and local-media provider to the API app after
@@ -227,7 +226,7 @@ def main() -> None:
     for filename in files:
         command.extend(["-f", str(ROOT / filename)])
     if args.action == "database-up":
-        command.extend(["up", "-d", "database"])
+        command.extend(["up", "-d", "--wait", "--wait-timeout", "300", "database"])
     elif args.action == "migrate":
         migration_command = [
             "python3", "-m", "services.migration", "migrate", "--schemas-only",

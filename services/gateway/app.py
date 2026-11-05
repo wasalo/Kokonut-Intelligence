@@ -302,9 +302,18 @@ def create_app(*, rate_limiter: RateLimitBackend | None = None):
                 headers={"Retry-After": "30"},
             )
         if not auth_result.get("authenticated"):
-            denial_status = 403 if auth_result.get("reason") in {
-                "api_key_scope_denied", "csrf_validation_failed", "operator_scope_denied",
-            } else 401
+            denial_reason = auth_result.get("reason")
+            if denial_reason == "operator_global_capability_unavailable":
+                denial_status = 503
+            elif denial_reason in {
+                "api_key_scope_denied",
+                "csrf_validation_failed",
+                "operator_scope_denied",
+                "operator_global_capability_denied",
+            }:
+                denial_status = 403
+            else:
+                denial_status = 401
             await run_in_threadpool(
                 audit.log,
                 caller=auth_result.get("caller", caller),
@@ -415,12 +424,13 @@ def create_app(*, rate_limiter: RateLimitBackend | None = None):
 
     @app.middleware("http")
     async def private_report_export_headers(request: Request, call_next):
-        """Keep export API success, denial, validation, and error responses private."""
+        """Keep export and ClickHouse outbox responses private."""
         response = await call_next(request)
         if (
             request.url.path == "/operator/api/report-export-snapshots"
             or request.url.path == "/operator/api/report-exports"
             or request.url.path.startswith("/operator/api/report-exports/")
+            or request.url.path.startswith("/operator/api/clickhouse-outbox/")
         ):
             response.headers["Cache-Control"] = "no-store"
             response.headers["Pragma"] = "no-cache"
@@ -436,6 +446,12 @@ def create_app(*, rate_limiter: RateLimitBackend | None = None):
 
     @app.exception_handler(RequestValidationError)
     async def request_validation_error(request: Request, exc: RequestValidationError):
+        if request.url.path.startswith("/operator/api/clickhouse-outbox/"):
+            return JSONResponse(
+                status_code=422,
+                content={"error": "ClickHouse outbox request is invalid"},
+                headers={"Cache-Control": "no-store", "Vary": "Cookie"},
+            )
         if request.url.path == "/api/data-stream/post":
             return JSONResponse(
                 status_code=422,

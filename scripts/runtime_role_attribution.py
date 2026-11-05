@@ -44,12 +44,17 @@ class _RouteRootCollector(ast.NodeVisitor):
         self.source = source
         self.scope: list[str] = []
         self.functions: set[str] = set()
+        self.function_nodes: dict[str, ast.FunctionDef | ast.AsyncFunctionDef] = {}
         self.decorated_roots: set[tuple[str, int]] = set()
-        self.registrations: list[tuple[str, int, ast.AST | None, tuple[str, ...]]] = []
+        self.literal_loop_bindings: list[dict[str, tuple[str, ...]]] = []
+        self.registrations: list[
+            tuple[str, int, ast.AST | None, tuple[str, ...], dict[str, tuple[str, ...]]]
+        ] = []
 
     def visit_FunctionDef(self, node: ast.FunctionDef) -> None:
         qualname = ".".join([*self.scope, node.name])
         self.functions.add(qualname)
+        self.function_nodes[qualname] = node
         if any(self._is_route_decorator(decorator) for decorator in node.decorator_list):
             self.decorated_roots.add((qualname, node.lineno))
         self.scope.append(node.name)
@@ -66,6 +71,125 @@ class _RouteRootCollector(ast.NodeVisitor):
             and target.attr.lower() in _HTTP_ROUTE_METHODS
         )
 
+    @staticmethod
+    def _literal_loop_bindings(
+        target: ast.AST, iterable: ast.AST
+    ) -> dict[str, tuple[str, ...]]:
+        if not isinstance(iterable, (ast.Tuple, ast.List)):
+            return {}
+        if isinstance(target, ast.Name):
+            names = [target.id]
+            rows = [[value] for value in iterable.elts]
+        elif isinstance(target, (ast.Tuple, ast.List)) and all(
+            isinstance(item, ast.Name) for item in target.elts
+        ):
+            names = [item.id for item in target.elts]
+            rows = []
+            for value in iterable.elts:
+                if not isinstance(value, (ast.Tuple, ast.List)) or len(value.elts) != len(names):
+                    return {}
+                rows.append(value.elts)
+        else:
+            return {}
+        if not rows:
+            return {}
+        values_by_name: dict[str, set[str]] = {name: set() for name in names}
+        for row in rows:
+            for name, value in zip(names, row):
+                if not isinstance(value, ast.Constant) or not isinstance(value.value, str):
+                    return {}
+                values_by_name[name].add(value.value)
+        return {name: tuple(sorted(values)) for name, values in values_by_name.items()}
+
+    def visit_For(self, node: ast.For) -> None:
+        self.literal_loop_bindings.append(
+            self._literal_loop_bindings(node.target, node.iter)
+        )
+        try:
+            self.generic_visit(node)
+        finally:
+            self.literal_loop_bindings.pop()
+
+    def _active_literal_loop_bindings(self) -> dict[str, tuple[str, ...]]:
+        bindings = {}
+        for scope_bindings in self.literal_loop_bindings:
+            bindings.update(scope_bindings)
+        return bindings
+
+    @staticmethod
+    def _is_literal_factory_argument(
+        argument: ast.AST, loop_bindings: dict[str, tuple[str, ...]]
+    ) -> bool:
+        return (
+            isinstance(argument, ast.Constant) and isinstance(argument.value, str)
+        ) or (isinstance(argument, ast.Name) and bool(loop_bindings.get(argument.id)))
+
+    @staticmethod
+    def _returned_local_endpoint(
+        factory: ast.FunctionDef,
+    ) -> str | None:
+        nested_functions = {
+            statement.name
+            for statement in factory.body
+            if isinstance(statement, (ast.FunctionDef, ast.AsyncFunctionDef))
+            and not statement.decorator_list
+        }
+        returned_names = []
+        for statement in factory.body:
+            if isinstance(statement, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                continue
+            if (
+                isinstance(statement, ast.Expr)
+                and isinstance(statement.value, ast.Constant)
+                and isinstance(statement.value.value, str)
+            ):
+                continue
+            if isinstance(statement, ast.Return) and isinstance(statement.value, ast.Name):
+                returned_names.append(statement.value.id)
+                continue
+            return None
+        if len(returned_names) == 1 and returned_names[0] in nested_functions:
+            return returned_names[0]
+        return None
+
+    def _resolve_local_factory_endpoint(
+        self,
+        endpoint: ast.Call,
+        scope: tuple[str, ...],
+        loop_bindings: dict[str, tuple[str, ...]],
+    ) -> str | None:
+        if not isinstance(endpoint.func, ast.Name):
+            return None
+        if not all(
+            self._is_literal_factory_argument(argument, loop_bindings)
+            for argument in endpoint.args
+        ):
+            return None
+        if any(
+            keyword.arg is None
+            or not self._is_literal_factory_argument(keyword.value, loop_bindings)
+            for keyword in endpoint.keywords
+        ):
+            return None
+
+        factory_qualname = None
+        for depth in range(len(scope), -1, -1):
+            candidate = ".".join([*scope[:depth], endpoint.func.id])
+            factory = self.function_nodes.get(candidate)
+            if factory is not None:
+                factory_qualname = candidate
+                break
+        if factory_qualname is None:
+            return None
+        factory = self.function_nodes[factory_qualname]
+        if not isinstance(factory, ast.FunctionDef) or factory.decorator_list:
+            return None
+        endpoint_name = self._returned_local_endpoint(factory)
+        if endpoint_name is None:
+            return None
+        endpoint_qualname = f"{factory_qualname}.{endpoint_name}"
+        return endpoint_qualname if endpoint_qualname in self.functions else None
+
     def visit_Call(self, node: ast.Call) -> None:
         function = node.func
         if isinstance(function, ast.Attribute) and function.attr == "add_api_route":
@@ -73,7 +197,15 @@ class _RouteRootCollector(ast.NodeVisitor):
                 (keyword.value for keyword in node.keywords if keyword.arg == "endpoint"),
                 None,
             )
-            self.registrations.append((self.source, node.lineno, endpoint, tuple(self.scope)))
+            self.registrations.append(
+                (
+                    self.source,
+                    node.lineno,
+                    endpoint,
+                    tuple(self.scope),
+                    self._active_literal_loop_bindings(),
+                )
+            )
         self.generic_visit(node)
 
     def roots(self) -> tuple[list[dict], list[dict]]:
@@ -83,7 +215,7 @@ class _RouteRootCollector(ast.NodeVisitor):
             roots[key] = {"function": key, "source": self.source, "line": line}
 
         unresolved = []
-        for source, line, endpoint, scope in self.registrations:
+        for source, line, endpoint, scope, loop_bindings in self.registrations:
             qualname = None
             if isinstance(endpoint, ast.Name):
                 for depth in range(len(scope), -1, -1):
@@ -92,15 +224,17 @@ class _RouteRootCollector(ast.NodeVisitor):
                         qualname = candidate
                         break
             elif isinstance(endpoint, ast.Attribute) and isinstance(endpoint.value, ast.Name):
-                # ``self.handler`` or a module-local router object is not
-                # enough to resolve the endpoint target safely.
                 unresolved.append(
                     {"source": source, "line": line, "status": "dynamic_endpoint_reference"}
                 )
             elif isinstance(endpoint, ast.Call):
-                unresolved.append(
-                    {"source": source, "line": line, "status": "dynamic_endpoint_factory"}
+                qualname = self._resolve_local_factory_endpoint(
+                    endpoint, scope, loop_bindings
                 )
+                if qualname is None:
+                    unresolved.append(
+                        {"source": source, "line": line, "status": "dynamic_endpoint_factory"}
+                    )
             else:
                 unresolved.append(
                     {"source": source, "line": line, "status": "dynamic_endpoint_reference"}
@@ -362,6 +496,10 @@ def _standard_role_contract() -> dict:
     features_path = ROOT / "services/core/features.py"
     readiness_path = ROOT / "services/core/schema_readiness.py"
     worker_environment_path = ROOT / "services/common/worker_environment.py"
+    runtime_path = ROOT / "services/core/runtime.py"
+    operator_auth_path = ROOT / "services/gateway/operator_auth.py"
+    outbox_operator_path = ROOT / "services/gateway/clickhouse_outbox_operator.py"
+    runtime_role_path = ROOT / "services/migration/runtime_role.py"
     features_source = features_path.read_text(encoding="utf-8")
     standard_compose = (ROOT / "docker-compose.kernel-standard.yml").read_text(encoding="utf-8")
 
@@ -405,9 +543,32 @@ def _standard_role_contract() -> dict:
             "started_by_default": True,
             "database_login": "kokonut_runtime via PG_USER/PG_PASSWORD from docker-compose.kernel-runtime-role.yml",
             "startup_check": "generic non-owner/non-privileged current_user==session_user; no API-role identity assertion",
-            "credential_scope": "shared runtime login; worker-specific KOKONUT_* secrets are removed from the API child environment",
+            "credential_scope": "shared runtime login for domain-service connections; OIDC session/capability and ClickHouse outbox actions use separate dedicated database credentials listed below",
             "notification_provider_environment": "ALERT_WEBHOOK_URL is cleared after deriving a non-secret configured flag; ALERT_SMTP_USER/PASSWORD are explicitly blanked; non-secret SMTP routing fields may remain",
         },
+        "api_route_specific_database_identities": [
+            {
+                "database_login": "kokonut_operator_auth",
+                "source": "services.gateway.operator_auth._get_operator_auth_db",
+                "credential_environment_variables": [
+                    "KOKONUT_OPERATOR_AUTH_USER",
+                    "KOKONUT_OPERATOR_AUTH_PASSWORD",
+                ],
+                "purpose": "OIDC session operations and global capability checks through bounded functions; location-scope reads still use the shared runtime connection",
+                "child_environment": "explicit operator_auth allowlist on the API child only",
+                "direct_table_access": False,
+            },
+            {
+                "database_login": "kokonut_clickhouse_outbox_operator_login",
+                "source": "services.gateway.clickhouse_outbox_operator._operator_action_connection",
+                "credential_environment_variable": "KOKONUT_CLICKHOUSE_OUTBOX_OPERATOR_PASSWORD",
+                "route_prefix": "/operator/api/clickhouse-outbox/dead-letters",
+                "purpose": "global-capability-gated dead-letter reads and transitions through bounded functions",
+                "child_environment": "explicit clickhouse_outbox_operator allowlist on the API child only",
+                "direct_table_access": False,
+                "activation": "credential is optional and absent by default; runtime-role bootstrap enables the login only when configured",
+            },
+        ],
         "standard_general_worker": {
             "process": "services.core.runtime --workers-only supervisor",
             "database_login": "kokonut_runtime via PG_USER/PG_PASSWORD from docker-compose.kernel-standard.yml and docker-compose.kernel-runtime-role.yml",
@@ -456,11 +617,25 @@ def _standard_role_contract() -> dict:
             "docker-compose.kernel-runtime-role.yml",
             "services/core/features.py",
             "services/core/schema_readiness.py",
+            "services/core/runtime.py",
             "services/common/worker_environment.py",
+            "services/gateway/operator_auth.py",
+            "services/gateway/clickhouse_outbox_operator.py",
+            "services/migration/runtime_role.py",
         ],
         "source_digests_sha256": {
             path.relative_to(ROOT).as_posix(): hashlib.sha256(path.read_bytes()).hexdigest()
-            for path in (standard_path, role_path, features_path, readiness_path, worker_environment_path)
+            for path in (
+                standard_path,
+                role_path,
+                features_path,
+                readiness_path,
+                worker_environment_path,
+                runtime_path,
+                operator_auth_path,
+                outbox_operator_path,
+                runtime_role_path,
+            )
         },
     }
 

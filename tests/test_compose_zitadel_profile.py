@@ -20,6 +20,8 @@ FILES = (
 TEST_ENV = {
     "PATH": os.environ["PATH"],
     "POSTGRES_PASSWORD": "compose-test-only-postgres",
+    "KOKONUT_RUNTIME_USER": "kokonut_runtime",
+    "KOKONUT_RUNTIME_PASSWORD": "compose-test-only-runtime-password",
     "MOBILE_MEDIA_LOCAL_KEY": "compose-test-only-local-media-key",
     "KOKONUT_OPERATOR_AUTH_PASSWORD": "compose-test-only-auth-password",
     "KOKONUT_OPERATOR_OIDC_ISSUER": "https://zitadel.example.test:9443",

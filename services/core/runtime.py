@@ -207,10 +207,11 @@ def run(port: int = 8099, with_workers: bool = False, shutdown_seconds: float = 
                     "isolated_worker_key": "notification_delivery",
                 }
             elif name == "api":
-                # The Gateway still uses the Standard application's shared
-                # runtime login. Preserve PG_* for this child while the
-                # environment helper removes unrelated worker DSNs/secrets.
-                environment_options = {"allowed_worker_keys": ()}
+                # The Gateway uses the shared runtime login plus dedicated OIDC
+                # and ClickHouse outbox operator credentials.
+                environment_options = {
+                    "allowed_worker_keys": ("operator_auth", "clickhouse_outbox_operator")
+                }
             elif name == "scheduler":
                 environment_options = {
                     "allowed_worker_keys": (

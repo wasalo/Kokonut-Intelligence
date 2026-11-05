@@ -6,8 +6,8 @@
     "operation_roots": 49,
     "source_files": 148,
     "operations_without_resolved_entry_functions": 0,
-    "function_memberships": 1155,
-    "direct_call_edges": 1658,
+    "function_memberships": 1152,
+    "direct_call_edges": 1654,
     "callback_edges": 1,
     "dynamic_dispatch_edges": 56
   },
@@ -535,7 +535,7 @@
           "qualname": "pulse_worker_progress",
           "class_scope": null,
           "source": "services/core/worker_progress.py",
-          "line": 221
+          "line": 255
         },
         {
           "key": "services.events.backend:get_event_store",
@@ -607,7 +607,7 @@
           "qualname": "_get_conn",
           "class_scope": null,
           "source": "services/events/cli.py",
-          "line": 657
+          "line": 682
         },
         {
           "key": "services.events.cli:_preflight_fork_location",
@@ -647,7 +647,7 @@
           "qualname": "cmd_add_rule",
           "class_scope": null,
           "source": "services/events/cli.py",
-          "line": 646
+          "line": 671
         },
         {
           "key": "services.events.cli:cmd_cleanup",
@@ -679,7 +679,7 @@
           "qualname": "cmd_fork_opportunities",
           "class_scope": null,
           "source": "services/events/cli.py",
-          "line": 596
+          "line": 621
         },
         {
           "key": "services.events.cli:cmd_isolated_event_worker",
@@ -767,7 +767,7 @@
           "qualname": "cmd_pending_transfers",
           "class_scope": null,
           "source": "services/events/cli.py",
-          "line": 628
+          "line": 653
         },
         {
           "key": "services.events.cli:cmd_process",
@@ -783,7 +783,7 @@
           "qualname": "cmd_process_event",
           "class_scope": null,
           "source": "services/events/cli.py",
-          "line": 614
+          "line": 639
         },
         {
           "key": "services.events.cli:cmd_propose_fork",
@@ -791,7 +791,7 @@
           "qualname": "cmd_propose_fork",
           "class_scope": null,
           "source": "services/events/cli.py",
-          "line": 604
+          "line": 629
         },
         {
           "key": "services.events.cli:cmd_replay_dead_letter",
@@ -807,7 +807,7 @@
           "qualname": "cmd_resolve_transfer",
           "class_scope": null,
           "source": "services/events/cli.py",
-          "line": 637
+          "line": 662
         },
         {
           "key": "services.events.cli:cmd_stats",
@@ -1173,7 +1173,7 @@
           "caller": "services.core.worker_progress:pulse_worker_progress",
           "callee": "services.core.worker_progress:WorkerProgressHeartbeat.pulse",
           "source": "services/core/worker_progress.py",
-          "line": 232
+          "line": 266
         },
         {
           "caller": "services.events.bus:EventBus._get_conn",
@@ -1215,7 +1215,7 @@
           "caller": "services.events.cli:_get_conn",
           "callee": "services.common.database:get_db",
           "source": "services/events/cli.py",
-          "line": 660
+          "line": 685
         },
         {
           "caller": "services.events.cli:_run_worker",
@@ -1323,19 +1323,19 @@
           "caller": "services.events.cli:cmd_add_rule",
           "callee": "services.common.cli:print_json",
           "source": "services/events/cli.py",
-          "line": 653
+          "line": 678
         },
         {
           "caller": "services.events.cli:cmd_add_rule",
           "callee": "services.events.cli:_get_conn",
           "source": "services/events/cli.py",
-          "line": 649
+          "line": 674
         },
         {
           "caller": "services.events.cli:cmd_add_rule",
           "callee": "services.events.insight_transfer:InsightTransferEngine.add_rule",
           "source": "services/events/cli.py",
-          "line": 650
+          "line": 675
         },
         {
           "caller": "services.events.cli:cmd_cleanup",
@@ -1389,19 +1389,19 @@
           "caller": "services.events.cli:cmd_fork_opportunities",
           "callee": "services.common.cli:print_json",
           "source": "services/events/cli.py",
-          "line": 600
+          "line": 625
         },
         {
           "caller": "services.events.cli:cmd_fork_opportunities",
           "callee": "services.events.cli:_get_conn",
           "source": "services/events/cli.py",
-          "line": 599
+          "line": 624
         },
         {
           "caller": "services.events.cli:cmd_fork_opportunities",
           "callee": "services.events.fork_detector:detect_fork_opportunities",
           "source": "services/events/cli.py",
-          "line": 599
+          "line": 624
         },
         {
           "caller": "services.events.cli:cmd_isolated_event_worker",
@@ -1527,19 +1527,19 @@
           "caller": "services.events.cli:cmd_pending_transfers",
           "callee": "services.common.cli:print_json",
           "source": "services/events/cli.py",
-          "line": 633
+          "line": 658
         },
         {
           "caller": "services.events.cli:cmd_pending_transfers",
           "callee": "services.events.cli:_get_conn",
           "source": "services/events/cli.py",
-          "line": 631
+          "line": 656
         },
         {
           "caller": "services.events.cli:cmd_pending_transfers",
           "callee": "services.events.insight_transfer:InsightTransferEngine.get_pending_transfers",
           "source": "services/events/cli.py",
-          "line": 632
+          "line": 657
         },
         {
           "caller": "services.events.cli:cmd_process",
@@ -1587,37 +1587,37 @@
           "caller": "services.events.cli:cmd_process_event",
           "callee": "services.common.cli:print_json",
           "source": "services/events/cli.py",
-          "line": 624
+          "line": 649
         },
         {
           "caller": "services.events.cli:cmd_process_event",
           "callee": "services.events.cli:_get_conn",
           "source": "services/events/cli.py",
-          "line": 619
+          "line": 644
         },
         {
           "caller": "services.events.cli:cmd_process_event",
           "callee": "services.events.insight_transfer:InsightTransferEngine.process_event",
           "source": "services/events/cli.py",
-          "line": 621
+          "line": 646
         },
         {
           "caller": "services.events.cli:cmd_propose_fork",
           "callee": "services.common.cli:print_json",
           "source": "services/events/cli.py",
-          "line": 610
+          "line": 635
         },
         {
           "caller": "services.events.cli:cmd_propose_fork",
           "callee": "services.events.cli:_get_conn",
           "source": "services/events/cli.py",
-          "line": 608
+          "line": 633
         },
         {
           "caller": "services.events.cli:cmd_propose_fork",
           "callee": "services.events.fork_detector:propose_fork_opportunities",
           "source": "services/events/cli.py",
-          "line": 607
+          "line": 632
         },
         {
           "caller": "services.events.cli:cmd_replay_dead_letter",
@@ -1641,19 +1641,19 @@
           "caller": "services.events.cli:cmd_resolve_transfer",
           "callee": "services.common.cli:print_json",
           "source": "services/events/cli.py",
-          "line": 642
+          "line": 667
         },
         {
           "caller": "services.events.cli:cmd_resolve_transfer",
           "callee": "services.events.cli:_get_conn",
           "source": "services/events/cli.py",
-          "line": 640
+          "line": 665
         },
         {
           "caller": "services.events.cli:cmd_resolve_transfer",
           "callee": "services.events.insight_transfer:InsightTransferEngine.resolve_transfer",
           "source": "services/events/cli.py",
-          "line": 641
+          "line": 666
         },
         {
           "caller": "services.events.cli:cmd_stats",
@@ -1683,151 +1683,151 @@
           "caller": "services.events.cli:main",
           "callee": "services.events.cli:_preflight_fork_location",
           "source": "services/events/cli.py",
-          "line": 570
+          "line": 595
         },
         {
           "caller": "services.events.cli:main",
           "callee": "services.events.cli:_preflight_fork_location",
           "source": "services/events/cli.py",
-          "line": 573
+          "line": 598
         },
         {
           "caller": "services.events.cli:main",
           "callee": "services.events.cli:cmd_add_rule",
           "source": "services/events/cli.py",
-          "line": 588
+          "line": 613
         },
         {
           "caller": "services.events.cli:main",
           "callee": "services.events.cli:cmd_cleanup",
           "source": "services/events/cli.py",
-          "line": 539
+          "line": 564
         },
         {
           "caller": "services.events.cli:main",
           "callee": "services.events.cli:cmd_dispose_dead_letter",
           "source": "services/events/cli.py",
-          "line": 551
+          "line": 576
         },
         {
           "caller": "services.events.cli:main",
           "callee": "services.events.cli:cmd_event_worker",
           "source": "services/events/cli.py",
-          "line": 529
+          "line": 554
         },
         {
           "caller": "services.events.cli:main",
           "callee": "services.events.cli:cmd_fork_opportunities",
           "source": "services/events/cli.py",
-          "line": 571
+          "line": 596
         },
         {
           "caller": "services.events.cli:main",
           "callee": "services.events.cli:cmd_isolated_event_worker",
           "source": "services/events/cli.py",
-          "line": 531
+          "line": 556
         },
         {
           "caller": "services.events.cli:main",
           "callee": "services.events.cli:cmd_isolated_notification_worker",
           "source": "services/events/cli.py",
-          "line": 535
+          "line": 560
         },
         {
           "caller": "services.events.cli:main",
           "callee": "services.events.cli:cmd_list_dead_letter",
           "source": "services/events/cli.py",
-          "line": 543
+          "line": 568
         },
         {
           "caller": "services.events.cli:main",
           "callee": "services.events.cli:cmd_list_handlers",
           "source": "services/events/cli.py",
-          "line": 541
+          "line": 566
         },
         {
           "caller": "services.events.cli:main",
           "callee": "services.events.cli:cmd_notification_dispose_dead_letter",
           "source": "services/events/cli.py",
-          "line": 568
+          "line": 593
         },
         {
           "caller": "services.events.cli:main",
           "callee": "services.events.cli:cmd_notification_list_dead_letter",
           "source": "services/events/cli.py",
-          "line": 557
+          "line": 582
         },
         {
           "caller": "services.events.cli:main",
           "callee": "services.events.cli:cmd_notification_process",
           "source": "services/events/cli.py",
-          "line": 553
+          "line": 578
         },
         {
           "caller": "services.events.cli:main",
           "callee": "services.events.cli:cmd_notification_replay_dead_letter",
           "source": "services/events/cli.py",
-          "line": 561
+          "line": 586
         },
         {
           "caller": "services.events.cli:main",
           "callee": "services.events.cli:cmd_notification_stats",
           "source": "services/events/cli.py",
-          "line": 555
+          "line": 580
         },
         {
           "caller": "services.events.cli:main",
           "callee": "services.events.cli:cmd_notification_worker",
           "source": "services/events/cli.py",
-          "line": 533
+          "line": 558
         },
         {
           "caller": "services.events.cli:main",
           "callee": "services.events.cli:cmd_pending_transfers",
           "source": "services/events/cli.py",
-          "line": 580
+          "line": 605
         },
         {
           "caller": "services.events.cli:main",
           "callee": "services.events.cli:cmd_process",
           "source": "services/events/cli.py",
-          "line": 525
+          "line": 550
         },
         {
           "caller": "services.events.cli:main",
           "callee": "services.events.cli:cmd_process_event",
           "source": "services/events/cli.py",
-          "line": 578
+          "line": 603
         },
         {
           "caller": "services.events.cli:main",
           "callee": "services.events.cli:cmd_propose_fork",
           "source": "services/events/cli.py",
-          "line": 574
+          "line": 599
         },
         {
           "caller": "services.events.cli:main",
           "callee": "services.events.cli:cmd_replay_dead_letter",
           "source": "services/events/cli.py",
-          "line": 547
+          "line": 572
         },
         {
           "caller": "services.events.cli:main",
           "callee": "services.events.cli:cmd_resolve_transfer",
           "source": "services/events/cli.py",
-          "line": 584
+          "line": 609
         },
         {
           "caller": "services.events.cli:main",
           "callee": "services.events.cli:cmd_stats",
           "source": "services/events/cli.py",
-          "line": 537
+          "line": 562
         },
         {
           "caller": "services.events.cli:main",
           "callee": "services.events.cli:cmd_worker",
           "source": "services/events/cli.py",
-          "line": 527
+          "line": 552
         },
         {
           "caller": "services.events.dispatch_worker:IsolatedEventBus._claim",
@@ -3212,7 +3212,7 @@
         {
           "function": "services.ingestion.clickhouse_outbox:main",
           "source": "services/ingestion/clickhouse_outbox.py",
-          "line": 392
+          "line": 345
         }
       ],
       "reachable_functions": [
@@ -3313,14 +3313,6 @@
           "line": 62
         },
         {
-          "key": "services.ingestion.clickhouse_outbox:_operator_transition",
-          "module": "services.ingestion.clickhouse_outbox",
-          "qualname": "_operator_transition",
-          "class_scope": null,
-          "source": "services/ingestion/clickhouse_outbox.py",
-          "line": 275
-        },
-        {
           "key": "services.ingestion.clickhouse_outbox:_retry_delay_seconds",
           "module": "services.ingestion.clickhouse_outbox",
           "qualname": "_retry_delay_seconds",
@@ -3342,7 +3334,7 @@
           "qualname": "command",
           "class_scope": null,
           "source": "services/ingestion/clickhouse_outbox.py",
-          "line": 349
+          "line": 296
         },
         {
           "key": "services.ingestion.clickhouse_outbox:deliver_batch",
@@ -3361,20 +3353,12 @@
           "line": 156
         },
         {
-          "key": "services.ingestion.clickhouse_outbox:dispose_dead_letter",
-          "module": "services.ingestion.clickhouse_outbox",
-          "qualname": "dispose_dead_letter",
-          "class_scope": null,
-          "source": "services/ingestion/clickhouse_outbox.py",
-          "line": 321
-        },
-        {
           "key": "services.ingestion.clickhouse_outbox:list_dead_letters",
           "module": "services.ingestion.clickhouse_outbox",
           "qualname": "list_dead_letters",
           "class_scope": null,
           "source": "services/ingestion/clickhouse_outbox.py",
-          "line": 328
+          "line": 275
         },
         {
           "key": "services.ingestion.clickhouse_outbox:main",
@@ -3382,7 +3366,7 @@
           "qualname": "main",
           "class_scope": null,
           "source": "services/ingestion/clickhouse_outbox.py",
-          "line": 373
+          "line": 318
         },
         {
           "key": "services.ingestion.clickhouse_outbox:reconcile_pending",
@@ -3391,14 +3375,6 @@
           "class_scope": null,
           "source": "services/ingestion/clickhouse_outbox.py",
           "line": 260
-        },
-        {
-          "key": "services.ingestion.clickhouse_outbox:replay_dead_letter",
-          "module": "services.ingestion.clickhouse_outbox",
-          "qualname": "replay_dead_letter",
-          "class_scope": null,
-          "source": "services/ingestion/clickhouse_outbox.py",
-          "line": 316
         },
         {
           "key": "services.ingestion.clickhouse_outbox_worker:_claim",
@@ -3466,43 +3442,31 @@
           "caller": "services.ingestion.clickhouse_outbox:command",
           "callee": "services.common.cli:get_connection",
           "source": "services/ingestion/clickhouse_outbox.py",
-          "line": 357
+          "line": 308
         },
         {
           "caller": "services.ingestion.clickhouse_outbox:command",
           "callee": "services.common.cli:print_json",
           "source": "services/ingestion/clickhouse_outbox.py",
-          "line": 366
+          "line": 313
         },
         {
           "caller": "services.ingestion.clickhouse_outbox:command",
           "callee": "services.ingestion.clickhouse_outbox:deliver_batch",
           "source": "services/ingestion/clickhouse_outbox.py",
-          "line": 353
-        },
-        {
-          "caller": "services.ingestion.clickhouse_outbox:command",
-          "callee": "services.ingestion.clickhouse_outbox:dispose_dead_letter",
-          "source": "services/ingestion/clickhouse_outbox.py",
-          "line": 361
+          "line": 304
         },
         {
           "caller": "services.ingestion.clickhouse_outbox:command",
           "callee": "services.ingestion.clickhouse_outbox:list_dead_letters",
           "source": "services/ingestion/clickhouse_outbox.py",
-          "line": 363
+          "line": 310
         },
         {
           "caller": "services.ingestion.clickhouse_outbox:command",
           "callee": "services.ingestion.clickhouse_outbox:reconcile_pending",
           "source": "services/ingestion/clickhouse_outbox.py",
-          "line": 365
-        },
-        {
-          "caller": "services.ingestion.clickhouse_outbox:command",
-          "callee": "services.ingestion.clickhouse_outbox:replay_dead_letter",
-          "source": "services/ingestion/clickhouse_outbox.py",
-          "line": 359
+          "line": 312
         },
         {
           "caller": "services.ingestion.clickhouse_outbox:deliver_batch",
@@ -3541,22 +3505,10 @@
           "line": 168
         },
         {
-          "caller": "services.ingestion.clickhouse_outbox:dispose_dead_letter",
-          "callee": "services.ingestion.clickhouse_outbox:_operator_transition",
-          "source": "services/ingestion/clickhouse_outbox.py",
-          "line": 325
-        },
-        {
           "caller": "services.ingestion.clickhouse_outbox:main",
           "callee": "services.common.cli:run",
           "source": "services/ingestion/clickhouse_outbox.py",
-          "line": 388
-        },
-        {
-          "caller": "services.ingestion.clickhouse_outbox:replay_dead_letter",
-          "callee": "services.ingestion.clickhouse_outbox:_operator_transition",
-          "source": "services/ingestion/clickhouse_outbox.py",
-          "line": 318
+          "line": 341
         },
         {
           "caller": "services.ingestion.clickhouse_outbox_worker:run_once",
@@ -3600,7 +3552,7 @@
           "caller": "services.ingestion.clickhouse_outbox:main",
           "callee": "services.ingestion.clickhouse_outbox:command",
           "source": "services/ingestion/clickhouse_outbox.py",
-          "line": 388,
+          "line": 341,
           "dispatch": "services_common_cli_run_callback"
         }
       ],
@@ -16502,7 +16454,7 @@
           "qualname": "pulse_worker_progress",
           "class_scope": null,
           "source": "services/core/worker_progress.py",
-          "line": 221
+          "line": 255
         },
         {
           "key": "services.events.dispatch_worker:IsolatedEventBus._claim",
@@ -16586,7 +16538,7 @@
           "caller": "services.core.worker_progress:pulse_worker_progress",
           "callee": "services.core.worker_progress:WorkerProgressHeartbeat.pulse",
           "source": "services/core/worker_progress.py",
-          "line": 232
+          "line": 266
         },
         {
           "caller": "services.events.dispatch_worker:IsolatedEventBus._claim",

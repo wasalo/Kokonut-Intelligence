@@ -11570,9 +11570,11 @@ processed or failed work. Handler errors and timeouts remain failures. A focused
 regression function passed by direct invocation, along with Python compilation
 and `git diff --check`; the standard pytest command could not start because
 `pytest` is not installed in the host Python environment. No migration or
-database state changed. The concurrent takeover evidence above predates this
-reporting correction; rerunning it with the updated CLI remains optional
-confirmation. Batch 2 and CAP-040 remain partial.
+database state changed.
+
+The concurrent takeover evidence above predates this reporting correction;
+rerunning it with the updated CLI remains optional confirmation. Batch 2 and
+CAP-040 remain partial.
 
 ### Batch 2 crash-after-effect recovery — 11 October 2026
 
@@ -26525,6 +26527,332 @@ total); the active TODO has 836 checked / 39 open (875 total). Capability
 classifications remain 24 baseline-retained, 7 deployed, and 36 prepared
 across 67 rows.
 
+### Source landing cohort — 2 November 2026
+
+The `analytics --separate-workers` planner composition now includes the
+runtime-role overlay and supports explicit database-up, migration, and
+post-migration runtime-role bootstrap actions. Standard-only profiles and
+analytics without split workers continue to reject those actions. Planner tests
+cover native and ARM64 overlay ordering and all three lifecycle actions.
+
+A literal recount of `batches.md` checkboxes confirms 2,264 complete / 43 open
+(2,307 total); the current-state guide summary is corrected. The dated
+migration-745 entry above remains unchanged as historical ledger content.
+
+Worker source closure, function reachability, SQL inventory/reachability, and
+boundary-preflight records were regenerated after checking their deltas. The
+worker graph, SQL hashes/relations, and scope classifications were unchanged;
+only source line references moved. The report-generator helper-scope inventory
+also regenerated with unchanged query/scope counts and semantics.
+
+Verification: 103 `tests/test_kernel_profile.py` tests passed; Ruff check,
+capability-matrix validation, migration-source validation, runtime/worker
+inventory checks, dependency-group/provider-boundary checks, and `ci-check.sh
+--source-only` (73 checks) passed. The successful source-only run used
+`KOKONUT_ENV_SECRETS_NOT_REQUIRED=true` and `NODE_ENV=development` so it did not
+decrypt SOPS secrets. Full database bootstrap, hosted PR CI/Security, candidate
+rollout, and production acceptance remain separate gates; no database or
+deployment target was changed by this cohort.
+
+### Worker inventory reconciliation — 2 November 2026
+
+The worker-operation map and generated reports now match the checked-out source:
+31 scheduled modules and 49 operation roots; 146 files in the import closure;
+1,155 function memberships; 440 SQL sites (351 literal, 89 composed/variable);
+332 sites with a static operation path and 108 without; 51 effect candidates
+across 81 operation/site memberships; and 21 JobSpec templates across 31
+allowlisted modules (8 default-argument and 13 runtime-input contracts). The
+operation-map prose distinguishes these current source counts from dated review
+snapshots. The two legacy JobSpec templates `anomaly_legacy` and
+`freshness_legacy` are absent from the current catalog; persisted rows and
+external schedules remain operator-review work.
+
+The refreshed inventory exposed a fixed owner-organization `SELECT` in
+`services/core/jobs.py`, the read-only global worker-progress health probe,
+two baseline-worker calls to bounded functions from migration 729, and the
+anomaly worker's per-sensor replay call to migration 731. Their callers and
+contracts were reviewed; unknown SQL templates remain conservatively
+classified, and no SQL, ACL, role, or migration changes were made. The additional
+heartbeat filesystem matches correspond to the existing private heartbeat and
+temporary-file lifecycle.
+
+Focused verification passed: 20 worker SQL/JobSpec tests, 14 report-helper
+inventory tests, 20 worker-operation-map/JobSpec tests, 68 worker-progress,
+owner-scope fan-out, and sensor-baseline tests; Ruff and all refreshed inventory
+checks passed. No candidate, legacy, or production database was touched.
+
+### C1 Gateway route-root attribution — 2 November 2026
+
+The API route-root collector now resolves local endpoint factories only when
+factory calls use string literals or values bound by a literal string loop and
+the factory returns one local nested endpoint. The four governance-definition
+registrations are now represented as roots; the attribution report records 354
+API route roots, 1,103 statically reachable functions, and zero unresolved route
+registrations. SQL attribution is unchanged at 975 API candidates, 329 worker
+candidates, three shared candidates, and 3,644 unresolved sites. Synthetic and
+source regressions keep arbitrary factories unresolved. This is static source
+mapping, not proof that routes are mounted, authorized, or externally unused; no
+SQL, ACL, role, or migration changes were made.
+
+### Authenticated farm workflow source checks — 2 November 2026
+
+The focused source selection for operator authentication, ZITADEL Compose
+contracts, tenant context, farm-activity intake/lifecycle/routes, mobile API,
+and mobile vault passed 270 tests. The mobile offline-shell and vault Node
+selections passed 12 tests. These use synthetic/mocked provider and service
+contracts; they do not establish browser login against a running ZITADEL,
+end-to-end Collector sync against PostgreSQL, candidate restore/recovery, or
+populated farm-data parity. No containers or database targets were changed.
+
+### Standard disposable recovery rerun — 2 November 2026
+
+The Standard recovery harness passed against a unique portless, network-internal
+Compose project using generated synthetic credentials. It applied 736 ordered
+schemas through migration 745 (snapshot SHA-256
+`a09aa7b8dc2b271fa6f489f54da4e82a78beee3a0a176d69a600f264d4e96e0f`), verified
+role bootstrap/reapplication and the declared read-only boundaries, observed
+API/worker/proxy health, database-outage and stalled-child recovery, and clean
+shutdown with zero active leases. Cleanup verification found zero project
+containers, volumes, or networks. The source revision was `672c8b2d` with a
+dirty worktree, so this remains disposable evidence rather than a clean
+committed-head PR gate, candidate rollout, or production acceptance. No
+candidate, legacy, or production database/role was changed.
+Evidence: [Standard recovery rerun](builds/2026-11-02-recovery/standard-profile-recovery-745-disposable.json).
+
+### Local ZITADEL startup smoke — 2 November 2026
+
+A unique `kokonut-refactor-oidc-b639a7a2` Compose project used synthetic
+test-only credentials, a separate identity database, unique local image tags,
+and loopback HTTPS ports. The Gateway, worker, Caddy, ZITADEL API/Login, and
+their databases reached healthy state; a TLS-verified request using the Caddy
+root CA and an explicit local hostname resolution returned ZITADEL discovery
+with issuer `https://zitadel.localhost:63314`. No OIDC client/account was
+provisioned and no browser login or Collector workflow was completed.
+
+`agent-browser` and Chrome were installed as requested, but macOS Chrome rejected
+the ephemeral Caddy CA (`ERR_CERT_AUTHORITY_INVALID`). The browser skill supports
+local browser CA trust only on Linux; no TLS bypass was used. A keychain trust
+attempt timed out and no trust entry remained. The project containers and
+network were stopped; six synthetic volumes and the scratchpad-only test
+configuration/CA remain for resumption after a human-approved local CA trust
+step. No candidate, legacy, or production state was touched. Evidence:
+[local ZITADEL startup smoke](builds/2026-11-02-recovery/zitadel-local-startup-smoke.json).
+
+### Farm-activity disposable rerun — 2 November 2026
+
+A fresh, no-volume PostgreSQL 16 container applied migrations 359 and 404 and
+passed all 13 synthetic farm-activity operation checks, including
+location/task/cross-tenant denial, independent review, append-only audit, and
+Directus/runtime ledger boundaries. The record is from source revision
+`672c8b2d` with a dirty worktree; it is disposable database evidence only and
+does not establish browser/OIDC, Field Collector sync, candidate rollout, or
+full C1 closure. No candidate, legacy, or production state was touched. Evidence:
+[Gateway farm-activity operations](builds/2026-11-02-recovery/gateway-farm-activity-operations-disposable.json).
+
+### Standard database readiness and ZITADEL retry — 2 November 2026
+
+The first synthetic ZITADEL-profile migration attempt ran immediately after
+`database-up` returned and failed with `psql` exit 2 before a
+`schema_migration` ledger existed. The disposable database was healthy but had
+not completed initialization when the migration command started. The planner's
+`database-up` action now emits `up -d --wait --wait-timeout 300 database`; the
+updated tests pin this readiness gate. Retrying in the same isolated project
+applied the ordered schema chain successfully (736 applied, zero failed) and
+completed the explicit runtime-role bootstrap. The provider containers then
+passed Compose health checks and the OIDC discovery document was verified over
+HTTPS with the local Caddy CA. Browser login remains blocked on macOS trust for
+that ephemeral CA; no TLS bypass or production secrets were used. Containers
+and networks are stopped, with six synthetic volumes preserved for resumption.
+This is disposable evidence, not browser/OIDC acceptance or candidate rollout.
+
+### Retention enforcement source review — 2 November 2026
+
+Source review of `enforce_retention_policies` confirmed its direct dynamic
+UPDATE is available only behind `KOKONUT_FEATURE_DATA_RETENTION_ENFORCEMENT`,
+requires an active explicitly approved owner policy, rejects overlapping
+policies, validates the public-table identifier/columns, requires configured
+scope columns, and excludes active legal holds. A focused unit test now pins
+the generated soft-delete SQL and bound parameters; all nine retention-sweep
+tests pass. The internal-only PostgreSQL checker applied migrations 401/402
+and passed its legal-hold/scope acceptance. The corresponding fingerprint
+remains `preexisting_unreviewed` pending owner/ACL review; no grants, RLS, or
+production state changed
+([disposable evidence](builds/2026-11-02-recovery/data-retention-policy-disposable.json)).
+
+### GIS importer target-boundary hardening — 2 November 2026
+
+`import_record` now rejects non-string or non-allowlisted `target` values before
+opening a cursor, so internal callers cannot bypass the CLI’s
+`location`/`farm`/`plot` allowlist. A regression test verifies an injected
+identifier opens no database connection. The 79-test GIS/runtime-SQL group
+passes; the runtime SQL inventory and 27-entry legacy ledger validate. Both GIS
+UPDATE fingerprints remain `preexisting_unreviewed` because static SQL analysis
+does not infer the helper guard. No grants, RLS, or database state changed.
+
+### Coordination insert-table source hardening — 2 November 2026
+
+The shared coordination `_insert` and `_insert_idempotent` helpers now accept
+only the twelve first-party coordination table names. An AST regression asserts
+all first-party helper callsites use literal allowlisted targets, and six
+negative cases prove invalid/non-string targets fail before database access.
+The coordination suites pass (12 passed, 2 database-dependent skips); runtime
+SQL inventory and the 27-entry legacy/8-entry reviewed ledger pass with both
+dynamic INSERT fingerprints still `preexisting_unreviewed`. No ACL grants or
+RLS policies changed.
+
+### Event dead-letter replay CLI caller map — 2 November 2026
+
+The legacy `--replay-dead-letter` CLI path goes through
+`services.events.backend.get_event_store()` to `EventBus.replay_dead_letter`,
+which uses the default `get_db()` connection and a CTE that updates both
+`platform_event` and `event_dead_letter`. The CLI now requires an explicit
+non-empty actor for replay and actor/reason for disposal; the actor is still
+self-asserted, not OIDC-bound. No Gateway route or scheduled replay operation
+was found, but external operator use remains unassessed. The CTE fingerprint
+stays `preexisting_unreviewed`; no grants or migrations changed. The event,
+CLI, scheduler-contract, and fork-preflight selection passed 207 tests.
+
+### ClickHouse outbox operator CLI preflight — 2 November 2026
+
+The manual outbox replay/disposition CLI now rejects missing actor/reason (and
+missing disposition) before opening its shared `get_connection()` path. Tests
+verify fail-fast behavior and that explicit actor/reason are bound through the
+existing parameterized CTE. The outbox writer remains a C1 source/identity
+review item because this CLI is separate from the isolated delivery worker and
+still uses the caller environment; no database grants or migrations changed.
+The outbox and scheduler-contract selection passed 200 tests.
+
+### Runtime SQL ledger metadata and graph CTE review — 2 November 2026
+
+The source SQL ledger now rejects stale source/line/scope metadata for legacy
+fingerprints; six old line references were reconciled without changing their
+fingerprints. A bounded `graph_projection.query_graph` recursive CTE was
+reviewed as read-only and moved to `reviewed_unresolved`, with its conservative
+`WITH` classification retained. The ledger now has 26 legacy-unreviewed and 9
+reviewed entries; this source review is not ACL approval. The runtime SQL and
+graph projection test selection passed 49 tests, and the ledger checker passes.
+
+### Event/outbox CTE source-review reconciliation — 2 November 2026
+
+The EventBus replay and ClickHouse outbox operator-transition CTEs have now
+received source-semantic reviews and moved from `legacy_unreviewed` to
+`reviewed_unresolved`. The SQL ledger now records 24 legacy-unreviewed and 11
+reviewed sites. Event replay still uses a self-asserted actor with no reason;
+the outbox CLI still uses the shared connection path. These are not owner/ACL
+approvals, and no grants, RLS, or migrations changed. The focused event/CLI
+selection passed 53 tests and the outbox/scheduler selection passed 200 tests.
+
+### Mobile tenant-preflight CTE review — 2 November 2026
+
+Source review confirmed `_preflight_execution_identity` and
+`_runtime_role_preflight` are catalog-only, parameterized SELECT CTEs in the
+separate direct read-only preflight path. Tests now assert both query shapes
+contain no DML; existing tests cover role-switch, privilege, and RLS-risk
+reporting without emitting the role name. Both fingerprints moved from
+`legacy_unreviewed` to `reviewed_unresolved`; the ledger now has 22 legacy and
+13 reviewed entries. This is source classification only, not ACL approval; no
+grants or RLS changed.
+
+### C1 source-review ledger reclassification — 2 November 2026
+
+Five guarded dynamic-write sites for retention enforcement, GIS import, and
+coordination inserts moved from `legacy_unreviewed` to `reviewed_unresolved`
+after focused source tests and disposable schema checks. Their SQL remains
+conservatively inventoried; no runtime grants or RLS changed. The current ledger
+has 17 legacy-unreviewed and 18 reviewed-unresolved entries. This is source
+classification only, not owner approval or ACL authorization.
+
+### Value-stream CTE source review — 2 November 2026
+
+The `wip_by_stage`, `stage_lead_times`, and `first_time_through` CTEs were
+source-reviewed as fixed-source SELECTs with bound location/entity parameters;
+the Field Collector eligibility helper they use is STABLE and read-only. Tests
+pin the query shape. Omitted location intentionally yields network aggregation,
+not tenant isolation. These three fingerprints moved to `reviewed_unresolved`
+without ACL approval. The ledger now contains 14 legacy-unreviewed and 21
+reviewed-unresolved entries; no grants, RLS, or production state changed.
+
+### C1 source-review ledger update — 2 November 2026
+
+A source-only review moved the location-scoped ecocredit batch-list CTE and the
+remaining `first_time_through` CTE into `reviewed_unresolved`. Both are
+parameterized read-only queries; the ledger now contains 12
+legacy-unreviewed and 23 reviewed-unresolved entries. The ecocredit route’s
+signed location-read path does not establish general tenant isolation; no ACL,
+RLS, or production change was made.
+
+### C1 SQL ledger count reconciliation — 2 November 2026
+
+A direct recount found the prior note's 12/23 total was off by one. The current
+ledger has 13 legacy-unreviewed and 22 reviewed-unresolved fingerprints with no
+overlap; the ecocredit read CTE is now included in the reviewed set. This is
+source classification only, not ACL approval; no grants or RLS changed.
+
+### Regional-cluster CTE source review — 2 November 2026
+
+The proximity query was verified as a read-only `WITH` analysis, and its result
+projection now returns only distance values rather than neighbor identifiers,
+names, or coordinates. The test pins the location parameters and aggregate
+output; the CTE is `reviewed_unresolved`. Its intentional network-neighbor scan
+is not a tenant-isolation claim. The current SQL ledger has 12
+legacy-unreviewed and 23 reviewed-unresolved entries; no grants or RLS changed.
+
+### C1 ledger and velocity-scope update — 2 November 2026
+
+After the ecocredit, regional-cluster, and velocity CTE source reviews, the
+current ledger has 9 legacy-unreviewed and 26 reviewed-unresolved entries. The
+velocity feedback CTE now filters by the requested `location_id`, matching the
+required schema column and writer behavior; 11 velocity tests pass. Source
+inventory line references were regenerated. No grants, RLS, or candidate
+state changed.
+
+### Process-control CTE source review — 2 November 2026
+
+The `_cycle_time_mean` and `_fty_pct` CTEs are read-only, parameterized by
+`entity_type`, and intentionally aggregate across locations because they accept
+no `location_id`; this is not tenant isolation. Tests pin their query shapes and
+no-DML behavior. The ledger now has 7 legacy-unreviewed and 28
+reviewed-unresolved entries; no grants or RLS changed.
+
+### Metrics and process-control ledger update — 2 November 2026
+
+The `compute_first_time_through_yield` CTE was source-reviewed as a
+location-bound, parameterized SELECT using a stable farm-activity eligibility
+function. The process-control reads remain global by entity type, as noted above.
+The current ledger is 6 legacy-unreviewed / 29 reviewed-unresolved; no ACL,
+RLS, or candidate/production state changed.
+
+### Flow-metric CTE review and ledger update — 2 November 2026
+
+`compute_governed_lead_time` and `compute_rework_rate` are now source-reviewed
+alongside `compute_first_time_through_yield`; their CTEs use fixed entity/location
+sources and bound values. The rework metric’s source IDs remain subject to route
+scope review. Focused flow-metric tests pass; the SQL ledger now has 4
+legacy-unreviewed and 31 reviewed-unresolved entries. No grants or RLS changed.
+
+### Portfolio CTE source review — 2 November 2026
+
+`portfolio_theme_summary` reads only verified/published claims, aggregates by
+theme, and returns counts without row identifiers; its scope is the whole network,
+not a tenant-isolation guarantee. Its query test passes, and the current SQL
+ledger is 3 legacy-unreviewed / 32 reviewed-unresolved. No ACL grants changed.
+
+### Current refactor checkpoint — 2 November 2026
+
+The runtime SQL review ledger now contains zero legacy-unreviewed fingerprints
+and 34 reviewed-unresolved source records; the source/metadata checker passes.
+The C1 work remains open: runtime-role attribution still reports 3,644 unresolved
+SQL sites and 56 worker dynamic-dispatch edges, while the Standard API and general
+worker still share `kokonut_runtime`. No grants or RLS were changed.
+
+The EBF trust-graph public-safe path now filters final connected nodes; a
+regression proves a public edge cannot surface a non-public neighbor. The latest
+source-only CI run passed all 73 checks. The live local ZITADEL/browser flow is
+still blocked on trusting its temporary Caddy CA in macOS; no TLS bypass was
+used. Its synthetic Compose containers are stopped, with six test volumes
+preserved for resumption. No candidate, legacy, or production database was
+modified, and no commit, push, or merge was made.
+
 ### Local ZITADEL Gateway OIDC browser acceptance — 2 November 2026
 
 This supersedes the earlier CA-blocked checkpoint above. The isolated synthetic
@@ -26549,3 +26877,56 @@ owner organization. The browser sessions were closed and cookies/storage
 cleared; the mode-restricted synthetic client env file remains in the
 scratchpad for the preserved test project. No production or legacy database
 was modified.
+
+### ClickHouse outbox operator boundary and migration 746 — 3 November 2026
+
+The competing untracked migration-746 drafts were reconciled to one ordered
+source migration. It introduces DBA-managed global capabilities and a separate
+optional action login for OIDC-authenticated dead-letter list/replay/resolve/
+discard routes. The shared runtime retains enqueue/read plus `updated_at`, while
+the legacy CLI mutation flags now fail closed before database access. API child
+credential filtering passes operator-auth and outbox-action credentials only
+to the API; tests verify the general worker receives neither. No live capability
+was granted and no persistent target was changed.
+
+The network-disabled PostgreSQL 16 migration check passed session binding,
+DBA-only capability grant/revoke audit, bounded pages/actions/reasons, direct
+write denials, runtime enqueue-only privileges, and function-owner alignment
+([evidence](builds/2026-11-03-recovery/clickhouse-outbox-operator-746-disposable.json)).
+The ordered migration runner detects one migration 746 source; Standard recovery
+also passed through 746 as recorded below.
+
+### Standard recovery through migration 746 — 3 November 2026
+
+The portless, network-disabled Standard recovery applied all 737 ordered schema
+migrations through 746 from a content-verified snapshot shared by the API and
+worker images. Runtime-role bootstrap/reapplication, optional Directus ACLs,
+health, stalled-child detection/recovery, database outage/recovery, private
+heartbeat cleanup, and zero active leases passed. The captured source was
+revision `9c1bd501f8c7e2928b777926d55c78c6c9b559b4` with a dirty worktree; the
+schema snapshot SHA-256 is
+`3757f48b2184cd83bdd33ea71720a0733a5422c6e8abd9040b1e7830bad6c0f0`. Native
+and ARM64/QEMU operator/two-tenant probes remain through 745, so their 47-check
+result is not claimed for 746. No candidate, legacy, or production state was
+changed
+([evidence](builds/2026-11-03-recovery/standard-profile-recovery-746-disposable.json)).
+
+### C1 attribution and source validation refresh — 3 November 2026
+
+The unresolved-write ledger now contains zero legacy-unreviewed fingerprints
+and 33 reviewed-unresolved records; this is source review, not ACL approval.
+The static runtime-role report covers 4,968 SQL sites (976 API candidates, 328
+worker candidates, three shared candidates, and 3,661 unresolved), 358 API route
+roots, and 56 worker dynamic-dispatch edges. The worker inventory reports 49
+operation roots, 439 SQL execution sites (350 literal and 89 composed/variable),
+1,152 function memberships, and 1,654 direct-call edges. The Standard API and
+general worker still share `kokonut_runtime`; broad C1 caller attribution,
+external consumers, and tenant/RLS review remain open.
+
+Validation passed: 181 operator/migration tests, 55 runtime environment and
+supervisor/job-contract tests, 114 profile/OIDC Compose tests, and the remaining
+C1 batch (288 passed, 7 database-dependent skips, 63 subtests). The local pytest
+run disabled the broken `platformdirs.pytest_plugin` autoload and pinned
+`PG_HOST=127.0.0.1 PG_PORT=1` so database-dependent tests could not connect to a
+persistent database. Ruff, compilation, `git diff --check`, and all runtime,
+worker, and report-helper inventory freshness gates passed.

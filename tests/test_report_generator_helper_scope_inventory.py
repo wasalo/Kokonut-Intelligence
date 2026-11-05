@@ -67,7 +67,7 @@ def test_shared_query_adapter_is_only_excluded_when_it_forwards_sql_unchanged():
         if isinstance(node, ast.FunctionDef) and node.name == "query"
     )
 
-    assert _query_forwarder_execute_lines(source_path, query) == [77, 80]
+    assert _query_forwarder_execute_lines(source_path, query) == [79, 82]
 
     changed_tree = ast.parse(
         """
@@ -125,7 +125,7 @@ def test_query_forwarding_wrappers_link_to_report_or_helper_call_sites():
         wrapper = report["forwarded_query_wrappers"][0]
         assert wrapper["source_file"] == "services/common/database.py"
         assert wrapper["callable"] == "query"
-        assert wrapper["execution_lines"] == [77, 80]
+        assert wrapper["execution_lines"] == [79, 82]
         assert wrapper["caller_sites"]
         assert not any(
             site["source_file"] == "services/common/database.py"

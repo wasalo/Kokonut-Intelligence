@@ -4,9 +4,9 @@
   "scope": "Direct SQL execution sites joined to the statically resolved worker function graph. A missing graph edge does not prove code is unreachable; dynamic dispatch, callbacks, import-time work, and methods on unknown instances may reach a site. This is not a complete effect map, ACL, authorization policy, or least-privilege grant list.",
   "summary": {
     "operation_roots": 49,
-    "sql_execution_sites": 440,
-    "statically_reachable_site_memberships": 498,
-    "unique_sites_with_static_operation_path": 332,
+    "sql_execution_sites": 439,
+    "statically_reachable_site_memberships": 497,
+    "unique_sites_with_static_operation_path": 331,
     "sites_without_static_function_match": 108,
     "unmatched_functions_absent_from_all_worker_graphs": 108,
     "sites_reached_by_multiple_operations": 43
@@ -135,12 +135,11 @@
       "kind": "scheduled_module",
       "name": "services.ingestion.clickhouse_outbox",
       "operation_ref": "scheduled_module:services.ingestion.clickhouse_outbox",
-      "statically_reachable_sql_site_count": 6,
+      "statically_reachable_sql_site_count": 5,
       "statically_reachable_sql_site_ids": [
         "services/common/worker_database.py:143:12",
         "services/ingestion/clickhouse_outbox.py:263:8",
-        "services/ingestion/clickhouse_outbox.py:284:12",
-        "services/ingestion/clickhouse_outbox.py:331:8",
+        "services/ingestion/clickhouse_outbox.py:278:8",
         "services/ingestion/clickhouse_outbox_worker.py:21:12",
         "services/ingestion/clickhouse_outbox_worker.py:36:12"
       ]
@@ -5044,9 +5043,9 @@
       "review_status": "function_not_reached_by_any_static_worker_root"
     },
     {
-      "id": "services/core/worker_progress.py:490:8",
+      "id": "services/core/worker_progress.py:524:8",
       "source": "services/core/worker_progress.py",
-      "line": 490,
+      "line": 524,
       "scope": "inspect_progress",
       "method": "execute",
       "expression_kind": "composed_or_variable",
@@ -7551,45 +7550,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/clickhouse_outbox.py:284:12",
+      "id": "services/ingestion/clickhouse_outbox.py:278:8",
       "source": "services/ingestion/clickhouse_outbox.py",
-      "line": 284,
-      "scope": "_operator_transition",
-      "method": "execute",
-      "expression_kind": "literal",
-      "statement_kind": "WITH",
-      "candidate_relations": [
-        "clickhouse_outbox",
-        "clickhouse_outbox_operator_audit",
-        "eligible",
-        "transitioned"
-      ],
-      "import_closure_operations": [
-        "scheduled_module:services.ingestion.clickhouse_outbox",
-        "scheduled_module:services.ingestion.clickhouse_outbox_worker",
-        "scheduled_module:services.ingestion.eas_indexer",
-        "scheduled_module:services.ingestion.gnosis_indexer",
-        "scheduled_module:services.ingestion.gnosis_worker",
-        "scheduled_module:services.ingestion.remote_sensing_fetcher",
-        "scheduled_module:services.ingestion.remote_sensing_worker",
-        "scheduled_module:services.ingestion.rpc_indexer",
-        "scheduled_module:services.ingestion.sensor_ingester",
-        "scheduled_module:services.ingestion.weather",
-        "scheduled_module:services.ingestion.weather_forecast",
-        "scheduled_module:services.ingestion.weather_forecast_worker",
-        "scheduled_module:services.ingestion.weather_worker"
-      ],
-      "statically_reachable_operations": [
-        "scheduled_module:services.ingestion.clickhouse_outbox"
-      ],
-      "static_link_status": "linked",
-      "function_in_any_worker_graph": true,
-      "review_status": "linked_to_operation"
-    },
-    {
-      "id": "services/ingestion/clickhouse_outbox.py:331:8",
-      "source": "services/ingestion/clickhouse_outbox.py",
-      "line": 331,
+      "line": 278,
       "scope": "list_dead_letters",
       "method": "execute",
       "expression_kind": "literal",

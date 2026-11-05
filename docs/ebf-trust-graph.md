@@ -144,17 +144,18 @@ reviewer identities, internal calibration details, private evidence, and other
 non-public records. Public dashboard/report consumers should prefer the public
 EBF views and aggregates rather than raw graph records.
 
-### Current Implementation Defect
+### Public-safe filtering (fixed 2 November 2026)
 
-`services/scoring/trust_graph.py` filters seed nodes and edges for
-`--public-safe`, but the final connected-node query does not consistently apply
-`n.public_safe = TRUE`. A non-public connected node can therefore appear in a
-requested public-safe export if it is connected through an otherwise public-safe
-edge.
+`export_trust_graph(public_safe=True)` filters seed nodes, graph edges used for
+connectivity, final connected-node rows, and returned edges. A public-safe edge
+can no longer cause a non-public connected node to appear in the export. The
+regression in `tests/test_ebf_trust_graph.py` covers that case.
 
-Until this is fixed and covered by a regression test, do not treat
-`--public-safe` output as a complete privacy guarantee. Apply an additional
-consumer-side node filter and inspect the output before publication.
+`--public-safe` remains opt-in; the scoring CLI defaults to the internal export.
+The flag filters rows but is not an authentication, authorization, or tenant-
+isolation boundary. Node/edge `public_safe` labels remain curated publication
+metadata, so consumers must still use the proper access path and approved public
+EBF views/aggregates.
 
 The intended public rule is:
 

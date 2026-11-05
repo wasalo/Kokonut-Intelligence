@@ -231,13 +231,16 @@ def test_supervisor_scopes_each_worker_key_to_its_process(monkeypatch, tmp_path)
 
     scheduler_allowlist = ("scheduler", *SCHEDULED_WORKER_KEYS, *dispatch_keys)
     assert environment_options == [
-        {"allowed_worker_keys": ()},
+        {"allowed_worker_keys": ("operator_auth", "clickhouse_outbox_operator")},
         {"allowed_worker_keys": scheduler_allowlist},
         {"allowed_worker_keys": (), "strip_shared_database_credentials": True},
         {"allowed_worker_keys": (), "strip_shared_database_credentials": True},
     ]
     assert [call[1]["env"]["VISIBLE_WORKER_KEYS"] for call in spawned] == [
-        "", ",".join(scheduler_allowlist), "", ""
+        "operator_auth,clickhouse_outbox_operator",
+        ",".join(scheduler_allowlist),
+        "",
+        "",
     ]
     assert [call[1]["env"].get(runtime.WORKER_PROGRESS_NAME_ENV) for call in spawned] == [
         None, "scheduler", "events", "notifications"
@@ -259,6 +262,9 @@ def test_supervisor_preserves_shared_runtime_login_for_api_only(monkeypatch):
         ),
         "KOKONUT_SENSOR_ANOMALY_WORKER_CREDENTIAL": "synthetic-anomaly-secret",
         "KOKONUT_WEATHER_WORKER_CREDENTIAL": "synthetic-weather-secret",
+        "KOKONUT_OPERATOR_AUTH_USER": "kokonut_operator_auth",
+        "KOKONUT_OPERATOR_AUTH_PASSWORD": "synthetic-operator-auth-secret",
+        "KOKONUT_CLICKHOUSE_OUTBOX_OPERATOR_PASSWORD": "synthetic-outbox-operator-secret",
     }
     _install_signal_fakes(monkeypatch, stop_on_sleep=True)
     monkeypatch.setattr(runtime, "commands", lambda *_args, **_kwargs: [("api", ["api"])])
@@ -285,6 +291,12 @@ def test_supervisor_preserves_shared_runtime_login_for_api_only(monkeypatch):
         "KOKONUT_WEATHER_WORKER_CREDENTIAL",
     ):
         assert name not in api_environment
+    for name in (
+        "KOKONUT_OPERATOR_AUTH_USER",
+        "KOKONUT_OPERATOR_AUTH_PASSWORD",
+        "KOKONUT_CLICKHOUSE_OUTBOX_OPERATOR_PASSWORD",
+    ):
+        assert api_environment[name] == source_environment[name]
 
 
 def test_commands_start_event_and_notification_workers_independently(monkeypatch):

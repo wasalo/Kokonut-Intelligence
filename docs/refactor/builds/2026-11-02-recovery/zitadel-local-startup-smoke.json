@@ -1,0 +1,55 @@
+{
+  "evidence_level": "disposable_provider_startup_smoke",
+  "checked_at": "2026-11-02",
+  "source_revision": "672c8b2d062e81e20d848be637f61e1710b6f6dc",
+  "source_worktree_clean": false,
+  "project": "kokonut-refactor-oidc-b639a7a2",
+  "profile": "standard+oidc+zitadel",
+  "environment": "synthetic test credentials; no SOPS secrets loaded",
+  "services": {
+    "kernel_database": "healthy",
+    "gateway_app": "healthy",
+    "general_worker": "healthy",
+    "caddy_proxy": "healthy",
+    "zitadel_database": "healthy",
+    "zitadel_api": "healthy",
+    "zitadel_login": "healthy",
+    "zitadel_bootstrap_permissions": "completed"
+  },
+  "migrations": {
+    "schemas_applied": 736,
+    "schemas_failed": 0,
+    "seed_rows": 0,
+    "latest_schema_migration": "schema:745_runtime_public_wellbeing_metric_summary_read_only.sql"
+  },
+  "runtime_roles": {
+    "bootstrap_ran_explicitly_after_migrations": true,
+    "api_database_user": "kokonut_runtime",
+    "worker_database_user": "kokonut_runtime"
+  },
+  "oidc_discovery": {
+    "https_verified_with_local_caddy_ca": true,
+    "hostname_resolution": "explicit loopback resolution for test request",
+    "issuer": "https://zitadel.localhost:63314"
+  },
+  "browser_acceptance": {
+    "agent_browser_installed": true,
+    "login_completed": false,
+    "reason": "macOS Chrome rejected the ephemeral Caddy CA; agent-browser browser CA trust is supported only on Linux",
+    "tls_bypass_used": false,
+    "oidc_client_provisioned": false
+  },
+  "cleanup": {
+    "containers": 0,
+    "networks": 0,
+    "project_volumes_preserved": 6,
+    "scratchpad_synthetic_environment_and_ca_preserved": true
+  },
+  "candidate_legacy_production_touched": false,
+  "limitations": [
+    "Provider/API readiness and discovery do not establish browser login, OIDC client provisioning, Gateway session creation, grant provisioning, or Collector workflow acceptance.",
+    "The worktree was dirty, so this is disposable smoke evidence rather than a clean committed-head PR gate.",
+    "The Standard API and general worker still share kokonut_runtime; this does not close C1 identity separation.",
+    "The preserved volumes contain only the uniquely named synthetic test project and must be explicitly removed after the test workflow is resumed or abandoned."
+  ]
+}

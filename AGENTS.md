@@ -177,6 +177,7 @@ Commands:
 - Check migration 725's framework reference-catalog read boundary, migration replay, runtime-provisioner behavior, and preserved owner/Directus rights in disposable PostgreSQL: `python3 scripts/check-framework-reference-catalog-runtime-boundary-disposable.py`
 - Check the migration-647 notification-delivery worker boundary in disposable PostgreSQL: `python3 scripts/check-notification-delivery-worker-disposable.py`
 - Check the complete Standard profile migration, health, outage/recovery, and cleanup path in a portless disposable deployment: `KOKONUT_STANDARD_RECOVERY_TIMEOUT=900 python3 scripts/check-kernel-standard-recovery-disposable.py`
+- Check migration 746's ClickHouse outbox operator capability, bounded actions, audit, and runtime enqueue-only boundary in network-disabled disposable PostgreSQL: `python3 scripts/check-clickhouse-outbox-operator-disposable.py`
 - Check worker source import closure: `python3 scripts/worker_source_closure.py --check docs/refactor/worker-source-closure.json`
 - Check worker direct function reachability: `python3 scripts/worker_function_reachability.py --check docs/refactor/worker-function-reachability.json`
 - Check worker SQL/function reachability: `python3 scripts/worker_sql_reachability.py --check docs/refactor/worker-sql-reachability.json`

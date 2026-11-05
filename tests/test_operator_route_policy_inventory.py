@@ -31,6 +31,7 @@ _PARAMETER_SAMPLES = {
     "enrollment_id": "22222222-2222-4222-8222-222222222222",
     "report_id": "33333333-3333-4333-8333-333333333333",
     "request_id": "33333333-3333-4333-8333-333333333333",
+    "outbox_id": "33333333-3333-4333-8333-333333333338",
     "incident_id": "33333333-3333-4333-8333-333333333333",
     "collection_id": "44444444-4444-4444-8444-444444444444",
     "activity_id": "55555555-5555-4555-8555-555555555555",
@@ -99,6 +100,21 @@ _EXPECTED_OPERATOR_POLICIES = {
     ("GET", "/operator/auth/callback"): _expected("operator_auth", "callback", public=True),
     ("GET", "/operator/auth/session"): _expected("operator_auth", "read"),
     ("POST", "/operator/auth/logout"): _expected("operator_auth", "logout"),
+    ("GET", "/operator/api/clickhouse-outbox/dead-letters"): _expected(
+        "clickhouse_outbox", "read"
+    ),
+    (
+        "POST",
+        f"/operator/api/clickhouse-outbox/dead-letters/{_PARAMETER_SAMPLES['outbox_id']}/replay",
+    ): _expected("clickhouse_outbox", "replay"),
+    (
+        "POST",
+        f"/operator/api/clickhouse-outbox/dead-letters/{_PARAMETER_SAMPLES['outbox_id']}/resolve",
+    ): _expected("clickhouse_outbox", "resolve"),
+    (
+        "POST",
+        f"/operator/api/clickhouse-outbox/dead-letters/{_PARAMETER_SAMPLES['outbox_id']}/discard",
+    ): _expected("clickhouse_outbox", "discard"),
     (
         "GET",
         "/operator/api/delphi/11111111-1111-4111-8111-111111111111/studies",
@@ -1448,12 +1464,22 @@ def _concrete_paths(route_path):
     return [path]
 
 
+def _iter_routes(router):
+    for route in router.routes:
+        if hasattr(route, "path") and hasattr(route, "methods"):
+            yield route
+        else:
+            included_router = getattr(route, "original_router", None)
+            if included_router is not None:
+                yield from _iter_routes(included_router)
+
+
 def test_registered_operator_routes_have_exact_reviewed_policy_coverage():
     provider = SimpleNamespace(settings=SimpleNamespace(state_secret="test-state-secret-with-at-least-32-bytes"))
     router = create_auth_router(provider)
     actual = {}
 
-    for route in router.routes:
+    for route in _iter_routes(router):
         for method in route.methods or ():
             for path in _concrete_paths(route.path):
                 policy = auth_route_policy(method, path, enabled=True)
@@ -1474,10 +1500,46 @@ def test_registered_operator_routes_have_exact_reviewed_policy_coverage():
     assert actual == _EXPECTED_OPERATOR_POLICIES
 
 
+@pytest.mark.parametrize(
+    ("method", "path", "capability"),
+    (
+        (
+            "GET",
+            "/operator/api/clickhouse-outbox/dead-letters",
+            "clickhouse_outbox:read",
+        ),
+        (
+            "POST",
+            f"/operator/api/clickhouse-outbox/dead-letters/{_PARAMETER_SAMPLES['outbox_id']}/replay",
+            "clickhouse_outbox:replay",
+        ),
+        (
+            "POST",
+            f"/operator/api/clickhouse-outbox/dead-letters/{_PARAMETER_SAMPLES['outbox_id']}/resolve",
+            "clickhouse_outbox:resolve",
+        ),
+        (
+            "POST",
+            f"/operator/api/clickhouse-outbox/dead-letters/{_PARAMETER_SAMPLES['outbox_id']}/discard",
+            "clickhouse_outbox:discard",
+        ),
+    ),
+)
+def test_clickhouse_outbox_policies_require_global_capabilities(method, path, capability):
+    policy = auth_route_policy(method, path, enabled=True)
+
+    assert policy is not None
+    assert policy["operator_auth"] is True
+    assert policy["scope_required"] is False
+    assert policy["location_id"] is None
+    assert policy["global_capability"] == capability
+    assert auth_route_policy(method, path, enabled=False) is None
+
+
 def test_generic_agent_task_execution_has_no_operator_gateway_route():
     provider = SimpleNamespace(settings=SimpleNamespace(state_secret="test-state-secret-with-at-least-32-bytes"))
     router = create_auth_router(provider)
-    registered_paths = {route.path.casefold() for route in router.routes}
+    registered_paths = {route.path.casefold() for route in _iter_routes(router)}
     generic_task_markers = (
         "/agent-task",
         "/agent_task",

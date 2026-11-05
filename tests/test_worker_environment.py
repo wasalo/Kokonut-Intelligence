@@ -550,6 +550,40 @@ def test_scheduled_worker_help_imports_without_shared_database_credentials(modul
     assert "usage:" in result.stdout.lower()
 
 
+def test_operator_credentials_are_only_forwarded_to_the_api_child():
+    source = {
+        "PATH": "/synthetic/bin",
+        "PG_USER": "kokonut_runtime",
+        "PG_PASSWORD": "runtime-secret",
+        "KOKONUT_OPERATOR_AUTH_USER": "kokonut_operator_auth",
+        "KOKONUT_OPERATOR_AUTH_PASSWORD": "auth-secret",
+        "KOKONUT_CLICKHOUSE_OUTBOX_OPERATOR_PASSWORD": "outbox-secret",
+    }
+
+    api_environment = worker_subprocess_environment(
+        allowed_worker_keys=("operator_auth", "clickhouse_outbox_operator"),
+        environ=source,
+    )
+    assert api_environment == source
+
+    scheduler_environment = worker_subprocess_environment(
+        allowed_worker_keys=("scheduler",),
+        environ=source,
+    )
+    assert "KOKONUT_OPERATOR_AUTH_USER" not in scheduler_environment
+    assert "KOKONUT_OPERATOR_AUTH_PASSWORD" not in scheduler_environment
+    assert "KOKONUT_CLICKHOUSE_OUTBOX_OPERATOR_PASSWORD" not in scheduler_environment
+
+    isolated_outbox_environment = worker_subprocess_environment(
+        allowed_worker_keys=("clickhouse_outbox",),
+        isolated_database_credentials=True,
+        environ=source,
+    )
+    assert "PG_PASSWORD" not in isolated_outbox_environment
+    assert "KOKONUT_OPERATOR_AUTH_PASSWORD" not in isolated_outbox_environment
+    assert "KOKONUT_CLICKHOUSE_OUTBOX_OPERATOR_PASSWORD" not in isolated_outbox_environment
+
+
 def test_every_service_subprocess_uses_the_shared_environment_policy():
     violations = []
     for path in sorted((ROOT / "services").rglob("*.py")):

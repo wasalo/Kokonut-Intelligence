@@ -102,6 +102,18 @@ Later bootstrap runs preserve existing relation grants and reapply reviewed
 denials without granting newly created tables to the login. Existing broad
 grants remain until a reviewed migration retires them; do not run the bootstrap
 during routine `up` or simply to add a newly migrated table.
+
+Manual ClickHouse outbox actions require migration 746, the optional
+`KOKONUT_CLICKHOUSE_OUTBOX_OPERATOR_PASSWORD`, and a separate post-migration
+runtime-role bootstrap. Compose passes that credential to the Gateway API and
+bootstrap only; the general worker receives none. The action login has no direct
+table privileges and exposes only bounded, audited list/replay/resolve/discard
+functions. Each OIDC operator action also requires its distinct global
+capability; those capabilities are not seeded or granted by this profile and
+must be explicitly approved and provisioned by a DBA. They are global controls,
+not location-scoped tenant grants. Legacy CLI mutation flags are retired and
+fail before database access.
+
 Inspect existing schedules, handler registrations, leases, and Prefect/cron
 ownership before switching roles. For source acceptance, `--action build` builds
 the app and worker from the checkout. That path is useful during development,
@@ -158,7 +170,8 @@ python3 scripts/kernel-profile.py standard --action bootstrap-runtime-role
 python3 scripts/kernel-profile.py standard --action up
 ```
 
-`database-up` prints a command that starts only PostgreSQL. `migrate` prints the
+`database-up` prints a command that starts only PostgreSQL and waits for its
+healthcheck. `migrate` prints the
 ordered, schema-only migration runner command, which uses the explicit Standard
 Compose project to execute `psql` inside the database container. Run that
 printed Python command from the repository root after loading secrets; keep
@@ -234,7 +247,7 @@ and aggregate `children_alive`; it never returns process IDs or the generation
 token. In Standard Compose, the file is ephemeral container state; the profile
 adds no volume or migration for liveness.
 
-## Current Standard acceptance — migration 745 — 1 November 2026
+## Previous Standard acceptance snapshot — migration 745 — 1 November 2026
 
 The network-disabled disposable Standard recovery applied all 736 ordered
 schema migrations through migration 745 with zero failures or seed rows. It
@@ -249,6 +262,15 @@ heartbeat, zero active leases, and no published host ports on an internal
 network. Candidate, legacy, and production data were untouched
 ([acceptance summary](builds/2026-11-01-recovery/standard-profile-recovery-745-disposable.json);
 [runner](../../scripts/check-kernel-standard-recovery-disposable.py)).
+
+A repeat run on 2 November at source revision `672c8b2d` passed the same 736
+schema snapshot, role bootstrap/reapplication, health, stalled-child and outage
+recovery, and clean shutdown checks. The worktree was dirty, so this is
+additional disposable evidence, not a clean committed-head PR gate. The run
+used a unique project and generated synthetic credentials; its cleanup check
+found zero project containers, volumes, or networks. It did not change the
+candidate, legacy, or production targets
+([rerun evidence](builds/2026-11-02-recovery/standard-profile-recovery-745-disposable.json)).
 
 The accepted schema includes migration 742's global curated
 `readiness_dimension` boundary (location-specific weights remain in
@@ -270,6 +292,28 @@ emulated run cleaned up successfully. QEMU is not physical Raspberry Pi
 acceptance
 ([native](builds/2026-11-01-recovery/native-current-schema-745-operator-probe.json);
 [ARM64/QEMU](builds/2026-11-01-recovery/arm64-qemu-current-schema-745-operator-probe.json)).
+
+## Current Standard acceptance — migration 746 — 3 November 2026
+
+A portless, network-disabled Standard recovery applied 737 ordered schemas
+through migration 746 with zero failures or seed rows. A captured migration
+snapshot matched in both API and worker images. Runtime-role bootstrap and
+reapplication, optional Directus read-only checks, API/worker/proxy health,
+stalled-child detection and recovery, database-outage recovery, clean worker
+shutdown, private heartbeat removal, and zero active leases all passed. The run
+used a dirty checkout at source revision `9c1bd501f8c7e2928b777926d55c78c6c9b559b4`
+and schema snapshot SHA-256
+`3757f48b2184cd83bdd33ea71720a0733a5422c6e8abd9040b1e7830bad6c0f0`; it is
+not a clean committed-head PR gate or candidate/production acceptance.
+
+Migration 746's separate PostgreSQL 16 check verifies the dedicated
+ClickHouse outbox action login, global capability grants/revocations, session
+binding, bounded replay/resolve/discard functions, operator audit, and runtime
+enqueue-only privileges. No operator capability was granted on a persistent
+target. Native and ARM64/QEMU two-tenant probes remain through migration 745;
+the 47-check probe has not been rerun through 746. Evidence:
+[Standard recovery](builds/2026-11-03-recovery/standard-profile-recovery-746-disposable.json),
+[ClickHouse outbox operator](builds/2026-11-03-recovery/clickhouse-outbox-operator-746-disposable.json).
 
 ## Previous Standard acceptance snapshot — migration 738
 

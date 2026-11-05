@@ -481,7 +481,7 @@
         {
           "caller": "services/common/database.py:query",
           "callee": "services/common/database.py:_cursor_for",
-          "line": 78,
+          "line": 80,
           "depth": 2
         }
       ],
@@ -490,8 +490,8 @@
           "source_file": "services/common/database.py",
           "callable": "query",
           "execution_lines": [
-            77,
-            80
+            79,
+            82
           ],
           "caller_sites": [
             {
@@ -3287,7 +3287,7 @@
         {
           "caller": "services/common/database.py:query",
           "callee": "services/common/database.py:_cursor_for",
-          "line": 78,
+          "line": 80,
           "depth": 3
         }
       ],
@@ -3296,8 +3296,8 @@
           "source_file": "services/common/database.py",
           "callable": "query",
           "execution_lines": [
-            77,
-            80
+            79,
+            82
           ],
           "caller_sites": [
             {
@@ -5232,7 +5232,7 @@
         {
           "caller": "services/common/database.py:query",
           "callee": "services/common/database.py:_cursor_for",
-          "line": 78,
+          "line": 80,
           "depth": 2
         }
       ],
@@ -5241,8 +5241,8 @@
           "source_file": "services/common/database.py",
           "callable": "query",
           "execution_lines": [
-            77,
-            80
+            79,
+            82
           ],
           "caller_sites": [
             {
@@ -5944,13 +5944,13 @@
         {
           "caller": "services/analytics/pitch.py:generate_pitch",
           "callee": "services/analytics/pitch.py:get_template",
-          "line": 273,
+          "line": 274,
           "depth": 2
         },
         {
           "caller": "services/analytics/pitch.py:generate_pitch",
           "callee": "services/analytics/pitch.py:gather_evidence",
-          "line": 276,
+          "line": 277,
           "depth": 2
         },
         {
@@ -6194,7 +6194,7 @@
         {
           "source_file": "services/analytics/pitch.py",
           "callable": "_query_feedback",
-          "line": 214,
+          "line": 215,
           "relations": [
             "v_public_stakeholder_feedback_summary"
           ],
@@ -6220,7 +6220,7 @@
         {
           "source_file": "services/analytics/pitch.py",
           "callable": "_query_carbon",
-          "line": 235,
+          "line": 236,
           "relations": [
             "v_public_carbon_credit_inventory"
           ],
@@ -6246,7 +6246,7 @@
         {
           "source_file": "services/analytics/pitch.py",
           "callable": "_query_biodiversity",
-          "line": 252,
+          "line": 253,
           "relations": [
             "species_observation"
           ],

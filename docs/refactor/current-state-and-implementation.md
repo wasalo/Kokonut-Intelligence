@@ -1,6 +1,6 @@
 # Kokonut Kernel refactor: current state and implementation guide
 
-**Status snapshot:** 1 November 2026
+**Status snapshot:** 3 November 2026
 **Purpose:** canonical overview of the target architecture, current implementation evidence, deployment profiles, open gates, and execution order.
 **Design source:** the owner-provided [Architecture implementation plan](implementation-plan-alignment.md).
 
@@ -82,8 +82,8 @@ printed command. The default `docker-compose.yml` remains the legacy stack.
 | **minimal** | Private PostgreSQL/PostGIS and combined Kernel app/API with enabled worker processes. | Smallest candidate shape. End-to-end capability parity, live identity, recovery, and operational acceptance remain open. |
 | **core** | Minimal app built from the reduced, hash-locked dependency set; optional Web3, export, and local-media packages are selected explicitly. | Packaging choice, not a different data model. The OIDC app overlay is incompatible with this reduced image. |
 | **edge** | Minimal plus encrypted local media and edge resource settings; MQTT and HTTP sensors are separate overlays. | No physical Raspberry Pi acceptance. ARM64/QEMU is portability evidence only. |
-| **standard** | PostgreSQL, separate API and durable-worker services using the same `kokonut_runtime` login, and loopback-bound Caddy ingress by default. `--no-proxy` selects external ingress; `--edge` composes Edge settings. `release-up` prints a digest-pinned, no-build start command. | Portless, network-disabled disposable first-install/recovery passed through migration 745. See the current acceptance below. This is not candidate or production deployment. |
-| **analytics** | Minimal plus private ClickHouse projection; `--separate-workers` selects Standard API/worker separation. | Report parity, projection rebuild/outage recovery, and downstream tenant-safe access remain open. Metabase is not required. |
+| **standard** | PostgreSQL, separate API and durable-worker services using the same `kokonut_runtime` login, and loopback-bound Caddy ingress by default. `--no-proxy` selects external ingress; `--edge` composes Edge settings. `release-up` prints a digest-pinned, no-build start command. | Portless, network-disabled disposable first-install/recovery passed through migration 746. Native/ARM64 operator probes remain through 745; see the current acceptance below. This is not candidate or production deployment. |
+| **analytics** | Minimal plus private ClickHouse projection; `--separate-workers` composes Standard API/worker services with the runtime-role overlay and explicit migration/bootstrap actions. | Report parity, projection rebuild/outage recovery, and downstream tenant-safe access remain open. Metabase is not required. |
 | **scale** | Not accepted; the planner rejects this profile. | Replica/failover, shared budgets, sizing, concurrency, and recovery acceptance remain open. |
 
 Caddy is the Standard default but remains optional for other profiles. Other
@@ -134,22 +134,45 @@ check passed.
 | **7 — Native Gateway** | Active route-by-route migration; selected strict APIs and operator console exist. | Field, permission, lifecycle, consent, audit, export, SDK, reviewer, and Directus compatibility parity. |
 | **8 — ARM64, scale, and retirement** | ARM64 builds and emulated database/runtime checks exist. | Physical Pi acceptance when hardware is available, resource/recovery measurements, scale, and reviewed cutover. |
 
-### Current Standard and C1 snapshot — migrations 742–745
+### Current Standard and C1 snapshot — migrations 742–746
 
-Native PostgreSQL 16 replay applied all **736 ordered schema migrations through
-745**, with zero failures or pending entries, no seeds, and a passing 47-check
-synthetic operator/two-tenant probe. Full ARM64/QEMU replay applied the same
-736 schemas, passed the 47 checks, and cleaned up. The portless,
-network-disabled Standard recovery used one captured schema snapshot across
-API/worker images, re-applied runtime and optional Directus roles, passed
-read-only ACL checks and API/worker/proxy health, recovered from a database
-outage and a live-but-stalled child, and shut down with private heartbeats and
-zero active leases. Evidence:
+Native PostgreSQL 16 and ARM64/QEMU replays applied all **736 ordered schema
+migrations through 745**, with zero failures or pending entries, no seeds, and a
+passing 47-check synthetic operator/two-tenant probe. The 3 November portless,
+network-disabled Standard recovery applied **737 schemas through migration 746**
+from one captured snapshot shared by the API and worker images. Runtime-role
+bootstrap/reapplication, optional Directus checks, API/worker/proxy health,
+database-outage and stalled-child recovery, and clean shutdown with zero active
+leases passed. The 745 native/ARM64 operator probes remain the latest full
+47-check probes; they have not been rerun through 746. Evidence:
 
-- [Native replay and operator probe](builds/2026-11-01-recovery/native-current-schema-745-operator-probe.json)
-- [ARM64/QEMU replay and operator probe](builds/2026-11-01-recovery/arm64-qemu-current-schema-745-operator-probe.json)
-- [Standard first-install/recovery](builds/2026-11-01-recovery/standard-profile-recovery-745-disposable.json)
+- [Native replay and operator probe through 745](builds/2026-11-01-recovery/native-current-schema-745-operator-probe.json)
+- [ARM64/QEMU replay and operator probe through 745](builds/2026-11-01-recovery/arm64-qemu-current-schema-745-operator-probe.json)
+- [Standard first-install/recovery through 745](builds/2026-11-01-recovery/standard-profile-recovery-745-disposable.json)
+- [2 November Standard recovery rerun through 745](builds/2026-11-02-recovery/standard-profile-recovery-745-disposable.json)
+- [3 November Standard recovery through 746](builds/2026-11-03-recovery/standard-profile-recovery-746-disposable.json)
+- [Migration-746 ClickHouse outbox operator acceptance](builds/2026-11-03-recovery/clickhouse-outbox-operator-746-disposable.json)
+- [Farm-activity operations acceptance: migrations 359/404, synthetic PostgreSQL 16](builds/2026-11-02-recovery/gateway-farm-activity-operations-disposable.json)
+- [Retention/legal-hold acceptance: migrations 401/402, synthetic PostgreSQL 16](builds/2026-11-02-recovery/data-retention-policy-disposable.json)
+- [Local ZITADEL startup/discovery smoke (no browser login)](builds/2026-11-02-recovery/zitadel-local-startup-smoke.json)
 - [Standard profile runbook](standard-profile.md)
+
+The 3 November Standard run used a dirty checkout at source revision
+`9c1bd501f8c7e2928b777926d55c78c6c9b559b4`; its schema snapshot SHA-256 is
+`3757f48b2184cd83bdd33ea71720a0733a5422c6e8abd9040b1e7830bad6c0f0`. The
+migration-746 checker separately verifies the dedicated operator login,
+DBA-only capability grant/revoke audit, bounded replay/resolve/discard functions,
+and removal of direct runtime transitions. No live operator capability was
+granted, and no candidate, legacy, or production database/role was changed.
+
+The farm-activity fixture verifies bounded create/edit/submit/review/publish,
+wrong-location/task denial, and append-only audit behavior. It does not exercise
+live OIDC, browser Collector sync, or populated farm-data parity. The retention
+fixture validates migrations 401/402 and legal-hold/scope behavior; separate
+unit coverage pins the dynamic soft-delete query; fingerprint
+`4aca5b9e9e98337e9c9ba48c612a1b5e5d3bc5b39dec2c69a8f07e7feb0a2b3d` is
+`reviewed_unresolved` for source semantics only, with owner/ACL review still
+open. No grants are approved by this evidence.
 
 Migrations 742–745 establish narrowly scoped boundaries: `readiness_dimension`
 is a global curated catalog (owner-confirmed read-only for runtime and
@@ -161,10 +184,21 @@ these changes do not alter base-table writers or RLS. `quality_grade` remains a
 global curated catalog, with no known external writers reported by the owner;
 that report is not an exhaustive client audit.
 
-The current native source/ACL report counts **906 public-schema tables** with
+Migration 746 adds capability-gated ClickHouse outbox dead-letter routes for
+read, replay, resolve, and discard. The Gateway checks distinct global
+capabilities through the operator-auth identity; an optional dedicated action
+login invokes bounded security-definer functions and has no direct table access.
+The shared runtime retains enqueue/read access and `updated_at` only, while the
+legacy CLI mutation flags fail closed before database access. The action
+password is routed to the API child and bootstrap, not the general worker. The
+disposable checks did not grant any live operator capability and do not establish
+tenant scope for these explicitly global actions.
+
+The **906 public-schema table** count below comes from the migration-745 native
+source/ACL report; it was not regenerated through migration 746. It measures
 effective runtime table-level `INSERT`, `UPDATE`, or `DELETE` while RLS is
-disabled. This measures privilege reach, not confirmed writes, data leaks, or
-Internet exposure. C1 remains open for the rest of the writer/caller set,
+disabled; it is privilege reach, not confirmed writes, data leaks, or Internet
+exposure. C1 remains open for the rest of the writer/caller set,
 shared API/worker identity, external consumers and Directus API permissions,
 tenant/RLS boundaries, populated-data parity, and persistent-target rollout.
 See the [current C1 closure plan](c1-runtime-acl-closure-plan.md) and
@@ -184,7 +218,7 @@ or physical Raspberry Pi behavior. QEMU is software-portability evidence only.
 No candidate, legacy, or production database/role was changed by these replay
 checks.
 
-The latest tracker totals are **2,263 complete / 43 open** in
+The latest tracker totals are **2,264 complete / 43 open** in
 [`batches.md`](batches.md) and **836 checked / 39 open** in the active
 [`todo-kernel-refactor.md`](todo-kernel-refactor.md). The matrix remains at the
 67 classifications above.
