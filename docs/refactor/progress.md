@@ -27088,24 +27088,17 @@ heartbeat showed the Python process reaching approximately 13.8 GiB RSS with les
 than 700 MiB available on the 16 GiB runner; the workflow specifies a 90-minute
 job timeout, and no test assertion was reached. Runner labels match `ubuntu-24.04`.
 
-The full suite now runs in 48 deterministic contiguous shards, sequentially against
-the same seeded database. No test modules are skipped or run concurrently, and
-shard failures are aggregated. A local collect-only run passed in all 12 shards,
-covering all 970 test modules with 738–2,218 collected items per shard and no
-database connection. The first remote 12-shard run passed shards 1–6, then shard 7
-reduced available memory to 672 MiB and exited with SIGTERM (143). The remote
-24-shard run reached shard 14 but its Python process reached 14 GiB RSS with about
-452 MiB available, then received SIGTERM; the 48-shard runner is pending CI.
+The full suite is now configured for 96 deterministic contiguous shards, run
+sequentially against the same seeded database. No test modules are skipped or run
+concurrently, and failures are aggregated. A local collect-only run passed in all
+12 shards, covering all 970 test modules with 738–2,218 collected items per shard
+and no database connection. Earlier remote runs showed memory pressure: the
+24-shard attempt reached shard 14 at about 14 GiB RSS, and the 48-shard attempt
+reached shard 28 at 13.9 GiB RSS with about 632 MiB available before SIGTERM.
 
-The sharding helper/contract tests pass (16 tests), as do all 73 fast source checks,
-Ruff, runtime inventories, release checks, and diff hygiene. No persistent database
-or production ACL was touched.
-
-### 48-shard GitHub rerun — 4 November 2026 UTC
-
-The 48-shard integration run completed without the earlier runner SIGTERM, but
-reported 177 passed and one failure: the ingestion reliability test still expected
-the old `market_data.py` direct-connection cleanup shape. The CLI now uses the
-isolated `market_data_worker`, so the test was updated to verify that worker’s
-connection-finally boundary instead. The targeted ingestion and gRPC tests pass
-locally; a new GitHub rerun is pending.
+The sharding helper and contract tests pass (16 tests), as do all 73 fast source
+checks, Ruff, runtime inventories, release checks, and diff hygiene. The previous
+48-shard run also surfaced one stale market-data test expectation; the fixture and
+generic gRPC wrapper parser were corrected and their targeted tests pass. A
+96-shard integration rerun is pending. No persistent database or production ACL
+was touched.

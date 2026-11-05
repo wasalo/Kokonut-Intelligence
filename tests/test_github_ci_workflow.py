@@ -208,7 +208,7 @@ def test_ci_reports_phase_timings_and_uploads_failure_diagnostics() -> None:
     assert "retention-days: 7" in full_ci
     assert '"$PYTEST_BIN" -m pytest -v -rs --durations=25' in test_runner
     assert "pytest_test_sharding.py" in test_runner
-    assert 'SHARD_COUNT="${KOKONUT_PYTEST_SHARDS:-48}"' in test_runner
+    assert 'SHARD_COUNT="${KOKONUT_PYTEST_SHARDS:-96}"' in test_runner
     assert "kokonut-ci-source.log" in source_checks
     assert "artifacts/static-analysis/" in source_checks
     assert "if: failure()" in source_checks
