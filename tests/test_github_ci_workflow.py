@@ -265,4 +265,7 @@ def test_full_test_suite_runner_emits_heartbeat_without_masking_failure(tmp_path
     )
 
     assert result.returncode == 7
-    assert "Full Python test suite is still running." in result.stdout
+    assert "Full Python test suite is still running" in result.stdout
+    runner = (ROOT / "scripts/verify-full-test-suite.sh").read_text(encoding="utf-8")
+    assert "ps -axo pid=,ppid=,rss=,etime=,comm=" in runner
+    assert "/proc/meminfo" in runner

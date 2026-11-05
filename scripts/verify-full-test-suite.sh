@@ -32,7 +32,11 @@ PYTEST_PID=$!
     while kill -0 "$PYTEST_PID" 2>/dev/null; do
         sleep "$HEARTBEAT_INTERVAL_SECONDS"
         if kill -0 "$PYTEST_PID" 2>/dev/null; then
-            echo "Full Python test suite is still running."
+            echo "Full Python test suite is still running (PID $PYTEST_PID)."
+            ps -axo pid=,ppid=,rss=,etime=,comm= | awk -v root="$PYTEST_PID" '$1 == root { print; descendants[$1] = 1; next } descendants[$2] { print; descendants[$1] = 1 }'
+            if [ -r /proc/meminfo ]; then
+                awk '/^MemTotal:|^MemAvailable:/ { print }' /proc/meminfo
+            fi
         fi
     done
 ) &
