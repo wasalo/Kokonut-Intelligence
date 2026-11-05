@@ -96,6 +96,31 @@ entrypoints, outside the OIDC route. The deployed CLI caller identity remains
 unassessed; `business_planning:create` scope and location filters do not by
 themselves establish a broader read policy. No grants or RLS changed.
 
+### BMC legacy CLI writer boundary — owner decision pending — 3 November 2026
+
+The migration-745 runtime privilege report records effective DELETE, INSERT, and
+UPDATE on `business_model_canvas` and `canvas_version`, with RLS disabled and no
+explicit runtime DML revokes. Its source inventory identifies one canvas INSERT,
+three canvas UPDATE sites, and one `canvas_version` INSERT in
+`services/analytics/business_model_canvas.py`. Migration 746 does not change
+these BMC grants; no persistent target was re-queried for this source review
+([migration-745 ACL report](builds/2026-11-01-recovery/runtime-privilege-callsite-report-745.json)).
+
+The CLI `_cmd()` opens `get_db()` and calls direct `create`, `create-from-data`,
+`update-block`, `version`, and `health` operations without signed tenant
+context. `get_db()` uses the shared configured PG identity. The CLI accepts raw
+location, organization, or canvas identifiers. The report generator also calls
+`compute_health()`, but runs inside `generate_report_data_read_only()`; the
+UPDATE is rejected, caught, and the report returns a null health summary rather
+than persisting a score.
+
+Signed Gateway alternatives exist for location-scoped create, block/metadata
+edits, and version listing via migrations 463–465. The remaining decision is
+whether to retire the legacy CLI mutation commands and make health calculation
+pure, or define a reviewed, separately scoped CLI identity and call contract.
+No CLI path, grant, or RLS policy was changed pending that decision; the direct
+DML test suite was not run against a persistent database.
+
 ### C1 worker-source cohort — scheduled sensor CSV — 3 November 2026
 
 The source-registered `sensors` job maps to

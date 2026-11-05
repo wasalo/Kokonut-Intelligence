@@ -26977,6 +26977,23 @@ five signed-scope, forced-RLS, atomic-effects, duplicate/rollback, status-audit,
 and direct-privilege checks
 ([evidence](builds/2026-11-03-recovery/sensor-ingestion-worker-431-disposable.json)).
 It used a pinned image, a loopback-only ephemeral host port, and default bridge
-networking; the unique container was removed. Only the synthetic fixture
-changed; no candidate, legacy, or production database, credential, schedule,
-grant, or RLS policy changed.
+networking; the unique container was removed. It mutated only its synthetic
+fixture; no candidate, legacy, or production database or credential was touched,
+no schedule activated, and no persistent grant or RLS policy changed.
+
+### BMC legacy CLI writer source review — 3 November 2026
+
+The migration-745 ACL evidence records effective runtime DELETE/INSERT/UPDATE
+on `business_model_canvas` and `canvas_version`, with RLS disabled and no
+explicit runtime DML revokes. The source inventory finds one canvas INSERT,
+three canvas UPDATEs, and one `canvas_version` INSERT in
+`services/analytics/business_model_canvas.py`. The CLI uses `get_db()` and
+passes raw location, organization, or canvas IDs without signed tenant context.
+Migration 746 does not alter these BMC grants; no live ACL query was made
+([migration-745 ACL report](builds/2026-11-01-recovery/runtime-privilege-callsite-report-745.json)).
+
+The report-generator caller invokes `compute_health()` inside its read-only
+transaction wrapper. Its UPDATE is rejected and caught, so health is returned
+as null rather than persisted. Existing Gateway create/edit operations use the
+signed, location-scoped functions from migrations 463–465. No code, grant, or
+RLS change was made while the CLI identity boundary awaits an owner decision.

@@ -5132,3 +5132,10 @@ persistent grants or RLS changed. See
 [migration-746 acceptance](builds/2026-11-03-recovery/clickhouse-outbox-operator-746-disposable.json),
 [Standard recovery](builds/2026-11-03-recovery/standard-profile-recovery-746-disposable.json),
 and the [C1 closure plan](c1-runtime-acl-closure-plan.md).
+
+The migration-745 privilege report also shows effective shared-runtime DML on
+`business_model_canvas` and `canvas_version`, with RLS disabled. The legacy BMC
+CLI and its direct writes are separate from the signed Gateway functions; the
+report generator's `compute_health` update is denied by its read-only transaction
+and currently returns no health summary. The CLI boundary is awaiting an owner
+decision; no grant has been revoked or new identity introduced.
