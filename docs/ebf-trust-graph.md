@@ -201,7 +201,7 @@ Before sharing an internal graph:
 
 1. Confirm the requested reference ID and audience.
 2. Use `--public-safe` for any public-facing export.
-3. Filter connected nodes again until the public-safe defect is fixed.
+3. Confirm the exporter filters connected nodes; `--public-safe` remains opt-in and is not an authorization or tenant-isolation boundary.
 4. Remove reviewer, calibration, and private-evidence details not required for
    the audience.
 5. Compare scorecard values against the authoritative public EBF views.
@@ -226,7 +226,7 @@ Current limitations:
 
 - No canonical graph population service was found.
 - Export is one-hop, not recursive.
-- Public-safe connected-node filtering has the defect described above.
+- The source-level regression for public-safe connected-node filtering does not constitute database-backed or production acceptance.
 - Graph export does not replace public EBF view gates.
 - The EBF graph is separate from evaluator reputation and ranking data.
 
