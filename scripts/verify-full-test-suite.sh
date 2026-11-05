@@ -2,12 +2,47 @@
 set -euo pipefail
 
 PYTHON_BIN="${PYTHON_BIN:-python3}"
+HEARTBEAT_INTERVAL_SECONDS="${PYTEST_HEARTBEAT_INTERVAL_SECONDS:-15}"
 REPORT_FILE="$(mktemp)"
-trap 'rm -f "$REPORT_FILE"' EXIT
+PYTEST_PID=""
+HEARTBEAT_PID=""
+
+cleanup() {
+    if [ -n "$PYTEST_PID" ]; then
+        kill "$PYTEST_PID" 2>/dev/null || true
+        wait "$PYTEST_PID" 2>/dev/null || true
+    fi
+    if [ -n "$HEARTBEAT_PID" ]; then
+        kill "$HEARTBEAT_PID" 2>/dev/null || true
+        wait "$HEARTBEAT_PID" 2>/dev/null || true
+    fi
+    rm -f "$REPORT_FILE"
+}
+trap cleanup EXIT
+
+run_full_test_suite() {
+    set +e
+    "$PYTHON_BIN" -m pytest -v -rs --durations=25 2>&1 | tee "$REPORT_FILE"
+    exit "${PIPESTATUS[0]}"
+}
+
+run_full_test_suite &
+PYTEST_PID=$!
+(
+    while kill -0 "$PYTEST_PID" 2>/dev/null; do
+        sleep "$HEARTBEAT_INTERVAL_SECONDS"
+        if kill -0 "$PYTEST_PID" 2>/dev/null; then
+            echo "Full Python test suite is still running."
+        fi
+    done
+) &
+HEARTBEAT_PID=$!
 
 set +e
-"$PYTHON_BIN" -m pytest -v -rs --durations=25 2>&1 | tee "$REPORT_FILE"
-TEST_STATUS=${PIPESTATUS[0]}
+wait "$PYTEST_PID"
+TEST_STATUS=$?
+kill "$HEARTBEAT_PID" 2>/dev/null || true
+wait "$HEARTBEAT_PID" 2>/dev/null || true
 set -e
 
 if [ "$TEST_STATUS" -ne 0 ]; then

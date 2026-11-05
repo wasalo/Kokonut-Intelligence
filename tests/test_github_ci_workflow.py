@@ -1,5 +1,7 @@
 """Contracts for the required GitHub Actions CI status and parallel gates."""
 
+import os
+import subprocess
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -238,3 +240,29 @@ def test_hooks_build_publishes_compiled_bundle_for_container_uid() -> None:
     assert "(umask 022 && npm run build)" in hooks_build
     assert "find dist -type d -exec chmod 0755 {} +" in hooks_build
     assert "find dist -type f -exec chmod 0644 {} +" in hooks_build
+
+
+def test_full_test_suite_runner_emits_heartbeat_without_masking_failure(tmp_path: Path) -> None:
+    fake_python = tmp_path / "fake-python"
+    fake_python.write_text("#!/bin/sh\nsleep 2\nexit 7\n", encoding="utf-8")
+    fake_python.chmod(0o755)
+    environment = os.environ.copy()
+    environment.update(
+        {
+            "PYTHON_BIN": str(fake_python),
+            "PYTEST_HEARTBEAT_INTERVAL_SECONDS": "1",
+            "TMPDIR": str(tmp_path),
+        }
+    )
+
+    result = subprocess.run(
+        ["bash", str(ROOT / "scripts/verify-full-test-suite.sh")],
+        capture_output=True,
+        check=False,
+        cwd=ROOT,
+        env=environment,
+        text=True,
+    )
+
+    assert result.returncode == 7
+    assert "Full Python test suite is still running." in result.stdout
