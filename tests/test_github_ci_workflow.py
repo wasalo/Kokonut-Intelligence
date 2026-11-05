@@ -4,6 +4,9 @@ import os
 import subprocess
 import sys
 from pathlib import Path
+from unittest.mock import patch
+
+from scripts.ci_change_scope import changed_paths_for_event, should_run_expensive_gates
 
 ROOT = Path(__file__).resolve().parents[1]
 WORKFLOW = ROOT / ".github/workflows/ci.yml"
@@ -54,8 +57,50 @@ def test_parallel_image_gate_keeps_the_required_ci_status_as_aggregate() -> None
     assert "name: preflight" in preflight
     assert "scripts/ci-preflight.sh" in preflight
     assert "needs:" not in preflight
+    assert "fetch-depth: 0" in preflight
+    assert "scripts/ci_change_scope.py" in preflight
+    assert "outputs:" in preflight
     for expensive_job in (source_checks, full_ci, kernel_image):
         assert "needs: preflight" in expensive_job
+    assert "needs.preflight.outputs.expensive_gates == 'true'" in full_ci
+    assert "needs.preflight.outputs.expensive_gates == 'true'" in kernel_image
+    assert "EXPENSIVE_GATES: ${{ needs.preflight.outputs.expensive_gates }}" in aggregate
+    assert '"$FULL_CI_RESULT" != "skipped"' in aggregate
+    assert '"$KERNEL_IMAGE_RESULT" != "skipped"' in aggregate
+
+
+def test_expensive_ci_scope_only_skips_for_canonical_status_document() -> None:
+    status_doc = "docs/refactor/current-state-and-implementation.md"
+
+    assert not should_run_expensive_gates([status_doc])
+    assert should_run_expensive_gates([status_doc, "docs/refactor/runtime-role-attribution.json"])
+    assert should_run_expensive_gates(["services/gateway/router.py"])
+    assert should_run_expensive_gates([])
+    assert should_run_expensive_gates(None)
+
+
+def test_pull_request_change_scope_uses_base_to_head_merge_base() -> None:
+    event = {
+        "pull_request": {
+            "base": {"sha": "a" * 40},
+            "head": {"sha": "b" * 40},
+        }
+    }
+    with patch("scripts.ci_change_scope.subprocess.run") as run:
+        run.return_value.returncode = 0
+        run.return_value.stdout = "docs/refactor/current-state-and-implementation.md\n"
+        assert changed_paths_for_event("pull_request", event) == [
+            "docs/refactor/current-state-and-implementation.md"
+        ]
+
+    command = run.call_args.args[0]
+    assert command[-1] == f"{'a' * 40}...{'b' * 40}"
+    assert "--no-renames" in command
+
+
+def test_unrecognized_events_fail_closed_to_expensive_gates() -> None:
+    assert changed_paths_for_event("workflow_dispatch", {}) is None
+    assert should_run_expensive_gates(changed_paths_for_event("workflow_dispatch", {}))
 
 
 def test_manual_collection_profile_is_capped_and_outside_required_gate() -> None:

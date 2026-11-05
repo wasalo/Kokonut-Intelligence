@@ -26,11 +26,21 @@ jobs:
     name: preflight
     runs-on: ubuntu-24.04
     timeout-minutes: 10
+    outputs:
+      expensive_gates: ${{ steps.change-scope.outputs.expensive_gates }}
     steps:
       - name: Check out source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+          fetch-depth: 0
+
+      - name: Classify expensive CI scope
+        id: change-scope
+        env:
+          GITHUB_EVENT_NAME: ${{ github.event_name }}
+          GITHUB_EVENT_PATH: ${{ github.event_path }}
+        run: python3 scripts/ci_change_scope.py >> "$GITHUB_OUTPUT"
 
       - name: Run dependency-free source preflight
         run: bash scripts/ci-preflight.sh
@@ -93,6 +103,7 @@ jobs:
   full-ci:
     name: integration-ci
     needs: preflight
+    if: ${{ needs.preflight.outputs.expensive_gates == 'true' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 90
     env:
@@ -146,6 +157,7 @@ jobs:
   kernel-image:
     name: kernel-image
     needs: preflight
+    if: ${{ needs.preflight.outputs.expensive_gates == 'true' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     steps:
@@ -194,14 +206,29 @@ jobs:
           FULL_CI_RESULT: ${{ needs.full-ci.result }}
           SOURCE_CHECKS_RESULT: ${{ needs.source-checks.result }}
           KERNEL_IMAGE_RESULT: ${{ needs.kernel-image.result }}
+          EXPENSIVE_GATES: ${{ needs.preflight.outputs.expensive_gates }}
         run: |
-          if [[ "$PREFLIGHT_RESULT" != "success" || "$SOURCE_CHECKS_RESULT" != "success" || "$FULL_CI_RESULT" != "success" || "$KERNEL_IMAGE_RESULT" != "success" ]]; then
+          if [[ "$PREFLIGHT_RESULT" != "success" || "$SOURCE_CHECKS_RESULT" != "success" ]]; then
             printf 'Preflight result: %s\nSource checks result: %s\nIntegration result: %s\nKernel image result: %s\n' \
               "$PREFLIGHT_RESULT" \
               "$SOURCE_CHECKS_RESULT" "$FULL_CI_RESULT" "$KERNEL_IMAGE_RESULT" >&2
             exit 1
           fi
-          echo 'Source, integration, and multi-architecture Kernel image gates passed.'
+          if [[ "$EXPENSIVE_GATES" == "true" ]]; then
+            if [[ "$FULL_CI_RESULT" != "success" || "$KERNEL_IMAGE_RESULT" != "success" ]]; then
+              printf 'Integration result: %s\nKernel image result: %s\n' \
+                "$FULL_CI_RESULT" "$KERNEL_IMAGE_RESULT" >&2
+              exit 1
+            fi
+            echo 'Source, integration, and multi-architecture Kernel image gates passed.'
+          else
+            if [[ "$FULL_CI_RESULT" != "skipped" || "$KERNEL_IMAGE_RESULT" != "skipped" ]]; then
+              printf 'Expected status-document-only jobs to skip; integration result: %s; Kernel image result: %s\n' \
+                "$FULL_CI_RESULT" "$KERNEL_IMAGE_RESULT" >&2
+              exit 1
+            fi
+            echo 'Canonical status-document update passed preflight and source checks; database and image inputs were unchanged.'
+          fi
 
   collection-diagnostics:
     name: collection-diagnostics
