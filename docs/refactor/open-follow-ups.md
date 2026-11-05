@@ -1,3 +1,5 @@
+> **Historical planning/status record:** the sole active completion register is the [candidate completion guide](current-state-and-implementation.md). Preserve the detail below as evidence/specification; do not maintain a separate active queue here.
+
 # Open Follow Ups
 
 Updated: 23 October 2026. This file collects decisions, access, fixtures, and

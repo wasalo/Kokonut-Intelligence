@@ -7,9 +7,9 @@ acceptance evidence, and remaining refactor gates, start with
 [`docs/refactor/current-state-and-implementation.md`](docs/refactor/current-state-and-implementation.md).
 The [refactor documentation map](docs/refactor/README.md) routes readers to the
 supporting records. The current-state guide is the canonical status summary;
-`docs/refactor/progress.md` is the dated historical ledger, while the capability
-matrix, batch checklist, and C1 plan hold detailed classifications and
-acceptance. Do not treat an old evidence entry as current deployment state.
+`docs/refactor/progress.md` is the dated historical ledger; the capability
+matrix, batch records, and C1 detail are supporting references, not active queues.
+Update only the current-state guide for execution status and completion gates. Do not treat an old evidence entry as current deployment state.
 
 The repository still contains a legacy Compose stack as well as the isolated
 Kernel candidate. Current work targets the candidate's native Gateway and

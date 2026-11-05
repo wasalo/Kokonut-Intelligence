@@ -27102,3 +27102,8 @@ checks, Ruff, runtime inventories, release checks, and diff hygiene. The previou
 generic gRPC wrapper parser were corrected and their targeted tests pass. A
 96-shard integration rerun is pending. No persistent database or production ACL
 was touched.
+
+
+## Documentation consolidation — 5 November 2026
+
+The owner selected candidate acceptance as the refactor finish line. The current-state guide now owns G1–G7, 67 capability acceptance rows, 119 historical unchecked requirement references, and the index of 165 pre-consolidation Markdown records. Former trackers carry supersession notices; historical evidence remains unchanged. The previous current-state snapshot is preserved in current-state-baseline-2026-11-05.md. No runtime, migration, grant, or deployment changed. Capability matrix validation and local master-link checks passed. CI #1091 was still running and Security #807 passed on cd65f1d9 when checked; this is not acceptance of the documentation commit.

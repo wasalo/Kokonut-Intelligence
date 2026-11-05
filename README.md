@@ -557,7 +557,7 @@ Documentation lives under `docs/`. Key entry points:
 | [User Guide](docs/user-guide.md) | Role workflows, data entry, lifecycle, dashboards, analytics, export |
 | [Architecture](docs/architecture.md) | System overview, data flow, security model |
 | [Platform Integrity](docs/platform-integrity.md) | Cross-cutting integrity boundaries and operational guarantees |
-| [Current refactor status](docs/refactor/current-state-and-implementation.md) | Consolidated architecture, implementation progress, and open gates |
+| [Current refactor status](docs/refactor/current-state-and-implementation.md) | Sole completion register, candidate acceptance gates, and execution plan |
 | [Refactor documentation map](docs/refactor/README.md) | Where to find current status, phase alignment, acceptance records, and historical evidence |
 | [Standard profile](docs/refactor/standard-profile.md) | Separate API/worker deployment, digest-pinned release flow, and recovery limits |
 | [Migrations](docs/migrations.md) | Ordered migration execution, checksums, drift detection, and recovery |

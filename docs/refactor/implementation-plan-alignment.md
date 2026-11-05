@@ -1,3 +1,5 @@
+> **Historical planning/status record:** the sole active completion register is the [candidate completion guide](current-state-and-implementation.md). Preserve the detail below as evidence/specification; do not maintain a separate active queue here.
+
 # Architecture implementation plan alignment
 
 **Source:** owner-provided *Architecture refactor implementation plan*,
