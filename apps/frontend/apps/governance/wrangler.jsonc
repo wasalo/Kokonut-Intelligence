@@ -1,0 +1,11 @@
+{
+  "$schema": "../../node_modules/wrangler/config-schema.json",
+  "name": "ki-governance",
+  "compatibility_date": "2026-11-05",
+  "workers_dev": false,
+  "assets": {
+    "directory": "./dist",
+    "base_path": "/governance",
+    "not_found_handling": "single-page-application"
+  }
+}

@@ -1,0 +1,27 @@
+# Kokonut Intelligence front ends
+
+This npm workspace is the implementation foundation for the three applications
+described in [`docs/refactor/frontend-modernization.md`](../../docs/refactor/frontend-modernization.md).
+The current React screens are migration shells. They link to the accepted
+Gateway interfaces for existing workflows; they do not claim feature parity or
+change server authorization.
+
+## Local development
+
+Run commands from this directory with Node.js 22.22 or newer:
+
+```sh
+npm ci
+npm run dev:ops
+npm run dev:field
+npm run dev:governance
+```
+
+Each development server uses its production path prefix: `/ops/`, `/field/`, or
+`/governance/`. Build apps independently with `npm run build:ops`,
+`npm run build:field`, and `npm run build:governance`.
+
+The Wrangler configurations keep automatic public deployment disabled until
+the candidate origin, route ownership, and Cloudflare deployment environment
+are reviewed. Do not deploy these shells as a production replacement for the
+current operator, Delphi participant, or Field Collector interfaces.

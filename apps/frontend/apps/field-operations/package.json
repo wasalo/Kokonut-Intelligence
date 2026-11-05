@@ -1,0 +1,15 @@
+{
+  "name": "@kokonut/field-operations",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --config vite.config.ts",
+    "build": "vite build --config vite.config.ts"
+  },
+  "dependencies": {
+    "@kokonut/ui": "*",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "react-router": "^8.5.1"
+  }
+}

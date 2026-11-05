@@ -1,0 +1,21 @@
+.governance-links {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr));
+  gap: 1rem;
+  margin-top: 2rem;
+}
+
+.governance-links article {
+  display: grid;
+  align-content: start;
+  gap: .65rem;
+  padding: 1.5rem;
+  border: 1px solid var(--line);
+  border-radius: 1rem;
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+}
+
+.governance-links h3,
+.governance-links p { margin: 0; }
+.governance-links p { color: var(--ink-muted); }

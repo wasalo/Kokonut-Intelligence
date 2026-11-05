@@ -1,0 +1,35 @@
+{
+  "name": "@kokonut/frontend-workspace",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22.22"
+  },
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev:ops": "vite --config apps/general-operations/vite.config.ts",
+    "dev:field": "vite --config apps/field-operations/vite.config.ts",
+    "dev:governance": "vite --config apps/governance/vite.config.ts",
+    "build:ops": "vite build --config apps/general-operations/vite.config.ts",
+    "build:field": "vite build --config apps/field-operations/vite.config.ts",
+    "build:governance": "vite build --config apps/governance/vite.config.ts",
+    "build": "npm run build:ops && npm run build:field && npm run build:governance",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.3",
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
+    "@vitejs/plugin-react": "^6.1.2",
+    "typescript": "7.0.2",
+    "vite": "^8.3.0",
+    "wrangler": "4.143.1"
+  },
+  "allowScripts": {
+    "esbuild@0.28.1": true,
+    "workerd@1.20260926.1": true
+  }
+}

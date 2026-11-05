@@ -1,0 +1,32 @@
+.workflow-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 19rem), 1fr));
+  gap: 1rem;
+  margin-top: 2rem;
+}
+
+.workflow-card {
+  display: flex;
+  min-height: 15rem;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 1.5rem;
+  padding: 1.5rem;
+  border: 1px solid var(--line);
+  border-radius: 1rem;
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+}
+
+.workflow-card h3 { margin: .35rem 0 .5rem; }
+.workflow-card p:not(.eyebrow) { color: var(--ink-muted); }
+.workflow-card-muted { background: var(--surface-soft); }
+
+.migration-note {
+  margin-top: 1.5rem;
+  padding: 1rem 1.2rem;
+  border-left: .25rem solid var(--brand);
+  border-radius: .35rem;
+  background: var(--surface-soft);
+  color: var(--ink-muted);
+}

@@ -61,7 +61,9 @@ jobs:
         with:
           node-version-file: .node-version
           cache: npm
-          cache-dependency-path: extensions/kokonut-hooks/package-lock.json
+          cache-dependency-path: |
+            extensions/kokonut-hooks/package-lock.json
+            apps/frontend/package-lock.json
 
       - name: Set up Python
         uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
@@ -77,6 +79,13 @@ jobs:
         with:
           version: v1.8.5
           cache: false
+
+      - name: Check TypeScript applications
+        working-directory: apps/frontend
+        run: |
+          npm ci --no-audit --no-fund
+          npm run typecheck
+          npm run build
 
       - name: Run source, security, static-analysis, and contract checks
         env:
