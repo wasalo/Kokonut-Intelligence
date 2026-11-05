@@ -190,6 +190,11 @@ def main() -> int:
     import_probes = (
         ("indexer-only", "from services.guilds.indexer import KGPIndexer"),
         (
+            "worker-test-module-import",
+            "import runpy\n"
+            "runpy.run_path('tests/test_kgp_worker_durability.py')\n",
+        ),
+        (
             "worker-test-import-order",
             "from unittest.mock import MagicMock, call, patch\n"
             "import pytest\n"
