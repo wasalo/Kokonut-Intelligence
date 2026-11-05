@@ -183,6 +183,12 @@ These dispositions deduplicate validation work conservatively. “Actionable / a
 | R118 | actionable / acceptance pending | G2 |
 | R119 | actionable / acceptance pending | G4 |
 
+## G2 implementation checkpoint — scheduler connection boundary
+
+The scheduler loop now accepts the explicit `KOKONUT_SCHEDULER_DATABASE_URL` path through the dedicated worker connector, requiring login `kokonut_scheduler_login`. Selecting that variable (including an empty value), scheduler isolation, or the shared-database deny marker prevents fallback to the runtime connector. Legacy unselected operation remains compatible. Ninety-three focused scheduler/connection/durability/supervisor tests and Ruff passed. No deployment flag or role was provisioned; G2 remains open.
+
+Before enabling this path, implement migration-backed scheduler grants, bootstrap/Compose routing, schema-readiness and worker-health reads, and fresh/upgrade disposable acceptance. The scheduler owns claims, runs and resource slots, but completion also directly inserts `platform_event`; migrate that event intent behind a bounded contract rather than restoring shared-runtime event DML. Keep definition administration distinct from execution updates. Preserve API child PG settings and exact isolated job-secret filtering. This is source preparation, not API/general-worker separation acceptance or candidate rollout.
+
 ## Owner inputs and deferred milestones
 
 Existing decisions stand: Gateway-native farm activity, optional Directus, self-hosted ZITADEL, all repository-backed reports first, Kokonut Network's five named locations, Maileroo SMTP, R2 production/backups buckets, USA/Dominican Republic dynamic retention, and 24-hour recovery target. Do not re-ask settled choices. Keep unconfirmed tenant sharing ungranted.

@@ -6,6 +6,7 @@ replacing the static crontab.
 
 from __future__ import annotations
 
+import os
 import signal
 import time
 import uuid
@@ -13,12 +14,24 @@ import uuid
 from services.common.database import get_db
 from services.common.errors import safe_exception_class
 from services.common.logging import get_logger
+from services.common.worker_database import get_worker_db
 from services.core.worker_progress import pulse_worker_progress
 from services.scheduler.backend import get_scheduler
 
 logger = get_logger("scheduler.worker")
 
 _running = True
+
+
+def _scheduler_connection():
+    """An explicitly selected scheduler identity never falls back to runtime."""
+    if (
+        "KOKONUT_SCHEDULER_DATABASE_URL" in os.environ
+        or os.environ.get("KOKONUT_ISOLATED_WORKER_KEY") == "scheduler"
+        or os.environ.get("KOKONUT_DENY_SHARED_DATABASE", "").lower() == "true"
+    ):
+        return get_worker_db("scheduler", connect_timeout=5)
+    return get_db(connect_timeout=5)
 
 
 def _shutdown(signum, frame):
@@ -59,7 +72,7 @@ def _run_tick(worker_id: str) -> dict[str, int] | None:
     """Run one tick with a disposable connection so broken sessions are discarded."""
     conn = None
     try:
-        conn = get_db(connect_timeout=5)
+        conn = _scheduler_connection()
         engine = get_scheduler(conn, worker_id=worker_id)
         stats = engine.tick()
         if stats["launched"] > 0 or stats["failed"] > 0:
