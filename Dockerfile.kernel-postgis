@@ -11,7 +11,7 @@ RUN set -eux; \
     find /etc/apt/sources.list.d -mindepth 1 -maxdepth 1 -delete; \
     rm -f /etc/apt/sources.list; \
     install -D -m 0644 /tmp/kernel-bootstrap.sources /etc/apt/sources.list.d/kokonut-bootstrap.sources; \
-    apt-get update; \
+    apt-get -o Acquire::Retries=5 update; \
     apt-get install -y --no-install-recommends ca-certificates; \
     rm -rf /var/lib/apt/lists/*
 
@@ -30,7 +30,7 @@ RUN set -eux; \
 
 # Build-only package discovery. No PostgreSQL process or data volume is started.
 FROM apt-snapshot-base AS package-catalog
-RUN apt-get update \
+RUN apt-get -o Acquire::Retries=5 update \
     && apt-cache policy postgresql-16-postgis-3 postgresql-16-postgis-3-scripts
 
 FROM apt-snapshot-base AS kernel-postgis
@@ -39,7 +39,7 @@ ARG POSTGIS_PACKAGE_VERSION
 ARG POSTGIS_SCRIPTS_VERSION
 RUN test -n "$POSTGIS_PACKAGE_VERSION" \
     && test -n "$POSTGIS_SCRIPTS_VERSION" \
-    && apt-get update \
+    && apt-get -o Acquire::Retries=5 update \
     && apt-get -o Acquire::Retries=5 install -y --no-install-recommends \
        ca-certificates \
        "postgresql-16-postgis-3=$POSTGIS_PACKAGE_VERSION" \

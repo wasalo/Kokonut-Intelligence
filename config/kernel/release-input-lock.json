@@ -7,7 +7,7 @@
   },
   "sha256_inputs": {
     "Dockerfile.kernel": "8f5a7aea75dc6e761be8be20aa591d7a50919197a9d5cdbf4870aa480bf2273d",
-    "Dockerfile.kernel-postgis": "495d6ec5450dd58520d251d2dce740585ad1062858f44bfebce879edeefbb051",
+    "Dockerfile.kernel-postgis": "0c9d04ca42d329ef3aedb7cc2aeefe8fb8322179da058134a4438c2c92a85504",
     "requirements/kernel.txt": "bcafcb498d1d0551cc5a400e0b45ecd903fd996cafd974792f4e67f6cefb7e83",
     "requirements/web3.txt": "be91e5a4302c32cf7b3035cca8bc538eaeba5e85997348081632c2286fb4da33",
     "requirements/exports.txt": "1780570edca5518251d507d39d9c9fed24db4451315d73e75f9c8faceec36c71",
