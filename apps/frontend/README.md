@@ -6,6 +6,13 @@ The current React screens are migration shells. They link to the accepted
 Gateway interfaces for existing workflows; they do not claim feature parity or
 change server authorization.
 
+`@kokonut/operator-client` centralizes same-origin, no-store requests to the
+operator Gateway API, operator CSRF handling, normalized HTTP errors, and
+cancelable latest-request tracking. It intentionally does not handle the
+Delphi participant invite/session or Field Collector device-token protocols.
+Mutation retries remain the caller's responsibility and must reuse the
+original request ID and unchanged payload.
+
 ## Local development
 
 Run commands from this directory with Node.js 22.22 or newer:

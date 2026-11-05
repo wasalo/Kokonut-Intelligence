@@ -19,6 +19,12 @@ The initial TypeScript workspace and three route shells now exist under
 handoffs to the existing interfaces only; feature parity, identity acceptance,
 Cloudflare routing, and R2 acceptance remain open.
 
+The shared `@kokonut/operator-client` foundation now enforces same-origin
+operator API paths, no-store requests, the existing operator CSRF cookie/header
+contract for mutations, and stale-read cancellation primitives. The Delphi and
+Field Collector auth protocols remain separate. Domain features have not yet
+been migrated onto this client.
+
 ## Existing surfaces and boundaries
 
 | Current surface | Current purpose | Preserve during migration |
