@@ -69,3 +69,39 @@ def test_has_global_capability_rejects_invalid_hash_or_capability(monkeypatch):
     assert operator_auth.OIDCOperatorProvider.has_global_capability(
         provider, "a" * 64, "clickhouse_outbox:admin"
     ) is False
+
+
+@pytest.mark.parametrize(
+    "capability",
+    ["scheduler:read", "scheduler:enable", "scheduler:disable"],
+)
+def test_has_global_capability_accepts_scheduler_actions(monkeypatch, capability):
+    class Cursor:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_args):
+            return False
+
+        def execute(self, _query, params):
+            self.params = params
+
+        def fetchone(self):
+            return (True,)
+
+    class Connection:
+        def cursor(self):
+            return Cursor()
+
+        def rollback(self):
+            pass
+
+        def close(self):
+            pass
+
+    monkeypatch.setattr(operator_auth, "_get_operator_auth_db", lambda _settings: Connection())
+    provider = SimpleNamespace(settings=object())
+
+    assert operator_auth.OIDCOperatorProvider.has_global_capability(
+        provider, "a" * 64, capability
+    ) is True

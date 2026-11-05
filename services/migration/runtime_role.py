@@ -110,6 +110,7 @@ _CLICKHOUSE_OUTBOX_OPERATOR_FUNCTIONS = (
     "kokonut_security.transition_clickhouse_outbox_operator_dead_letter(text,uuid,text,text)",
 )
 _OPERATOR_GLOBAL_CAPABILITY_FUNCTION = "kokonut_security.operator_global_capability_allows(text,text)"
+_SCHEDULER_OPERATOR_ACTION_FUNCTION = "kokonut_security.audit_scheduler_operator_action(text,uuid,text,text)"
 _CLICKHOUSE_OUTBOX_OPERATOR_SESSION_FUNCTION = "kokonut_security.resolve_clickhouse_outbox_operator_session(text)"
 _OPERATOR_GLOBAL_CAPABILITY_ADMIN_FUNCTIONS = (
     "kokonut_security.grant_operator_global_capability(uuid,text,text,text)",
@@ -249,6 +250,7 @@ _SECURITY_DEFINER_OWNERS = (
     (_CLICKHOUSE_OUTBOX_OPERATOR_SESSION_FUNCTION, "kokonut_clickhouse_outbox_operator_owner"),
     *((function, "kokonut_clickhouse_outbox_operator_owner") for function in _CLICKHOUSE_OUTBOX_OPERATOR_FUNCTIONS),
     (_OPERATOR_GLOBAL_CAPABILITY_FUNCTION, "kokonut_operator_capability_owner"),
+    (_SCHEDULER_OPERATOR_ACTION_FUNCTION, "kokonut_operator_capability_owner"),
     *((function, "kokonut_operator_capability_owner") for function in _OPERATOR_GLOBAL_CAPABILITY_ADMIN_FUNCTIONS),
     *((function, "kokonut_report_snapshot_export_owner") for function in _REPORT_SNAPSHOT_EXPORT_FUNCTIONS),
     *((function, "kokonut_metric_value_manager") for function in _METRIC_VALUE_KERNEL_FUNCTIONS),
@@ -286,6 +288,7 @@ _PRIVATE_RUNTIME_FUNCTIONS = (
     _CLICKHOUSE_OUTBOX_OPERATOR_SESSION_FUNCTION,
     *_CLICKHOUSE_OUTBOX_OPERATOR_FUNCTIONS,
     _OPERATOR_GLOBAL_CAPABILITY_FUNCTION,
+    _SCHEDULER_OPERATOR_ACTION_FUNCTION,
     *_OPERATOR_GLOBAL_CAPABILITY_ADMIN_FUNCTIONS,
     *_REPORT_SNAPSHOT_EXPORT_FUNCTIONS,
     *_METRIC_VALUE_KERNEL_FUNCTIONS,

@@ -334,6 +334,9 @@ class OIDCOperatorProvider:
                 "clickhouse_outbox:replay",
                 "clickhouse_outbox:resolve",
                 "clickhouse_outbox:discard",
+                "scheduler:read",
+                "scheduler:enable",
+                "scheduler:disable",
             }
         ):
             return False
@@ -439,23 +442,41 @@ def auth_route_policy(method: str, path: str, *, enabled: bool) -> dict | None:
             "clickhouse_outbox:discard",
         ),
     }
+    scheduler_routes = {
+        ("GET", "/operator/api/scheduler/tasks"): ("read", "scheduler:read"),
+        ("POST", "/operator/api/scheduler/tasks/{task_id}/enable"): (
+            "enable",
+            "scheduler:enable",
+        ),
+        ("POST", "/operator/api/scheduler/tasks/{task_id}/disable"): (
+            "disable",
+            "scheduler:disable",
+        ),
+    }
     normalized_method = method.upper()
     if enabled:
-        for (route_method, route_path), (action, capability) in outbox_routes.items():
-            match = re.fullmatch(
-                re.escape(route_path).replace(r"\{outbox_id\}", r"([0-9a-fA-F-]{36})"),
-                path,
-            )
-            if route_method == normalized_method and match:
-                return {
-                    "resource": "clickhouse_outbox",
-                    "action": action,
-                    "public": False,
-                    "location_id": None,
-                    "scope_required": False,
-                    "operator_auth": True,
-                    "global_capability": capability,
-                }
+        for routes, resource in (
+            (outbox_routes, "clickhouse_outbox"),
+            (scheduler_routes, "scheduler"),
+        ):
+            for (route_method, route_path), (action, capability) in routes.items():
+                path_parameter = "outbox_id" if resource == "clickhouse_outbox" else "task_id"
+                match = re.fullmatch(
+                    re.escape(route_path).replace(
+                        rf"\{{{path_parameter}\}}", r"([0-9a-fA-F-]{36})"
+                    ),
+                    path,
+                )
+                if route_method == normalized_method and match:
+                    return {
+                        "resource": resource,
+                        "action": action,
+                        "public": False,
+                        "location_id": None,
+                        "scope_required": False,
+                        "operator_auth": True,
+                        "global_capability": capability,
+                    }
 
     environmental_baseline_capture_match = re.fullmatch(
         r"/operator/api/environmental-baselines/([0-9a-fA-F-]{36})/captures", path
@@ -6209,6 +6230,8 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
         router, provider, run_in_threadpool, psycopg2
     )
     from services.gateway.clickhouse_outbox_operator import create_clickhouse_outbox_router
+    from services.gateway.scheduler_operator import create_scheduler_operator_router
 
     router.include_router(create_clickhouse_outbox_router())
+    router.include_router(create_scheduler_operator_router())
     return router

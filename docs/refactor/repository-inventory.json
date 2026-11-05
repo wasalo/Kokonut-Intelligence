@@ -1,5 +1,5 @@
 {
-  "baseline_commit": "a9e64b765db35e1586957c7bf6af11e499f1cb4f",
+  "baseline_commit": "8b2faee2cd447d0b4b3c72671aa7228bf0a304e6",
   "capabilities": [
     {
       "category": "Farm Operations",
@@ -1858,187 +1858,187 @@
       "source": "services/gateway/operating_pilot_routes.py"
     },
     {
-      "line": 4221,
+      "line": 4242,
       "method": "GET",
       "path": "/operator/",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 4236,
+      "line": 4257,
       "method": "GET",
       "path": "/operator/auth/login",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 4260,
+      "line": 4281,
       "method": "GET",
       "path": "/operator/auth/callback",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 4318,
+      "line": 4339,
       "method": "GET",
       "path": "/operator/auth/session",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 4346,
+      "line": 4367,
       "method": "GET",
       "path": "/operator/api/report-review-queue",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 4428,
+      "line": 4449,
       "method": "GET",
       "path": "/operator/api/report-review-queue/{report_id}",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 4519,
+      "line": 4540,
       "method": "POST",
       "path": "/operator/api/report-exports",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 4608,
+      "line": 4629,
       "method": "GET",
       "path": "/operator/api/report-exports",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 4689,
+      "line": 4710,
       "method": "GET",
       "path": "/operator/api/report-export-snapshots",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 4777,
+      "line": 4798,
       "method": "GET",
       "path": "/operator/api/report-exports/{request_id}",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 4868,
+      "line": 4889,
       "method": "GET",
       "path": "/operator/api/report-exports/{request_id}/artifact",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 4945,
+      "line": 4966,
       "method": "GET",
       "path": "/operator/api/mobile-collection-review-queue",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 5008,
+      "line": 5029,
       "method": "GET",
       "path": "/operator/api/mobile-collection-review-queue/{collection_id}",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 5095,
+      "line": 5116,
       "method": "GET",
       "path": "/operator/api/mobile-collection-review-queue/{collection_id}/disposition-inventory",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 5176,
+      "line": 5197,
       "method": "POST",
       "path": "/operator/api/mobile-collection-review-queue/{collection_id}/events",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 5231,
+      "line": 5252,
       "method": "GET",
       "path": "/operator/api/farm-activity-intake-queue",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 5298,
+      "line": 5319,
       "method": "GET",
       "path": "/operator/api/farm-activity-intake-queue/{collection_id}",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 5359,
+      "line": 5380,
       "method": "POST",
       "path": "/operator/api/farm-activity-intake-queue/{collection_id}/draft",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 5442,
+      "line": 5463,
       "method": "POST",
       "path": "/operator/api/farm-activities/{activity_id}/{action}",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 5535,
+      "line": 5556,
       "method": "GET",
       "path": "/operator/api/farm-activities",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 5585,
+      "line": 5606,
       "method": "GET",
       "path": "/operator/api/farm-activities/published",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 5637,
+      "line": 5658,
       "method": "GET",
       "path": "/operator/api/farm-activities/published/{activity_id}",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 5695,
+      "line": 5716,
       "method": "GET",
       "path": "/operator/api/farm-activities/{activity_id}",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 5749,
+      "line": 5770,
       "method": "PATCH",
       "path": "/operator/api/farm-activities/{activity_id}/draft",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 5838,
+      "line": 5859,
       "method": "POST",
       "path": "/operator/api/mobile/locations/{location_id}/participants",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 5858,
+      "line": 5879,
       "method": "POST",
       "path": "/operator/api/mobile/locations/{location_id}/participants/revoke",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 5878,
+      "line": 5899,
       "method": "POST",
       "path": "/operator/api/mobile/locations/{location_id}/enrollments",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 5938,
+      "line": 5959,
       "method": "DELETE",
       "path": "/operator/api/mobile/locations/{location_id}/enrollments/{enrollment_id}",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 5966,
+      "line": 5987,
       "method": "POST",
       "path": "/operator/api/mobile/locations/{location_id}/devices/{device_id}/revoke",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 5994,
+      "line": 6015,
       "method": "GET",
       "path": "/operator/api/mobile/locations/{location_id}/inventory",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 6056,
+      "line": 6077,
       "method": "POST",
       "path": "/operator/auth/logout",
       "source": "services/gateway/operator_auth.py"
@@ -2270,6 +2270,24 @@
       "method": "GET",
       "path": "/v1/governance/baal/members/{wallet}",
       "source": "services/gateway/router.py"
+    },
+    {
+      "line": 221,
+      "method": "GET",
+      "path": "/operator/api/scheduler/tasks",
+      "source": "services/gateway/scheduler_operator.py"
+    },
+    {
+      "line": 231,
+      "method": "POST",
+      "path": "/operator/api/scheduler/tasks/{task_id}/enable",
+      "source": "services/gateway/scheduler_operator.py"
+    },
+    {
+      "line": 248,
+      "method": "POST",
+      "path": "/operator/api/scheduler/tasks/{task_id}/disable",
+      "source": "services/gateway/scheduler_operator.py"
     },
     {
       "line": 118,
@@ -3817,7 +3835,8 @@
       "schemas/postgres/745_runtime_public_wellbeing_metric_summary_read_only.sql",
       "schemas/postgres/746_clickhouse_outbox_operator_actions.sql",
       "schemas/postgres/747_scheduler_run_event_boundary.sql",
-      "schemas/postgres/748_scheduler_executor_privileges.sql"
+      "schemas/postgres/748_scheduler_executor_privileges.sql",
+      "schemas/postgres/749_scheduler_operator_actions.sql"
     ],
     "seeds": [
       "schemas/seeds/000_expense_categories.sql",
@@ -5373,6 +5392,7 @@
         "services/gateway/report_export_responses.py",
         "services/gateway/report_exports.py",
         "services/gateway/router.py",
+        "services/gateway/scheduler_operator.py",
         "services/gateway/sequential_decision_reads.py",
         "services/gateway/sequential_decision_routes.py",
         "services/gateway/service_health_responses.py",
@@ -5609,6 +5629,7 @@
         "tests/test_phase3_4.py",
         "tests/test_report_exports_gateway.py",
         "tests/test_report_exports_gateway_contract.py",
+        "tests/test_scheduler_operator.py",
         "tests/test_unified_cli_success_contract.py"
       ]
     },
@@ -7632,6 +7653,7 @@
     "tests/test_scheduler_database_boundary.py",
     "tests/test_scheduler_durability.py",
     "tests/test_scheduler_job_plan_cli.py",
+    "tests/test_scheduler_operator.py",
     "tests/test_scheduler_worker.py",
     "tests/test_schema_bootstrap_profile.py",
     "tests/test_schema_introspection.py",

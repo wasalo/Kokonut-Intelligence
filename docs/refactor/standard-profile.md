@@ -151,6 +151,16 @@ must be explicitly approved and provisioned by a DBA. They are global controls,
 not location-scoped tenant grants. Legacy CLI mutation flags are retired and
 fail before database access.
 
+Scheduler definition administration requires migration 749 and the normal
+OIDC operator session/CSRF flow. The Gateway exposes bounded task inventory,
+graph-validated enable, and guarded disable actions with per-task audit rows;
+the isolated scheduler executor still cannot edit definitions. A DBA must
+explicitly provision the operator's `scheduler:read`, `scheduler:enable`, or
+`scheduler:disable` global capabilities through
+`kokonut_security.grant_operator_global_capability`. The route uses the
+Gateway's existing `kokonut_runtime` connection, so it does not close the
+API/general-worker identity gap (C1) and is not candidate rollout acceptance.
+
 Inspect existing schedules, handler registrations, leases, and Prefect/cron
 ownership before switching roles. For source acceptance, `--action build` builds
 the app and worker from the checkout. That path is useful during development,

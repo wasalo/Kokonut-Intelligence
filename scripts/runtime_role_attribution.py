@@ -655,7 +655,7 @@ def _standard_role_contract() -> dict:
             "started_by_default": True,
             "database_login": "kokonut_runtime via PG_USER/PG_PASSWORD from docker-compose.kernel-runtime-role.yml",
             "startup_check": "generic non-owner/non-privileged current_user==session_user; no API-role identity assertion",
-            "credential_scope": "shared runtime login for domain-service connections; OIDC session/capability and ClickHouse outbox actions use separate dedicated database credentials listed below",
+            "credential_scope": "shared kokonut_runtime login for Gateway domain queries and migration-749 scheduler definition actions (OIDC-capability-gated and audited); OIDC session/capability and ClickHouse outbox actions use the separate credentials listed below; API/general-worker identity separation remains open",
             "notification_provider_environment": "ALERT_WEBHOOK_URL is cleared after deriving a non-secret configured flag; ALERT_SMTP_USER/PASSWORD are explicitly blanked; non-secret SMTP routing fields may remain",
         },
         "api_route_specific_database_identities": [

@@ -3,17 +3,17 @@
   "generated_by": "scripts/runtime_role_attribution.py",
   "scope": "Conservative static attribution of direct Python SQL execution sites to source-registered Gateway route handlers and the existing supervisor worker operation graphs. Gateway route roots are collected from the Gateway app's local import closure; this does not prove every dynamically registered route is mounted. Worker roots are allowlisted modules/handlers, not proof of a live schedule or event. A site without a static path may be dynamic, callback-driven, imported, CLI-driven, or otherwise unresolved; it is not evidence that a site is dead. Relation names remain heuristic candidates. This report contains no SQL text, parameter values, secrets, live role grants, tenant policy, or ACL authorization and must not be used by itself to revoke privileges.",
   "summary": {
-    "sql_execution_sites": 4980,
+    "sql_execution_sites": 4986,
     "attribution_counts": {
-      "api_candidate": 1000,
+      "api_candidate": 1010,
       "worker_candidate": 328,
       "shared_candidate": 3,
-      "unresolved": 3649
+      "unresolved": 3645
     },
-    "api_route_root_count": 358,
-    "api_static_function_count": 1134,
+    "api_route_root_count": 361,
+    "api_static_function_count": 1152,
     "api_verified_threadpool_callback_edge_count": 268,
-    "api_static_sql_site_count": 1003,
+    "api_static_sql_site_count": 1013,
     "api_threadpool_callback_sql_site_count": 967,
     "api_dynamic_dispatch_edge_count": 0,
     "api_unresolved_route_registration_count": 0,
@@ -21,9 +21,9 @@
     "worker_operation_root_count": 49,
     "worker_dynamic_dispatch_edge_count": 56,
     "worker_static_sql_site_count": 331,
-    "worker_sites_without_static_function_match": 4649,
+    "worker_sites_without_static_function_match": 4655,
     "sites_in_both_api_and_worker_graphs": 3,
-    "unresolved_site_count": 3649
+    "unresolved_site_count": 3645
   },
   "process_and_credential_policy": {
     "standard_api": {
@@ -31,7 +31,7 @@
       "started_by_default": true,
       "database_login": "kokonut_runtime via PG_USER/PG_PASSWORD from docker-compose.kernel-runtime-role.yml",
       "startup_check": "generic non-owner/non-privileged current_user==session_user; no API-role identity assertion",
-      "credential_scope": "shared runtime login for domain-service connections; OIDC session/capability and ClickHouse outbox actions use separate dedicated database credentials listed below",
+      "credential_scope": "shared kokonut_runtime login for Gateway domain queries and migration-749 scheduler definition actions (OIDC-capability-gated and audited); OIDC session/capability and ClickHouse outbox actions use the separate credentials listed below; API/general-worker identity separation remains open",
       "notification_provider_environment": "ALERT_WEBHOOK_URL is cleared after deriving a non-secret configured flag; ALERT_SMTP_USER/PASSWORD are explicitly blanked; non-secret SMTP routing fields may remain"
     },
     "api_route_specific_database_identities": [
@@ -265,9 +265,9 @@
       "services/core/schema_readiness.py": "6cb4ecfd3f3b674085c8441e861630ada12999d09ccabcb32e4ec32568a4f580",
       "services/common/worker_environment.py": "20ce57eb0d1093183099f07b68c85e5280e80daa23407d141efd1731c5d10898",
       "services/core/runtime.py": "2af39df88fbb6ccbaea8643ed91533a4b55801ba8dc35d48a914df75a3ea33ed",
-      "services/gateway/operator_auth.py": "24820d9cf9a30d3bc0507102e423720fa7d06d4766d70e239a9132707ff69576",
+      "services/gateway/operator_auth.py": "a2828b9ebb74494a146e09e92eea1ffea95eb337e4decb310631bc9d7d0fd1df",
       "services/gateway/clickhouse_outbox_operator.py": "86b0c5afe1f796230b24d675a93842d9fb11b8ae9cb8fa7bb38c035d82f524d1",
-      "services/migration/runtime_role.py": "5b4fe43864e55d1116bc11efccaf345a07acdf3afc56c4a502cc9f35997f46a7"
+      "services/migration/runtime_role.py": "ad097fb61930ca8cbd8dc54396528d307a679ef7baf7b2d2013d16ba1cfc41f6"
     }
   },
   "api_roots": [
@@ -1114,157 +1114,157 @@
     {
       "function": "services.gateway.operator_auth:create_auth_router.callback",
       "source": "services/gateway/operator_auth.py",
-      "line": 4261
+      "line": 4282
     },
     {
       "function": "services.gateway.operator_auth:create_auth_router.current_session",
       "source": "services/gateway/operator_auth.py",
-      "line": 4319
+      "line": 4340
     },
     {
       "function": "services.gateway.operator_auth:create_auth_router.download_report_export",
       "source": "services/gateway/operator_auth.py",
-      "line": 4869
+      "line": 4890
     },
     {
       "function": "services.gateway.operator_auth:create_auth_router.edit_farm_activity_draft_route",
       "source": "services/gateway/operator_auth.py",
-      "line": 5750
+      "line": 5771
     },
     {
       "function": "services.gateway.operator_auth:create_auth_router.farm_activity_detail",
       "source": "services/gateway/operator_auth.py",
-      "line": 5696
+      "line": 5717
     },
     {
       "function": "services.gateway.operator_auth:create_auth_router.farm_activity_intake_detail",
       "source": "services/gateway/operator_auth.py",
-      "line": 5299
+      "line": 5320
     },
     {
       "function": "services.gateway.operator_auth:create_auth_router.farm_activity_intake_queue",
       "source": "services/gateway/operator_auth.py",
-      "line": 5235
+      "line": 5256
     },
     {
       "function": "services.gateway.operator_auth:create_auth_router.farm_activity_queue",
       "source": "services/gateway/operator_auth.py",
-      "line": 5536
+      "line": 5557
     },
     {
       "function": "services.gateway.operator_auth:create_auth_router.get_report_export",
       "source": "services/gateway/operator_auth.py",
-      "line": 4781
+      "line": 4802
     },
     {
       "function": "services.gateway.operator_auth:create_auth_router.list_exportable_report_snapshots",
       "source": "services/gateway/operator_auth.py",
-      "line": 4693
+      "line": 4714
     },
     {
       "function": "services.gateway.operator_auth:create_auth_router.list_report_exports",
       "source": "services/gateway/operator_auth.py",
-      "line": 4612
+      "line": 4633
     },
     {
       "function": "services.gateway.operator_auth:create_auth_router.login",
       "source": "services/gateway/operator_auth.py",
-      "line": 4237
+      "line": 4258
     },
     {
       "function": "services.gateway.operator_auth:create_auth_router.logout",
       "source": "services/gateway/operator_auth.py",
-      "line": 6057
+      "line": 6078
     },
     {
       "function": "services.gateway.operator_auth:create_auth_router.mobile_collection_disposition_inventory",
       "source": "services/gateway/operator_auth.py",
-      "line": 5099
+      "line": 5120
     },
     {
       "function": "services.gateway.operator_auth:create_auth_router.mobile_collection_review_detail",
       "source": "services/gateway/operator_auth.py",
-      "line": 5012
+      "line": 5033
     },
     {
       "function": "services.gateway.operator_auth:create_auth_router.mobile_collection_review_event",
       "source": "services/gateway/operator_auth.py",
-      "line": 5180
+      "line": 5201
     },
     {
       "function": "services.gateway.operator_auth:create_auth_router.mobile_collection_review_queue",
       "source": "services/gateway/operator_auth.py",
-      "line": 4949
+      "line": 4970
     },
     {
       "function": "services.gateway.operator_auth:create_auth_router.operator_console",
       "source": "services/gateway/operator_auth.py",
-      "line": 4222
+      "line": 4243
     },
     {
       "function": "services.gateway.operator_auth:create_auth_router.operator_create_mobile_enrollment",
       "source": "services/gateway/operator_auth.py",
-      "line": 5883
+      "line": 5904
     },
     {
       "function": "services.gateway.operator_auth:create_auth_router.operator_create_mobile_participant_link",
       "source": "services/gateway/operator_auth.py",
-      "line": 5839
+      "line": 5860
     },
     {
       "function": "services.gateway.operator_auth:create_auth_router.operator_mobile_inventory",
       "source": "services/gateway/operator_auth.py",
-      "line": 5998
+      "line": 6019
     },
     {
       "function": "services.gateway.operator_auth:create_auth_router.operator_revoke_mobile_device",
       "source": "services/gateway/operator_auth.py",
-      "line": 5969
+      "line": 5990
     },
     {
       "function": "services.gateway.operator_auth:create_auth_router.operator_revoke_mobile_enrollment",
       "source": "services/gateway/operator_auth.py",
-      "line": 5941
+      "line": 5962
     },
     {
       "function": "services.gateway.operator_auth:create_auth_router.operator_revoke_mobile_participant_link",
       "source": "services/gateway/operator_auth.py",
-      "line": 5859
+      "line": 5880
     },
     {
       "function": "services.gateway.operator_auth:create_auth_router.promote_farm_activity_draft",
       "source": "services/gateway/operator_auth.py",
-      "line": 5363
+      "line": 5384
     },
     {
       "function": "services.gateway.operator_auth:create_auth_router.published_farm_activity_detail",
       "source": "services/gateway/operator_auth.py",
-      "line": 5638
+      "line": 5659
     },
     {
       "function": "services.gateway.operator_auth:create_auth_router.published_farm_activity_queue",
       "source": "services/gateway/operator_auth.py",
-      "line": 5586
+      "line": 5607
     },
     {
       "function": "services.gateway.operator_auth:create_auth_router.report_review_queue",
       "source": "services/gateway/operator_auth.py",
-      "line": 4350
+      "line": 4371
     },
     {
       "function": "services.gateway.operator_auth:create_auth_router.request_report_export",
       "source": "services/gateway/operator_auth.py",
-      "line": 4524
+      "line": 4545
     },
     {
       "function": "services.gateway.operator_auth:create_auth_router.submitted_report_detail",
       "source": "services/gateway/operator_auth.py",
-      "line": 4433
+      "line": 4454
     },
     {
       "function": "services.gateway.operator_auth:create_auth_router.transition_farm_activity_route",
       "source": "services/gateway/operator_auth.py",
-      "line": 5443
+      "line": 5464
     },
     {
       "function": "services.gateway.planning_budget_routes:register_planning_budget_routes.location_planning_budgets",
@@ -1455,6 +1455,21 @@
       "function": "services.gateway.router:service_health",
       "source": "services/gateway/router.py",
       "line": 782
+    },
+    {
+      "function": "services.gateway.scheduler_operator:create_scheduler_operator_router.disable_task",
+      "source": "services/gateway/scheduler_operator.py",
+      "line": 252
+    },
+    {
+      "function": "services.gateway.scheduler_operator:create_scheduler_operator_router.enable_task",
+      "source": "services/gateway/scheduler_operator.py",
+      "line": 235
+    },
+    {
+      "function": "services.gateway.scheduler_operator:create_scheduler_operator_router.get_tasks",
+      "source": "services/gateway/scheduler_operator.py",
+      "line": 225
     },
     {
       "function": "services.gateway.sequential_decision_routes:register_sequential_decision_routes.location_sequential_decision_summary",
@@ -2978,147 +2993,147 @@
       "caller": "services.gateway.operator_auth:create_auth_router.download_report_export",
       "callee": "services.gateway.report_exports:download_report_export",
       "source": "services/gateway/operator_auth.py",
-      "line": 4886,
+      "line": 4907,
       "dispatch": "verified_starlette_run_in_threadpool_callback"
     },
     {
       "caller": "services.gateway.operator_auth:create_auth_router.edit_farm_activity_draft_route",
       "callee": "services.gateway.farm_activity_lifecycle:edit_farm_activity_draft",
       "source": "services/gateway/operator_auth.py",
-      "line": 5773,
+      "line": 5794,
       "dispatch": "verified_starlette_run_in_threadpool_callback"
     },
     {
       "caller": "services.gateway.operator_auth:create_auth_router.farm_activity_detail",
       "callee": "services.gateway.farm_activity_lifecycle:get_farm_activity",
       "source": "services/gateway/operator_auth.py",
-      "line": 5707,
+      "line": 5728,
       "dispatch": "verified_starlette_run_in_threadpool_callback"
     },
     {
       "caller": "services.gateway.operator_auth:create_auth_router.farm_activity_intake_detail",
       "callee": "services.gateway.farm_activity_workflow:get_farm_activity_intake",
       "source": "services/gateway/operator_auth.py",
-      "line": 5311,
+      "line": 5332,
       "dispatch": "verified_starlette_run_in_threadpool_callback"
     },
     {
       "caller": "services.gateway.operator_auth:create_auth_router.farm_activity_intake_queue",
       "callee": "services.gateway.farm_activity_workflow:list_farm_activity_intake",
       "source": "services/gateway/operator_auth.py",
-      "line": 5244,
+      "line": 5265,
       "dispatch": "verified_starlette_run_in_threadpool_callback"
     },
     {
       "caller": "services.gateway.operator_auth:create_auth_router.farm_activity_queue",
       "callee": "services.gateway.farm_activity_lifecycle:list_farm_activities",
       "source": "services/gateway/operator_auth.py",
-      "line": 5549,
+      "line": 5570,
       "dispatch": "verified_starlette_run_in_threadpool_callback"
     },
     {
       "caller": "services.gateway.operator_auth:create_auth_router.get_report_export",
       "callee": "services.gateway.report_exports:get_report_export",
       "source": "services/gateway/operator_auth.py",
-      "line": 4797,
+      "line": 4818,
       "dispatch": "verified_starlette_run_in_threadpool_callback"
     },
     {
       "caller": "services.gateway.operator_auth:create_auth_router.list_exportable_report_snapshots",
       "callee": "services.gateway.report_exports:list_exportable_report_snapshots",
       "source": "services/gateway/operator_auth.py",
-      "line": 4711,
+      "line": 4732,
       "dispatch": "verified_starlette_run_in_threadpool_callback"
     },
     {
       "caller": "services.gateway.operator_auth:create_auth_router.list_report_exports",
       "callee": "services.gateway.report_exports:list_report_exports",
       "source": "services/gateway/operator_auth.py",
-      "line": 4627,
+      "line": 4648,
       "dispatch": "verified_starlette_run_in_threadpool_callback"
     },
     {
       "caller": "services.gateway.operator_auth:create_auth_router.mobile_collection_disposition_inventory",
       "callee": "services.gateway.operator_mobile_review:get_mobile_collection_disposition_inventory",
       "source": "services/gateway/operator_auth.py",
-      "line": 5114,
+      "line": 5135,
       "dispatch": "verified_starlette_run_in_threadpool_callback"
     },
     {
       "caller": "services.gateway.operator_auth:create_auth_router.mobile_collection_review_detail",
       "callee": "services.gateway.operator_mobile_review:get_mobile_collection",
       "source": "services/gateway/operator_auth.py",
-      "line": 5028,
+      "line": 5049,
       "dispatch": "verified_starlette_run_in_threadpool_callback"
     },
     {
       "caller": "services.gateway.operator_auth:create_auth_router.mobile_collection_review_event",
       "callee": "services.gateway.operator_mobile_review:record_mobile_review_event",
       "source": "services/gateway/operator_auth.py",
-      "line": 5192,
+      "line": 5213,
       "dispatch": "verified_starlette_run_in_threadpool_callback"
     },
     {
       "caller": "services.gateway.operator_auth:create_auth_router.mobile_collection_review_queue",
       "callee": "services.gateway.operator_mobile_review:list_mobile_collections",
       "source": "services/gateway/operator_auth.py",
-      "line": 4958,
+      "line": 4979,
       "dispatch": "verified_starlette_run_in_threadpool_callback"
     },
     {
       "caller": "services.gateway.operator_auth:create_auth_router.operator_mobile_inventory",
       "callee": "services.gateway.operator_mobile_review:get_mobile_operations_inventory",
       "source": "services/gateway/operator_auth.py",
-      "line": 6008,
+      "line": 6029,
       "dispatch": "verified_starlette_run_in_threadpool_callback"
     },
     {
       "caller": "services.gateway.operator_auth:create_auth_router.promote_farm_activity_draft",
       "callee": "services.gateway.farm_activity_workflow:create_farm_activity_draft",
       "source": "services/gateway/operator_auth.py",
-      "line": 5381,
+      "line": 5402,
       "dispatch": "verified_starlette_run_in_threadpool_callback"
     },
     {
       "caller": "services.gateway.operator_auth:create_auth_router.published_farm_activity_detail",
       "callee": "services.gateway.farm_activity_lifecycle:get_farm_activity",
       "source": "services/gateway/operator_auth.py",
-      "line": 5651,
+      "line": 5672,
       "dispatch": "verified_starlette_run_in_threadpool_callback"
     },
     {
       "caller": "services.gateway.operator_auth:create_auth_router.published_farm_activity_queue",
       "callee": "services.gateway.farm_activity_lifecycle:list_farm_activities",
       "source": "services/gateway/operator_auth.py",
-      "line": 5599,
+      "line": 5620,
       "dispatch": "verified_starlette_run_in_threadpool_callback"
     },
     {
       "caller": "services.gateway.operator_auth:create_auth_router.report_review_queue",
       "callee": "services.gateway.operator_review:list_submitted_reports",
       "source": "services/gateway/operator_auth.py",
-      "line": 4359,
+      "line": 4380,
       "dispatch": "verified_starlette_run_in_threadpool_callback"
     },
     {
       "caller": "services.gateway.operator_auth:create_auth_router.request_report_export",
       "callee": "services.gateway.report_exports:request_report_export",
       "source": "services/gateway/operator_auth.py",
-      "line": 4545,
+      "line": 4566,
       "dispatch": "verified_starlette_run_in_threadpool_callback"
     },
     {
       "caller": "services.gateway.operator_auth:create_auth_router.submitted_report_detail",
       "callee": "services.gateway.operator_review:get_submitted_report",
       "source": "services/gateway/operator_auth.py",
-      "line": 4457,
+      "line": 4478,
       "dispatch": "verified_starlette_run_in_threadpool_callback"
     },
     {
       "caller": "services.gateway.operator_auth:create_auth_router.transition_farm_activity_route",
       "callee": "services.gateway.farm_activity_lifecycle:transition_farm_activity",
       "source": "services/gateway/operator_auth.py",
-      "line": 5470,
+      "line": 5491,
       "dispatch": "verified_starlette_run_in_threadpool_callback"
     },
     {
@@ -3942,7 +3957,7 @@
     }
   ],
   "api_import_closure_review": {
-    "source_file_count": 384,
+    "source_file_count": 389,
     "unresolved_local_modules": [],
     "dynamic_import_sites": [
       {
@@ -71739,9 +71754,9 @@
       ]
     },
     {
-      "id": "services/gateway/operator_auth.py:343:16",
+      "id": "services/gateway/operator_auth.py:346:16",
       "source": "services/gateway/operator_auth.py",
-      "line": 343,
+      "line": 346,
       "scope": "OIDCOperatorProvider.has_global_capability",
       "method": "execute",
       "expression_kind": "literal",
@@ -71760,9 +71775,9 @@
       ]
     },
     {
-      "id": "services/gateway/operator_auth.py:365:16",
+      "id": "services/gateway/operator_auth.py:368:16",
       "source": "services/gateway/operator_auth.py",
-      "line": 365,
+      "line": 368,
       "scope": "OIDCOperatorProvider.has_scope",
       "method": "execute",
       "expression_kind": "literal",
@@ -71781,9 +71796,9 @@
       ]
     },
     {
-      "id": "services/gateway/operator_auth.py:384:16",
+      "id": "services/gateway/operator_auth.py:387:16",
       "source": "services/gateway/operator_auth.py",
-      "line": 384,
+      "line": 387,
       "scope": "OIDCOperatorProvider.list_scopes",
       "method": "execute",
       "expression_kind": "literal",
@@ -71802,9 +71817,9 @@
       ]
     },
     {
-      "id": "services/gateway/operator_auth.py:385:16",
+      "id": "services/gateway/operator_auth.py:388:16",
       "source": "services/gateway/operator_auth.py",
-      "line": 385,
+      "line": 388,
       "scope": "OIDCOperatorProvider.list_scopes",
       "method": "execute",
       "expression_kind": "literal",
@@ -71823,9 +71838,9 @@
       ]
     },
     {
-      "id": "services/gateway/operator_auth.py:386:16",
+      "id": "services/gateway/operator_auth.py:389:16",
       "source": "services/gateway/operator_auth.py",
-      "line": 386,
+      "line": 389,
       "scope": "OIDCOperatorProvider.list_scopes",
       "method": "execute",
       "expression_kind": "literal",
@@ -71844,9 +71859,9 @@
       ]
     },
     {
-      "id": "services/gateway/operator_auth.py:387:16",
+      "id": "services/gateway/operator_auth.py:390:16",
       "source": "services/gateway/operator_auth.py",
-      "line": 387,
+      "line": 390,
       "scope": "OIDCOperatorProvider.list_scopes",
       "method": "execute",
       "expression_kind": "literal",
@@ -71867,9 +71882,9 @@
       ]
     },
     {
-      "id": "services/gateway/operator_auth.py:408:16",
+      "id": "services/gateway/operator_auth.py:411:16",
       "source": "services/gateway/operator_auth.py",
-      "line": 408,
+      "line": 411,
       "scope": "OIDCOperatorProvider.revoke_session",
       "method": "execute",
       "expression_kind": "literal",
@@ -74617,6 +74632,136 @@
       "attribution": "api_candidate",
       "review_labels": [
         "gateway_route_starlette_threadpool_callback_path",
+        "worker_sql_site_not_statically_reached_dynamic_or_unresolved_possible"
+      ]
+    },
+    {
+      "id": "services/gateway/scheduler_operator.py:47:16",
+      "source": "services/gateway/scheduler_operator.py",
+      "line": 47,
+      "scope": "_list_tasks",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "static_sql_sha256": "de51ff30537c306121b402b4399e89033bf4cd4e2478c976d888476d5375d080",
+      "candidate_relations": [
+        "public.scheduled_task"
+      ],
+      "write_target_relations": [],
+      "api_static_reachability": "linked",
+      "worker_static_operations": [],
+      "worker_static_review_status": "function_not_reached_by_any_static_worker_root",
+      "attribution": "api_candidate",
+      "review_labels": [
+        "gateway_route_static_call_path",
+        "worker_sql_site_not_statically_reached_dynamic_or_unresolved_possible"
+      ]
+    },
+    {
+      "id": "services/gateway/scheduler_operator.py:61:4",
+      "source": "services/gateway/scheduler_operator.py",
+      "line": 61,
+      "scope": "_task_rows",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "static_sql_sha256": "4a5ab15985b7940dad0a45af20f49b20b9d51986278ac1275b8d720d62dcc069",
+      "candidate_relations": [
+        "public.scheduled_task"
+      ],
+      "write_target_relations": [],
+      "api_static_reachability": "linked",
+      "worker_static_operations": [],
+      "worker_static_review_status": "function_not_reached_by_any_static_worker_root",
+      "attribution": "api_candidate",
+      "review_labels": [
+        "gateway_route_static_call_path",
+        "worker_sql_site_not_statically_reached_dynamic_or_unresolved_possible"
+      ]
+    },
+    {
+      "id": "services/gateway/scheduler_operator.py:110:16",
+      "source": "services/gateway/scheduler_operator.py",
+      "line": 110,
+      "scope": "_set_task_enabled",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SET",
+      "static_sql_sha256": "4554a9b04ca5377a8e5875d7314effe7a8fddae5de6256248df5b68e92844c6a",
+      "candidate_relations": [],
+      "write_target_relations": [],
+      "api_static_reachability": "linked",
+      "worker_static_operations": [],
+      "worker_static_review_status": "function_not_reached_by_any_static_worker_root",
+      "attribution": "api_candidate",
+      "review_labels": [
+        "gateway_route_static_call_path",
+        "worker_sql_site_not_statically_reached_dynamic_or_unresolved_possible"
+      ]
+    },
+    {
+      "id": "services/gateway/scheduler_operator.py:113:16",
+      "source": "services/gateway/scheduler_operator.py",
+      "line": 113,
+      "scope": "_set_task_enabled",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "UNKNOWN",
+      "static_sql_sha256": "fb7ca8c7508f8053740685987ecd2a302c14682f9272aae10c1b16aec256be27",
+      "candidate_relations": [
+        "public.scheduled_task"
+      ],
+      "write_target_relations": [],
+      "api_static_reachability": "linked",
+      "worker_static_operations": [],
+      "worker_static_review_status": "function_not_reached_by_any_static_worker_root",
+      "attribution": "api_candidate",
+      "review_labels": [
+        "gateway_route_static_call_path",
+        "worker_sql_site_not_statically_reached_dynamic_or_unresolved_possible"
+      ]
+    },
+    {
+      "id": "services/gateway/scheduler_operator.py:146:24",
+      "source": "services/gateway/scheduler_operator.py",
+      "line": 146,
+      "scope": "_set_task_enabled",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "UPDATE",
+      "static_sql_sha256": "06cfbcad6dacd1553f4d8d906245fabb6d649b0136dbc3aa38bb320316325558",
+      "candidate_relations": [
+        "public.scheduled_task"
+      ],
+      "write_target_relations": [
+        "public.scheduled_task"
+      ],
+      "api_static_reachability": "linked",
+      "worker_static_operations": [],
+      "worker_static_review_status": "function_not_reached_by_any_static_worker_root",
+      "attribution": "api_candidate",
+      "review_labels": [
+        "gateway_route_static_call_path",
+        "worker_sql_site_not_statically_reached_dynamic_or_unresolved_possible"
+      ]
+    },
+    {
+      "id": "services/gateway/scheduler_operator.py:159:20",
+      "source": "services/gateway/scheduler_operator.py",
+      "line": 159,
+      "scope": "_set_task_enabled",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "static_sql_sha256": "7465319edd239aa992f288225d59db2a84547ce54b9730e9f026214435f12a6a",
+      "candidate_relations": [],
+      "write_target_relations": [],
+      "api_static_reachability": "linked",
+      "worker_static_operations": [],
+      "worker_static_review_status": "function_not_reached_by_any_static_worker_root",
+      "attribution": "api_candidate",
+      "review_labels": [
+        "gateway_route_static_call_path",
         "worker_sql_site_not_statically_reached_dynamic_or_unresolved_possible"
       ]
     },
@@ -94416,9 +94561,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:372:4",
+      "id": "services/migration/runtime_role.py:375:4",
       "source": "services/migration/runtime_role.py",
-      "line": 372,
+      "line": 375,
       "scope": "_ensure_login_role",
       "method": "execute",
       "expression_kind": "literal",
@@ -94438,9 +94583,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:376:8",
+      "id": "services/migration/runtime_role.py:379:8",
       "source": "services/migration/runtime_role.py",
-      "line": 376,
+      "line": 379,
       "scope": "_ensure_login_role",
       "method": "execute",
       "expression_kind": "literal",
@@ -94462,9 +94607,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:389:8",
+      "id": "services/migration/runtime_role.py:392:8",
       "source": "services/migration/runtime_role.py",
-      "line": 389,
+      "line": 392,
       "scope": "_ensure_login_role",
       "method": "execute",
       "expression_kind": "literal",
@@ -94485,9 +94630,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:399:12",
+      "id": "services/migration/runtime_role.py:402:12",
       "source": "services/migration/runtime_role.py",
-      "line": 399,
+      "line": 402,
       "scope": "_ensure_login_role",
       "method": "execute",
       "expression_kind": "composed_or_variable",
@@ -94505,9 +94650,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:400:8",
+      "id": "services/migration/runtime_role.py:403:8",
       "source": "services/migration/runtime_role.py",
-      "line": 400,
+      "line": 403,
       "scope": "_ensure_login_role",
       "method": "execute",
       "expression_kind": "composed_or_variable",
@@ -94525,9 +94670,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:408:8",
+      "id": "services/migration/runtime_role.py:411:8",
       "source": "services/migration/runtime_role.py",
-      "line": 408,
+      "line": 411,
       "scope": "_ensure_login_role",
       "method": "execute",
       "expression_kind": "composed_or_variable",
@@ -94545,9 +94690,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:415:8",
+      "id": "services/migration/runtime_role.py:418:8",
       "source": "services/migration/runtime_role.py",
-      "line": 415,
+      "line": 418,
       "scope": "_ensure_login_role",
       "method": "execute",
       "expression_kind": "literal",
@@ -94567,9 +94712,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:422:4",
+      "id": "services/migration/runtime_role.py:425:4",
       "source": "services/migration/runtime_role.py",
-      "line": 422,
+      "line": 425,
       "scope": "_remove_role_memberships",
       "method": "execute",
       "expression_kind": "literal",
@@ -94590,9 +94735,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:433:8",
+      "id": "services/migration/runtime_role.py:436:8",
       "source": "services/migration/runtime_role.py",
-      "line": 433,
+      "line": 436,
       "scope": "_remove_role_memberships",
       "method": "execute",
       "expression_kind": "composed_or_variable",
@@ -94610,9 +94755,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:435:4",
+      "id": "services/migration/runtime_role.py:438:4",
       "source": "services/migration/runtime_role.py",
-      "line": 435,
+      "line": 438,
       "scope": "_remove_role_memberships",
       "method": "execute",
       "expression_kind": "literal",
@@ -94633,9 +94778,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:446:8",
+      "id": "services/migration/runtime_role.py:449:8",
       "source": "services/migration/runtime_role.py",
-      "line": 446,
+      "line": 449,
       "scope": "_remove_role_memberships",
       "method": "execute",
       "expression_kind": "composed_or_variable",
@@ -94653,9 +94798,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:450:4",
+      "id": "services/migration/runtime_role.py:453:4",
       "source": "services/migration/runtime_role.py",
-      "line": 450,
+      "line": 453,
       "scope": "_verify_role_attributes",
       "method": "execute",
       "expression_kind": "literal",
@@ -94676,9 +94821,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:464:4",
+      "id": "services/migration/runtime_role.py:467:4",
       "source": "services/migration/runtime_role.py",
-      "line": 464,
+      "line": 467,
       "scope": "_verify_role_attributes",
       "method": "execute",
       "expression_kind": "literal",
@@ -94699,9 +94844,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:492:4",
+      "id": "services/migration/runtime_role.py:495:4",
       "source": "services/migration/runtime_role.py",
-      "line": 492,
+      "line": 495,
       "scope": "_verify_bounded_indexer_login",
       "method": "execute",
       "expression_kind": "composed",
@@ -94719,9 +94864,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:498:4",
+      "id": "services/migration/runtime_role.py:501:4",
       "source": "services/migration/runtime_role.py",
-      "line": 498,
+      "line": 501,
       "scope": "_verify_bounded_indexer_login",
       "method": "execute",
       "expression_kind": "literal",
@@ -94739,9 +94884,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:534:4",
+      "id": "services/migration/runtime_role.py:537:4",
       "source": "services/migration/runtime_role.py",
-      "line": 534,
+      "line": 537,
       "scope": "_verify_bounded_indexer_login",
       "method": "execute",
       "expression_kind": "composed",
@@ -94762,9 +94907,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:550:4",
+      "id": "services/migration/runtime_role.py:553:4",
       "source": "services/migration/runtime_role.py",
-      "line": 550,
+      "line": 553,
       "scope": "_verify_bounded_indexer_login",
       "method": "execute",
       "expression_kind": "fstring",
@@ -94785,9 +94930,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:565:4",
+      "id": "services/migration/runtime_role.py:568:4",
       "source": "services/migration/runtime_role.py",
-      "line": 565,
+      "line": 568,
       "scope": "_verify_bounded_indexer_login",
       "method": "execute",
       "expression_kind": "literal",
@@ -94808,9 +94953,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:578:4",
+      "id": "services/migration/runtime_role.py:581:4",
       "source": "services/migration/runtime_role.py",
-      "line": 578,
+      "line": 581,
       "scope": "_verify_bounded_indexer_login",
       "method": "execute",
       "expression_kind": "composed",
@@ -94828,9 +94973,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:594:12",
+      "id": "services/migration/runtime_role.py:597:12",
       "source": "services/migration/runtime_role.py",
-      "line": 594,
+      "line": 597,
       "scope": "_revoke_runtime_default_privileges",
       "method": "execute",
       "expression_kind": "composed_or_variable",
@@ -94848,9 +94993,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:598:4",
+      "id": "services/migration/runtime_role.py:601:4",
       "source": "services/migration/runtime_role.py",
-      "line": 598,
+      "line": 601,
       "scope": "_verify_no_runtime_default_privileges",
       "method": "execute",
       "expression_kind": "literal",
@@ -94873,9 +95018,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:618:4",
+      "id": "services/migration/runtime_role.py:621:4",
       "source": "services/migration/runtime_role.py",
-      "line": 618,
+      "line": 621,
       "scope": "_revoke_public_function_execute",
       "method": "execute",
       "expression_kind": "literal",
@@ -94893,9 +95038,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:621:4",
+      "id": "services/migration/runtime_role.py:624:4",
       "source": "services/migration/runtime_role.py",
-      "line": 621,
+      "line": 624,
       "scope": "_revoke_public_function_execute",
       "method": "execute",
       "expression_kind": "composed_or_variable",
@@ -94913,9 +95058,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:625:4",
+      "id": "services/migration/runtime_role.py:628:4",
       "source": "services/migration/runtime_role.py",
-      "line": 625,
+      "line": 628,
       "scope": "_verify_no_public_function_execute",
       "method": "execute",
       "expression_kind": "literal",
@@ -94936,9 +95081,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:645:8",
+      "id": "services/migration/runtime_role.py:648:8",
       "source": "services/migration/runtime_role.py",
-      "line": 645,
+      "line": 648,
       "scope": "_verify_security_definer_owners",
       "method": "execute",
       "expression_kind": "literal",
@@ -94956,9 +95101,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:648:8",
+      "id": "services/migration/runtime_role.py:651:8",
       "source": "services/migration/runtime_role.py",
-      "line": 648,
+      "line": 651,
       "scope": "_verify_security_definer_owners",
       "method": "execute",
       "expression_kind": "literal",
@@ -94980,9 +95125,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:673:4",
+      "id": "services/migration/runtime_role.py:676:4",
       "source": "services/migration/runtime_role.py",
-      "line": 673,
+      "line": 676,
       "scope": "_restore_farm_activity_event_owner",
       "method": "execute",
       "expression_kind": "literal",
@@ -95000,9 +95145,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:676:4",
+      "id": "services/migration/runtime_role.py:679:4",
       "source": "services/migration/runtime_role.py",
-      "line": 676,
+      "line": 679,
       "scope": "_restore_farm_activity_event_owner",
       "method": "execute",
       "expression_kind": "literal",
@@ -95022,9 +95167,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:678:8",
+      "id": "services/migration/runtime_role.py:681:8",
       "source": "services/migration/runtime_role.py",
-      "line": 678,
+      "line": 681,
       "scope": "_restore_farm_activity_event_owner",
       "method": "execute",
       "expression_kind": "composed_or_variable",
@@ -95042,9 +95187,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:683:4",
+      "id": "services/migration/runtime_role.py:686:4",
       "source": "services/migration/runtime_role.py",
-      "line": 683,
+      "line": 686,
       "scope": "_restore_farm_activity_event_owner",
       "method": "execute",
       "expression_kind": "literal",
@@ -95054,66 +95199,6 @@
         "pg_auth_members",
         "pg_roles"
       ],
-      "write_target_relations": [],
-      "api_static_reachability": "no_static_route_path",
-      "worker_static_operations": [],
-      "worker_static_review_status": "function_not_reached_by_any_static_worker_root",
-      "attribution": "unresolved",
-      "review_labels": [
-        "no_static_gateway_route_path_dynamic_or_non_api_possible",
-        "worker_sql_site_not_statically_reached_dynamic_or_unresolved_possible"
-      ]
-    },
-    {
-      "id": "services/migration/runtime_role.py:694:4",
-      "source": "services/migration/runtime_role.py",
-      "line": 694,
-      "scope": "_restore_farm_activity_event_owner",
-      "method": "execute",
-      "expression_kind": "composed_or_variable",
-      "statement_kind": "UNKNOWN",
-      "static_sql_sha256": null,
-      "candidate_relations": [],
-      "write_target_relations": [],
-      "api_static_reachability": "no_static_route_path",
-      "worker_static_operations": [],
-      "worker_static_review_status": "function_not_reached_by_any_static_worker_root",
-      "attribution": "unresolved",
-      "review_labels": [
-        "no_static_gateway_route_path_dynamic_or_non_api_possible",
-        "worker_sql_site_not_statically_reached_dynamic_or_unresolved_possible"
-      ]
-    },
-    {
-      "id": "services/migration/runtime_role.py:695:4",
-      "source": "services/migration/runtime_role.py",
-      "line": 695,
-      "scope": "_restore_farm_activity_event_owner",
-      "method": "execute",
-      "expression_kind": "composed_or_variable",
-      "statement_kind": "UNKNOWN",
-      "static_sql_sha256": null,
-      "candidate_relations": [],
-      "write_target_relations": [],
-      "api_static_reachability": "no_static_route_path",
-      "worker_static_operations": [],
-      "worker_static_review_status": "function_not_reached_by_any_static_worker_root",
-      "attribution": "unresolved",
-      "review_labels": [
-        "no_static_gateway_route_path_dynamic_or_non_api_possible",
-        "worker_sql_site_not_statically_reached_dynamic_or_unresolved_possible"
-      ]
-    },
-    {
-      "id": "services/migration/runtime_role.py:696:4",
-      "source": "services/migration/runtime_role.py",
-      "line": 696,
-      "scope": "_restore_farm_activity_event_owner",
-      "method": "execute",
-      "expression_kind": "composed_or_variable",
-      "statement_kind": "UNKNOWN",
-      "static_sql_sha256": null,
-      "candidate_relations": [],
       "write_target_relations": [],
       "api_static_reachability": "no_static_route_path",
       "worker_static_operations": [],
@@ -95165,9 +95250,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:703:4",
+      "id": "services/migration/runtime_role.py:699:4",
       "source": "services/migration/runtime_role.py",
-      "line": 703,
+      "line": 699,
       "scope": "_restore_farm_activity_event_owner",
       "method": "execute",
       "expression_kind": "composed_or_variable",
@@ -95185,9 +95270,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:710:4",
+      "id": "services/migration/runtime_role.py:700:4",
       "source": "services/migration/runtime_role.py",
-      "line": 710,
+      "line": 700,
       "scope": "_restore_farm_activity_event_owner",
       "method": "execute",
       "expression_kind": "composed_or_variable",
@@ -95205,9 +95290,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:715:4",
+      "id": "services/migration/runtime_role.py:701:4",
       "source": "services/migration/runtime_role.py",
-      "line": 715,
+      "line": 701,
       "scope": "_restore_farm_activity_event_owner",
       "method": "execute",
       "expression_kind": "composed_or_variable",
@@ -95225,9 +95310,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:722:8",
+      "id": "services/migration/runtime_role.py:706:4",
       "source": "services/migration/runtime_role.py",
-      "line": 722,
+      "line": 706,
       "scope": "_restore_farm_activity_event_owner",
       "method": "execute",
       "expression_kind": "composed_or_variable",
@@ -95245,9 +95330,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:723:8",
+      "id": "services/migration/runtime_role.py:713:4",
       "source": "services/migration/runtime_role.py",
-      "line": 723,
+      "line": 713,
       "scope": "_restore_farm_activity_event_owner",
       "method": "execute",
       "expression_kind": "composed_or_variable",
@@ -95265,9 +95350,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:724:8",
+      "id": "services/migration/runtime_role.py:718:4",
       "source": "services/migration/runtime_role.py",
-      "line": 724,
+      "line": 718,
       "scope": "_restore_farm_activity_event_owner",
       "method": "execute",
       "expression_kind": "composed_or_variable",
@@ -95285,7 +95370,7 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:725:4",
+      "id": "services/migration/runtime_role.py:725:8",
       "source": "services/migration/runtime_role.py",
       "line": 725,
       "scope": "_restore_farm_activity_event_owner",
@@ -95305,9 +95390,69 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:726:4",
+      "id": "services/migration/runtime_role.py:726:8",
       "source": "services/migration/runtime_role.py",
       "line": 726,
+      "scope": "_restore_farm_activity_event_owner",
+      "method": "execute",
+      "expression_kind": "composed_or_variable",
+      "statement_kind": "UNKNOWN",
+      "static_sql_sha256": null,
+      "candidate_relations": [],
+      "write_target_relations": [],
+      "api_static_reachability": "no_static_route_path",
+      "worker_static_operations": [],
+      "worker_static_review_status": "function_not_reached_by_any_static_worker_root",
+      "attribution": "unresolved",
+      "review_labels": [
+        "no_static_gateway_route_path_dynamic_or_non_api_possible",
+        "worker_sql_site_not_statically_reached_dynamic_or_unresolved_possible"
+      ]
+    },
+    {
+      "id": "services/migration/runtime_role.py:727:8",
+      "source": "services/migration/runtime_role.py",
+      "line": 727,
+      "scope": "_restore_farm_activity_event_owner",
+      "method": "execute",
+      "expression_kind": "composed_or_variable",
+      "statement_kind": "UNKNOWN",
+      "static_sql_sha256": null,
+      "candidate_relations": [],
+      "write_target_relations": [],
+      "api_static_reachability": "no_static_route_path",
+      "worker_static_operations": [],
+      "worker_static_review_status": "function_not_reached_by_any_static_worker_root",
+      "attribution": "unresolved",
+      "review_labels": [
+        "no_static_gateway_route_path_dynamic_or_non_api_possible",
+        "worker_sql_site_not_statically_reached_dynamic_or_unresolved_possible"
+      ]
+    },
+    {
+      "id": "services/migration/runtime_role.py:728:4",
+      "source": "services/migration/runtime_role.py",
+      "line": 728,
+      "scope": "_restore_farm_activity_event_owner",
+      "method": "execute",
+      "expression_kind": "composed_or_variable",
+      "statement_kind": "UNKNOWN",
+      "static_sql_sha256": null,
+      "candidate_relations": [],
+      "write_target_relations": [],
+      "api_static_reachability": "no_static_route_path",
+      "worker_static_operations": [],
+      "worker_static_review_status": "function_not_reached_by_any_static_worker_root",
+      "attribution": "unresolved",
+      "review_labels": [
+        "no_static_gateway_route_path_dynamic_or_non_api_possible",
+        "worker_sql_site_not_statically_reached_dynamic_or_unresolved_possible"
+      ]
+    },
+    {
+      "id": "services/migration/runtime_role.py:729:4",
+      "source": "services/migration/runtime_role.py",
+      "line": 729,
       "scope": "_restore_farm_activity_event_owner",
       "method": "execute",
       "expression_kind": "literal",
@@ -95328,9 +95473,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:746:8",
+      "id": "services/migration/runtime_role.py:749:8",
       "source": "services/migration/runtime_role.py",
-      "line": 746,
+      "line": 749,
       "scope": "_apply_mobile_credential_boundary",
       "method": "execute",
       "expression_kind": "literal",
@@ -95350,9 +95495,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:758:8",
+      "id": "services/migration/runtime_role.py:761:8",
       "source": "services/migration/runtime_role.py",
-      "line": 758,
+      "line": 761,
       "scope": "_apply_mobile_credential_boundary",
       "method": "execute",
       "expression_kind": "composed_or_variable",
@@ -95370,9 +95515,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:764:16",
+      "id": "services/migration/runtime_role.py:767:16",
       "source": "services/migration/runtime_role.py",
-      "line": 764,
+      "line": 767,
       "scope": "_apply_mobile_credential_boundary",
       "method": "execute",
       "expression_kind": "composed_or_variable",
@@ -95390,9 +95535,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:775:12",
+      "id": "services/migration/runtime_role.py:778:12",
       "source": "services/migration/runtime_role.py",
-      "line": 775,
+      "line": 778,
       "scope": "_apply_mobile_credential_boundary",
       "method": "execute",
       "expression_kind": "composed_or_variable",
@@ -95410,9 +95555,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:819:8",
+      "id": "services/migration/runtime_role.py:822:8",
       "source": "services/migration/runtime_role.py",
-      "line": 819,
+      "line": 822,
       "scope": "_verify_mobile_credential_boundary",
       "method": "execute",
       "expression_kind": "literal",
@@ -95430,9 +95575,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:832:8",
+      "id": "services/migration/runtime_role.py:835:8",
       "source": "services/migration/runtime_role.py",
-      "line": 832,
+      "line": 835,
       "scope": "_verify_mobile_credential_boundary",
       "method": "execute",
       "expression_kind": "literal",
@@ -95450,9 +95595,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:843:4",
+      "id": "services/migration/runtime_role.py:846:4",
       "source": "services/migration/runtime_role.py",
-      "line": 843,
+      "line": 846,
       "scope": "_apply_api_key_boundary",
       "method": "execute",
       "expression_kind": "literal",
@@ -95472,27 +95617,7 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:852:4",
-      "source": "services/migration/runtime_role.py",
-      "line": 852,
-      "scope": "_apply_api_key_boundary",
-      "method": "execute",
-      "expression_kind": "composed_or_variable",
-      "statement_kind": "UNKNOWN",
-      "static_sql_sha256": null,
-      "candidate_relations": [],
-      "write_target_relations": [],
-      "api_static_reachability": "no_static_route_path",
-      "worker_static_operations": [],
-      "worker_static_review_status": "function_not_reached_by_any_static_worker_root",
-      "attribution": "unresolved",
-      "review_labels": [
-        "no_static_gateway_route_path_dynamic_or_non_api_possible",
-        "worker_sql_site_not_statically_reached_dynamic_or_unresolved_possible"
-      ]
-    },
-    {
-      "id": "services/migration/runtime_role.py:855:12",
+      "id": "services/migration/runtime_role.py:855:4",
       "source": "services/migration/runtime_role.py",
       "line": 855,
       "scope": "_apply_api_key_boundary",
@@ -95512,9 +95637,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:863:4",
+      "id": "services/migration/runtime_role.py:858:12",
       "source": "services/migration/runtime_role.py",
-      "line": 863,
+      "line": 858,
       "scope": "_apply_api_key_boundary",
       "method": "execute",
       "expression_kind": "composed_or_variable",
@@ -95532,9 +95657,29 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:880:8",
+      "id": "services/migration/runtime_role.py:866:4",
       "source": "services/migration/runtime_role.py",
-      "line": 880,
+      "line": 866,
+      "scope": "_apply_api_key_boundary",
+      "method": "execute",
+      "expression_kind": "composed_or_variable",
+      "statement_kind": "UNKNOWN",
+      "static_sql_sha256": null,
+      "candidate_relations": [],
+      "write_target_relations": [],
+      "api_static_reachability": "no_static_route_path",
+      "worker_static_operations": [],
+      "worker_static_review_status": "function_not_reached_by_any_static_worker_root",
+      "attribution": "unresolved",
+      "review_labels": [
+        "no_static_gateway_route_path_dynamic_or_non_api_possible",
+        "worker_sql_site_not_statically_reached_dynamic_or_unresolved_possible"
+      ]
+    },
+    {
+      "id": "services/migration/runtime_role.py:883:8",
+      "source": "services/migration/runtime_role.py",
+      "line": 883,
       "scope": "_verify_api_key_boundary",
       "method": "execute",
       "expression_kind": "literal",
@@ -95552,9 +95697,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:891:8",
+      "id": "services/migration/runtime_role.py:894:8",
       "source": "services/migration/runtime_role.py",
-      "line": 891,
+      "line": 894,
       "scope": "_verify_api_key_boundary",
       "method": "execute",
       "expression_kind": "literal",
@@ -95572,9 +95717,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:897:4",
+      "id": "services/migration/runtime_role.py:900:4",
       "source": "services/migration/runtime_role.py",
-      "line": 897,
+      "line": 900,
       "scope": "_verify_api_key_boundary",
       "method": "execute",
       "expression_kind": "literal",
@@ -95594,9 +95739,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:905:4",
+      "id": "services/migration/runtime_role.py:908:4",
       "source": "services/migration/runtime_role.py",
-      "line": 905,
+      "line": 908,
       "scope": "_verify_api_key_boundary",
       "method": "execute",
       "expression_kind": "literal",
@@ -95616,9 +95761,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:923:4",
+      "id": "services/migration/runtime_role.py:926:4",
       "source": "services/migration/runtime_role.py",
-      "line": 923,
+      "line": 926,
       "scope": "_apply_farm_activity_operator_event_boundary",
       "method": "execute",
       "expression_kind": "literal",
@@ -95636,9 +95781,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:934:4",
+      "id": "services/migration/runtime_role.py:937:4",
       "source": "services/migration/runtime_role.py",
-      "line": 934,
+      "line": 937,
       "scope": "_apply_farm_activity_operator_event_boundary",
       "method": "execute",
       "expression_kind": "composed_or_variable",
@@ -95656,9 +95801,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:935:4",
+      "id": "services/migration/runtime_role.py:938:4",
       "source": "services/migration/runtime_role.py",
-      "line": 935,
+      "line": 938,
       "scope": "_apply_farm_activity_operator_event_boundary",
       "method": "execute",
       "expression_kind": "literal",
@@ -95678,9 +95823,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:942:12",
+      "id": "services/migration/runtime_role.py:945:12",
       "source": "services/migration/runtime_role.py",
-      "line": 942,
+      "line": 945,
       "scope": "_apply_farm_activity_operator_event_boundary",
       "method": "execute",
       "expression_kind": "composed_or_variable",
@@ -95698,9 +95843,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:950:4",
+      "id": "services/migration/runtime_role.py:953:4",
       "source": "services/migration/runtime_role.py",
-      "line": 950,
+      "line": 953,
       "scope": "_apply_farm_activity_operator_event_boundary",
       "method": "execute",
       "expression_kind": "composed_or_variable",
@@ -95718,9 +95863,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:968:8",
+      "id": "services/migration/runtime_role.py:971:8",
       "source": "services/migration/runtime_role.py",
-      "line": 968,
+      "line": 971,
       "scope": "_apply_runtime_append_only_boundary",
       "method": "execute",
       "expression_kind": "literal",
@@ -95738,9 +95883,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:974:8",
+      "id": "services/migration/runtime_role.py:977:8",
       "source": "services/migration/runtime_role.py",
-      "line": 974,
+      "line": 977,
       "scope": "_apply_runtime_append_only_boundary",
       "method": "execute",
       "expression_kind": "composed_or_variable",
@@ -95758,9 +95903,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:975:8",
+      "id": "services/migration/runtime_role.py:978:8",
       "source": "services/migration/runtime_role.py",
-      "line": 975,
+      "line": 978,
       "scope": "_apply_runtime_append_only_boundary",
       "method": "execute",
       "expression_kind": "literal",
@@ -95780,9 +95925,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:982:16",
+      "id": "services/migration/runtime_role.py:985:16",
       "source": "services/migration/runtime_role.py",
-      "line": 982,
+      "line": 985,
       "scope": "_apply_runtime_append_only_boundary",
       "method": "execute",
       "expression_kind": "composed_or_variable",
@@ -95800,9 +95945,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:990:8",
+      "id": "services/migration/runtime_role.py:993:8",
       "source": "services/migration/runtime_role.py",
-      "line": 990,
+      "line": 993,
       "scope": "_apply_runtime_append_only_boundary",
       "method": "execute",
       "expression_kind": "composed_or_variable",
@@ -95820,9 +95965,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:1010:8",
+      "id": "services/migration/runtime_role.py:1013:8",
       "source": "services/migration/runtime_role.py",
-      "line": 1010,
+      "line": 1013,
       "scope": "_verify_runtime_append_only_boundary",
       "method": "execute",
       "expression_kind": "literal",
@@ -95840,9 +95985,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:1014:8",
+      "id": "services/migration/runtime_role.py:1017:8",
       "source": "services/migration/runtime_role.py",
-      "line": 1014,
+      "line": 1017,
       "scope": "_verify_runtime_append_only_boundary",
       "method": "execute",
       "expression_kind": "composed",
@@ -95860,9 +96005,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:1020:8",
+      "id": "services/migration/runtime_role.py:1023:8",
       "source": "services/migration/runtime_role.py",
-      "line": 1020,
+      "line": 1023,
       "scope": "_verify_runtime_append_only_boundary",
       "method": "execute",
       "expression_kind": "literal",
@@ -95884,9 +96029,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:1038:4",
+      "id": "services/migration/runtime_role.py:1041:4",
       "source": "services/migration/runtime_role.py",
-      "line": 1038,
+      "line": 1041,
       "scope": "_verify_farm_activity_operator_event_boundary",
       "method": "execute",
       "expression_kind": "literal",
@@ -95904,9 +96049,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:1041:4",
+      "id": "services/migration/runtime_role.py:1044:4",
       "source": "services/migration/runtime_role.py",
-      "line": 1041,
+      "line": 1044,
       "scope": "_verify_farm_activity_operator_event_boundary",
       "method": "execute",
       "expression_kind": "literal",
@@ -95924,9 +96069,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:1053:4",
+      "id": "services/migration/runtime_role.py:1056:4",
       "source": "services/migration/runtime_role.py",
-      "line": 1053,
+      "line": 1056,
       "scope": "_verify_farm_activity_operator_event_boundary",
       "method": "execute",
       "expression_kind": "literal",
@@ -95946,9 +96091,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:1340:8",
+      "id": "services/migration/runtime_role.py:1343:8",
       "source": "services/migration/runtime_role.py",
-      "line": 1340,
+      "line": 1343,
       "scope": "_apply_scoped_write_boundary",
       "method": "execute",
       "expression_kind": "literal",
@@ -95966,9 +96111,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:1347:12",
+      "id": "services/migration/runtime_role.py:1350:12",
       "source": "services/migration/runtime_role.py",
-      "line": 1347,
+      "line": 1350,
       "scope": "_apply_scoped_write_boundary",
       "method": "execute",
       "expression_kind": "composed_or_variable",
@@ -95986,9 +96131,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:1351:16",
+      "id": "services/migration/runtime_role.py:1354:16",
       "source": "services/migration/runtime_role.py",
-      "line": 1351,
+      "line": 1354,
       "scope": "_apply_scoped_write_boundary",
       "method": "execute",
       "expression_kind": "composed_or_variable",
@@ -96006,9 +96151,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:1356:8",
+      "id": "services/migration/runtime_role.py:1359:8",
       "source": "services/migration/runtime_role.py",
-      "line": 1356,
+      "line": 1359,
       "scope": "_apply_scoped_write_boundary",
       "method": "execute",
       "expression_kind": "literal",
@@ -96028,9 +96173,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:1363:16",
+      "id": "services/migration/runtime_role.py:1366:16",
       "source": "services/migration/runtime_role.py",
-      "line": 1363,
+      "line": 1366,
       "scope": "_apply_scoped_write_boundary",
       "method": "execute",
       "expression_kind": "composed_or_variable",
@@ -96048,9 +96193,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:1373:16",
+      "id": "services/migration/runtime_role.py:1376:16",
       "source": "services/migration/runtime_role.py",
-      "line": 1373,
+      "line": 1376,
       "scope": "_apply_scoped_write_boundary",
       "method": "execute",
       "expression_kind": "composed_or_variable",
@@ -96068,9 +96213,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:1394:4",
+      "id": "services/migration/runtime_role.py:1397:4",
       "source": "services/migration/runtime_role.py",
-      "line": 1394,
+      "line": 1397,
       "scope": "_owned_sequences_for_relation",
       "method": "execute",
       "expression_kind": "literal",
@@ -96092,9 +96237,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:1436:8",
+      "id": "services/migration/runtime_role.py:1439:8",
       "source": "services/migration/runtime_role.py",
-      "line": 1436,
+      "line": 1439,
       "scope": "_verify_scoped_write_boundary",
       "method": "execute",
       "expression_kind": "literal",
@@ -96112,9 +96257,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:1443:8",
+      "id": "services/migration/runtime_role.py:1446:8",
       "source": "services/migration/runtime_role.py",
-      "line": 1443,
+      "line": 1446,
       "scope": "_verify_scoped_write_boundary",
       "method": "execute",
       "expression_kind": "composed",
@@ -96132,9 +96277,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:1459:8",
+      "id": "services/migration/runtime_role.py:1462:8",
       "source": "services/migration/runtime_role.py",
-      "line": 1459,
+      "line": 1462,
       "scope": "_verify_scoped_write_boundary",
       "method": "execute",
       "expression_kind": "composed",
@@ -96154,9 +96299,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:1469:16",
+      "id": "services/migration/runtime_role.py:1472:16",
       "source": "services/migration/runtime_role.py",
-      "line": 1469,
+      "line": 1472,
       "scope": "_verify_scoped_write_boundary",
       "method": "execute",
       "expression_kind": "literal",
@@ -96174,9 +96319,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:1484:4",
+      "id": "services/migration/runtime_role.py:1487:4",
       "source": "services/migration/runtime_role.py",
-      "line": 1484,
+      "line": 1487,
       "scope": "_apply_solution_stage_gate_boundary",
       "method": "execute",
       "expression_kind": "literal",
@@ -96194,9 +96339,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:1495:4",
+      "id": "services/migration/runtime_role.py:1498:4",
       "source": "services/migration/runtime_role.py",
-      "line": 1495,
+      "line": 1498,
       "scope": "_apply_solution_stage_gate_boundary",
       "method": "execute",
       "expression_kind": "literal",
@@ -96216,9 +96361,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:1504:4",
+      "id": "services/migration/runtime_role.py:1507:4",
       "source": "services/migration/runtime_role.py",
-      "line": 1504,
+      "line": 1507,
       "scope": "_apply_solution_stage_gate_boundary",
       "method": "execute",
       "expression_kind": "composed_or_variable",
@@ -96236,34 +96381,14 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:1509:12",
+      "id": "services/migration/runtime_role.py:1512:12",
       "source": "services/migration/runtime_role.py",
-      "line": 1509,
+      "line": 1512,
       "scope": "_apply_solution_stage_gate_boundary",
       "method": "execute",
       "expression_kind": "composed_or_variable",
       "statement_kind": "UNKNOWN",
       "static_sql_sha256": null,
-      "candidate_relations": [],
-      "write_target_relations": [],
-      "api_static_reachability": "no_static_route_path",
-      "worker_static_operations": [],
-      "worker_static_review_status": "function_not_reached_by_any_static_worker_root",
-      "attribution": "unresolved",
-      "review_labels": [
-        "no_static_gateway_route_path_dynamic_or_non_api_possible",
-        "worker_sql_site_not_statically_reached_dynamic_or_unresolved_possible"
-      ]
-    },
-    {
-      "id": "services/migration/runtime_role.py:1528:4",
-      "source": "services/migration/runtime_role.py",
-      "line": 1528,
-      "scope": "_verify_solution_stage_gate_boundary",
-      "method": "execute",
-      "expression_kind": "literal",
-      "statement_kind": "SELECT",
-      "static_sql_sha256": "2d18da4f37c8af97ec35653bfa15024233c636db06d17c897c0b4dfcd8e7fb19",
       "candidate_relations": [],
       "write_target_relations": [],
       "api_static_reachability": "no_static_route_path",
@@ -96283,6 +96408,26 @@
       "method": "execute",
       "expression_kind": "literal",
       "statement_kind": "SELECT",
+      "static_sql_sha256": "2d18da4f37c8af97ec35653bfa15024233c636db06d17c897c0b4dfcd8e7fb19",
+      "candidate_relations": [],
+      "write_target_relations": [],
+      "api_static_reachability": "no_static_route_path",
+      "worker_static_operations": [],
+      "worker_static_review_status": "function_not_reached_by_any_static_worker_root",
+      "attribution": "unresolved",
+      "review_labels": [
+        "no_static_gateway_route_path_dynamic_or_non_api_possible",
+        "worker_sql_site_not_statically_reached_dynamic_or_unresolved_possible"
+      ]
+    },
+    {
+      "id": "services/migration/runtime_role.py:1534:4",
+      "source": "services/migration/runtime_role.py",
+      "line": 1534,
+      "scope": "_verify_solution_stage_gate_boundary",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
       "static_sql_sha256": "202302d0ee03a30be01f9569fb61f71f9207ccd248ea11ceb5e93d24c814ef21",
       "candidate_relations": [
         "pg_attribute"
@@ -96298,9 +96443,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:1550:4",
+      "id": "services/migration/runtime_role.py:1553:4",
       "source": "services/migration/runtime_role.py",
-      "line": 1550,
+      "line": 1553,
       "scope": "_apply_solution_experiment_protocol_boundary",
       "method": "execute",
       "expression_kind": "literal",
@@ -96318,9 +96463,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:1560:4",
+      "id": "services/migration/runtime_role.py:1563:4",
       "source": "services/migration/runtime_role.py",
-      "line": 1560,
+      "line": 1563,
       "scope": "_apply_solution_experiment_protocol_boundary",
       "method": "execute",
       "expression_kind": "literal",
@@ -96340,27 +96485,7 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:1569:4",
-      "source": "services/migration/runtime_role.py",
-      "line": 1569,
-      "scope": "_apply_solution_experiment_protocol_boundary",
-      "method": "execute",
-      "expression_kind": "composed_or_variable",
-      "statement_kind": "UNKNOWN",
-      "static_sql_sha256": null,
-      "candidate_relations": [],
-      "write_target_relations": [],
-      "api_static_reachability": "no_static_route_path",
-      "worker_static_operations": [],
-      "worker_static_review_status": "function_not_reached_by_any_static_worker_root",
-      "attribution": "unresolved",
-      "review_labels": [
-        "no_static_gateway_route_path_dynamic_or_non_api_possible",
-        "worker_sql_site_not_statically_reached_dynamic_or_unresolved_possible"
-      ]
-    },
-    {
-      "id": "services/migration/runtime_role.py:1572:12",
+      "id": "services/migration/runtime_role.py:1572:4",
       "source": "services/migration/runtime_role.py",
       "line": 1572,
       "scope": "_apply_solution_experiment_protocol_boundary",
@@ -96380,9 +96505,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:1580:4",
+      "id": "services/migration/runtime_role.py:1575:12",
       "source": "services/migration/runtime_role.py",
-      "line": 1580,
+      "line": 1575,
       "scope": "_apply_solution_experiment_protocol_boundary",
       "method": "execute",
       "expression_kind": "composed_or_variable",
@@ -96400,14 +96525,14 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:1604:4",
+      "id": "services/migration/runtime_role.py:1583:4",
       "source": "services/migration/runtime_role.py",
-      "line": 1604,
-      "scope": "_verify_solution_experiment_protocol_boundary",
+      "line": 1583,
+      "scope": "_apply_solution_experiment_protocol_boundary",
       "method": "execute",
-      "expression_kind": "literal",
-      "statement_kind": "SELECT",
-      "static_sql_sha256": "9f64378837b078675d72970956b3df288cbc980fa66356cfb5b3df1c3774f11b",
+      "expression_kind": "composed_or_variable",
+      "statement_kind": "UNKNOWN",
+      "static_sql_sha256": null,
       "candidate_relations": [],
       "write_target_relations": [],
       "api_static_reachability": "no_static_route_path",
@@ -96427,6 +96552,26 @@
       "method": "execute",
       "expression_kind": "literal",
       "statement_kind": "SELECT",
+      "static_sql_sha256": "9f64378837b078675d72970956b3df288cbc980fa66356cfb5b3df1c3774f11b",
+      "candidate_relations": [],
+      "write_target_relations": [],
+      "api_static_reachability": "no_static_route_path",
+      "worker_static_operations": [],
+      "worker_static_review_status": "function_not_reached_by_any_static_worker_root",
+      "attribution": "unresolved",
+      "review_labels": [
+        "no_static_gateway_route_path_dynamic_or_non_api_possible",
+        "worker_sql_site_not_statically_reached_dynamic_or_unresolved_possible"
+      ]
+    },
+    {
+      "id": "services/migration/runtime_role.py:1610:4",
+      "source": "services/migration/runtime_role.py",
+      "line": 1610,
+      "scope": "_verify_solution_experiment_protocol_boundary",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
       "static_sql_sha256": "68cd241beb7b1d084144c8f5b3b59dcb857f60867f1d951b613ceaa7fc04a17d",
       "candidate_relations": [
         "pg_attribute"
@@ -96442,9 +96587,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:1632:4",
+      "id": "services/migration/runtime_role.py:1635:4",
       "source": "services/migration/runtime_role.py",
-      "line": 1632,
+      "line": 1635,
       "scope": "_apply_clickhouse_outbox_runtime_write_boundary",
       "method": "execute",
       "expression_kind": "literal",
@@ -96462,9 +96607,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:1642:4",
+      "id": "services/migration/runtime_role.py:1645:4",
       "source": "services/migration/runtime_role.py",
-      "line": 1642,
+      "line": 1645,
       "scope": "_apply_clickhouse_outbox_runtime_write_boundary",
       "method": "execute",
       "expression_kind": "composed_or_variable",
@@ -96482,9 +96627,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:1648:4",
+      "id": "services/migration/runtime_role.py:1651:4",
       "source": "services/migration/runtime_role.py",
-      "line": 1648,
+      "line": 1651,
       "scope": "_apply_clickhouse_outbox_runtime_write_boundary",
       "method": "execute",
       "expression_kind": "literal",
@@ -96504,29 +96649,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:1654:8",
+      "id": "services/migration/runtime_role.py:1657:8",
       "source": "services/migration/runtime_role.py",
-      "line": 1654,
-      "scope": "_apply_clickhouse_outbox_runtime_write_boundary",
-      "method": "execute",
-      "expression_kind": "composed_or_variable",
-      "statement_kind": "UNKNOWN",
-      "static_sql_sha256": null,
-      "candidate_relations": [],
-      "write_target_relations": [],
-      "api_static_reachability": "no_static_route_path",
-      "worker_static_operations": [],
-      "worker_static_review_status": "function_not_reached_by_any_static_worker_root",
-      "attribution": "unresolved",
-      "review_labels": [
-        "no_static_gateway_route_path_dynamic_or_non_api_possible",
-        "worker_sql_site_not_statically_reached_dynamic_or_unresolved_possible"
-      ]
-    },
-    {
-      "id": "services/migration/runtime_role.py:1659:4",
-      "source": "services/migration/runtime_role.py",
-      "line": 1659,
+      "line": 1657,
       "scope": "_apply_clickhouse_outbox_runtime_write_boundary",
       "method": "execute",
       "expression_kind": "composed_or_variable",
@@ -96564,9 +96689,29 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:1668:4",
+      "id": "services/migration/runtime_role.py:1665:4",
       "source": "services/migration/runtime_role.py",
-      "line": 1668,
+      "line": 1665,
+      "scope": "_apply_clickhouse_outbox_runtime_write_boundary",
+      "method": "execute",
+      "expression_kind": "composed_or_variable",
+      "statement_kind": "UNKNOWN",
+      "static_sql_sha256": null,
+      "candidate_relations": [],
+      "write_target_relations": [],
+      "api_static_reachability": "no_static_route_path",
+      "worker_static_operations": [],
+      "worker_static_review_status": "function_not_reached_by_any_static_worker_root",
+      "attribution": "unresolved",
+      "review_labels": [
+        "no_static_gateway_route_path_dynamic_or_non_api_possible",
+        "worker_sql_site_not_statically_reached_dynamic_or_unresolved_possible"
+      ]
+    },
+    {
+      "id": "services/migration/runtime_role.py:1671:4",
+      "source": "services/migration/runtime_role.py",
+      "line": 1671,
       "scope": "_apply_clickhouse_outbox_runtime_write_boundary",
       "method": "execute",
       "expression_kind": "literal",
@@ -96584,9 +96729,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:2024:8",
+      "id": "services/migration/runtime_role.py:2027:8",
       "source": "services/migration/runtime_role.py",
-      "line": 2024,
+      "line": 2027,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "literal",
@@ -96606,9 +96751,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:2034:8",
+      "id": "services/migration/runtime_role.py:2037:8",
       "source": "services/migration/runtime_role.py",
-      "line": 2034,
+      "line": 2037,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "composed",
@@ -96626,9 +96771,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:2040:8",
+      "id": "services/migration/runtime_role.py:2043:8",
       "source": "services/migration/runtime_role.py",
-      "line": 2040,
+      "line": 2043,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "literal",
@@ -96646,9 +96791,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:2053:8",
+      "id": "services/migration/runtime_role.py:2056:8",
       "source": "services/migration/runtime_role.py",
-      "line": 2053,
+      "line": 2056,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "composed",
@@ -96666,9 +96811,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:2061:8",
+      "id": "services/migration/runtime_role.py:2064:8",
       "source": "services/migration/runtime_role.py",
-      "line": 2061,
+      "line": 2064,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "literal",
@@ -96686,9 +96831,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:2069:12",
+      "id": "services/migration/runtime_role.py:2072:12",
       "source": "services/migration/runtime_role.py",
-      "line": 2069,
+      "line": 2072,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "literal",
@@ -96706,9 +96851,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:2076:12",
+      "id": "services/migration/runtime_role.py:2079:12",
       "source": "services/migration/runtime_role.py",
-      "line": 2076,
+      "line": 2079,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "composed",
@@ -96726,9 +96871,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:2094:12",
+      "id": "services/migration/runtime_role.py:2097:12",
       "source": "services/migration/runtime_role.py",
-      "line": 2094,
+      "line": 2097,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "composed",
@@ -96746,9 +96891,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:2103:12",
+      "id": "services/migration/runtime_role.py:2106:12",
       "source": "services/migration/runtime_role.py",
-      "line": 2103,
+      "line": 2106,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "composed",
@@ -96766,9 +96911,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:2112:12",
+      "id": "services/migration/runtime_role.py:2115:12",
       "source": "services/migration/runtime_role.py",
-      "line": 2112,
+      "line": 2115,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "composed",
@@ -96786,9 +96931,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:2121:12",
+      "id": "services/migration/runtime_role.py:2124:12",
       "source": "services/migration/runtime_role.py",
-      "line": 2121,
+      "line": 2124,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "composed",
@@ -96806,9 +96951,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:2130:12",
+      "id": "services/migration/runtime_role.py:2133:12",
       "source": "services/migration/runtime_role.py",
-      "line": 2130,
+      "line": 2133,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "composed",
@@ -96826,9 +96971,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:2139:12",
+      "id": "services/migration/runtime_role.py:2142:12",
       "source": "services/migration/runtime_role.py",
-      "line": 2139,
+      "line": 2142,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "composed",
@@ -96846,9 +96991,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:2148:8",
+      "id": "services/migration/runtime_role.py:2151:8",
       "source": "services/migration/runtime_role.py",
-      "line": 2148,
+      "line": 2151,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "literal",
@@ -96868,9 +97013,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:2164:16",
+      "id": "services/migration/runtime_role.py:2167:16",
       "source": "services/migration/runtime_role.py",
-      "line": 2164,
+      "line": 2167,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "composed_or_variable",
@@ -96888,9 +97033,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:2174:20",
+      "id": "services/migration/runtime_role.py:2177:20",
       "source": "services/migration/runtime_role.py",
-      "line": 2174,
+      "line": 2177,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "composed_or_variable",
@@ -96908,9 +97053,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:2182:16",
+      "id": "services/migration/runtime_role.py:2185:16",
       "source": "services/migration/runtime_role.py",
-      "line": 2182,
+      "line": 2185,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "composed_or_variable",
@@ -96928,9 +97073,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:2188:16",
+      "id": "services/migration/runtime_role.py:2191:16",
       "source": "services/migration/runtime_role.py",
-      "line": 2188,
+      "line": 2191,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "composed_or_variable",
@@ -96948,9 +97093,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:2195:16",
+      "id": "services/migration/runtime_role.py:2198:16",
       "source": "services/migration/runtime_role.py",
-      "line": 2195,
+      "line": 2198,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "composed_or_variable",
@@ -96968,9 +97113,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:2201:20",
+      "id": "services/migration/runtime_role.py:2204:20",
       "source": "services/migration/runtime_role.py",
-      "line": 2201,
+      "line": 2204,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "composed_or_variable",
@@ -96988,9 +97133,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:2208:12",
+      "id": "services/migration/runtime_role.py:2211:12",
       "source": "services/migration/runtime_role.py",
-      "line": 2208,
+      "line": 2211,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "composed",
@@ -97008,9 +97153,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:2217:12",
+      "id": "services/migration/runtime_role.py:2220:12",
       "source": "services/migration/runtime_role.py",
-      "line": 2217,
+      "line": 2220,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "composed",
@@ -97028,9 +97173,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:2235:12",
+      "id": "services/migration/runtime_role.py:2238:12",
       "source": "services/migration/runtime_role.py",
-      "line": 2235,
+      "line": 2238,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "composed",
@@ -97048,9 +97193,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:2245:12",
+      "id": "services/migration/runtime_role.py:2248:12",
       "source": "services/migration/runtime_role.py",
-      "line": 2245,
+      "line": 2248,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "composed",
@@ -97068,9 +97213,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:2254:12",
+      "id": "services/migration/runtime_role.py:2257:12",
       "source": "services/migration/runtime_role.py",
-      "line": 2254,
+      "line": 2257,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "composed",
@@ -97088,9 +97233,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:2262:12",
+      "id": "services/migration/runtime_role.py:2265:12",
       "source": "services/migration/runtime_role.py",
-      "line": 2262,
+      "line": 2265,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "literal",
@@ -97110,9 +97255,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:2266:12",
+      "id": "services/migration/runtime_role.py:2269:12",
       "source": "services/migration/runtime_role.py",
-      "line": 2266,
+      "line": 2269,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "composed",
@@ -97130,9 +97275,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:2274:12",
+      "id": "services/migration/runtime_role.py:2277:12",
       "source": "services/migration/runtime_role.py",
-      "line": 2274,
+      "line": 2277,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "literal",
@@ -97152,9 +97297,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:2280:12",
+      "id": "services/migration/runtime_role.py:2283:12",
       "source": "services/migration/runtime_role.py",
-      "line": 2280,
+      "line": 2283,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "literal",
@@ -97174,9 +97319,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:2295:12",
+      "id": "services/migration/runtime_role.py:2298:12",
       "source": "services/migration/runtime_role.py",
-      "line": 2295,
+      "line": 2298,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "composed",
@@ -97194,9 +97339,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:2305:8",
+      "id": "services/migration/runtime_role.py:2308:8",
       "source": "services/migration/runtime_role.py",
-      "line": 2305,
+      "line": 2308,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "literal",
@@ -97214,9 +97359,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:2313:8",
+      "id": "services/migration/runtime_role.py:2316:8",
       "source": "services/migration/runtime_role.py",
-      "line": 2313,
+      "line": 2316,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "composed",
@@ -97234,9 +97379,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:2323:8",
+      "id": "services/migration/runtime_role.py:2326:8",
       "source": "services/migration/runtime_role.py",
-      "line": 2323,
+      "line": 2326,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "literal",
@@ -97254,9 +97399,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:2332:8",
+      "id": "services/migration/runtime_role.py:2335:8",
       "source": "services/migration/runtime_role.py",
-      "line": 2332,
+      "line": 2335,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "literal",
@@ -97278,9 +97423,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:2351:8",
+      "id": "services/migration/runtime_role.py:2354:8",
       "source": "services/migration/runtime_role.py",
-      "line": 2351,
+      "line": 2354,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "literal",
@@ -97298,9 +97443,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:2353:12",
+      "id": "services/migration/runtime_role.py:2356:12",
       "source": "services/migration/runtime_role.py",
-      "line": 2353,
+      "line": 2356,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "composed_or_variable",
@@ -97318,9 +97463,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:2357:8",
+      "id": "services/migration/runtime_role.py:2360:8",
       "source": "services/migration/runtime_role.py",
-      "line": 2357,
+      "line": 2360,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "composed_or_variable",
@@ -97338,9 +97483,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:2363:12",
+      "id": "services/migration/runtime_role.py:2366:12",
       "source": "services/migration/runtime_role.py",
-      "line": 2363,
+      "line": 2366,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "composed_or_variable",
@@ -97358,9 +97503,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:2365:12",
+      "id": "services/migration/runtime_role.py:2368:12",
       "source": "services/migration/runtime_role.py",
-      "line": 2365,
+      "line": 2368,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "composed_or_variable",
@@ -97378,27 +97523,7 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:2367:12",
-      "source": "services/migration/runtime_role.py",
-      "line": 2367,
-      "scope": "provision_runtime_role",
-      "method": "execute",
-      "expression_kind": "composed_or_variable",
-      "statement_kind": "UNKNOWN",
-      "static_sql_sha256": null,
-      "candidate_relations": [],
-      "write_target_relations": [],
-      "api_static_reachability": "no_static_route_path",
-      "worker_static_operations": [],
-      "worker_static_review_status": "function_not_reached_by_any_static_worker_root",
-      "attribution": "unresolved",
-      "review_labels": [
-        "no_static_gateway_route_path_dynamic_or_non_api_possible",
-        "worker_sql_site_not_statically_reached_dynamic_or_unresolved_possible"
-      ]
-    },
-    {
-      "id": "services/migration/runtime_role.py:2370:16",
+      "id": "services/migration/runtime_role.py:2370:12",
       "source": "services/migration/runtime_role.py",
       "line": 2370,
       "scope": "provision_runtime_role",
@@ -97418,9 +97543,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:2372:12",
+      "id": "services/migration/runtime_role.py:2373:16",
       "source": "services/migration/runtime_role.py",
-      "line": 2372,
+      "line": 2373,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "composed_or_variable",
@@ -97438,9 +97563,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:2377:12",
+      "id": "services/migration/runtime_role.py:2375:12",
       "source": "services/migration/runtime_role.py",
-      "line": 2377,
+      "line": 2375,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "composed_or_variable",
@@ -97458,9 +97583,29 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:2389:12",
+      "id": "services/migration/runtime_role.py:2380:12",
       "source": "services/migration/runtime_role.py",
-      "line": 2389,
+      "line": 2380,
+      "scope": "provision_runtime_role",
+      "method": "execute",
+      "expression_kind": "composed_or_variable",
+      "statement_kind": "UNKNOWN",
+      "static_sql_sha256": null,
+      "candidate_relations": [],
+      "write_target_relations": [],
+      "api_static_reachability": "no_static_route_path",
+      "worker_static_operations": [],
+      "worker_static_review_status": "function_not_reached_by_any_static_worker_root",
+      "attribution": "unresolved",
+      "review_labels": [
+        "no_static_gateway_route_path_dynamic_or_non_api_possible",
+        "worker_sql_site_not_statically_reached_dynamic_or_unresolved_possible"
+      ]
+    },
+    {
+      "id": "services/migration/runtime_role.py:2392:12",
+      "source": "services/migration/runtime_role.py",
+      "line": 2392,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "literal",
@@ -97480,9 +97625,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:2398:16",
+      "id": "services/migration/runtime_role.py:2401:16",
       "source": "services/migration/runtime_role.py",
-      "line": 2398,
+      "line": 2401,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "composed_or_variable",
@@ -97500,9 +97645,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:2414:12",
+      "id": "services/migration/runtime_role.py:2417:12",
       "source": "services/migration/runtime_role.py",
-      "line": 2414,
+      "line": 2417,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "composed_or_variable",
@@ -97520,9 +97665,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:2415:12",
+      "id": "services/migration/runtime_role.py:2418:12",
       "source": "services/migration/runtime_role.py",
-      "line": 2415,
+      "line": 2418,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "composed_or_variable",
@@ -97540,9 +97685,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:2416:12",
+      "id": "services/migration/runtime_role.py:2419:12",
       "source": "services/migration/runtime_role.py",
-      "line": 2416,
+      "line": 2419,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "composed_or_variable",
@@ -97560,9 +97705,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:2435:16",
+      "id": "services/migration/runtime_role.py:2438:16",
       "source": "services/migration/runtime_role.py",
-      "line": 2435,
+      "line": 2438,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "composed_or_variable",
@@ -97580,9 +97725,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:2445:16",
+      "id": "services/migration/runtime_role.py:2448:16",
       "source": "services/migration/runtime_role.py",
-      "line": 2445,
+      "line": 2448,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "composed_or_variable",
@@ -97600,9 +97745,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:2450:12",
+      "id": "services/migration/runtime_role.py:2453:12",
       "source": "services/migration/runtime_role.py",
-      "line": 2450,
+      "line": 2453,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "composed_or_variable",
@@ -97620,47 +97765,7 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:2451:12",
-      "source": "services/migration/runtime_role.py",
-      "line": 2451,
-      "scope": "provision_runtime_role",
-      "method": "execute",
-      "expression_kind": "composed_or_variable",
-      "statement_kind": "UNKNOWN",
-      "static_sql_sha256": null,
-      "candidate_relations": [],
-      "write_target_relations": [],
-      "api_static_reachability": "no_static_route_path",
-      "worker_static_operations": [],
-      "worker_static_review_status": "function_not_reached_by_any_static_worker_root",
-      "attribution": "unresolved",
-      "review_labels": [
-        "no_static_gateway_route_path_dynamic_or_non_api_possible",
-        "worker_sql_site_not_statically_reached_dynamic_or_unresolved_possible"
-      ]
-    },
-    {
-      "id": "services/migration/runtime_role.py:2452:12",
-      "source": "services/migration/runtime_role.py",
-      "line": 2452,
-      "scope": "provision_runtime_role",
-      "method": "execute",
-      "expression_kind": "composed_or_variable",
-      "statement_kind": "UNKNOWN",
-      "static_sql_sha256": null,
-      "candidate_relations": [],
-      "write_target_relations": [],
-      "api_static_reachability": "no_static_route_path",
-      "worker_static_operations": [],
-      "worker_static_review_status": "function_not_reached_by_any_static_worker_root",
-      "attribution": "unresolved",
-      "review_labels": [
-        "no_static_gateway_route_path_dynamic_or_non_api_possible",
-        "worker_sql_site_not_statically_reached_dynamic_or_unresolved_possible"
-      ]
-    },
-    {
-      "id": "services/migration/runtime_role.py:2454:16",
+      "id": "services/migration/runtime_role.py:2454:12",
       "source": "services/migration/runtime_role.py",
       "line": 2454,
       "scope": "provision_runtime_role",
@@ -97680,9 +97785,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:2469:16",
+      "id": "services/migration/runtime_role.py:2455:12",
       "source": "services/migration/runtime_role.py",
-      "line": 2469,
+      "line": 2455,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "composed_or_variable",
@@ -97700,9 +97805,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:2479:16",
+      "id": "services/migration/runtime_role.py:2457:16",
       "source": "services/migration/runtime_role.py",
-      "line": 2479,
+      "line": 2457,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "composed_or_variable",
@@ -97720,9 +97825,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:2484:12",
+      "id": "services/migration/runtime_role.py:2472:16",
       "source": "services/migration/runtime_role.py",
-      "line": 2484,
+      "line": 2472,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "composed_or_variable",
@@ -97740,9 +97845,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:2485:12",
+      "id": "services/migration/runtime_role.py:2482:16",
       "source": "services/migration/runtime_role.py",
-      "line": 2485,
+      "line": 2482,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "composed_or_variable",
@@ -97760,9 +97865,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:2486:12",
+      "id": "services/migration/runtime_role.py:2487:12",
       "source": "services/migration/runtime_role.py",
-      "line": 2486,
+      "line": 2487,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "composed_or_variable",
@@ -97780,7 +97885,7 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:2488:16",
+      "id": "services/migration/runtime_role.py:2488:12",
       "source": "services/migration/runtime_role.py",
       "line": 2488,
       "scope": "provision_runtime_role",
@@ -97800,9 +97905,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:2503:16",
+      "id": "services/migration/runtime_role.py:2489:12",
       "source": "services/migration/runtime_role.py",
-      "line": 2503,
+      "line": 2489,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "composed_or_variable",
@@ -97820,9 +97925,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:2513:16",
+      "id": "services/migration/runtime_role.py:2491:16",
       "source": "services/migration/runtime_role.py",
-      "line": 2513,
+      "line": 2491,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "composed_or_variable",
@@ -97840,9 +97945,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:2518:12",
+      "id": "services/migration/runtime_role.py:2506:16",
       "source": "services/migration/runtime_role.py",
-      "line": 2518,
+      "line": 2506,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "composed_or_variable",
@@ -97860,9 +97965,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:2519:12",
+      "id": "services/migration/runtime_role.py:2516:16",
       "source": "services/migration/runtime_role.py",
-      "line": 2519,
+      "line": 2516,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "composed_or_variable",
@@ -97880,9 +97985,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:2520:12",
+      "id": "services/migration/runtime_role.py:2521:12",
       "source": "services/migration/runtime_role.py",
-      "line": 2520,
+      "line": 2521,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "composed_or_variable",
@@ -97900,7 +98005,7 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:2522:16",
+      "id": "services/migration/runtime_role.py:2522:12",
       "source": "services/migration/runtime_role.py",
       "line": 2522,
       "scope": "provision_runtime_role",
@@ -97920,9 +98025,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:2537:16",
+      "id": "services/migration/runtime_role.py:2523:12",
       "source": "services/migration/runtime_role.py",
-      "line": 2537,
+      "line": 2523,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "composed_or_variable",
@@ -97940,9 +98045,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:2543:16",
+      "id": "services/migration/runtime_role.py:2525:16",
       "source": "services/migration/runtime_role.py",
-      "line": 2543,
+      "line": 2525,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "composed_or_variable",
@@ -97960,9 +98065,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:2548:12",
+      "id": "services/migration/runtime_role.py:2540:16",
       "source": "services/migration/runtime_role.py",
-      "line": 2548,
+      "line": 2540,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "composed_or_variable",
@@ -97980,9 +98085,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:2549:12",
+      "id": "services/migration/runtime_role.py:2546:16",
       "source": "services/migration/runtime_role.py",
-      "line": 2549,
+      "line": 2546,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "composed_or_variable",
@@ -98000,9 +98105,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:2550:12",
+      "id": "services/migration/runtime_role.py:2551:12",
       "source": "services/migration/runtime_role.py",
-      "line": 2550,
+      "line": 2551,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "composed_or_variable",
@@ -98020,7 +98125,7 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:2552:16",
+      "id": "services/migration/runtime_role.py:2552:12",
       "source": "services/migration/runtime_role.py",
       "line": 2552,
       "scope": "provision_runtime_role",
@@ -98040,9 +98145,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:2569:16",
+      "id": "services/migration/runtime_role.py:2553:12",
       "source": "services/migration/runtime_role.py",
-      "line": 2569,
+      "line": 2553,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "composed_or_variable",
@@ -98060,9 +98165,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:2575:16",
+      "id": "services/migration/runtime_role.py:2555:16",
       "source": "services/migration/runtime_role.py",
-      "line": 2575,
+      "line": 2555,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "composed_or_variable",
@@ -98080,9 +98185,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:2580:12",
+      "id": "services/migration/runtime_role.py:2572:16",
       "source": "services/migration/runtime_role.py",
-      "line": 2580,
+      "line": 2572,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "composed_or_variable",
@@ -98100,9 +98205,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:2581:12",
+      "id": "services/migration/runtime_role.py:2578:16",
       "source": "services/migration/runtime_role.py",
-      "line": 2581,
+      "line": 2578,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "composed_or_variable",
@@ -98120,9 +98225,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:2582:12",
+      "id": "services/migration/runtime_role.py:2583:12",
       "source": "services/migration/runtime_role.py",
-      "line": 2582,
+      "line": 2583,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "composed_or_variable",
@@ -98140,7 +98245,7 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:2584:16",
+      "id": "services/migration/runtime_role.py:2584:12",
       "source": "services/migration/runtime_role.py",
       "line": 2584,
       "scope": "provision_runtime_role",
@@ -98160,9 +98265,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:2599:16",
+      "id": "services/migration/runtime_role.py:2585:12",
       "source": "services/migration/runtime_role.py",
-      "line": 2599,
+      "line": 2585,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "composed_or_variable",
@@ -98180,9 +98285,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:2605:16",
+      "id": "services/migration/runtime_role.py:2587:16",
       "source": "services/migration/runtime_role.py",
-      "line": 2605,
+      "line": 2587,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "composed_or_variable",
@@ -98200,9 +98305,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:2610:12",
+      "id": "services/migration/runtime_role.py:2602:16",
       "source": "services/migration/runtime_role.py",
-      "line": 2610,
+      "line": 2602,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "composed_or_variable",
@@ -98220,9 +98325,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:2611:12",
+      "id": "services/migration/runtime_role.py:2608:16",
       "source": "services/migration/runtime_role.py",
-      "line": 2611,
+      "line": 2608,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "composed_or_variable",
@@ -98240,9 +98345,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:2612:12",
+      "id": "services/migration/runtime_role.py:2613:12",
       "source": "services/migration/runtime_role.py",
-      "line": 2612,
+      "line": 2613,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "composed_or_variable",
@@ -98260,7 +98365,7 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:2614:16",
+      "id": "services/migration/runtime_role.py:2614:12",
       "source": "services/migration/runtime_role.py",
       "line": 2614,
       "scope": "provision_runtime_role",
@@ -98280,9 +98385,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:2629:16",
+      "id": "services/migration/runtime_role.py:2615:12",
       "source": "services/migration/runtime_role.py",
-      "line": 2629,
+      "line": 2615,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "composed_or_variable",
@@ -98300,9 +98405,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:2635:16",
+      "id": "services/migration/runtime_role.py:2617:16",
       "source": "services/migration/runtime_role.py",
-      "line": 2635,
+      "line": 2617,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "composed_or_variable",
@@ -98320,9 +98425,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:2641:16",
+      "id": "services/migration/runtime_role.py:2632:16",
       "source": "services/migration/runtime_role.py",
-      "line": 2641,
+      "line": 2632,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "composed_or_variable",
@@ -98340,9 +98445,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:2646:12",
+      "id": "services/migration/runtime_role.py:2638:16",
       "source": "services/migration/runtime_role.py",
-      "line": 2646,
+      "line": 2638,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "composed_or_variable",
@@ -98360,9 +98465,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:2648:16",
+      "id": "services/migration/runtime_role.py:2644:16",
       "source": "services/migration/runtime_role.py",
-      "line": 2648,
+      "line": 2644,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "composed_or_variable",
@@ -98380,9 +98485,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:2665:16",
+      "id": "services/migration/runtime_role.py:2649:12",
       "source": "services/migration/runtime_role.py",
-      "line": 2665,
+      "line": 2649,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "composed_or_variable",
@@ -98400,9 +98505,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:2671:16",
+      "id": "services/migration/runtime_role.py:2651:16",
       "source": "services/migration/runtime_role.py",
-      "line": 2671,
+      "line": 2651,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "composed_or_variable",
@@ -98420,9 +98525,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:2676:16",
+      "id": "services/migration/runtime_role.py:2668:16",
       "source": "services/migration/runtime_role.py",
-      "line": 2676,
+      "line": 2668,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "composed_or_variable",
@@ -98440,9 +98545,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:2681:12",
+      "id": "services/migration/runtime_role.py:2674:16",
       "source": "services/migration/runtime_role.py",
-      "line": 2681,
+      "line": 2674,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "composed_or_variable",
@@ -98460,9 +98565,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:2683:16",
+      "id": "services/migration/runtime_role.py:2679:16",
       "source": "services/migration/runtime_role.py",
-      "line": 2683,
+      "line": 2679,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "composed_or_variable",
@@ -98480,9 +98585,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:2703:16",
+      "id": "services/migration/runtime_role.py:2684:12",
       "source": "services/migration/runtime_role.py",
-      "line": 2703,
+      "line": 2684,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "composed_or_variable",
@@ -98500,9 +98605,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:2709:16",
+      "id": "services/migration/runtime_role.py:2686:16",
       "source": "services/migration/runtime_role.py",
-      "line": 2709,
+      "line": 2686,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "composed_or_variable",
@@ -98520,9 +98625,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:2714:16",
+      "id": "services/migration/runtime_role.py:2706:16",
       "source": "services/migration/runtime_role.py",
-      "line": 2714,
+      "line": 2706,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "composed_or_variable",
@@ -98540,9 +98645,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:2719:12",
+      "id": "services/migration/runtime_role.py:2712:16",
       "source": "services/migration/runtime_role.py",
-      "line": 2719,
+      "line": 2712,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "composed_or_variable",
@@ -98560,9 +98665,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:2721:16",
+      "id": "services/migration/runtime_role.py:2717:16",
       "source": "services/migration/runtime_role.py",
-      "line": 2721,
+      "line": 2717,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "composed_or_variable",
@@ -98580,9 +98685,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:2739:16",
+      "id": "services/migration/runtime_role.py:2722:12",
       "source": "services/migration/runtime_role.py",
-      "line": 2739,
+      "line": 2722,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "composed_or_variable",
@@ -98600,9 +98705,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:2749:16",
+      "id": "services/migration/runtime_role.py:2724:16",
       "source": "services/migration/runtime_role.py",
-      "line": 2749,
+      "line": 2724,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "composed_or_variable",
@@ -98620,9 +98725,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:2754:16",
+      "id": "services/migration/runtime_role.py:2742:16",
       "source": "services/migration/runtime_role.py",
-      "line": 2754,
+      "line": 2742,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "composed_or_variable",
@@ -98640,9 +98745,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:2759:12",
+      "id": "services/migration/runtime_role.py:2752:16",
       "source": "services/migration/runtime_role.py",
-      "line": 2759,
+      "line": 2752,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "composed_or_variable",
@@ -98660,9 +98765,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:2764:12",
+      "id": "services/migration/runtime_role.py:2757:16",
       "source": "services/migration/runtime_role.py",
-      "line": 2764,
+      "line": 2757,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "composed_or_variable",
@@ -98680,9 +98785,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:2785:16",
+      "id": "services/migration/runtime_role.py:2762:12",
       "source": "services/migration/runtime_role.py",
-      "line": 2785,
+      "line": 2762,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "composed_or_variable",
@@ -98700,9 +98805,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:2791:16",
+      "id": "services/migration/runtime_role.py:2767:12",
       "source": "services/migration/runtime_role.py",
-      "line": 2791,
+      "line": 2767,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "composed_or_variable",
@@ -98720,9 +98825,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:2796:16",
+      "id": "services/migration/runtime_role.py:2788:16",
       "source": "services/migration/runtime_role.py",
-      "line": 2796,
+      "line": 2788,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "composed_or_variable",
@@ -98740,7 +98845,27 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:2799:12",
+      "id": "services/migration/runtime_role.py:2794:16",
+      "source": "services/migration/runtime_role.py",
+      "line": 2794,
+      "scope": "provision_runtime_role",
+      "method": "execute",
+      "expression_kind": "composed_or_variable",
+      "statement_kind": "UNKNOWN",
+      "static_sql_sha256": null,
+      "candidate_relations": [],
+      "write_target_relations": [],
+      "api_static_reachability": "no_static_route_path",
+      "worker_static_operations": [],
+      "worker_static_review_status": "function_not_reached_by_any_static_worker_root",
+      "attribution": "unresolved",
+      "review_labels": [
+        "no_static_gateway_route_path_dynamic_or_non_api_possible",
+        "worker_sql_site_not_statically_reached_dynamic_or_unresolved_possible"
+      ]
+    },
+    {
+      "id": "services/migration/runtime_role.py:2799:16",
       "source": "services/migration/runtime_role.py",
       "line": 2799,
       "scope": "provision_runtime_role",
@@ -98760,9 +98885,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:2801:16",
+      "id": "services/migration/runtime_role.py:2802:12",
       "source": "services/migration/runtime_role.py",
-      "line": 2801,
+      "line": 2802,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "composed_or_variable",
@@ -98780,9 +98905,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:2818:16",
+      "id": "services/migration/runtime_role.py:2804:16",
       "source": "services/migration/runtime_role.py",
-      "line": 2818,
+      "line": 2804,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "composed_or_variable",
@@ -98800,9 +98925,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:2824:16",
+      "id": "services/migration/runtime_role.py:2821:16",
       "source": "services/migration/runtime_role.py",
-      "line": 2824,
+      "line": 2821,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "composed_or_variable",
@@ -98820,49 +98945,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:2829:12",
+      "id": "services/migration/runtime_role.py:2827:16",
       "source": "services/migration/runtime_role.py",
-      "line": 2829,
-      "scope": "provision_runtime_role",
-      "method": "execute",
-      "expression_kind": "composed_or_variable",
-      "statement_kind": "UNKNOWN",
-      "static_sql_sha256": null,
-      "candidate_relations": [],
-      "write_target_relations": [],
-      "api_static_reachability": "no_static_route_path",
-      "worker_static_operations": [],
-      "worker_static_review_status": "function_not_reached_by_any_static_worker_root",
-      "attribution": "unresolved",
-      "review_labels": [
-        "no_static_gateway_route_path_dynamic_or_non_api_possible",
-        "worker_sql_site_not_statically_reached_dynamic_or_unresolved_possible"
-      ]
-    },
-    {
-      "id": "services/migration/runtime_role.py:2830:12",
-      "source": "services/migration/runtime_role.py",
-      "line": 2830,
-      "scope": "provision_runtime_role",
-      "method": "execute",
-      "expression_kind": "composed_or_variable",
-      "statement_kind": "UNKNOWN",
-      "static_sql_sha256": null,
-      "candidate_relations": [],
-      "write_target_relations": [],
-      "api_static_reachability": "no_static_route_path",
-      "worker_static_operations": [],
-      "worker_static_review_status": "function_not_reached_by_any_static_worker_root",
-      "attribution": "unresolved",
-      "review_labels": [
-        "no_static_gateway_route_path_dynamic_or_non_api_possible",
-        "worker_sql_site_not_statically_reached_dynamic_or_unresolved_possible"
-      ]
-    },
-    {
-      "id": "services/migration/runtime_role.py:2831:12",
-      "source": "services/migration/runtime_role.py",
-      "line": 2831,
+      "line": 2827,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "composed_or_variable",
@@ -98900,9 +98985,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:2851:16",
+      "id": "services/migration/runtime_role.py:2833:12",
       "source": "services/migration/runtime_role.py",
-      "line": 2851,
+      "line": 2833,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "composed_or_variable",
@@ -98920,9 +99005,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:2857:16",
+      "id": "services/migration/runtime_role.py:2834:12",
       "source": "services/migration/runtime_role.py",
-      "line": 2857,
+      "line": 2834,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "composed_or_variable",
@@ -98940,9 +99025,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:2862:12",
+      "id": "services/migration/runtime_role.py:2835:12",
       "source": "services/migration/runtime_role.py",
-      "line": 2862,
+      "line": 2835,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "composed_or_variable",
@@ -98960,9 +99045,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:2863:12",
+      "id": "services/migration/runtime_role.py:2854:16",
       "source": "services/migration/runtime_role.py",
-      "line": 2863,
+      "line": 2854,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "composed_or_variable",
@@ -98980,9 +99065,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:2864:12",
+      "id": "services/migration/runtime_role.py:2860:16",
       "source": "services/migration/runtime_role.py",
-      "line": 2864,
+      "line": 2860,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "composed_or_variable",
@@ -99020,9 +99105,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:2884:16",
+      "id": "services/migration/runtime_role.py:2866:12",
       "source": "services/migration/runtime_role.py",
-      "line": 2884,
+      "line": 2866,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "composed_or_variable",
@@ -99040,9 +99125,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:2889:16",
+      "id": "services/migration/runtime_role.py:2867:12",
       "source": "services/migration/runtime_role.py",
-      "line": 2889,
+      "line": 2867,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "composed_or_variable",
@@ -99060,9 +99145,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:2895:16",
+      "id": "services/migration/runtime_role.py:2868:12",
       "source": "services/migration/runtime_role.py",
-      "line": 2895,
+      "line": 2868,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "composed_or_variable",
@@ -99080,9 +99165,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:2900:16",
+      "id": "services/migration/runtime_role.py:2887:16",
       "source": "services/migration/runtime_role.py",
-      "line": 2900,
+      "line": 2887,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "composed_or_variable",
@@ -99100,9 +99185,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:2905:12",
+      "id": "services/migration/runtime_role.py:2892:16",
       "source": "services/migration/runtime_role.py",
-      "line": 2905,
+      "line": 2892,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "composed_or_variable",
@@ -99120,9 +99205,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:2906:12",
+      "id": "services/migration/runtime_role.py:2898:16",
       "source": "services/migration/runtime_role.py",
-      "line": 2906,
+      "line": 2898,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "composed_or_variable",
@@ -99140,9 +99225,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:2907:12",
+      "id": "services/migration/runtime_role.py:2903:16",
       "source": "services/migration/runtime_role.py",
-      "line": 2907,
+      "line": 2903,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "composed_or_variable",
@@ -99160,9 +99245,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:2912:12",
+      "id": "services/migration/runtime_role.py:2908:12",
       "source": "services/migration/runtime_role.py",
-      "line": 2912,
+      "line": 2908,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "composed_or_variable",
@@ -99180,9 +99265,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:2917:8",
+      "id": "services/migration/runtime_role.py:2909:12",
       "source": "services/migration/runtime_role.py",
-      "line": 2917,
+      "line": 2909,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "composed_or_variable",
@@ -99200,9 +99285,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:2918:8",
+      "id": "services/migration/runtime_role.py:2910:12",
       "source": "services/migration/runtime_role.py",
-      "line": 2918,
+      "line": 2910,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "composed_or_variable",
@@ -99220,9 +99305,49 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:2919:8",
+      "id": "services/migration/runtime_role.py:2915:12",
       "source": "services/migration/runtime_role.py",
-      "line": 2919,
+      "line": 2915,
+      "scope": "provision_runtime_role",
+      "method": "execute",
+      "expression_kind": "composed_or_variable",
+      "statement_kind": "UNKNOWN",
+      "static_sql_sha256": null,
+      "candidate_relations": [],
+      "write_target_relations": [],
+      "api_static_reachability": "no_static_route_path",
+      "worker_static_operations": [],
+      "worker_static_review_status": "function_not_reached_by_any_static_worker_root",
+      "attribution": "unresolved",
+      "review_labels": [
+        "no_static_gateway_route_path_dynamic_or_non_api_possible",
+        "worker_sql_site_not_statically_reached_dynamic_or_unresolved_possible"
+      ]
+    },
+    {
+      "id": "services/migration/runtime_role.py:2920:8",
+      "source": "services/migration/runtime_role.py",
+      "line": 2920,
+      "scope": "provision_runtime_role",
+      "method": "execute",
+      "expression_kind": "composed_or_variable",
+      "statement_kind": "UNKNOWN",
+      "static_sql_sha256": null,
+      "candidate_relations": [],
+      "write_target_relations": [],
+      "api_static_reachability": "no_static_route_path",
+      "worker_static_operations": [],
+      "worker_static_review_status": "function_not_reached_by_any_static_worker_root",
+      "attribution": "unresolved",
+      "review_labels": [
+        "no_static_gateway_route_path_dynamic_or_non_api_possible",
+        "worker_sql_site_not_statically_reached_dynamic_or_unresolved_possible"
+      ]
+    },
+    {
+      "id": "services/migration/runtime_role.py:2921:8",
+      "source": "services/migration/runtime_role.py",
+      "line": 2921,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "composed_or_variable",
@@ -99285,6 +99410,26 @@
       "line": 2928,
       "scope": "provision_runtime_role",
       "method": "execute",
+      "expression_kind": "composed_or_variable",
+      "statement_kind": "UNKNOWN",
+      "static_sql_sha256": null,
+      "candidate_relations": [],
+      "write_target_relations": [],
+      "api_static_reachability": "no_static_route_path",
+      "worker_static_operations": [],
+      "worker_static_review_status": "function_not_reached_by_any_static_worker_root",
+      "attribution": "unresolved",
+      "review_labels": [
+        "no_static_gateway_route_path_dynamic_or_non_api_possible",
+        "worker_sql_site_not_statically_reached_dynamic_or_unresolved_possible"
+      ]
+    },
+    {
+      "id": "services/migration/runtime_role.py:2931:8",
+      "source": "services/migration/runtime_role.py",
+      "line": 2931,
+      "scope": "provision_runtime_role",
+      "method": "execute",
       "expression_kind": "literal",
       "statement_kind": "SELECT",
       "static_sql_sha256": "d0e181b36e292786efb29761576b4baa3fbc0edfe1ddce3cd8dd74ae9792d90d",
@@ -99302,9 +99447,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:2965:12",
+      "id": "services/migration/runtime_role.py:2968:12",
       "source": "services/migration/runtime_role.py",
-      "line": 2965,
+      "line": 2968,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "composed_or_variable",
@@ -99322,9 +99467,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:2967:16",
+      "id": "services/migration/runtime_role.py:2970:16",
       "source": "services/migration/runtime_role.py",
-      "line": 2967,
+      "line": 2970,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "composed_or_variable",
@@ -99342,9 +99487,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:2969:8",
+      "id": "services/migration/runtime_role.py:2972:8",
       "source": "services/migration/runtime_role.py",
-      "line": 2969,
+      "line": 2972,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "literal",
@@ -99364,9 +99509,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:2971:12",
+      "id": "services/migration/runtime_role.py:2974:12",
       "source": "services/migration/runtime_role.py",
-      "line": 2971,
+      "line": 2974,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "composed_or_variable",
@@ -99384,9 +99529,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:2972:12",
+      "id": "services/migration/runtime_role.py:2975:12",
       "source": "services/migration/runtime_role.py",
-      "line": 2972,
+      "line": 2975,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "composed_or_variable",
@@ -99404,9 +99549,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:2973:8",
+      "id": "services/migration/runtime_role.py:2976:8",
       "source": "services/migration/runtime_role.py",
-      "line": 2973,
+      "line": 2976,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "composed_or_variable",
@@ -99424,9 +99569,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:2978:12",
+      "id": "services/migration/runtime_role.py:2981:12",
       "source": "services/migration/runtime_role.py",
-      "line": 2978,
+      "line": 2981,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "composed_or_variable",
@@ -99444,27 +99589,7 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:2983:12",
-      "source": "services/migration/runtime_role.py",
-      "line": 2983,
-      "scope": "provision_runtime_role",
-      "method": "execute",
-      "expression_kind": "composed_or_variable",
-      "statement_kind": "UNKNOWN",
-      "static_sql_sha256": null,
-      "candidate_relations": [],
-      "write_target_relations": [],
-      "api_static_reachability": "no_static_route_path",
-      "worker_static_operations": [],
-      "worker_static_review_status": "function_not_reached_by_any_static_worker_root",
-      "attribution": "unresolved",
-      "review_labels": [
-        "no_static_gateway_route_path_dynamic_or_non_api_possible",
-        "worker_sql_site_not_statically_reached_dynamic_or_unresolved_possible"
-      ]
-    },
-    {
-      "id": "services/migration/runtime_role.py:2986:8",
+      "id": "services/migration/runtime_role.py:2986:12",
       "source": "services/migration/runtime_role.py",
       "line": 2986,
       "scope": "provision_runtime_role",
@@ -99484,9 +99609,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:2995:8",
+      "id": "services/migration/runtime_role.py:2989:8",
       "source": "services/migration/runtime_role.py",
-      "line": 2995,
+      "line": 2989,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "composed_or_variable",
@@ -99504,49 +99629,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:3001:8",
+      "id": "services/migration/runtime_role.py:2998:8",
       "source": "services/migration/runtime_role.py",
-      "line": 3001,
-      "scope": "provision_runtime_role",
-      "method": "execute",
-      "expression_kind": "composed_or_variable",
-      "statement_kind": "UNKNOWN",
-      "static_sql_sha256": null,
-      "candidate_relations": [],
-      "write_target_relations": [],
-      "api_static_reachability": "no_static_route_path",
-      "worker_static_operations": [],
-      "worker_static_review_status": "function_not_reached_by_any_static_worker_root",
-      "attribution": "unresolved",
-      "review_labels": [
-        "no_static_gateway_route_path_dynamic_or_non_api_possible",
-        "worker_sql_site_not_statically_reached_dynamic_or_unresolved_possible"
-      ]
-    },
-    {
-      "id": "services/migration/runtime_role.py:3002:8",
-      "source": "services/migration/runtime_role.py",
-      "line": 3002,
-      "scope": "provision_runtime_role",
-      "method": "execute",
-      "expression_kind": "composed_or_variable",
-      "statement_kind": "UNKNOWN",
-      "static_sql_sha256": null,
-      "candidate_relations": [],
-      "write_target_relations": [],
-      "api_static_reachability": "no_static_route_path",
-      "worker_static_operations": [],
-      "worker_static_review_status": "function_not_reached_by_any_static_worker_root",
-      "attribution": "unresolved",
-      "review_labels": [
-        "no_static_gateway_route_path_dynamic_or_non_api_possible",
-        "worker_sql_site_not_statically_reached_dynamic_or_unresolved_possible"
-      ]
-    },
-    {
-      "id": "services/migration/runtime_role.py:3003:8",
-      "source": "services/migration/runtime_role.py",
-      "line": 3003,
+      "line": 2998,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "composed_or_variable",
@@ -99584,7 +99669,47 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:3007:16",
+      "id": "services/migration/runtime_role.py:3005:8",
+      "source": "services/migration/runtime_role.py",
+      "line": 3005,
+      "scope": "provision_runtime_role",
+      "method": "execute",
+      "expression_kind": "composed_or_variable",
+      "statement_kind": "UNKNOWN",
+      "static_sql_sha256": null,
+      "candidate_relations": [],
+      "write_target_relations": [],
+      "api_static_reachability": "no_static_route_path",
+      "worker_static_operations": [],
+      "worker_static_review_status": "function_not_reached_by_any_static_worker_root",
+      "attribution": "unresolved",
+      "review_labels": [
+        "no_static_gateway_route_path_dynamic_or_non_api_possible",
+        "worker_sql_site_not_statically_reached_dynamic_or_unresolved_possible"
+      ]
+    },
+    {
+      "id": "services/migration/runtime_role.py:3006:8",
+      "source": "services/migration/runtime_role.py",
+      "line": 3006,
+      "scope": "provision_runtime_role",
+      "method": "execute",
+      "expression_kind": "composed_or_variable",
+      "statement_kind": "UNKNOWN",
+      "static_sql_sha256": null,
+      "candidate_relations": [],
+      "write_target_relations": [],
+      "api_static_reachability": "no_static_route_path",
+      "worker_static_operations": [],
+      "worker_static_review_status": "function_not_reached_by_any_static_worker_root",
+      "attribution": "unresolved",
+      "review_labels": [
+        "no_static_gateway_route_path_dynamic_or_non_api_possible",
+        "worker_sql_site_not_statically_reached_dynamic_or_unresolved_possible"
+      ]
+    },
+    {
+      "id": "services/migration/runtime_role.py:3007:8",
       "source": "services/migration/runtime_role.py",
       "line": 3007,
       "scope": "provision_runtime_role",
@@ -99604,9 +99729,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:3011:16",
+      "id": "services/migration/runtime_role.py:3010:16",
       "source": "services/migration/runtime_role.py",
-      "line": 3011,
+      "line": 3010,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "composed_or_variable",
@@ -99624,9 +99749,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:3016:12",
+      "id": "services/migration/runtime_role.py:3014:16",
       "source": "services/migration/runtime_role.py",
-      "line": 3016,
+      "line": 3014,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "composed_or_variable",
@@ -99644,9 +99769,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:3017:12",
+      "id": "services/migration/runtime_role.py:3019:12",
       "source": "services/migration/runtime_role.py",
-      "line": 3017,
+      "line": 3019,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "composed_or_variable",
@@ -99664,9 +99789,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:3018:12",
+      "id": "services/migration/runtime_role.py:3020:12",
       "source": "services/migration/runtime_role.py",
-      "line": 3018,
+      "line": 3020,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "composed_or_variable",
@@ -99684,9 +99809,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:3025:16",
+      "id": "services/migration/runtime_role.py:3021:12",
       "source": "services/migration/runtime_role.py",
-      "line": 3025,
+      "line": 3021,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "composed_or_variable",
@@ -99704,9 +99829,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:3031:16",
+      "id": "services/migration/runtime_role.py:3028:16",
       "source": "services/migration/runtime_role.py",
-      "line": 3031,
+      "line": 3028,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "composed_or_variable",
@@ -99724,9 +99849,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:3036:12",
+      "id": "services/migration/runtime_role.py:3034:16",
       "source": "services/migration/runtime_role.py",
-      "line": 3036,
+      "line": 3034,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "composed_or_variable",
@@ -99744,9 +99869,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:3037:12",
+      "id": "services/migration/runtime_role.py:3039:12",
       "source": "services/migration/runtime_role.py",
-      "line": 3037,
+      "line": 3039,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "composed_or_variable",
@@ -99764,9 +99889,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:3038:12",
+      "id": "services/migration/runtime_role.py:3040:12",
       "source": "services/migration/runtime_role.py",
-      "line": 3038,
+      "line": 3040,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "composed_or_variable",
@@ -99784,9 +99909,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:3043:16",
+      "id": "services/migration/runtime_role.py:3041:12",
       "source": "services/migration/runtime_role.py",
-      "line": 3043,
+      "line": 3041,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "composed_or_variable",
@@ -99804,9 +99929,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:3049:16",
+      "id": "services/migration/runtime_role.py:3046:16",
       "source": "services/migration/runtime_role.py",
-      "line": 3049,
+      "line": 3046,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "composed_or_variable",
@@ -99824,9 +99949,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:3054:12",
+      "id": "services/migration/runtime_role.py:3052:16",
       "source": "services/migration/runtime_role.py",
-      "line": 3054,
+      "line": 3052,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "composed_or_variable",
@@ -99844,29 +99969,29 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:3055:12",
-      "source": "services/migration/runtime_role.py",
-      "line": 3055,
-      "scope": "provision_runtime_role",
-      "method": "execute",
-      "expression_kind": "composed_or_variable",
-      "statement_kind": "UNKNOWN",
-      "static_sql_sha256": null,
-      "candidate_relations": [],
-      "write_target_relations": [],
-      "api_static_reachability": "no_static_route_path",
-      "worker_static_operations": [],
-      "worker_static_review_status": "function_not_reached_by_any_static_worker_root",
-      "attribution": "unresolved",
-      "review_labels": [
-        "no_static_gateway_route_path_dynamic_or_non_api_possible",
-        "worker_sql_site_not_statically_reached_dynamic_or_unresolved_possible"
-      ]
-    },
-    {
-      "id": "services/migration/runtime_role.py:3057:16",
+      "id": "services/migration/runtime_role.py:3057:12",
       "source": "services/migration/runtime_role.py",
       "line": 3057,
+      "scope": "provision_runtime_role",
+      "method": "execute",
+      "expression_kind": "composed_or_variable",
+      "statement_kind": "UNKNOWN",
+      "static_sql_sha256": null,
+      "candidate_relations": [],
+      "write_target_relations": [],
+      "api_static_reachability": "no_static_route_path",
+      "worker_static_operations": [],
+      "worker_static_review_status": "function_not_reached_by_any_static_worker_root",
+      "attribution": "unresolved",
+      "review_labels": [
+        "no_static_gateway_route_path_dynamic_or_non_api_possible",
+        "worker_sql_site_not_statically_reached_dynamic_or_unresolved_possible"
+      ]
+    },
+    {
+      "id": "services/migration/runtime_role.py:3058:12",
+      "source": "services/migration/runtime_role.py",
+      "line": 3058,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "composed_or_variable",
@@ -99904,9 +100029,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:3066:16",
+      "id": "services/migration/runtime_role.py:3063:16",
       "source": "services/migration/runtime_role.py",
-      "line": 3066,
+      "line": 3063,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "composed_or_variable",
@@ -99924,9 +100049,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:3071:12",
+      "id": "services/migration/runtime_role.py:3069:16",
       "source": "services/migration/runtime_role.py",
-      "line": 3071,
+      "line": 3069,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "composed_or_variable",
@@ -99944,9 +100069,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:3072:12",
+      "id": "services/migration/runtime_role.py:3074:12",
       "source": "services/migration/runtime_role.py",
-      "line": 3072,
+      "line": 3074,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "composed_or_variable",
@@ -99964,9 +100089,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:3073:12",
+      "id": "services/migration/runtime_role.py:3075:12",
       "source": "services/migration/runtime_role.py",
-      "line": 3073,
+      "line": 3075,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "composed_or_variable",
@@ -99984,9 +100109,29 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:3079:8",
+      "id": "services/migration/runtime_role.py:3076:12",
       "source": "services/migration/runtime_role.py",
-      "line": 3079,
+      "line": 3076,
+      "scope": "provision_runtime_role",
+      "method": "execute",
+      "expression_kind": "composed_or_variable",
+      "statement_kind": "UNKNOWN",
+      "static_sql_sha256": null,
+      "candidate_relations": [],
+      "write_target_relations": [],
+      "api_static_reachability": "no_static_route_path",
+      "worker_static_operations": [],
+      "worker_static_review_status": "function_not_reached_by_any_static_worker_root",
+      "attribution": "unresolved",
+      "review_labels": [
+        "no_static_gateway_route_path_dynamic_or_non_api_possible",
+        "worker_sql_site_not_statically_reached_dynamic_or_unresolved_possible"
+      ]
+    },
+    {
+      "id": "services/migration/runtime_role.py:3082:8",
+      "source": "services/migration/runtime_role.py",
+      "line": 3082,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "literal",
@@ -100007,9 +100152,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:3080:8",
+      "id": "services/migration/runtime_role.py:3083:8",
       "source": "services/migration/runtime_role.py",
-      "line": 3080,
+      "line": 3083,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "composed_or_variable",
@@ -100027,9 +100172,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:3081:8",
+      "id": "services/migration/runtime_role.py:3084:8",
       "source": "services/migration/runtime_role.py",
-      "line": 3081,
+      "line": 3084,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "composed_or_variable",
@@ -100047,9 +100192,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:3087:16",
+      "id": "services/migration/runtime_role.py:3090:16",
       "source": "services/migration/runtime_role.py",
-      "line": 3087,
+      "line": 3090,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "composed_or_variable",
@@ -100067,69 +100212,49 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:3093:12",
-      "source": "services/migration/runtime_role.py",
-      "line": 3093,
-      "scope": "provision_runtime_role",
-      "method": "execute",
-      "expression_kind": "composed_or_variable",
-      "statement_kind": "UNKNOWN",
-      "static_sql_sha256": null,
-      "candidate_relations": [],
-      "write_target_relations": [],
-      "api_static_reachability": "no_static_route_path",
-      "worker_static_operations": [],
-      "worker_static_review_status": "function_not_reached_by_any_static_worker_root",
-      "attribution": "unresolved",
-      "review_labels": [
-        "no_static_gateway_route_path_dynamic_or_non_api_possible",
-        "worker_sql_site_not_statically_reached_dynamic_or_unresolved_possible"
-      ]
-    },
-    {
-      "id": "services/migration/runtime_role.py:3094:12",
-      "source": "services/migration/runtime_role.py",
-      "line": 3094,
-      "scope": "provision_runtime_role",
-      "method": "execute",
-      "expression_kind": "composed_or_variable",
-      "statement_kind": "UNKNOWN",
-      "static_sql_sha256": null,
-      "candidate_relations": [],
-      "write_target_relations": [],
-      "api_static_reachability": "no_static_route_path",
-      "worker_static_operations": [],
-      "worker_static_review_status": "function_not_reached_by_any_static_worker_root",
-      "attribution": "unresolved",
-      "review_labels": [
-        "no_static_gateway_route_path_dynamic_or_non_api_possible",
-        "worker_sql_site_not_statically_reached_dynamic_or_unresolved_possible"
-      ]
-    },
-    {
-      "id": "services/migration/runtime_role.py:3095:12",
-      "source": "services/migration/runtime_role.py",
-      "line": 3095,
-      "scope": "provision_runtime_role",
-      "method": "execute",
-      "expression_kind": "composed_or_variable",
-      "statement_kind": "UNKNOWN",
-      "static_sql_sha256": null,
-      "candidate_relations": [],
-      "write_target_relations": [],
-      "api_static_reachability": "no_static_route_path",
-      "worker_static_operations": [],
-      "worker_static_review_status": "function_not_reached_by_any_static_worker_root",
-      "attribution": "unresolved",
-      "review_labels": [
-        "no_static_gateway_route_path_dynamic_or_non_api_possible",
-        "worker_sql_site_not_statically_reached_dynamic_or_unresolved_possible"
-      ]
-    },
-    {
-      "id": "services/migration/runtime_role.py:3096:8",
+      "id": "services/migration/runtime_role.py:3096:12",
       "source": "services/migration/runtime_role.py",
       "line": 3096,
+      "scope": "provision_runtime_role",
+      "method": "execute",
+      "expression_kind": "composed_or_variable",
+      "statement_kind": "UNKNOWN",
+      "static_sql_sha256": null,
+      "candidate_relations": [],
+      "write_target_relations": [],
+      "api_static_reachability": "no_static_route_path",
+      "worker_static_operations": [],
+      "worker_static_review_status": "function_not_reached_by_any_static_worker_root",
+      "attribution": "unresolved",
+      "review_labels": [
+        "no_static_gateway_route_path_dynamic_or_non_api_possible",
+        "worker_sql_site_not_statically_reached_dynamic_or_unresolved_possible"
+      ]
+    },
+    {
+      "id": "services/migration/runtime_role.py:3097:12",
+      "source": "services/migration/runtime_role.py",
+      "line": 3097,
+      "scope": "provision_runtime_role",
+      "method": "execute",
+      "expression_kind": "composed_or_variable",
+      "statement_kind": "UNKNOWN",
+      "static_sql_sha256": null,
+      "candidate_relations": [],
+      "write_target_relations": [],
+      "api_static_reachability": "no_static_route_path",
+      "worker_static_operations": [],
+      "worker_static_review_status": "function_not_reached_by_any_static_worker_root",
+      "attribution": "unresolved",
+      "review_labels": [
+        "no_static_gateway_route_path_dynamic_or_non_api_possible",
+        "worker_sql_site_not_statically_reached_dynamic_or_unresolved_possible"
+      ]
+    },
+    {
+      "id": "services/migration/runtime_role.py:3098:12",
+      "source": "services/migration/runtime_role.py",
+      "line": 3098,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "composed_or_variable",
@@ -100187,9 +100312,29 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:3111:12",
+      "id": "services/migration/runtime_role.py:3105:8",
       "source": "services/migration/runtime_role.py",
-      "line": 3111,
+      "line": 3105,
+      "scope": "provision_runtime_role",
+      "method": "execute",
+      "expression_kind": "composed_or_variable",
+      "statement_kind": "UNKNOWN",
+      "static_sql_sha256": null,
+      "candidate_relations": [],
+      "write_target_relations": [],
+      "api_static_reachability": "no_static_route_path",
+      "worker_static_operations": [],
+      "worker_static_review_status": "function_not_reached_by_any_static_worker_root",
+      "attribution": "unresolved",
+      "review_labels": [
+        "no_static_gateway_route_path_dynamic_or_non_api_possible",
+        "worker_sql_site_not_statically_reached_dynamic_or_unresolved_possible"
+      ]
+    },
+    {
+      "id": "services/migration/runtime_role.py:3114:12",
+      "source": "services/migration/runtime_role.py",
+      "line": 3114,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "literal",
@@ -100210,9 +100355,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:3134:12",
+      "id": "services/migration/runtime_role.py:3137:12",
       "source": "services/migration/runtime_role.py",
-      "line": 3134,
+      "line": 3137,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "literal",
@@ -100233,9 +100378,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:3140:12",
+      "id": "services/migration/runtime_role.py:3143:12",
       "source": "services/migration/runtime_role.py",
-      "line": 3140,
+      "line": 3143,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "literal",
@@ -100253,9 +100398,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:3148:12",
+      "id": "services/migration/runtime_role.py:3151:12",
       "source": "services/migration/runtime_role.py",
-      "line": 3148,
+      "line": 3151,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "literal",
@@ -100278,9 +100423,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:3183:12",
+      "id": "services/migration/runtime_role.py:3186:12",
       "source": "services/migration/runtime_role.py",
-      "line": 3183,
+      "line": 3186,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "literal",
@@ -100302,9 +100447,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:3204:12",
+      "id": "services/migration/runtime_role.py:3207:12",
       "source": "services/migration/runtime_role.py",
-      "line": 3204,
+      "line": 3207,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "literal",
@@ -100325,9 +100470,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:3227:12",
+      "id": "services/migration/runtime_role.py:3230:12",
       "source": "services/migration/runtime_role.py",
-      "line": 3227,
+      "line": 3230,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "literal",
@@ -100348,9 +100493,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:3233:12",
+      "id": "services/migration/runtime_role.py:3236:12",
       "source": "services/migration/runtime_role.py",
-      "line": 3233,
+      "line": 3236,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "literal",
@@ -100368,9 +100513,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:3241:12",
+      "id": "services/migration/runtime_role.py:3244:12",
       "source": "services/migration/runtime_role.py",
-      "line": 3241,
+      "line": 3244,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "composed",
@@ -100388,9 +100533,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:3249:12",
+      "id": "services/migration/runtime_role.py:3252:12",
       "source": "services/migration/runtime_role.py",
-      "line": 3249,
+      "line": 3252,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "composed",
@@ -100408,9 +100553,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:3255:12",
+      "id": "services/migration/runtime_role.py:3258:12",
       "source": "services/migration/runtime_role.py",
-      "line": 3255,
+      "line": 3258,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "literal",
@@ -100433,9 +100578,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:3290:12",
+      "id": "services/migration/runtime_role.py:3293:12",
       "source": "services/migration/runtime_role.py",
-      "line": 3290,
+      "line": 3293,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "literal",
@@ -100457,9 +100602,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:3328:12",
+      "id": "services/migration/runtime_role.py:3331:12",
       "source": "services/migration/runtime_role.py",
-      "line": 3328,
+      "line": 3331,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "literal",
@@ -100479,9 +100624,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:3344:12",
+      "id": "services/migration/runtime_role.py:3347:12",
       "source": "services/migration/runtime_role.py",
-      "line": 3344,
+      "line": 3347,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "literal",
@@ -100501,9 +100646,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:3360:8",
+      "id": "services/migration/runtime_role.py:3363:8",
       "source": "services/migration/runtime_role.py",
-      "line": 3360,
+      "line": 3363,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "literal",
@@ -100521,9 +100666,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:3375:8",
+      "id": "services/migration/runtime_role.py:3378:8",
       "source": "services/migration/runtime_role.py",
-      "line": 3375,
+      "line": 3378,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "literal",
@@ -100541,9 +100686,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:3392:12",
+      "id": "services/migration/runtime_role.py:3395:12",
       "source": "services/migration/runtime_role.py",
-      "line": 3392,
+      "line": 3395,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "literal",
@@ -100561,9 +100706,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:3414:12",
+      "id": "services/migration/runtime_role.py:3417:12",
       "source": "services/migration/runtime_role.py",
-      "line": 3414,
+      "line": 3417,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "literal",
@@ -100586,9 +100731,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:3454:12",
+      "id": "services/migration/runtime_role.py:3457:12",
       "source": "services/migration/runtime_role.py",
-      "line": 3454,
+      "line": 3457,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "literal",
@@ -100610,9 +100755,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:3478:12",
+      "id": "services/migration/runtime_role.py:3481:12",
       "source": "services/migration/runtime_role.py",
-      "line": 3478,
+      "line": 3481,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "literal",
@@ -100633,9 +100778,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:3495:12",
+      "id": "services/migration/runtime_role.py:3498:12",
       "source": "services/migration/runtime_role.py",
-      "line": 3495,
+      "line": 3498,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "literal",
@@ -100653,9 +100798,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:3503:12",
+      "id": "services/migration/runtime_role.py:3506:12",
       "source": "services/migration/runtime_role.py",
-      "line": 3503,
+      "line": 3506,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "composed",
@@ -100673,9 +100818,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:3515:12",
+      "id": "services/migration/runtime_role.py:3518:12",
       "source": "services/migration/runtime_role.py",
-      "line": 3515,
+      "line": 3518,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "literal",
@@ -100698,9 +100843,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:3555:12",
+      "id": "services/migration/runtime_role.py:3558:12",
       "source": "services/migration/runtime_role.py",
-      "line": 3555,
+      "line": 3558,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "literal",
@@ -100722,9 +100867,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:3582:12",
+      "id": "services/migration/runtime_role.py:3585:12",
       "source": "services/migration/runtime_role.py",
-      "line": 3582,
+      "line": 3585,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "fstring",
@@ -100745,9 +100890,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:3598:12",
+      "id": "services/migration/runtime_role.py:3601:12",
       "source": "services/migration/runtime_role.py",
-      "line": 3598,
+      "line": 3601,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "composed",
@@ -100765,9 +100910,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:3606:12",
+      "id": "services/migration/runtime_role.py:3609:12",
       "source": "services/migration/runtime_role.py",
-      "line": 3606,
+      "line": 3609,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "composed",
@@ -100785,9 +100930,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:3612:12",
+      "id": "services/migration/runtime_role.py:3615:12",
       "source": "services/migration/runtime_role.py",
-      "line": 3612,
+      "line": 3615,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "literal",
@@ -100805,9 +100950,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:3619:12",
+      "id": "services/migration/runtime_role.py:3622:12",
       "source": "services/migration/runtime_role.py",
-      "line": 3619,
+      "line": 3622,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "literal",
@@ -100828,9 +100973,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:3644:12",
+      "id": "services/migration/runtime_role.py:3647:12",
       "source": "services/migration/runtime_role.py",
-      "line": 3644,
+      "line": 3647,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "literal",
@@ -100851,9 +100996,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:3664:12",
+      "id": "services/migration/runtime_role.py:3667:12",
       "source": "services/migration/runtime_role.py",
-      "line": 3664,
+      "line": 3667,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "literal",
@@ -100874,9 +101019,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:3677:12",
+      "id": "services/migration/runtime_role.py:3680:12",
       "source": "services/migration/runtime_role.py",
-      "line": 3677,
+      "line": 3680,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "composed",
@@ -100894,9 +101039,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:3685:12",
+      "id": "services/migration/runtime_role.py:3688:12",
       "source": "services/migration/runtime_role.py",
-      "line": 3685,
+      "line": 3688,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "composed",
@@ -100914,9 +101059,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:3691:12",
+      "id": "services/migration/runtime_role.py:3694:12",
       "source": "services/migration/runtime_role.py",
-      "line": 3691,
+      "line": 3694,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "literal",
@@ -100934,9 +101079,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:3698:12",
+      "id": "services/migration/runtime_role.py:3701:12",
       "source": "services/migration/runtime_role.py",
-      "line": 3698,
+      "line": 3701,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "literal",
@@ -100957,9 +101102,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:3723:12",
+      "id": "services/migration/runtime_role.py:3726:12",
       "source": "services/migration/runtime_role.py",
-      "line": 3723,
+      "line": 3726,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "literal",
@@ -100980,9 +101125,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:3739:12",
+      "id": "services/migration/runtime_role.py:3742:12",
       "source": "services/migration/runtime_role.py",
-      "line": 3739,
+      "line": 3742,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "literal",
@@ -101003,9 +101148,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:3752:12",
+      "id": "services/migration/runtime_role.py:3755:12",
       "source": "services/migration/runtime_role.py",
-      "line": 3752,
+      "line": 3755,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "composed",
@@ -101023,9 +101168,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:3849:16",
+      "id": "services/migration/runtime_role.py:3852:16",
       "source": "services/migration/runtime_role.py",
-      "line": 3849,
+      "line": 3852,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "literal",
@@ -101043,9 +101188,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:3861:16",
+      "id": "services/migration/runtime_role.py:3864:16",
       "source": "services/migration/runtime_role.py",
-      "line": 3861,
+      "line": 3864,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "literal",
@@ -101063,9 +101208,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:3879:8",
+      "id": "services/migration/runtime_role.py:3882:8",
       "source": "services/migration/runtime_role.py",
-      "line": 3879,
+      "line": 3882,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "literal",
@@ -101083,9 +101228,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:3894:8",
+      "id": "services/migration/runtime_role.py:3897:8",
       "source": "services/migration/runtime_role.py",
-      "line": 3894,
+      "line": 3897,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "composed",
@@ -101103,9 +101248,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:3904:12",
+      "id": "services/migration/runtime_role.py:3907:12",
       "source": "services/migration/runtime_role.py",
-      "line": 3904,
+      "line": 3907,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "composed",
@@ -101123,9 +101268,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:3910:8",
+      "id": "services/migration/runtime_role.py:3913:8",
       "source": "services/migration/runtime_role.py",
-      "line": 3910,
+      "line": 3913,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "literal",
@@ -101143,9 +101288,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:3918:12",
+      "id": "services/migration/runtime_role.py:3921:12",
       "source": "services/migration/runtime_role.py",
-      "line": 3918,
+      "line": 3921,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "literal",
@@ -101163,9 +101308,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:3926:12",
+      "id": "services/migration/runtime_role.py:3929:12",
       "source": "services/migration/runtime_role.py",
-      "line": 3926,
+      "line": 3929,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "literal",
@@ -101183,9 +101328,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:3934:12",
+      "id": "services/migration/runtime_role.py:3937:12",
       "source": "services/migration/runtime_role.py",
-      "line": 3934,
+      "line": 3937,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "literal",
@@ -101203,9 +101348,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:3951:12",
+      "id": "services/migration/runtime_role.py:3954:12",
       "source": "services/migration/runtime_role.py",
-      "line": 3951,
+      "line": 3954,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "composed",
@@ -101223,9 +101368,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:3957:8",
+      "id": "services/migration/runtime_role.py:3960:8",
       "source": "services/migration/runtime_role.py",
-      "line": 3957,
+      "line": 3960,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "composed",
@@ -101243,9 +101388,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:3974:8",
+      "id": "services/migration/runtime_role.py:3977:8",
       "source": "services/migration/runtime_role.py",
-      "line": 3974,
+      "line": 3977,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "literal",
@@ -101265,9 +101410,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:3982:8",
+      "id": "services/migration/runtime_role.py:3985:8",
       "source": "services/migration/runtime_role.py",
-      "line": 3982,
+      "line": 3985,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "literal",
@@ -101287,9 +101432,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:3991:12",
+      "id": "services/migration/runtime_role.py:3994:12",
       "source": "services/migration/runtime_role.py",
-      "line": 3991,
+      "line": 3994,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "literal",
@@ -101309,9 +101454,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:4002:12",
+      "id": "services/migration/runtime_role.py:4005:12",
       "source": "services/migration/runtime_role.py",
-      "line": 4002,
+      "line": 4005,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "literal",
@@ -101331,9 +101476,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:4013:12",
+      "id": "services/migration/runtime_role.py:4016:12",
       "source": "services/migration/runtime_role.py",
-      "line": 4013,
+      "line": 4016,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "literal",
@@ -101353,9 +101498,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:4024:12",
+      "id": "services/migration/runtime_role.py:4027:12",
       "source": "services/migration/runtime_role.py",
-      "line": 4024,
+      "line": 4027,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "literal",
@@ -101375,9 +101520,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:4035:12",
+      "id": "services/migration/runtime_role.py:4038:12",
       "source": "services/migration/runtime_role.py",
-      "line": 4035,
+      "line": 4038,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "literal",
@@ -101397,9 +101542,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:4046:12",
+      "id": "services/migration/runtime_role.py:4049:12",
       "source": "services/migration/runtime_role.py",
-      "line": 4046,
+      "line": 4049,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "literal",
@@ -101419,9 +101564,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:4057:12",
+      "id": "services/migration/runtime_role.py:4060:12",
       "source": "services/migration/runtime_role.py",
-      "line": 4057,
+      "line": 4060,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "literal",
@@ -101441,9 +101586,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:4068:12",
+      "id": "services/migration/runtime_role.py:4071:12",
       "source": "services/migration/runtime_role.py",
-      "line": 4068,
+      "line": 4071,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "literal",
@@ -101463,9 +101608,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:4079:12",
+      "id": "services/migration/runtime_role.py:4082:12",
       "source": "services/migration/runtime_role.py",
-      "line": 4079,
+      "line": 4082,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "literal",
@@ -101485,9 +101630,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:4090:12",
+      "id": "services/migration/runtime_role.py:4093:12",
       "source": "services/migration/runtime_role.py",
-      "line": 4090,
+      "line": 4093,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "literal",
@@ -101507,9 +101652,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:4101:12",
+      "id": "services/migration/runtime_role.py:4104:12",
       "source": "services/migration/runtime_role.py",
-      "line": 4101,
+      "line": 4104,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "literal",
@@ -101529,9 +101674,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:4112:12",
+      "id": "services/migration/runtime_role.py:4115:12",
       "source": "services/migration/runtime_role.py",
-      "line": 4112,
+      "line": 4115,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "literal",
@@ -101551,9 +101696,9 @@
       ]
     },
     {
-      "id": "services/migration/runtime_role.py:4123:12",
+      "id": "services/migration/runtime_role.py:4126:12",
       "source": "services/migration/runtime_role.py",
-      "line": 4123,
+      "line": 4126,
       "scope": "provision_runtime_role",
       "method": "execute",
       "expression_kind": "literal",
@@ -107035,12 +107180,12 @@
       "static_sql_sha256": "4554a9b04ca5377a8e5875d7314effe7a8fddae5de6256248df5b68e92844c6a",
       "candidate_relations": [],
       "write_target_relations": [],
-      "api_static_reachability": "no_static_route_path",
+      "api_static_reachability": "linked",
       "worker_static_operations": [],
       "worker_static_review_status": "function_not_reached_by_any_static_worker_root",
-      "attribution": "unresolved",
+      "attribution": "api_candidate",
       "review_labels": [
-        "no_static_gateway_route_path_dynamic_or_non_api_possible",
+        "gateway_route_static_call_path",
         "worker_sql_site_not_statically_reached_dynamic_or_unresolved_possible"
       ]
     },
@@ -107057,12 +107202,12 @@
         "scheduled_task"
       ],
       "write_target_relations": [],
-      "api_static_reachability": "no_static_route_path",
+      "api_static_reachability": "linked",
       "worker_static_operations": [],
       "worker_static_review_status": "function_not_reached_by_any_static_worker_root",
-      "attribution": "unresolved",
+      "attribution": "api_candidate",
       "review_labels": [
-        "no_static_gateway_route_path_dynamic_or_non_api_possible",
+        "gateway_route_static_call_path",
         "worker_sql_site_not_statically_reached_dynamic_or_unresolved_possible"
       ]
     },
@@ -107079,12 +107224,12 @@
         "scheduled_task"
       ],
       "write_target_relations": [],
-      "api_static_reachability": "no_static_route_path",
+      "api_static_reachability": "linked",
       "worker_static_operations": [],
       "worker_static_review_status": "function_not_reached_by_any_static_worker_root",
-      "attribution": "unresolved",
+      "attribution": "api_candidate",
       "review_labels": [
-        "no_static_gateway_route_path_dynamic_or_non_api_possible",
+        "gateway_route_static_call_path",
         "worker_sql_site_not_statically_reached_dynamic_or_unresolved_possible"
       ]
     },
@@ -107103,12 +107248,12 @@
       "write_target_relations": [
         "scheduled_task"
       ],
-      "api_static_reachability": "no_static_route_path",
+      "api_static_reachability": "linked",
       "worker_static_operations": [],
       "worker_static_review_status": "function_not_reached_by_any_static_worker_root",
-      "attribution": "unresolved",
+      "attribution": "api_candidate",
       "review_labels": [
-        "no_static_gateway_route_path_dynamic_or_non_api_possible",
+        "gateway_route_static_call_path",
         "worker_sql_site_not_statically_reached_dynamic_or_unresolved_possible"
       ]
     },

@@ -333,6 +333,9 @@ python3 scripts/check-agent-safety-superuser-disposable.py
 echo '=== Signed credit-adjustment worker boundary ==='
 python3 scripts/check-credit-adjustment-worker-disposable.py
 
+echo '=== Authenticated scheduler operator boundary ==='
+python3 scripts/check-scheduler-operator-disposable.py
+
 ci_phase_start 'ClickHouse and Redis startup'
 echo '=== Starting isolated CI infrastructure ==='
 export KOKONUT_GIT_SHA="$(git rev-parse HEAD)"
