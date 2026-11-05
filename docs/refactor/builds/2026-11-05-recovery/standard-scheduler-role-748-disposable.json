@@ -25,6 +25,12 @@
   "project": "kokonut-standard-recovery-ea04d06c84",
   "result": "passed",
   "runtime_network_internal": true,
+  "scheduler_cli_boundaries": {
+    "focused_tests": 170,
+    "one_shot_tick_uses_selected_scheduler_connection": true,
+    "isolated_run_now_rejected_before_database_access": true,
+    "definition_enable_disable_remain_operator_only": true
+  },
   "runtime_role": {
     "bootstrap_profile": "runtime-admin",
     "bootstrap_ran_explicitly_after_migrations": true,

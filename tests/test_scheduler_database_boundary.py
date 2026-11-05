@@ -3,7 +3,7 @@ from unittest.mock import Mock
 import pytest
 
 from services.common.worker_database import WorkerDatabaseConfigurationError
-from services.scheduler import worker
+from services.scheduler import connections, worker
 
 
 @pytest.mark.parametrize("selection", [
@@ -18,21 +18,65 @@ def test_selected_scheduler_without_dsn_never_uses_runtime(monkeypatch, selectio
     for name, value in selection.items():
         monkeypatch.setenv(name, value)
     shared = Mock()
-    monkeypatch.setattr(worker, "get_db", shared)
+    monkeypatch.setattr(connections, "get_db", shared)
+    dedicated = Mock(side_effect=WorkerDatabaseConfigurationError("missing dedicated identity"))
+    monkeypatch.setattr(connections, "get_worker_db", dedicated)
     with pytest.raises(WorkerDatabaseConfigurationError):
         worker._scheduler_connection()
     shared.assert_not_called()
+    dedicated.assert_called_once_with("scheduler", connect_timeout=5)
 
 
 def test_dedicated_connection_failure_does_not_fallback(monkeypatch):
     monkeypatch.setenv("KOKONUT_SCHEDULER_DATABASE_URL", "postgresql://synthetic")
     shared = Mock()
     dedicated = Mock(side_effect=WorkerDatabaseConfigurationError("wrong identity"))
-    monkeypatch.setattr(worker, "get_db", shared)
-    monkeypatch.setattr(worker, "get_worker_db", dedicated)
+    monkeypatch.setattr(connections, "get_db", shared)
+    monkeypatch.setattr(connections, "get_worker_db", dedicated)
     with pytest.raises(WorkerDatabaseConfigurationError):
         worker._scheduler_connection()
     dedicated.assert_called_once_with("scheduler", connect_timeout=5)
+    shared.assert_not_called()
+
+
+def test_scheduler_tick_cli_uses_the_selected_scheduler_connection(monkeypatch):
+    from argparse import Namespace
+
+    from services.scheduler import cli
+
+    connection = Mock()
+    engine = Mock()
+    engine.tick.return_value = {"launched": 0, "failed": 0, "skipped": 0, "no_resources": 0}
+    selected = Mock(return_value=connection)
+    monkeypatch.setattr(connections, "get_scheduler_connection", selected)
+    monkeypatch.setattr("services.scheduler.backend.get_scheduler", Mock(return_value=engine))
+    assert cli.cmd_tick(Namespace(worker_id="manual")) == 0
+    selected.assert_called_once_with()
+    connection.close.assert_called_once_with()
+
+
+@pytest.mark.parametrize("selection", [
+    {"KOKONUT_SCHEDULER_DATABASE_URL": ""},
+    {"KOKONUT_ISOLATED_WORKER_KEY": "scheduler"},
+    {"KOKONUT_DENY_SHARED_DATABASE": "true"},
+])
+def test_run_now_is_disabled_for_isolated_scheduler(monkeypatch, selection):
+    from argparse import Namespace
+
+    from services.scheduler.cli import cmd_run_now
+
+    for name in (
+        "KOKONUT_SCHEDULER_DATABASE_URL",
+        "KOKONUT_ISOLATED_WORKER_KEY",
+        "KOKONUT_DENY_SHARED_DATABASE",
+    ):
+        monkeypatch.delenv(name, raising=False)
+    for name, value in selection.items():
+        monkeypatch.setenv(name, value)
+    shared = Mock()
+    monkeypatch.setattr(connections, "get_db", shared)
+    with pytest.raises(RuntimeError, match="bypasses durable scheduler claims"):
+        cmd_run_now(Namespace(task_name="fixture"))
     shared.assert_not_called()
 
 

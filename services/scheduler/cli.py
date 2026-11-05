@@ -57,10 +57,10 @@ def cmd_status(args):
 
 
 def cmd_tick(args):
-    from services.common.database import get_db
     from services.scheduler.backend import get_scheduler
+    from services.scheduler.connections import get_scheduler_connection
 
-    conn = get_db()
+    conn = get_scheduler_connection()
     try:
         engine = get_scheduler(conn, worker_id=args.worker_id)
         stats = engine.tick()
@@ -112,7 +112,14 @@ def cmd_run_now(args):
     import sys as _sys
 
     from services.common.database import get_db
+    from services.scheduler.connections import scheduler_database_is_selected
     from services.security.scheduled_command_contracts import validate_scheduled_command
+
+    if scheduler_database_is_selected():
+        raise RuntimeError(
+            "--run-now bypasses durable scheduler claims and is disabled for the isolated scheduler; "
+            "use --tick or let the supervised scheduler claim the task"
+        )
 
     conn = get_db()
     try:

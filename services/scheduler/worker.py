@@ -6,17 +6,15 @@ replacing the static crontab.
 
 from __future__ import annotations
 
-import os
 import signal
 import time
 import uuid
 
-from services.common.database import get_db
 from services.common.errors import safe_exception_class
 from services.common.logging import get_logger
-from services.common.worker_database import get_worker_db
 from services.core.worker_progress import pulse_worker_progress
 from services.scheduler.backend import get_scheduler
+from services.scheduler.connections import get_scheduler_connection
 
 logger = get_logger("scheduler.worker")
 
@@ -25,13 +23,7 @@ _running = True
 
 def _scheduler_connection():
     """An explicitly selected scheduler identity never falls back to runtime."""
-    if (
-        "KOKONUT_SCHEDULER_DATABASE_URL" in os.environ
-        or os.environ.get("KOKONUT_ISOLATED_WORKER_KEY") == "scheduler"
-        or os.environ.get("KOKONUT_DENY_SHARED_DATABASE", "").lower() == "true"
-    ):
-        return get_worker_db("scheduler", connect_timeout=5)
-    return get_db(connect_timeout=5)
+    return get_scheduler_connection()
 
 
 def _shutdown(signum, frame):
