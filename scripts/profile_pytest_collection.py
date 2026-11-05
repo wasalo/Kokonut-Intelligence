@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import ast
 import os
 import resource
 import subprocess
@@ -91,6 +92,27 @@ def _memory_snapshot(pid: int, *, process_label: str) -> list[str]:
                 continue
             result.append(f"cgroup_{name.replace('.', '_')}={value}")
     return result
+
+
+def _worker_collection_variants(directory: Path) -> list[tuple[str, str]]:
+    source = (ROOT / "tests/test_kgp_worker_durability.py").read_text(encoding="utf-8")
+    module = ast.parse(source)
+    imports = [node for node in module.body if isinstance(node, (ast.Import, ast.ImportFrom))]
+    functions = [
+        node
+        for node in module.body
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node.name.startswith("test_")
+    ]
+    imports_module = ast.Module(body=imports, type_ignores=[])
+    imports_path = directory / "test_imports_only.py"
+    imports_path.write_text(ast.unparse(imports_module) + chr(10), encoding="utf-8")
+    variants = [("imports-only", str(imports_path.relative_to(ROOT)))]
+    for function in functions:
+        function_module = ast.Module(body=[*imports, function], type_ignores=[])
+        function_path = directory / f"test_{function.name}_profile.py"
+        function_path.write_text(ast.unparse(function_module) + chr(10), encoding="utf-8")
+        variants.append((function.name, str(function_path.relative_to(ROOT))))
+    return variants
 
 
 def _run_probe(
@@ -286,6 +308,14 @@ def main() -> int:
             "tests/test_kgp_worker_durability.py",
         ],
     )
+
+    with tempfile.TemporaryDirectory(prefix="_pytest_collection_profile_", dir=ROOT / "tests") as temporary_directory:
+        for label, generated_file in _worker_collection_variants(Path(temporary_directory)):
+            _run_probe(
+                label=f"isolated-item:{label}",
+                files=[generated_file],
+                address_space_limit_mib=arguments.address_space_limit_mib,
+            )
 
     group_exit = _run_probe(
         label="complete-shard",
