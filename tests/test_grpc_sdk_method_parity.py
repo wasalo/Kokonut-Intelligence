@@ -29,7 +29,7 @@ def _proto_rpc_names(proto_path: Path) -> list[str]:
 def _typescript_rpc_wrappers(client_path: Path) -> list[str]:
     source = client_path.read_text()
     return [
-        *re.findall(r'_call\("([A-Za-z_]\w*)"', source),
+        *re.findall(r'_call(?:<[^)]*>)?\(\s*"([A-Za-z_]\w*)"', source),
         *re.findall(r"\(this\.client as any\)\.([A-Za-z_]\w*)", source),
     ]
 
