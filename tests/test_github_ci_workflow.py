@@ -93,6 +93,8 @@ def test_manual_collection_profile_is_capped_and_outside_required_gate() -> None
     assert "service-test-import-order" in profiler
     assert '"--assert=plain"' in profiler
     assert '"no:unittest"' in profiler
+    assert '"no:anyio"' in profiler
+    assert '"no:platformdirs"' in profiler
 
     result = subprocess.run(
         [sys.executable, str(ROOT / "scripts/profile_pytest_collection.py"), "--help"],
