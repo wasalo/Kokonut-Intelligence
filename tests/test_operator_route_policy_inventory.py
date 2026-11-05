@@ -32,6 +32,7 @@ _PARAMETER_SAMPLES = {
     "report_id": "33333333-3333-4333-8333-333333333333",
     "request_id": "33333333-3333-4333-8333-333333333333",
     "outbox_id": "33333333-3333-4333-8333-333333333338",
+    "task_id": "33333333-3333-4333-8333-333333333339",
     "incident_id": "33333333-3333-4333-8333-333333333333",
     "collection_id": "44444444-4444-4444-8444-444444444444",
     "activity_id": "55555555-5555-4555-8555-555555555555",
@@ -115,6 +116,15 @@ _EXPECTED_OPERATOR_POLICIES = {
         "POST",
         f"/operator/api/clickhouse-outbox/dead-letters/{_PARAMETER_SAMPLES['outbox_id']}/discard",
     ): _expected("clickhouse_outbox", "discard"),
+    ("GET", "/operator/api/scheduler/tasks"): _expected("scheduler", "read"),
+    (
+        "POST",
+        f"/operator/api/scheduler/tasks/{_PARAMETER_SAMPLES['task_id']}/enable",
+    ): _expected("scheduler", "enable"),
+    (
+        "POST",
+        f"/operator/api/scheduler/tasks/{_PARAMETER_SAMPLES['task_id']}/disable",
+    ): _expected("scheduler", "disable"),
     (
         "GET",
         "/operator/api/delphi/11111111-1111-4111-8111-111111111111/studies",
