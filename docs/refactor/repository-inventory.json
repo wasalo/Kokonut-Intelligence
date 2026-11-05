@@ -1,5 +1,5 @@
 {
-  "baseline_commit": "8b2faee2cd447d0b4b3c72671aa7228bf0a304e6",
+  "baseline_commit": "cf25f74fe763ba28cb1139233dc883ac0f427b53",
   "capabilities": [
     {
       "category": "Farm Operations",
@@ -2272,19 +2272,19 @@
       "source": "services/gateway/router.py"
     },
     {
-      "line": 221,
+      "line": 224,
       "method": "GET",
       "path": "/operator/api/scheduler/tasks",
       "source": "services/gateway/scheduler_operator.py"
     },
     {
-      "line": 231,
+      "line": 234,
       "method": "POST",
       "path": "/operator/api/scheduler/tasks/{task_id}/enable",
       "source": "services/gateway/scheduler_operator.py"
     },
     {
-      "line": 248,
+      "line": 251,
       "method": "POST",
       "path": "/operator/api/scheduler/tasks/{task_id}/disable",
       "source": "services/gateway/scheduler_operator.py"
