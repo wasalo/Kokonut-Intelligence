@@ -2,6 +2,7 @@
 
 import os
 import subprocess
+import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -205,7 +206,9 @@ def test_ci_reports_phase_timings_and_uploads_failure_diagnostics() -> None:
     assert "actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9" in full_ci
     assert "if: failure()" in full_ci
     assert "retention-days: 7" in full_ci
-    assert '"$PYTHON_BIN" -m pytest -v -rs --durations=25' in test_runner
+    assert '"$PYTEST_BIN" -m pytest -v -rs --durations=25' in test_runner
+    assert "pytest_test_sharding.py" in test_runner
+    assert 'SHARD_COUNT="${KOKONUT_PYTEST_SHARDS:-12}"' in test_runner
     assert "kokonut-ci-source.log" in source_checks
     assert "artifacts/static-analysis/" in source_checks
     assert "if: failure()" in source_checks
@@ -249,7 +252,9 @@ def test_full_test_suite_runner_emits_heartbeat_without_masking_failure(tmp_path
     environment = os.environ.copy()
     environment.update(
         {
-            "PYTHON_BIN": str(fake_python),
+            "PYTHON_BIN": sys.executable,
+            "PYTEST_BIN": str(fake_python),
+            "KOKONUT_PYTEST_SHARDS": "1",
             "PYTEST_HEARTBEAT_INTERVAL_SECONDS": "1",
             "TMPDIR": str(tmp_path),
         }
@@ -265,7 +270,82 @@ def test_full_test_suite_runner_emits_heartbeat_without_masking_failure(tmp_path
     )
 
     assert result.returncode == 7
-    assert "Full Python test suite is still running" in result.stdout
+    assert "Full Python test shard 1/1 is still running" in result.stdout
     runner = (ROOT / "scripts/verify-full-test-suite.sh").read_text(encoding="utf-8")
     assert "ps -axo pid=,ppid=,rss=,etime=,comm=" in runner
     assert "/proc/meminfo" in runner
+
+
+def test_full_suite_runner_assigns_every_test_file_once_across_sequential_shards(tmp_path: Path) -> None:
+    fake_python = tmp_path / "fake-python"
+    fake_python.write_text(
+        "#!/usr/bin/env python3\n"
+        "import os\n"
+        "import sys\n"
+        "from pathlib import Path\n"
+        "test_files = [arg for arg in sys.argv[1:] if arg.startswith('tests/') and arg.endswith('.py')]\n"
+        "with Path(os.environ['PYTEST_TEST_FILE_LOG']).open('a', encoding='utf-8') as output:\n"
+        "    for test_file in test_files:\n"
+        "        output.write(f\"{os.environ['KOKONUT_PYTEST_SHARD_INDEX']}\\t{test_file}\\n\")\n"
+        "if os.environ.get('PYTEST_FAIL_SHARD') == os.environ['KOKONUT_PYTEST_SHARD_INDEX']:\n"
+        "    raise SystemExit(7)\n",
+        encoding="utf-8",
+    )
+    fake_python.chmod(0o755)
+    test_file_log = tmp_path / "test-files.log"
+    environment = os.environ.copy()
+    environment.update(
+        {
+            "PYTHON_BIN": sys.executable,
+            "PYTEST_BIN": str(fake_python),
+            "KOKONUT_PYTEST_SHARDS": "3",
+            "PYTEST_TEST_FILE_LOG": str(test_file_log),
+            "PYTEST_FAIL_SHARD": "1",
+            "TMPDIR": str(tmp_path),
+        }
+    )
+
+    result = subprocess.run(
+        ["bash", str(ROOT / "scripts/verify-full-test-suite.sh")],
+        capture_output=True,
+        check=False,
+        cwd=ROOT,
+        env=environment,
+        text=True,
+    )
+
+    assert test_file_log.exists(), f"runner returned {result.returncode}; stdout={result.stdout}; stderr={result.stderr}"
+    records = [line.split("\t", 1) for line in test_file_log.read_text(encoding="utf-8").splitlines()]
+    logged_shards = [shard_index for shard_index, _ in records]
+    logged_test_files = [test_file for _, test_file in records]
+    test_root = ROOT / "tests"
+    ignored_directories = {
+        ".pytest_cache",
+        "__pycache__",
+        ".venv",
+        "venv",
+        "env",
+        ".tox",
+        ".nox",
+        "build",
+        "dist",
+        "node_modules",
+    }
+    expected_test_files = sorted(
+        {
+            path.relative_to(ROOT).as_posix()
+            for pattern in ("test_*.py", "*_test.py")
+            for path in test_root.rglob(pattern)
+            if path.is_file()
+            and not any(
+                directory.startswith(".") or directory in ignored_directories
+                for directory in path.relative_to(test_root).parts[:-1]
+            )
+        }
+    )
+
+    assert result.returncode == 7
+    assert logged_shards == sorted(logged_shards)
+    assert set(logged_shards) == {"0", "1", "2"}
+    assert logged_test_files == expected_test_files
+    assert len(logged_test_files) == len(set(logged_test_files))

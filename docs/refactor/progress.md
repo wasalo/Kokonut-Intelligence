@@ -27080,3 +27080,21 @@ checks, and `git diff --check`. The Docker-backed integration rerun remains
 pending in GitHub Actions; no migration or persistent database/ACL was changed.
 New follow-up commits will use `94765983+wasabinetwork@users.noreply.github.com`;
 existing PR history was left unchanged.
+
+### Integration runner memory mitigation — 3 November 2026
+
+The updated integration job still received SIGTERM during pytest collection. Its
+heartbeat showed the Python process reaching approximately 13.8 GiB RSS with less
+than 700 MiB available on the 16 GiB runner; the workflow specifies a 90-minute
+job timeout, and no test assertion was reached. Runner labels match `ubuntu-24.04`.
+
+The full suite now runs in 12 deterministic contiguous shards, sequentially against
+the same seeded database. No test modules are skipped or run concurrently, and
+shard failures are aggregated. A local collect-only run passed in all 12 shards,
+covering all 970 test modules with 738–2,218 collected items per shard and no
+database connection.
+
+The sharding helper/contract tests pass (16 tests), as do all 73 fast source checks,
+Ruff, runtime inventories, release checks, and diff hygiene. GitHub integration
+validation for the sharded runner is pending; no persistent database or production
+ACL was touched.
