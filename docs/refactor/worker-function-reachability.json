@@ -455,7 +455,7 @@
           "qualname": "event_dispatch_worker_keys",
           "class_scope": null,
           "source": "services/common/worker_environment.py",
-          "line": 197
+          "line": 207
         },
         {
           "key": "services.common.worker_environment:event_handler_worker_policy",
@@ -463,7 +463,7 @@
           "qualname": "event_handler_worker_policy",
           "class_scope": null,
           "source": "services/common/worker_environment.py",
-          "line": 171
+          "line": 181
         },
         {
           "key": "services.common.worker_environment:isolated_worker_key",
@@ -471,7 +471,7 @@
           "qualname": "isolated_worker_key",
           "class_scope": null,
           "source": "services/common/worker_environment.py",
-          "line": 211
+          "line": 221
         },
         {
           "key": "services.common.worker_environment:scheduled_module_worker_environment",
@@ -495,7 +495,7 @@
           "qualname": "worker_subprocess_environment",
           "class_scope": null,
           "source": "services/common/worker_environment.py",
-          "line": 222
+          "line": 232
         },
         {
           "key": "services.core.features:is_enabled",
@@ -1131,37 +1131,37 @@
           "caller": "services.common.worker_environment:event_dispatch_worker_keys",
           "callee": "services.common.worker_environment:event_handler_worker_policy",
           "source": "services/common/worker_environment.py",
-          "line": 204
+          "line": 214
         },
         {
           "caller": "services.common.worker_environment:scheduled_module_worker_environment",
           "callee": "services.common.worker_environment:event_dispatch_worker_keys",
           "source": "services/common/worker_environment.py",
-          "line": 152
+          "line": 153
         },
         {
           "caller": "services.common.worker_environment:scheduled_module_worker_environment",
           "callee": "services.common.worker_environment:scheduled_module_worker_key",
           "source": "services/common/worker_environment.py",
-          "line": 163
-        },
-        {
-          "caller": "services.common.worker_environment:scheduled_module_worker_environment",
-          "callee": "services.common.worker_environment:worker_subprocess_environment",
-          "source": "services/common/worker_environment.py",
-          "line": 151
-        },
-        {
-          "caller": "services.common.worker_environment:scheduled_module_worker_environment",
-          "callee": "services.common.worker_environment:worker_subprocess_environment",
-          "source": "services/common/worker_environment.py",
-          "line": 157
-        },
-        {
-          "caller": "services.common.worker_environment:scheduled_module_worker_environment",
-          "callee": "services.common.worker_environment:worker_subprocess_environment",
-          "source": "services/common/worker_environment.py",
           "line": 164
+        },
+        {
+          "caller": "services.common.worker_environment:scheduled_module_worker_environment",
+          "callee": "services.common.worker_environment:worker_subprocess_environment",
+          "source": "services/common/worker_environment.py",
+          "line": 152
+        },
+        {
+          "caller": "services.common.worker_environment:scheduled_module_worker_environment",
+          "callee": "services.common.worker_environment:worker_subprocess_environment",
+          "source": "services/common/worker_environment.py",
+          "line": 158
+        },
+        {
+          "caller": "services.common.worker_environment:scheduled_module_worker_environment",
+          "callee": "services.common.worker_environment:worker_subprocess_environment",
+          "source": "services/common/worker_environment.py",
+          "line": 173
         },
         {
           "caller": "services.core.features:require_feature",
@@ -3868,7 +3868,7 @@
           "qualname": "worker_subprocess_environment",
           "class_scope": null,
           "source": "services/common/worker_environment.py",
-          "line": 222
+          "line": 232
         },
         {
           "key": "services.core.features:is_enabled",
@@ -9708,7 +9708,7 @@
           "qualname": "isolated_worker_key",
           "class_scope": null,
           "source": "services/common/worker_environment.py",
-          "line": 211
+          "line": 221
         },
         {
           "key": "services.core.features:is_enabled",
@@ -16422,7 +16422,7 @@
           "qualname": "isolated_worker_key",
           "class_scope": null,
           "source": "services/common/worker_environment.py",
-          "line": 211
+          "line": 221
         },
         {
           "key": "services.core.features:is_enabled",
