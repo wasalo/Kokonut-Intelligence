@@ -25,8 +25,13 @@ npm run dev:governance
 ```
 
 Each development server uses its production path prefix: `/ops/`, `/field/`, or
-`/governance/`. Build apps independently with `npm run build:ops`,
+`/governance/`. Gateway and preserved legacy paths proxy to
+`http://127.0.0.1:8000` by default; set `KOKONUT_GATEWAY_DEV_TARGET` to override
+that target. Build apps independently with `npm run build:ops`,
 `npm run build:field`, and `npm run build:governance`.
+
+This proxy makes local routing convenient. It does not substitute for the
+trusted HTTPS and browser identity acceptance in G4.
 
 The Wrangler configurations keep automatic public deployment disabled until
 the candidate origin, route ownership, and Cloudflare deployment environment

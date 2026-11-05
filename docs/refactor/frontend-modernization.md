@@ -15,15 +15,21 @@ until the replacement for their workflows passes the corresponding acceptance
 checks.
 
 The initial TypeScript workspace and three route shells now exist under
-[`apps/frontend`](../../apps/frontend/README.md). They provide navigation and
-handoffs to the existing interfaces only; feature parity, identity acceptance,
+[`apps/frontend`](../../apps/frontend/README.md). General Operations also has a
+read-only submitted-report review slice at `/ops/reports`: it loads the
+operator session and current review scopes, reads the bounded queue and report
+detail through existing Gateway endpoints, and offers no verify/reject/publish
+action. Feature parity beyond this slice, trusted-browser identity acceptance,
 Cloudflare routing, and R2 acceptance remain open.
 
 The shared `@kokonut/operator-client` foundation now enforces same-origin
 operator API paths, no-store requests, the existing operator CSRF cookie/header
-contract for mutations, and stale-read cancellation primitives. The Delphi and
-Field Collector auth protocols remain separate. Domain features have not yet
-been migrated onto this client.
+contract for mutations, and stale-read cancellation primitives. The report
+review slice uses it for session, queue, and detail reads, validates the
+returned location/report identity, and cancels stale requests when the
+selection changes. The Delphi and Field Collector auth protocols remain
+separate. Candidate browser acceptance is still required before this source
+slice can count as accepted parity.
 
 ## Existing surfaces and boundaries
 
