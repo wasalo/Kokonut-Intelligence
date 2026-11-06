@@ -79,7 +79,6 @@ def test_locationless_report_queries_have_explicit_network_or_multi_location_pol
     assert helper_without_location - network_only == {
         "algorithmic_redistribution",
         "anti_capture_governance",
-        "business_model_canvas",
         "redistribution_policy",
         "state_of_kokonut",
     }

@@ -231,7 +231,10 @@ def test_supervisor_scopes_each_worker_key_to_its_process(monkeypatch, tmp_path)
 
     scheduler_allowlist = ("scheduler", *SCHEDULED_WORKER_KEYS, *dispatch_keys)
     assert environment_options == [
-        {"allowed_worker_keys": ("operator_auth", "clickhouse_outbox_operator")},
+        {
+            "allowed_worker_keys": ("operator_auth", "clickhouse_outbox_operator"),
+            "include_api_only_media_environment": True,
+        },
         {"allowed_worker_keys": scheduler_allowlist},
         {"allowed_worker_keys": (), "strip_shared_database_credentials": True},
         {"allowed_worker_keys": (), "strip_shared_database_credentials": True},
