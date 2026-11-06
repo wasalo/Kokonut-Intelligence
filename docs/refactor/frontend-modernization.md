@@ -23,6 +23,11 @@ and use exact location read scopes; report detail and metric/coordination pages
 are bound to the selected location. Metric drafts stay visibly unverified.
 Compute, verification, coordination mutations, and other workflows remain
 available in the current console.
+Governance now includes a read-only Delphi facilitator recommendation queue at
+`/governance/recommendations`, with exact location review scopes, bounded
+pagination, and the existing approval blockers displayed without decision or
+publication controls. Participant invite handling remains on its separate
+compatibility path.
 Feature parity beyond these slices, trusted-browser identity acceptance,
 Cloudflare routing, and R2 acceptance remain open.
 

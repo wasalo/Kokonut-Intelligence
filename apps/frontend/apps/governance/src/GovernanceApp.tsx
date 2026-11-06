@@ -1,11 +1,13 @@
 import { Link, Navigate, Route, Routes } from "react-router";
 import { useEffect } from "react";
 import { VerticalShell, type NavigationItem } from "@kokonut/ui";
+import { DelphiRecommendationReviewPage } from "./DelphiRecommendationReviewPage";
 
 const navigation: NavigationItem[] = [
   { to: "/", label: "Overview", end: true },
   { to: "/workflows", label: "Governance workflows" },
   { to: "/deliberation", label: "Delphi studies" },
+  { to: "/recommendations", label: "Recommendation review" },
   { to: "/participate", label: "Participant entry" },
 ];
 
@@ -87,6 +89,7 @@ export function GovernanceApp() {
           path="/deliberation"
           element={<GovernanceLanding title="Delphi studies" description="Create studies, govern notices, invite participants, and review recommendations." />}
         />
+        <Route path="/recommendations" element={<DelphiRecommendationReviewPage />} />
         <Route path="/participate" element={<ParticipantCompatibilityEntry />} />
         <Route path="/participant" element={<Navigate to="/participate" replace />} />
         <Route path="*" element={<section><h2>Page not found</h2><Link to="/">Return to overview</Link></section>} />
