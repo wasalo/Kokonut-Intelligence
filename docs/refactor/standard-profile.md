@@ -504,6 +504,16 @@ Traefik, preserving its current policy of ignoring forwarded client headers.
 No candidate host ports or host-level Traefik settings are required.
 Dedicated compute, replicas, and failover remain optional scale/availability
 choices based on measured workload; they are not installation prerequisites.
+The manifest's network and volume names use the fixed
+`kokonut-kernel-coolify` prefix, so run one candidate instance per Docker host.
+Running separate staging and production candidates on the same host requires
+parameterized project, network, and volume names first.
+
+Standard does not impose CPU or memory quotas. Containers share host CPU, RAM,
+and disk, so monitor the combined workload and size per-service Coolify limits
+from measured usage before the soak. The Edge overlay caps the API and database
+at 1 GiB and 2 CPUs each; its worker remains uncapped, so those settings are
+not a complete shared-host budget.
 
 Render the single Git-based Compose definition from the reviewed overlays:
 
