@@ -198,6 +198,10 @@ EOF
 if [ "$RUN_MODE" != --source-only ]; then
     echo '=== Compose namespace isolation ==='
     test "$COMPOSE_PROJECT_NAME" = ki-ci
+
+    ci_phase_start 'Shared-host Coolify Compose artifact'
+    echo '=== Checking generated shared-host Coolify Compose artifact ==='
+    run_ci_timeout 2m python3 scripts/render-kernel-coolify-compose.py --check
 fi
 
 if [ "$RUN_MODE" != --integration-only ]; then
