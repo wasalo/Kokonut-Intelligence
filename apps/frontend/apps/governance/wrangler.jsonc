@@ -3,6 +3,10 @@
   "name": "ki-governance",
   "compatibility_date": "2026-11-05",
   "workers_dev": false,
+  "routes": [
+    { "pattern": "hub.kokonut.network/governance", "zone_name": "kokonut.network" },
+    { "pattern": "hub.kokonut.network/governance/*", "zone_name": "kokonut.network" }
+  ],
   "assets": {
     "directory": "./dist",
     "base_path": "/governance",

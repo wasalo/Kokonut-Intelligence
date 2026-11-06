@@ -64,11 +64,24 @@ Build and deploy three app entry points. Use path prefixes on one HTTPS
 application origin for the first candidate so existing same-origin session,
 CSRF, and API behavior can be retained. Suggested UI paths are `/ops/*`,
 `/field/*`, and `/governance/*`. The paths are a front-end routing choice; the
-existing Gateway API paths remain stable during migration. A Cloudflare edge
-router may serve the static bundle for each prefix and forward only explicit
-Gateway/auth paths to the VPS. Dynamic requests, invite flows, and personal data
-must be `no-store`; cache only versioned static assets. Do not put API secrets,
-database credentials, or authorization decisions in the browser or Worker.
+existing Gateway API paths remain stable during migration. The proposed public
+app origin is `hub.kokonut.network`, with `auth.kokonut.network` reserved for
+ZITADEL. Three Workers Static Assets apps serve only their own path prefixes:
+the exact `/ops`, `/field`, and `/governance` roots and their descendants. Other
+same-origin paths do not match those Workers and continue to the proxied
+Coolify/VPS origin. This keeps `/operator/*`, `/api/mobile/*`, and
+`/participation/*` on their current Gateway paths without an additional API
+proxy Worker. Dynamic requests, invite flows, and personal data must be
+`no-store`; cache only versioned static assets. Do not put API secrets, database
+credentials, or authorization decisions in the browser or Worker. The Wrangler
+route patterns are source configuration only; DNS, HTTPS, and Worker deployment
+remain pending G4.
+
+The workspace pins Wrangler 4.148.0 because `assets.base_path` requires that
+version or later ([Cloudflare subdirectory assets documentation](https://developers.cloudflare.com/workers/static-assets/routing/advanced/serving-a-subdirectory/)).
+Keep `workers_dev` disabled and retain the root-plus-descendant route pairs so
+paths such as `/ops-other` continue to the VPS instead of matching the app
+Worker. This routing has passed Wrangler dry runs; it has not been deployed.
 
 | App | Audience and feature groups | Current console panels to migrate |
 |---|---|---|
@@ -119,12 +132,14 @@ the legacy console is retired.
   rules.
 - Keep browser-visible user data out of analytics and logs. Avoid tokens in
   query strings; preserve the Delphi hash-fragment handling and URL cleanup.
-- Use Cloudflare Workers Static Assets for compiled assets. A small router may
-  serve each app path and forward an allowlist of dynamic paths to the Gateway.
+- Use one Cloudflare Worker Static Assets deployment per compiled app, each
+  bound to its exact route prefix on the shared `hub.kokonut.network` origin.
+  Requests outside those prefixes do not match the Workers and are served by
+  the existing proxied VPS origin.
   Do not cache API/auth routes, collection payloads, participant submissions,
   report contents, or signed media responses. The existing local-only
-  `prototypes/cloudflare-edge-preview` remains a prototype until the real app
-  contract and deployment origin are configured.
+  `prototypes/cloudflare-edge-preview` remains a synthetic prototype and is not
+  part of the candidate app routing.
 
 ## R2 storage direction
 

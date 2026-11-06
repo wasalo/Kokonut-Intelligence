@@ -3,6 +3,10 @@
   "name": "ki-general-operations",
   "compatibility_date": "2026-11-05",
   "workers_dev": false,
+  "routes": [
+    { "pattern": "hub.kokonut.network/ops", "zone_name": "kokonut.network" },
+    { "pattern": "hub.kokonut.network/ops/*", "zone_name": "kokonut.network" }
+  ],
   "assets": {
     "directory": "./dist",
     "base_path": "/ops",
