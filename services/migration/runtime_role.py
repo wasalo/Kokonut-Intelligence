@@ -21,6 +21,13 @@ _SESSION_FUNCTIONS = (
     "kokonut_security.authenticate_operator_session(text)",
     "kokonut_security.revoke_operator_session(uuid)",
 )
+_OPERATOR_SCOPE_READ_FUNCTIONS = (
+    "kokonut_security.operator_scope_grant_read_allows(uuid,text,text,uuid)",
+    "kokonut_security.operator_scope_grant_read_scopes(uuid)",
+)
+_OPERATOR_SCOPE_READ_CHECK_FUNCTION = (
+    "kokonut_security.operator_scope_grant_read_allows(uuid,text,text,uuid)"
+)
 _GATEWAY_CONTEXT_FUNCTION = "kokonut_security.set_gateway_tenant_context(text,text,uuid,text,text)"
 _OPERATOR_CONTEXT_FUNCTION = "kokonut_security.set_operator_tenant_context(text,uuid,uuid,text,text,jsonb)"
 _MOBILE_DEVICE_REVOKE_FUNCTION = "kokonut_security.revoke_mobile_device(uuid,text,text,text,uuid,text)"
@@ -199,6 +206,8 @@ _REMOTE_SENSING_FUNCTIONS = (
     "kokonut_security.finish_remote_sensing_job(uuid,uuid,text,jsonb,jsonb)",
 )
 _SECURITY_DEFINER_OWNERS = (
+    (_OPERATOR_SCOPE_READ_CHECK_FUNCTION, "kokonut_operator_scope_read_owner"),
+    (_OPERATOR_SCOPE_READ_FUNCTIONS[1], "kokonut_operator_scope_read_owner"),
     (
         "kokonut_security.resolve_mobile_device_token(text)",
         "kokonut_mobile_credential_owner",
@@ -269,6 +278,7 @@ _SECURITY_DEFINER_OWNERS = (
 )
 _PRIVATE_RUNTIME_FUNCTIONS = (
     *_SESSION_FUNCTIONS,
+    *_OPERATOR_SCOPE_READ_FUNCTIONS,
     _GATEWAY_CONTEXT_FUNCTION,
     _OPERATOR_CONTEXT_FUNCTION,
     _MOBILE_DEVICE_REVOKE_FUNCTION,
@@ -804,9 +814,14 @@ def _verify_security_definer_owners(cur) -> None:
         result = cur.fetchone()
         expected = (expected_owner, False, False, False, False, False, False, False, False)
         if result != expected:
+            migration_hint = (
+                "apply migration 750 before provisioning runtime roles"
+                if expected_owner == "kokonut_operator_scope_read_owner"
+                else "apply migration 400 before provisioning runtime roles"
+            )
             raise RuntimeError(
                 f"{function} must be owned by isolated {expected_owner}; "
-                "apply migration 400 before provisioning runtime roles"
+                f"{migration_hint}"
             )
 
 
@@ -2199,6 +2214,14 @@ def provision_runtime_role(
         if any(procedure is None for procedure in cur.fetchone()):
             raise RuntimeError("migration 395 operator-session functions must be applied before role provisioning")
         cur.execute(
+            "SELECT " + ", ".join("to_regprocedure(%s)" for _ in _OPERATOR_SCOPE_READ_FUNCTIONS),
+            _OPERATOR_SCOPE_READ_FUNCTIONS,
+        )
+        if any(procedure is None for procedure in cur.fetchone()):
+            raise RuntimeError(
+                "migration 750 operator-scope read functions must be applied before role provisioning"
+            )
+        cur.execute(
             "SELECT to_regprocedure(%s), to_regprocedure(%s), to_regprocedure(%s)",
             (
                 _GATEWAY_CONTEXT_FUNCTION,
@@ -3264,6 +3287,10 @@ def provision_runtime_role(
             cur.execute(sql.SQL("REVOKE ALL ON FUNCTION {} FROM PUBLIC").format(sql.SQL(function)))
             cur.execute(sql.SQL("REVOKE ALL ON FUNCTION {} FROM {}").format(sql.SQL(function), runtime_ident))
             cur.execute(sql.SQL("GRANT EXECUTE ON FUNCTION {} TO {}").format(sql.SQL(function), auth_ident))
+        for function in _OPERATOR_SCOPE_READ_FUNCTIONS:
+            cur.execute(sql.SQL("REVOKE ALL ON FUNCTION {} FROM PUBLIC").format(sql.SQL(function)))
+            cur.execute(sql.SQL("REVOKE ALL ON FUNCTION {} FROM {}").format(sql.SQL(function), runtime_ident))
+            cur.execute(sql.SQL("GRANT EXECUTE ON FUNCTION {} TO {}").format(sql.SQL(function), auth_ident))
         cur.execute(
             sql.SQL("REVOKE ALL ON FUNCTION {} FROM PUBLIC").format(sql.SQL(_OPERATOR_GLOBAL_CAPABILITY_FUNCTION))
         )
@@ -3562,6 +3589,28 @@ def provision_runtime_role(
         )
         if cur.fetchone()[0] is not True:
             raise RuntimeError("operator-auth role is missing a bounded session function grant")
+        cur.execute(
+            "SELECT "
+            + " AND ".join(
+                "has_function_privilege(%s, %s, 'EXECUTE')" for _ in _OPERATOR_SCOPE_READ_FUNCTIONS
+            ),
+            tuple(
+                value
+                for function in _OPERATOR_SCOPE_READ_FUNCTIONS
+                for value in (operator_auth_user, function)
+            ),
+        )
+        if cur.fetchone()[0] is not True:
+            raise RuntimeError("operator-auth role is missing the bounded scope-read functions")
+        cur.execute(
+            "SELECT "
+            + " OR ".join(
+                "has_function_privilege(%s, %s, 'EXECUTE')" for _ in _OPERATOR_SCOPE_READ_FUNCTIONS
+            ),
+            tuple(value for function in _OPERATOR_SCOPE_READ_FUNCTIONS for value in (runtime_user, function)),
+        )
+        if cur.fetchone()[0]:
+            raise RuntimeError("runtime role can execute isolated operator scope-read functions")
 
         if notification_enqueue_user is not None:
             cur.execute(

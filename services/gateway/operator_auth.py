@@ -353,8 +353,7 @@ class OIDCOperatorProvider:
         finally:
             conn.close()
 
-    @staticmethod
-    def has_scope(operator_id: str, resource: str, action: str, location_id: str) -> bool:
+    def has_scope(self, operator_id: str, resource: str, action: str, location_id: str) -> bool:
         if not all(_IDENTIFIER_RE.fullmatch(value) for value in (resource, action)):
             return False
         try:
@@ -362,26 +361,30 @@ class OIDCOperatorProvider:
             operator_id = str(UUID(operator_id))
         except ValueError:
             return False
-        conn = _get_db()
+        conn = _get_operator_auth_db(self.settings)
         try:
             with conn.cursor() as cur:
+                cur.execute("SET TRANSACTION READ ONLY")
+                cur.execute("SET LOCAL statement_timeout = '5s'")
+                cur.execute("SET LOCAL lock_timeout = '2s'")
                 cur.execute(
-                    """SELECT operator_scope_grant_allows(
+                    """SELECT kokonut_security.operator_scope_grant_read_allows(
                            %s::uuid, %s, %s, %s::uuid
                        )""",
                     (operator_id, resource, action, location_id),
                 )
-                return bool(cur.fetchone()[0])
+                allowed = bool(cur.fetchone()[0])
+            conn.rollback()
+            return allowed
         finally:
             conn.close()
 
-    @staticmethod
-    def list_scopes(operator_id: str) -> list[dict]:
+    def list_scopes(self, operator_id: str) -> list[dict]:
         try:
             operator_id = str(UUID(operator_id))
         except ValueError:
             return []
-        conn = _get_db()
+        conn = _get_operator_auth_db(self.settings)
         try:
             with conn.cursor() as cur:
                 cur.execute("SET TRANSACTION READ ONLY")
@@ -389,18 +392,16 @@ class OIDCOperatorProvider:
                 cur.execute("SET LOCAL lock_timeout = '2s'")
                 cur.execute(
                     """SELECT resource, action, location_id
-                         FROM operator_scope_grant
-                        WHERE operator_id = %s AND revoked_at IS NULL
-                          AND operator_scope_grant_allows(
-                              operator_id, resource, action, location_id
-                          )
+                         FROM kokonut_security.operator_scope_grant_read_scopes(%s::uuid)
                         ORDER BY resource, action, location_id""",
                     (operator_id,),
                 )
-                return [
+                scopes = [
                     {"resource": row[0], "action": row[1], "location_id": str(row[2])}
                     for row in cur.fetchall()
                 ]
+            conn.rollback()
+            return scopes
         finally:
             conn.close()
 
