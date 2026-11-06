@@ -63,10 +63,11 @@ MIGRATIONS = [
     ROOT / "schemas/postgres/596_agent_task_run_review_attribution.sql",
     ROOT / "schemas/postgres/597_ai_summary_operator_run_review_attribution.sql",
     ROOT / "schemas/postgres/628_authenticated_agent_task_requests.sql",
+    ROOT / "schemas/postgres/751_authenticated_synthesis_one_shot_dispatch.sql",
 ]
 OUTPUT = Path(os.environ.get(
     "KOKONUT_AGENT_WORKER_TEST_OUTPUT",
-    ROOT / "docs/refactor/builds/2026-10-23-recovery/cap-038-agent-run-attribution-native-disposable.json",
+    ROOT / "docs/refactor/builds/2026-11-06-recovery/cap-038-authenticated-synthesis-dispatch-disposable.json",
 ))
 IMAGE = os.environ.get("KOKONUT_AGENT_WORKER_TEST_IMAGE", "postgis/postgis:16-3.4")
 PLATFORM = os.environ.get("KOKONUT_AGENT_WORKER_TEST_PLATFORM", "").strip()
@@ -3939,25 +3940,30 @@ def _operator_task_request_acceptance() -> str:
             denied BOOLEAN := FALSE;
     BEGIN
         SELECT * INTO STRICT created
-          FROM kokonut_security.create_location_ai_summary_operator_task_request(
+          FROM kokonut_security.enqueue_location_ai_summary_operator_task_request(
               '{LOCATION_ID}', 'holistic_wellbeing_synthesis', 'holistic_wellbeing',
               '{TASK_REQUEST_ID}'
           );
         IF created.replayed OR created.task_key <> 'holistic_wellbeing_synthesis'
            OR created.summary_type <> 'holistic_wellbeing'
-           OR created.location_id <> '{LOCATION_ID}' THEN
-            RAISE EXCEPTION 'operator task receipt did not preserve exact task intent';
+           OR created.location_id <> '{LOCATION_ID}'
+           OR created.dispatch_status <> 'queued'
+           OR created.scheduled_task_id IS NULL THEN
+            RAISE EXCEPTION 'operator task receipt did not preserve exact task intent and queue one one-shot';
         END IF;
         SELECT * INTO STRICT replayed
-          FROM kokonut_security.create_location_ai_summary_operator_task_request(
+          FROM kokonut_security.enqueue_location_ai_summary_operator_task_request(
               '{LOCATION_ID}', 'holistic_wellbeing_synthesis', 'holistic_wellbeing',
               '{TASK_REQUEST_ID}'
           );
-        IF NOT replayed.replayed OR replayed.request_id <> created.request_id THEN
-            RAISE EXCEPTION 'operator task receipt retry was not idempotent';
+        IF NOT replayed.replayed OR replayed.request_id <> created.request_id
+           OR replayed.scheduled_task_id <> created.scheduled_task_id
+           OR replayed.dispatch_status <> 'queued'
+           THEN
+            RAISE EXCEPTION 'operator task receipt retry created more than one durable run';
         END IF;
         BEGIN
-            PERFORM * FROM kokonut_security.create_location_ai_summary_operator_task_request(
+            PERFORM * FROM kokonut_security.enqueue_location_ai_summary_operator_task_request(
                 '{LOCATION_ID}', 'feedback_synthesis', 'holistic_wellbeing',
                 '{TASK_REQUEST_ID}'
             );
@@ -3973,6 +3979,50 @@ def _operator_task_request_acceptance() -> str:
         END;
         IF NOT denied THEN
             RAISE EXCEPTION 'Gateway runtime can read immutable task request receipts directly';
+        END IF;
+    END;
+    $$;
+    COMMIT;
+    RESET ROLE;
+    DO $$
+    BEGIN
+        IF NOT EXISTS (
+            SELECT 1 FROM public.scheduled_task AS task
+             WHERE task.name = 'operator-ai-summary-{TASK_REQUEST_ID}'
+               AND task.module_path = 'services.agents.worker_cli'
+               AND task.is_one_shot
+               AND task.command_args = jsonb_build_array(
+                   '--location-id', '{LOCATION_ID}', '--task-key', 'holistic_wellbeing_synthesis',
+                   '--request-id', '{TASK_REQUEST_ID}', '--persist-draft', '--source-only'
+               )
+               AND task.next_run_at <= pg_catalog.clock_timestamp()
+               AND (SELECT count(*) FROM public.scheduled_task AS duplicate
+                     WHERE duplicate.name = task.name) = 1
+        ) THEN
+            RAISE EXCEPTION 'authenticated synthesis request did not queue exactly one registered draft-only command';
+        END IF;
+    END;
+    $$;
+    UPDATE public.scheduled_task
+       SET last_status = 'completed',
+           one_shot_completed_at = pg_catalog.clock_timestamp()
+     WHERE name = 'operator-ai-summary-{TASK_REQUEST_ID}';
+    SET ROLE kokonut_runtime;
+    BEGIN;
+    SELECT set_config('kokonut.tenant_id', '{TENANT_ID}', TRUE);
+    SELECT set_config('kokonut.location_id', '{LOCATION_ID}', TRUE);
+    SELECT set_config('kokonut.actor_id', 'a0000000-0000-0000-0000-000000000902', TRUE);
+    SELECT set_config('kokonut.actor_type', 'operator', TRUE);
+    DO $$
+    DECLARE replayed RECORD;
+    BEGIN
+        SELECT * INTO STRICT replayed
+          FROM kokonut_security.enqueue_location_ai_summary_operator_task_request(
+              '{LOCATION_ID}', 'holistic_wellbeing_synthesis', 'holistic_wellbeing',
+              '{TASK_REQUEST_ID}'
+          );
+        IF NOT replayed.replayed OR replayed.dispatch_status <> 'completed' THEN
+            RAISE EXCEPTION 'request replay did not preserve completed one-shot status';
         END IF;
     END;
     $$;
@@ -4014,6 +4064,13 @@ def _operator_task_request_acceptance() -> str:
                'EXECUTE'
            ) THEN
             RAISE EXCEPTION 'agent task request role boundary is broader than intended';
+        END IF;
+        IF NOT has_function_privilege(
+               'kokonut_runtime',
+               'kokonut_security.enqueue_location_ai_summary_operator_task_request(uuid,text,text,uuid)',
+               'EXECUTE'
+           ) THEN
+            RAISE EXCEPTION 'Gateway runtime cannot call the bounded enqueue function';
         END IF;
     END;
     $$;
@@ -4977,7 +5034,7 @@ def main() -> int:
         raise SystemExit("docker executable is required for disposable PostgreSQL acceptance")
     container = f"kokonut-agent-summary-worker-{uuid.uuid4().hex[:8]}"
     checks = [
-        "migrations 405, 419, 521-524, 529-537, 539-548, 580-597, and 628 apply; migrations 530-537, 539-548, 580-597 replay",
+        "migrations 405, 419, 521-524, 529-537, 539-548, 580-597, 628, and 751 apply; migrations 530-537, 539-548, 580-597 replay",
         "the original structured worker result is stored atomically with its draft and replayed without source reads",
         "pre-result worker receipts retain their content-only lookup fallback",
         "same-key summary-type collisions fail with 22023 before worker source reads, while cross-location result lookups fail with 42501",
@@ -5010,6 +5067,8 @@ def main() -> int:
         "operator request attribution remains column-only and unavailable to runtime, Directus, task writers, and PUBLIC",
         "migration 628 replay revokes stale runtime/Directus/task-writer receipt reads and restores reviewer column-only attribution",
         "operator task receipts are immutable and request UUID reuse cannot change task, location, or operator intent",
+        "migration 751 gives a NOLOGIN dispatcher only bounded scheduler insert rights and the scheduler only one-shot completion updates",
+        "authenticated synthesis requests enqueue one exact draft-only task; retries preserve queue identity and completed status",
         "task draft writes require the matching current operator receipt, registered task login, and active operator draft grant",
         "task receipt verification rejects mismatched summary type and location before draft persistence",
         "task worker verification fails after the initiating operator draft grant is revoked",

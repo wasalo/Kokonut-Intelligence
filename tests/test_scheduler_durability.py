@@ -111,7 +111,7 @@ class SchedulerDurabilityTests(TestCase):
         self.assertIsNone(claimed)
         self.assertEqual(isolated_skips, {})
         self.assertEqual(conn.recovered_task_runs[0][1], disabled_id)
-        self.assertEqual(conn.recovered_schedule_rows[0][2], disabled_id)
+        self.assertEqual(conn.recovered_schedule_rows[0][3], disabled_id)
         self.assertEqual(conn.claimed_task_runs, [])
         self.assertEqual(conn.claim_updates, [])
 
@@ -296,6 +296,7 @@ class SchedulerDurabilityTests(TestCase):
         self.assertIn("UPDATE scheduled_task", schedule_update[0])
         self.assertEqual(schedule_update[1][2], 0)
         self.assertIsNone(schedule_update[1][3])
+        self.assertIn("one_shot_completed_at", schedule_update[0])
         self.assertTrue(conn.committed)
 
     def test_completion_rejects_run_not_owned_by_worker(self):
@@ -322,6 +323,7 @@ class SchedulerDurabilityTests(TestCase):
         lease_update = conn._cursor.executed_sql[2]
         self.assertIn("lease_owner = %s", lease_update)
         self.assertIn("lease_expires_at > %s", lease_update)
+        self.assertIn("one_shot_completed_at", lease_update)
         self.assertTrue(conn.rolled_back)
 
 

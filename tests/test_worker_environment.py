@@ -122,6 +122,45 @@ def test_scheduled_noi_worker_receives_only_its_exact_secret_pair():
 
 
 @pytest.mark.parametrize(
+    ("task_key", "worker_key"),
+    [
+        ("ai_summary_synthesis", "agent_summary_deterministic_source"),
+        ("feedback_synthesis", "agent_feedback_source"),
+        ("organic_readiness_synthesis", "agent_organic_readiness_source"),
+    ],
+)
+def test_scheduled_synthesis_dispatch_receives_only_its_registered_worker(task_key, worker_key):
+    arguments = (
+        "--location-id", "a0000000-0000-4000-8000-000000000001",
+        "--task-key", task_key,
+    ) if task_key != "ai_summary_synthesis" else (
+        "--location-id", "a0000000-0000-4000-8000-000000000001",
+        "--summary-type", "combined",
+    )
+    source = {
+        "PATH": "/synthetic/bin",
+        "PG_USER": "kokonut_runtime",
+        "PG_PASSWORD": "shared-secret",
+        f"KOKONUT_{worker_key.upper()}_DATABASE_URL": "postgresql://task-worker",
+        f"KOKONUT_{worker_key.upper()}_WORKER_CREDENTIAL": "task-worker-secret",
+        "KOKONUT_AGENT_BIO_FACTORY_SOURCE_DATABASE_URL": "postgresql://other-task",
+        "KOKONUT_AGENT_BIO_FACTORY_SOURCE_WORKER_CREDENTIAL": "other-task-secret",
+        "KOKONUT_SCHEDULER_DATABASE_URL": "postgresql://scheduler",
+    }
+
+    assert scheduled_module_worker_key("services.agents.worker_cli", arguments) == worker_key
+    assert scheduled_module_worker_environment(
+        "services.agents.worker_cli", arguments, environ=source
+    ) == {
+        "PATH": "/synthetic/bin",
+        f"KOKONUT_{worker_key.upper()}_DATABASE_URL": "postgresql://task-worker",
+        f"KOKONUT_{worker_key.upper()}_WORKER_CREDENTIAL": "task-worker-secret",
+        ISOLATED_WORKER_KEY_ENV: worker_key,
+        DENY_SHARED_DATABASE_ENV: "true",
+    }
+
+
+@pytest.mark.parametrize(
     "isolation_environment",
     [
         {DENY_SHARED_DATABASE_ENV: "true"},

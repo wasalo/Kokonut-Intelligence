@@ -14,6 +14,7 @@ from uuid import UUID
 import psycopg2.extras
 
 from services.agents.ai_summary import build_summary, validate_source_reference_coverage
+from services.agents.task_registry import TASK_SUMMARY_TYPES, TASK_WORKER_KEYS
 from services.agents.worker_draft import (
     DETERMINISTIC_SUMMARY_TYPES,
     SYNTHESIS_SUMMARY_TYPES,
@@ -104,6 +105,14 @@ _SYNTHESIS_WORKERS = MappingProxyType({
         "kokonut_agent_regenerator_reader",
     ),
 })
+
+if set(_SYNTHESIS_WORKERS) != set(TASK_SUMMARY_TYPES) - {"ai_summary_synthesis"}:
+    raise RuntimeError("registered synthesis tasks must have exactly one source worker")
+if any(
+    TASK_WORKER_KEYS[task_key] != spec.source_identity
+    for task_key, spec in _SYNTHESIS_WORKERS.items()
+):
+    raise RuntimeError("registered synthesis tasks must use their mapped database identity")
 
 
 def resolve_synthesis_agent(task_key: str) -> Any:

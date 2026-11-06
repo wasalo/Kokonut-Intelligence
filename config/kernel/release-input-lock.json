@@ -54,7 +54,7 @@
     "config/caddy/Caddyfile.kernel.coolify": "3640c606d20243739cff47559b02dbbb7c3c7c139d9138645291e2a259fbee1c",
     "docker-compose.kernel-coolify-network.yml": "607f80917635fbe63fbbdef752d677b0c2fa709a0b1842917037f26fa4a72305",
     "docker-compose.kernel-coolify-zitadel.yml": "c0f2b97bc6e4d44058f4f8f424a29d0b8e558a2e306713b0499ee4f34e385bd0",
-    "docker-compose.kernel-coolify.yml": "0a6b79140287d345dcbd01d10d6d5bbafab43e749d210626e11617ad7ef3d8fd",
+    "docker-compose.kernel-coolify.yml": "ec2f145d035cfa2609cf035b2b63c7de1fb1bc56300eef7dfcd2cc3e75f63b1a",
     "scripts/render-kernel-coolify-compose.py": "2a5bbcf4ddab8315c73a189099e94d15c0244498c6a1d2c27beb7e0aeb4a2612"
   },
   "postgis_packages": {

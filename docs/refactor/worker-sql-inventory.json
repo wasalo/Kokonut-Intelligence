@@ -3,8 +3,8 @@
   "generated_by": "scripts/worker_sql_inventory.py",
   "scope": "Direct Python SQL execution calls found in the static worker source-import closure. Relation names are regex-derived candidates, not a parsed SQL AST. The inventory does not prove function reachability, complete database effects, or authorization.",
   "summary": {
-    "operation_roots": 49,
-    "source_files": 146,
+    "operation_roots": 50,
+    "source_files": 147,
     "execution_sites": 439,
     "static_literal_sites": 350,
     "composed_or_variable_sites": 89
@@ -23,6 +23,7 @@
       "static_sql_sha256": null,
       "operation_refs": [
         "isolated_worker:services.agents.worker_cli",
+        "scheduled_module:services.agents.worker_cli",
         "signed_source_function:services.agents.worker_cli.run_worker_cids_export",
         "signed_source_function:services.agents.worker_cli.run_worker_delphi_facilitation",
         "signed_source_function:services.agents.worker_cli.run_worker_ebf_evidence_gap",
@@ -45,6 +46,7 @@
       "static_sql_sha256": null,
       "operation_refs": [
         "isolated_worker:services.agents.worker_cli",
+        "scheduled_module:services.agents.worker_cli",
         "signed_source_function:services.agents.worker_cli.run_worker_cids_export",
         "signed_source_function:services.agents.worker_cli.run_worker_delphi_facilitation",
         "signed_source_function:services.agents.worker_cli.run_worker_ebf_evidence_gap",
@@ -141,6 +143,7 @@
       "static_sql_sha256": null,
       "operation_refs": [
         "isolated_worker:services.agents.worker_cli",
+        "scheduled_module:services.agents.worker_cli",
         "signed_source_function:services.agents.worker_cli.run_worker_cids_export",
         "signed_source_function:services.agents.worker_cli.run_worker_delphi_facilitation",
         "signed_source_function:services.agents.worker_cli.run_worker_ebf_evidence_gap",
@@ -192,6 +195,7 @@
       "static_sql_sha256": null,
       "operation_refs": [
         "isolated_worker:services.agents.worker_cli",
+        "scheduled_module:services.agents.worker_cli",
         "signed_source_function:services.agents.worker_cli.run_worker_cids_export",
         "signed_source_function:services.agents.worker_cli.run_worker_delphi_facilitation",
         "signed_source_function:services.agents.worker_cli.run_worker_ebf_evidence_gap",
@@ -215,7 +219,8 @@
       ],
       "static_sql_sha256": null,
       "operation_refs": [
-        "isolated_worker:services.agents.worker_cli"
+        "isolated_worker:services.agents.worker_cli",
+        "scheduled_module:services.agents.worker_cli"
       ]
     },
     {
@@ -232,7 +237,8 @@
       ],
       "static_sql_sha256": null,
       "operation_refs": [
-        "isolated_worker:services.agents.worker_cli"
+        "isolated_worker:services.agents.worker_cli",
+        "scheduled_module:services.agents.worker_cli"
       ]
     },
     {
@@ -249,7 +255,8 @@
       ],
       "static_sql_sha256": null,
       "operation_refs": [
-        "isolated_worker:services.agents.worker_cli"
+        "isolated_worker:services.agents.worker_cli",
+        "scheduled_module:services.agents.worker_cli"
       ]
     },
     {
@@ -266,7 +273,8 @@
       ],
       "static_sql_sha256": null,
       "operation_refs": [
-        "isolated_worker:services.agents.worker_cli"
+        "isolated_worker:services.agents.worker_cli",
+        "scheduled_module:services.agents.worker_cli"
       ]
     },
     {
@@ -283,7 +291,8 @@
       ],
       "static_sql_sha256": "d3e6cf98b95b3eb019903e29b72952cd3d5a34b3bc538de25a447a767987ec59",
       "operation_refs": [
-        "isolated_worker:services.agents.worker_cli"
+        "isolated_worker:services.agents.worker_cli",
+        "scheduled_module:services.agents.worker_cli"
       ]
     },
     {
@@ -300,7 +309,8 @@
       ],
       "static_sql_sha256": null,
       "operation_refs": [
-        "isolated_worker:services.agents.worker_cli"
+        "isolated_worker:services.agents.worker_cli",
+        "scheduled_module:services.agents.worker_cli"
       ]
     },
     {
@@ -317,7 +327,8 @@
       ],
       "static_sql_sha256": null,
       "operation_refs": [
-        "isolated_worker:services.agents.worker_cli"
+        "isolated_worker:services.agents.worker_cli",
+        "scheduled_module:services.agents.worker_cli"
       ]
     },
     {
@@ -334,7 +345,8 @@
       ],
       "static_sql_sha256": null,
       "operation_refs": [
-        "isolated_worker:services.agents.worker_cli"
+        "isolated_worker:services.agents.worker_cli",
+        "scheduled_module:services.agents.worker_cli"
       ]
     },
     {
@@ -351,7 +363,8 @@
       ],
       "static_sql_sha256": null,
       "operation_refs": [
-        "isolated_worker:services.agents.worker_cli"
+        "isolated_worker:services.agents.worker_cli",
+        "scheduled_module:services.agents.worker_cli"
       ]
     },
     {
@@ -368,7 +381,8 @@
       ],
       "static_sql_sha256": null,
       "operation_refs": [
-        "isolated_worker:services.agents.worker_cli"
+        "isolated_worker:services.agents.worker_cli",
+        "scheduled_module:services.agents.worker_cli"
       ]
     },
     {
@@ -385,7 +399,8 @@
       ],
       "static_sql_sha256": null,
       "operation_refs": [
-        "isolated_worker:services.agents.worker_cli"
+        "isolated_worker:services.agents.worker_cli",
+        "scheduled_module:services.agents.worker_cli"
       ]
     },
     {
@@ -402,7 +417,8 @@
       ],
       "static_sql_sha256": null,
       "operation_refs": [
-        "isolated_worker:services.agents.worker_cli"
+        "isolated_worker:services.agents.worker_cli",
+        "scheduled_module:services.agents.worker_cli"
       ]
     },
     {
@@ -419,7 +435,8 @@
       ],
       "static_sql_sha256": null,
       "operation_refs": [
-        "isolated_worker:services.agents.worker_cli"
+        "isolated_worker:services.agents.worker_cli",
+        "scheduled_module:services.agents.worker_cli"
       ]
     },
     {
@@ -437,6 +454,7 @@
       "static_sql_sha256": "f08ee4e375c23ae970305ed4e2aec843219887589f9aa84f21197ffb7ac51772",
       "operation_refs": [
         "isolated_worker:services.agents.worker_cli",
+        "scheduled_module:services.agents.worker_cli",
         "signed_source_function:services.agents.worker_cli.run_worker_cids_export",
         "signed_source_function:services.agents.worker_cli.run_worker_delphi_facilitation",
         "signed_source_function:services.agents.worker_cli.run_worker_ebf_evidence_gap",
@@ -458,7 +476,8 @@
       "candidate_relations": [],
       "static_sql_sha256": "572997dc71e06a124a870501624136d2c670a65f43c7e064c2dd402b9f42e0a6",
       "operation_refs": [
-        "isolated_worker:services.agents.worker_cli"
+        "isolated_worker:services.agents.worker_cli",
+        "scheduled_module:services.agents.worker_cli"
       ]
     },
     {
@@ -475,7 +494,8 @@
       ],
       "static_sql_sha256": "a5ad4607397c5de8d6b72d62965ddee2b5fa771a6bd8000b6ada34dd4d98087a",
       "operation_refs": [
-        "isolated_worker:services.agents.worker_cli"
+        "isolated_worker:services.agents.worker_cli",
+        "scheduled_module:services.agents.worker_cli"
       ]
     },
     {
@@ -492,7 +512,8 @@
       ],
       "static_sql_sha256": null,
       "operation_refs": [
-        "isolated_worker:services.agents.worker_cli"
+        "isolated_worker:services.agents.worker_cli",
+        "scheduled_module:services.agents.worker_cli"
       ]
     },
     {
@@ -509,7 +530,8 @@
       ],
       "static_sql_sha256": null,
       "operation_refs": [
-        "isolated_worker:services.agents.worker_cli"
+        "isolated_worker:services.agents.worker_cli",
+        "scheduled_module:services.agents.worker_cli"
       ]
     },
     {
@@ -526,7 +548,8 @@
       ],
       "static_sql_sha256": null,
       "operation_refs": [
-        "isolated_worker:services.agents.worker_cli"
+        "isolated_worker:services.agents.worker_cli",
+        "scheduled_module:services.agents.worker_cli"
       ]
     },
     {
@@ -543,7 +566,8 @@
       ],
       "static_sql_sha256": null,
       "operation_refs": [
-        "isolated_worker:services.agents.worker_cli"
+        "isolated_worker:services.agents.worker_cli",
+        "scheduled_module:services.agents.worker_cli"
       ]
     },
     {
@@ -560,7 +584,8 @@
       ],
       "static_sql_sha256": null,
       "operation_refs": [
-        "isolated_worker:services.agents.worker_cli"
+        "isolated_worker:services.agents.worker_cli",
+        "scheduled_module:services.agents.worker_cli"
       ]
     },
     {
@@ -577,7 +602,8 @@
       ],
       "static_sql_sha256": null,
       "operation_refs": [
-        "isolated_worker:services.agents.worker_cli"
+        "isolated_worker:services.agents.worker_cli",
+        "scheduled_module:services.agents.worker_cli"
       ]
     },
     {
@@ -594,7 +620,8 @@
       ],
       "static_sql_sha256": null,
       "operation_refs": [
-        "isolated_worker:services.agents.worker_cli"
+        "isolated_worker:services.agents.worker_cli",
+        "scheduled_module:services.agents.worker_cli"
       ]
     },
     {
@@ -611,7 +638,8 @@
       ],
       "static_sql_sha256": null,
       "operation_refs": [
-        "isolated_worker:services.agents.worker_cli"
+        "isolated_worker:services.agents.worker_cli",
+        "scheduled_module:services.agents.worker_cli"
       ]
     },
     {
@@ -628,7 +656,8 @@
       ],
       "static_sql_sha256": "4b515f60e33041b81355364d3fdfbfb0b15c26f6647913487342370c9ccafe76",
       "operation_refs": [
-        "isolated_worker:services.agents.worker_cli"
+        "isolated_worker:services.agents.worker_cli",
+        "scheduled_module:services.agents.worker_cli"
       ]
     },
     {
@@ -645,7 +674,8 @@
       ],
       "static_sql_sha256": null,
       "operation_refs": [
-        "isolated_worker:services.agents.worker_cli"
+        "isolated_worker:services.agents.worker_cli",
+        "scheduled_module:services.agents.worker_cli"
       ]
     },
     {
@@ -662,7 +692,8 @@
       ],
       "static_sql_sha256": null,
       "operation_refs": [
-        "isolated_worker:services.agents.worker_cli"
+        "isolated_worker:services.agents.worker_cli",
+        "scheduled_module:services.agents.worker_cli"
       ]
     },
     {
@@ -679,7 +710,8 @@
       ],
       "static_sql_sha256": "c3cf80cb74d14ecb980fb5082fe005f98d997ad9b27726ee1291b81261c237fa",
       "operation_refs": [
-        "isolated_worker:services.agents.worker_cli"
+        "isolated_worker:services.agents.worker_cli",
+        "scheduled_module:services.agents.worker_cli"
       ]
     },
     {
@@ -694,7 +726,8 @@
       "candidate_relations": [],
       "static_sql_sha256": "572997dc71e06a124a870501624136d2c670a65f43c7e064c2dd402b9f42e0a6",
       "operation_refs": [
-        "isolated_worker:services.agents.worker_cli"
+        "isolated_worker:services.agents.worker_cli",
+        "scheduled_module:services.agents.worker_cli"
       ]
     },
     {
@@ -711,7 +744,8 @@
       ],
       "static_sql_sha256": null,
       "operation_refs": [
-        "isolated_worker:services.agents.worker_cli"
+        "isolated_worker:services.agents.worker_cli",
+        "scheduled_module:services.agents.worker_cli"
       ]
     },
     {
@@ -728,7 +762,8 @@
       ],
       "static_sql_sha256": null,
       "operation_refs": [
-        "isolated_worker:services.agents.worker_cli"
+        "isolated_worker:services.agents.worker_cli",
+        "scheduled_module:services.agents.worker_cli"
       ]
     },
     {
@@ -745,7 +780,8 @@
       ],
       "static_sql_sha256": null,
       "operation_refs": [
-        "isolated_worker:services.agents.worker_cli"
+        "isolated_worker:services.agents.worker_cli",
+        "scheduled_module:services.agents.worker_cli"
       ]
     },
     {
@@ -762,7 +798,8 @@
       ],
       "static_sql_sha256": null,
       "operation_refs": [
-        "isolated_worker:services.agents.worker_cli"
+        "isolated_worker:services.agents.worker_cli",
+        "scheduled_module:services.agents.worker_cli"
       ]
     },
     {
@@ -779,7 +816,8 @@
       ],
       "static_sql_sha256": null,
       "operation_refs": [
-        "isolated_worker:services.agents.worker_cli"
+        "isolated_worker:services.agents.worker_cli",
+        "scheduled_module:services.agents.worker_cli"
       ]
     },
     {
@@ -796,7 +834,8 @@
       ],
       "static_sql_sha256": null,
       "operation_refs": [
-        "isolated_worker:services.agents.worker_cli"
+        "isolated_worker:services.agents.worker_cli",
+        "scheduled_module:services.agents.worker_cli"
       ]
     },
     {
@@ -813,7 +852,8 @@
       ],
       "static_sql_sha256": null,
       "operation_refs": [
-        "isolated_worker:services.agents.worker_cli"
+        "isolated_worker:services.agents.worker_cli",
+        "scheduled_module:services.agents.worker_cli"
       ]
     },
     {
@@ -830,7 +870,8 @@
       ],
       "static_sql_sha256": "8820abb686edfcd462b03adbbfe7f2eecb88a5007487843a1b98d8108eb7d654",
       "operation_refs": [
-        "isolated_worker:services.agents.worker_cli"
+        "isolated_worker:services.agents.worker_cli",
+        "scheduled_module:services.agents.worker_cli"
       ]
     },
     {
@@ -847,7 +888,8 @@
       ],
       "static_sql_sha256": "8920840d504ed0fdac65912c0dd7897082f93d93ad8404a78c077a2fb13f0b08",
       "operation_refs": [
-        "isolated_worker:services.agents.worker_cli"
+        "isolated_worker:services.agents.worker_cli",
+        "scheduled_module:services.agents.worker_cli"
       ]
     },
     {
@@ -864,7 +906,8 @@
       ],
       "static_sql_sha256": "708b2b726c1e58e8abb32815f0857fe85ceef6acefb67f9f2b5e25022e5ba2ea",
       "operation_refs": [
-        "isolated_worker:services.agents.worker_cli"
+        "isolated_worker:services.agents.worker_cli",
+        "scheduled_module:services.agents.worker_cli"
       ]
     },
     {
@@ -881,73 +924,8 @@
       ],
       "static_sql_sha256": "7e4c5cf5e85391b7c9969a7769e331327c843ccf816f4500e548b5c5a331aedf",
       "operation_refs": [
-        "isolated_worker:services.agents.worker_cli"
-      ]
-    },
-    {
-      "id": "services/agents/worker_cli.py:245:12",
-      "source": "services/agents/worker_cli.py",
-      "line": 245,
-      "column": 12,
-      "scope": "run_worker_synthesis",
-      "method": "execute",
-      "expression_kind": "literal",
-      "statement_kind": "SET",
-      "candidate_relations": [],
-      "static_sql_sha256": "536900a16f8e0e3b41ae2b5e50b32be256a56180d59389694215738d971b0d56",
-      "operation_refs": [
         "isolated_worker:services.agents.worker_cli",
-        "signed_source_function:services.agents.worker_cli.run_worker_cids_export",
-        "signed_source_function:services.agents.worker_cli.run_worker_delphi_facilitation",
-        "signed_source_function:services.agents.worker_cli.run_worker_ebf_evidence_gap",
-        "signed_source_function:services.agents.worker_cli.run_worker_summary_digest",
-        "signed_source_function:services.agents.worker_cli.run_worker_summary_digest_result",
-        "signed_source_function:services.agents.worker_cli.run_worker_summary_list",
-        "signed_source_function:services.agents.worker_cli.run_worker_summary_list_result"
-      ]
-    },
-    {
-      "id": "services/agents/worker_cli.py:252:12",
-      "source": "services/agents/worker_cli.py",
-      "line": 252,
-      "column": 12,
-      "scope": "run_worker_synthesis",
-      "method": "execute",
-      "expression_kind": "fstring",
-      "statement_kind": "SET",
-      "candidate_relations": [],
-      "static_sql_sha256": null,
-      "operation_refs": [
-        "isolated_worker:services.agents.worker_cli",
-        "signed_source_function:services.agents.worker_cli.run_worker_cids_export",
-        "signed_source_function:services.agents.worker_cli.run_worker_delphi_facilitation",
-        "signed_source_function:services.agents.worker_cli.run_worker_ebf_evidence_gap",
-        "signed_source_function:services.agents.worker_cli.run_worker_summary_digest",
-        "signed_source_function:services.agents.worker_cli.run_worker_summary_digest_result",
-        "signed_source_function:services.agents.worker_cli.run_worker_summary_list",
-        "signed_source_function:services.agents.worker_cli.run_worker_summary_list_result"
-      ]
-    },
-    {
-      "id": "services/agents/worker_cli.py:253:12",
-      "source": "services/agents/worker_cli.py",
-      "line": 253,
-      "column": 12,
-      "scope": "run_worker_synthesis",
-      "method": "execute",
-      "expression_kind": "literal",
-      "statement_kind": "SET",
-      "candidate_relations": [],
-      "static_sql_sha256": "f01332ffd2953142862fca68f095b2265b0586c95c965588322fb6b45b2ddf6a",
-      "operation_refs": [
-        "isolated_worker:services.agents.worker_cli",
-        "signed_source_function:services.agents.worker_cli.run_worker_cids_export",
-        "signed_source_function:services.agents.worker_cli.run_worker_delphi_facilitation",
-        "signed_source_function:services.agents.worker_cli.run_worker_ebf_evidence_gap",
-        "signed_source_function:services.agents.worker_cli.run_worker_summary_digest",
-        "signed_source_function:services.agents.worker_cli.run_worker_summary_digest_result",
-        "signed_source_function:services.agents.worker_cli.run_worker_summary_list",
-        "signed_source_function:services.agents.worker_cli.run_worker_summary_list_result"
+        "scheduled_module:services.agents.worker_cli"
       ]
     },
     {
@@ -960,9 +938,10 @@
       "expression_kind": "literal",
       "statement_kind": "SET",
       "candidate_relations": [],
-      "static_sql_sha256": "dd216d5ab20110007934ac340abc5b94368f9c95c1efdf8ad14fa263bdf628fb",
+      "static_sql_sha256": "536900a16f8e0e3b41ae2b5e50b32be256a56180d59389694215738d971b0d56",
       "operation_refs": [
         "isolated_worker:services.agents.worker_cli",
+        "scheduled_module:services.agents.worker_cli",
         "signed_source_function:services.agents.worker_cli.run_worker_cids_export",
         "signed_source_function:services.agents.worker_cli.run_worker_delphi_facilitation",
         "signed_source_function:services.agents.worker_cli.run_worker_ebf_evidence_gap",
@@ -973,9 +952,78 @@
       ]
     },
     {
-      "id": "services/agents/worker_cli.py:379:12",
+      "id": "services/agents/worker_cli.py:261:12",
       "source": "services/agents/worker_cli.py",
-      "line": 379,
+      "line": 261,
+      "column": 12,
+      "scope": "run_worker_synthesis",
+      "method": "execute",
+      "expression_kind": "fstring",
+      "statement_kind": "SET",
+      "candidate_relations": [],
+      "static_sql_sha256": null,
+      "operation_refs": [
+        "isolated_worker:services.agents.worker_cli",
+        "scheduled_module:services.agents.worker_cli",
+        "signed_source_function:services.agents.worker_cli.run_worker_cids_export",
+        "signed_source_function:services.agents.worker_cli.run_worker_delphi_facilitation",
+        "signed_source_function:services.agents.worker_cli.run_worker_ebf_evidence_gap",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_digest",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_digest_result",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_list",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_list_result"
+      ]
+    },
+    {
+      "id": "services/agents/worker_cli.py:262:12",
+      "source": "services/agents/worker_cli.py",
+      "line": 262,
+      "column": 12,
+      "scope": "run_worker_synthesis",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SET",
+      "candidate_relations": [],
+      "static_sql_sha256": "f01332ffd2953142862fca68f095b2265b0586c95c965588322fb6b45b2ddf6a",
+      "operation_refs": [
+        "isolated_worker:services.agents.worker_cli",
+        "scheduled_module:services.agents.worker_cli",
+        "signed_source_function:services.agents.worker_cli.run_worker_cids_export",
+        "signed_source_function:services.agents.worker_cli.run_worker_delphi_facilitation",
+        "signed_source_function:services.agents.worker_cli.run_worker_ebf_evidence_gap",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_digest",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_digest_result",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_list",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_list_result"
+      ]
+    },
+    {
+      "id": "services/agents/worker_cli.py:263:12",
+      "source": "services/agents/worker_cli.py",
+      "line": 263,
+      "column": 12,
+      "scope": "run_worker_synthesis",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SET",
+      "candidate_relations": [],
+      "static_sql_sha256": "dd216d5ab20110007934ac340abc5b94368f9c95c1efdf8ad14fa263bdf628fb",
+      "operation_refs": [
+        "isolated_worker:services.agents.worker_cli",
+        "scheduled_module:services.agents.worker_cli",
+        "signed_source_function:services.agents.worker_cli.run_worker_cids_export",
+        "signed_source_function:services.agents.worker_cli.run_worker_delphi_facilitation",
+        "signed_source_function:services.agents.worker_cli.run_worker_ebf_evidence_gap",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_digest",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_digest_result",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_list",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_list_result"
+      ]
+    },
+    {
+      "id": "services/agents/worker_cli.py:388:12",
+      "source": "services/agents/worker_cli.py",
+      "line": 388,
       "column": 12,
       "scope": "run_worker_summary",
       "method": "execute",
@@ -985,6 +1033,7 @@
       "static_sql_sha256": "536900a16f8e0e3b41ae2b5e50b32be256a56180d59389694215738d971b0d56",
       "operation_refs": [
         "isolated_worker:services.agents.worker_cli",
+        "scheduled_module:services.agents.worker_cli",
         "signed_source_function:services.agents.worker_cli.run_worker_cids_export",
         "signed_source_function:services.agents.worker_cli.run_worker_delphi_facilitation",
         "signed_source_function:services.agents.worker_cli.run_worker_ebf_evidence_gap",
@@ -995,9 +1044,9 @@
       ]
     },
     {
-      "id": "services/agents/worker_cli.py:386:12",
+      "id": "services/agents/worker_cli.py:395:12",
       "source": "services/agents/worker_cli.py",
-      "line": 386,
+      "line": 395,
       "column": 12,
       "scope": "run_worker_summary",
       "method": "execute",
@@ -1007,6 +1056,7 @@
       "static_sql_sha256": "ffcf244d60a726a746d790d90ef79c7e8e6b71f4f1bd010b033dba6107f50572",
       "operation_refs": [
         "isolated_worker:services.agents.worker_cli",
+        "scheduled_module:services.agents.worker_cli",
         "signed_source_function:services.agents.worker_cli.run_worker_cids_export",
         "signed_source_function:services.agents.worker_cli.run_worker_delphi_facilitation",
         "signed_source_function:services.agents.worker_cli.run_worker_ebf_evidence_gap",
@@ -1017,9 +1067,9 @@
       ]
     },
     {
-      "id": "services/agents/worker_cli.py:389:12",
+      "id": "services/agents/worker_cli.py:398:12",
       "source": "services/agents/worker_cli.py",
-      "line": 389,
+      "line": 398,
       "column": 12,
       "scope": "run_worker_summary",
       "method": "execute",
@@ -1029,6 +1079,7 @@
       "static_sql_sha256": "572997dc71e06a124a870501624136d2c670a65f43c7e064c2dd402b9f42e0a6",
       "operation_refs": [
         "isolated_worker:services.agents.worker_cli",
+        "scheduled_module:services.agents.worker_cli",
         "signed_source_function:services.agents.worker_cli.run_worker_cids_export",
         "signed_source_function:services.agents.worker_cli.run_worker_delphi_facilitation",
         "signed_source_function:services.agents.worker_cli.run_worker_ebf_evidence_gap",
@@ -1039,9 +1090,9 @@
       ]
     },
     {
-      "id": "services/agents/worker_cli.py:390:12",
+      "id": "services/agents/worker_cli.py:399:12",
       "source": "services/agents/worker_cli.py",
-      "line": 390,
+      "line": 399,
       "column": 12,
       "scope": "run_worker_summary",
       "method": "execute",
@@ -1051,6 +1102,7 @@
       "static_sql_sha256": "f01332ffd2953142862fca68f095b2265b0586c95c965588322fb6b45b2ddf6a",
       "operation_refs": [
         "isolated_worker:services.agents.worker_cli",
+        "scheduled_module:services.agents.worker_cli",
         "signed_source_function:services.agents.worker_cli.run_worker_cids_export",
         "signed_source_function:services.agents.worker_cli.run_worker_delphi_facilitation",
         "signed_source_function:services.agents.worker_cli.run_worker_ebf_evidence_gap",
@@ -1061,9 +1113,9 @@
       ]
     },
     {
-      "id": "services/agents/worker_cli.py:391:12",
+      "id": "services/agents/worker_cli.py:400:12",
       "source": "services/agents/worker_cli.py",
-      "line": 391,
+      "line": 400,
       "column": 12,
       "scope": "run_worker_summary",
       "method": "execute",
@@ -1073,6 +1125,7 @@
       "static_sql_sha256": "dd216d5ab20110007934ac340abc5b94368f9c95c1efdf8ad14fa263bdf628fb",
       "operation_refs": [
         "isolated_worker:services.agents.worker_cli",
+        "scheduled_module:services.agents.worker_cli",
         "signed_source_function:services.agents.worker_cli.run_worker_cids_export",
         "signed_source_function:services.agents.worker_cli.run_worker_delphi_facilitation",
         "signed_source_function:services.agents.worker_cli.run_worker_ebf_evidence_gap",
@@ -1083,9 +1136,9 @@
       ]
     },
     {
-      "id": "services/agents/worker_cli.py:452:12",
+      "id": "services/agents/worker_cli.py:461:12",
       "source": "services/agents/worker_cli.py",
-      "line": 452,
+      "line": 461,
       "column": 12,
       "scope": "_run_worker_summary_inspection",
       "method": "execute",
@@ -1095,6 +1148,7 @@
       "static_sql_sha256": "536900a16f8e0e3b41ae2b5e50b32be256a56180d59389694215738d971b0d56",
       "operation_refs": [
         "isolated_worker:services.agents.worker_cli",
+        "scheduled_module:services.agents.worker_cli",
         "signed_source_function:services.agents.worker_cli.run_worker_cids_export",
         "signed_source_function:services.agents.worker_cli.run_worker_delphi_facilitation",
         "signed_source_function:services.agents.worker_cli.run_worker_ebf_evidence_gap",
@@ -1105,9 +1159,9 @@
       ]
     },
     {
-      "id": "services/agents/worker_cli.py:459:12",
+      "id": "services/agents/worker_cli.py:468:12",
       "source": "services/agents/worker_cli.py",
-      "line": 459,
+      "line": 468,
       "column": 12,
       "scope": "_run_worker_summary_inspection",
       "method": "execute",
@@ -1117,6 +1171,7 @@
       "static_sql_sha256": "0b9f3e0ac44d0a830dfd8c889bbd5cbb470e379284cc8890fdbd13b910d498a3",
       "operation_refs": [
         "isolated_worker:services.agents.worker_cli",
+        "scheduled_module:services.agents.worker_cli",
         "signed_source_function:services.agents.worker_cli.run_worker_cids_export",
         "signed_source_function:services.agents.worker_cli.run_worker_delphi_facilitation",
         "signed_source_function:services.agents.worker_cli.run_worker_ebf_evidence_gap",
@@ -1127,9 +1182,9 @@
       ]
     },
     {
-      "id": "services/agents/worker_cli.py:462:12",
+      "id": "services/agents/worker_cli.py:471:12",
       "source": "services/agents/worker_cli.py",
-      "line": 462,
+      "line": 471,
       "column": 12,
       "scope": "_run_worker_summary_inspection",
       "method": "execute",
@@ -1139,6 +1194,7 @@
       "static_sql_sha256": "572997dc71e06a124a870501624136d2c670a65f43c7e064c2dd402b9f42e0a6",
       "operation_refs": [
         "isolated_worker:services.agents.worker_cli",
+        "scheduled_module:services.agents.worker_cli",
         "signed_source_function:services.agents.worker_cli.run_worker_cids_export",
         "signed_source_function:services.agents.worker_cli.run_worker_delphi_facilitation",
         "signed_source_function:services.agents.worker_cli.run_worker_ebf_evidence_gap",
@@ -1149,9 +1205,9 @@
       ]
     },
     {
-      "id": "services/agents/worker_cli.py:463:12",
+      "id": "services/agents/worker_cli.py:472:12",
       "source": "services/agents/worker_cli.py",
-      "line": 463,
+      "line": 472,
       "column": 12,
       "scope": "_run_worker_summary_inspection",
       "method": "execute",
@@ -1161,6 +1217,7 @@
       "static_sql_sha256": "f01332ffd2953142862fca68f095b2265b0586c95c965588322fb6b45b2ddf6a",
       "operation_refs": [
         "isolated_worker:services.agents.worker_cli",
+        "scheduled_module:services.agents.worker_cli",
         "signed_source_function:services.agents.worker_cli.run_worker_cids_export",
         "signed_source_function:services.agents.worker_cli.run_worker_delphi_facilitation",
         "signed_source_function:services.agents.worker_cli.run_worker_ebf_evidence_gap",
@@ -1171,9 +1228,9 @@
       ]
     },
     {
-      "id": "services/agents/worker_cli.py:464:12",
+      "id": "services/agents/worker_cli.py:473:12",
       "source": "services/agents/worker_cli.py",
-      "line": 464,
+      "line": 473,
       "column": 12,
       "scope": "_run_worker_summary_inspection",
       "method": "execute",
@@ -1183,6 +1240,7 @@
       "static_sql_sha256": "dd216d5ab20110007934ac340abc5b94368f9c95c1efdf8ad14fa263bdf628fb",
       "operation_refs": [
         "isolated_worker:services.agents.worker_cli",
+        "scheduled_module:services.agents.worker_cli",
         "signed_source_function:services.agents.worker_cli.run_worker_cids_export",
         "signed_source_function:services.agents.worker_cli.run_worker_delphi_facilitation",
         "signed_source_function:services.agents.worker_cli.run_worker_ebf_evidence_gap",
@@ -1193,9 +1251,9 @@
       ]
     },
     {
-      "id": "services/agents/worker_cli.py:467:16",
+      "id": "services/agents/worker_cli.py:476:16",
       "source": "services/agents/worker_cli.py",
-      "line": 467,
+      "line": 476,
       "column": 16,
       "scope": "_run_worker_summary_inspection",
       "method": "execute",
@@ -1207,6 +1265,7 @@
       "static_sql_sha256": "e96d3914458b348ae5e1b0af614d1c0ac208527223c3c6e7c0741269c0eb2880",
       "operation_refs": [
         "isolated_worker:services.agents.worker_cli",
+        "scheduled_module:services.agents.worker_cli",
         "signed_source_function:services.agents.worker_cli.run_worker_cids_export",
         "signed_source_function:services.agents.worker_cli.run_worker_delphi_facilitation",
         "signed_source_function:services.agents.worker_cli.run_worker_ebf_evidence_gap",
@@ -1217,9 +1276,9 @@
       ]
     },
     {
-      "id": "services/agents/worker_cli.py:496:12",
+      "id": "services/agents/worker_cli.py:505:12",
       "source": "services/agents/worker_cli.py",
-      "line": 496,
+      "line": 505,
       "column": 12,
       "scope": "_run_worker_summary_inspection",
       "method": "execute",
@@ -1231,28 +1290,7 @@
       "static_sql_sha256": "691e86a254d11dc300e87ce1530dc2cf99d93a3eaa81fa859ede9c75c6f9c8f7",
       "operation_refs": [
         "isolated_worker:services.agents.worker_cli",
-        "signed_source_function:services.agents.worker_cli.run_worker_cids_export",
-        "signed_source_function:services.agents.worker_cli.run_worker_delphi_facilitation",
-        "signed_source_function:services.agents.worker_cli.run_worker_ebf_evidence_gap",
-        "signed_source_function:services.agents.worker_cli.run_worker_summary_digest",
-        "signed_source_function:services.agents.worker_cli.run_worker_summary_digest_result",
-        "signed_source_function:services.agents.worker_cli.run_worker_summary_list",
-        "signed_source_function:services.agents.worker_cli.run_worker_summary_list_result"
-      ]
-    },
-    {
-      "id": "services/agents/worker_cli.py:621:12",
-      "source": "services/agents/worker_cli.py",
-      "line": 621,
-      "column": 12,
-      "scope": "run_worker_ebf_evidence_gap",
-      "method": "execute",
-      "expression_kind": "literal",
-      "statement_kind": "SET",
-      "candidate_relations": [],
-      "static_sql_sha256": "536900a16f8e0e3b41ae2b5e50b32be256a56180d59389694215738d971b0d56",
-      "operation_refs": [
-        "isolated_worker:services.agents.worker_cli",
+        "scheduled_module:services.agents.worker_cli",
         "signed_source_function:services.agents.worker_cli.run_worker_cids_export",
         "signed_source_function:services.agents.worker_cli.run_worker_delphi_facilitation",
         "signed_source_function:services.agents.worker_cli.run_worker_ebf_evidence_gap",
@@ -1272,9 +1310,10 @@
       "expression_kind": "literal",
       "statement_kind": "SET",
       "candidate_relations": [],
-      "static_sql_sha256": "0015c017b9f276c2aa6972c82d1551bc9d7132b21e6a5a0371ce5599a95a6802",
+      "static_sql_sha256": "536900a16f8e0e3b41ae2b5e50b32be256a56180d59389694215738d971b0d56",
       "operation_refs": [
         "isolated_worker:services.agents.worker_cli",
+        "scheduled_module:services.agents.worker_cli",
         "signed_source_function:services.agents.worker_cli.run_worker_cids_export",
         "signed_source_function:services.agents.worker_cli.run_worker_delphi_facilitation",
         "signed_source_function:services.agents.worker_cli.run_worker_ebf_evidence_gap",
@@ -1285,9 +1324,32 @@
       ]
     },
     {
-      "id": "services/agents/worker_cli.py:631:12",
+      "id": "services/agents/worker_cli.py:639:12",
       "source": "services/agents/worker_cli.py",
-      "line": 631,
+      "line": 639,
+      "column": 12,
+      "scope": "run_worker_ebf_evidence_gap",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SET",
+      "candidate_relations": [],
+      "static_sql_sha256": "0015c017b9f276c2aa6972c82d1551bc9d7132b21e6a5a0371ce5599a95a6802",
+      "operation_refs": [
+        "isolated_worker:services.agents.worker_cli",
+        "scheduled_module:services.agents.worker_cli",
+        "signed_source_function:services.agents.worker_cli.run_worker_cids_export",
+        "signed_source_function:services.agents.worker_cli.run_worker_delphi_facilitation",
+        "signed_source_function:services.agents.worker_cli.run_worker_ebf_evidence_gap",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_digest",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_digest_result",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_list",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_list_result"
+      ]
+    },
+    {
+      "id": "services/agents/worker_cli.py:640:12",
+      "source": "services/agents/worker_cli.py",
+      "line": 640,
       "column": 12,
       "scope": "run_worker_ebf_evidence_gap",
       "method": "execute",
@@ -1297,6 +1359,7 @@
       "static_sql_sha256": "572997dc71e06a124a870501624136d2c670a65f43c7e064c2dd402b9f42e0a6",
       "operation_refs": [
         "isolated_worker:services.agents.worker_cli",
+        "scheduled_module:services.agents.worker_cli",
         "signed_source_function:services.agents.worker_cli.run_worker_cids_export",
         "signed_source_function:services.agents.worker_cli.run_worker_delphi_facilitation",
         "signed_source_function:services.agents.worker_cli.run_worker_ebf_evidence_gap",
@@ -1307,9 +1370,9 @@
       ]
     },
     {
-      "id": "services/agents/worker_cli.py:632:12",
+      "id": "services/agents/worker_cli.py:641:12",
       "source": "services/agents/worker_cli.py",
-      "line": 632,
+      "line": 641,
       "column": 12,
       "scope": "run_worker_ebf_evidence_gap",
       "method": "execute",
@@ -1319,6 +1382,7 @@
       "static_sql_sha256": "f01332ffd2953142862fca68f095b2265b0586c95c965588322fb6b45b2ddf6a",
       "operation_refs": [
         "isolated_worker:services.agents.worker_cli",
+        "scheduled_module:services.agents.worker_cli",
         "signed_source_function:services.agents.worker_cli.run_worker_cids_export",
         "signed_source_function:services.agents.worker_cli.run_worker_delphi_facilitation",
         "signed_source_function:services.agents.worker_cli.run_worker_ebf_evidence_gap",
@@ -1329,9 +1393,9 @@
       ]
     },
     {
-      "id": "services/agents/worker_cli.py:633:12",
+      "id": "services/agents/worker_cli.py:642:12",
       "source": "services/agents/worker_cli.py",
-      "line": 633,
+      "line": 642,
       "column": 12,
       "scope": "run_worker_ebf_evidence_gap",
       "method": "execute",
@@ -1341,28 +1405,7 @@
       "static_sql_sha256": "dd216d5ab20110007934ac340abc5b94368f9c95c1efdf8ad14fa263bdf628fb",
       "operation_refs": [
         "isolated_worker:services.agents.worker_cli",
-        "signed_source_function:services.agents.worker_cli.run_worker_cids_export",
-        "signed_source_function:services.agents.worker_cli.run_worker_delphi_facilitation",
-        "signed_source_function:services.agents.worker_cli.run_worker_ebf_evidence_gap",
-        "signed_source_function:services.agents.worker_cli.run_worker_summary_digest",
-        "signed_source_function:services.agents.worker_cli.run_worker_summary_digest_result",
-        "signed_source_function:services.agents.worker_cli.run_worker_summary_list",
-        "signed_source_function:services.agents.worker_cli.run_worker_summary_list_result"
-      ]
-    },
-    {
-      "id": "services/agents/worker_cli.py:682:12",
-      "source": "services/agents/worker_cli.py",
-      "line": 682,
-      "column": 12,
-      "scope": "run_worker_cids_export",
-      "method": "execute",
-      "expression_kind": "literal",
-      "statement_kind": "SET",
-      "candidate_relations": [],
-      "static_sql_sha256": "536900a16f8e0e3b41ae2b5e50b32be256a56180d59389694215738d971b0d56",
-      "operation_refs": [
-        "isolated_worker:services.agents.worker_cli",
+        "scheduled_module:services.agents.worker_cli",
         "signed_source_function:services.agents.worker_cli.run_worker_cids_export",
         "signed_source_function:services.agents.worker_cli.run_worker_delphi_facilitation",
         "signed_source_function:services.agents.worker_cli.run_worker_ebf_evidence_gap",
@@ -1382,9 +1425,10 @@
       "expression_kind": "literal",
       "statement_kind": "SET",
       "candidate_relations": [],
-      "static_sql_sha256": "489a94a76e8a218d83746cbaad8049c168289dbfc2c9a99a464441760d0aa2b0",
+      "static_sql_sha256": "536900a16f8e0e3b41ae2b5e50b32be256a56180d59389694215738d971b0d56",
       "operation_refs": [
         "isolated_worker:services.agents.worker_cli",
+        "scheduled_module:services.agents.worker_cli",
         "signed_source_function:services.agents.worker_cli.run_worker_cids_export",
         "signed_source_function:services.agents.worker_cli.run_worker_delphi_facilitation",
         "signed_source_function:services.agents.worker_cli.run_worker_ebf_evidence_gap",
@@ -1395,9 +1439,32 @@
       ]
     },
     {
-      "id": "services/agents/worker_cli.py:692:12",
+      "id": "services/agents/worker_cli.py:700:12",
       "source": "services/agents/worker_cli.py",
-      "line": 692,
+      "line": 700,
+      "column": 12,
+      "scope": "run_worker_cids_export",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SET",
+      "candidate_relations": [],
+      "static_sql_sha256": "489a94a76e8a218d83746cbaad8049c168289dbfc2c9a99a464441760d0aa2b0",
+      "operation_refs": [
+        "isolated_worker:services.agents.worker_cli",
+        "scheduled_module:services.agents.worker_cli",
+        "signed_source_function:services.agents.worker_cli.run_worker_cids_export",
+        "signed_source_function:services.agents.worker_cli.run_worker_delphi_facilitation",
+        "signed_source_function:services.agents.worker_cli.run_worker_ebf_evidence_gap",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_digest",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_digest_result",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_list",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_list_result"
+      ]
+    },
+    {
+      "id": "services/agents/worker_cli.py:701:12",
+      "source": "services/agents/worker_cli.py",
+      "line": 701,
       "column": 12,
       "scope": "run_worker_cids_export",
       "method": "execute",
@@ -1407,6 +1474,7 @@
       "static_sql_sha256": "572997dc71e06a124a870501624136d2c670a65f43c7e064c2dd402b9f42e0a6",
       "operation_refs": [
         "isolated_worker:services.agents.worker_cli",
+        "scheduled_module:services.agents.worker_cli",
         "signed_source_function:services.agents.worker_cli.run_worker_cids_export",
         "signed_source_function:services.agents.worker_cli.run_worker_delphi_facilitation",
         "signed_source_function:services.agents.worker_cli.run_worker_ebf_evidence_gap",
@@ -1417,9 +1485,9 @@
       ]
     },
     {
-      "id": "services/agents/worker_cli.py:693:12",
+      "id": "services/agents/worker_cli.py:702:12",
       "source": "services/agents/worker_cli.py",
-      "line": 693,
+      "line": 702,
       "column": 12,
       "scope": "run_worker_cids_export",
       "method": "execute",
@@ -1429,6 +1497,7 @@
       "static_sql_sha256": "f01332ffd2953142862fca68f095b2265b0586c95c965588322fb6b45b2ddf6a",
       "operation_refs": [
         "isolated_worker:services.agents.worker_cli",
+        "scheduled_module:services.agents.worker_cli",
         "signed_source_function:services.agents.worker_cli.run_worker_cids_export",
         "signed_source_function:services.agents.worker_cli.run_worker_delphi_facilitation",
         "signed_source_function:services.agents.worker_cli.run_worker_ebf_evidence_gap",
@@ -1439,9 +1508,9 @@
       ]
     },
     {
-      "id": "services/agents/worker_cli.py:694:12",
+      "id": "services/agents/worker_cli.py:703:12",
       "source": "services/agents/worker_cli.py",
-      "line": 694,
+      "line": 703,
       "column": 12,
       "scope": "run_worker_cids_export",
       "method": "execute",
@@ -1451,28 +1520,7 @@
       "static_sql_sha256": "dd216d5ab20110007934ac340abc5b94368f9c95c1efdf8ad14fa263bdf628fb",
       "operation_refs": [
         "isolated_worker:services.agents.worker_cli",
-        "signed_source_function:services.agents.worker_cli.run_worker_cids_export",
-        "signed_source_function:services.agents.worker_cli.run_worker_delphi_facilitation",
-        "signed_source_function:services.agents.worker_cli.run_worker_ebf_evidence_gap",
-        "signed_source_function:services.agents.worker_cli.run_worker_summary_digest",
-        "signed_source_function:services.agents.worker_cli.run_worker_summary_digest_result",
-        "signed_source_function:services.agents.worker_cli.run_worker_summary_list",
-        "signed_source_function:services.agents.worker_cli.run_worker_summary_list_result"
-      ]
-    },
-    {
-      "id": "services/agents/worker_cli.py:751:12",
-      "source": "services/agents/worker_cli.py",
-      "line": 751,
-      "column": 12,
-      "scope": "run_worker_delphi_facilitation",
-      "method": "execute",
-      "expression_kind": "literal",
-      "statement_kind": "SET",
-      "candidate_relations": [],
-      "static_sql_sha256": "536900a16f8e0e3b41ae2b5e50b32be256a56180d59389694215738d971b0d56",
-      "operation_refs": [
-        "isolated_worker:services.agents.worker_cli",
+        "scheduled_module:services.agents.worker_cli",
         "signed_source_function:services.agents.worker_cli.run_worker_cids_export",
         "signed_source_function:services.agents.worker_cli.run_worker_delphi_facilitation",
         "signed_source_function:services.agents.worker_cli.run_worker_ebf_evidence_gap",
@@ -1492,9 +1540,10 @@
       "expression_kind": "literal",
       "statement_kind": "SET",
       "candidate_relations": [],
-      "static_sql_sha256": "94d7b90f6c9c65e3d8a27b35884990f774c1aa20bfba84c596310dcee1c726be",
+      "static_sql_sha256": "536900a16f8e0e3b41ae2b5e50b32be256a56180d59389694215738d971b0d56",
       "operation_refs": [
         "isolated_worker:services.agents.worker_cli",
+        "scheduled_module:services.agents.worker_cli",
         "signed_source_function:services.agents.worker_cli.run_worker_cids_export",
         "signed_source_function:services.agents.worker_cli.run_worker_delphi_facilitation",
         "signed_source_function:services.agents.worker_cli.run_worker_ebf_evidence_gap",
@@ -1505,9 +1554,32 @@
       ]
     },
     {
-      "id": "services/agents/worker_cli.py:761:12",
+      "id": "services/agents/worker_cli.py:769:12",
       "source": "services/agents/worker_cli.py",
-      "line": 761,
+      "line": 769,
+      "column": 12,
+      "scope": "run_worker_delphi_facilitation",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SET",
+      "candidate_relations": [],
+      "static_sql_sha256": "94d7b90f6c9c65e3d8a27b35884990f774c1aa20bfba84c596310dcee1c726be",
+      "operation_refs": [
+        "isolated_worker:services.agents.worker_cli",
+        "scheduled_module:services.agents.worker_cli",
+        "signed_source_function:services.agents.worker_cli.run_worker_cids_export",
+        "signed_source_function:services.agents.worker_cli.run_worker_delphi_facilitation",
+        "signed_source_function:services.agents.worker_cli.run_worker_ebf_evidence_gap",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_digest",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_digest_result",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_list",
+        "signed_source_function:services.agents.worker_cli.run_worker_summary_list_result"
+      ]
+    },
+    {
+      "id": "services/agents/worker_cli.py:770:12",
+      "source": "services/agents/worker_cli.py",
+      "line": 770,
       "column": 12,
       "scope": "run_worker_delphi_facilitation",
       "method": "execute",
@@ -1517,6 +1589,7 @@
       "static_sql_sha256": "572997dc71e06a124a870501624136d2c670a65f43c7e064c2dd402b9f42e0a6",
       "operation_refs": [
         "isolated_worker:services.agents.worker_cli",
+        "scheduled_module:services.agents.worker_cli",
         "signed_source_function:services.agents.worker_cli.run_worker_cids_export",
         "signed_source_function:services.agents.worker_cli.run_worker_delphi_facilitation",
         "signed_source_function:services.agents.worker_cli.run_worker_ebf_evidence_gap",
@@ -1527,9 +1600,9 @@
       ]
     },
     {
-      "id": "services/agents/worker_cli.py:762:12",
+      "id": "services/agents/worker_cli.py:771:12",
       "source": "services/agents/worker_cli.py",
-      "line": 762,
+      "line": 771,
       "column": 12,
       "scope": "run_worker_delphi_facilitation",
       "method": "execute",
@@ -1539,6 +1612,7 @@
       "static_sql_sha256": "f01332ffd2953142862fca68f095b2265b0586c95c965588322fb6b45b2ddf6a",
       "operation_refs": [
         "isolated_worker:services.agents.worker_cli",
+        "scheduled_module:services.agents.worker_cli",
         "signed_source_function:services.agents.worker_cli.run_worker_cids_export",
         "signed_source_function:services.agents.worker_cli.run_worker_delphi_facilitation",
         "signed_source_function:services.agents.worker_cli.run_worker_ebf_evidence_gap",
@@ -1549,9 +1623,9 @@
       ]
     },
     {
-      "id": "services/agents/worker_cli.py:763:12",
+      "id": "services/agents/worker_cli.py:772:12",
       "source": "services/agents/worker_cli.py",
-      "line": 763,
+      "line": 772,
       "column": 12,
       "scope": "run_worker_delphi_facilitation",
       "method": "execute",
@@ -1561,6 +1635,7 @@
       "static_sql_sha256": "dd216d5ab20110007934ac340abc5b94368f9c95c1efdf8ad14fa263bdf628fb",
       "operation_refs": [
         "isolated_worker:services.agents.worker_cli",
+        "scheduled_module:services.agents.worker_cli",
         "signed_source_function:services.agents.worker_cli.run_worker_cids_export",
         "signed_source_function:services.agents.worker_cli.run_worker_delphi_facilitation",
         "signed_source_function:services.agents.worker_cli.run_worker_ebf_evidence_gap",
@@ -1571,9 +1646,9 @@
       ]
     },
     {
-      "id": "services/agents/worker_cli.py:765:12",
+      "id": "services/agents/worker_cli.py:774:12",
       "source": "services/agents/worker_cli.py",
-      "line": 765,
+      "line": 774,
       "column": 12,
       "scope": "run_worker_delphi_facilitation",
       "method": "execute",
@@ -1585,6 +1660,7 @@
       "static_sql_sha256": "23937633b29287aa350baa435687f377836b8cb37c766e6c2493da0d94947bd7",
       "operation_refs": [
         "isolated_worker:services.agents.worker_cli",
+        "scheduled_module:services.agents.worker_cli",
         "signed_source_function:services.agents.worker_cli.run_worker_cids_export",
         "signed_source_function:services.agents.worker_cli.run_worker_delphi_facilitation",
         "signed_source_function:services.agents.worker_cli.run_worker_ebf_evidence_gap",
@@ -1607,6 +1683,7 @@
       "static_sql_sha256": "f01332ffd2953142862fca68f095b2265b0586c95c965588322fb6b45b2ddf6a",
       "operation_refs": [
         "isolated_worker:services.agents.worker_cli",
+        "scheduled_module:services.agents.worker_cli",
         "signed_source_function:services.agents.worker_cli.run_worker_cids_export",
         "signed_source_function:services.agents.worker_cli.run_worker_delphi_facilitation",
         "signed_source_function:services.agents.worker_cli.run_worker_ebf_evidence_gap",
@@ -1629,6 +1706,7 @@
       "static_sql_sha256": "dd216d5ab20110007934ac340abc5b94368f9c95c1efdf8ad14fa263bdf628fb",
       "operation_refs": [
         "isolated_worker:services.agents.worker_cli",
+        "scheduled_module:services.agents.worker_cli",
         "signed_source_function:services.agents.worker_cli.run_worker_cids_export",
         "signed_source_function:services.agents.worker_cli.run_worker_delphi_facilitation",
         "signed_source_function:services.agents.worker_cli.run_worker_ebf_evidence_gap",
@@ -1653,6 +1731,7 @@
       "static_sql_sha256": "d076f5a3a02cadfed67d7da47665bc07a099c86cf872a99bea0de530a82f575c",
       "operation_refs": [
         "isolated_worker:services.agents.worker_cli",
+        "scheduled_module:services.agents.worker_cli",
         "signed_source_function:services.agents.worker_cli.run_worker_cids_export",
         "signed_source_function:services.agents.worker_cli.run_worker_delphi_facilitation",
         "signed_source_function:services.agents.worker_cli.run_worker_ebf_evidence_gap",
@@ -1675,6 +1754,7 @@
       "static_sql_sha256": "8cb0fd813c6c9aa76fcf01fa4b8a16342004c9448c03932288b8d6eab6fdb875",
       "operation_refs": [
         "isolated_worker:services.agents.worker_cli",
+        "scheduled_module:services.agents.worker_cli",
         "signed_source_function:services.agents.worker_cli.run_worker_cids_export",
         "signed_source_function:services.agents.worker_cli.run_worker_delphi_facilitation",
         "signed_source_function:services.agents.worker_cli.run_worker_ebf_evidence_gap",
@@ -1699,6 +1779,7 @@
       "static_sql_sha256": "83bdbff358f7b85cc3e04fa70a2e30b738249e4e5f3095c3bd863aa2892b2d0c",
       "operation_refs": [
         "isolated_worker:services.agents.worker_cli",
+        "scheduled_module:services.agents.worker_cli",
         "signed_source_function:services.agents.worker_cli.run_worker_cids_export",
         "signed_source_function:services.agents.worker_cli.run_worker_delphi_facilitation",
         "signed_source_function:services.agents.worker_cli.run_worker_ebf_evidence_gap",
@@ -1723,6 +1804,7 @@
       "static_sql_sha256": "4913726d4b65d0ec8d05c27ec94efaff86406df08a2ffc7f113ee8d5cc414bc4",
       "operation_refs": [
         "isolated_worker:services.agents.worker_cli",
+        "scheduled_module:services.agents.worker_cli",
         "signed_source_function:services.agents.worker_cli.run_worker_cids_export",
         "signed_source_function:services.agents.worker_cli.run_worker_delphi_facilitation",
         "signed_source_function:services.agents.worker_cli.run_worker_ebf_evidence_gap",
@@ -1747,6 +1829,7 @@
       "static_sql_sha256": "cc678152c2a7ebda5d785d93e58d0a76dcc4722ddd9f20f66205ad1fb73a8904",
       "operation_refs": [
         "isolated_worker:services.agents.worker_cli",
+        "scheduled_module:services.agents.worker_cli",
         "signed_source_function:services.agents.worker_cli.run_worker_cids_export",
         "signed_source_function:services.agents.worker_cli.run_worker_delphi_facilitation",
         "signed_source_function:services.agents.worker_cli.run_worker_ebf_evidence_gap",
@@ -1769,6 +1852,7 @@
       "static_sql_sha256": "d80c8365f38774b7af452b55f766318a0b9a19c4d538742cb24b82979ed40016",
       "operation_refs": [
         "isolated_worker:services.agents.worker_cli",
+        "scheduled_module:services.agents.worker_cli",
         "signed_source_function:services.agents.worker_cli.run_worker_cids_export",
         "signed_source_function:services.agents.worker_cli.run_worker_delphi_facilitation",
         "signed_source_function:services.agents.worker_cli.run_worker_ebf_evidence_gap",
@@ -2258,7 +2342,8 @@
       ],
       "static_sql_sha256": "128255d3d43e13974558bc41ea2dd23f04ad2142ef57cade5ce0a8c3ec98e53a",
       "operation_refs": [
-        "isolated_worker:services.agents.worker_cli"
+        "isolated_worker:services.agents.worker_cli",
+        "scheduled_module:services.agents.worker_cli"
       ]
     },
     {
@@ -2275,7 +2360,8 @@
       ],
       "static_sql_sha256": "7bd6836cf5a8da5bdce4775a203c190b3fb0aeeca4fd59de890537a2bb8f29d4",
       "operation_refs": [
-        "isolated_worker:services.agents.worker_cli"
+        "isolated_worker:services.agents.worker_cli",
+        "scheduled_module:services.agents.worker_cli"
       ]
     },
     {
@@ -2292,7 +2378,8 @@
       ],
       "static_sql_sha256": "d06f99f5c9908011726924aac3406ec8784d82a78a4b1fd2d741e8ba63a0bec1",
       "operation_refs": [
-        "isolated_worker:services.agents.worker_cli"
+        "isolated_worker:services.agents.worker_cli",
+        "scheduled_module:services.agents.worker_cli"
       ]
     },
     {
@@ -2309,7 +2396,8 @@
       ],
       "static_sql_sha256": "cd20c7652be5bf1f42190965ba7169291c13fd2b08ee23a3a5377060bf40c713",
       "operation_refs": [
-        "isolated_worker:services.agents.worker_cli"
+        "isolated_worker:services.agents.worker_cli",
+        "scheduled_module:services.agents.worker_cli"
       ]
     },
     {
@@ -2326,7 +2414,8 @@
       ],
       "static_sql_sha256": "73503fc168f33ec216789f8de678f5c75f93fb675ba7e857cd6153e426373454",
       "operation_refs": [
-        "isolated_worker:services.agents.worker_cli"
+        "isolated_worker:services.agents.worker_cli",
+        "scheduled_module:services.agents.worker_cli"
       ]
     },
     {
@@ -2343,7 +2432,8 @@
       ],
       "static_sql_sha256": "13245a8afa9d05d06f9839c4a5420822536bb4bfa0359103325e56ace82920ff",
       "operation_refs": [
-        "isolated_worker:services.agents.worker_cli"
+        "isolated_worker:services.agents.worker_cli",
+        "scheduled_module:services.agents.worker_cli"
       ]
     },
     {
@@ -2360,7 +2450,8 @@
       ],
       "static_sql_sha256": "3821ab1e6894a878bab0b9d5e14d5843086f68e1dce7e6c90171f05d35afc16a",
       "operation_refs": [
-        "isolated_worker:services.agents.worker_cli"
+        "isolated_worker:services.agents.worker_cli",
+        "scheduled_module:services.agents.worker_cli"
       ]
     },
     {
@@ -2377,7 +2468,8 @@
       ],
       "static_sql_sha256": "6867f0c9d0f6dd89bb7b5490f4a75c431b3563939cbe5847beaddb302d343926",
       "operation_refs": [
-        "isolated_worker:services.agents.worker_cli"
+        "isolated_worker:services.agents.worker_cli",
+        "scheduled_module:services.agents.worker_cli"
       ]
     },
     {
@@ -2395,7 +2487,8 @@
       ],
       "static_sql_sha256": "73b2154c4a2f426edf5b8f29b4ae398af9d5c59e9f543872404aa40f758144f9",
       "operation_refs": [
-        "isolated_worker:services.agents.worker_cli"
+        "isolated_worker:services.agents.worker_cli",
+        "scheduled_module:services.agents.worker_cli"
       ]
     },
     {
@@ -2412,7 +2505,8 @@
       ],
       "static_sql_sha256": "98740a944e9fd0cad5f2afb9ee0f01e770417f1f41e273ae115149f9af12f2ae",
       "operation_refs": [
-        "isolated_worker:services.agents.worker_cli"
+        "isolated_worker:services.agents.worker_cli",
+        "scheduled_module:services.agents.worker_cli"
       ]
     },
     {
@@ -2430,7 +2524,8 @@
       ],
       "static_sql_sha256": "52f715896247347a592641b7046e8342aea02ad15ae4a1b412a18ca0c938e88f",
       "operation_refs": [
-        "isolated_worker:services.agents.worker_cli"
+        "isolated_worker:services.agents.worker_cli",
+        "scheduled_module:services.agents.worker_cli"
       ]
     },
     {
@@ -2448,7 +2543,8 @@
       ],
       "static_sql_sha256": "6f3cb6bcf4f36b618b2a90faca0f1b44118cb1609db2ac58163b32aed7b48f84",
       "operation_refs": [
-        "isolated_worker:services.agents.worker_cli"
+        "isolated_worker:services.agents.worker_cli",
+        "scheduled_module:services.agents.worker_cli"
       ]
     },
     {
@@ -2465,7 +2561,8 @@
       ],
       "static_sql_sha256": "62693cda433da3439065f5781f22bcab7dfae4b3667959bbf3d44fa3451a04b9",
       "operation_refs": [
-        "isolated_worker:services.agents.worker_cli"
+        "isolated_worker:services.agents.worker_cli",
+        "scheduled_module:services.agents.worker_cli"
       ]
     },
     {
@@ -2482,7 +2579,8 @@
       ],
       "static_sql_sha256": "d7388d3c58085c1bae38cb67783015a816031326ab882f83a656536748c1e9e9",
       "operation_refs": [
-        "isolated_worker:services.agents.worker_cli"
+        "isolated_worker:services.agents.worker_cli",
+        "scheduled_module:services.agents.worker_cli"
       ]
     },
     {
@@ -2499,7 +2597,8 @@
       ],
       "static_sql_sha256": "febda951a0b3492638c11d011719e3a5f0f9a37b6313c19e386073cb7b7f5ec7",
       "operation_refs": [
-        "isolated_worker:services.agents.worker_cli"
+        "isolated_worker:services.agents.worker_cli",
+        "scheduled_module:services.agents.worker_cli"
       ]
     },
     {
@@ -2516,7 +2615,8 @@
       ],
       "static_sql_sha256": "96c6a99a29860ff81bbb97109b7cd9fe8a802d57f06f10b538379b5d78372367",
       "operation_refs": [
-        "isolated_worker:services.agents.worker_cli"
+        "isolated_worker:services.agents.worker_cli",
+        "scheduled_module:services.agents.worker_cli"
       ]
     },
     {
@@ -2533,7 +2633,8 @@
       ],
       "static_sql_sha256": "cd8663190c7bb88500c734d1ed3274fcd363fe71a66dce936ab5a9961b554669",
       "operation_refs": [
-        "isolated_worker:services.agents.worker_cli"
+        "isolated_worker:services.agents.worker_cli",
+        "scheduled_module:services.agents.worker_cli"
       ]
     },
     {
@@ -2548,7 +2649,8 @@
       "candidate_relations": [],
       "static_sql_sha256": null,
       "operation_refs": [
-        "isolated_worker:services.agents.worker_cli"
+        "isolated_worker:services.agents.worker_cli",
+        "scheduled_module:services.agents.worker_cli"
       ]
     },
     {
@@ -2565,7 +2667,8 @@
       ],
       "static_sql_sha256": "5fdd09f5e93d6c2b1b6c50bb785bf9672b89bb47293e29fce05e4a7cb8410b6d",
       "operation_refs": [
-        "isolated_worker:services.agents.worker_cli"
+        "isolated_worker:services.agents.worker_cli",
+        "scheduled_module:services.agents.worker_cli"
       ]
     },
     {
@@ -2750,7 +2853,8 @@
       ],
       "static_sql_sha256": "fd4e8dcb6f3e2e3047a06d33c9062db415c951fc84eb800290005531e34570e7",
       "operation_refs": [
-        "isolated_worker:services.agents.worker_cli"
+        "isolated_worker:services.agents.worker_cli",
+        "scheduled_module:services.agents.worker_cli"
       ]
     },
     {
@@ -2767,7 +2871,8 @@
       ],
       "static_sql_sha256": "d92e19bb7c2d35b67af0372c415b7f96d323228f18e5524e977811e75f470ec8",
       "operation_refs": [
-        "isolated_worker:services.agents.worker_cli"
+        "isolated_worker:services.agents.worker_cli",
+        "scheduled_module:services.agents.worker_cli"
       ]
     },
     {
@@ -2784,7 +2889,8 @@
       ],
       "static_sql_sha256": "b43d25bf33ab99e1b27a32931855079a0c0fc1061c26b31248247dbf13654287",
       "operation_refs": [
-        "isolated_worker:services.agents.worker_cli"
+        "isolated_worker:services.agents.worker_cli",
+        "scheduled_module:services.agents.worker_cli"
       ]
     },
     {
@@ -2801,7 +2907,8 @@
       ],
       "static_sql_sha256": "a909cc6df1645d8b7b2f7330a57f11bf5081526a3faabfb23ec7515e179ddcd0",
       "operation_refs": [
-        "isolated_worker:services.agents.worker_cli"
+        "isolated_worker:services.agents.worker_cli",
+        "scheduled_module:services.agents.worker_cli"
       ]
     },
     {
@@ -3006,6 +3113,7 @@
         "isolated_worker:services.events.dispatch_worker",
         "isolated_worker:services.events.notification_delivery_worker",
         "isolated_worker:services.export.report_snapshot_export_worker",
+        "scheduled_module:services.agents.worker_cli",
         "scheduled_module:services.analytics.carbon_credit_adjustment_check",
         "scheduled_module:services.analytics.carbon_credit_adjustment_worker",
         "scheduled_module:services.events",
@@ -3069,6 +3177,7 @@
         "isolated_worker:services.events.dispatch_worker",
         "isolated_worker:services.events.notification_delivery_worker",
         "isolated_worker:services.export.report_snapshot_export_worker",
+        "scheduled_module:services.agents.worker_cli",
         "scheduled_module:services.analytics.carbon_credit_adjustment_check",
         "scheduled_module:services.analytics.carbon_credit_adjustment_worker",
         "scheduled_module:services.events",
@@ -3132,6 +3241,7 @@
         "isolated_worker:services.events.dispatch_worker",
         "isolated_worker:services.events.notification_delivery_worker",
         "isolated_worker:services.export.report_snapshot_export_worker",
+        "scheduled_module:services.agents.worker_cli",
         "scheduled_module:services.analytics.carbon_credit_adjustment_check",
         "scheduled_module:services.analytics.carbon_credit_adjustment_worker",
         "scheduled_module:services.events",
@@ -3190,6 +3300,7 @@
         "event_handler:services.cache.events.handle_sensor_reading",
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "isolated_worker:services.agents.worker_cli",
+        "scheduled_module:services.agents.worker_cli",
         "scheduled_module:services.analytics.carbon_credit_adjustment_worker",
         "scheduled_module:services.ingestion.climate_worker",
         "scheduled_module:services.ingestion.remote_sensing_worker",
@@ -3225,6 +3336,7 @@
         "event_handler:services.cache.events.handle_sensor_reading",
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "isolated_worker:services.agents.worker_cli",
+        "scheduled_module:services.agents.worker_cli",
         "scheduled_module:services.analytics.carbon_credit_adjustment_worker",
         "scheduled_module:services.ingestion.climate_worker",
         "scheduled_module:services.ingestion.remote_sensing_worker",
@@ -3260,6 +3372,7 @@
         "event_handler:services.cache.events.handle_sensor_reading",
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "isolated_worker:services.agents.worker_cli",
+        "scheduled_module:services.agents.worker_cli",
         "scheduled_module:services.analytics.carbon_credit_adjustment_worker",
         "scheduled_module:services.ingestion.climate_worker",
         "scheduled_module:services.ingestion.remote_sensing_worker",
@@ -3295,6 +3408,7 @@
         "event_handler:services.cache.events.handle_sensor_reading",
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "isolated_worker:services.agents.worker_cli",
+        "scheduled_module:services.agents.worker_cli",
         "scheduled_module:services.analytics.carbon_credit_adjustment_worker",
         "scheduled_module:services.ingestion.climate_worker",
         "scheduled_module:services.ingestion.remote_sensing_worker",
@@ -3332,6 +3446,7 @@
         "event_handler:services.cache.events.handle_sensor_reading",
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "isolated_worker:services.agents.worker_cli",
+        "scheduled_module:services.agents.worker_cli",
         "scheduled_module:services.analytics.carbon_credit_adjustment_worker",
         "scheduled_module:services.ingestion.climate_worker",
         "scheduled_module:services.ingestion.remote_sensing_worker",
@@ -3369,6 +3484,7 @@
         "event_handler:services.cache.events.handle_sensor_reading",
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "isolated_worker:services.agents.worker_cli",
+        "scheduled_module:services.agents.worker_cli",
         "scheduled_module:services.analytics.carbon_credit_adjustment_worker",
         "scheduled_module:services.ingestion.climate_worker",
         "scheduled_module:services.ingestion.remote_sensing_worker",
@@ -3406,6 +3522,7 @@
         "event_handler:services.cache.events.handle_sensor_reading",
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "isolated_worker:services.agents.worker_cli",
+        "scheduled_module:services.agents.worker_cli",
         "scheduled_module:services.analytics.carbon_credit_adjustment_worker",
         "scheduled_module:services.ingestion.climate_worker",
         "scheduled_module:services.ingestion.remote_sensing_worker",
@@ -3443,6 +3560,7 @@
         "event_handler:services.cache.events.handle_sensor_reading",
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "isolated_worker:services.agents.worker_cli",
+        "scheduled_module:services.agents.worker_cli",
         "scheduled_module:services.analytics.carbon_credit_adjustment_worker",
         "scheduled_module:services.ingestion.climate_worker",
         "scheduled_module:services.ingestion.remote_sensing_worker",
@@ -3483,6 +3601,7 @@
         "isolated_worker:services.events.dispatch_worker",
         "isolated_worker:services.events.notification_delivery_worker",
         "isolated_worker:services.export.report_snapshot_export_worker",
+        "scheduled_module:services.agents.worker_cli",
         "scheduled_module:services.analytics.carbon_credit_adjustment_worker",
         "scheduled_module:services.events",
         "scheduled_module:services.ingestion.baal_worker",
@@ -8679,6 +8798,7 @@
       "static_sql_sha256": null,
       "operation_refs": [
         "isolated_worker:services.agents.worker_cli",
+        "scheduled_module:services.agents.worker_cli",
         "signed_source_function:services.agents.worker_cli.run_worker_cids_export",
         "signed_source_function:services.agents.worker_cli.run_worker_delphi_facilitation",
         "signed_source_function:services.agents.worker_cli.run_worker_ebf_evidence_gap",
@@ -8705,6 +8825,7 @@
       "static_sql_sha256": "f715371f7070aa0c9b0d9604dcfdd336dcb84bdd194a4b3af2b0788bcf18b014",
       "operation_refs": [
         "isolated_worker:services.agents.worker_cli",
+        "scheduled_module:services.agents.worker_cli",
         "signed_source_function:services.agents.worker_cli.run_worker_cids_export",
         "signed_source_function:services.agents.worker_cli.run_worker_delphi_facilitation",
         "signed_source_function:services.agents.worker_cli.run_worker_ebf_evidence_gap",
@@ -8730,6 +8851,7 @@
       "static_sql_sha256": "a2f98f3ad0551023053b1c4e2dd0302b0c4b8c7ea6e615530ac229e953fca80a",
       "operation_refs": [
         "isolated_worker:services.agents.worker_cli",
+        "scheduled_module:services.agents.worker_cli",
         "signed_source_function:services.agents.worker_cli.run_worker_cids_export",
         "signed_source_function:services.agents.worker_cli.run_worker_delphi_facilitation",
         "signed_source_function:services.agents.worker_cli.run_worker_ebf_evidence_gap",
@@ -8757,6 +8879,7 @@
       "static_sql_sha256": "653f55b4f0779aaba4b91907777bee494a7a0b8fecced2dfd71631e4265fbd94",
       "operation_refs": [
         "isolated_worker:services.agents.worker_cli",
+        "scheduled_module:services.agents.worker_cli",
         "signed_source_function:services.agents.worker_cli.run_worker_cids_export",
         "signed_source_function:services.agents.worker_cli.run_worker_delphi_facilitation",
         "signed_source_function:services.agents.worker_cli.run_worker_ebf_evidence_gap",
@@ -8782,6 +8905,7 @@
       "static_sql_sha256": "b5f234d5e686442b204daa422939c7eb44673864ac269a1b2a5fd233db7cdeda",
       "operation_refs": [
         "isolated_worker:services.agents.worker_cli",
+        "scheduled_module:services.agents.worker_cli",
         "signed_source_function:services.agents.worker_cli.run_worker_cids_export",
         "signed_source_function:services.agents.worker_cli.run_worker_delphi_facilitation",
         "signed_source_function:services.agents.worker_cli.run_worker_ebf_evidence_gap",
@@ -8807,6 +8931,7 @@
       "static_sql_sha256": "7a92624d91cd588131834bdfe4b9b37d1ec83fb5c258e3a50657ecfe76d071fd",
       "operation_refs": [
         "isolated_worker:services.agents.worker_cli",
+        "scheduled_module:services.agents.worker_cli",
         "signed_source_function:services.agents.worker_cli.run_worker_cids_export",
         "signed_source_function:services.agents.worker_cli.run_worker_delphi_facilitation",
         "signed_source_function:services.agents.worker_cli.run_worker_ebf_evidence_gap",
@@ -8832,6 +8957,7 @@
       "static_sql_sha256": "358adf6243e5494230ec443d0f118c8392efaddd07fcc6c19ea1383381fa3164",
       "operation_refs": [
         "isolated_worker:services.agents.worker_cli",
+        "scheduled_module:services.agents.worker_cli",
         "signed_source_function:services.agents.worker_cli.run_worker_cids_export",
         "signed_source_function:services.agents.worker_cli.run_worker_delphi_facilitation",
         "signed_source_function:services.agents.worker_cli.run_worker_ebf_evidence_gap",

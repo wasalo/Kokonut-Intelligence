@@ -2,6 +2,33 @@
 -- and migrations 405/419. All rows in this file are synthetic.
 CREATE ROLE directus NOLOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE
     NOREPLICATION NOBYPASSRLS NOINHERIT;
+CREATE ROLE kokonut_scheduler_login NOLOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE
+    NOREPLICATION NOBYPASSRLS NOINHERIT;
+
+-- Minimal scheduler schema for migration 751's authenticated one-shot queue.
+-- This disposable fixture exercises only the columns required for enqueuing;
+-- scheduler execution semantics are covered by the scheduler unit suite.
+CREATE TABLE public.scheduled_task (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name VARCHAR(100) NOT NULL UNIQUE,
+    module_path VARCHAR(300) NOT NULL,
+    cron_expression VARCHAR(50) NOT NULL,
+    priority VARCHAR(20) NOT NULL DEFAULT 'normal',
+    timeout_seconds INTEGER NOT NULL DEFAULT 3600,
+    max_retries INTEGER NOT NULL DEFAULT 3,
+    retry_delay_seconds INTEGER NOT NULL DEFAULT 60,
+    depends_on UUID[] DEFAULT '{}',
+    is_enabled BOOLEAN NOT NULL DEFAULT TRUE,
+    next_run_at TIMESTAMPTZ,
+    last_status VARCHAR(20),
+    retry_at TIMESTAMPTZ,
+    command_args JSONB NOT NULL DEFAULT '[]'::jsonb
+        CHECK (jsonb_typeof(command_args) = 'array'),
+    allow_overlap BOOLEAN NOT NULL DEFAULT FALSE,
+    dependency_mode TEXT NOT NULL DEFAULT 'last_completed',
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
 
 -- Minimal location-qualified source rows for migrations 523/524 and 530.
 CREATE TABLE public.harvest_event (id UUID PRIMARY KEY, location_id UUID NOT NULL);

@@ -23,7 +23,7 @@ def provision_scheduler_role(conn, *, database: str, password: str, forbidden_pa
             _remove_role_memberships(cur, role_name=name, identifier=ident)
             _verify_role_attributes(cur, name)
             execution_columns = {
-                "scheduled_task": (set(), set("last_run_at last_status next_run_at retry_at retry_attempt run_window_at lease_owner lease_token lease_expires_at updated_at last_duration_ms consecutive_failures".split())),
+                "scheduled_task": (set(), set("last_run_at last_status next_run_at retry_at retry_attempt run_window_at lease_owner lease_token lease_expires_at updated_at last_duration_ms consecutive_failures one_shot_completed_at".split())),
                 "task_run": (set("id task_id status worker_id lease_token heartbeat_at attempt_count retry_count allow_overlap scheduled_for".split()), set("status completed_at duration_ms error_message stdout heartbeat_at".split())),
                 "task_resource": (set(), {"current_running"}),
             }

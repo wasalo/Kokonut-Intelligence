@@ -111,6 +111,7 @@ class SchedulerEngine:
                     SELECT id, module_path, command_args
                     FROM scheduled_task
                     WHERE is_enabled = TRUE
+                      AND (NOT is_one_shot OR one_shot_completed_at IS NULL)
                     """
                 )
                 rows = cur.fetchall()
@@ -175,11 +176,14 @@ class SchedulerEngine:
                     retry_at = CASE WHEN retry_attempt < max_retries THEN %s END,
                     retry_attempt = CASE WHEN retry_attempt < max_retries
                                          THEN retry_attempt + 1 ELSE 0 END,
+                    one_shot_completed_at = CASE
+                        WHEN is_one_shot AND retry_attempt >= max_retries THEN %s
+                        ELSE one_shot_completed_at END,
                     lease_owner = NULL, lease_token = NULL, lease_expires_at = NULL,
                     last_status = 'failed', updated_at = %s
                 WHERE id = %s AND lease_expires_at <= %s AND last_status = 'running'
                 """,
-                (now, now, task_id, now),
+                (now, now, now, task_id, now),
             )
 
     def _claim_next(self, isolated_skips: dict[str, str] | None = None):
@@ -205,11 +209,14 @@ class SchedulerEngine:
                             retry_at = CASE WHEN retry_attempt < max_retries THEN %s END,
                             retry_attempt = CASE WHEN retry_attempt < max_retries
                                                  THEN retry_attempt + 1 ELSE 0 END,
+                            one_shot_completed_at = CASE
+                                WHEN is_one_shot AND retry_attempt >= max_retries THEN %s
+                                ELSE one_shot_completed_at END,
                             lease_owner = NULL, lease_token = NULL, lease_expires_at = NULL,
                             last_status = 'failed', updated_at = %s
                         WHERE lease_expires_at <= %s AND last_status = 'running'
                         """,
-                        (now, now, now),
+                        (now, now, now, now),
                     )
                 else:
                     # Lease recovery is maintenance only. It must also clean
@@ -233,6 +240,7 @@ class SchedulerEngine:
                                     ELSE COALESCE(st.next_run_at, %s) END AS scheduled_for
                         FROM scheduled_task st
                         WHERE st.is_enabled = TRUE
+                          AND (NOT st.is_one_shot OR st.one_shot_completed_at IS NULL)
                         """
                         + excluded_clause
                         + """
@@ -475,6 +483,8 @@ class SchedulerEngine:
                     UPDATE scheduled_task
                     SET last_status = %s, last_duration_ms = %s,
                         consecutive_failures = 0, retry_attempt = 0, retry_at = NULL,
+                        one_shot_completed_at = CASE WHEN is_one_shot THEN %s
+                                                     ELSE one_shot_completed_at END,
                         lease_owner = NULL, lease_token = NULL, lease_expires_at = NULL, updated_at = %s
                      WHERE id = %s AND lease_owner = %s AND lease_token = %s AND lease_expires_at > %s
                       AND EXISTS (
@@ -483,7 +493,7 @@ class SchedulerEngine:
                             AND tr.worker_id = %s AND tr.status = %s
                       )
                     """,
-                    (status, duration_ms, now, task_id, self._worker_id, run_id, now, run_id, self._worker_id, status),
+                    (status, duration_ms, now, now, task_id, self._worker_id, run_id, now, run_id, self._worker_id, status),
                 )
             else:
                 retry_at = (
@@ -497,6 +507,9 @@ class SchedulerEngine:
                     SET last_status = %s, last_duration_ms = %s,
                         consecutive_failures = consecutive_failures + 1,
                         retry_attempt = %s, retry_at = %s,
+                        one_shot_completed_at = CASE
+                            WHEN is_one_shot AND %s IS NULL THEN %s
+                            ELSE one_shot_completed_at END,
                          lease_owner = NULL, lease_token = NULL, lease_expires_at = NULL,
                         updated_at = %s
                      WHERE id = %s AND lease_owner = %s AND lease_token = %s AND lease_expires_at > %s
@@ -511,6 +524,8 @@ class SchedulerEngine:
                         duration_ms,
                         attempt if retry_at else 0,
                         retry_at,
+                        retry_at,
+                        now,
                         now,
                         task_id,
                         self._worker_id,

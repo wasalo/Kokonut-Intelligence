@@ -113,6 +113,20 @@ planner keeps both secrets out of its printed command. `release-up` accepts
 this configuration because the overlay introduces no additional image; the
 same reviewed digest-pinned application image remains in use.
 
+Authenticated synthesis dispatch is enabled only by this opt-in overlay; the
+default Standard profile returns `503` for synthesis requests and creates no
+receipt or scheduled task. Migration 751 adds the atomic receipt-and-one-shot
+enqueue function. Before using the endpoint, apply the migration and configure
+configure the requested task's source database URL and worker credential
+through SOPS, using the `TASK_WORKER_KEYS` mapping in
+`services/agents/task_registry.py` (for example, feedback synthesis uses
+`KOKONUT_AGENT_FEEDBACK_SOURCE_DATABASE_URL` and
+`KOKONUT_AGENT_FEEDBACK_SOURCE_WORKER_CREDENTIAL`). The scheduler process
+receives the configured task identities, while each child receives only the
+identity selected by its registered task key. Missing credentials fail closed
+with no shared-database fallback. A dispatched task can create a draft only;
+independent human review remains required.
+
 The scheduler profile can be combined with G2 API/worker attribution:
 
 ```sh

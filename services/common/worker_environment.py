@@ -6,6 +6,8 @@ import os
 import re
 from typing import Mapping, Sequence
 
+from services.agents.task_registry import TASK_WORKER_KEYS
+
 _WORKER_SECRET_ENV = re.compile(
     r"^KOKONUT_([A-Z][A-Z0-9_]*)_(?:DATABASE_URL|WORKER_CREDENTIAL|RPC_ENDPOINTS?|OPENWEATHERMAP_API_KEY|GEE_SERVICE_ACCOUNT_KEY|COPERNICUS_EMAIL|COPERNICUS_PASSWORD|COPERNICUS_CLIENT_ID|COPERNICUS_CLIENT_SECRET)$"
 )
@@ -67,6 +69,7 @@ _SCHEDULED_MODULE_WORKERS = {
 # so it cannot be represented as a static module-to-worker entry above.
 SCHEDULED_WORKER_KEYS = tuple(dict.fromkeys((
     *_SCHEDULED_MODULE_WORKERS.values(),
+    *TASK_WORKER_KEYS.values(),
     "notification_delivery",
 )))
 
@@ -134,6 +137,13 @@ def scheduled_module_worker_key(
             return "event_dispatch"
         if "--notification-process" in command_args:
             return "notification_delivery"
+    if module_path == "services.agents.worker_cli" and command_args is not None:
+        try:
+            task_index = command_args.index("--task-key")
+            task_key = command_args[task_index + 1]
+        except (ValueError, IndexError):
+            task_key = "ai_summary_synthesis"
+        return TASK_WORKER_KEYS.get(task_key)
     return _SCHEDULED_MODULE_WORKERS.get(module_path)
 
 
