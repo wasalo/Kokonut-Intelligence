@@ -278,7 +278,7 @@ export function ReportReviewPage() {
         </p>
       ) : (
         <>
-          <div className="report-review-toolbar">
+          <div className="location-filter-toolbar">
             <label htmlFor="report-review-location">Granted location</label>
             <select
               id="report-review-location"
@@ -297,7 +297,7 @@ export function ReportReviewPage() {
             </button>
           </div>
 
-          <p className="report-review-status" role="status" aria-live="polite">
+          <p className="operator-status-line" role="status" aria-live="polite">
             {queueMessage}
           </p>
 
@@ -336,7 +336,7 @@ export function ReportReviewPage() {
           </div>
 
           {detailMessage && (
-            <p className="report-review-status" role="status" aria-live="polite">
+            <p className="operator-status-line" role="status" aria-live="polite">
               {detailMessage}
             </p>
           )}

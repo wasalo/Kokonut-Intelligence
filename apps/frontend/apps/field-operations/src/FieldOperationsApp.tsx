@@ -1,5 +1,6 @@
 import { Link, Route, Routes } from "react-router";
 import { VerticalShell, type NavigationItem } from "@kokonut/ui";
+import { FarmActivityListPage } from "./FarmActivityListPage";
 
 const navigation: NavigationItem[] = [
   { to: "/", label: "Overview", end: true },
@@ -66,7 +67,7 @@ export function FieldOperationsApp() {
         />
         <Route
           path="/records"
-          element={<FieldLanding title="Farm records" description="Location-scoped capture, review, and operational records." />}
+          element={<FarmActivityListPage />}
         />
         <Route
           path="/supervision"

@@ -310,7 +310,7 @@ export function MetricListPage() {
         </p>
       ) : (
         <>
-          <div className="report-review-toolbar">
+          <div className="location-filter-toolbar">
             <label htmlFor="metric-list-location">Granted location</label>
             <select
               id="metric-list-location"
@@ -329,7 +329,7 @@ export function MetricListPage() {
             </button>
           </div>
 
-          <p className="report-review-status" role="status" aria-live="polite">{message}</p>
+          <p className="operator-status-line" role="status" aria-live="polite">{message}</p>
           <div className="table-scroll">
             <table className="report-review-table">
               <thead>

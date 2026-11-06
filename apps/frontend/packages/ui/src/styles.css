@@ -179,6 +179,28 @@ button:focus-visible,
 
 .secondary-action:hover { background: var(--surface-soft); }
 
+.location-filter-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: .75rem;
+  margin: 1.75rem 0 .5rem;
+}
+
+.location-filter-toolbar label { display: grid; gap: .35rem; font-weight: 650; }
+
+.location-filter-toolbar select {
+  min-width: min(100%, 22rem);
+  min-height: 2.75rem;
+  padding: .55rem .7rem;
+  border: 1px solid var(--line);
+  border-radius: .55rem;
+  background: var(--surface);
+  color: var(--ink);
+}
+
+.operator-status-line { min-height: 1.5rem; color: var(--ink-muted); }
+
 .status-label {
   width: fit-content;
   padding: .35rem .6rem;
@@ -215,6 +237,11 @@ button:focus-visible,
   .navigation-link { flex: 0 0 auto; white-space: nowrap; }
   .main-content { padding: 1.5rem 1rem 2.5rem; }
   .app-footer { flex-direction: column; }
+}
+
+@media (max-width: 600px) {
+  .location-filter-toolbar { display: grid; align-items: stretch; }
+  .location-filter-toolbar > * { width: 100%; }
 }
 
 @media (prefers-reduced-motion: reduce) {

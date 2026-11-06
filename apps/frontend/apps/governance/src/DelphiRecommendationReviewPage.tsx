@@ -275,7 +275,7 @@ export function DelphiRecommendationReviewPage() {
         </p>
       ) : (
         <>
-          <div className="report-review-toolbar">
+          <div className="location-filter-toolbar">
             <label htmlFor="delphi-review-location">Granted location</label>
             <select
               id="delphi-review-location"
@@ -294,7 +294,7 @@ export function DelphiRecommendationReviewPage() {
             </button>
           </div>
 
-          <p className="report-review-status" role="status" aria-live="polite">{message}</p>
+          <p className="operator-status-line" role="status" aria-live="polite">{message}</p>
 
           {recommendations.length > 0 && (
             <div className="delphi-review-list">

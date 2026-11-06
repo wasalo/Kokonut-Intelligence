@@ -183,7 +183,7 @@ export function CoordinationSummaryPage() {
         </p>
       ) : (
         <>
-          <div className="report-review-toolbar">
+          <div className="location-filter-toolbar">
             <label htmlFor="coordination-location">Granted location</label>
             <select
               id="coordination-location"
@@ -202,7 +202,7 @@ export function CoordinationSummaryPage() {
             </button>
           </div>
 
-          <p className="report-review-status" role="status" aria-live="polite">{message}</p>
+          <p className="operator-status-line" role="status" aria-live="polite">{message}</p>
 
           {summary && (
             <div className="coordination-summary-groups">

@@ -28,6 +28,10 @@ Governance now includes a read-only Delphi facilitator recommendation queue at
 pagination, and the existing approval blockers displayed without decision or
 publication controls. Participant invite handling remains on its separate
 compatibility path.
+Field Operations includes a read-only farm activity summary at `/field/records`
+using the exact `farm_activity:read` scope. The existing Gateway list excludes
+Field Collector submissions; the encrypted offline Collector and its sync
+protocol remain on the current implementation.
 Feature parity beyond these slices, trusted-browser identity acceptance,
 Cloudflare routing, and R2 acceptance remain open.
 

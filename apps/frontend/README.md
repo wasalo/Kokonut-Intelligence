@@ -4,8 +4,9 @@ This npm workspace is the implementation foundation for the three applications
 described in [`docs/refactor/frontend-modernization.md`](../../docs/refactor/frontend-modernization.md).
 The current React screens are partial migrations. General Operations includes
 read-only submitted-report review, metric listing, and the location-scoped
-coordination overview. Governance also includes a read-only facilitator
-recommendation queue. Other workflows link to the current Gateway interfaces.
+coordination overview. Field Operations includes a read-only farm activity
+summary. Governance includes a read-only facilitator recommendation queue.
+Other workflows link to the current Gateway interfaces.
 These slices do not claim full feature parity or change server authorization.
 
 `@kokonut/operator-client` centralizes same-origin, no-store requests to the
