@@ -3,8 +3,8 @@ import {
   GatewayRequestError,
   LatestRequest,
   requestOperatorJson,
-  type OperatorSession,
 } from "@kokonut/operator-client";
+import { useOperatorSession } from "@kokonut/operator-client/react";
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const SUMMARY_FIELDS = [
@@ -46,41 +46,6 @@ interface SubmittedReportDetailResponse {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === "object" && !Array.isArray(value);
-}
-
-function isOperatorScope(
-  value: unknown,
-): value is OperatorSession["scopes"][number] {
-  return isRecord(value) &&
-    typeof value.resource === "string" &&
-    typeof value.action === "string" &&
-    typeof value.location_id === "string";
-}
-
-function validateSession(value: unknown): OperatorSession {
-  if (!isRecord(value) || !isRecord(value.operator) || !Array.isArray(value.scopes)) {
-    throw new Error("The operator session response is invalid.");
-  }
-
-  const operator = value.operator;
-  if (
-    typeof operator.operator_id !== "string" ||
-    typeof operator.issuer !== "string" ||
-    typeof operator.subject !== "string" ||
-    !(typeof operator.display_name === "string" || operator.display_name === null) ||
-    !(typeof operator.email === "string" || operator.email === null)
-  ) {
-    throw new Error("The operator session response is invalid.");
-  }
-
-  if (!value.scopes.every(isOperatorScope)) {
-    throw new Error("The operator session response is invalid.");
-  }
-
-  return {
-    operator: operator as OperatorSession["operator"],
-    scopes: value.scopes,
-  };
 }
 
 function validateSummary(value: unknown): SubmittedReportSummary {
@@ -165,12 +130,10 @@ function detailErrorMessage(error: unknown): string {
 }
 
 export function ReportReviewPage() {
-  const sessionRequest = useRef(new LatestRequest());
   const queueRequest = useRef(new LatestRequest());
   const detailRequest = useRef(new LatestRequest());
-  const [session, setSession] = useState<OperatorSession | null>(null);
-  const [sessionMessage, setSessionMessage] = useState("Checking your operator session…");
-  const [sessionStatus, setSessionStatus] = useState<"loading" | "ready" | "signed-out" | "error">("loading");
+  const sessionState = useOperatorSession();
+  const session = sessionState.status === "ready" ? sessionState.session : null;
   const [locationId, setLocationId] = useState("");
   const [queue, setQueue] = useState<SubmittedReportSummary[]>([]);
   const [queueMessage, setQueueMessage] = useState("");
@@ -187,29 +150,6 @@ export function ReportReviewPage() {
       .map((scope) => scope.location_id.toLowerCase())
       .filter((id) => UUID_PATTERN.test(id)))];
   }, [session]);
-
-  useEffect(() => {
-    const request = sessionRequest.current.begin();
-    void requestOperatorJson<unknown>("/operator/auth/session", { signal: request.signal })
-      .then((payload) => {
-        if (!request.isCurrent()) return;
-        setSession(validateSession(payload));
-        setSessionStatus("ready");
-        setSessionMessage("");
-      })
-      .catch((error: unknown) => {
-        if (!request.isCurrent() || isAbortError(error)) return;
-        if (error instanceof GatewayRequestError && error.status === 401) {
-          setSessionStatus("signed-out");
-          setSessionMessage("Sign in to view report reviews for your granted locations.");
-          return;
-        }
-        setSessionStatus("error");
-        setSessionMessage(queueErrorMessage(error));
-      });
-
-    return () => sessionRequest.current.cancel();
-  }, []);
 
   useEffect(() => {
     if (!grantedLocations.length) {
@@ -291,33 +231,33 @@ export function ReportReviewPage() {
     }
   }
 
-  if (sessionStatus === "loading") {
+  if (sessionState.status === "loading") {
     return (
       <section aria-labelledby="report-review-heading">
         <p className="eyebrow">General Operations</p>
         <h2 id="report-review-heading">Submitted report review</h2>
-        <p role="status">{sessionMessage}</p>
+        <p role="status">Checking your operator session…</p>
       </section>
     );
   }
 
-  if (sessionStatus === "signed-out") {
+  if (sessionState.status === "signed-out") {
     return (
       <section aria-labelledby="report-review-heading">
         <p className="eyebrow">General Operations</p>
         <h2 id="report-review-heading">Submitted report review</h2>
-        <p className="lead">{sessionMessage}</p>
+        <p className="lead">Sign in to view report reviews for your granted locations.</p>
         <a className="primary-action" href="/operator/auth/login">Sign in</a>
       </section>
     );
   }
 
-  if (sessionStatus === "error") {
+  if (sessionState.status === "error") {
     return (
       <section aria-labelledby="report-review-heading">
         <p className="eyebrow">General Operations</p>
         <h2 id="report-review-heading">Submitted report review</h2>
-        <p role="alert" className="migration-note">{sessionMessage}</p>
+        <p role="alert" className="migration-note">{sessionState.message}</p>
         <a className="secondary-action" href="/operator/">Open current operator console</a>
       </section>
     );

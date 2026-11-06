@@ -16,20 +16,23 @@ checks.
 
 The initial TypeScript workspace and three route shells now exist under
 [`apps/frontend`](../../apps/frontend/README.md). General Operations also has a
-read-only submitted-report review slice at `/ops/reports`: it loads the
-operator session and current review scopes, reads the bounded queue and report
-detail through existing Gateway endpoints, and offers no verify/reject/publish
-action. Feature parity beyond this slice, trusted-browser identity acceptance,
+read-only submitted-report review slice at `/ops/reports` and a paginated,
+read-only metric list at `/ops/metrics`. Both load the existing operator
+session and use only exact read scopes; report detail and metric pages are
+bound to the selected location. Metric drafts stay visibly unverified. Compute,
+verification, and other workflows remain available in the current console.
+Feature parity beyond these slices, trusted-browser identity acceptance,
 Cloudflare routing, and R2 acceptance remain open.
 
 The shared `@kokonut/operator-client` foundation now enforces same-origin
 operator API paths, no-store requests, the existing operator CSRF cookie/header
-contract for mutations, and stale-read cancellation primitives. The report
-review slice uses it for session, queue, and detail reads, validates the
-returned location/report identity, and cancels stale requests when the
-selection changes. The Delphi and Field Collector auth protocols remain
-separate. Candidate browser acceptance is still required before this source
-slice can count as accepted parity.
+contract for mutations, and stale-read cancellation primitives. Its shared
+operator-session hook validates session/scope data and cancels on unmount. The
+report and metric slices use it for no-store reads, validate location-bound
+identities and cursors, and cancel stale requests when their selection changes.
+They do not add write operations. The Delphi and Field Collector auth protocols
+remain separate. Candidate browser acceptance is still required before these
+source slices can count as accepted parity.
 
 ## Existing surfaces and boundaries
 

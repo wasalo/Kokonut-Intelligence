@@ -2,9 +2,10 @@
 
 This npm workspace is the implementation foundation for the three applications
 described in [`docs/refactor/frontend-modernization.md`](../../docs/refactor/frontend-modernization.md).
-The current React screens are migration shells. They link to the accepted
-Gateway interfaces for existing workflows; they do not claim feature parity or
-change server authorization.
+The current React screens are partial migrations. General Operations includes
+read-only report review and metric listing; other workflows link to the current
+Gateway interfaces. These slices do not claim full feature parity or change
+server authorization.
 
 `@kokonut/operator-client` centralizes same-origin, no-store requests to the
 operator Gateway API, operator CSRF handling, normalized HTTP errors, and

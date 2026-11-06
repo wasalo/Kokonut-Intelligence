@@ -1,10 +1,12 @@
 import { Link, Route, Routes } from "react-router";
 import { VerticalShell, type NavigationItem } from "@kokonut/ui";
 import { ReportReviewPage } from "./ReportReviewPage";
+import { MetricListPage } from "./MetricListPage";
 
 const navigation: NavigationItem[] = [
   { to: "/", label: "Overview", end: true },
-  { to: "/reports", label: "Reports and metrics" },
+  { to: "/reports", label: "Report review" },
+  { to: "/metrics", label: "Metrics" },
   { to: "/programs", label: "Programs and solutions" },
   { to: "/planning", label: "Planning and coordination" },
   { to: "/insights", label: "Insights and analysis" },
@@ -76,6 +78,7 @@ export function GeneralOperationsApp() {
       <Routes>
         <Route path="/" element={<GeneralOperationsHome />} />
         <Route path="/reports" element={<ReportReviewPage />} />
+        <Route path="/metrics" element={<MetricListPage />} />
         <Route
           path="/programs"
           element={<WorkflowLanding title="Programs and solutions" description="Coordinate operating programs and solution lifecycles." />}
