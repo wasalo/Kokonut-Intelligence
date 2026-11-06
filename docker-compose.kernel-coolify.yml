@@ -380,8 +380,7 @@ services:
       - read_only: true
         source: ${KOKONUT_SENSOR_CSV_HOST_DIR:-./data/sensor-inputs}
         target: /var/lib/kokonut/sensor-inputs
-        type: volume
-        volume: {}
+        type: bind
   zitadel-api:
     command:
       - start-from-init
