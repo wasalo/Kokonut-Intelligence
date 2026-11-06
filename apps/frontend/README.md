@@ -41,6 +41,21 @@ the candidate origin, route ownership, and Cloudflare deployment environment
 are reviewed. Do not deploy these shells as a production replacement for the
 current operator, Delphi participant, or Field Collector interfaces.
 
+## Production path ownership
+
+Each Worker claims only its app prefix: `/ops` and `/ops/*`, `/field` and
+`/field/*`, or `/governance` and `/governance/*`. Keep the Gateway and retained
+interfaces on the VPS origin at `hub.kokonut.network`: `/operator/*`,
+`/api/mobile/*`, and `/participation/*` must continue through Cloudflare to
+Coolify's Gateway route. The front ends make same-origin requests, preserving
+the Gateway's operator session and CSRF behavior. The `hub.kokonut.network`
+DNS record must be Cloudflare-proxied for its
+[Worker routes](https://developers.cloudflare.com/workers/configuration/routing/routes/)
+to run. Keep Coolify configured as the origin for requests outside the three
+app prefixes.
+Do not attach a hostname-wide Worker route unless that Worker explicitly
+forwards the retained Gateway paths to the origin.
+
 After G4 approves the trusted origin and Cloudflare credentials are provisioned,
 deploy an individual static app from this directory with `npm run deploy:ops`,
 `npm run deploy:field`, or `npm run deploy:governance`. Each command builds only
