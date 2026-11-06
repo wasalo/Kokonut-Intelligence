@@ -85,7 +85,7 @@ def generate_business_model_canvas(conn, location_id: str, period_start: str = N
     canvases = list_canvas(conn, location_id=location_id)
     canvas_data = []
     for c in canvases:
-        full = get(conn, str(c["id"]))
+        full = get(conn, str(c["id"]), location_id=location_id)
         if full:
             canvas_data.append(full)
 

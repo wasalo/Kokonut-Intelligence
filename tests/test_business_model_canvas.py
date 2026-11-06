@@ -36,6 +36,40 @@ def test_module_shape():
     assert hasattr(bmc, "compute_health")
 
 
+def test_location_scoped_get_does_not_read_children_for_mismatched_canvas():
+    canvas_id = "22222222-2222-4222-8222-222222222222"
+    location_id = "11111111-1111-4111-8111-111111111111"
+
+    class Cursor:
+        def __init__(self):
+            self.calls = []
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_args):
+            return False
+
+        def execute(self, sql, params):
+            self.calls.append((sql, params))
+
+        def fetchone(self):
+            return None
+
+    cursor = Cursor()
+
+    class Connection:
+        def cursor(self, **_kwargs):
+            return cursor
+
+    result = bmc.get(Connection(), canvas_id, location_id=location_id)
+
+    assert result is None
+    assert len(cursor.calls) == 1
+    assert "id = %s AND location_id = %s" in cursor.calls[0][0]
+    assert cursor.calls[0][1] == (canvas_id, location_id)
+
+
 @pytest.mark.parametrize(
     ("command", "command_args"),
     [

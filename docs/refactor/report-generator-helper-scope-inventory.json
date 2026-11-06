@@ -5,11 +5,11 @@
   "summary": {
     "registered_report_types": 94,
     "reports_with_resolved_helper_query_sites": 32,
-    "reachable_helper_query_sites_per_report": 168,
-    "helper_query_sites_with_location_scope_signal": 82,
-    "helper_query_sites_with_static_sql_source": 158,
+    "reachable_helper_query_sites_per_report": 169,
+    "helper_query_sites_with_location_scope_signal": 83,
+    "helper_query_sites_with_static_sql_source": 159,
     "helper_query_sites_with_unresolved_sql_source": 10,
-    "helper_query_sites_with_static_positional_arity": 133,
+    "helper_query_sites_with_static_positional_arity": 134,
     "helper_query_sites_with_positional_arity_mismatch": 0,
     "helper_query_sites_with_static_named_bind_contract": 8,
     "helper_query_sites_with_named_bind_contract_mismatch": 0,
@@ -593,7 +593,7 @@
         {
           "source_file": "services/analytics/business_model_canvas.py",
           "callable": "get",
-          "line": 149,
+          "line": 152,
           "relations": [
             "business_model_canvas"
           ],
@@ -617,7 +617,31 @@
         {
           "source_file": "services/analytics/business_model_canvas.py",
           "callable": "get",
-          "line": 155,
+          "line": 154,
+          "relations": [
+            "business_model_canvas"
+          ],
+          "sql_source": "static_or_resolved",
+          "positional_bind_arity": {
+            "placeholder_count": 2,
+            "supplied_count": 2,
+            "mismatch": false
+          },
+          "named_bind_contract": null,
+          "bound_location_scope_signal": true,
+          "location_scope_conditionally_added": false,
+          "location_scope_variants": [],
+          "reachable_via": [
+            [
+              "generate_business_model_canvas",
+              "services/analytics/business_model_canvas.py:get"
+            ]
+          ]
+        },
+        {
+          "source_file": "services/analytics/business_model_canvas.py",
+          "callable": "get",
+          "line": 163,
           "relations": [
             "customer_job"
           ],
@@ -641,7 +665,7 @@
         {
           "source_file": "services/analytics/business_model_canvas.py",
           "callable": "get",
-          "line": 160,
+          "line": 168,
           "relations": [
             "pain_point"
           ],
@@ -665,7 +689,7 @@
         {
           "source_file": "services/analytics/business_model_canvas.py",
           "callable": "get",
-          "line": 165,
+          "line": 173,
           "relations": [
             "gain_creator"
           ],
@@ -687,15 +711,15 @@
           ]
         }
       ],
-      "helper_query_site_count": 5,
-      "helper_query_sites_with_location_scope_signal": 0,
-      "helper_query_sites_with_static_sql_source": 5,
+      "helper_query_site_count": 6,
+      "helper_query_sites_with_location_scope_signal": 1,
+      "helper_query_sites_with_static_sql_source": 6,
       "helper_query_sites_with_unresolved_sql_source": 0,
-      "helper_query_sites_with_static_positional_arity": 5,
+      "helper_query_sites_with_static_positional_arity": 6,
       "helper_query_sites_with_positional_arity_mismatch": 0,
       "helper_query_sites_with_static_named_bind_contract": 0,
       "helper_query_sites_with_named_bind_contract_mismatch": 0,
-      "classification": "no_location_scope_signal_in_resolved_helper_queries",
+      "classification": "mixed_resolved_helper_query_scope_signals",
       "unresolved_local_helper_calls": []
     },
     {

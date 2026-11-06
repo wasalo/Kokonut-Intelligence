@@ -144,9 +144,17 @@ def list_canvas(
         return [dict(r) for r in cur.fetchall()]
 
 
-def get(conn, canvas_id: str) -> Optional[Dict[str, Any]]:
+def get(
+    conn, canvas_id: str, *, location_id: Optional[str] = None,
+) -> Optional[Dict[str, Any]]:
     with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
-        cur.execute("SELECT * FROM business_model_canvas WHERE id = %s", (canvas_id,))
+        if location_id is None:
+            cur.execute("SELECT * FROM business_model_canvas WHERE id = %s", (canvas_id,))
+        else:
+            cur.execute(
+                "SELECT * FROM business_model_canvas WHERE id = %s AND location_id = %s",
+                (canvas_id, location_id),
+            )
         row = cur.fetchone()
         if not row:
             return None

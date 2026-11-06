@@ -112,7 +112,13 @@ def test_business_model_canvas_report_calculates_health_inside_read_only_wrapper
         "list_canvas",
         lambda _conn, **_kwargs: [{"id": canvas_id}],
     )
-    monkeypatch.setattr(bmc, "get", lambda _conn, _canvas_id: canvas)
+    detail_scopes = []
+
+    def get_scoped(_conn, _canvas_id, *, location_id=None):
+        detail_scopes.append(location_id)
+        return canvas
+
+    monkeypatch.setattr(bmc, "get", get_scoped)
     connection = _Connection()
 
     report = report_generator.generate_report_data_read_only(
@@ -125,6 +131,7 @@ def test_business_model_canvas_report_calculates_health_inside_read_only_wrapper
 
     assert report["health_summary"] == bmc._calculate_health(canvas)
     assert report["health_summary"]["health_score"] == 11.1
+    assert detail_scopes == [location_id]
     assert connection.rollbacks == 1
     assert connection.session_modes == [True, False]
     assert connection.commits == 0
