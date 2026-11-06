@@ -8,6 +8,7 @@ Operational scripts for the Kokonut Intelligence platform. All shell scripts use
 |--------|---------|---------|
 | `kernel-inventory.py` | Static Kernel capability/dependency inventory without importing services or reading secrets | Manual |
 | `kernel-profile.py` | Print an explicit Kernel candidate Compose command; see docs/refactor/profile-selection.md | Manual |
+| `render-kernel-coolify-compose.py` | Render or check the single-file, secret-placeholder Coolify Standard profile; see docs/refactor/standard-profile.md | Manual |
 | `kernel-portability.py` | Print isolated AMD64/ARM64 evaluation build/readiness commands; see docs/refactor/portability-database.md | Manual |
 | `check-provider-boundaries.py` | Reject optional vendor imports outside declared adapters | CI, manual |
 | `check-requirement-groups.py` | Keep candidate groups aligned with legacy dependency constraints | CI, manual |

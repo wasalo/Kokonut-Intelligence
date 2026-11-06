@@ -25,6 +25,8 @@ ARM64_SENSOR_ANOMALY_ML = "docker-compose.kernel-arm64-sensor-anomaly-ml.yml"
 SCHEDULER_ROLE = "docker-compose.kernel-scheduler-role.yml"
 WORKER_RUNTIME_ROLE = "docker-compose.kernel-worker-runtime-role.yml"
 WORKER_RUNTIME_SUPERVISOR = "docker-compose.kernel-worker-runtime-supervisor.yml"
+COOLIFY = "docker-compose.kernel-coolify-network.yml"
+COOLIFY_ZITADEL = "docker-compose.kernel-coolify-zitadel.yml"
 PROFILES = {
     "minimal": [],
     "core": ["docker-compose.kernel-core.yml"],
@@ -99,6 +101,11 @@ def main() -> None:
         help="omit the Standard profile's default Caddy ingress when using another ingress",
     )
     parser.add_argument(
+        "--coolify",
+        action="store_true",
+        help="route the Standard profile through an existing Coolify Traefik without publishing host ports",
+    )
+    parser.add_argument(
         "--action",
         choices=["config", "build", "up", "release-up", "ps", "database-up", "migrate", "bootstrap-runtime-role"],
         default="config",
@@ -110,11 +117,22 @@ def main() -> None:
     selected_optional = {name for name in OPTIONAL if getattr(args, name)}
     if args.no_proxy and args.profile != "standard":
         parser.error("--no-proxy applies only to standard; other profiles include ingress only when requested")
+    if args.coolify and args.profile != "standard":
+        parser.error("--coolify applies only to standard")
+    if args.coolify and args.no_proxy:
+        parser.error("--coolify already omits public Caddy ingress; do not combine it with --no-proxy")
+    if args.coolify and args.proxy:
+        parser.error("--coolify routes through Coolify Traefik; do not select the public Caddy proxy")
+    if args.coolify and selected_optional - {"oidc", "zitadel"}:
+        parser.error(
+            "--coolify currently supports only the standard app and OIDC/ZITADEL services; "
+            "other optional service overlays need their own reviewed Coolify port/network mapping"
+        )
     if args.no_proxy and args.proxy:
         parser.error("--proxy and --no-proxy cannot be selected together")
-    if args.no_proxy and args.zitadel:
+    if args.no_proxy and args.zitadel and not args.coolify:
         parser.error("--zitadel includes its Caddy routes and cannot be combined with --no-proxy")
-    if args.profile == "standard" and not args.no_proxy:
+    if args.profile == "standard" and not args.no_proxy and not args.coolify:
         selected_optional.add("proxy")
 
     if is_arm64 and args.profile not in {"minimal", "core", "edge", "standard", "analytics"}:
@@ -186,8 +204,8 @@ def main() -> None:
         files.append("docker-compose.kernel-standard-analytics.yml")
     if args.zitadel:
         # The self-hosted provider needs the HTTPS ingress and the Gateway's
-        # OIDC client settings. One flag produces a complete, ordered stack;
-        # Standard already includes the shared proxy overlay by default.
+        # OIDC client settings. Standard includes Caddy by default; the
+        # Coolify variant keeps Caddy internal for ZITADEL path routing only.
         selected_optional.update({"proxy", "oidc"})
     if args.action == "release-up":
         if args.profile != "standard":
@@ -263,6 +281,13 @@ def main() -> None:
         # values before it starts; this final overlay restores only the parent
         # service identity after the scheduler profile has selected its role.
         files.append(WORKER_RUNTIME_SUPERVISOR)
+    if args.coolify:
+        # Coolify Traefik routes directly to the Gateway service, so app and
+        # optional internal proxy must not publish host ports. When ZITADEL is
+        # selected, keep Caddy only as its internal path router behind Traefik.
+        files.append(COOLIFY)
+        if args.zitadel:
+            files.append(COOLIFY_ZITADEL)
     for filename in files:
         if not (ROOT / filename).is_file():
             parser.error(f"Required manifest is missing: {filename}")

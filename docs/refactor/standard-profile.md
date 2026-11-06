@@ -491,6 +491,81 @@ it does not execute it or supply `MOBILE_MEDIA_LOCAL_KEY` itself. Preserve the
 Edge private-media volume when changing profiles so stored private evidence is
 not lost.
 
+## Shared-host Coolify deployment
+
+A clean or dedicated host is not required. The prepared Coolify variant is
+designed to coexist with existing Docker workloads and use the host's existing
+Traefik proxy. It leaves the Gateway, worker, database, and internal ZITADEL
+services on the Compose network; the public Gateway service listens on
+container port `8099`, and the private Caddy service routes the ZITADEL login
+and API paths on container port `80`. Coolify terminates public HTTPS and
+connects its proxy to the resource network. The Gateway remains directly behind
+Traefik, preserving its current policy of ignoring forwarded client headers.
+No candidate host ports or host-level Traefik settings are required.
+Dedicated compute, replicas, and failover remain optional scale/availability
+choices based on measured workload; they are not installation prerequisites.
+
+Render the single Git-based Compose definition from the reviewed overlays:
+
+```sh
+python3 scripts/render-kernel-coolify-compose.py
+python3 scripts/render-kernel-coolify-compose.py --check
+```
+
+The renderer pins the Standard profile's separate API/worker database logins,
+isolated scheduler executor, and self-hosted ZITADEL overlays. It asks Docker
+Compose to merge those files without resolving environment variables or
+absolute paths, so secrets stay as Coolify-managed placeholders and build/bind
+paths remain relative to the repository root. Regenerate and check the artifact
+whenever one of its source overlays changes. Do not hand-edit
+`docker-compose.kernel-coolify.yml`.
+
+Create a normal Git-based Docker Compose Application in the owner-provided
+Coolify project/environment. Set Base Directory to the repository root and
+Compose Location to `docker-compose.kernel-coolify.yml`; keep normal Coolify
+deployment mode enabled so Coolify can add managed routing/network labels. In
+Domains, route `https://hub.kokonut.network:8099` to service `app` and
+`https://auth.kokonut.network:80` to service `proxy`. Coolify's Traefik handles
+public TLS; the internal Caddy site uses HTTP only for the ZITADEL upstreams.
+Enter every required Compose value and secret in the Coolify environment/secret
+store, including `KOKONUT_KERNEL_DOMAIN=hub.kokonut.network`,
+`KOKONUT_ZITADEL_DOMAIN=auth.kokonut.network`, and
+`KOKONUT_KERNEL_HTTPS_PORT=443`. Never commit secret values.
+
+For the initial database bootstrap, leave `COMPOSE_PROFILES` unset: Compose
+starts PostgreSQL and ZITADEL while the Gateway, worker, and Caddy runtime
+services remain profile-gated. From the VPS, set local shell variables to the
+Compose project name, generated Compose file, and generated environment file
+for this specific Coolify resource; do not guess these values or print the
+environment file. Run the ordered schema migration and the explicit role
+bootstrap against that same project:
+
+```sh
+docker compose --project-name "$KOKONUT_COOLIFY_PROJECT" \
+  --env-file "$KOKONUT_COOLIFY_ENV_FILE" \
+  --file "$KOKONUT_COOLIFY_COMPOSE_FILE" \
+  --profile runtime-admin run --rm runtime-role-bootstrap \
+  python3 -m services.migration migrate --schemas-only
+
+docker compose --project-name "$KOKONUT_COOLIFY_PROJECT" \
+  --env-file "$KOKONUT_COOLIFY_ENV_FILE" \
+  --file "$KOKONUT_COOLIFY_COMPOSE_FILE" \
+  --profile runtime-admin run --rm runtime-role-bootstrap
+```
+
+Then set
+`COMPOSE_PROFILES=runtime` in the Coolify environment and redeploy to start the
+Gateway, worker, and ZITADEL routing proxy. This staged sequence preserves the
+reviewed migration/bootstrap boundary; the renderer does not run migrations or
+provision database roles. Confirm Coolify's effective Compose and project name
+before running the one-shot commands. Coolify's normal Git-based Compose path
+supports a checked-in Compose location, per-service domains, and generated
+proxy networking; review its [Compose deployment guide](https://coolify.io/docs/applications/builds/docker-compose)
+and [networking model](https://coolify.io/docs/core/networking-in-coolify).
+Candidate HTTPS, identity, report/provider parity, recovery, and browser
+acceptance remain separate gates; rendering this manifest is not deployment or
+candidate acceptance.
+
 ## Acceptance and rollback
 
 The latest stable-snapshot replay applies all 736 ordered schema files through

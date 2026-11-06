@@ -1,0 +1,10 @@
+# Keep Caddy private and HTTP-only behind Coolify Traefik. It routes ZITADEL's
+# Login V2 path separately from the API; public TLS terminates at Traefik.
+services:
+  proxy:
+    profiles: [runtime]
+    ports: !reset []
+    expose:
+      - "80"
+    volumes:
+      - ./config/caddy/Caddyfile.kernel.coolify:/etc/caddy/Caddyfile:ro

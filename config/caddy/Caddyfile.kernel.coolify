@@ -1,0 +1,15 @@
+# Coolify Traefik terminates public HTTPS. This private Caddy routes only the
+# ZITADEL host so the browser Login V2 UI and API can share one hostname.
+(zitadel_routes) {
+	reverse_proxy /ui/v2/login/* http://zitadel-login:3000 {
+		header_up Host {host}
+		header_up X-Forwarded-Proto https
+	}
+	reverse_proxy h2c://zitadel-api:8080 {
+		header_up X-Forwarded-Proto https
+	}
+}
+
+http://{$KOKONUT_ZITADEL_DOMAIN:auth.kokonut.network} {
+	import zitadel_routes
+}
