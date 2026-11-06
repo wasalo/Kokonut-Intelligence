@@ -146,15 +146,15 @@ def list_canvas(
 
 def get(
     conn, canvas_id: str, *, location_id: Optional[str] = None,
+    org_id: Optional[str] = None,
 ) -> Optional[Dict[str, Any]]:
+    entity_type, entity_id = _entity(org_id, location_id)
+    scope_column = "organization_id" if entity_type == "organization" else "location_id"
     with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
-        if location_id is None:
-            cur.execute("SELECT * FROM business_model_canvas WHERE id = %s", (canvas_id,))
-        else:
-            cur.execute(
-                "SELECT * FROM business_model_canvas WHERE id = %s AND location_id = %s",
-                (canvas_id, location_id),
-            )
+        cur.execute(
+            f"SELECT * FROM business_model_canvas WHERE id = %s AND {scope_column} = %s",
+            (canvas_id, entity_id),
+        )
         row = cur.fetchone()
         if not row:
             return None
@@ -526,9 +526,12 @@ def _calculate_health(canvas: Dict[str, Any]) -> Dict[str, Any]:
     return {"health_score": min(100.0, round(score, 1)), "breakdown": breakdown}
 
 
-def compute_health(conn, canvas_id: str) -> Dict[str, Any]:
-    """Read a canvas and compute its health score without persisting it."""
-    canvas = get(conn, canvas_id)
+def compute_health(
+    conn, canvas_id: str, *, location_id: Optional[str] = None,
+    org_id: Optional[str] = None,
+) -> Dict[str, Any]:
+    """Read a scoped canvas and compute its health score without persisting it."""
+    canvas = get(conn, canvas_id, location_id=location_id, org_id=org_id)
     if not canvas:
         raise ValueError(f"canvas {canvas_id} not found")
     return _calculate_health(canvas)
@@ -546,6 +549,11 @@ def _begin_readonly_cli_transaction(conn) -> None:
 def _cmd(args) -> None:
     if args.command in _BMC_RETIRED_CLI_COMMANDS:
         raise ValueError(_BMC_CLI_RETIREMENT_MESSAGE)
+    if args.command in {"get", "health"}:
+        _entity(
+            getattr(args, "org_id", None),
+            getattr(args, "location_id", None),
+        )
     conn = get_db()
     try:
         _begin_readonly_cli_transaction(conn)
@@ -566,7 +574,11 @@ def _cmd(args) -> None:
         elif args.command == "list":
             out = list_canvas(conn, location_id=args.location_id, org_id=args.org_id)
         elif args.command == "get":
-            out = get(conn, args.canvas_id)
+            out = get(
+                conn, args.canvas_id,
+                location_id=getattr(args, "location_id", None),
+                org_id=getattr(args, "org_id", None),
+            )
         elif args.command == "update-block":
             items = json.loads(args.items) if args.items else []
             out = update_block(conn, args.canvas_id, args.block, items, updated_by=args.updated_by)
@@ -580,7 +592,11 @@ def _cmd(args) -> None:
         elif args.command == "suggest":
             out = suggest(conn, args.location_id)
         elif args.command == "health":
-            out = compute_health(conn, args.canvas_id)
+            out = compute_health(
+                conn, args.canvas_id,
+                location_id=getattr(args, "location_id", None),
+                org_id=getattr(args, "org_id", None),
+            )
         else:
             out = {}
         print_json(out)
@@ -620,6 +636,8 @@ def main() -> None:
 
     g = sub.add_parser("get")
     g.add_argument("--canvas-id", required=True)
+    g.add_argument("--location-id", default=argparse.SUPPRESS)
+    g.add_argument("--org-id", default=argparse.SUPPRESS)
 
     u = sub.add_parser(
         "update-block",
@@ -649,10 +667,17 @@ def main() -> None:
 
     h = sub.add_parser("health")
     h.add_argument("--canvas-id", required=True)
+    h.add_argument("--location-id", default=argparse.SUPPRESS)
+    h.add_argument("--org-id", default=argparse.SUPPRESS)
 
     args = p.parse_args()
     if args.command in _BMC_RETIRED_CLI_COMMANDS:
         p.error(_BMC_CLI_RETIREMENT_MESSAGE)
+    if args.command in {"get", "health"}:
+        try:
+            _entity(args.org_id, args.location_id)
+        except ValueError as exc:
+            p.error(str(exc))
     _cmd(args)
 
 

@@ -192,7 +192,7 @@ def test_get_with_children():
     try:
         created = bmc.create(conn, location_id=loc, canvas_name="Child Test")
         canvas_id = str(created["id"])
-        result = bmc.get(conn, canvas_id)
+        result = bmc.get(conn, canvas_id, location_id=loc)
         assert result is not None
         assert result["canvas_name"] == "Child Test"
         assert "jobs" in result
@@ -215,7 +215,7 @@ def test_update_block():
         items = [{"name": "Partner A", "type": "supplier"}]
         result = bmc.update_block(conn, canvas_id, "key_partners", items)
         assert result["id"]
-        canvas = bmc.get(conn, canvas_id)
+        canvas = bmc.get(conn, canvas_id, location_id=loc)
         assert canvas["key_partners"] == items
     except psycopg2.ProgrammingError:
         pytest.skip("business_model_canvas table not present (migration not applied)")
@@ -297,9 +297,9 @@ def test_calculate_health_scores_blocks_and_bonuses_without_database_access():
 def test_compute_health_reads_canvas_without_writing(monkeypatch):
     conn = MagicMock()
     canvas = {block: [] for block in bmc.BMC_BLOCKS}
-    monkeypatch.setattr(bmc, "get", lambda _conn, _canvas_id: canvas)
+    monkeypatch.setattr(bmc, "get", lambda _conn, _canvas_id, **_scope: canvas)
 
-    health = bmc.compute_health(conn, "canvas-id")
+    health = bmc.compute_health(conn, "canvas-id", location_id="location-1")
 
     assert health["health_score"] == 0.0
     conn.cursor.assert_not_called()
@@ -316,7 +316,7 @@ def test_compute_health():
         canvas_id = str(created["id"])
         bmc.update_block(conn, canvas_id, "key_partners", [{"name": "P1"}, {"name": "P2"}])
         bmc.update_block(conn, canvas_id, "value_propositions", [{"desc": "V1"}])
-        health = bmc.compute_health(conn, canvas_id)
+        health = bmc.compute_health(conn, canvas_id, location_id=loc)
         assert 0 <= health["health_score"] <= 100
         assert "breakdown" in health
     except psycopg2.ProgrammingError:
@@ -328,7 +328,11 @@ def test_compute_health():
 def test_get_nonexistent():
     conn = _db()
     try:
-        result = bmc.get(conn, "00000000-0000-0000-0000-000000000000")
+        result = bmc.get(
+            conn,
+            "00000000-0000-0000-0000-000000000000",
+            location_id="11111111-1111-4111-8111-111111111111",
+        )
         assert result is None
     except psycopg2.ProgrammingError:
         pytest.skip("business_model_canvas table not present (migration not applied)")
