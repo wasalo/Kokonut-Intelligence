@@ -17,6 +17,9 @@
     "build:field": "vite build --config apps/field-operations/vite.config.ts",
     "build:governance": "vite build --config apps/governance/vite.config.ts",
     "build": "npm run build:ops && npm run build:field && npm run build:governance",
+    "deploy:ops": "npm run build:ops && wrangler deploy --config apps/general-operations/wrangler.jsonc",
+    "deploy:field": "npm run build:field && wrangler deploy --config apps/field-operations/wrangler.jsonc",
+    "deploy:governance": "npm run build:governance && wrangler deploy --config apps/governance/wrangler.jsonc",
     "typecheck": "tsc --noEmit -p tsconfig.json"
   },
   "devDependencies": {

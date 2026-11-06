@@ -40,3 +40,11 @@ The Wrangler configurations keep automatic public deployment disabled until
 the candidate origin, route ownership, and Cloudflare deployment environment
 are reviewed. Do not deploy these shells as a production replacement for the
 current operator, Delphi participant, or Field Collector interfaces.
+
+After G4 approves the trusted origin and Cloudflare credentials are provisioned,
+deploy an individual static app from this directory with `npm run deploy:ops`,
+`npm run deploy:field`, or `npm run deploy:governance`. Each command builds only
+that app and deploys it to the route in its Wrangler config. These commands do
+not create DNS records or configure ZITADEL, R2, or the Coolify Gateway origin.
+Keep Cloudflare credentials in the operator's environment or secret store; do
+not add them to this workspace.
