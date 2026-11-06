@@ -85,6 +85,38 @@
 .report-detail p { color: var(--ink-muted); }
 .report-detail pre { max-height: 36rem; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; }
 
+.coordination-summary-groups {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 21rem), 1fr));
+  align-items: start;
+  gap: 1rem;
+  margin: 1.5rem 0;
+}
+
+.coordination-summary-group {
+  padding: 1.2rem;
+  border: 1px solid var(--line);
+  border-radius: .8rem;
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+}
+
+.coordination-summary-group h3 { margin: 0 0 .7rem; }
+
+.coordination-summary-counts { margin: 0; }
+
+.coordination-summary-count {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: .75rem;
+  padding: .65rem 0;
+  border-top: 1px solid var(--line);
+}
+
+.coordination-summary-count dt { color: var(--ink-muted); }
+.coordination-summary-count dd { margin: 0; font-variant-numeric: tabular-nums; font-weight: 700; }
+
 .visually-hidden {
   position: absolute;
   width: 1px;
