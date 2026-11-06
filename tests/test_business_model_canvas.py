@@ -73,6 +73,44 @@ def test_cmd_rejects_retired_commands_before_database_access(monkeypatch, comman
     get_db_mock.assert_not_called()
 
 
+@pytest.mark.parametrize(
+    ("command", "handler_name", "command_args"),
+    [
+        ("list", "list_canvas", {"location_id": "location-1", "org_id": None}),
+        ("get", "get", {"canvas_id": "canvas-1"}),
+        ("list-versions", "list_versions", {"canvas_id": "canvas-1"}),
+        ("suggest", "suggest", {"location_id": "location-1"}),
+        ("health", "compute_health", {"canvas_id": "canvas-1"}),
+    ],
+)
+def test_supported_cli_reads_start_readonly_bounded_transaction(
+    monkeypatch, command, handler_name, command_args
+):
+    events = []
+    connection = MagicMock()
+    cursor = connection.cursor.return_value.__enter__.return_value
+    cursor.execute.side_effect = lambda sql: events.append(("sql", sql))
+    connection.set_session.side_effect = lambda **kwargs: events.append(("session", kwargs))
+    result = {"command": command}
+    handler = MagicMock(side_effect=lambda *args, **kwargs: events.append(("query", command)) or result)
+    monkeypatch.setattr(bmc, "get_db", MagicMock(return_value=connection))
+    monkeypatch.setattr(bmc, handler_name, handler)
+    print_json = MagicMock()
+    monkeypatch.setattr(bmc, "print_json", print_json)
+
+    bmc._cmd(SimpleNamespace(command=command, **command_args))
+
+    assert events == [
+        ("session", {"readonly": True, "autocommit": False}),
+        ("sql", "SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY"),
+        ("sql", "SET LOCAL statement_timeout = '8s'"),
+        ("sql", "SET LOCAL lock_timeout = '2s'"),
+        ("query", command),
+    ]
+    print_json.assert_called_once_with(result)
+    connection.close.assert_called_once_with()
+
+
 def test_cli_help_keeps_retired_commands_visible(monkeypatch, capsys):
     monkeypatch.setattr(sys, "argv", ["business_model_canvas", "--help"])
 

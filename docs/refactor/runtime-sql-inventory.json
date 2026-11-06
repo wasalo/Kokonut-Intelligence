@@ -4,10 +4,10 @@
   "scope": "Direct Python SQL execution calls in services/**/*.py, including API, worker, and CLI modules. The scan is driver-neutral, so local non-PostgreSQL stores may also appear; it is not a PostgreSQL-only inventory. Relation names and simple leading DML targets are regex-derived candidates, not a parsed SQL AST. Unquoted PostgreSQL identifiers are normalized to lower case and quoted identifiers preserve case. A query held in a local variable is resolved only from one unambiguous local assignment; an unconditional same-module string or literal-only f-string constant is resolved only when no shadowing or reassignment is found. Dynamic table identifiers stay unresolved. The scan cannot prove query reachability, ORM/extension/external effects, complete database access, required columns, or authorization. It is not a grant allowlist.",
   "summary": {
     "source_files": 1008,
-    "execution_sites": 5008,
+    "execution_sites": 5011,
     "worker_operation_roots": 49,
     "sites_with_worker_operation_refs": 439,
-    "sites_without_worker_operation_refs": 4569,
+    "sites_without_worker_operation_refs": 4572,
     "statement_kinds": {
       "CREATE": 1,
       "DELETE": 42,
@@ -16,7 +16,7 @@
       "ROLLBACK": 12,
       "SAVEPOINT": 11,
       "SELECT": 2909,
-      "SET": 688,
+      "SET": 691,
       "UNKNOWN": 284,
       "UPDATE": 408,
       "WITH": 28
@@ -24,7 +24,7 @@
     "statement_groups": {
       "read_candidate": 2909,
       "schema_change": 1,
-      "transaction_or_session": 731,
+      "transaction_or_session": 734,
       "unknown_requires_manual_review": 284,
       "with_requires_manual_review": 28,
       "write_candidate": 1055
@@ -33,11 +33,11 @@
       "composed": 44,
       "composed_or_variable": 383,
       "fstring": 307,
-      "literal": 4274
+      "literal": 4277
     },
     "relation_candidates": 1255,
     "write_target_relations": 563,
-    "sites_without_relation_candidates": 1329,
+    "sites_without_relation_candidates": 1332,
     "service_packages": 68
   },
   "service_packages": {
@@ -79,16 +79,16 @@
     },
     "analytics": {
       "source_files": 172,
-      "execution_sites": 1399,
+      "execution_sites": 1402,
       "statement_groups": {
         "read_candidate": 934,
-        "transaction_or_session": 13,
+        "transaction_or_session": 16,
         "unknown_requires_manual_review": 2,
         "with_requires_manual_review": 7,
         "write_candidate": 443
       },
       "candidate_relation_names": 537,
-      "sites_without_relation_candidates": 57,
+      "sites_without_relation_candidates": 60,
       "non_literal_sites": 198,
       "sites_with_worker_operation_refs": 61
     },
@@ -2351,6 +2351,9 @@
     {"id": "services/analytics/business_model_canvas.py:269:12","source": "services/analytics/business_model_canvas.py","line": 269,"column": 12,"scope": "_suggestion_rows","method": "execute","expression_kind": "fstring","statement_kind": "ROLLBACK","candidate_relations": [],"static_sql_sha256": null,"operation_refs": [],"write_target_relations": [],"statement_group": "transaction_or_session"},
     {"id": "services/analytics/business_model_canvas.py:270:12","source": "services/analytics/business_model_canvas.py","line": 270,"column": 12,"scope": "_suggestion_rows","method": "execute","expression_kind": "fstring","statement_kind": "RELEASE","candidate_relations": [],"static_sql_sha256": null,"operation_refs": [],"write_target_relations": [],"statement_group": "transaction_or_session"},
     {"id": "services/analytics/business_model_canvas.py:272:8","source": "services/analytics/business_model_canvas.py","line": 272,"column": 8,"scope": "_suggestion_rows","method": "execute","expression_kind": "fstring","statement_kind": "RELEASE","candidate_relations": [],"static_sql_sha256": null,"operation_refs": [],"write_target_relations": [],"statement_group": "transaction_or_session"},
+    {"id": "services/analytics/business_model_canvas.py:533:8","source": "services/analytics/business_model_canvas.py","line": 533,"column": 8,"scope": "_begin_readonly_cli_transaction","method": "execute","expression_kind": "literal","statement_kind": "SET","candidate_relations": [],"static_sql_sha256": "2af4424f8a1dfa5f936e67d66123d29dbe99ae91a322dfeecc0b63ce818a8657","operation_refs": [],"write_target_relations": [],"statement_group": "transaction_or_session"},
+    {"id": "services/analytics/business_model_canvas.py:534:8","source": "services/analytics/business_model_canvas.py","line": 534,"column": 8,"scope": "_begin_readonly_cli_transaction","method": "execute","expression_kind": "literal","statement_kind": "SET","candidate_relations": [],"static_sql_sha256": "7346ddf58ceeb31a31fd4f44990faf92a5bf015f93c675513e2bc17e5c3619db","operation_refs": [],"write_target_relations": [],"statement_group": "transaction_or_session"},
+    {"id": "services/analytics/business_model_canvas.py:535:8","source": "services/analytics/business_model_canvas.py","line": 535,"column": 8,"scope": "_begin_readonly_cli_transaction","method": "execute","expression_kind": "literal","statement_kind": "SET","candidate_relations": [],"static_sql_sha256": "e7919abcde4ac704789f51f749423dc38cacd353c98fb8c089b4c0c316e4df9c","operation_refs": [],"write_target_relations": [],"statement_group": "transaction_or_session"},
     {"id": "services/analytics/capability_map.py:53:12","source": "services/analytics/capability_map.py","line": 53,"column": 12,"scope": "create_capability","method": "execute","expression_kind": "literal","statement_kind": "INSERT","candidate_relations": ["business_capability"],"static_sql_sha256": "82a496288a7983108754eec4702d92ad0a5ecab2e544752d6f3715895eeeffd0","operation_refs": [],"write_target_relations": ["business_capability"],"statement_group": "write_candidate"},
     {"id": "services/analytics/capability_map.py:71:12","source": "services/analytics/capability_map.py","line": 71,"column": 12,"scope": "get_capability","method": "execute","expression_kind": "literal","statement_kind": "SELECT","candidate_relations": ["business_capability"],"static_sql_sha256": "2eadc5e91db54639aba68aa303757b8aa9bf3b1f3719f8019d1fecf0f6d20378","operation_refs": [],"write_target_relations": [],"statement_group": "read_candidate"},
     {"id": "services/analytics/capability_map.py:105:12","source": "services/analytics/capability_map.py","line": 105,"column": 12,"scope": "list_capabilities","method": "execute","expression_kind": "fstring","statement_kind": "SELECT","candidate_relations": ["business_capability"],"static_sql_sha256": null,"operation_refs": [],"write_target_relations": [],"statement_group": "read_candidate"},

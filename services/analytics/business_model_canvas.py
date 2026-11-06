@@ -526,11 +526,21 @@ def compute_health(conn, canvas_id: str) -> Dict[str, Any]:
     return _calculate_health(canvas)
 
 
+def _begin_readonly_cli_transaction(conn) -> None:
+    """Bound supported CLI reads to one repeatable, read-only transaction."""
+    conn.set_session(readonly=True, autocommit=False)
+    with conn.cursor() as cursor:
+        cursor.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY")
+        cursor.execute("SET LOCAL statement_timeout = '8s'")
+        cursor.execute("SET LOCAL lock_timeout = '2s'")
+
+
 def _cmd(args) -> None:
     if args.command in _BMC_RETIRED_CLI_COMMANDS:
         raise ValueError(_BMC_CLI_RETIREMENT_MESSAGE)
     conn = get_db()
     try:
+        _begin_readonly_cli_transaction(conn)
         if args.command == "create":
             out = create(
                 conn, location_id=args.location_id, org_id=args.org_id,
