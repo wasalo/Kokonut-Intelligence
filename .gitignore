@@ -37,6 +37,9 @@ dist/
 *.tsbuildinfo
 /sdk/typescript/generated/
 
+# Cloudflare Wrangler local cache
+.wrangler/
+
 # Generated protobuf clients
 /sdk/python/generated/*
 !/sdk/python/generated/__init__.py

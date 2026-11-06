@@ -89,6 +89,7 @@ BEGIN
         'kokonut_agent_summary_source_reader',
         'kokonut_agent_summary_source_view_owner',
         'kokonut_agent_task_summary_writer',
+        'kokonut_ai_summary_dispatcher',
         'kokonut_agent_ebf_source_login',
         'kokonut_agent_ebf_source_reader',
         'kokonut_agent_cids_source_login',

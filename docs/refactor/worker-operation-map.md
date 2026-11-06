@@ -31,14 +31,15 @@ rollout. See the
 [worker context contract](worker-tenant-context-contract.md).
 
 The machine-readable [operation inventory](worker-operation-map.json) covers
-the exact 31 modules in `ALLOWED_SCHEDULED_MODULES`, four isolated worker
+the exact 32 modules in `ALLOWED_SCHEDULED_MODULES`, four isolated worker
 entrypoints, seven in-process signed source-reader functions, and all seven
 pairs in `ALLOWED_EVENT_HANDLERS`. The signed source-reader functions are
 function-level roots, not new OS processes or scheduler entries. Notification
-delivery and the agent worker CLI remain outside the scheduler allowlist. The
-agent worker lists its 12 synthesis-task identities plus the deterministic
-summary identity separately; it does not collapse those credentials into a
-shared key. Regression tests compare each category with its source registry
+delivery remains outside the scheduler allowlist. The agent worker CLI is
+allowlisted only for its validated one-shot draft request contract. It lists
+its 12 synthesis-task identities plus the deterministic summary identity
+separately; it does not collapse those credentials into a shared key.
+Regression tests compare each category with its source registry
 and require source evidence, scope, data effects, and idempotency/retry notes.
 
 The sensor anomaly handler's reads, writes, row scope, and required

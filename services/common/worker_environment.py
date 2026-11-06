@@ -102,6 +102,16 @@ _GLOBAL_PROVIDER_SECRETS = frozenset({
     "CELO_ALFAJORES_RPC_URL",
     "GNOSIS_RPC_URL",
 })
+_API_ONLY_MEDIA_ENV = frozenset({
+    "MOBILE_MEDIA_PROVIDER",
+    "MOBILE_MEDIA_LOCAL_DIRECTORY",
+    "MOBILE_MEDIA_LOCAL_KEY",
+    "MOBILE_MEDIA_S3_ENDPOINT",
+    "MOBILE_MEDIA_S3_BUCKET",
+    "MOBILE_MEDIA_S3_ACCESS_KEY_ID",
+    "MOBILE_MEDIA_S3_SECRET_ACCESS_KEY",
+    "MOBILE_MEDIA_S3_REGION",
+})
 _ISOLATED_WORKER_PROVIDER_SECRETS = {
     # The outbox worker is the only isolated child that writes to ClickHouse.
     "clickhouse_outbox": frozenset({"CLICKHOUSE_PASSWORD"}),
@@ -245,11 +255,14 @@ def worker_subprocess_environment(
     isolated_database_credentials: bool = False,
     strip_shared_database_credentials: bool = False,
     isolated_worker_key: str | None = None,
+    include_api_only_media_environment: bool = False,
     environ: Mapping[str, str] | None = None,
 ) -> dict[str, str]:
     """Copy the environment while allowing only explicitly named worker secrets.
 
-    Standard application settings are preserved. Variables shaped like
+    Standard application settings are preserved except for private-media
+    configuration, which only the API child receives when explicitly enabled.
+    Variables shaped like
     ``KOKONUT_<WORKER>_DATABASE_URL`` or
     ``KOKONUT_<WORKER>_WORKER_CREDENTIAL`` are removed unless that worker key
     is explicitly allowed for the child. An empty allowlist is appropriate for
@@ -268,6 +281,8 @@ def worker_subprocess_environment(
         raise ValueError("isolated_database_credentials must be a boolean")
     if not isinstance(strip_shared_database_credentials, bool):
         raise ValueError("strip_shared_database_credentials must be a boolean")
+    if not isinstance(include_api_only_media_environment, bool):
+        raise ValueError("include_api_only_media_environment must be a boolean")
     allowed: set[str] = set()
     normalized_keys: list[str] = []
     for key in allowed_worker_keys:
@@ -305,6 +320,8 @@ def worker_subprocess_environment(
     enqueue_only = "event_dispatch" in allowed or "notification_enqueue" in allowed
     child_environment: dict[str, str] = {}
     for name, value in source.items():
+        if name in _API_ONLY_MEDIA_ENV and not include_api_only_media_environment:
+            continue
         if name == "KOKONUT_SCHEDULER_PASSWORD":
             continue  # Bootstrap-only credential; children use filtered connection settings.
         if name in {

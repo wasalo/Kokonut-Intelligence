@@ -210,7 +210,8 @@ def run(port: int = 8099, with_workers: bool = False, shutdown_seconds: float = 
                 # The Gateway uses the shared runtime login plus dedicated OIDC
                 # and ClickHouse outbox operator credentials.
                 environment_options = {
-                    "allowed_worker_keys": ("operator_auth", "clickhouse_outbox_operator")
+                    "allowed_worker_keys": ("operator_auth", "clickhouse_outbox_operator"),
+                    "include_api_only_media_environment": True,
                 }
             elif name == "scheduler":
                 environment_options = {

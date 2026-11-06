@@ -54,6 +54,47 @@
       ]
     },
     {
+      "module": "services.agents.worker_cli",
+      "worker_keys": [
+        "agent_bio_factory_source",
+        "agent_capital_efficiency_source",
+        "agent_commons_liberation_source",
+        "agent_ecological_modeling_source",
+        "agent_feedback_source",
+        "agent_financial_resilience_source",
+        "agent_gnh_alignment_source",
+        "agent_holistic_wellbeing_source",
+        "agent_kokonut_commons_source",
+        "agent_open_source_capitalist_source",
+        "agent_organic_readiness_source",
+        "agent_regenerator_source",
+        "agent_summary_deterministic_source"
+      ],
+      "scope": "Scheduler allowlist entry is limited by the module-specific command contract to a registered one-shot synthesis task, one explicit location, a request UUID, --persist-draft, and the task's fixed summary type. The task key selects its dedicated source identity; ai_summary_synthesis is limited to the deterministic-only path. Drafts remain unverified and require human review.",
+      "reads": [
+        "Task-specific location-scoped agent source views",
+        "Bounded worker source-reference functions",
+        "Authenticated operator request receipt for retries"
+      ],
+      "writes": [
+        "Bounded worker draft and immutable request receipt when --persist-draft is selected"
+      ],
+      "external_effects": [],
+      "idempotency": "The normalized request UUID is checked before source reads; replay returns the existing result. Migration 751 queues one durable one-shot task with stable request identity, and the task-specific bounded draft function enforces receipt matching.",
+      "retry_boundary": "The scheduler validates the exact registered task arguments before dispatch and selects only the mapped task-specific database credentials. Invalid tasks, locations, summary types, UUIDs, or missing operator receipts fail closed; no shared application database fallback is available. A one-shot task is terminal after success or exhausted retries.",
+      "sources": [
+        "services/agents/worker_cli.py",
+        "services/agents/task_registry.py",
+        "services/agents/worker_draft.py",
+        "services/common/worker_environment.py",
+        "services/common/worker_database.py",
+        "services/security/execution_allowlist.py",
+        "services/security/scheduled_command_contracts.py",
+        "services/gateway/ai_summary_task_request.py",
+        "schemas/postgres/751_authenticated_synthesis_one_shot_dispatch.sql"
+      ]
+    },
+    {
       "module": "services.events",
       "scope": "--process and --event-worker use the global queue only through migration 648 bounded functions and the dedicated event_dispatch login; --notification-process and --notification-worker use migration 647 bounded functions and the dedicated notification_delivery login; --worker remains a combined isolated compatibility mode. The isolation flags default off: disabled operations pause without opening the shared database. Event handlers may be tenant-scoped, global, or external as recorded below. Handler credentials are forwarded only by exact source-controlled mapping; notification enqueue requires the separate migration-417 identity.",
       "reads": [
