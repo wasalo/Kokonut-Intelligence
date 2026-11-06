@@ -553,9 +553,9 @@ docker compose --project-name "$KOKONUT_COOLIFY_PROJECT" \
   --profile runtime-admin run --rm runtime-role-bootstrap
 ```
 
-Then set
-`COMPOSE_PROFILES=runtime` in the Coolify environment and redeploy to start the
-Gateway, worker, and ZITADEL routing proxy. This staged sequence preserves the
+Then set Docker Compose's [`COMPOSE_PROFILES`](https://docs.docker.com/compose/how-tos/environment-variables/envvars/)
+to `runtime` in the Coolify environment and redeploy to start the Gateway,
+worker, and ZITADEL routing proxy. This staged sequence preserves the
 reviewed migration/bootstrap boundary; the renderer does not run migrations or
 provision database roles. Confirm Coolify's effective Compose and project name
 before running the one-shot commands. Coolify's normal Git-based Compose path
