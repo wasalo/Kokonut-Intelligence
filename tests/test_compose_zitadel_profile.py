@@ -124,7 +124,7 @@ def test_zitadel_profile_is_private_and_uses_a_dedicated_non_superuser_database_
         "ghcr.io/zitadel/zitadel:v4.19.4@sha256:"
         "90a3045b80a2b5b395e1e770302076906af3a5911225af7c464b4f3bd00d0a1b"
     )
-    assert api["command"] == ["start-from-init", "--masterkeyFromEnv", "--tlsMode", "disabled"]
+    assert api["command"] == ["start-from-init", "--masterkeyFromEnv", "--tlsMode", "external"]
     assert api["environment"]["ZITADEL_DATABASE_POSTGRES_DSN"].startswith(
         "postgresql://zitadel:"
     )
