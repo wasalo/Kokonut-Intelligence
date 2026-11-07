@@ -7,6 +7,7 @@
     "build": "vite build --config vite.config.ts"
   },
   "dependencies": {
+    "@kokonut/operator-client": "*",
     "@kokonut/ui": "*",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",

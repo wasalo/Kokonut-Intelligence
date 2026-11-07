@@ -95,6 +95,44 @@ button:focus-visible,
 .brand-vertical { color: var(--ink-muted); font-size: .82rem; }
 .header-summary { margin: 0; color: var(--ink-muted); font-size: .9rem; }
 
+.operator-account {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: .75rem;
+  min-width: 0;
+}
+
+.operator-account__name,
+.operator-account__status { color: var(--ink-muted); font-size: .85rem; }
+.operator-account__name { max-width: 14rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.operator-account__action {
+  display: inline-flex;
+  min-height: 2.5rem;
+  align-items: center;
+  justify-content: center;
+  padding: .5rem .8rem;
+  border: 1px solid var(--line);
+  border-radius: .5rem;
+  background: var(--surface);
+  color: var(--brand-strong);
+  font-weight: 650;
+  text-decoration: none;
+  cursor: pointer;
+}
+.operator-account__action:hover { background: var(--surface-soft); }
+.operator-account__action:disabled { cursor: wait; opacity: .65; }
+.operator-account__error { color: #8f2d24; font-size: .8rem; }
+.operator-account__error button {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
 .app-layout {
   display: grid;
   grid-template-columns: minmax(13rem, 16rem) minmax(0, 1fr);
@@ -222,8 +260,10 @@ button:focus-visible,
 }
 
 @media (max-width: 700px) {
-  .app-header { align-items: flex-start; }
+  .app-header { align-items: center; }
   .header-summary { display: none; }
+  .operator-account { margin-left: auto; }
+  .operator-account__name { max-width: 8rem; }
   .app-layout { display: block; }
   .primary-navigation {
     display: flex;

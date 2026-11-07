@@ -11,8 +11,14 @@ These slices do not claim full feature parity or change server authorization.
 
 `@kokonut/operator-client` centralizes same-origin, no-store requests to the
 operator Gateway API, operator CSRF handling, normalized HTTP errors, and
-cancelable latest-request tracking. It intentionally does not handle the
-Delphi participant invite/session or Field Collector device-token protocols.
+cancelable latest-request tracking. Each vertical shell provides one shared
+operator-session lookup for all of its routes and exposes the Gateway-backed
+sign-in/sign-out actions. The Gateway returns the CSRF token only from the
+authenticated, no-store session response after matching it to the server-side
+session hash; the cookie remains scoped to `/operator`. Sign-in returns the
+operator to the app path where they started. The client intentionally does not
+handle the Delphi participant invite/session or Field Collector device-token
+protocols.
 Mutation retries remain the caller's responsibility and must reuse the
 original request ID and unchanged payload.
 

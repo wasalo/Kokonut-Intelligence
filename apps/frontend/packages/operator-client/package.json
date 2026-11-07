@@ -11,6 +11,10 @@
     "./react": {
       "types": "./src/react.ts",
       "default": "./src/react.ts"
+    },
+    "./request": {
+      "types": "./src/request.ts",
+      "default": "./src/request.ts"
     }
   },
   "peerDependencies": {

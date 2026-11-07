@@ -1,5 +1,16 @@
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { NavLink } from "react-router";
+import {
+  OperatorSessionProvider,
+  useOperatorSession,
+} from "@kokonut/operator-client/react";
+import { signOutOperatorSession } from "@kokonut/operator-client/request";
+
+function operatorLoginHref(): string {
+  const login = new URL("/operator/auth/login", window.location.origin);
+  login.searchParams.set("return_to", window.location.pathname);
+  return `${login.pathname}${login.search}`;
+}
 
 export interface NavigationItem {
   to: string;
@@ -23,6 +34,77 @@ export function VerticalShell({
   children,
 }: VerticalShellProps) {
   return (
+    <OperatorSessionProvider>
+      <VerticalShellContent
+        name={name}
+        summary={summary}
+        basePath={basePath}
+        navigation={navigation}
+      >
+        {children}
+      </VerticalShellContent>
+    </OperatorSessionProvider>
+  );
+}
+
+function OperatorAccountControl() {
+  const session = useOperatorSession();
+  const [signingOut, setSigningOut] = useState(false);
+  const [signOutError, setSignOutError] = useState("");
+
+  async function handleSignOut() {
+    setSigningOut(true);
+    setSignOutError("");
+    try {
+      await signOutOperatorSession();
+      window.location.reload();
+    } catch {
+      setSigningOut(false);
+      setSignOutError("Sign out could not be completed. Try again.");
+    }
+  }
+
+  if (session.status === "loading") {
+    return <span className="operator-account__status" role="status">Checking session…</span>;
+  }
+
+  if (session.status === "signed-out") {
+    return <a className="operator-account__action" href={operatorLoginHref()}>Sign in</a>;
+  }
+
+  if (session.status === "error") {
+    return (
+      <span className="operator-account__error" role="alert">
+        Session unavailable. <button type="button" onClick={() => window.location.reload()}>Retry</button>
+      </span>
+    );
+  }
+
+  const name = session.session.operator.display_name || session.session.operator.email || "Operator";
+  return (
+    <div className="operator-account">
+      <span className="operator-account__name" title={name}>{name}</span>
+      <button
+        className="operator-account__action"
+        type="button"
+        onClick={() => void handleSignOut()}
+        disabled={signingOut}
+      >
+        {signingOut ? "Signing out…" : "Sign out"}
+      </button>
+      {signOutError ? <span className="operator-account__error" role="alert">{signOutError}</span> : null}
+    </div>
+  );
+}
+
+function VerticalShellContent({
+  name,
+  summary,
+  basePath,
+  navigation,
+  children,
+}: VerticalShellProps) {
+  return (
     <div className="ki-app-shell">
       <a className="skip-link" href="#main-content">
         Skip to main content
@@ -36,6 +118,7 @@ export function VerticalShell({
           </span>
         </a>
         <p className="header-summary">{summary}</p>
+        <OperatorAccountControl />
       </header>
 
       <div className="app-layout">

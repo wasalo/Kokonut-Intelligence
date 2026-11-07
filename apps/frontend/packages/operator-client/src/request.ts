@@ -1,5 +1,6 @@
 const OPERATOR_CSRF_COOKIE = "kokonut_operator_csrf";
 const SAFE_METHODS = new Set(["GET", "HEAD", "OPTIONS"]);
+let cachedOperatorCsrfToken = "";
 
 export interface OperatorScope {
   resource: string;
@@ -145,7 +146,7 @@ export async function requestOperatorJson<T>(
   }
 
   if (!SAFE_METHODS.has(method)) {
-    const csrf = readCsrfCookie();
+    const csrf = readCsrfCookie() || cachedOperatorCsrfToken;
     if (!csrf) {
       throw new GatewayRequestError(
         "Refresh the page to establish a protected operator session before saving.",
@@ -178,6 +179,15 @@ export async function requestOperatorJson<T>(
     );
   }
 
+  if (url.pathname === "/operator/auth/session") {
+    const token = response.headers.get("X-Operator-CSRF-Token") ?? "";
+    cachedOperatorCsrfToken = response.ok && /^[A-Za-z0-9_-]{1,128}$/.test(token)
+      ? token
+      : "";
+  } else if (response.status === 401) {
+    cachedOperatorCsrfToken = "";
+  }
+
   const responseText = await response.text();
   let payload: unknown;
   if (responseText) {
@@ -205,4 +215,23 @@ export async function requestOperatorJson<T>(
   }
 
   return payload as T;
+}
+
+export async function signOutOperatorSession(): Promise<void> {
+  const result = await requestOperatorJson<unknown>("/operator/auth/logout", {
+    method: "POST",
+  });
+  if (
+    result === null ||
+    typeof result !== "object" ||
+    Array.isArray(result) ||
+    (result as Record<string, unknown>).status !== "signed_out"
+  ) {
+    throw new GatewayRequestError(
+      "The operator session could not be closed.",
+      200,
+      "invalid_logout_response",
+      false,
+    );
+  }
 }

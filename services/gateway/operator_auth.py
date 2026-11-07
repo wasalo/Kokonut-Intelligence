@@ -33,6 +33,33 @@ CSRF_COOKIE = "kokonut_operator_csrf"
 SESSION_COOKIE_PATH = "/operator"
 _TOKEN_BYTES = 32
 _IDENTIFIER_RE = re.compile(r"^[a-z][a-z0-9_]{0,62}$")
+_OPERATOR_RETURN_PATHS = ("/operator", "/ops", "/field", "/governance")
+
+
+def _operator_return_path(value: object) -> str:
+    """Accept only local operator app paths as post-login destinations."""
+    if (
+        not isinstance(value, str)
+        or len(value) > 512
+        or "\\" in value
+        or any(ord(character) < 0x20 or ord(character) == 0x7F for character in value)
+    ):
+        return "/operator/"
+    try:
+        parsed = urlsplit(value)
+    except ValueError:
+        return "/operator/"
+    path = parsed.path
+    if parsed.scheme or parsed.netloc or not path.startswith("/") or path.startswith("//"):
+        return "/operator/"
+    if not any(
+        path == prefix or path.startswith(prefix + "/")
+        for prefix in _OPERATOR_RETURN_PATHS
+    ):
+        return "/operator/"
+    if path in _OPERATOR_RETURN_PATHS:
+        return path + "/"
+    return path
 
 
 class OperatorAuthConfigurationError(RuntimeError):
@@ -4261,7 +4288,9 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
             return JSONResponse(status_code=404, content={"error": "Operator OIDC is disabled"})
         from httpx2 import RequestError
 
+        return_to = _operator_return_path(request.query_params.get("return_to"))
         request.session.clear()
+        request.session["operator_return_to"] = return_to
         try:
             return await provider.client.authorize_redirect(
                 request, redirect_uri=provider.settings.redirect_uri
@@ -4311,12 +4340,13 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
             )
             request.session.clear()
             return JSONResponse(status_code=401, content={"error": "OIDC login failed"})
+        return_to = _operator_return_path(request.session.get("operator_return_to"))
         request.session.clear()
         if created is None:
             return JSONResponse(status_code=403, content={"error": "Operator identity is not provisioned"})
         _, session_token, csrf_token = created
         request.state.operator_audit_caller = f"operator:{created[0].operator_id}"
-        response = RedirectResponse(url="/operator/", status_code=303)
+        response = RedirectResponse(url=return_to, status_code=303)
         response.set_cookie(
             SESSION_COOKIE,
             session_token,
@@ -4357,12 +4387,21 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
                 content={"error": "Operator session service unavailable"},
                 headers={"Retry-After": "30", "Cache-Control": "no-store"},
             )
+        headers = {"Cache-Control": "no-store", "Vary": "Cookie, Origin"}
+        csrf_token = request.cookies.get(CSRF_COOKIE, "")
+        if (
+            re.fullmatch(r"[A-Za-z0-9_-]{1,128}", csrf_token)
+            and hmac.compare_digest(_digest(csrf_token), session.csrf_token_hash)
+        ):
+            # Keep the cookie scoped to /operator while allowing same-origin
+            # vertical apps to submit the matching double-submit header.
+            headers["X-Operator-CSRF-Token"] = csrf_token
         return JSONResponse(
             {
                 "operator": asdict(session.operator),
                 "scopes": scopes,
             },
-            headers={"Cache-Control": "no-store", "Vary": "Cookie, Origin"},
+            headers=headers,
         )
 
     @router.get(

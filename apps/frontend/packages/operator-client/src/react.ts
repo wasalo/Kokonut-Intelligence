@@ -1,4 +1,12 @@
-import { useEffect, useRef, useState } from "react";
+import {
+  createContext,
+  createElement,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import { GatewayRequestError } from "./request";
 import { LatestRequest } from "./latest-request";
 import { requestOperatorJson } from "./request";
@@ -9,6 +17,8 @@ export type OperatorSessionState =
   | { status: "signed-out" }
   | { status: "ready"; session: OperatorSession }
   | { status: "error"; message: string };
+
+const OperatorSessionContext = createContext<OperatorSessionState | null>(null);
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === "object" && !Array.isArray(value);
@@ -53,8 +63,8 @@ function errorMessage(error: unknown): string {
     : "The operator session could not be loaded.";
 }
 
-/** Loads the browser operator session once per mount; participant/device auth stays separate. */
-export function useOperatorSession(): OperatorSessionState {
+/** Shares one browser-session lookup across every route in a vertical app. */
+export function OperatorSessionProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<OperatorSessionState>({ status: "loading" });
   const request = useRef(new LatestRequest());
 
@@ -81,5 +91,14 @@ export function useOperatorSession(): OperatorSessionState {
     return () => request.current.cancel();
   }, []);
 
+  return createElement(OperatorSessionContext.Provider, { value: state }, children);
+}
+
+/** Reads the shared operator session; participant/device auth stays separate. */
+export function useOperatorSession(): OperatorSessionState {
+  const state = useContext(OperatorSessionContext);
+  if (state === null) {
+    throw new Error("useOperatorSession must be used within OperatorSessionProvider");
+  }
   return state;
 }
