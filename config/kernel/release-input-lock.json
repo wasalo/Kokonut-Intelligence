@@ -54,8 +54,9 @@
     "config/caddy/Caddyfile.kernel.coolify": "3640c606d20243739cff47559b02dbbb7c3c7c139d9138645291e2a259fbee1c",
     "docker-compose.kernel-coolify-network.yml": "607f80917635fbe63fbbdef752d677b0c2fa709a0b1842917037f26fa4a72305",
     "docker-compose.kernel-coolify-zitadel.yml": "6944c961d7044b235c6b10dac0ff33f228114489aca26fd30566bdb8c98bdd4a",
-    "docker-compose.kernel-coolify.yml": "084334997a244e1dab209a248293d065e01aff674b73f595961501e0cb3dfd60",
-    "scripts/render-kernel-coolify-compose.py": "4ba87a5639b64559cede534ebd257ab8333c7a1ad967a04a7e86dba0c4464d1d"
+    "docker-compose.kernel-coolify-build.yml": "faf9dd842e1d809718d69e8125d5f8ad51fe04b4f7f8692c8015890ba4b4d8f6",
+    "docker-compose.kernel-coolify.yml": "cc8b1b9b4f386819138ece2b7e3875bdff2f46361371a556884f8d6c16b2020c",
+    "scripts/render-kernel-coolify-compose.py": "82d9e0e44dd40c57104d7b8bc8b26f425fb3dee9476a4f4a1594e77f57722a67"
   },
   "postgis_packages": {
     "POSTGIS_PACKAGE_VERSION": "3.6.4+dfsg-2.pgdg12+1",

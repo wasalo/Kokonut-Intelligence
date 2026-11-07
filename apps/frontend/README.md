@@ -59,8 +59,13 @@ Personalized/API/auth/media responses are never served from the static asset
 cache. Do not attach a hostname-wide Worker route unless it explicitly forwards
 all retained Gateway paths to the origin.
 
+For an isolated layout and asset preview on the account's `workers.dev`
+subdomain, run `npm run deploy:control-plane:preview`. This preview has no
+`hub` routes and no Gateway origin; its same-origin API calls do not provide
+identity acceptance. It is a visual preview of the static shell only.
+
 After G4 approves the trusted origin and Cloudflare credentials are provisioned,
-deploy the single app with:
+deploy the production route with:
 
 ```sh
 npm run deploy:control-plane
@@ -72,3 +77,9 @@ ZITADEL, R2, or the Coolify Gateway origin. Keep Cloudflare credentials in the
 operator's environment or secret store; do not add them to this workspace. Do
 not deploy this shell as a production replacement for the existing operator,
 Delphi participant, or Field Collector workflows before parity acceptance.
+
+Cloudflare Worker Routes execute only for proxied (orange-cloud) DNS records.
+Keep the current `hub` record unchanged while validating the candidate; proxy
+the `hub` record to the candidate origin only as part of the reviewed cutover.
+The static Worker routes cover only the three frontend modules and `/assets/*`,
+so unmatched Gateway and compatibility paths continue to the VPS origin.

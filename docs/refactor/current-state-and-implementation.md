@@ -32,6 +32,20 @@ rollout remains open until the corrected manifest passes exact-head CI and the
 candidate is rebuilt and rechecked. Only the `auth.kokonut.network` route is
 configured; the `hub` route and DNS are unchanged.
 
+The Control Plane's isolated Workers preview now has a `workers.dev`-only
+environment with no `hub` route or Gateway origin. The Vite production bundle
+build, TypeScript check, and Wrangler preview dry-run passed; the dry-run
+recognized 11 static assets. Production Worker routes remain gated because
+Cloudflare routes require a proxied DNS record, and the current `hub` record
+must stay unchanged until cutover.
+
+PR #73 CI run 42408683530 on commit `4c22c1a` failed in preflight because
+the Coolify build-policy overlay, rendered manifest, and renderer changes were
+not fully represented in `config/kernel/release-input-lock.json`. The lock now
+records the overlay and current hashes. Local CI preflight and the Compose
+renderer check pass; exact-head GitHub CI must pass before the stopped runtime
+is rebuilt or restarted.
+
 The VPS root filesystem was 94% full with 6.7 GiB available. Inspection
 identified two unused Trivy database-cache volumes with 1.665 GiB each and no
 container references; those caches were removed. All application, Coolify,

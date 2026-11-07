@@ -15,6 +15,7 @@
     "build": "npm run build:control-plane",
     "build:control-plane": "vite build --config apps/control-plane/vite.config.ts",
     "deploy:control-plane": "npm run build:control-plane && wrangler deploy --config apps/control-plane/wrangler.jsonc",
+    "deploy:control-plane:preview": "npm run build:control-plane && wrangler deploy --config apps/control-plane/wrangler.jsonc --env preview",
     "typecheck": "tsc --noEmit -p tsconfig.json"
   },
   "devDependencies": {

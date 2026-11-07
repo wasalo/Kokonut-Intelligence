@@ -585,8 +585,9 @@ port 80. The `auth` record can be cut over independently once that route is
 healthy. Keep the current `hub` DNS record while the candidate Gateway and all
 three frontend paths are being verified; no Baserow alternate hostname is
 required. Once the candidate routes pass trusted HTTPS checks, replace `hub`
-with the candidate target and retire Baserow. Preserve the previous CNAME value
-as the temporary DNS rollback target. From the VPS, set local shell variables to the
+with the candidate target, enable Cloudflare proxying so the Worker routes can
+run, and retire Baserow. Preserve the previous CNAME value as the temporary
+DNS rollback target. From the VPS, set local shell variables to the
 Compose project name, generated Compose file, and generated environment file
 for this specific Coolify resource; do not guess these values or print the
 environment file. Run the ordered schema migration and the explicit role
