@@ -2,11 +2,14 @@
 
 ## Purpose and status
 
-This plan organizes the existing browser interfaces into three independently
-built front-end applications: **General Operations**, **Field Operations**, and
-**Governance**. The goal is a coherent, usable front end for the Kernel without
-dropping any workflow or changing the authorization and data contracts that the
-backend already enforces.
+This plan organizes the authenticated operator browser interface as one
+**Kokonut Intelligence Control Plane** with three lazy-loaded route modules:
+**General Operations**, **Field Operations**, and **Governance**. The goal is a
+coherent, usable front end for the Kernel without dropping any workflow or
+changing the authorization and data contracts that the backend already
+enforces. The Delphi participant app and encrypted offline Field Collector
+remain separate clients because their consent, invitation, device-identity, and
+offline-storage boundaries differ from the operator Control Plane.
 
 This is a supporting design plan, not evidence that the applications have been
 migrated or accepted. The candidate completion guide remains authoritative for
@@ -14,7 +17,8 @@ refactor status and acceptance gates. Keep the existing applications available
 until the replacement for their workflows passes the corresponding acceptance
 checks.
 
-The initial TypeScript workspace and three route shells now exist under
+The initial TypeScript workspace, shared Control Plane shell, and three route
+modules now exist under
 [`apps/frontend`](../../apps/frontend/README.md). General Operations also has a
 read-only submitted-report review slice at `/ops/reports`, a paginated,
 read-only metric list at `/ops/metrics`, and an aggregate coordination
@@ -60,42 +64,45 @@ is a usability feature; it never authorizes an API operation.
 
 ## Application boundaries and route plan
 
-Build and deploy three app entry points. Use path prefixes on one HTTPS
-application origin for the first candidate so existing same-origin session,
-CSRF, and API behavior can be retained. Suggested UI paths are `/ops/*`,
-`/field/*`, and `/governance/*`. The paths are a front-end routing choice; the
-existing Gateway API paths remain stable during migration. The proposed public
-app origin is `hub.kokonut.network`, with `auth.kokonut.network` reserved for
-ZITADEL. Three Workers Static Assets apps serve only their own path prefixes:
-the exact `/ops`, `/field`, and `/governance` roots and their descendants. Other
-same-origin paths do not match those Workers and continue to the proxied
-Coolify/VPS origin. This keeps `/operator/*`, `/api/mobile/*`, and
-`/participation/*` on their current Gateway paths without an additional API
-proxy Worker. Dynamic requests, invite flows, and personal data must be
-`no-store`; cache only versioned static assets. Do not put API secrets, database
-credentials, or authorization decisions in the browser or Worker. The Wrangler
-route patterns are source configuration only; DNS, HTTPS, and Worker deployment
-remain pending G4.
+Build and deploy one Control Plane entry point. Its shared Router, operator
+session, navigation shell, API client, and design system contain three
+capability-oriented modules at `/ops/*`, `/field/*`, and `/governance/*`. Lazy
+loading keeps inactive module code and styles out of the initial download while
+preserving a single authenticated application and seamless workspace switching.
+The paths are a front-end routing choice; existing Gateway API paths remain
+stable during migration. The proposed public app origin is
+`hub.kokonut.network`, with `auth.kokonut.network` reserved for ZITADEL. One
+Cloudflare Worker Static Assets deployment serves the shared bundle and SPA
+shell for the exact `/ops`, `/field`, and `/governance` roots and their
+descendants. Other same-origin paths do not match those Worker routes and
+continue to the proxied Coolify/VPS origin. This keeps `/operator/*`,
+`/api/mobile/*`, and `/participation/*` on their current Gateway paths without an
+additional API proxy Worker. Dynamic requests, invite flows, and personal data
+must be `no-store`; cache only versioned static assets. Do not put API secrets,
+database credentials, or authorization decisions in the browser or Worker. The
+Wrangler route patterns are source configuration only; DNS, HTTPS, and Worker
+deployment remain pending G4.
 
-The workspace pins Wrangler 4.148.0 because `assets.base_path` requires that
-version or later ([Cloudflare subdirectory assets documentation](https://developers.cloudflare.com/workers/static-assets/routing/advanced/serving-a-subdirectory/)).
-Keep `workers_dev` disabled and retain the root-plus-descendant route pairs so
+The workspace pins Wrangler 4.148.0 for a reproducible deployment toolchain.
+Keep `workers_dev` disabled and retain exact-root plus descendant route pairs so
 paths such as `/ops-other` continue to the VPS instead of matching the app
-Worker. This routing has passed Wrangler dry runs; it has not been deployed.
+Worker. Dry runs of the former three-worker layout do not validate the new
+single-Worker configuration; the consolidated configuration has not yet been
+deployed.
 
-| App | Audience and feature groups | Current console panels to migrate |
+| Control Plane module | Audience and feature groups | Current console panels to migrate |
 |---|---|---|
 | **General Operations** (`/ops/*`) | Operators coordinating reports, organizational programs, planning, analysis, and administration. | Submitted report review; metric computation and review; private report exports; AI summary review, draft generation, and authorized task requests; operating-pilot demand/capacity/resources/competency/coaching/learning plans/work claims and their independent queues; sequential evidence; solution lifecycle, funding, experiment, scale, replication, learning, adoption, and retirement workflows; coordination overview; extension learning and peer groups; cooperatives and shared assets; trend analysis; spatial autocorrelation, cross-validation, variograms, sensor design, kriging and realization summaries; business model canvases; business architecture; budgets; management work; competitive landscape; strategy plans; backcasting plans; stakeholder identity review. |
-| **Field Operations** (`/field/*`) | Field staff and authorized supervisors working with locations, devices, and farm records. The Field Collector remains an offline-first PWA within this app boundary. | Device enrollment and inventory; Field Collector collection review/disposition; farm activity intake, lifecycle, draft, and audit detail; other farm activity records; produce traceability; harvest yield; farm energy; waste/pollution; landscape/pollinator records; irrigation status; crop simulations; nutrient records. Preserve each panel's exact location grants and content allowlists. |
-| **Governance** (`/governance/*`) | Facilitators, reviewers, participants, and operators using the governance and deliberation workflows. The participant experience is a distinct entry point and layout inside this app boundary. | Governance tension review and actions; governance role registry, circles, nominations, assignment review, and tactical sessions/actions; Delphi study creation/lifecycle/items; versioned participant notices and their review; participant invites; facilitator recommendations; recommendation review; minority-report review. Preserve independent review, consent, and publication boundaries. |
+| **Field Operations** (`/field/*`) | Field staff and authorized supervisors working with locations, devices, and farm records. This is the operator and supervisor module; the encrypted offline Field Collector remains a separate client at `/api/mobile/app`. | Device enrollment and inventory; Field Collector collection review/disposition; farm activity intake, lifecycle, draft, and audit detail; other farm activity records; produce traceability; harvest yield; farm energy; waste/pollution; landscape/pollinator records; irrigation status; crop simulations; nutrient records. Preserve each panel's exact location grants and content allowlists. |
+| **Governance** (`/governance/*`) | Facilitators, reviewers, and operators using governance and deliberation workflows. The Delphi participant experience remains a separate client at `/participation/delphi`. | Governance tension review and actions; governance role registry, circles, nominations, assignment review, and tactical sessions/actions; Delphi study creation/lifecycle/items; versioned participant notices and their review; participant invites; facilitator recommendations; recommendation review; minority-report review. Preserve independent review, consent, and publication boundaries. |
 
 Enrollment, inventory, and collection review are supervisor workflows inside
-Field Operations; the Field Collector is its role-specific offline mobile
-experience. They can share API and domain modules, but each screen must keep
-its own audience, capability visibility, and Gateway authorization. The Delphi
-participant page belongs to Governance at a public participation route such as
-`/governance/participate/`, but remains a separate entry experience with no
-operator shell or operator session requirement.
+the Control Plane's Field Operations module; the Field Collector is a separate
+offline mobile client. They can share API and domain modules, but each screen
+must keep its own audience, capability visibility, and Gateway authorization.
+Delphi facilitation belongs to the Control Plane's Governance module. Delphi
+participants continue to use `/participation/delphi` with no operator shell or
+operator session requirement.
 
 ### Legacy panel-ID preservation manifest
 
@@ -104,7 +111,7 @@ source behaviors to map into the new routes; the new React components do not
 need to retain these DOM IDs. Each ID must have one explicit destination before
 the legacy console is retired.
 
-| App | Existing panel IDs |
+| Control Plane module | Existing panel IDs |
 |---|---|
 | General Operations | `review`, `metric-value-review`, `report-exports`, `ai-summary-review`, `ai-summary-draft-create`, `ai-summary-task-request`, `operating-pilot`, `sequential-evidence`, `solution-lifecycle`, `coordination-summary`, `extension-learning`, `cooperative-management`, `trend-analysis`, `geostatistics-autocorrelation`, `business-planning-canvases`, `business-architecture-summary`, `planning-budget-summary`, `management-work-summary`, `competitive-landscape-summary`, `strategy-plan-summary`, `threatcasting-backcasts`, `stakeholder-identity-review` |
 | Field Operations | `mobile-enrollment`, `mobile-operations`, `mobile-review`, `farm-activity`, `farm-activity-record-operations`, `traceability`, `yield-monitoring`, `energy-monitoring`, `waste-management`, `landscape-pollinator`, `irrigation-status`, `crop-simulations`, `nutrient-operations` |
@@ -112,12 +119,13 @@ the legacy console is retired.
 
 ## Technical shape
 
-- Use React, TypeScript, and Vite with a shared, small design system and three
-  independently buildable applications. Give each app its own entry point,
-  routes, CSS, API modules, and feature ownership. Lazy-load domain sections so
-  users download only the workflows they can use. Keep the Field Collector
-  bundle and offline startup lean; do not load the General Operations or
-  Governance bundles on field devices.
+- Use React, TypeScript, and Vite for one Control Plane application with a
+  shared Router, operator session, shell, API modules, and small design system.
+  Keep General Operations, Field Operations, and Governance in clear feature
+  modules with their own route trees, CSS, and ownership. Lazy-load modules so
+  the initial operator download contains only the active vertical. Keep the
+  separate Field Collector bundle and offline startup lean; do not load the
+  Control Plane on field devices.
 - Keep API request/response types in a shared client generated or checked
   against the Gateway's published contract. Centralize same-origin fetch,
   CSRF headers, `no-store` behavior, error translation, request cancellation,
@@ -132,10 +140,11 @@ the legacy console is retired.
   rules.
 - Keep browser-visible user data out of analytics and logs. Avoid tokens in
   query strings; preserve the Delphi hash-fragment handling and URL cleanup.
-- Use one Cloudflare Worker Static Assets deployment per compiled app, each
-  bound to its exact route prefix on the shared `hub.kokonut.network` origin.
-  Requests outside those prefixes do not match the Workers and are served by
-  the existing proxied VPS origin.
+- Use one Cloudflare Worker Static Assets deployment for the compiled Control
+  Plane, with exact route patterns for `/ops`, `/field`, `/governance`, and the
+  shared `/assets/*` bundle path on `hub.kokonut.network`. Requests outside
+  those prefixes do not match the Worker and are served by the existing
+  proxied VPS origin.
   Do not cache API/auth routes, collection payloads, participant submissions,
   report contents, or signed media responses. The existing local-only
   `prototypes/cloudflare-edge-preview` remains a synthetic prototype and is not
@@ -168,16 +177,17 @@ for production media.
    from the existing panel IDs, route policies, API operations, and app tests.
    This is the preservation baseline; don't remove or silently combine an
    operation without documenting the replacement.
-2. Create the TypeScript workspace, app shells, route guards for navigation,
-   shared API client, design tokens, responsive layout, and error/loading/empty
-   states. Do not alter Gateway behavior in this step.
-3. Migrate one complete vertical slice per app. Start with high-value
-   read-only workflows, then forms and lifecycle decisions. Keep the existing
-   endpoint, payload, CSRF, location, consent, and human-review semantics.
-4. Migrate the Delphi participant and Field Collector clients as their own
+2. Create the TypeScript workspace, shared application shell, module route
+   guards for navigation, shared API client, design tokens, responsive layout,
+   and error/loading/empty states. Do not alter Gateway behavior in this step.
+3. Migrate one complete vertical slice per Control Plane module. Start with
+   high-value read-only workflows, then forms and lifecycle decisions. Keep
+   the existing endpoint, payload, CSRF, location, consent, and human-review
+   semantics.
+4. Preserve the Delphi participant and Field Collector clients as their own
    specialized experiences; validate consent recovery, invite secrecy, offline
    encryption, queue durability, media reconciliation, and service-worker
-   upgrade behavior before replacing their current entry points.
+   upgrade behavior before changing their current entry points.
 5. Deploy candidate builds to Cloudflare preview URLs with synthetic data and
    no production credentials. Verify same-origin auth/API routing, restrictive
    cache headers, accessibility, mobile layout, reconnect/offline behavior,
@@ -191,9 +201,10 @@ for production media.
 
 - Every existing panel/operation has a destination and a passing equivalent
   contract; no old workflow disappears due only to navigation redesign.
-- Each app has direct-linkable routes, responsive layouts, keyboard/screen
-  reader labels, loading/empty/error/retry states, and clear lifecycle and
-  reviewer separation.
+- Each Control Plane module has direct-linkable routes, responsive layouts,
+  keyboard/screen reader labels, loading/empty/error/retry states, and clear
+  lifecycle and reviewer separation. The Delphi participant and Field
+  Collector clients retain their separate entry points and acceptance checks.
 - OIDC, participant consent, tenant/location authorization, CSRF, media
   privacy, and offline queue protections are browser-accepted against the
   candidate Gateway.

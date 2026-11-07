@@ -1,5 +1,5 @@
 {
-  "name": "@kokonut/governance",
+  "name": "@kokonut/operator-control-plane",
   "private": true,
   "type": "module",
   "scripts": {

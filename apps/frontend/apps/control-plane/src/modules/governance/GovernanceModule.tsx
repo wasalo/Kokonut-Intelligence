@@ -2,13 +2,14 @@ import { Link, Navigate, Route, Routes } from "react-router";
 import { useEffect } from "react";
 import { VerticalShell, type NavigationItem } from "@kokonut/ui";
 import { DelphiRecommendationReviewPage } from "./DelphiRecommendationReviewPage";
+import "./app.css";
 
 const navigation: NavigationItem[] = [
-  { to: "/", label: "Overview", end: true },
-  { to: "/workflows", label: "Governance workflows" },
-  { to: "/deliberation", label: "Delphi studies" },
-  { to: "/recommendations", label: "Recommendation review" },
-  { to: "/participate", label: "Participant entry" },
+  { to: "/governance/", label: "Overview", end: true },
+  { to: "/governance/workflows", label: "Governance workflows" },
+  { to: "/governance/deliberation", label: "Delphi studies" },
+  { to: "/governance/recommendations", label: "Recommendation review" },
+  { to: "/governance/participate", label: "Participant entry" },
 ];
 
 function GovernanceHome() {
@@ -71,7 +72,7 @@ function ParticipantCompatibilityEntry() {
   );
 }
 
-export function GovernanceApp() {
+export function GovernanceModule() {
   return (
     <VerticalShell
       name="Governance"
@@ -80,19 +81,19 @@ export function GovernanceApp() {
       navigation={navigation}
     >
       <Routes>
-        <Route path="/" element={<GovernanceHome />} />
+        <Route index element={<GovernanceHome />} />
         <Route
-          path="/workflows"
+          path="workflows"
           element={<GovernanceLanding title="Governance workflows" description="Review tensions, roles, assignments, and tactical decisions." />}
         />
         <Route
-          path="/deliberation"
+          path="deliberation"
           element={<GovernanceLanding title="Delphi studies" description="Create studies, govern notices, invite participants, and review recommendations." />}
         />
-        <Route path="/recommendations" element={<DelphiRecommendationReviewPage />} />
-        <Route path="/participate" element={<ParticipantCompatibilityEntry />} />
-        <Route path="/participant" element={<Navigate to="/participate" replace />} />
-        <Route path="*" element={<section><h2>Page not found</h2><Link to="/">Return to overview</Link></section>} />
+        <Route path="recommendations" element={<DelphiRecommendationReviewPage />} />
+        <Route path="participate" element={<ParticipantCompatibilityEntry />} />
+        <Route path="participant" element={<Navigate to="/governance/participate" replace />} />
+        <Route path="*" element={<section><h2>Page not found</h2><Link to="/governance/">Return to overview</Link></section>} />
       </Routes>
     </VerticalShell>
   );

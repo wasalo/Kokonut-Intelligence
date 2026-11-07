@@ -1,12 +1,13 @@
 import { Link, Route, Routes } from "react-router";
 import { VerticalShell, type NavigationItem } from "@kokonut/ui";
 import { FarmActivityListPage } from "./FarmActivityListPage";
+import "./app.css";
 
 const navigation: NavigationItem[] = [
-  { to: "/", label: "Overview", end: true },
-  { to: "/collector", label: "Field Collector" },
-  { to: "/records", label: "Farm records" },
-  { to: "/supervision", label: "Device supervision" },
+  { to: "/field/", label: "Overview", end: true },
+  { to: "/field/collector", label: "Field Collector" },
+  { to: "/field/records", label: "Farm records" },
+  { to: "/field/supervision", label: "Device supervision" },
 ];
 
 function FieldOperationsHome() {
@@ -46,12 +47,12 @@ function FieldLanding({ title, description }: { title: string; description: stri
         This route will replace the matching legacy workflow only after its
         location, consent, and offline behavior have parity evidence.
       </p>
-      <Link className="secondary-action" to="/">Return to Field Operations</Link>
+      <Link className="secondary-action" to="/field/">Return to Field Operations</Link>
     </section>
   );
 }
 
-export function FieldOperationsApp() {
+export function FieldOperationsModule() {
   return (
     <VerticalShell
       name="Field Operations"
@@ -60,20 +61,20 @@ export function FieldOperationsApp() {
       navigation={navigation}
     >
       <Routes>
-        <Route path="/" element={<FieldOperationsHome />} />
+        <Route index element={<FieldOperationsHome />} />
         <Route
-          path="/collector"
+          path="collector"
           element={<FieldLanding title="Field Collector" description="Use the current offline-first mobile collector." />}
         />
         <Route
-          path="/records"
+          path="records"
           element={<FarmActivityListPage />}
         />
         <Route
-          path="/supervision"
+          path="supervision"
           element={<FieldLanding title="Device supervision" description="Enrollment, inventory, and content-free collection monitoring." />}
         />
-        <Route path="*" element={<section><h2>Page not found</h2><Link to="/">Return to overview</Link></section>} />
+        <Route path="*" element={<section><h2>Page not found</h2><Link to="/field/">Return to overview</Link></section>} />
       </Routes>
     </VerticalShell>
   );

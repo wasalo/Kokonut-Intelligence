@@ -3,15 +3,16 @@ import { VerticalShell, type NavigationItem } from "@kokonut/ui";
 import { ReportReviewPage } from "./ReportReviewPage";
 import { MetricListPage } from "./MetricListPage";
 import { CoordinationSummaryPage } from "./CoordinationSummaryPage";
+import "./app.css";
 
 const navigation: NavigationItem[] = [
-  { to: "/", label: "Overview", end: true },
-  { to: "/reports", label: "Report review" },
-  { to: "/metrics", label: "Metrics" },
-  { to: "/programs", label: "Programs and solutions" },
-  { to: "/planning", label: "Planning and coordination" },
-  { to: "/insights", label: "Insights and analysis" },
-  { to: "/administration", label: "Administration" },
+  { to: "/ops/", label: "Overview", end: true },
+  { to: "/ops/reports", label: "Report review" },
+  { to: "/ops/metrics", label: "Metrics" },
+  { to: "/ops/programs", label: "Programs and solutions" },
+  { to: "/ops/planning", label: "Planning and coordination" },
+  { to: "/ops/insights", label: "Insights and analysis" },
+  { to: "/ops/administration", label: "Administration" },
 ];
 
 function GeneralOperationsHome() {
@@ -68,7 +69,7 @@ function WorkflowLanding({ title, description }: { title: string; description: s
   );
 }
 
-export function GeneralOperationsApp() {
+export function GeneralOperationsModule() {
   return (
     <VerticalShell
       name="General Operations"
@@ -77,23 +78,23 @@ export function GeneralOperationsApp() {
       navigation={navigation}
     >
       <Routes>
-        <Route path="/" element={<GeneralOperationsHome />} />
-        <Route path="/reports" element={<ReportReviewPage />} />
-        <Route path="/metrics" element={<MetricListPage />} />
-        <Route path="/planning" element={<CoordinationSummaryPage />} />
+        <Route index element={<GeneralOperationsHome />} />
+        <Route path="reports" element={<ReportReviewPage />} />
+        <Route path="metrics" element={<MetricListPage />} />
+        <Route path="planning" element={<CoordinationSummaryPage />} />
         <Route
-          path="/programs"
+          path="programs"
           element={<WorkflowLanding title="Programs and solutions" description="Coordinate operating programs and solution lifecycles." />}
         />
         <Route
-          path="/insights"
+          path="insights"
           element={<WorkflowLanding title="Insights and analysis" description="Explore location-scoped trends and analytical summaries." />}
         />
         <Route
-          path="/administration"
+          path="administration"
           element={<WorkflowLanding title="Administration" description="Manage operational review workflows within your assigned capabilities." />}
         />
-        <Route path="*" element={<section><h2>Page not found</h2><Link to="/">Return to overview</Link></section>} />
+        <Route path="*" element={<section><h2>Page not found</h2><Link to="/ops/">Return to overview</Link></section>} />
       </Routes>
     </VerticalShell>
   );

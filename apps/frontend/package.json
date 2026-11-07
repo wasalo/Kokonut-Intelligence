@@ -10,16 +10,11 @@
     "packages/*"
   ],
   "scripts": {
-    "dev:ops": "vite --config apps/general-operations/vite.config.ts",
-    "dev:field": "vite --config apps/field-operations/vite.config.ts",
-    "dev:governance": "vite --config apps/governance/vite.config.ts",
-    "build:ops": "vite build --config apps/general-operations/vite.config.ts",
-    "build:field": "vite build --config apps/field-operations/vite.config.ts",
-    "build:governance": "vite build --config apps/governance/vite.config.ts",
-    "build": "npm run build:ops && npm run build:field && npm run build:governance",
-    "deploy:ops": "npm run build:ops && wrangler deploy --config apps/general-operations/wrangler.jsonc",
-    "deploy:field": "npm run build:field && wrangler deploy --config apps/field-operations/wrangler.jsonc",
-    "deploy:governance": "npm run build:governance && wrangler deploy --config apps/governance/wrangler.jsonc",
+    "dev": "npm run dev:control-plane",
+    "dev:control-plane": "vite --config apps/control-plane/vite.config.ts",
+    "build": "npm run build:control-plane",
+    "build:control-plane": "vite build --config apps/control-plane/vite.config.ts",
+    "deploy:control-plane": "npm run build:control-plane && wrangler deploy --config apps/control-plane/wrangler.jsonc",
     "typecheck": "tsc --noEmit -p tsconfig.json"
   },
   "devDependencies": {

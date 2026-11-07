@@ -1,9 +1,6 @@
 import { useState, type ReactNode } from "react";
-import { NavLink } from "react-router";
-import {
-  OperatorSessionProvider,
-  useOperatorSession,
-} from "@kokonut/operator-client/react";
+import { Link, NavLink } from "react-router";
+import { useOperatorSession } from "@kokonut/operator-client/react";
 import { signOutOperatorSession } from "@kokonut/operator-client/request";
 
 const WORKSPACES = [
@@ -40,16 +37,14 @@ export function VerticalShell({
   children,
 }: VerticalShellProps) {
   return (
-    <OperatorSessionProvider>
-      <VerticalShellContent
-        name={name}
-        summary={summary}
-        basePath={basePath}
-        navigation={navigation}
-      >
-        {children}
-      </VerticalShellContent>
-    </OperatorSessionProvider>
+    <VerticalShellContent
+      name={name}
+      summary={summary}
+      basePath={basePath}
+      navigation={navigation}
+    >
+      {children}
+    </VerticalShellContent>
   );
 }
 
@@ -116,13 +111,13 @@ function VerticalShellContent({
         Skip to main content
       </a>
       <header className="app-header">
-        <a className="brand-lockup" href={basePath} aria-label={`${name} home`}>
+        <Link className="brand-lockup" to={basePath} aria-label={`${name} home`}>
           <span className="brand-mark" aria-hidden="true">K</span>
           <span className="brand-copy">
             <span className="brand-name">Kokonut Intelligence</span>
             <span className="brand-vertical">{name}</span>
           </span>
-        </a>
+        </Link>
         <p className="header-summary">{summary}</p>
         <OperatorAccountControl />
       </header>
@@ -131,9 +126,9 @@ function VerticalShellContent({
         {WORKSPACES.map(({ path, label }) => {
           const isCurrent = basePath === path;
           return (
-            <a
+            <Link
               key={path}
-              href={path}
+              to={path}
               className={
                 isCurrent
                   ? "vertical-switcher__link is-current"
@@ -142,7 +137,7 @@ function VerticalShellContent({
               aria-current={isCurrent ? "page" : undefined}
             >
               {label}
-            </a>
+            </Link>
           );
         })}
       </nav>
