@@ -63,7 +63,7 @@ function errorMessage(error: unknown): string {
     : "The operator session could not be loaded.";
 }
 
-/** Shares one browser-session lookup across every route in a vertical app. */
+/** Shares one browser-session lookup across every route in the Control Plane. */
 export function OperatorSessionProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<OperatorSessionState>({ status: "loading" });
   const request = useRef(new LatestRequest());
