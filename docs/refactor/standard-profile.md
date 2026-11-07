@@ -563,6 +563,12 @@ store, including `KOKONUT_KERNEL_DOMAIN=hub.kokonut.network`,
 `KOKONUT_ZITADEL_DOMAIN=auth.kokonut.network`, and
 `KOKONUT_KERNEL_HTTPS_PORT=443`. Never commit secret values.
 
+When an external proxy terminates public TLS, start ZITADEL with
+`--tlsMode external`. `ExternalSecure=true` and forwarded headers alone do not
+replace this mode; ZITADEL uses external mode to generate HTTPS API and login
+URLs while listening on internal plain HTTP. See ZITADEL's [TLS modes](https://zitadel.com/docs/self-hosting/manage/tls_modes)
+and [reverse-proxy guidance](https://zitadel.com/docs/self-hosting/manage/reverseproxy/reverse_proxy).
+
 For the initial database and identity bootstrap, leave `COMPOSE_PROFILES`
 unset: Compose starts PostgreSQL and ZITADEL without the Gateway or worker.
 After internal ZITADEL readiness is confirmed, set

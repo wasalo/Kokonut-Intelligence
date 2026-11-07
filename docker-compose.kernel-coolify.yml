@@ -416,7 +416,7 @@ services:
       - start-from-init
       - --masterkeyFromEnv
       - --tlsMode
-      - disabled
+      - external
     depends_on:
       zitadel-bootstrap-permissions:
         condition: service_completed_successfully
