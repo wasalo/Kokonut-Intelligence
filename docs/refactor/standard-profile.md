@@ -29,14 +29,18 @@ ingress, not public TLS or Internet exposure.
 
 The supervisor starts the scheduler and the event-dispatch and notification
 delivery child processes, generates distinct UUID-based identities for each
-supervisor lifetime, and refuses an empty worker role. The event-bus and
+supervisor lifetime, and refuses an empty worker role. By default the
+scheduler retains the shared control-plane login for compatibility; the
+explicit `--scheduler-role` Standard overlay selects the restricted executor
+identity described below. When composed with `--separate-api-worker-logins`,
+the supervisor stays on `kokonut_worker_runtime` while the scheduler child
+uses its dedicated connection. The event-bus and
 notification feature switches may default on, but their isolated database
 worker switches default off. In that state they remain paused without opening
 a shared database connection. Enabling either operation requires its dedicated
 DSN, login, and migration-backed bounded functions. CLI worker modes are
-mutually exclusive. The scheduler retains the shared control-plane login, but
-filters scheduled commands to only the dedicated worker credentials selected
-by the source allowlist. Freshness and ClickHouse outbox delivery follow the
+mutually exclusive. The scheduler filters scheduled commands to only the
+dedicated worker credentials selected by the source allowlist. Freshness and ClickHouse outbox delivery follow the
 same explicit-worker model; disabled paths do not use shared-runtime writes.
 Notification enqueue also uses its separate migration-417 identity when
 configured destinations exist, and fails closed if that path is unavailable.
@@ -83,6 +87,78 @@ operation identities do not complete C1. See the
 the [focused supervisor/profile checks](../../tests/test_kernel_runtime_supervisor.py),
 and the current [C1 status](current-state-and-implementation.md#c1-runtime-acl-work-current-batch).
 
+The API receives `KOKONUT_NOTIFICATION_WEBHOOK_CONFIGURED` as a non-secret
+presence flag because it intentionally does not receive the webhook URL. It
+defaults to `false`; set it to `true` in the selected Compose environment when
+`ALERT_WEBHOOK_URL` is configured. The delivery worker alone receives the URL.
+This explicit flag keeps the same behavior across Compose implementations that
+do not support Docker's `${VAR:+value}` interpolation form.
+
+### Opt-in scheduler executor identity
+
+`python3 scripts/kernel-profile.py standard --scheduler-role` appends
+`docker-compose.kernel-scheduler-role.yml` after Standard, runtime-role, and
+selected architecture/service overlays. Standard does not select this identity
+by default. The overlay changes only the worker-side PostgreSQL identity and
+scheduler DSN; the Gateway API continues to use `kokonut_runtime`. It grants
+scheduler claim/run/resource execution columns and queue-health reads, but not
+schedule definition edits or direct completion-event writes. Completion events
+use migration 747's bounded function. The bootstrap rejects unreviewed callable
+`SECURITY DEFINER` access and broad/stale scheduler grants.
+
+Load `KOKONUT_SCHEDULER_PASSWORD` and
+`KOKONUT_SCHEDULER_DATABASE_URL` from the encrypted environment before asking
+the planner for any scheduler-role command. Use a distinct password of at least
+32 UTF-8 bytes. Apply the complete ordered migration set (including 747/748),
+run the explicit `bootstrap-runtime-role` action with the overlay selected,
+then start Standard with the same `--scheduler-role` selection. The scheduler
+one-shot `--tick` uses this selected identity. `--run-now` is disabled in the
+isolated scheduler environment because it bypasses durable claims; `--enable`
+and `--disable` fail in that environment because the candidate has no
+authenticated, audited schedule-administration path yet. The profile
+planner keeps both secrets out of its printed command. `release-up` accepts
+this configuration because the overlay introduces no additional image; the
+same reviewed digest-pinned application image remains in use.
+
+Authenticated synthesis dispatch is enabled only by this opt-in overlay; the
+default Standard profile returns `503` for synthesis requests and creates no
+receipt or scheduled task. Migration 751 adds the atomic receipt-and-one-shot
+enqueue function. Before using the endpoint, apply the migration and configure
+configure the requested task's source database URL and worker credential
+through SOPS, using the `TASK_WORKER_KEYS` mapping in
+`services/agents/task_registry.py` (for example, feedback synthesis uses
+`KOKONUT_AGENT_FEEDBACK_SOURCE_DATABASE_URL` and
+`KOKONUT_AGENT_FEEDBACK_SOURCE_WORKER_CREDENTIAL`). The scheduler process
+receives the configured task identities, while each child receives only the
+identity selected by its registered task key. Missing credentials fail closed
+with no shared-database fallback. A dispatched task can create a draft only;
+independent human review remains required.
+
+The scheduler profile can be combined with G2 API/worker attribution:
+
+```sh
+python3 scripts/kernel-profile.py standard --separate-api-worker-logins --scheduler-role --action config
+```
+
+In the combined profile, the Gateway uses `kokonut_runtime`, the worker
+supervisor uses `kokonut_worker_runtime`, and the scheduler child uses
+`kokonut_scheduler_login` through `KOKONUT_SCHEDULER_DATABASE_URL`. The final
+supervisor overlay restores the worker login after the scheduler overlay; the
+scheduler child still selects its dedicated DSN and strips inherited `PG_*`
+credentials. Both worker and scheduler secrets must be provisioned during the
+explicit runtime-role bootstrap. The worker login still inherits the existing
+runtime grants, so this composition improves attribution but does not narrow
+the worker's privileges or close C1.
+
+Example after loading the encrypted environment:
+
+```sh
+python3 scripts/kernel-profile.py standard --scheduler-role --action config
+python3 scripts/kernel-profile.py standard --scheduler-role --action migrate
+python3 scripts/kernel-profile.py standard --scheduler-role --action bootstrap-runtime-role
+python3 scripts/kernel-profile.py standard --scheduler-role --action up
+```
+
 ## Deployment prerequisites
 
 This overlay is prepared source, not a production certification. Migration
@@ -102,6 +178,44 @@ Later bootstrap runs preserve existing relation grants and reapply reviewed
 denials without granting newly created tables to the login. Existing broad
 grants remain until a reviewed migration retires them; do not run the bootstrap
 during routine `up` or simply to add a newly migrated table.
+
+For G2 identity attribution, add `--separate-api-worker-logins` to Standard
+`config`, `build`, `up`, `release-up`, `ps`, or `bootstrap-runtime-role` after
+loading a distinct `KOKONUT_WORKER_RUNTIME_PASSWORD` from encrypted secrets.
+The runtime-role bootstrap creates the marked worker login; the worker uses
+that login while the API retains `KOKONUT_RUNTIME_USER`. Startup verifies the
+worker has only the expected inheriting membership and cannot `SET ROLE` to
+the API login. Until the caller map is reviewed, the worker inherits the same
+existing ACL as the API. This separates attribution, not capability. The flag
+can be combined with `--scheduler-role`: the worker supervisor keeps the
+general worker login while the scheduler child uses its dedicated login as
+described above. Do not describe this staged identity split as least privilege
+or as closing C1. Verify the role membership, API/worker session identities,
+inherited ACL behavior, and `SET ROLE` denial on a disposable PostgreSQL 16
+instance with `python3 scripts/check-worker-runtime-identity-disposable.py`;
+this synthetic acceptance does not change a candidate database.
+
+Manual ClickHouse outbox actions require migration 746, the optional
+`KOKONUT_CLICKHOUSE_OUTBOX_OPERATOR_PASSWORD`, and a separate post-migration
+runtime-role bootstrap. Compose passes that credential to the Gateway API and
+bootstrap only; the general worker receives none. The action login has no direct
+table privileges and exposes only bounded, audited list/replay/resolve/discard
+functions. Each OIDC operator action also requires its distinct global
+capability; those capabilities are not seeded or granted by this profile and
+must be explicitly approved and provisioned by a DBA. They are global controls,
+not location-scoped tenant grants. Legacy CLI mutation flags are retired and
+fail before database access.
+
+Scheduler definition administration requires migration 749 and the normal
+OIDC operator session/CSRF flow. The Gateway exposes bounded task inventory,
+graph-validated enable, and guarded disable actions with per-task audit rows;
+the isolated scheduler executor still cannot edit definitions. A DBA must
+explicitly provision the operator's `scheduler:read`, `scheduler:enable`, or
+`scheduler:disable` global capabilities through
+`kokonut_security.grant_operator_global_capability`. The route uses the
+Gateway's existing `kokonut_runtime` connection, so it does not close the
+API/general-worker identity gap (C1) and is not candidate rollout acceptance.
+
 Inspect existing schedules, handler registrations, leases, and Prefect/cron
 ownership before switching roles. For source acceptance, `--action build` builds
 the app and worker from the checkout. That path is useful during development,
@@ -158,7 +272,8 @@ python3 scripts/kernel-profile.py standard --action bootstrap-runtime-role
 python3 scripts/kernel-profile.py standard --action up
 ```
 
-`database-up` prints a command that starts only PostgreSQL. `migrate` prints the
+`database-up` prints a command that starts only PostgreSQL and waits for its
+healthcheck. `migrate` prints the
 ordered, schema-only migration runner command, which uses the explicit Standard
 Compose project to execute `psql` inside the database container. Run that
 printed Python command from the repository root after loading secrets; keep
@@ -234,7 +349,7 @@ and aggregate `children_alive`; it never returns process IDs or the generation
 token. In Standard Compose, the file is ephemeral container state; the profile
 adds no volume or migration for liveness.
 
-## Current Standard acceptance — migration 745 — 1 November 2026
+## Previous Standard acceptance snapshot — migration 745 — 1 November 2026
 
 The network-disabled disposable Standard recovery applied all 736 ordered
 schema migrations through migration 745 with zero failures or seed rows. It
@@ -249,6 +364,15 @@ heartbeat, zero active leases, and no published host ports on an internal
 network. Candidate, legacy, and production data were untouched
 ([acceptance summary](builds/2026-11-01-recovery/standard-profile-recovery-745-disposable.json);
 [runner](../../scripts/check-kernel-standard-recovery-disposable.py)).
+
+A repeat run on 2 November at source revision `672c8b2d` passed the same 736
+schema snapshot, role bootstrap/reapplication, health, stalled-child and outage
+recovery, and clean shutdown checks. The worktree was dirty, so this is
+additional disposable evidence, not a clean committed-head PR gate. The run
+used a unique project and generated synthetic credentials; its cleanup check
+found zero project containers, volumes, or networks. It did not change the
+candidate, legacy, or production targets
+([rerun evidence](builds/2026-11-02-recovery/standard-profile-recovery-745-disposable.json)).
 
 The accepted schema includes migration 742's global curated
 `readiness_dimension` boundary (location-specific weights remain in
@@ -270,6 +394,28 @@ emulated run cleaned up successfully. QEMU is not physical Raspberry Pi
 acceptance
 ([native](builds/2026-11-01-recovery/native-current-schema-745-operator-probe.json);
 [ARM64/QEMU](builds/2026-11-01-recovery/arm64-qemu-current-schema-745-operator-probe.json)).
+
+## Current Standard acceptance — migration 746 — 3 November 2026
+
+A portless, network-disabled Standard recovery applied 737 ordered schemas
+through migration 746 with zero failures or seed rows. A captured migration
+snapshot matched in both API and worker images. Runtime-role bootstrap and
+reapplication, optional Directus read-only checks, API/worker/proxy health,
+stalled-child detection and recovery, database-outage recovery, clean worker
+shutdown, private heartbeat removal, and zero active leases all passed. The run
+used a dirty checkout at source revision `9c1bd501f8c7e2928b777926d55c78c6c9b559b4`
+and schema snapshot SHA-256
+`3757f48b2184cd83bdd33ea71720a0733a5422c6e8abd9040b1e7830bad6c0f0`; it is
+not a clean committed-head PR gate or candidate/production acceptance.
+
+Migration 746's separate PostgreSQL 16 check verifies the dedicated
+ClickHouse outbox action login, global capability grants/revocations, session
+binding, bounded replay/resolve/discard functions, operator audit, and runtime
+enqueue-only privileges. No operator capability was granted on a persistent
+target. Native and ARM64/QEMU two-tenant probes remain through migration 745;
+the 47-check probe has not been rerun through 746. Evidence:
+[Standard recovery](builds/2026-11-03-recovery/standard-profile-recovery-746-disposable.json),
+[ClickHouse outbox operator](builds/2026-11-03-recovery/clickhouse-outbox-operator-746-disposable.json).
 
 ## Previous Standard acceptance snapshot — migration 738
 
@@ -365,6 +511,107 @@ loading the encrypted environment. The planner prints the resolved command;
 it does not execute it or supply `MOBILE_MEDIA_LOCAL_KEY` itself. Preserve the
 Edge private-media volume when changing profiles so stored private evidence is
 not lost.
+
+## Shared-host Coolify deployment
+
+A clean or dedicated host is not required. The prepared Coolify variant is
+designed to coexist with existing Docker workloads and use the host's existing
+Traefik proxy. It leaves the Gateway, worker, database, and internal ZITADEL
+services on the Compose network; the public Gateway service listens on
+container port `8099`, and the private Caddy service routes the ZITADEL login
+and API paths on container port `80`. Coolify terminates public HTTPS and
+connects its proxy to the resource network. The Gateway remains directly behind
+Traefik, preserving its current policy of ignoring forwarded client headers.
+No candidate host ports or host-level Traefik settings are required.
+Dedicated compute, replicas, and failover remain optional scale/availability
+choices based on measured workload; they are not installation prerequisites.
+The manifest's network and volume names use the fixed
+`kokonut-kernel-coolify` prefix, so run one candidate instance per Docker host.
+Running separate staging and production candidates on the same host requires
+parameterized project, network, and volume names first.
+
+Standard does not impose CPU or memory quotas. Containers share host CPU, RAM,
+and disk, so monitor the combined workload and size per-service Coolify limits
+from measured usage before the soak. The Edge overlay caps the API and database
+at 1 GiB and 2 CPUs each; its worker remains uncapped, so those settings are
+not a complete shared-host budget.
+
+Render the single Git-based Compose definition from the reviewed overlays:
+
+```sh
+python3 scripts/render-kernel-coolify-compose.py
+python3 scripts/render-kernel-coolify-compose.py --check
+```
+
+The renderer pins the Standard profile's separate API/worker database logins,
+isolated scheduler executor, and self-hosted ZITADEL overlays. It asks Docker
+Compose to merge those files without resolving environment variables or
+absolute paths, so secrets stay as Coolify-managed placeholders and build/bind
+paths remain relative to the repository root. Regenerate and check the artifact
+whenever one of its source overlays changes. Do not hand-edit
+`docker-compose.kernel-coolify.yml`.
+
+Create a normal Git-based Docker Compose Application in the owner-provided
+Coolify project/environment. Set Base Directory to the repository root and
+Compose Location to `docker-compose.kernel-coolify.yml`; keep normal Coolify
+deployment mode enabled so Coolify can add managed routing/network labels. In
+Domains, route `https://hub.kokonut.network:8099` to service `app` and
+`https://auth.kokonut.network:80` to service `proxy`. Coolify's Traefik handles
+public TLS; the internal Caddy site uses HTTP only for the ZITADEL upstreams.
+Enter every required Compose value and secret in the Coolify environment/secret
+store, including `KOKONUT_KERNEL_DOMAIN=hub.kokonut.network`,
+`KOKONUT_ZITADEL_DOMAIN=auth.kokonut.network`, and
+`KOKONUT_KERNEL_HTTPS_PORT=443`. Never commit secret values.
+
+When an external proxy terminates public TLS, start ZITADEL with
+`--tlsMode external`. `ExternalSecure=true` and forwarded headers alone do not
+replace this mode; ZITADEL uses external mode to generate HTTPS API and login
+URLs while listening on internal plain HTTP. See ZITADEL's [TLS modes](https://zitadel.com/docs/self-hosting/manage/tls_modes)
+and [reverse-proxy guidance](https://zitadel.com/docs/self-hosting/manage/reverseproxy/reverse_proxy).
+
+For the initial database and identity bootstrap, leave `COMPOSE_PROFILES`
+unset: Compose starts PostgreSQL and ZITADEL without the Gateway or worker.
+After internal ZITADEL readiness is confirmed, set
+`COMPOSE_PROFILES=identity-edge` to start the private HTTP-only Caddy route for
+`auth.kokonut.network`; this profile does not start the Gateway, worker, or
+migration/role bootstrap. Map the Coolify `auth` domain to service `proxy` on
+port 80. The `auth` record can be cut over independently once that route is
+healthy. Keep the current `hub` DNS record while the candidate Gateway and all
+three frontend paths are being verified; no Baserow alternate hostname is
+required. Once the candidate routes pass trusted HTTPS checks, replace `hub`
+with the candidate target and retire Baserow. Preserve the previous CNAME value
+as the temporary DNS rollback target. From the VPS, set local shell variables to the
+Compose project name, generated Compose file, and generated environment file
+for this specific Coolify resource; do not guess these values or print the
+environment file. Run the ordered schema migration and the explicit role
+bootstrap against that same project:
+
+```sh
+docker compose --project-name "$KOKONUT_COOLIFY_PROJECT" \
+  --env-file "$KOKONUT_COOLIFY_ENV_FILE" \
+  --file "$KOKONUT_COOLIFY_COMPOSE_FILE" \
+  --profile runtime-admin run --rm runtime-role-bootstrap \
+  python3 -m services.migration migrate --schemas-only
+
+docker compose --project-name "$KOKONUT_COOLIFY_PROJECT" \
+  --env-file "$KOKONUT_COOLIFY_ENV_FILE" \
+  --file "$KOKONUT_COOLIFY_COMPOSE_FILE" \
+  --profile runtime-admin run --rm runtime-role-bootstrap
+```
+
+Then set Docker Compose's [`COMPOSE_PROFILES`](https://docs.docker.com/compose/how-tos/environment-variables/envvars/)
+to `identity-edge,runtime` in the Coolify environment and redeploy to start the
+Gateway and worker alongside the already isolated ZITADEL routing proxy. This
+staged sequence preserves the reviewed migration/bootstrap boundary; the
+renderer does not run migrations or provision database roles. Confirm Coolify's
+effective Compose and project name before running the one-shot commands.
+Coolify's normal Git-based Compose path
+supports a checked-in Compose location, per-service domains, and generated
+proxy networking; review its [Compose deployment guide](https://coolify.io/docs/applications/builds/docker-compose)
+and [networking model](https://coolify.io/docs/core/networking-in-coolify).
+Candidate HTTPS, identity, report/provider parity, recovery, and browser
+acceptance remain separate gates; rendering this manifest is not deployment or
+candidate acceptance.
 
 ## Acceptance and rollback
 

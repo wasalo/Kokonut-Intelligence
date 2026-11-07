@@ -173,7 +173,7 @@ def main() -> int:
         deadline = time.monotonic() + 60
         while time.monotonic() < deadline:
             ready = run(
-                [docker, "exec", container, "pg_isready", "-U", "postgres"],
+                [docker, "exec", container, "pg_isready", "-h", "127.0.0.1", "-U", "postgres"],
                 check=False,
             )
             if ready.returncode == 0:

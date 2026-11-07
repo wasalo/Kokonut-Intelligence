@@ -1,0 +1,11 @@
+# Shared-host overlay for an existing Coolify Traefik proxy.
+# Coolify routes to service ports over its Docker network; publish no host ports.
+services:
+  app:
+    profiles: [runtime]
+    ports: !reset []
+    expose:
+      - "8099"
+
+  worker:
+    profiles: [runtime]

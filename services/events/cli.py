@@ -507,7 +507,11 @@ def main():
     parser.add_argument("--event-id", help="Original event UUID")
     parser.add_argument("--notification-id", help="Notification outbox UUID")
     parser.add_argument("--notification-actor", help="Operator identity for notification dead-letter actions")
-    parser.add_argument("--actor", default="cli", help="Operator recording the action")
+    parser.add_argument(
+        "--actor",
+        default=None,
+        help="Operator recording the action; required for cleanup and dead-letter mutations",
+    )
     parser.add_argument("--disposition", choices=("resolved", "discarded"))
     parser.add_argument("--reason", default="", help="Disposition reason")
     parser.add_argument("--location-id", help="Scope fork opportunities to a location")
@@ -520,6 +524,27 @@ def main():
     parser.add_argument("--event-data", default="{}", help="JSON event payload for --process-event")
 
     args = parser.parse_args()
+
+    if args.cleanup and (not args.actor or not args.actor.strip()):
+        parser.error("a non-empty --actor is required for event cleanup")
+    if args.replay_dead_letter and (
+        not args.event_id or not args.actor or not args.actor.strip()
+    ):
+        parser.error("--event-id and a non-empty --actor are required for replay")
+    if args.dispose_dead_letter and (
+        not args.event_id
+        or not args.disposition
+        or not args.actor
+        or not args.actor.strip()
+        or not args.reason
+        or not args.reason.strip()
+    ):
+        parser.error(
+            "--event-id, --disposition, a non-empty --actor and --reason "
+            "are required for dead-letter disposition"
+        )
+    if args.actor is None:
+        args.actor = "cli"
 
     if args.process:
         rc = cmd_process(args)

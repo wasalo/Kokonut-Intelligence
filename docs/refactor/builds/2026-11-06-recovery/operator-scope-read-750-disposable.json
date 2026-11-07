@@ -1,0 +1,17 @@
+{
+  "acceptance": "operator_scope_read_migration_750_disposable",
+  "generated_at": "2026-11-06T05:10:33.877629+00:00",
+  "database_image": "postgis/postgis:16-3.4@sha256:44126d872ac91993766c341e369c539e8196614321765d36a6f1bab0419a5fa5",
+  "checks": [
+    "migration 750 applies and replays with the isolated NOLOGIN scope-read owner",
+    "operator-auth receives only the two bounded scope-read functions and no direct scope-table SELECT",
+    "general runtime cannot execute the new operator-auth scope functions",
+    "legacy location grants, active organization sharing, disabled identities, and expired shares retain exact semantics",
+    "scope listings retain stable resource/action/location ordering under forced RLS"
+  ],
+  "candidate_database_touched": false,
+  "production_database_touched": false,
+  "external_network_requests": 0,
+  "synthetic_rows_remaining": 0,
+  "scope_limit": "Validates the migration-owned operator-auth scope read path and tenant predicate on synthetic PostgreSQL 16 under forced RLS. It does not narrow existing kokonut_runtime table grants or establish tenant isolation for other Gateway/worker SQL."
+}

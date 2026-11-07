@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import hmac
+import ssl
 import sys
 from types import ModuleType, SimpleNamespace
 from urllib.parse import parse_qs, urlsplit
@@ -28,7 +29,7 @@ _SESSION_HASH = "a" * 64
 _LOCATION_ID = "11111111-1111-4111-8111-111111111111"
 
 
-def test_actual_oidc_adapter_registers_discovery_and_s256_pkce(monkeypatch):
+def _install_authlib_stub(monkeypatch):
     registrations = []
 
     class _FakeOAuth:
@@ -49,13 +50,21 @@ def test_actual_oidc_adapter_registers_discovery_and_s256_pkce(monkeypatch):
     monkeypatch.setitem(
         sys.modules, "authlib.integrations.starlette_client", starlette_client
     )
+    return registrations
 
-    settings = SimpleNamespace(
+
+def _oidc_settings(ca_bundle=None):
+    return SimpleNamespace(
         issuer="https://identity.example.test/",
         client_id="operator-client",
         client_secret="synthetic-client-secret",
+        ca_bundle=ca_bundle,
     )
-    provider = OIDCOperatorProvider(settings)
+
+
+def test_actual_oidc_adapter_registers_discovery_and_s256_pkce(monkeypatch):
+    registrations = _install_authlib_stub(monkeypatch)
+    provider = OIDCOperatorProvider(_oidc_settings())
 
     assert provider.client.name == "operator"
     assert registrations == [
@@ -72,6 +81,29 @@ def test_actual_oidc_adapter_registers_discovery_and_s256_pkce(monkeypatch):
             },
         }
     ]
+
+
+def test_actual_oidc_adapter_adds_custom_ca_without_disabling_verification(monkeypatch):
+    registrations = _install_authlib_stub(monkeypatch)
+
+    class _FakeSSLContext:
+        check_hostname = True
+        verify_mode = ssl.CERT_REQUIRED
+
+        def load_verify_locations(self, *, cafile):
+            self.cafile = cafile
+
+    ssl_context = _FakeSSLContext()
+    import services.gateway.operator_auth as operator_auth
+
+    monkeypatch.setattr(operator_auth.ssl, "create_default_context", lambda: ssl_context)
+    OIDCOperatorProvider(_oidc_settings("/run/oidc-ca/caddy-root.crt"))
+
+    client_kwargs = registrations[0]["client_kwargs"]
+    assert client_kwargs["verify"] is ssl_context
+    assert ssl_context.cafile == "/run/oidc-ca/caddy-root.crt"
+    assert ssl_context.check_hostname is True
+    assert ssl_context.verify_mode == ssl.CERT_REQUIRED
 
 
 class _FakeOIDCClient:
@@ -212,13 +244,34 @@ def _login(client):
     return response
 
 
+def test_oidc_login_returns_sanitized_503_when_provider_connection_fails(
+    monkeypatch, tmp_path
+):
+    import httpx2
+
+    class _UnavailableOIDCClient:
+        async def authorize_redirect(self, request, *, redirect_uri):
+            raise httpx2.ConnectError("synthetic provider connection detail")
+
+    provider = _FakeOIDCProvider()
+    provider.client = _UnavailableOIDCClient()
+    with _client(monkeypatch, tmp_path, provider) as client:
+        response = client.get("/operator/auth/login")
+
+    assert response.status_code == 503
+    assert response.json() == {"error": "Operator identity provider unavailable"}
+    assert response.headers["retry-after"] == "30"
+    assert response.headers["cache-control"] == "no-store"
+    assert "synthetic provider connection detail" not in response.text
+
+
 def test_oidc_login_session_and_logout_use_opaque_cookie_contract(
     monkeypatch, tmp_path
 ):
     provider = _FakeOIDCProvider()
     with _client(monkeypatch, tmp_path, provider) as client:
         login = _login(client)
-        assert provider.client.login_session == {}
+        assert provider.client.login_session == {"operator_return_to": "/operator/"}
         assert provider.client.redirect_uri == provider.settings.redirect_uri
         assert parse_qs(urlsplit(login.headers["location"]).query)["state"] == [
             "synthetic-state"

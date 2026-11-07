@@ -30,12 +30,19 @@ dedicated `KOKONUT_RUNTIME_USER` and `KOKONUT_RUNTIME_PASSWORD` variables when
 combined with `docker-compose.kernel-runtime-role.yml`; the app receives only
 `PG_USER` and `PG_PASSWORD`, while the one-shot bootstrap receives the admin
 credential. Standard selects this overlay automatically and requires explicit
-runtime credentials for both app and worker. Its supervisor performs a
+runtime credentials for both app and worker by default. Add the optional
+`docker-compose.kernel-worker-runtime-role.yml` overlay through
+`standard --separate-api-worker-logins` to use `kokonut_runtime` for the API
+and `kokonut_worker_runtime` for the worker. The worker login inherits the
+current runtime ACL with `SET ROLE` disabled. This is identity attribution
+only; it does not narrow grants or close C1. Each supervisor performs a
 read-only pre-spawn check requiring the same session/login role, LOGIN,
-NOINHERIT, and no role memberships; it rejects superuser, database/role
-creation, replication, RLS-bypass, database-owner, or database-owner-member
-logins. This prevents owner credentials and membership grants from bypassing
-the separate bootstrap step.
+NOINHERIT, and no memberships by default; the marked worker identity is
+accepted only with its one exact inheriting membership and no SET/ADMIN option.
+The check rejects superuser, database/role creation, replication, RLS-bypass,
+database-owner, or database-owner-member logins. This prevents owner
+credentials and unexpected membership grants from bypassing the separate
+bootstrap step.
 
 The bootstrap requires a dedicated Kernel PostgreSQL instance and distinct
 runtime and operator-auth passwords of at least 24 characters. It creates or
@@ -85,12 +92,11 @@ applications.
 
 The [runtime SQL inventory](runtime-sql-inventory.json) records direct
 execution sites across the whole `services/` tree to support that review. It
-contains 3,799 call sites from 807 Python files and 1,034 regex-derived relation
+contains 4,995 call sites from 1,008 Python files and 1,254 regex-derived relation
 candidates; literal SQLAlchemy `text()` and psycopg `SQL()` wrappers are
-unwrapped. 111 statement kinds remain unknown, 23 statements begin
-with `WITH`, 335 sites have no relation candidate, and 456 use a non-literal
-query expression. Dynamic query construction, `WITH` semantics, ORM/provider
-code,
+unwrapped. 281 statement kinds remain unknown, 28 statements begin with
+`WITH`, 1,320 sites have no relation candidate, and 727 use a non-literal query
+expression. Dynamic query construction, `WITH` semantics, ORM/provider code,
 columns, actual request reachability, and external Directus usage remain outside
 its proof. It is a review map, not a grant list; convert no candidate relation
 into an ACL until the call path, runtime principal, and operation are confirmed.

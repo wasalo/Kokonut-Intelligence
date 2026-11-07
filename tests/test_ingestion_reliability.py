@@ -19,13 +19,19 @@ def test_remote_sensing_due_jobs_use_the_signed_worker_claim():
     assert "CREATE OR REPLACE FUNCTION kokonut_security.claim_remote_sensing_job" in migration
 
 
-def test_ingestion_entry_points_close_connections_in_finally():
+def test_ingestion_entry_points_preserve_worker_connection_boundaries():
     remote = Path("services/ingestion/remote_sensing.py").read_text()
     market = Path("services/ingestion/market_data.py").read_text()
+    market_worker = Path("services/ingestion/market_data_worker.py").read_text()
     assert remote.count("finally:") >= 1
-    assert market.count("finally:") >= 2
     assert "ON CONFLICT (source_system, source_id)" in remote
-    assert "ON CONFLICT (source, commodity_code, market_name, price_date)" in market
+    assert "get_db(" not in market
+    assert "from services.ingestion.market_data_worker import" in market
+    assert "def _call_worker(" in market_worker
+    assert 'get_worker_db("market_data")' in market_worker
+    assert "finally:" in market_worker
+    assert "connection.close()" in market_worker
+    assert "store_world_bank_market_data" in market_worker
 
 
 def test_sensor_duplicate_key_normalizes_missing_time():

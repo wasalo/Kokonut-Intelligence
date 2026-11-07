@@ -11,6 +11,7 @@ import re
 from datetime import date, datetime
 from uuid import UUID
 
+from services.agents.task_registry import TASK_SUMMARY_TYPES
 from services.security.execution_allowlist import (
     ALLOWED_SCHEDULED_MODULES,
     validate_scheduled_module,
@@ -160,6 +161,15 @@ _OPTIONS: dict[str, dict[str, str | None]] = {
         "--worker-id": "worker_id",
         "--limit": "outbox_batch_size",
     },
+    "services.agents.worker_cli": {
+        "--location-id": "uuid",
+        "--task-key": "synthesis_task",
+        "--summary-type": "synthesis_summary_type",
+        "--request-id": "uuid",
+        "--persist-draft": None,
+        "--source-only": None,
+        "--deterministic-only": None,
+    },
 }
 
 if frozenset(_OPTIONS) != ALLOWED_SCHEDULED_MODULES:
@@ -178,6 +188,12 @@ def _validate_value(kind: str, value: str) -> None:
             UUID(value)
         except (ValueError, AttributeError):
             raise _reject("location, sensor, and dataset IDs must be UUIDs") from None
+    elif kind == "synthesis_task":
+        if value not in TASK_SUMMARY_TYPES:
+            raise _reject("synthesis task is not registered")
+    elif kind == "synthesis_summary_type":
+        if not any(value in types for types in TASK_SUMMARY_TYPES.values()):
+            raise _reject("synthesis summary type is not registered")
     elif kind == "market_source":
         if value not in {"world_bank", "seed"}:
             raise _reject("market data source is not supported")
@@ -249,6 +265,28 @@ def _validate_value(kind: str, value: str) -> None:
 
 def _validate_operation(module_path: str, values: dict[str, str | bool]) -> None:
     options = set(values)
+
+    if module_path == "services.agents.worker_cli":
+        task_key = values.get("--task-key")
+        if task_key is None:
+            task_key = "ai_summary_synthesis"
+        if not isinstance(task_key, str):
+            raise _reject("synthesis dispatch requires a registered task")
+        summary_type = values.get("--summary-type")
+        if task_key != "ai_summary_synthesis" and summary_type is None:
+            summary_type = next(iter(TASK_SUMMARY_TYPES.get(task_key, ())), None)
+        if not isinstance(summary_type, str):
+            raise _reject("synthesis dispatch requires a registered summary type")
+        if summary_type not in TASK_SUMMARY_TYPES.get(task_key, frozenset()):
+            raise _reject("synthesis summary type does not belong to the registered task")
+        required = {"--location-id", "--request-id", "--persist-draft"}
+        if task_key == "ai_summary_synthesis":
+            required |= {"--summary-type", "--deterministic-only"}
+        else:
+            required |= {"--task-key", "--source-only"}
+        if options != required:
+            raise _reject("synthesis dispatch accepts only its registered draft-only command")
+        return
 
     if module_path == "services.ingestion.sensor_ingester":
         if options != {"--driver-instance-id", "--location-id"}:

@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
-"""Exercise the split Standard API/worker profile through a disposable DB outage.
+"""Exercise the split Standard API/scheduler-role profile through a disposable DB outage.
 
 This is an opt-in Docker acceptance check. It composes only the Kernel
-candidate and Standard overlays, strips all published ports, marks the single
-runtime network internal, applies checksummed schema migrations only, and
-removes the unique Compose project and volumes on every exit path.
+candidate, Standard, and scheduler-role overlays, strips all published ports,
+marks the single runtime network internal, applies checksummed schema
+migrations only, and removes the unique Compose project and volumes on every
+exit path.
 """
 
 from __future__ import annotations
@@ -27,6 +28,7 @@ BASE_COMPOSE = ROOT / "docker-compose.kernel-candidate.yml"
 STANDARD_COMPOSE = ROOT / "docker-compose.kernel-standard.yml"
 PROXY_COMPOSE = ROOT / "docker-compose.kernel-proxy.yml"
 RUNTIME_ROLE_COMPOSE = ROOT / "docker-compose.kernel-runtime-role.yml"
+SCHEDULER_ROLE_COMPOSE = ROOT / "docker-compose.kernel-scheduler-role.yml"
 DEFAULT_TIMEOUT_SECONDS = 180
 HEARTBEAT_PATH = "/var/lib/kokonut/worker-progress/supervisor.json"
 RUNTIME_REFERENCE_READ_ONLY_TABLES = (
@@ -225,6 +227,8 @@ def _redact_secrets(value: str, environment: dict[str, str]) -> str:
         "KOKONUT_RATE_LIMIT_MAINTENANCE_PASSWORD",
         "KOKONUT_RATE_LIMIT_MAINTENANCE_DSN",
         "KOKONUT_DIRECTUS_RUNTIME_PASSWORD",
+        "KOKONUT_SCHEDULER_PASSWORD",
+        "KOKONUT_SCHEDULER_DATABASE_URL",
         "DIRECTUS_SECRET",
     ):
         secret = environment.get(secret_name, "")
@@ -293,6 +297,7 @@ def _compose_environment(sensor_root: Path, project: str) -> dict[str, str]:
     rate_limit_maintenance_password = secrets.token_urlsafe(32)
     freshness_password = secrets.token_urlsafe(32)
     directus_password = secrets.token_urlsafe(32)
+    scheduler_password = secrets.token_urlsafe(32)
     environment.update(
         {
             "POSTGRES_PASSWORD": password,
@@ -315,6 +320,11 @@ def _compose_environment(sensor_root: Path, project: str) -> dict[str, str]:
             "KOKONUT_FRESHNESS_PASSWORD": freshness_password,
             "KOKONUT_DIRECTUS_RUNTIME_USER": "kokonut_directus_runtime",
             "KOKONUT_DIRECTUS_RUNTIME_PASSWORD": directus_password,
+            "KOKONUT_SCHEDULER_PASSWORD": scheduler_password,
+            "KOKONUT_SCHEDULER_DATABASE_URL": (
+                f"postgresql://kokonut_scheduler_login:{scheduler_password}"
+                "@database:5432/kokonut_intelligence"
+            ),
             "KOKONUT_ENV": "development",
             "KOKONUT_ENV_SECRETS_NOT_REQUIRED": "true",
             "KOKONUT_ALLOW_PLAINTEXT_ENV": "true",
@@ -1377,6 +1387,8 @@ def _main(timeout: float) -> dict[str, Any]:
                 str(RUNTIME_ROLE_COMPOSE),
                 "-f",
                 str(PROXY_COMPOSE),
+                "-f",
+                str(SCHEDULER_ROLE_COMPOSE),
                 "--profile",
                 "runtime-admin",
                 "config",
@@ -1592,8 +1604,11 @@ def _main(timeout: float) -> dict[str, Any]:
             worker = _wait_for_health(project, manifest, environment, "worker", "healthy", timeout)
             app_identity = _runtime_identity(project, manifest, environment, "app")
             worker_identity = _runtime_identity(project, manifest, environment, "worker")
-            if app_identity != "kokonut_runtime" or worker_identity != "kokonut_runtime":
-                raise AcceptanceError("Standard app and worker did not connect as kokonut_runtime")
+            if app_identity != "kokonut_runtime" or worker_identity != "kokonut_scheduler_login":
+                raise AcceptanceError(
+                    "scheduler-role Standard app/worker identities did not resolve to "
+                    "kokonut_runtime/kokonut_scheduler_login"
+                )
             _assert_runtime_write_denied(project, manifest, environment)
             _assert_gateway_rate_limit_boundary(project, manifest, environment)
 
@@ -1630,6 +1645,10 @@ def _main(timeout: float) -> dict[str, Any]:
                 "role_attributes": role_attributes,
                 "app_database_user": app_identity,
                 "worker_database_user": worker_identity,
+                "scheduler_role_overlay": "enabled",
+                "callable_security_definer_allowlist": (
+                    "kokonut_security.enqueue_scheduler_run_event(uuid,text)"
+                ),
                 "schema_version_insert_denied_after_initial_provision": True,
                 "schema_version_insert_denied_after_provisioner_reapply": True,
                 "runtime_reference_tables_read_only_after_initial_provision": True,

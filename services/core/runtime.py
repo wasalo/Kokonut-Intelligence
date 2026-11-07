@@ -207,10 +207,12 @@ def run(port: int = 8099, with_workers: bool = False, shutdown_seconds: float = 
                     "isolated_worker_key": "notification_delivery",
                 }
             elif name == "api":
-                # The Gateway still uses the Standard application's shared
-                # runtime login. Preserve PG_* for this child while the
-                # environment helper removes unrelated worker DSNs/secrets.
-                environment_options = {"allowed_worker_keys": ()}
+                # The Gateway uses the shared runtime login plus dedicated OIDC
+                # and ClickHouse outbox operator credentials.
+                environment_options = {
+                    "allowed_worker_keys": ("operator_auth", "clickhouse_outbox_operator"),
+                    "include_api_only_media_environment": True,
+                }
             elif name == "scheduler":
                 environment_options = {
                     "allowed_worker_keys": (
@@ -227,6 +229,8 @@ def run(port: int = 8099, with_workers: bool = False, shutdown_seconds: float = 
                     "allowed_worker_keys": (),
                     "strip_shared_database_credentials": True,
                 }
+            if name == "scheduler" and "KOKONUT_SCHEDULER_DATABASE_URL" in os.environ:
+                environment_options["isolated_worker_key"] = "scheduler"
             child_environment = worker_subprocess_environment(**environment_options)
             if name in {"scheduler", "events", "notifications"}:
                 child_environment[WORKER_PROGRESS_NAME_ENV] = name

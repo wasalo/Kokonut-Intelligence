@@ -76,6 +76,14 @@ FEATURES: dict[str, dict[str, Any]] = {
         "category": "intelligence",
         "description": "AI/LLM agent services",
     },
+    "authenticated_synthesis_dispatch": {
+        "enabled": os.getenv(
+            "KOKONUT_FEATURE_AUTHENTICATED_SYNTHESIS_DISPATCH", "false"
+        ).lower() == "true",
+        "critical": False,
+        "category": "security",
+        "description": "Queue authenticated registered synthesis tasks as isolated one-shot draft-only jobs",
+    },
     "crisp": {
         "enabled": os.getenv("KOKONUT_FEATURE_CRISP", "true").lower() == "true",
         "critical": False,

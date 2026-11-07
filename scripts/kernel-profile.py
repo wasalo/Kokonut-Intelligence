@@ -22,6 +22,11 @@ ARM64_HTTP_SENSORS = "docker-compose.kernel-arm64-http-sensors.yml"
 ARM64_DIRECTUS = "docker-compose.kernel-arm64-directus.yml"
 ARM64_ANALYTICS = "docker-compose.kernel-arm64-analytics.yml"
 ARM64_SENSOR_ANOMALY_ML = "docker-compose.kernel-arm64-sensor-anomaly-ml.yml"
+SCHEDULER_ROLE = "docker-compose.kernel-scheduler-role.yml"
+WORKER_RUNTIME_ROLE = "docker-compose.kernel-worker-runtime-role.yml"
+WORKER_RUNTIME_SUPERVISOR = "docker-compose.kernel-worker-runtime-supervisor.yml"
+COOLIFY = "docker-compose.kernel-coolify-network.yml"
+COOLIFY_ZITADEL = "docker-compose.kernel-coolify-zitadel.yml"
 PROFILES = {
     "minimal": [],
     "core": ["docker-compose.kernel-core.yml"],
@@ -76,6 +81,16 @@ def main() -> None:
         help="add Edge local-media and resource settings to the Standard profile",
     )
     parser.add_argument(
+        "--scheduler-role",
+        action="store_true",
+        help="select the opt-in restricted scheduler executor for Standard",
+    )
+    parser.add_argument(
+        "--separate-api-worker-logins",
+        action="store_true",
+        help="give Standard (or separate-worker analytics) distinct API and worker logins; composes with --scheduler-role",
+    )
+    parser.add_argument(
         "--project", help="Explicit Compose project name (for example, a unique disposable test project)"
     )
     for name in OPTIONAL:
@@ -84,6 +99,11 @@ def main() -> None:
         "--no-proxy",
         action="store_true",
         help="omit the Standard profile's default Caddy ingress when using another ingress",
+    )
+    parser.add_argument(
+        "--coolify",
+        action="store_true",
+        help="route the Standard profile through an existing Coolify Traefik without publishing host ports",
     )
     parser.add_argument(
         "--action",
@@ -97,11 +117,22 @@ def main() -> None:
     selected_optional = {name for name in OPTIONAL if getattr(args, name)}
     if args.no_proxy and args.profile != "standard":
         parser.error("--no-proxy applies only to standard; other profiles include ingress only when requested")
+    if args.coolify and args.profile != "standard":
+        parser.error("--coolify applies only to standard")
+    if args.coolify and args.no_proxy:
+        parser.error("--coolify already omits public Caddy ingress; do not combine it with --no-proxy")
+    if args.coolify and args.proxy:
+        parser.error("--coolify routes through Coolify Traefik; do not select the public Caddy proxy")
+    if args.coolify and selected_optional - {"oidc", "zitadel"}:
+        parser.error(
+            "--coolify currently supports only the standard app and OIDC/ZITADEL services; "
+            "other optional service overlays need their own reviewed Coolify port/network mapping"
+        )
     if args.no_proxy and args.proxy:
         parser.error("--proxy and --no-proxy cannot be selected together")
-    if args.no_proxy and args.zitadel:
+    if args.no_proxy and args.zitadel and not args.coolify:
         parser.error("--zitadel includes its Caddy routes and cannot be combined with --no-proxy")
-    if args.profile == "standard" and not args.no_proxy:
+    if args.profile == "standard" and not args.no_proxy and not args.coolify:
         selected_optional.add("proxy")
 
     if is_arm64 and args.profile not in {"minimal", "core", "edge", "standard", "analytics"}:
@@ -124,12 +155,35 @@ def main() -> None:
         )
     if args.profile == "scale":
         parser.error("Scale is not implemented: shared rate limits and replica recovery acceptance are pending")
-    if args.action in {"database-up", "migrate", "bootstrap-runtime-role"} and args.profile != "standard":
-        parser.error(f"--action {args.action} applies only to standard")
     if args.separate_workers and args.profile != "analytics":
         parser.error("--separate-workers applies only to analytics; standard already separates roles")
+    role_separated = args.profile == "standard" or args.separate_workers
+    if args.separate_api_worker_logins and not role_separated:
+        parser.error("--separate-api-worker-logins applies only to Standard or analytics with --separate-workers")
+    if args.separate_api_worker_logins and args.action not in {"database-up", "migrate"} and not os.environ.get(
+        "KOKONUT_WORKER_RUNTIME_PASSWORD"
+    ):
+        parser.error(
+            "--separate-api-worker-logins requires KOKONUT_WORKER_RUNTIME_PASSWORD loaded from encrypted secrets"
+        )
+    if args.action in {"database-up", "migrate", "bootstrap-runtime-role"} and not role_separated:
+        parser.error(f"--action {args.action} applies only to standard or analytics with --separate-workers")
     if args.edge and args.profile != "standard":
         parser.error("--edge applies only to standard; use the edge profile for a standalone Edge deployment")
+    if args.scheduler_role and args.profile != "standard":
+        parser.error("--scheduler-role applies only to standard")
+    if args.scheduler_role:
+        missing_scheduler_values = [
+            name for name in (
+                "KOKONUT_SCHEDULER_PASSWORD",
+                "KOKONUT_SCHEDULER_DATABASE_URL",
+            ) if not os.environ.get(name)
+        ]
+        if missing_scheduler_values:
+            parser.error(
+                "--scheduler-role requires these variables to be loaded from the encrypted environment: "
+                + ", ".join(missing_scheduler_values)
+            )
     if args.oidc and "proxy" not in selected_optional and not args.zitadel and args.profile != "standard":
         parser.error("--oidc requires --proxy so operator session cookies use the HTTPS origin")
 
@@ -137,10 +191,10 @@ def main() -> None:
     if args.separate_workers:
         files.append("docker-compose.kernel-standard.yml")
     files.extend(PROFILES[args.profile])
-    if args.profile == "standard":
-        # Standard has separate app/worker logins. The overlay requires their
-        # credentials and supplies a separate post-migration bootstrap action.
+    if role_separated:
         files.append("docker-compose.kernel-runtime-role.yml")
+    if args.separate_api_worker_logins and args.action not in {"database-up", "migrate"}:
+        files.append(WORKER_RUNTIME_ROLE)
     if args.edge:
         # Add the Edge limits and local-media provider to the API app after
         # Standard splits the app and worker. The worker has no local-media
@@ -150,8 +204,8 @@ def main() -> None:
         files.append("docker-compose.kernel-standard-analytics.yml")
     if args.zitadel:
         # The self-hosted provider needs the HTTPS ingress and the Gateway's
-        # OIDC client settings. One flag produces a complete, ordered stack;
-        # Standard already includes the shared proxy overlay by default.
+        # OIDC client settings. Standard includes Caddy by default; the
+        # Coolify variant keeps Caddy internal for ZITADEL path routing only.
         selected_optional.update({"proxy", "oidc"})
     if args.action == "release-up":
         if args.profile != "standard":
@@ -213,6 +267,27 @@ def main() -> None:
             files.append(ARM64_DIRECTUS)
         if "sensor_anomaly_ml" in selected_optional:
             files.append(ARM64_SENSOR_ANOMALY_ML)
+    if args.scheduler_role:
+        # This is a final opt-in worker identity override and must merge after
+        # Standard, runtime-role, and any selected architecture/service overlays.
+        files.append(SCHEDULER_ROLE)
+    if (
+        args.scheduler_role
+        and args.separate_api_worker_logins
+        and args.action not in {"database-up", "migrate"}
+    ):
+        # Keep the long-lived worker supervisor on its general worker login.
+        # The scheduler child selects its dedicated DSN and strips these PG_*
+        # values before it starts; this final overlay restores only the parent
+        # service identity after the scheduler profile has selected its role.
+        files.append(WORKER_RUNTIME_SUPERVISOR)
+    if args.coolify:
+        # Coolify Traefik routes directly to the Gateway service, so app and
+        # optional internal proxy must not publish host ports. When ZITADEL is
+        # selected, keep Caddy only as its internal path router behind Traefik.
+        files.append(COOLIFY)
+        if args.zitadel:
+            files.append(COOLIFY_ZITADEL)
     for filename in files:
         if not (ROOT / filename).is_file():
             parser.error(f"Required manifest is missing: {filename}")
@@ -227,7 +302,7 @@ def main() -> None:
     for filename in files:
         command.extend(["-f", str(ROOT / filename)])
     if args.action == "database-up":
-        command.extend(["up", "-d", "database"])
+        command.extend(["up", "-d", "--wait", "--wait-timeout", "300", "database"])
     elif args.action == "migrate":
         migration_command = [
             "python3", "-m", "services.migration", "migrate", "--schemas-only",

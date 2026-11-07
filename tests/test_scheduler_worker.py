@@ -33,14 +33,14 @@ class SchedulerWorkerRecoveryTests(TestCase):
         second_engine.tick.return_value = stats
 
         with (
-            patch("services.scheduler.worker.get_db", side_effect=[first_conn, second_conn]) as get_db,
+            patch("services.scheduler.worker.get_scheduler_connection", side_effect=[first_conn, second_conn]) as get_connection,
             patch("services.scheduler.worker.get_scheduler", side_effect=[first_engine, second_engine]) as get_scheduler,
             patch("services.scheduler.worker.logger.error") as log_error,
         ):
             self.assertIsNone(_run_tick("worker-stable"))
             self.assertEqual(_run_tick("worker-stable"), stats)
 
-        self.assertEqual(get_db.call_args_list, [call(connect_timeout=5), call(connect_timeout=5)])
+        self.assertEqual(get_connection.call_count, 2)
         self.assertEqual(
             get_scheduler.call_args_list,
             [call(first_conn, worker_id="worker-stable"), call(second_conn, worker_id="worker-stable")],
@@ -56,7 +56,7 @@ class SchedulerWorkerRecoveryTests(TestCase):
         engine.tick.return_value = {"launched": 0, "failed": 0, "skipped": 0, "no_resources": 0}
 
         with (
-            patch("services.scheduler.worker.get_db", side_effect=[OSError("database unavailable"), conn]),
+            patch("services.scheduler.worker.get_scheduler_connection", side_effect=[OSError("database unavailable"), conn]),
             patch("services.scheduler.worker.get_scheduler", return_value=engine),
             patch("services.scheduler.worker.logger.error"),
         ):
@@ -74,7 +74,7 @@ class SchedulerWorkerRecoveryTests(TestCase):
         engine.tick.return_value = stats
 
         with (
-            patch("services.scheduler.worker.get_db", return_value=conn),
+            patch("services.scheduler.worker.get_scheduler_connection", return_value=conn),
             patch("services.scheduler.worker.get_scheduler", return_value=engine),
             patch("services.scheduler.worker.logger.warning") as log_warning,
         ):

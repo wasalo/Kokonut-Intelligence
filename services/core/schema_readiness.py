@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import os
 import re
 from pathlib import Path
 
@@ -69,8 +70,8 @@ def required_extensions(directory: Path) -> frozenset[str]:
     return frozenset(match.group(1) or match.group(2).lower() for match in matches)
 
 
-def _require_non_admin_runtime_role(cursor) -> None:
-    """Fail closed unless this connection uses a dedicated unprivileged login."""
+def _require_non_admin_runtime_role(cursor, *, expected_parent_role: str | None = None) -> None:
+    """Fail closed unless this connection uses its configured unprivileged login."""
     cursor.execute(
         """SELECT current_user, session_user, runtime_role.rolcanlogin,
                   runtime_role.rolinherit, runtime_role.rolsuper, runtime_role.rolcreatedb,
@@ -78,12 +79,27 @@ def _require_non_admin_runtime_role(cursor) -> None:
                   runtime_role.rolbypassrls, database_row.datdba = runtime_role.oid,
                   (database_row.datdba <> runtime_role.oid AND
                    pg_catalog.pg_has_role(runtime_role.oid, database_row.datdba, 'MEMBER')),
-                  EXISTS (SELECT 1 FROM pg_catalog.pg_auth_members AS membership
-                          WHERE membership.member = runtime_role.oid)
+                  (SELECT count(*) FROM pg_catalog.pg_auth_members AS membership
+                    WHERE membership.member = runtime_role.oid),
+                  COALESCE((SELECT bool_and(
+                                      granted.rolname = %s
+                                      AND membership.inherit_option
+                                      AND NOT membership.set_option
+                                      AND NOT membership.admin_option)
+                              FROM pg_catalog.pg_auth_members AS membership
+                              JOIN pg_catalog.pg_roles AS granted ON granted.oid = membership.roleid
+                             WHERE membership.member = runtime_role.oid), false),
+                  EXISTS (SELECT 1
+                            FROM pg_catalog.pg_db_role_setting AS setting
+                           CROSS JOIN LATERAL unnest(setting.setconfig) AS config(value)
+                           WHERE setting.setrole = runtime_role.oid
+                             AND setting.setdatabase = 0
+                             AND config.value = 'kokonut.worker_runtime_identity=v1')
            FROM pg_catalog.pg_roles AS runtime_role
            JOIN pg_catalog.pg_database AS database_row
              ON database_row.datname = pg_catalog.current_database()
-           WHERE runtime_role.rolname = current_user"""
+           WHERE runtime_role.rolname = current_user""",
+        (expected_parent_role,),
     )
     row = cursor.fetchone()
     if row is None:
@@ -100,8 +116,18 @@ def _require_non_admin_runtime_role(cursor) -> None:
         bypasses_rls,
         owns_database,
         member_of_database_owner,
-        has_role_memberships,
+        role_membership_count,
+        has_expected_worker_membership,
+        has_worker_identity_marker,
     ) = row
+    if expected_parent_role is None:
+        membership_boundary_invalid = role_membership_count != 0 or has_worker_identity_marker
+    else:
+        membership_boundary_invalid = (
+            role_membership_count != 1
+            or not has_expected_worker_membership
+            or not has_worker_identity_marker
+        )
     if (
         current_user != session_user
         or not can_login
@@ -113,7 +139,7 @@ def _require_non_admin_runtime_role(cursor) -> None:
         or bypasses_rls
         or owns_database
         or member_of_database_owner
-        or has_role_memberships
+        or membership_boundary_invalid
     ):
         raise SchemaReadinessError("runtime_role_unsafe")
 
@@ -136,7 +162,10 @@ def require_schema_ready(*, require_runtime_role: bool = False) -> dict[str, int
             cursor.execute("SET LOCAL statement_timeout = '5s'")
             cursor.execute("SET LOCAL lock_timeout = '2s'")
             if require_runtime_role:
-                _require_non_admin_runtime_role(cursor)
+                _require_non_admin_runtime_role(
+                    cursor,
+                    expected_parent_role=(os.environ.get("KOKONUT_RUNTIME_PARENT_ROLE") or None),
+                )
             cursor.execute("SELECT to_regclass('public.schema_migration')")
             if cursor.fetchone()[0] is None:
                 raise SchemaReadinessError("tracking_unavailable", expected=len(expected),

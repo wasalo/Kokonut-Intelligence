@@ -3,18 +3,19 @@
 from __future__ import annotations
 
 import uuid
-from typing import Mapping, Optional, Sequence, Set, Tuple
+from typing import Mapping, Optional, Set
 
 from psycopg2.extras import RealDictCursor
 
-from services.common.logging import get_logger
 from services.common.database import get_db
+from services.common.logging import get_logger
 
 logger = get_logger("planning.model")
 
 PLAN_STATUSES = ("draft", "approved", "active", "closed", "cancelled")
 OBJECTIVE_REVIEW_STATUSES = ("on_track", "at_risk", "off_track", "closed")
 PROJECT_STATUSES = ("draft", "active", "on_hold", "done", "cancelled")
+_GOVERNED_TRANSITION_TABLES = frozenset({"financial_plan"})
 
 
 def _conn_or(conn):
@@ -48,30 +49,30 @@ def governed_transition(
     actor_id: Optional[str] = None,
     action: Optional[str] = None,
     note: Optional[str] = None,
-    status_col: str = "status",
-    id_col: str = "id",
 ) -> Mapping:
     """Validate and apply a lifecycle transition for a governed entity."""
+    if not isinstance(table, str) or table not in _GOVERNED_TRANSITION_TABLES:
+        raise ValueError(f"unsupported planning transition table: {table}")
     if to_status not in all_states(spec):
         raise ValueError(f"unknown status: {to_status}")
     conn2, own = _conn_or(conn)
     try:
         with conn2.cursor(cursor_factory=RealDictCursor) as cur:
             cur.execute(
-                f"SELECT * FROM {table} WHERE {id_col} = %s FOR UPDATE",
+                "SELECT * FROM financial_plan WHERE id = %s FOR UPDATE",
                 (uuid.UUID(str(row_id)),),
             )
             row = cur.fetchone()
             if not row:
                 raise ValueError(f"row not found in {table}: {row_id}")
-            current = row[status_col]
+            current = row["status"]
             if to_status == current:
                 raise ValueError(f"already in state {to_status}")
             if to_status not in allowed_transitions(spec, current):
                 raise ValueError(f"cannot transition from {current} to {to_status}")
             cur.execute(
-                f"UPDATE {table} SET {status_col} = %s, version = version + 1, updated_at = now() "
-                f"WHERE {id_col} = %s RETURNING *",
+                "UPDATE financial_plan SET status = %s, version = version + 1, updated_at = now() "
+                "WHERE id = %s RETURNING *",
                 (to_status, uuid.UUID(str(row_id))),
             )
             updated = cur.fetchone()

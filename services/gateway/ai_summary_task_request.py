@@ -6,23 +6,8 @@ from functools import partial
 from typing import Callable
 from uuid import UUID
 
+from services.agents.task_registry import TASK_SUMMARY_TYPES
 from services.common.tenant_context import set_operator_tenant_context
-
-TASK_SUMMARY_TYPES = {
-    "ai_summary_synthesis": frozenset({"operations", "financial", "environmental", "combined"}),
-    "organic_readiness_synthesis": frozenset({"organic_readiness"}),
-    "ecological_modeling_synthesis": frozenset({"ecological_modeling"}),
-    "holistic_wellbeing_synthesis": frozenset({"holistic_wellbeing"}),
-    "feedback_synthesis": frozenset({"stakeholder_feedback"}),
-    "commons_liberation_synthesis": frozenset({"commons_liberation"}),
-    "gnh_alignment_synthesis": frozenset({"gnh_alignment"}),
-    "regenerator_synthesis": frozenset({"regenerative_outcomes"}),
-    "capital_efficiency_synthesis": frozenset({"capital_efficiency"}),
-    "financial_resilience_synthesis": frozenset({"financial_resilience"}),
-    "bio_factory_synthesis": frozenset({"bio_factory"}),
-    "open_source_capitalist_synthesis": frozenset({"open_source_capitalist"}),
-    "kokonut_commons_synthesis": frozenset({"kokonut_commons"}),
-}
 
 
 class AiSummaryTaskRequestInvalid(ValueError):
@@ -74,7 +59,7 @@ def create_operator_ai_summary_task_request(
         )
         with connection.cursor() as cursor:
             cursor.execute(
-                """SELECT * FROM kokonut_security.create_location_ai_summary_operator_task_request(
+                """SELECT * FROM kokonut_security.enqueue_location_ai_summary_operator_task_request(
                            %s::uuid, %s::text, %s::text, %s::uuid
                        )""",
                 (location_id, task_key, summary_type, request_id),
@@ -91,6 +76,8 @@ def create_operator_ai_summary_task_request(
             "created_at": row[4],
             "replayed": bool(row[5]),
             "status": "authorized",
+            "scheduled_task_id": str(row[6]),
+            "dispatch_status": row[7],
         }
     except Exception:
         connection.rollback()

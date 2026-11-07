@@ -57,10 +57,10 @@ def cmd_status(args):
 
 
 def cmd_tick(args):
-    from services.common.database import get_db
     from services.scheduler.backend import get_scheduler
+    from services.scheduler.connections import get_scheduler_connection
 
-    conn = get_db()
+    conn = get_scheduler_connection()
     try:
         engine = get_scheduler(conn, worker_id=args.worker_id)
         stats = engine.tick()
@@ -73,7 +73,13 @@ def cmd_tick(args):
 def cmd_enable(args):
     from services.common.cli import get_connection
     from services.scheduler.activation import enable_schedule
+    from services.scheduler.connections import scheduler_database_is_selected
 
+    if scheduler_database_is_selected():
+        raise RuntimeError(
+            "schedule definition changes are unavailable to the isolated scheduler; "
+            "an authenticated, audited operator path is not configured"
+        )
     with get_connection() as conn:
         enabled = enable_schedule(conn, args.task_name, include_dependencies=bool(args.task_name_graph))
     print_json({"enabled": enabled, "already_enabled": not enabled})
@@ -82,7 +88,13 @@ def cmd_enable(args):
 
 def cmd_disable(args):
     from services.common.database import get_db
+    from services.scheduler.connections import scheduler_database_is_selected
 
+    if scheduler_database_is_selected():
+        raise RuntimeError(
+            "schedule definition changes are unavailable to the isolated scheduler; "
+            "an authenticated, audited operator path is not configured"
+        )
     conn = get_db()
     try:
         with conn.cursor() as cur:
@@ -112,7 +124,14 @@ def cmd_run_now(args):
     import sys as _sys
 
     from services.common.database import get_db
+    from services.scheduler.connections import scheduler_database_is_selected
     from services.security.scheduled_command_contracts import validate_scheduled_command
+
+    if scheduler_database_is_selected():
+        raise RuntimeError(
+            "--run-now bypasses durable scheduler claims and is disabled for the isolated scheduler; "
+            "use --tick or let the supervised scheduler claim the task"
+        )
 
     conn = get_db()
     try:

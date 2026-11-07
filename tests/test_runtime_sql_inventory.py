@@ -6,6 +6,7 @@ import pytest
 
 from scripts.runtime_sql_inventory import (
     _fingerprint_digest,
+    _review_candidates_from_inventory_source,
     _scan_source,
     _serialize,
     _stable_ast_dump,
@@ -412,6 +413,45 @@ def test_unresolved_write_ledger_requires_explicit_review_for_new_sites():
     assert _validate_write_review_ledger([*current, new_site], ledger) == []
 
 
+def test_unresolved_write_ledger_rejects_stale_legacy_site_metadata():
+    ledger = json.loads(
+        Path("docs/refactor/runtime-sql-unresolved-write-review.json").read_text()
+    )
+    current = _review_candidates_from_inventory_source()
+    assert _validate_write_review_ledger(current, ledger) == []
+
+    fingerprint = ledger["reviewed_sites"].pop(0)["fingerprint"]
+    site = next(item for item in current if item["fingerprint"] == fingerprint)
+    entry = {
+        "fingerprint": fingerprint,
+        "review_status": "preexisting_unreviewed",
+        "reason": "Synthetic stale metadata regression; this is not an ACL approval.",
+        **{
+            field: site[field]
+            for field in (
+                "source",
+                "line",
+                "scope",
+                "method",
+                "statement_kind",
+                "expression_kind",
+            )
+        },
+    }
+    ledger["legacy_unreviewed"].append(entry)
+    ledger["legacy_fingerprint_sha256"] = _fingerprint_digest(
+        [item["fingerprint"] for item in ledger["legacy_unreviewed"]]
+    )
+    entry["line"] += 1
+
+    errors = _validate_write_review_ledger(current, ledger)
+
+    assert any(
+        f"legacy unresolved-write metadata is stale for {fingerprint}" in error
+        for error in errors
+    )
+
+
 def test_unresolved_write_ledger_rejects_silent_legacy_baseline_growth():
     ledger_path = Path("docs/refactor/runtime-sql-unresolved-write-review.json")
     ledger = json.loads(ledger_path.read_text(encoding="utf-8"))
@@ -580,11 +620,20 @@ def clear(conn):
 
 
 def test_inventory_does_not_classify_real_insert_select_sources_as_write_targets():
-    sites = {
-        site["id"]: site for site in build_inventory()["execution_sites"]
-    }
-    advisory_insert = sites["services/analytics/advisor.py:371:4"]
-    farm_template_insert = sites["services/analytics/multi_farm.py:39:4"]
+    sites = build_inventory()["execution_sites"]
+    advisory_insert = next(
+        site for site in sites
+        if site["source"] == "services/analytics/advisor.py"
+        and site["scope"] == "generate_recommendation"
+        and site["statement_kind"] == "INSERT"
+        and "advisory_recommendation" in site["write_target_relations"]
+    )
+    farm_template_insert = next(
+        site for site in sites
+        if site["source"] == "services/analytics/multi_farm.py"
+        and site["statement_kind"] == "INSERT"
+        and "farm_template_instance" in site["write_target_relations"]
+    )
 
     assert "advisory_rule" in advisory_insert["candidate_relations"]
     assert advisory_insert["write_target_relations"] == [

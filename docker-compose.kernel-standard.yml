@@ -7,12 +7,22 @@ services:
       KOKONUT_RATE_LIMIT_PROVIDER: ${KOKONUT_RATE_LIMIT_PROVIDER:-postgres}
       KOKONUT_FEATURE_DIRECTUS: ${KOKONUT_FEATURE_DIRECTUS:-false}
       KOKONUT_FEATURE_LEGACY_DATASET_SQL: ${KOKONUT_FEATURE_LEGACY_DATASET_SQL:-false}
+      # Private field media belongs to the API process. The runtime supervisor
+      # strips these settings from scheduler/event/notification children.
+      MOBILE_MEDIA_PROVIDER: ${MOBILE_MEDIA_PROVIDER:-s3}
+      MOBILE_MEDIA_S3_ENDPOINT: ${MOBILE_MEDIA_S3_ENDPOINT:-}
+      MOBILE_MEDIA_S3_BUCKET: ${MOBILE_MEDIA_S3_BUCKET:-kokonut-kernel-media}
+      MOBILE_MEDIA_S3_ACCESS_KEY_ID: ${MOBILE_MEDIA_S3_ACCESS_KEY_ID:-}
+      MOBILE_MEDIA_S3_SECRET_ACCESS_KEY: ${MOBILE_MEDIA_S3_SECRET_ACCESS_KEY:-}
+      MOBILE_MEDIA_S3_REGION: ${MOBILE_MEDIA_S3_REGION:-auto}
       DIRECTUS_URL: ${DIRECTUS_URL:-http://directus:8055}
       DIRECTUS_ADMIN_TOKEN: ${DIRECTUS_ADMIN_TOKEN:-}
       # The API creates intents from a non-secret presence flag; only the
-      # delivery worker receives the endpoint itself.
+      # delivery worker receives the endpoint itself. Set the flag explicitly
+      # when ALERT_WEBHOOK_URL is configured; the simple default interpolation
+      # is compatible with Compose parsers that do not implement the `:+` form.
       ALERT_WEBHOOK_URL: ""
-      KOKONUT_NOTIFICATION_WEBHOOK_CONFIGURED: ${ALERT_WEBHOOK_URL:+true}
+      KOKONUT_NOTIFICATION_WEBHOOK_CONFIGURED: ${KOKONUT_NOTIFICATION_WEBHOOK_CONFIGURED:-false}
       ALERT_SMTP_HOST: ${ALERT_SMTP_HOST:-}
       ALERT_SMTP_PORT: ${ALERT_SMTP_PORT:-587}
       ALERT_SMTP_TLS_MODE: ${ALERT_SMTP_TLS_MODE:-starttls}
@@ -140,4 +150,7 @@ services:
       - kernel
     volumes:
       - kernel-gateway-audit-spool:/var/lib/kokonut/gateway-audit
-      - ${KOKONUT_SENSOR_CSV_HOST_DIR:-./data/sensor-inputs}:/var/lib/kokonut/sensor-inputs:ro
+      - type: bind
+        source: ${KOKONUT_SENSOR_CSV_HOST_DIR:-./data/sensor-inputs}
+        target: /var/lib/kokonut/sensor-inputs
+        read_only: true

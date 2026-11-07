@@ -7,9 +7,9 @@ acceptance evidence, and remaining refactor gates, start with
 [`docs/refactor/current-state-and-implementation.md`](docs/refactor/current-state-and-implementation.md).
 The [refactor documentation map](docs/refactor/README.md) routes readers to the
 supporting records. The current-state guide is the canonical status summary;
-`docs/refactor/progress.md` is the dated historical ledger, while the capability
-matrix, batch checklist, and C1 plan hold detailed classifications and
-acceptance. Do not treat an old evidence entry as current deployment state.
+`docs/refactor/progress.md` is the dated historical ledger; the capability
+matrix, batch records, and C1 detail are supporting references, not active queues.
+Update only the current-state guide for execution status and completion gates. Do not treat an old evidence entry as current deployment state.
 
 The repository still contains a legacy Compose stack as well as the isolated
 Kernel candidate. Current work targets the candidate's native Gateway and
@@ -171,12 +171,14 @@ Commands:
 - Check the migration-742 `readiness_dimension` catalog ACL in disposable PostgreSQL: `python3 scripts/check-readiness-dimension-runtime-boundary-disposable.py`
 - Check the migration-743 public EBF scorecard view ACL in disposable PostgreSQL: `python3 scripts/check-public-ebf-scorecard-runtime-boundary-disposable.py`
 - Check signed sensor baseline, event inventory, demo cleanup, and the `sensor_alert` runtime ACL in disposable PostgreSQL: `python3 scripts/check-sensor-anomaly-alert-write-disposable.py`
+- Check migration 431's signed sensor-worker scope, forced-RLS read/write boundary, atomic reading/outbox/event effects, duplicate handling, status audit, and denied direct access on synthetic PostgreSQL 16: `python3 scripts/check-sensor-ingestion-worker-disposable.py [EVIDENCE_JSON_PATH]`. It publishes only a random loopback port on Docker's default bridge (not an egress-isolated network); set `SENSOR_INGESTION_TEST_IMAGE` to a reviewed digest-pinned image when needed.
 - Check the migration-720 thesaurus function boundary in disposable PostgreSQL: `python3 scripts/check-thesaurus-runtime-boundary-disposable.py`
 - Check the migration-721 governance reference-catalog boundary in disposable PostgreSQL: `python3 scripts/check-governance-reference-catalog-runtime-boundary-disposable.py`
 - Check migration 723's isolated event/freshness/notification write boundary in disposable PostgreSQL: `python3 scripts/check-isolated-worker-runtime-write-boundary-disposable.py`
 - Check migration 725's framework reference-catalog read boundary, migration replay, runtime-provisioner behavior, and preserved owner/Directus rights in disposable PostgreSQL: `python3 scripts/check-framework-reference-catalog-runtime-boundary-disposable.py`
 - Check the migration-647 notification-delivery worker boundary in disposable PostgreSQL: `python3 scripts/check-notification-delivery-worker-disposable.py`
 - Check the complete Standard profile migration, health, outage/recovery, and cleanup path in a portless disposable deployment: `KOKONUT_STANDARD_RECOVERY_TIMEOUT=900 python3 scripts/check-kernel-standard-recovery-disposable.py`
+- Check migration 746's ClickHouse outbox operator capability, bounded actions, audit, and runtime enqueue-only boundary in network-disabled disposable PostgreSQL: `python3 scripts/check-clickhouse-outbox-operator-disposable.py`
 - Check worker source import closure: `python3 scripts/worker_source_closure.py --check docs/refactor/worker-source-closure.json`
 - Check worker direct function reachability: `python3 scripts/worker_function_reachability.py --check docs/refactor/worker-function-reachability.json`
 - Check worker SQL/function reachability: `python3 scripts/worker_sql_reachability.py --check docs/refactor/worker-sql-reachability.json`
@@ -765,8 +767,8 @@ Commands:
   - CLI: `python3 -m services.capital.cli capacity --location-id UUID` (output-capacity & under-mobilization per Form), `diversion --location-id UUID [--period-start DATE --period-end DATE]` (consumption-vs-reinvestment index), `capture --location-id UUID` (value-leakage / capture-risk signal), `credit propose --location-id UUID --source-type carbon_credit_surplus --amount N` (DRAFT only), `credit list --location-id UUID`, `credit capacity --location-id UUID` (network-underwritten deficit analog), `report --location-id UUID`.
   - Report type: `python3 -m services.export.report_generator --type capital_accounting --location-id UUID` (also surfaced inside `comprehensive_status` per location). Advisory-only; the `regenerative_credit_ledger` is a read-only view in the report. See boundary note under Persuasive technology above.
   - Single composite status report composing the canonical per-location sections (farm, crop NOI, environmental, climate impact, financial sustainability, capital efficiency, holistic + foundational wellbeing, community governance, GNH alignment, training impact, regenerative outcomes, stakeholder outcomes) into one document. `--all` / no location makes it network-wide: nests per-location bundles plus an ecosystem rollup (totals revenue/expenses/harvest). Each section is isolated; one failure is reported as an error, not breaking the composite.
-- Business Model Canvas 1-click: `python3 -m services.analytics.business_model_canvas create-from-data --location-id UUID [--canvas-name NAME] [--created-by UUID]`
-  - Derives all nine BMC blocks from existing Common-Data-Schema-derived tables (federation/cooperative/supplier, process_map, sensor/energy/cooperative assets, impact_claim, content_delivery channels, buyer_segment, revenue_event, expense_event, stakeholder_feedback) and persists a populated draft canvas in one call. Use `suggest --location-id UUID` for a read-only preview of the populated blocks and their data sources. Manual `create` (empty canvas) and `update-block` remain available.
+- Business Model Canvas 1-click draft: `POST /operator/api/business-planning/{location_id}/canvases/from-data`
+  - Creates a location-scoped draft through the authenticated Gateway and signed tenant context. The CLI persistence commands `create`, `create-from-data`, `update-block`, and `version` are retired. Use `suggest --location-id UUID` for a read-only preview; the Python write helpers and shared-runtime table privileges remain unchanged pending separate caller/ACL review.
 - Directus hook tests: `cd extensions/kokonut-hooks && npm test`
 - Directus hook build: `cd extensions/kokonut-hooks && npm run build`
 - Migration status: `python3 -m services.migration status`
@@ -1057,13 +1059,12 @@ Commands:
 - SWOT temporal list: `python3 -m services.analytics.swot temporal list --swot-id UUID`
 - SWOT action link: `python3 -m services.analytics.swot action link --swot-id UUID --description "Secure financing" [--factor-id UUID] [--strategy-id UUID]`
 - SWOT action list: `python3 -m services.analytics.swot action list --swot-id UUID`
-- BMC create: `python3 -m services.analytics.business_model_canvas create --location-id UUID [--canvas-name NAME] [--fiscal-year YEAR]`
+- BMC CLI persistence commands `create`, `create-from-data`, `update-block`, and `version` are retired; use authenticated location-scoped Gateway operations: `POST /operator/api/business-planning/{location_id}/canvases`, `POST /operator/api/business-planning/{location_id}/canvases/from-data`, `PATCH /operator/api/business-planning/{location_id}/canvases/{canvas_id}/blocks/{block_name}`, and `PATCH /operator/api/business-planning/{location_id}/canvases/{canvas_id}/metadata`.
 - BMC list: `python3 -m services.analytics.business_model_canvas list --location-id UUID`
 - BMC get: `python3 -m services.analytics.business_model_canvas get --canvas-id UUID`
-- BMC update-block: `python3 -m services.analytics.business_model_canvas update-block --canvas-id UUID --block key_partners --items '[{"name":"P1"}]'`
-- BMC version: `python3 -m services.analytics.business_model_canvas version --canvas-id UUID`
+- BMC version history: `python3 -m services.analytics.business_model_canvas list-versions --canvas-id UUID`
 - BMC suggest: `python3 -m services.analytics.business_model_canvas suggest --location-id UUID`
-- BMC health: `python3 -m services.analytics.business_model_canvas health --canvas-id UUID`
+- BMC health: `python3 -m services.analytics.business_model_canvas health --canvas-id UUID` (calculated on demand; no score is persisted)
 - Revenue stream create: `python3 -m services.analytics.revenue_model create-stream --location-id UUID --stream-name NAME --stream-type TYPE`
 - Revenue stream list: `python3 -m services.analytics.revenue_model list-streams --location-id UUID`
 - Pricing create: `python3 -m services.analytics.revenue_model create-pricing --location-id UUID --product-name NAME --pricing-type TYPE --base-price PRICE`

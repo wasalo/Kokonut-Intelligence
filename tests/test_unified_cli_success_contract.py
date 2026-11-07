@@ -1024,7 +1024,7 @@ def test_database_backed_crisp_weights_output_matches_with_stubbed_query(
 
     monkeypatch.setattr(crisp_cli, "get_db", make_connection)
     monkeypatch.setattr(scoring_engine, "_query_location_weights", fake_query_location_weights)
-    arguments = ["--weights", "--location-id", "synthetic-location"]
+    arguments = ["--weights", "--location-id", "11111111-1111-4111-8111-111111111111"]
     original_argv = list(sys.argv)
     try:
         sys.argv = ["services.crisp.cli", *arguments]
@@ -1036,11 +1036,11 @@ def test_database_backed_crisp_weights_output_matches_with_stubbed_query(
     unified = CliRunner().invoke(unified_cli.app, ["crisp", "--", *arguments])
 
     assert unified.exit_code == 0, unified.output
-    expected = {"location_id": "synthetic-location", "weights": weights}
+    expected = {"location_id": "11111111-1111-4111-8111-111111111111", "weights": weights}
     assert json.loads(unified.output) == json.loads(standalone_output) == expected
     assert query_calls == [
-        (connections[0], "synthetic-location"),
-        (connections[1], "synthetic-location"),
+        (connections[0], "11111111-1111-4111-8111-111111111111"),
+        (connections[1], "11111111-1111-4111-8111-111111111111"),
     ]
     assert all(connection.closed for connection in connections)
     assert unified.stderr == ""
@@ -1066,7 +1066,7 @@ def test_crisp_weights_closes_connection_when_query_fails(monkeypatch) -> None:
     monkeypatch.setattr(scoring_engine, "_query_location_weights", fail_query)
     original_argv = list(sys.argv)
     try:
-        sys.argv = ["services.crisp.cli", "--weights", "--location-id", "synthetic-location"]
+        sys.argv = ["services.crisp.cli", "--weights", "--location-id", "11111111-1111-4111-8111-111111111111"]
         with pytest.raises(RuntimeError, match="synthetic CRISP weight failure"):
             crisp_cli.main()
     finally:
@@ -1234,10 +1234,16 @@ def test_database_backed_read_cli_output_matches_with_stubbed_query(
         (
             "consent",
             "services.analytics.cli_consent",
-            ["list", "--party-id", "synthetic-party", "--status", "active"],
+            [
+                "list",
+                "--party-id",
+                "11111111-1111-4111-8111-111111111111",
+                "--status",
+                "active",
+            ],
             "list_effective_consent",
             "get_db",
-            ("<connection>", "synthetic-party"),
+            ("<connection>", "11111111-1111-4111-8111-111111111111"),
             {"effective_status": "active"},
         ),
         (
@@ -1754,7 +1760,7 @@ def test_export_auto_closes_connection_if_run_creation_fails(
     ("arguments", "failure_point"),
     [
         (["--list"], "list"),
-        (["--verify", "synthetic-hash"], "verify"),
+        (["--verify", "a" * 64], "verify"),
         (["--list"], "connect"),
     ],
 )
@@ -1845,7 +1851,7 @@ def test_export_snapshot_verify_matches_standalone_and_unified_cli(
 
     monkeypatch.setattr(report_generator, "get_pg", make_connection)
     monkeypatch.setattr(report_generator, "_verify_snapshot", fake_verify)
-    arguments = ["--verify", "synthetic-snapshot-hash"]
+    arguments = ["--verify", "a" * 64]
     original_argv = list(sys.argv)
     try:
         sys.argv = ["services.export.report_generator", *arguments]
@@ -1860,8 +1866,8 @@ def test_export_snapshot_verify_matches_standalone_and_unified_cli(
     assert unified.output == standalone_output
     assert unified.output.strip() == "Result: PASS -- hash matches, report is intact"
     assert calls == [
-        (connections[0], "synthetic-snapshot-hash"),
-        (connections[1], "synthetic-snapshot-hash"),
+        (connections[0], "a" * 64),
+        (connections[1], "a" * 64),
     ]
     assert len(connections) == 2
     assert all(connection.closed for connection in connections)
@@ -1967,7 +1973,7 @@ def test_export_report_generation_matches_standalone_and_unified_cli(
     ("arguments", "read_operation"),
     [
         (["--list"], "list"),
-        (["--verify", "synthetic-snapshot-hash"], "verify"),
+        (["--verify", "a" * 64], "verify"),
     ],
     ids=["snapshot-list", "snapshot-verify"],
 )

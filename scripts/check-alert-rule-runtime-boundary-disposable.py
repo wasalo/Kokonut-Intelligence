@@ -413,7 +413,7 @@ def main() -> int:
                 in (logs.stdout + logs.stderr)
             )
             ready = run(
-                [docker, "exec", container, "pg_isready", "-U", "postgres"],
+                [docker, "exec", container, "pg_isready", "-h", "127.0.0.1", "-U", "postgres"],
                 check=False,
             )
             if init_complete and ready.returncode == 0:

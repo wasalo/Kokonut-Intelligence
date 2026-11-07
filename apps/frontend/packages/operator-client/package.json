@@ -1,0 +1,23 @@
+{
+  "name": "@kokonut/operator-client",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    },
+    "./react": {
+      "types": "./src/react.ts",
+      "default": "./src/react.ts"
+    },
+    "./request": {
+      "types": "./src/request.ts",
+      "default": "./src/request.ts"
+    }
+  },
+  "peerDependencies": {
+    "react": ">=19.2.7"
+  }
+}

@@ -409,9 +409,17 @@ def test_replay_preserves_successful_handler_delivery_state():
     bus = EventBus(conn=conn)
 
     assert bus.replay_dead_letter("event", "operator") is True
-    sql = " ".join(call.args[0] for call in cursor.execute.call_args_list)
-    assert "DELETE FROM event_handler_delivery" not in sql
-    assert "status = 'pending'" in sql
+    sql, params = cursor.execute.call_args.args
+    normalized_sql = " ".join(sql.split())
+    assert "WITH replayable AS" in normalized_sql
+    assert "dead.disposition = 'pending'" in normalized_sql
+    assert "event.status = 'dead_letter'" in normalized_sql
+    assert "FOR UPDATE OF dead, event" in normalized_sql
+    assert "UPDATE platform_event event" in normalized_sql
+    assert "UPDATE event_dead_letter dead" in normalized_sql
+    assert "DELETE FROM event_handler_delivery" not in normalized_sql
+    assert params == ("event", "event", "operator")
+    conn.commit.assert_called_once_with()
 
 
 def test_injected_connection_is_never_closed(monkeypatch):
@@ -422,6 +430,16 @@ def test_injected_connection_is_never_closed(monkeypatch):
     bus.cleanup_old_events(actor="operator")
     bus.close()
     conn.close.assert_not_called()
+
+
+def test_cleanup_requires_explicit_actor_before_opening_cursor(monkeypatch):
+    monkeypatch.setenv("KOKONUT_FEATURE_EVENT_RETENTION_CLEANUP", "true")
+    conn, _ = _connection()
+
+    with pytest.raises(ValueError, match="actor is required for retention audit"):
+        EventBus(conn=conn).cleanup_old_events()
+
+    conn.cursor.assert_not_called()
 
 
 def test_cleanup_preserves_events_with_pending_disposition_or_failed_delivery(monkeypatch):

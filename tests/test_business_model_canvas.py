@@ -1,12 +1,14 @@
 """Tests for the Business Model Canvas service."""
 
-import json
+import sys
+from types import SimpleNamespace
+from unittest.mock import MagicMock
 
-import pytest
 import psycopg2
+import pytest
 
-from services.ingestion.base import get_db
 from services.analytics import business_model_canvas as bmc
+from services.ingestion.base import get_db
 
 
 def _db():
@@ -32,6 +34,144 @@ def test_module_shape():
     assert hasattr(bmc, "list_versions")
     assert hasattr(bmc, "suggest")
     assert hasattr(bmc, "compute_health")
+
+
+def test_location_scoped_get_does_not_read_children_for_mismatched_canvas():
+    canvas_id = "22222222-2222-4222-8222-222222222222"
+    location_id = "11111111-1111-4111-8111-111111111111"
+
+    class Cursor:
+        def __init__(self):
+            self.calls = []
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_args):
+            return False
+
+        def execute(self, sql, params):
+            self.calls.append((sql, params))
+
+        def fetchone(self):
+            return None
+
+    cursor = Cursor()
+
+    class Connection:
+        def cursor(self, **_kwargs):
+            return cursor
+
+    result = bmc.get(Connection(), canvas_id, location_id=location_id)
+
+    assert result is None
+    assert len(cursor.calls) == 1
+    assert "id = %s AND location_id = %s" in cursor.calls[0][0]
+    assert cursor.calls[0][1] == (canvas_id, location_id)
+
+
+@pytest.mark.parametrize(
+    ("command", "command_args"),
+    [
+        ("create", []),
+        ("create-from-data", []),
+        ("update-block", ["--canvas-id", "canvas-id", "--block", "key_partners"]),
+        ("version", ["--canvas-id", "canvas-id"]),
+    ],
+)
+def test_retired_cli_persistence_commands_fail_before_database_access(
+    monkeypatch, capsys, command, command_args
+):
+    get_db_mock = MagicMock()
+    monkeypatch.setattr(bmc, "get_db", get_db_mock)
+    monkeypatch.setattr(sys, "argv", ["business_model_canvas", command, *command_args])
+
+    with pytest.raises(SystemExit) as exc_info:
+        bmc.main()
+
+    assert exc_info.value.code == 2
+    get_db_mock.assert_not_called()
+    assert bmc._BMC_CLI_RETIREMENT_MESSAGE in capsys.readouterr().err
+
+
+@pytest.mark.parametrize(
+    "command", ["create", "create-from-data", "update-block", "version"]
+)
+def test_cmd_rejects_retired_commands_before_database_access(monkeypatch, command):
+    get_db_mock = MagicMock()
+    monkeypatch.setattr(bmc, "get_db", get_db_mock)
+
+    with pytest.raises(ValueError, match="BMC CLI persistence is retired"):
+        bmc._cmd(SimpleNamespace(command=command))
+
+    get_db_mock.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    ("command", "handler_name", "command_args"),
+    [
+        ("list", "list_canvas", {"location_id": "location-1", "org_id": None}),
+        (
+            "get",
+            "get",
+            {
+                "canvas_id": "canvas-1",
+                "location_id": "location-1",
+                "org_id": None,
+            },
+        ),
+        ("list-versions", "list_versions", {"canvas_id": "canvas-1"}),
+        ("suggest", "suggest", {"location_id": "location-1"}),
+        (
+            "health",
+            "compute_health",
+            {
+                "canvas_id": "canvas-1",
+                "location_id": "location-1",
+                "org_id": None,
+            },
+        ),
+    ],
+)
+def test_supported_cli_reads_start_readonly_bounded_transaction(
+    monkeypatch, command, handler_name, command_args
+):
+    events = []
+    connection = MagicMock()
+    cursor = connection.cursor.return_value.__enter__.return_value
+    cursor.execute.side_effect = lambda sql: events.append(("sql", sql))
+    connection.set_session.side_effect = lambda **kwargs: events.append(("session", kwargs))
+    result = {"command": command}
+    handler = MagicMock(side_effect=lambda *args, **kwargs: events.append(("query", command)) or result)
+    monkeypatch.setattr(bmc, "get_db", MagicMock(return_value=connection))
+    monkeypatch.setattr(bmc, handler_name, handler)
+    print_json = MagicMock()
+    monkeypatch.setattr(bmc, "print_json", print_json)
+
+    bmc._cmd(SimpleNamespace(command=command, **command_args))
+
+    assert events == [
+        ("session", {"readonly": True, "autocommit": False}),
+        ("sql", "SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY"),
+        ("sql", "SET LOCAL statement_timeout = '8s'"),
+        ("sql", "SET LOCAL lock_timeout = '2s'"),
+        ("query", command),
+    ]
+    print_json.assert_called_once_with(result)
+    connection.close.assert_called_once_with()
+
+
+def test_cli_help_keeps_retired_commands_visible(monkeypatch, capsys):
+    monkeypatch.setattr(sys, "argv", ["business_model_canvas", "--help"])
+
+    with pytest.raises(SystemExit) as exc_info:
+        bmc.main()
+
+    assert exc_info.value.code == 0
+    help_text = capsys.readouterr().out
+    for command in bmc._BMC_RETIRED_CLI_COMMANDS:
+        assert command in help_text
+    assert bmc._BMC_CLI_RETIREMENT_MESSAGE in " ".join(help_text.split())
 
 
 def test_create_and_list():
@@ -68,7 +208,7 @@ def test_get_with_children():
     try:
         created = bmc.create(conn, location_id=loc, canvas_name="Child Test")
         canvas_id = str(created["id"])
-        result = bmc.get(conn, canvas_id)
+        result = bmc.get(conn, canvas_id, location_id=loc)
         assert result is not None
         assert result["canvas_name"] == "Child Test"
         assert "jobs" in result
@@ -91,7 +231,7 @@ def test_update_block():
         items = [{"name": "Partner A", "type": "supplier"}]
         result = bmc.update_block(conn, canvas_id, "key_partners", items)
         assert result["id"]
-        canvas = bmc.get(conn, canvas_id)
+        canvas = bmc.get(conn, canvas_id, location_id=loc)
         assert canvas["key_partners"] == items
     except psycopg2.ProgrammingError:
         pytest.skip("business_model_canvas table not present (migration not applied)")
@@ -153,6 +293,35 @@ def test_suggest():
         conn.close()
 
 
+def test_calculate_health_scores_blocks_and_bonuses_without_database_access():
+    canvas = {block: [] for block in bmc.BMC_BLOCKS}
+    canvas["key_partners"] = [{"name": "Partner A"}, {"name": "Partner B"}]
+    canvas["value_propositions"] = [{"name": "Value"}]
+    canvas["cost_structure"] = {"USD": 100.0}
+    canvas["jobs"] = [{"name": "Customer job"}]
+
+    health = bmc._calculate_health(canvas)
+
+    assert health["health_score"] == 43.3
+    assert health["breakdown"]["key_partners"] == 13.1
+    assert health["breakdown"]["value_propositions"] == 11.1
+    assert health["breakdown"]["cost_structure"] == 11.1
+    assert health["breakdown"]["vpc_link_bonus"] == 5
+    assert health["breakdown"]["cost_data_bonus"] == 3
+
+
+def test_compute_health_reads_canvas_without_writing(monkeypatch):
+    conn = MagicMock()
+    canvas = {block: [] for block in bmc.BMC_BLOCKS}
+    monkeypatch.setattr(bmc, "get", lambda _conn, _canvas_id, **_scope: canvas)
+
+    health = bmc.compute_health(conn, "canvas-id", location_id="location-1")
+
+    assert health["health_score"] == 0.0
+    conn.cursor.assert_not_called()
+    conn.commit.assert_not_called()
+
+
 def test_compute_health():
     conn = _db()
     loc = _location(conn)
@@ -163,7 +332,7 @@ def test_compute_health():
         canvas_id = str(created["id"])
         bmc.update_block(conn, canvas_id, "key_partners", [{"name": "P1"}, {"name": "P2"}])
         bmc.update_block(conn, canvas_id, "value_propositions", [{"desc": "V1"}])
-        health = bmc.compute_health(conn, canvas_id)
+        health = bmc.compute_health(conn, canvas_id, location_id=loc)
         assert 0 <= health["health_score"] <= 100
         assert "breakdown" in health
     except psycopg2.ProgrammingError:
@@ -175,7 +344,11 @@ def test_compute_health():
 def test_get_nonexistent():
     conn = _db()
     try:
-        result = bmc.get(conn, "00000000-0000-0000-0000-000000000000")
+        result = bmc.get(
+            conn,
+            "00000000-0000-0000-0000-000000000000",
+            location_id="11111111-1111-4111-8111-111111111111",
+        )
         assert result is None
     except psycopg2.ProgrammingError:
         pytest.skip("business_model_canvas table not present (migration not applied)")

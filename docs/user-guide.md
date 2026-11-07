@@ -1064,8 +1064,8 @@ python3 -m services.analytics.swot suggest --location-id <location-id>
 python3 -m services.analytics.swot tows generate --swot-id <swot-id>
 
 # Business Model Canvas
-python3 -m services.analytics.business_model_canvas create-from-data \
-  --location-id <location-id>
+# CLI persistence is retired. Use the authenticated Gateway operation:
+# POST /operator/api/business-planning/{location_id}/canvases/from-data
 
 # Pitch deck
 python3 -m services.analytics.pitch generate --location-id <location-id> \

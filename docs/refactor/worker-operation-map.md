@@ -1,6 +1,6 @@
 # Kernel worker operation map
 
-**Reviewed:** 1 November 2026 (isolated event/freshness/outbox source paths)
+**Reviewed:** 2 November 2026 (worker inventory reconciliation)
 
 **Status:** entrypoint inventory, scheduler argument contracts, static
 local-import closure, signed worker identity primitive, and transaction-bound
@@ -35,10 +35,11 @@ the exact 32 modules in `ALLOWED_SCHEDULED_MODULES`, four isolated worker
 entrypoints, seven in-process signed source-reader functions, and all seven
 pairs in `ALLOWED_EVENT_HANDLERS`. The signed source-reader functions are
 function-level roots, not new OS processes or scheduler entries. Notification
-delivery and the agent worker CLI remain outside the scheduler allowlist. The
-agent worker lists its 12 synthesis-task identities plus the deterministic
-summary identity separately; it does not collapse those credentials into a
-shared key. Regression tests compare each category with its source registry
+delivery remains outside the scheduler allowlist. The agent worker CLI is
+allowlisted only for its validated one-shot draft request contract. It lists
+its 12 synthesis-task identities plus the deterministic summary identity
+separately; it does not collapse those credentials into a shared key.
+Regression tests compare each category with its source registry
 and require source evidence, scope, data effects, and idempotency/retry notes.
 
 The sensor anomaly handler's reads, writes, row scope, and required
@@ -56,9 +57,18 @@ application-wide RLS or proof for other workers.
   claims/receipts; migration 647 bounds notification delivery; migration 723
   removes direct runtime DML from their reviewed receipt/state tables. Handler
   logs stay on stderr while JSON remains on stdout.
-- The scheduler control plane still uses the shared runtime PostgreSQL identity.
-  Scheduled child environments receive only source-allowlisted worker
-  credentials. Event dispatch and notification delivery pause without their
+- The scheduler control plane uses `kokonut_runtime` by default. The opt-in
+  `--separate-api-worker-logins` profile keeps the API on `kokonut_runtime` and
+  moves the general worker supervisor to `kokonut_worker_runtime`; adding
+  `--scheduler-role` gives the scheduler child `kokonut_scheduler_login`.
+  These are identity boundaries, not narrowed grants: the worker login inherits
+  the current runtime ACL with `SET ROLE` disabled. In isolated scheduler mode,
+  enabled commands are checked against their argument contract and exact
+  worker identity before claim; invalid or unmapped jobs remain unclaimed while
+  normal expired-lease recovery continues. Metrics and dataset refresh have no
+  isolated scheduler identity and remain unavailable there. Scheduled child
+  environments receive only source-allowlisted worker credentials. Event
+  dispatch and notification delivery pause without their
   dedicated identity and never fall back to shared DML. The anomaly handler and all four registered
   cache invalidators have exact source-controlled worker credential routing
   and dedicated connection paths; the cache path remains disabled by default.
@@ -84,12 +94,12 @@ application-wide RLS or proof for other workers.
   concurrency and replay evidence are documented in
   [event-handler-concurrency.md](event-handler-concurrency.md).
 - A generated [static source closure](worker-source-closure.json) records the
-  local `services.*` import edges and source files reachable from the 32
+  local `services.*` import edges and source files reachable from the 31
   scheduled modules, the event-dispatch, notification-delivery, and agent
   worker entrypoints, seven signed source-reader function roots, and seven
-  allowlisted handler pairs. It covers 136 distinct local source files across
-  49 operation roots, with no unresolved
-  local modules and 4 recorded dynamic-import sites. The agent worker's twelve
+  allowlisted handler pairs. It covers 146 distinct local source files across
+  49 operation roots, with no unresolved local modules and 4 recorded
+  dynamic-import sites. The agent worker's twelve
   synthesis modules are resolved through its literal immutable task registry.
   Other dynamic sites include the
   EventBus handler runner, the general driver registry, and the code-allowlisted
@@ -141,37 +151,37 @@ application-wide RLS or proof for other workers.
   `CALCULATORS` registry as an explicit registry-dispatch edge. The scheduled
   sensor worker follows `SCHEDULED_SENSOR_DRIVER_TARGETS` to its literal CSV
   driver class, inherited constructor, and `discover`, `fetch_scheduled`, and
-  `transform` methods. The agent worker follows its literal task registry to
+  `transform` methods. A storage-free regression now runs `_prepare_records`
+  through the real registry and CSV driver under a temporary input root; this
+  verifies the parser path, not schedule activation or database effects. The
+  agent worker follows its literal task registry to
   the `synthesize` and `collect_source_references` methods for each of twelve
-  registered agents. The graph
-  resolves callbacks passed to the shared `services.common.cli.run(main)`
-  wrapper. EventBus subprocess dispatch is described separately by the worker
-  effect inventory, since the handler runner is selected by its process
-  command/request protocol rather than a local function call. Across 49
-  operation roots and 138 source files, entry functions reach 1,172 function
-  memberships through 1,658 direct-call, two exact callback, and 56
-  dynamic-dispatch edges, with no unresolved operation roots. The callback
-  model includes both the CLI wrapper and the compatibility outbox's bounded
-  completion callback. This remains a conservative source map: callbacks and
+  registered agents. EventBus subprocess dispatch is described separately by
+  the worker effect inventory, since the handler runner is selected by its
+  process command/request protocol rather than a local function call. Across
+  49 operation roots and 148 source files, entry functions reach 1,152 function
+  memberships through 1,654 direct-call, one callback, and 56 dynamic-dispatch
+  edges, with no unresolved operation roots. The current graph records the
+  ClickHouse outbox CLI callback; it does not establish every callback or
+  completion path. This remains a conservative source map: callbacks and
   dynamic dispatch outside the pinned registry, unresolved instance types,
   extension code, and database/provider behavior may be absent. Use
   `python3 scripts/worker_function_reachability.py --check docs/refactor/worker-function-reachability.json`
   to check it. The graph is a review aid, not an authorization boundary.
-- The direct [SQL execution inventory](worker-sql-inventory.json) finds 471
-  Python `.execute` sites in 136 statically imported files. It fingerprints
-  384 literal statements and flags 87 composed/variable statements. Candidate
+- The direct [SQL execution inventory](worker-sql-inventory.json) finds 439
+  Python `.execute` sites in 146 statically imported files. It fingerprints
+  350 literal statements and flags 89 composed/variable statements. Candidate
   relation tokens are extracted for review, but the scanner is regex-based and
   records no query text or values. Use
   `python3 scripts/worker_sql_inventory.py --check docs/refactor/worker-sql-inventory.json`
   to check it. These counts identify review targets and do not establish a
   complete read/write set or a least-privilege grant list.
 - A generated [SQL-to-function reachability report](worker-sql-reachability.json)
-  joins those 471 sites to the operation graph without including SQL text or
-  values. It links 404 unique sites across 585 operation/site memberships;
-  67 sites have no current static function match, and each belongs to a
-  function absent from all current worker-root graphs. That status does not
-  prove the code is dead: external or unmodeled dynamic callers may still
-  invoke it. Generic database adapters and other effects remain in review. Use
+  joins those 439 sites to the operation graph without including SQL text or
+  values. It links 331 unique sites across 497 operation/site memberships;
+  108 sites have no current static function match. That status does not prove
+  the code is dead: external or unmodeled dynamic callers may still invoke it.
+  Generic database adapters and other effects remain in review. Use
   `python3 scripts/worker_sql_reachability.py --check docs/refactor/worker-sql-reachability.json`
   to check the report.
 - A static-only [worker boundary preflight](worker-boundary-preflight.json)
@@ -191,24 +201,27 @@ application-wide RLS or proof for other workers.
 - A generated [worker effect inventory](worker-effect-inventory.json) scans
   functions in the current reachability graph for high-confidence direct
   process, filesystem, HTTP, email, and EVM call patterns. The current pass
-  finds 70 unique candidate sites across 98 operation/site memberships: HTTP
-  (12 unique / 24 memberships), email delivery (3 / 9), process (1), EVM RPC
-  (9 / 13), EVM client setup (6 / 10), filesystem (37 / 38), and dynamic import
-  (2 / 3), across 49 operation roots. Filesystem matching includes path
-  resolution/directory checks, descriptor opens, metadata checks, and cleanup;
-  the scheduled CSV driver's constrained openat walk is visible in the
-  sensor-worker trace. These are review candidates,
-  not confirmed runtime effects. Other worker roots may still conservatively
-  include mutually exclusive CLI branches. The credit-adjustment schedule now
-  uses a dedicated read-only entrypoint; the interactive issuance/retirement
-  CLI is no longer scheduler-allowlisted. Absence from the inventory
-  is not proof that an operation has no external effect. Its callback section
-  traces the EventBus `subprocess.Popen` child through
-  `services.events.handler_runner`, the exact worker-secret environment filter,
-  resolver, allowlist validation, dynamic import, and all seven allowlisted
-  handler pairs. The trace does not verify persisted handler configuration or
-  runtime dispatch. The reachable actuation helper only records
-  a human-approval command; no MQTT publisher is called by the worker paths.
+  finds 51 unique candidate sites across 81 operation/site memberships:
+  dynamic import (2 / 3), email delivery (3 / 6), EVM client setup (6 / 10),
+  EVM RPC (9 / 13), filesystem (18 / 24), HTTP (11 / 23), and process (2 / 2),
+  across 49 operation roots. Five filesystem candidates now appear on the event
+  dispatch path through `WorkerProgressHeartbeat.pulse`; they correspond to
+  the heartbeat's temporary-file creation, permission setting, atomic replacement,
+  and cleanup operations. They are source-pattern candidates, not unexpected
+  provider effects. Filesystem matching also includes path resolution/directory
+  checks, descriptor opens, and metadata checks; the scheduled CSV driver's
+  constrained openat walk is visible in the sensor-worker trace. Other worker
+  roots may still conservatively include mutually exclusive CLI branches. The
+  credit-adjustment schedule uses a dedicated read-only entrypoint; the
+  interactive issuance/retirement CLI is no longer scheduler-allowlisted.
+  Absence from the inventory is not proof that an operation has no external
+  effect. Its callback section traces the EventBus `subprocess.Popen` child
+  through `services.events.handler_runner`, the exact worker-secret environment
+  filter, resolver, allowlist validation, dynamic import, and all seven
+  allowlisted handler pairs. The trace does not verify persisted handler
+  configuration or runtime dispatch. The reachable actuation helper only
+  records a human-approval command; no MQTT publisher is called by the worker
+  paths.
   Rebuild or check it
   with `python3 scripts/worker_effect_inventory.py --output
   docs/refactor/worker-effect-inventory.json` or
@@ -229,7 +242,7 @@ continues to use only `SCHEDULED_SENSOR_DRIVER_TARGETS`.
 - The earlier source-pattern review covered 48 composed/variable statements
   and the isolated dispatcher's parameterized call to seven fixed,
   source-owned migration functions. With the agent task modules included, the
-  generated SQL inventory now reports 87 composed/variable sites across 49
+  generated SQL inventory now reports 89 composed/variable sites across 49
   operation roots. The 36 new non-literal sites exposed by the added worker
   closure (34 in agent modules and two imported modules) have a source-pattern
   review in [worker-sql-source-pattern-review.json](worker-sql-source-pattern-review.json).
@@ -319,12 +332,14 @@ continues to use only `SCHEDULED_SENSOR_DRIVER_TARGETS`.
   JobSpecs have source/input contracts; existing persisted rows still require
   owner-reviewed reconciliation before activation.
 - The generated [JobSpec/contract inventory](worker-job-contract-inventory.json)
-  compares all 23 shared job templates with the 32-module Kernel allowlist and
-  command validation. Nine no-input defaults pass and fourteen jobs require
+  compares all 21 shared job templates with the 31-module Kernel allowlist and
+  command validation. Eight no-input defaults pass and thirteen jobs require
   validated runtime inputs; EAS and RPC each require one supported chain. The
-  nine allowlisted modules without a shared JobSpec remain covered by the
-  operation map and their module-specific command
-  schemas; this catalog inventory does not inspect persisted task values.
+  ten allowlisted modules without a shared JobSpec remain covered by the
+  operation map and their module-specific command schemas; this catalog
+  inventory does not inspect persisted task values. The `anomaly_legacy` and
+  `freshness_legacy` templates are absent from the current catalog, but persisted
+  task rows and external schedules still require owner review.
   Scheduled sensor ingestion requires one
   `--location-id` and one `--driver-instance-id`; the registry accepts only an
   enabled sensor instance assigned to that exact location, and the loaded
@@ -390,13 +405,14 @@ continues to use only `SCHEDULED_SENSOR_DRIVER_TARGETS`.
 
 This map, import closure, SQL inventories, effect candidates, job-template
 comparison, and argument schemas are not an ACL, tenant policy, or complete
-dynamic call graph. The prior source-pattern review covered 48 of the earlier
-composed/variable SQL sites. The current inventory reports 87 across 42
-operation roots. The 36 new non-literal sites exposed by the registered agent
-worker closure are source-pattern reviewed in
-[worker-sql-source-pattern-review.json](worker-sql-source-pattern-review.json);
-they remain excluded from ACL approval pending live role and view-grant
-verification. The prior review covered the
+dynamic call graph. At the 2 November checkpoint, the inventory reported 87
+composed/variable SQL sites across 42 operation roots; the prior source-pattern
+review covered 48 of that snapshot's sites. The 36 then-new non-literal sites
+exposed by the registered agent worker closure are source-pattern reviewed in
+[worker-sql-source-pattern-review.json](worker-sql-source-pattern-review.json).
+The current inventory now reports 89 composed/variable sites across 49 roots;
+these source reviews remain excluded from ACL approval pending live role and
+view-grant verification. The prior review covered the
 remote-sensing update builder, signed
 context cleanup, the anomaly worker's query helpers, shared database helper
 calls, the NOI reconciliation's fixed location-filter fragment with a bound
@@ -441,7 +457,7 @@ match. The unused private `_query_latest_ingestion` and `_query_active_jobs`
 helpers have since been removed after repository-wide caller searches;
 freshness continues through `_query_latest_data_at`, and remote-sensing
 execution uses the location-scoped lease claim. The refreshed inventory has
-67 unmatched sites.
+108 unmatched sites.
 It does not account for all callback/provider dispatch,
 database functions/views, extension behavior, or external effects. The map
 also does not prove that external Prefect/host schedules are inactive or that
@@ -478,12 +494,11 @@ call-graph regression is `tests/test_worker_function_reachability.py`, and
 generic-wrapper caller contract plus bounded worker-adapter variants; the
 operation-contract tests are in
 `tests/test_worker_operation_map.py`.
-The focused source, scheduler and event checks pass 37 tests; the retained
-[check record](builds/2026-10-14-recovery/worker-operation-map-check.json)
-contains that inventory test evidence. The separate
-[scheduler argument contract check](builds/2026-10-14-recovery/scheduled-command-contract-check.json)
-passes 77 focused tests across command validation, worker dispatch, and the
-curated job runner.
+The retained [14 October check record](builds/2026-10-14-recovery/worker-operation-map-check.json)
+reports 37 passing focused source, scheduler, and event tests. The separate
+[14 October scheduler argument contract check](builds/2026-10-14-recovery/scheduled-command-contract-check.json)
+records 77 passing tests across command validation, worker dispatch, and the
+curated job runner; neither count describes the current checkout's test run.
 
 
 ## Isolated notification delivery worker (25 October 2026)

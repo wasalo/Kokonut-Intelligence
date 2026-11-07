@@ -238,6 +238,7 @@ integrations must be selected and configured explicitly.
 | **External** | gRPC API | Optional type-safe transport with Protobuf schemas and API-key policy; it is not required by the native Kernel profile |
 | | Business Model Canvas | 1-click BMC derivation from canonical tables; 14-section comprehensive status with an exact-location Gateway read and network-wide CLI rollup |
 | | State of Kokonut | Ecosystem report across locations with ecosystem-actor funding view; Mermaid + JSON visual timelines (ecosystem tree, Ikigai, farm phases, crop timelines) |
+| | Kokonut Protocol execution bridge | Prepared approval-bound, location-linked intent and reconciliation records with a transport-injected connector; execution remains disabled, with no built-in signing or broadcast |
 
 > [!NOTE]
 > Agents can draft and submit governed records but **cannot** verify, publish, attest, or score. Contract identity, payments, escrow, and marketplace logic remain external to this repository.
@@ -557,7 +558,7 @@ Documentation lives under `docs/`. Key entry points:
 | [User Guide](docs/user-guide.md) | Role workflows, data entry, lifecycle, dashboards, analytics, export |
 | [Architecture](docs/architecture.md) | System overview, data flow, security model |
 | [Platform Integrity](docs/platform-integrity.md) | Cross-cutting integrity boundaries and operational guarantees |
-| [Current refactor status](docs/refactor/current-state-and-implementation.md) | Consolidated architecture, implementation progress, and open gates |
+| [Current refactor status](docs/refactor/current-state-and-implementation.md) | Sole completion register, candidate acceptance gates, and execution plan |
 | [Refactor documentation map](docs/refactor/README.md) | Where to find current status, phase alignment, acceptance records, and historical evidence |
 | [Standard profile](docs/refactor/standard-profile.md) | Separate API/worker deployment, digest-pinned release flow, and recovery limits |
 | [Migrations](docs/migrations.md) | Ordered migration execution, checksums, drift detection, and recovery |

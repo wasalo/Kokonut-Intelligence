@@ -18,8 +18,8 @@ Usage:
 
 from __future__ import annotations
 
-import json
 import os
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -27,22 +27,55 @@ from pathlib import Path
 # Pilot location UUID
 ADELPHI = "a0000000-0000-0000-0000-000000000001"
 GENESIS = "a0000000-0000-0000-0000-000000000002"
+_POSTGRES_IDENTIFIER = r'(?:"(?:""|[^"])*"|[A-Za-z_][A-Za-z0-9_$]*)'
+_POSTGRES_RELATION = rf"{_POSTGRES_IDENTIFIER}(?:[ \t]*\.[ \t]*{_POSTGRES_IDENTIFIER})?"
 
 
-def _run_sql(sql: str) -> str:
+def _declared_postgres_relations(schema_dir: Path, declaration: str) -> set[str]:
+    """Return statically declared PostgreSQL relations with schema and case."""
+    patterns = {
+        "table": re.compile(
+            rf"^[ \t]*CREATE\s+TABLE\s+IF\s+NOT\s+EXISTS\s+({_POSTGRES_RELATION})(?=[\s(;])",
+            re.IGNORECASE | re.MULTILINE,
+        ),
+        "view": re.compile(
+            rf"^[ \t]*CREATE\s+(?:OR\s+REPLACE\s+)?(?:MATERIALIZED\s+)?VIEW\s+"
+            rf"(?:IF\s+NOT\s+EXISTS\s+)?({_POSTGRES_RELATION})(?=[\s(;])",
+            re.IGNORECASE | re.MULTILINE,
+        ),
+    }
+    pattern = patterns[declaration]
+    relations = set()
+    for sql_file in schema_dir.glob("*.sql"):
+        content = sql_file.read_text()
+        for match in pattern.finditer(content):
+            identifiers = re.findall(
+                r'"((?:""|[^"])*)"|([A-Za-z_][A-Za-z0-9_$]*)',
+                match.group(1),
+            )
+            parts = [quoted.replace('""', '"') if quoted else bare.lower() for quoted, bare in identifiers]
+            if len(parts) == 1:
+                parts.insert(0, "public")
+            if len(parts) != 2:
+                raise ValueError(f"Unsupported PostgreSQL relation name: {match.group(1)!r}")
+            relations.add(".".join(parts))
+    return relations
+
+
+def _run_sql(sql: str, *, tuples_only: bool = False) -> str:
     """Execute SQL via docker compose exec."""
+    command = [
+        "docker", "compose", "exec", "-T", "database", "psql",
+        "-U", "kokonut", "-d", "kokonut_intelligence",
+    ]
+    if tuples_only:
+        command.append("-At")
+    command.extend(["-c", sql])
     result = subprocess.run(
-        ["docker", "compose", "exec", "-T", "database", "psql",
-         "-U", "kokonut", "-d", "kokonut_intelligence", "-c", sql],
+        command,
         capture_output=True, text=True, timeout=30,
     )
     return result.stdout.strip()
-
-
-def _check_table(table_name: str) -> bool:
-    """Check if a table exists."""
-    result = _run_sql(f"SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = '{table_name}') AS exists")
-    return "t" in result
 
 
 def _check_view(view_name: str) -> bool:
@@ -51,26 +84,23 @@ def _check_view(view_name: str) -> bool:
     return "t" in result
 
 
-def _run_ch(sql: str) -> str:
+def _run_ch(sql: str, *, raw_rows: bool = False) -> str:
     """Execute SQL via ClickHouse client in Docker."""
     password = os.environ.get("CLICKHOUSE_PASSWORD", "dev-clickhouse-kokonut-2026")
     database = os.environ.get("CH_DB", os.environ.get("CLICKHOUSE_DB", "kokonut_analytics"))
+    command = [
+        "docker", "compose", "exec", "-T", "clickhouse", "clickhouse-client",
+        "--user", "kokonut", "--password", password,
+        "--database", database,
+    ]
+    if raw_rows:
+        command.extend(["--format", "TabSeparatedRaw"])
+    command.extend(["--query", sql])
     result = subprocess.run(
-        ["docker", "compose", "exec", "-T", "clickhouse", "clickhouse-client",
-         "--user", "kokonut", "--password", password,
-         "--database", database,
-         "--query", sql],
+        command,
         capture_output=True, text=True, timeout=30,
     )
     return result.stdout.strip()
-
-
-def _check_ch_view(view_name: str) -> bool:
-    """Check if a view or materialized view exists in ClickHouse."""
-    result = _run_ch(
-        f"SELECT count() FROM system.tables WHERE name = '{view_name}' AND database = currentDatabase()"
-    )
-    return result.strip() != "0"
 
 
 def test_clickhouse_query_selects_analytics_database(monkeypatch):
@@ -85,6 +115,21 @@ def test_clickhouse_query_selects_analytics_database(monkeypatch):
 
     args = run.call_args.args[0]
     assert args[args.index("--database") + 1] == "kokonut_analytics"
+
+
+def test_catalog_query_helpers_request_unaligned_rows():
+    from unittest.mock import patch
+
+    with patch("tests.test_e2e_platform.subprocess.run") as run_sql:
+        run_sql.return_value.stdout = "farm_activity\n"
+        assert _run_sql("SELECT table_name", tuples_only=True) == "farm_activity"
+    assert "-At" in run_sql.call_args.args[0]
+
+    with patch("tests.test_e2e_platform.subprocess.run") as run_ch:
+        run_ch.return_value.stdout = "v_public_farm_summary\n"
+        assert _run_ch("SELECT name", raw_rows=True) == "v_public_farm_summary"
+    args = run_ch.call_args.args[0]
+    assert args[args.index("--format") + 1] == "TabSeparatedRaw"
 
 
 def _check_column(table_name: str, column_name: str) -> bool:
@@ -127,18 +172,18 @@ def _parse_count(result: str) -> int:
 # ============================================================
 
 def test_all_tables_exist():
-    """Verify all 363 tables exist."""
+    """Verify all statically declared PostgreSQL tables exist."""
     schema_dir = Path("schemas/postgres")
-    all_tables = set()
-    for sql_file in schema_dir.glob("*.sql"):
-        content = sql_file.read_text()
-        for match in __import__("re").findall(r"CREATE TABLE IF NOT EXISTS (\w+)", content):
-            all_tables.add(match)
+    all_tables = _declared_postgres_relations(schema_dir, "table")
 
-    missing = []
-    for table in sorted(all_tables):
-        if not _check_table(table):
-            missing.append(table)
+    existing_tables = set(_run_sql(
+        "SELECT table_schema || '.' || table_name FROM information_schema.tables "
+        "WHERE table_type = 'BASE TABLE' "
+        "AND table_schema !~ '^(pg_|information_schema$)' "
+        "ORDER BY table_schema, table_name",
+        tuples_only=True,
+    ).splitlines())
+    missing = sorted(all_tables - existing_tables)
 
     assert not missing, f"Missing tables: {missing}"
     print(f"  All {len(all_tables)} tables exist")
@@ -146,17 +191,19 @@ def test_all_tables_exist():
 
 def test_all_views_exist():
     """Verify all views exist in their respective databases."""
-    import re
-
-    # PostgreSQL views
-    pg_views = set()
     pg_dir = Path("schemas/postgres")
-    for sql_file in pg_dir.glob("*.sql"):
-        content = sql_file.read_text()
-        for match in re.findall(r"CREATE (?:OR REPLACE )?VIEW (\w+)", content):
-            pg_views.add(match)
+    pg_views = _declared_postgres_relations(pg_dir, "view")
 
-    pg_missing = [v for v in sorted(pg_views) if not _check_view(v)]
+    existing_pg_views = set(_run_sql(
+        "SELECT schemaname || '.' || viewname FROM pg_catalog.pg_views "
+        "WHERE schemaname !~ '^(pg_|information_schema$)' "
+        "UNION ALL "
+        "SELECT schemaname || '.' || matviewname FROM pg_catalog.pg_matviews "
+        "WHERE schemaname !~ '^(pg_|information_schema$)' "
+        "ORDER BY 1",
+        tuples_only=True,
+    ).splitlines())
+    pg_missing = sorted(pg_views - existing_pg_views)
     assert not pg_missing, f"Missing PostgreSQL views: {pg_missing}"
     print(f"  All {len(pg_views)} PostgreSQL views exist")
 
@@ -169,9 +216,44 @@ def test_all_views_exist():
             for match in re.findall(r"CREATE (?:OR REPLACE )?(?:MATERIALIZED )?VIEW (?:IF NOT EXISTS )?(\w+)", content):
                 ch_views.add(match)
 
-    ch_missing = [v for v in sorted(ch_views) if not _check_ch_view(v)]
+    existing_ch_views = set(_run_ch(
+        "SELECT name FROM system.tables WHERE database = currentDatabase() ORDER BY name",
+        raw_rows=True,
+    ).splitlines())
+    ch_missing = sorted(ch_views - existing_ch_views)
     assert not ch_missing, f"Missing ClickHouse views: {ch_missing}"
     print(f"  All {len(ch_views)} ClickHouse views exist")
+
+
+def test_catalog_presence_checks_use_one_query_per_database(monkeypatch):
+    import re
+    from unittest.mock import Mock
+
+    pg_dir = Path("schemas/postgres")
+    expected_tables = _declared_postgres_relations(pg_dir, "table")
+    table_query = Mock(return_value="\n".join(sorted(expected_tables)))
+    monkeypatch.setattr(sys.modules[__name__], "_run_sql", table_query)
+    test_all_tables_exist()
+    table_query.assert_called_once()
+    assert "information_schema.tables" in table_query.call_args.args[0]
+
+    expected_pg_views = _declared_postgres_relations(pg_dir, "view")
+    ch_dir = Path("schemas/clickhouse")
+    expected_ch_views = {
+        view
+        for sql_file in ch_dir.glob("*.sql")
+        for view in re.findall(
+            r"CREATE (?:OR REPLACE )?(?:MATERIALIZED )?VIEW (?:IF NOT EXISTS )?(\w+)",
+            sql_file.read_text(),
+        )
+    } if ch_dir.exists() else set()
+    pg_query = Mock(return_value="\n".join(sorted(expected_pg_views)))
+    ch_query = Mock(return_value="\n".join(sorted(expected_ch_views)))
+    monkeypatch.setattr(sys.modules[__name__], "_run_sql", pg_query)
+    monkeypatch.setattr(sys.modules[__name__], "_run_ch", ch_query)
+    test_all_views_exist()
+    pg_query.assert_called_once()
+    ch_query.assert_called_once()
 
 
 # ============================================================
@@ -556,7 +638,7 @@ def test_adelphi_has_comprehensive_data():
         if "location_id" in _run_sql(f"SELECT column_name FROM information_schema.columns WHERE table_name = '{table}' AND column_name = 'location_id'"):
             count = _check_row_count(table, ADELPHI)
             assert count >= min_count, f"Expected {min_count}+ rows in {table} for Adelphi, got {count}"
-    print(f"  Adelphi has comprehensive data across all major domains")
+    print("  Adelphi has comprehensive data across all major domains")
 
 
 def test_genesis_has_onboarding_data():

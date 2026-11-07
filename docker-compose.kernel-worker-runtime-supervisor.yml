@@ -1,0 +1,9 @@
+# Compose the general worker login with the dedicated scheduler child login.
+# This final layer restores the worker supervisor identity after the scheduler
+# overlay. Scheduler children use KOKONUT_SCHEDULER_DATABASE_URL and strip PG_*.
+services:
+  worker:
+    environment:
+      PG_USER: ${KOKONUT_WORKER_RUNTIME_USER:-kokonut_worker_runtime}
+      PG_PASSWORD: ${KOKONUT_WORKER_RUNTIME_PASSWORD:?distinct worker runtime password required}
+      KOKONUT_RUNTIME_PARENT_ROLE: ${KOKONUT_RUNTIME_USER:-kokonut_runtime}

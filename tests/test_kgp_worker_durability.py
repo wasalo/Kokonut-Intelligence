@@ -1,4 +1,4 @@
-from unittest.mock import MagicMock, call, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -29,6 +29,8 @@ def test_release_worker_lease_is_owner_scoped():
 
 
 def test_run_forever_reconnects_with_a_new_bounded_connection_after_failure():
+    from unittest.mock import call
+
     indexer = object.__new__(KGPIndexer)
     indexer.deployment_id = "deployment-1"
     first_connection = MagicMock()
@@ -76,3 +78,7 @@ def test_run_forever_rejects_invalid_poll_interval_before_connecting():
             indexer.run_forever(poll_interval=float("nan"), worker_id="kgp-test-worker")
 
     connect_database.assert_not_called()
+
+
+def test_mock_call_is_not_a_module_global():
+    assert "call" not in globals()

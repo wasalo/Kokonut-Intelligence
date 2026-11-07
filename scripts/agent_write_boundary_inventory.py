@@ -25,7 +25,7 @@ AUTHENTICATED_DRAFT_CALL = re.compile(
     r"\bkokonut_security\.create_location_ai_summary_draft\s*\(", re.IGNORECASE
 )
 AUTHENTICATED_OPERATOR_TASK_REQUEST_CALL = re.compile(
-    r"\bkokonut_security\.create_location_ai_summary_operator_task_request\s*\(",
+    r"\bkokonut_security\.(?:create|enqueue)_location_ai_summary_operator_task_request\s*\(",
     re.IGNORECASE,
 )
 AUTHENTICATED_OPERATOR_TASK_REVIEW_CALL = re.compile(

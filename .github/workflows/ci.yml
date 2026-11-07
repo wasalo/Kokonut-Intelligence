@@ -6,6 +6,12 @@ on:
   pull_request:
     branches: [main, develop]
   workflow_dispatch:
+    inputs:
+      profile_collection:
+        description: Run capped pytest collection diagnostics instead of CI gates
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   contents: read
@@ -16,14 +22,25 @@ concurrency:
 
 jobs:
   preflight:
+    if: ${{ github.event_name != 'workflow_dispatch' || !inputs.profile_collection }}
     name: preflight
     runs-on: ubuntu-24.04
     timeout-minutes: 10
+    outputs:
+      expensive_gates: ${{ steps.change-scope.outputs.expensive_gates }}
     steps:
       - name: Check out source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+          fetch-depth: 0
+
+      - name: Classify expensive CI scope
+        id: change-scope
+        env:
+          GITHUB_EVENT_NAME: ${{ github.event_name }}
+          GITHUB_EVENT_PATH: ${{ github.event_path }}
+        run: python3 scripts/ci_change_scope.py >> "$GITHUB_OUTPUT"
 
       - name: Run dependency-free source preflight
         run: bash scripts/ci-preflight.sh
@@ -44,7 +61,9 @@ jobs:
         with:
           node-version-file: .node-version
           cache: npm
-          cache-dependency-path: extensions/kokonut-hooks/package-lock.json
+          cache-dependency-path: |
+            extensions/kokonut-hooks/package-lock.json
+            apps/frontend/package-lock.json
 
       - name: Set up Python
         uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
@@ -60,6 +79,13 @@ jobs:
         with:
           version: v1.8.5
           cache: false
+
+      - name: Check TypeScript applications
+        working-directory: apps/frontend
+        run: |
+          npm ci --no-audit --no-fund
+          npm run typecheck
+          npm run build
 
       - name: Run source, security, static-analysis, and contract checks
         env:
@@ -86,6 +112,7 @@ jobs:
   full-ci:
     name: integration-ci
     needs: preflight
+    if: ${{ needs.preflight.outputs.expensive_gates == 'true' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 90
     env:
@@ -139,6 +166,7 @@ jobs:
   kernel-image:
     name: kernel-image
     needs: preflight
+    if: ${{ needs.preflight.outputs.expensive_gates == 'true' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     steps:
@@ -156,11 +184,27 @@ jobs:
         uses: docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c # v4
 
       - name: Build and verify Kernel images
-        run: bash scripts/build-kernel-multiarch.sh
+        shell: bash
+        run: |
+          if [[ "$GITHUB_EVENT_NAME" == push && "$GITHUB_REF" == refs/heads/main ]]; then
+            bash scripts/build-kernel-multiarch.sh \
+              --postgis-oci-output "$RUNNER_TEMP/kernel-postgis-${GITHUB_SHA}-${GITHUB_RUN_ID}/kernel-postgis.oci.tar"
+          else
+            bash scripts/build-kernel-multiarch.sh
+          fi
+
+      - name: Upload checked PostGIS OCI artifact
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: kokonut-kernel-postgis-${{ github.sha }}-${{ github.run_id }}
+          path: ${{ runner.temp }}/kernel-postgis-${{ github.sha }}-${{ github.run_id }}/kernel-postgis.oci.tar
+          if-no-files-found: error
+          retention-days: 7
 
   ci:
     name: ci
-    if: ${{ always() && !cancelled() }}
+    if: ${{ always() && !cancelled() && !(github.event_name == 'workflow_dispatch' && inputs.profile_collection) }}
     needs: [preflight, source-checks, full-ci, kernel-image]
     runs-on: ubuntu-24.04
     timeout-minutes: 2
@@ -171,11 +215,88 @@ jobs:
           FULL_CI_RESULT: ${{ needs.full-ci.result }}
           SOURCE_CHECKS_RESULT: ${{ needs.source-checks.result }}
           KERNEL_IMAGE_RESULT: ${{ needs.kernel-image.result }}
+          EXPENSIVE_GATES: ${{ needs.preflight.outputs.expensive_gates }}
         run: |
-          if [[ "$PREFLIGHT_RESULT" != "success" || "$SOURCE_CHECKS_RESULT" != "success" || "$FULL_CI_RESULT" != "success" || "$KERNEL_IMAGE_RESULT" != "success" ]]; then
+          if [[ "$PREFLIGHT_RESULT" != "success" || "$SOURCE_CHECKS_RESULT" != "success" ]]; then
             printf 'Preflight result: %s\nSource checks result: %s\nIntegration result: %s\nKernel image result: %s\n' \
               "$PREFLIGHT_RESULT" \
               "$SOURCE_CHECKS_RESULT" "$FULL_CI_RESULT" "$KERNEL_IMAGE_RESULT" >&2
             exit 1
           fi
-          echo 'Source, integration, and multi-architecture Kernel image gates passed.'
+          if [[ "$EXPENSIVE_GATES" == "true" ]]; then
+            if [[ "$FULL_CI_RESULT" != "success" || "$KERNEL_IMAGE_RESULT" != "success" ]]; then
+              printf 'Integration result: %s\nKernel image result: %s\n' \
+                "$FULL_CI_RESULT" "$KERNEL_IMAGE_RESULT" >&2
+              exit 1
+            fi
+            echo 'Source, integration, and multi-architecture Kernel image gates passed.'
+          else
+            if [[ "$FULL_CI_RESULT" != "skipped" || "$KERNEL_IMAGE_RESULT" != "skipped" ]]; then
+              printf 'Expected status-document-only jobs to skip; integration result: %s; Kernel image result: %s\n' \
+                "$FULL_CI_RESULT" "$KERNEL_IMAGE_RESULT" >&2
+              exit 1
+            fi
+            echo 'Canonical status-document update passed preflight and source checks; database and image inputs were unchanged.'
+          fi
+
+  collection-diagnostics:
+    name: collection-diagnostics
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.profile_collection }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      KOKONUT_PYTEST_PROFILE_SHARD: "55"
+      KOKONUT_PYTEST_SHARDS: "96"
+      KOKONUT_PYTEST_PROFILE_MEMORY_LIMIT_MIB: "8192"
+      PYTHONDONTWRITEBYTECODE: "1"
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Prepare disposable CI environment
+        run: |
+          umask 077
+          cat > .env <<'EOF'
+          KOKONUT_ENV=ci
+          KOKONUT_ALLOW_PLAINTEXT_ENV=true
+          POSTGRES_PASSWORD=ci-placeholder
+          PG_HOST=database
+          PG_DB=kokonut_intelligence
+          PG_USER=kokonut
+          PG_PASSWORD=ci-placeholder
+          CLICKHOUSE_PASSWORD=ci-placeholder
+          BACKUP_ENCRYPTION_KEY=ci-backup-key
+          REDIS_PASSWORD=ci-placeholder
+          DIRECTUS_SECRET=ci-secret
+          ADMIN_EMAIL=ci@kokonut.network
+          ADMIN_PASSWORD=ci-password
+          PUBLIC_URL=http://localhost:8055
+          METABASE_EMBEDDING_SECRET_KEY=ci-embedding-secret
+          CI_PG_HOST_PORT=127.0.0.1:15432
+          CI_CH_HOST_PORT=127.0.0.1:18123
+          DIRECTUS_HOST_PORT=127.0.0.1:18055
+          GATEWAY_HOST_PORT=127.0.0.1:18099
+          GRPC_HOST_PORT=127.0.0.1:50052
+          EOF
+          rm -f .env.sops
+
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements.txt
+
+      - name: Install application dependencies
+        run: |
+          python -m pip install --upgrade --only-binary=:all: --retries 5 --timeout 60 pip setuptools
+          python -m pip install --only-binary=:all: --retries 5 --timeout 60 -r requirements.txt
+          python -m pip check
+
+      - name: Record resolved package versions
+        run: python -m pip freeze
+
+      - name: Profile collection in shard 55
+        run: bash scripts/verify-full-test-suite.sh
