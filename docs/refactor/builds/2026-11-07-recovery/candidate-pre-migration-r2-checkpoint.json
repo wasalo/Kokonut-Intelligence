@@ -1,0 +1,143 @@
+{
+  "acceptance": "candidate_pre_migration_checkpoint_and_isolated_database_restore",
+  "generated_at": "2026-11-07T04:10:23.005357+00:00",
+  "evidence_updated_at": "2026-11-07T06:41:24+00:00",
+  "candidate_revision": "fd37918623fa6d2b86bd8a397cb0011b1232e555",
+  "coolify_application": "fdphpruj8jxien23ockmbw0j",
+  "backup": {
+    "id": "candidate-pre-migration-20261107T041016Z",
+    "bucket": "kokonut-backups",
+    "prefix": "kokonut-kernel-backups",
+    "uploaded": "committed",
+    "readback": "passed",
+    "manifest_signature_and_artifact_hashes": "verified",
+    "encryption": "PostgreSQL dumps encrypted with AES-256-CBC using PBKDF2-HMAC-SHA-256 key derivation before local disk write; manifest authenticated with HMAC-SHA-256 using a PBKDF2-derived signing key",
+    "artifacts": [
+      {
+        "path": "postgres/kokonut_intelligence.dump.enc",
+        "size_bytes": 5680,
+        "sha256": "f53134877a0ad98f3bb99d59a29d6cd57c71840c4f66279e5672e9e9eef7c840"
+      },
+      {
+        "path": "postgres/zitadel.dump.enc",
+        "size_bytes": 374384,
+        "sha256": "64c9cab6a61096677999073c92733ca9eaae59ac92110070020ab35da9ce9972"
+      }
+    ]
+  },
+  "preflight": {
+    "coolify_compose_interpolation": "config --quiet passed; sanitized inspection confirmed project-prefixed persistent volume bindings",
+    "source_commit": "fd37918623fa6d2b86bd8a397cb0011b1232e555",
+    "candidate_volumes": [
+      "fdphpruj8jxien23ockmbw0j_kernel-postgres-data",
+      "fdphpruj8jxien23ockmbw0j_kernel-zitadel-postgres-data"
+    ]
+  },
+  "runtime_role_bootstrap_image": {
+    "status": "built and used successfully",
+    "source_commit": "fd37918623fa6d2b86bd8a397cb0011b1232e555",
+    "image": "fdphpruj8jxien23ockmbw0j_runtime-role-bootstrap:fd37918623fa6d2b86bd8a397cb0011b1232e555",
+    "image_id": "sha256:848ec1721ac02cec4830e9ef3675e7078c86b0a4c31e4f4abd8aa3b29465cd8b",
+    "size_bytes": 303354756
+  },
+  "schema_migrations": {
+    "result": "passed",
+    "applied": 742,
+    "failed": 0,
+    "latest_migration": "schema:751_authenticated_synthesis_one_shot_dispatch.sql",
+    "runtime_services_started": false
+  },
+  "runtime_role_bootstrap": {
+    "result": "passed",
+    "exit_code": 0,
+    "source_commit": "fd37918623fa6d2b86bd8a397cb0011b1232e555",
+    "roles": [
+      "kokonut_runtime",
+      "kokonut_worker_runtime",
+      "kokonut_scheduler_login",
+      "kokonut_operator_auth"
+    ],
+    "read_only_verification": {
+      "all_roles_can_login": true,
+      "all_roles_superuser": false,
+      "all_roles_createdb": false,
+      "all_roles_createrole": false,
+      "all_roles_bypassrls": false,
+      "worker_inherits_runtime_grants": true,
+      "worker_can_set_runtime_role": false
+    },
+    "grant_narrowing_performed": false
+  },
+  "candidate_runtime_images": {
+    "status": "built, not started",
+    "source_commit": "fd37918623fa6d2b86bd8a397cb0011b1232e555",
+    "images": [
+      {
+        "purpose": "general worker",
+        "reference": "kokonut-kernel-candidate:local",
+        "image_id": "sha256:63c2070cce760f81566ff2f39242de77652a8debb7becc17c145bed5c857efbc"
+      },
+      {
+        "purpose": "OIDC-enabled Gateway",
+        "reference": "kokonut-kernel-oidc:local",
+        "image_id": "sha256:95b8e3cfd59a3ba4fed4be7885ec65a9ccd97ec19b6363fc2708be2a98ce2a2b"
+      }
+    ]
+  },
+  "restore": {
+    "initial_container_restore": {
+      "result": "passed",
+      "target": "temporary PostgreSQL containers using the source image digests",
+      "network": "none",
+      "limits": {
+        "memory": "512m",
+        "cpus": "0.5"
+      },
+      "non_system_table_counts": {
+        "kokonut_intelligence": 37,
+        "zitadel": 144
+      },
+      "temporary_containers_removed": true
+    },
+    "isolated_compose_project_database_restore": {
+      "result": "passed",
+      "candidate_revision": "fd37918623fa6d2b86bd8a397cb0011b1232e555",
+      "network": "kokonut-recovery-20261107-kernel (internal)",
+      "volumes": [
+        "kokonut-recovery-20261107-postgres-data",
+        "kokonut-recovery-20261107-zitadel-postgres-data"
+      ],
+      "candidate_volume_mounts_reused": false,
+      "manifest_and_artifact_hashes_reverified": true,
+      "non_system_table_counts": {
+        "kokonut_intelligence": 37,
+        "zitadel": 144
+      },
+      "recovery_containers_and_network_removed": true,
+      "recovery_volumes_preserved": true
+    },
+    "serving_candidate_recovery": {
+      "candidate_databases_modified": true,
+      "zitadel": "The candidate ZITADEL volume was restored from the verified checkpoint after the candidate ZITADEL database entered an invalid-checkpoint/WAL crash loop. The API and login services returned healthy; public discovery returned HTTP 200 with valid TLS and the exact issuer https://auth.kokonut.network.",
+      "kokonut_intelligence": "No checkpoint restore was applied to the candidate Kokonut database. After recovery, the main PostgreSQL service was healthy, SELECT 1 succeeded, and 37 non-system tables were present."
+    }
+  },
+  "recovery_incident": {
+    "initial_compose_attempt": "A temporary Compose override used incorrect top-level resource keys, so recovery containers mounted the serving candidate's live PostgreSQL volumes. No checkpoint dump was streamed into those containers. They performed PostgreSQL startup/WAL recovery activity before being stopped.",
+    "impact": "The ZITADEL database subsequently failed with invalid-checkpoint/WAL errors and crash-looped. The candidate ZITADEL services were stopped to prevent further writes. The initial attempt therefore did not provide isolated recovery evidence.",
+    "preservation_and_resolution": "The damaged ZITADEL volume was cloned to kokonut-damaged-zitadel-20261107. The checkpoint was then restored into uniquely named, isolated Compose recovery volumes and verified before the ZITADEL database was restored from that checkpoint. The damaged-volume copy and isolated recovery database volumes remain preserved for investigation; unrelated Docker resources were not pruned."
+  },
+  "scope": {
+    "contains_only_candidate_postgresql_databases": true,
+    "production_data_accessed": false,
+    "media_objects_accessed": false,
+    "full_coolify_application_recovery_rehearsal": "not performed; the isolated Compose recovery covered the two PostgreSQL services, not all application, proxy, identity, image, secret, and routing state",
+    "remaining_g6_work": [
+      "configure a real confidential OIDC client and complete trusted-browser acceptance before enabling the Gateway",
+      "verify candidate runtime service health, API/worker identities, routes, and recovery after controlled failure",
+      "configure and verify recurring encrypted checkpoint cadence",
+      "run the approved controlled restart and 24-hour candidate soak",
+      "complete a full application-level recovery rehearsal and record reviewer sign-off"
+    ]
+  }
+}
