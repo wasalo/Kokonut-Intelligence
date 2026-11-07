@@ -6,6 +6,12 @@ import {
 } from "@kokonut/operator-client/react";
 import { signOutOperatorSession } from "@kokonut/operator-client/request";
 
+const WORKSPACES = [
+  { path: "/ops/", label: "General Operations" },
+  { path: "/field/", label: "Field Operations" },
+  { path: "/governance/", label: "Governance" },
+] as const;
+
 function operatorLoginHref(): string {
   const login = new URL("/operator/auth/login", window.location.origin);
   login.searchParams.set("return_to", window.location.pathname);
@@ -120,6 +126,26 @@ function VerticalShellContent({
         <p className="header-summary">{summary}</p>
         <OperatorAccountControl />
       </header>
+
+      <nav className="vertical-switcher" aria-label="Kokonut workspaces">
+        {WORKSPACES.map(({ path, label }) => {
+          const isCurrent = basePath === path;
+          return (
+            <a
+              key={path}
+              href={path}
+              className={
+                isCurrent
+                  ? "vertical-switcher__link is-current"
+                  : "vertical-switcher__link"
+              }
+              aria-current={isCurrent ? "page" : undefined}
+            >
+              {label}
+            </a>
+          );
+        })}
+      </nav>
 
       <div className="app-layout">
         <nav className="primary-navigation" aria-label={`${name} navigation`}>

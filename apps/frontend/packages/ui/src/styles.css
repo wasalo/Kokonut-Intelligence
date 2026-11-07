@@ -133,6 +133,29 @@ button:focus-visible,
   cursor: pointer;
 }
 
+.vertical-switcher {
+  display: flex;
+  gap: .35rem;
+  overflow-x: auto;
+  padding: .45rem clamp(1rem, 4vw, 3rem);
+  border-bottom: 1px solid var(--line);
+  background: var(--surface-soft);
+  scrollbar-width: thin;
+}
+
+.vertical-switcher__link {
+  flex: 0 0 auto;
+  padding: .55rem .8rem;
+  border-radius: .45rem;
+  color: var(--ink-muted);
+  font-size: .86rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.vertical-switcher__link:hover { background: var(--surface); color: var(--ink); }
+.vertical-switcher__link.is-current { background: var(--brand); color: white; }
+
 .app-layout {
   display: grid;
   grid-template-columns: minmax(13rem, 16rem) minmax(0, 1fr);
