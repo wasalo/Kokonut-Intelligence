@@ -142,9 +142,6 @@ services:
         volume: {}
   proxy:
     depends_on:
-      app:
-        condition: service_healthy
-        required: true
       zitadel-api:
         condition: service_healthy
         required: true
@@ -163,7 +160,7 @@ services:
         aliases:
           - ${KOKONUT_ZITADEL_DOMAIN:?Set the ZITADEL public hostname}
     profiles:
-      - runtime
+      - identity-edge
     restart: unless-stopped
     volumes:
       - bind:

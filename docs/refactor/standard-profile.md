@@ -563,9 +563,15 @@ store, including `KOKONUT_KERNEL_DOMAIN=hub.kokonut.network`,
 `KOKONUT_ZITADEL_DOMAIN=auth.kokonut.network`, and
 `KOKONUT_KERNEL_HTTPS_PORT=443`. Never commit secret values.
 
-For the initial database bootstrap, leave `COMPOSE_PROFILES` unset: Compose
-starts PostgreSQL and ZITADEL while the Gateway, worker, and Caddy runtime
-services remain profile-gated. From the VPS, set local shell variables to the
+For the initial database and identity bootstrap, leave `COMPOSE_PROFILES`
+unset: Compose starts PostgreSQL and ZITADEL without the Gateway or worker.
+After internal ZITADEL readiness is confirmed, set
+`COMPOSE_PROFILES=identity-edge` to start the private HTTP-only Caddy route for
+`auth.kokonut.network`; this profile does not start the Gateway, worker, or
+migration/role bootstrap. Map the Coolify `auth` domain to service `proxy` on
+port 80. The `auth` record can be cut over independently once that route is
+healthy. Keep `hub` on Baserow until the alternate hostname, TLS, application,
+and rollback path are verified. From the VPS, set local shell variables to the
 Compose project name, generated Compose file, and generated environment file
 for this specific Coolify resource; do not guess these values or print the
 environment file. Run the ordered schema migration and the explicit role
@@ -585,11 +591,12 @@ docker compose --project-name "$KOKONUT_COOLIFY_PROJECT" \
 ```
 
 Then set Docker Compose's [`COMPOSE_PROFILES`](https://docs.docker.com/compose/how-tos/environment-variables/envvars/)
-to `runtime` in the Coolify environment and redeploy to start the Gateway,
-worker, and ZITADEL routing proxy. This staged sequence preserves the
-reviewed migration/bootstrap boundary; the renderer does not run migrations or
-provision database roles. Confirm Coolify's effective Compose and project name
-before running the one-shot commands. Coolify's normal Git-based Compose path
+to `identity-edge,runtime` in the Coolify environment and redeploy to start the
+Gateway and worker alongside the already isolated ZITADEL routing proxy. This
+staged sequence preserves the reviewed migration/bootstrap boundary; the
+renderer does not run migrations or provision database roles. Confirm Coolify's
+effective Compose and project name before running the one-shot commands.
+Coolify's normal Git-based Compose path
 supports a checked-in Compose location, per-service domains, and generated
 proxy networking; review its [Compose deployment guide](https://coolify.io/docs/applications/builds/docker-compose)
 and [networking model](https://coolify.io/docs/core/networking-in-coolify).

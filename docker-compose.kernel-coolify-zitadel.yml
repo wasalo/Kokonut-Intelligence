@@ -1,8 +1,9 @@
-# Keep Caddy private and HTTP-only behind Coolify Traefik. It routes ZITADEL's
-# Login V2 path separately from the API; public TLS terminates at Traefik.
+# Keep Caddy private and HTTP-only behind Coolify Traefik. The identity-edge
+# profile routes ZITADEL's Login V2 and API while the Kernel runtime is off;
+# public TLS terminates at Traefik.
 services:
   proxy:
-    profiles: [runtime]
+    profiles: [identity-edge]
     ports: !reset []
     expose:
       - "80"
