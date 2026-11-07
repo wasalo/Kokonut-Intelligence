@@ -271,7 +271,7 @@ def test_oidc_login_session_and_logout_use_opaque_cookie_contract(
     provider = _FakeOIDCProvider()
     with _client(monkeypatch, tmp_path, provider) as client:
         login = _login(client)
-        assert provider.client.login_session == {}
+        assert provider.client.login_session == {"operator_return_to": "/operator/"}
         assert provider.client.redirect_uri == provider.settings.redirect_uri
         assert parse_qs(urlsplit(login.headers["location"]).query)["state"] == [
             "synthetic-state"
