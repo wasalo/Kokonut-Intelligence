@@ -111,10 +111,26 @@ def test_cmd_rejects_retired_commands_before_database_access(monkeypatch, comman
     ("command", "handler_name", "command_args"),
     [
         ("list", "list_canvas", {"location_id": "location-1", "org_id": None}),
-        ("get", "get", {"canvas_id": "canvas-1"}),
+        (
+            "get",
+            "get",
+            {
+                "canvas_id": "canvas-1",
+                "location_id": "location-1",
+                "org_id": None,
+            },
+        ),
         ("list-versions", "list_versions", {"canvas_id": "canvas-1"}),
         ("suggest", "suggest", {"location_id": "location-1"}),
-        ("health", "compute_health", {"canvas_id": "canvas-1"}),
+        (
+            "health",
+            "compute_health",
+            {
+                "canvas_id": "canvas-1",
+                "location_id": "location-1",
+                "org_id": None,
+            },
+        ),
     ],
 )
 def test_supported_cli_reads_start_readonly_bounded_transaction(

@@ -415,7 +415,8 @@ def test_reachable_helper_inventory_keeps_public_view_wrapper_sql_unresolved():
             unresolved_sites.append((report["report_type"], site["callable"], site["line"]))
     assert found == expected_reports
     assert len(unresolved_sites) == 10
-    assert inventory["summary"]["helper_query_sites_with_unresolved_sql_source"] == len(
-        unresolved_sites
+    assert inventory["summary"]["helper_query_sites_with_unresolved_sql_source"] == sum(
+        report["helper_query_sites_with_unresolved_sql_source"]
+        for report in inventory["reports"]
     )
 

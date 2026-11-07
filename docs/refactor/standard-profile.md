@@ -87,6 +87,13 @@ operation identities do not complete C1. See the
 the [focused supervisor/profile checks](../../tests/test_kernel_runtime_supervisor.py),
 and the current [C1 status](current-state-and-implementation.md#c1-runtime-acl-work-current-batch).
 
+The API receives `KOKONUT_NOTIFICATION_WEBHOOK_CONFIGURED` as a non-secret
+presence flag because it intentionally does not receive the webhook URL. It
+defaults to `false`; set it to `true` in the selected Compose environment when
+`ALERT_WEBHOOK_URL` is configured. The delivery worker alone receives the URL.
+This explicit flag keeps the same behavior across Compose implementations that
+do not support Docker's `${VAR:+value}` interpolation form.
+
 ### Opt-in scheduler executor identity
 
 `python3 scripts/kernel-profile.py standard --scheduler-role` appends

@@ -18,9 +18,11 @@ services:
       DIRECTUS_URL: ${DIRECTUS_URL:-http://directus:8055}
       DIRECTUS_ADMIN_TOKEN: ${DIRECTUS_ADMIN_TOKEN:-}
       # The API creates intents from a non-secret presence flag; only the
-      # delivery worker receives the endpoint itself.
+      # delivery worker receives the endpoint itself. Set the flag explicitly
+      # when ALERT_WEBHOOK_URL is configured; the simple default interpolation
+      # is compatible with Compose parsers that do not implement the `:+` form.
       ALERT_WEBHOOK_URL: ""
-      KOKONUT_NOTIFICATION_WEBHOOK_CONFIGURED: ${ALERT_WEBHOOK_URL:+true}
+      KOKONUT_NOTIFICATION_WEBHOOK_CONFIGURED: ${KOKONUT_NOTIFICATION_WEBHOOK_CONFIGURED:-false}
       ALERT_SMTP_HOST: ${ALERT_SMTP_HOST:-}
       ALERT_SMTP_PORT: ${ALERT_SMTP_PORT:-587}
       ALERT_SMTP_TLS_MODE: ${ALERT_SMTP_TLS_MODE:-starttls}

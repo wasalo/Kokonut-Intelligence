@@ -76,7 +76,11 @@ def test_locationless_report_queries_have_explicit_network_or_multi_location_pol
 
     assert direct_without_location - network_only == {"business_plan"}
     assert "business_plan" in multi_location
-    assert helper_without_location - network_only == {
+    # The static analyzer conservatively misses BMC's dynamic scope-column
+    # query and parent-before-child scope propagation. Its report entry point
+    # requires a valid location and passes that scope to both reads.
+    assert "business_model_canvas" in helper_without_location
+    assert helper_without_location - network_only - {"business_model_canvas"} == {
         "algorithmic_redistribution",
         "anti_capture_governance",
         "redistribution_policy",

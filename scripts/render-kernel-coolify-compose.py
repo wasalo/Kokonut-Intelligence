@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import subprocess
 import sys
 import tempfile
@@ -67,6 +68,21 @@ def _normalized_config(files: tuple[str, ...]) -> object:
         raise RuntimeError("Docker Compose returned invalid JSON while checking the manifest") from exc
 
 
+def _validate_coolify_interpolation(config: object) -> None:
+    # The current Coolify Compose parser does not support Docker Compose's :+
+    # operator and treats the whole expression as an environment-variable key.
+    serialized = json.dumps(config)
+    unsupported = sorted(
+        set(re.findall(r"\$\{([A-Za-z_][A-Za-z0-9_]*):\+[^}]*\}", serialized))
+    )
+    if unsupported:
+        names = ", ".join(unsupported)
+        raise RuntimeError(
+            "Coolify's current Compose parser does not support the :+ interpolation "
+            f"operator (variables: {names}); use an explicit configuration flag"
+        )
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
@@ -79,6 +95,7 @@ def main() -> int:
     if args.check:
         try:
             generated = _normalized_config(COMPOSE_FILES)
+            _validate_coolify_interpolation(generated)
             checked_in = _normalized_config((OUTPUT.name,)) if OUTPUT.is_file() else None
         except RuntimeError as exc:
             print(f"error: {exc}", file=sys.stderr)
@@ -90,7 +107,9 @@ def main() -> int:
         return 0
 
     try:
-        rendered = HEADER + _run_compose_config(COMPOSE_FILES, "yaml")
+        compose_yaml = _run_compose_config(COMPOSE_FILES, "yaml")
+        _validate_coolify_interpolation(compose_yaml)
+        rendered = HEADER + compose_yaml
     except RuntimeError as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 2

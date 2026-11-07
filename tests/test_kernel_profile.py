@@ -751,7 +751,7 @@ def test_standard_compose_keeps_notification_secrets_on_delivery_worker_only() -
     assert app_environment["ALERT_SMTP_PASSWORD"] == ""
     assert app_environment["ALERT_WEBHOOK_URL"] == ""
     assert app_environment["KOKONUT_NOTIFICATION_WEBHOOK_CONFIGURED"] == (
-        "${ALERT_WEBHOOK_URL:+true}"
+        "${KOKONUT_NOTIFICATION_WEBHOOK_CONFIGURED:-false}"
     )
     assert worker_environment["ALERT_SMTP_USER"] == "${ALERT_SMTP_USER:-}"
     assert worker_environment["ALERT_SMTP_PASSWORD"] == "${ALERT_SMTP_PASSWORD:-}"
@@ -837,6 +837,7 @@ def test_standard_resolved_compose_keeps_notification_secrets_on_delivery_worker
         "ALERT_SMTP_HOST": "smtp.example.test",
         "ALERT_EMAIL_TO": "ops@example.test",
         "ALERT_WEBHOOK_URL": "https://hooks.example.test/synthetic-token",
+        "KOKONUT_NOTIFICATION_WEBHOOK_CONFIGURED": "true",
     }
     command = [
         docker,
