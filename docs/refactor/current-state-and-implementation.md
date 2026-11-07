@@ -14,6 +14,30 @@ Standard is the primary acceptance profile. Preserve minimal/core/Edge compatibi
 
 ## Current baseline and immediate actions
 
+### 7 November candidate runtime rollout checkpoint
+
+The candidate production profile is set to `identity-edge,runtime` in local
+SOPS and Coolify. Starting the Gateway and general worker produced healthy
+containers, and in-container probes confirmed that their configured database
+logins connect separately (`kokonut_runtime` and `kokonut_worker_runtime`).
+The queried `scheduled_task`, `scheduled_job`, `task_run`, `agent_task`,
+`event_handler_delivery`, `event_dead_letter`, `notification_outbox`, and
+`clickhouse_outbox` tables were empty. The Gateway image's
+source manifest then showed one mismatch in `services/gateway/operator_auth.py`
+against the reviewed checkout. Both runtime containers were stopped before
+route exposure; Coolify's forced deployment had retained the prior `:local`
+images. A Coolify-only Compose overlay now requires `pull_policy: build` for
+the Gateway and worker, and the renderer validates that requirement. Runtime
+rollout remains open until the corrected manifest passes exact-head CI and the
+candidate is rebuilt and rechecked. Only the `auth.kokonut.network` route is
+configured; the `hub` route and DNS are unchanged.
+
+The VPS root filesystem was 94% full with 6.7 GiB available. Inspection
+identified two unused Trivy database-cache volumes with 1.665 GiB each and no
+container references; those caches were removed. All application, Coolify,
+and Kokonut data volumes were preserved. The latest check showed 90% use and
+9.6 GiB available. Check again before any image build or soak.
+
 ### G5 source-derived provider, storage, and alert map — 6 November 2026
 
 This inventory was derived from repository code and Compose configuration, a

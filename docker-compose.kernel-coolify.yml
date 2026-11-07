@@ -111,6 +111,7 @@ services:
       kernel: null
     profiles:
       - runtime
+    pull_policy: build
     restart: unless-stopped
     stop_grace_period: 40s
     volumes:
@@ -400,6 +401,7 @@ services:
       kernel: null
     profiles:
       - runtime
+    pull_policy: build
     restart: unless-stopped
     stop_grace_period: 40s
     volumes:

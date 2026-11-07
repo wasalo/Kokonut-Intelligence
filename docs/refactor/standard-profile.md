@@ -551,6 +551,12 @@ paths remain relative to the repository root. Regenerate and check the artifact
 whenever one of its source overlays changes. Do not hand-edit
 `docker-compose.kernel-coolify.yml`.
 
+The Coolify-only build overlay sets `pull_policy: build` on the Gateway and
+worker. Both services name local images and define build contexts; without an
+explicit policy Compose may reuse an existing local image instead of building
+the checked-out source. The renderer requires this policy for both services.
+See Docker's [`pull_policy` behavior](https://docs.docker.com/reference/compose-file/services/#pull_policy).
+
 Create a normal Git-based Docker Compose Application in the owner-provided
 Coolify project/environment. Set Base Directory to the repository root and
 Compose Location to `docker-compose.kernel-coolify.yml`; keep normal Coolify
