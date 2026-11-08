@@ -24,6 +24,9 @@ services:
       database:
         condition: service_healthy
         required: true
+      report-snapshot-export-artifact-init:
+        condition: service_completed_successfully
+        required: true
     environment:
       - ALERT_EMAIL_FROM=${ALERT_EMAIL_FROM:-alerts@kokonut.network}
       - ALERT_EMAIL_TO=${ALERT_EMAIL_TO:-}
@@ -79,6 +82,13 @@ services:
       - PG_PORT=5432
       - PG_USER=${KOKONUT_RUNTIME_USER:?KOKONUT_RUNTIME_USER must be set}
       - KOKONUT_NOTIFICATION_WEBHOOK_CONFIGURED=${KOKONUT_NOTIFICATION_WEBHOOK_CONFIGURED:-false}
+      - KOKONUT_PRIVATE_EXPORT_DIR=/var/lib/kokonut/report-snapshot-exports
+      - KOKONUT_PRIVATE_EXPORT_PROVIDER=${KOKONUT_PRIVATE_EXPORT_PROVIDER:-local}
+      - KOKONUT_PRIVATE_EXPORT_S3_BUCKET=${KOKONUT_PRIVATE_EXPORT_S3_BUCKET:-}
+      - KOKONUT_PRIVATE_EXPORT_S3_ENDPOINT=${KOKONUT_PRIVATE_EXPORT_S3_ENDPOINT:-}
+      - KOKONUT_PRIVATE_EXPORT_S3_READER_ACCESS_KEY_ID=${KOKONUT_PRIVATE_EXPORT_S3_READER_ACCESS_KEY_ID:-}
+      - KOKONUT_PRIVATE_EXPORT_S3_READER_SECRET_ACCESS_KEY=${KOKONUT_PRIVATE_EXPORT_S3_READER_SECRET_ACCESS_KEY:-}
+      - KOKONUT_PRIVATE_EXPORT_S3_REGION=${KOKONUT_PRIVATE_EXPORT_S3_REGION:-auto}
       - MOBILE_MEDIA_ENCRYPTION_KEY=${MOBILE_MEDIA_ENCRYPTION_KEY:-${MOBILE_MEDIA_LOCAL_KEY:-}}
       - MOBILE_MEDIA_PROVIDER=${MOBILE_MEDIA_PROVIDER:-s3}
       - MOBILE_MEDIA_S3_ACCESS_KEY_ID=${MOBILE_MEDIA_S3_ACCESS_KEY_ID:-}
@@ -120,6 +130,10 @@ services:
         target: /var/lib/kokonut/gateway-audit
         type: volume
         volume: {}
+      - read_only: true
+        source: report-snapshot-export-artifacts
+        target: /var/lib/kokonut/report-snapshot-exports
+        type: volume
   database:
     environment:
       POSTGRES_DB: kokonut_intelligence
@@ -177,6 +191,71 @@ services:
         volume: {}
       - source: kernel-caddy-config
         target: /config
+        type: volume
+        volume: {}
+  report-snapshot-export-artifact-init:
+    build:
+      context: .
+      dockerfile: Dockerfile.kernel
+      target: kernel
+    command:
+      - sh
+      - -c
+      - install -d -o 10001 -g 10001 -m 0700 /var/lib/kokonut/report-snapshot-exports
+    image: ${KOKONUT_KERNEL_APP_IMAGE:-kokonut-kernel-candidate:local}
+    network_mode: none
+    restart: 'no'
+    user: '0:0'
+    volumes:
+      - source: report-snapshot-export-artifacts
+        target: /var/lib/kokonut/report-snapshot-exports
+        type: volume
+        volume: {}
+  report-snapshot-export-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.kernel
+      target: kernel
+    command:
+      - python3
+      - -m
+      - services.export.report_snapshot_export_worker
+      - --worker-id
+      - kokonut-report-snapshot-export
+      - --limit
+      - "10"
+      - --lease-seconds
+      - "300"
+    depends_on:
+      database:
+        condition: service_healthy
+        required: true
+      report-snapshot-export-artifact-init:
+        condition: service_completed_successfully
+        required: true
+    environment:
+      KOKONUT_ENV: production
+      KOKONUT_FEATURE_ISOLATED_REPORT_SNAPSHOT_EXPORT_WORKER: ${KOKONUT_FEATURE_ISOLATED_REPORT_SNAPSHOT_EXPORT_WORKER:-false}
+      KOKONUT_PRIVATE_EXPORT_DIR: /var/lib/kokonut/report-snapshot-exports
+      KOKONUT_PRIVATE_EXPORT_PROVIDER: ${KOKONUT_PRIVATE_EXPORT_PROVIDER:-local}
+      KOKONUT_PRIVATE_EXPORT_S3_BUCKET: ${KOKONUT_PRIVATE_EXPORT_S3_BUCKET:-}
+      KOKONUT_PRIVATE_EXPORT_S3_ENDPOINT: ${KOKONUT_PRIVATE_EXPORT_S3_ENDPOINT:-}
+      KOKONUT_PRIVATE_EXPORT_S3_REGION: ${KOKONUT_PRIVATE_EXPORT_S3_REGION:-auto}
+      KOKONUT_PRIVATE_EXPORT_S3_WORKER_ACCESS_KEY_ID: ${KOKONUT_PRIVATE_EXPORT_S3_WORKER_ACCESS_KEY_ID:-}
+      KOKONUT_PRIVATE_EXPORT_S3_WORKER_SECRET_ACCESS_KEY: ${KOKONUT_PRIVATE_EXPORT_S3_WORKER_SECRET_ACCESS_KEY:-}
+      KOKONUT_REPORT_SNAPSHOT_EXPORT_DATABASE_URL: ${KOKONUT_REPORT_SNAPSHOT_EXPORT_DATABASE_URL:-}
+    image: ${KOKONUT_KERNEL_APP_IMAGE:-kokonut-kernel-candidate:local}
+    init: true
+    networks:
+      kernel: null
+    profiles:
+      - report-snapshot-export
+    restart: 'no'
+    stop_grace_period: 20s
+    user: appuser
+    volumes:
+      - source: report-snapshot-export-artifacts
+        target: /var/lib/kokonut/report-snapshot-exports
         type: volume
         volume: {}
   runtime-role-bootstrap:
@@ -581,3 +660,5 @@ volumes:
     name: kokonut-kernel-coolify_kernel-zitadel-bootstrap
   kernel-zitadel-postgres-data:
     name: kokonut-kernel-coolify_kernel-zitadel-postgres-data
+  report-snapshot-export-artifacts:
+    name: kokonut-kernel-coolify_report-snapshot-export-artifacts

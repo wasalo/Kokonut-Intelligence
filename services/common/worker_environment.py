@@ -117,6 +117,12 @@ _ISOLATED_WORKER_PROVIDER_SECRETS = {
     # The outbox worker is the only isolated child that writes to ClickHouse.
     "clickhouse_outbox": frozenset({"CLICKHOUSE_PASSWORD"}),
 }
+_REPORT_EXPORT_STORAGE_SECRETS = frozenset({
+    "KOKONUT_PRIVATE_EXPORT_S3_READER_ACCESS_KEY_ID",
+    "KOKONUT_PRIVATE_EXPORT_S3_READER_SECRET_ACCESS_KEY",
+    "KOKONUT_PRIVATE_EXPORT_S3_WORKER_ACCESS_KEY_ID",
+    "KOKONUT_PRIVATE_EXPORT_S3_WORKER_SECRET_ACCESS_KEY",
+})
 _NOTIFICATION_PROVIDER_SECRETS = frozenset({
     "ALERT_WEBHOOK_URL",
     "DIRECTUS_ADMIN_TOKEN",
@@ -322,6 +328,8 @@ def worker_subprocess_environment(
     child_environment: dict[str, str] = {}
     for name, value in source.items():
         if name in _API_ONLY_MEDIA_ENV and not include_api_only_media_environment:
+            continue
+        if name in _REPORT_EXPORT_STORAGE_SECRETS:
             continue
         if name == "KOKONUT_SCHEDULER_PASSWORD":
             continue  # Bootstrap-only credential; children use filtered connection settings.

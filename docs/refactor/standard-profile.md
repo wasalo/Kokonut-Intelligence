@@ -519,6 +519,18 @@ evidence remains readable and available.
 
 ## Shared-host Coolify deployment
 
+Standard can store private report snapshots locally or in S3-compatible storage
+such as Cloudflare R2. Local mode uses a persistent private volume prepared
+with owner-only permissions; the Gateway mounts it read-only, and the dedicated
+one-shot export container writes to it. In S3 mode the Gateway receives only
+the reader key, and the opt-in `report-snapshot-export` container receives the
+separate writer key. It handles one bounded batch of at most ten requests and
+never starts with the general worker. Invoke it explicitly with
+`docker compose --profile report-snapshot-export run --rm report-snapshot-export-worker`;
+the profile does not create or enable recurring work. For R2, set
+`KOKONUT_PRIVATE_EXPORT_PROVIDER=s3`, the endpoint, bucket, and region, plus
+the reader/writer keys in the encrypted environment.
+
 A clean or dedicated host is not required. The prepared Coolify variant is
 designed to coexist with existing Docker workloads and use the host's existing
 Traefik proxy. It leaves the Gateway, worker, database, and internal ZITADEL
