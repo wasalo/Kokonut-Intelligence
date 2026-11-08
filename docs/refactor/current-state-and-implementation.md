@@ -1,8 +1,12 @@
 # Kokonut Intelligence refactor: candidate completion guide
 
 **Authority:** this is the sole active status, completion register, and execution queue.
-**Baseline:** Kernel source `0b956676`; candidate status updated 7 November 2026.
+**Baseline:** Kernel candidate source `0b956676`; execution status updated 8 November 2026. Latest hosted CI and Security both pass on remote head `4d522456`; the local branch is three commits ahead with additional uncommitted changes, so those newer changes need exact-head CI/Security before promotion.
 **Finish line selected by owner:** candidate accepted, not production cutover.
+**Owner scope update (8 November 2026):** preserve the original deployment
+profile progression as a future roadmap note. Wasabi deferred profile
+alignment and Scale release-readiness until after the current candidate
+refactor; they are not active G1–G7 completion gates.
 
 ## Definition of done and frozen scope
 
@@ -11,6 +15,30 @@ Finish when G1–G7 below pass on an identified candidate with linked evidence a
 PostgreSQL/PostGIS remains canonical; Gateway and Python services own native policy. Directus, ClickHouse, Redis, Prefect, MQTT, gRPC and ingress remain optional or replaceable adapters. Preserve lifecycle `draft → submitted → verified → published`, independent human review, consent, private evidence, bounded retries, leases, idempotency and additive checksummed migrations. Do not retire a supported caller before replacement parity.
 
 Standard is the primary acceptance profile. Preserve minimal/core/Edge compatibility and AMD64/ARM64 software support. Physical Pi, production scale/failover, public deployment and legacy retirement are separate milestones, never implied by candidate sign-off.
+
+### Future deployment profile design target — deferred
+
+Wasabi supplied the original profile progression on 8 November 2026. Treat
+profiles as cumulative compositions of the same Kokonut application and
+service contracts: deployments add only the infrastructure their workload
+needs, while PostgreSQL/PostGIS remains the operational source of truth. A
+capability should not require a platform redesign to move between tiers. Per
+Wasabi's latest direction, profile alignment is postponed until after the
+current G1–G7 refactor gates; the table is retained as planning context.
+
+| Profile | Original design target | Current source and alignment work |
+| --- | --- | --- |
+| minimal | PostgreSQL/PostGIS + Kokonut Intelligence for laptops, Raspberry Pi, farm edge computers, and low-cost VPS hosts | The Kernel candidate has PostgreSQL plus one combined app service. Keep this as the compact base; physical-device performance and power/storage behavior remain separate acceptance. |
+| edge | Minimal + Mosquitto for sensor-equipped farms | The current `edge` profile adds encrypted local media and resource limits; MQTT/Mosquitto is selected separately with `--mqtt`. Reconcile the named profile composition while preserving explicit certificate, stable client identity, and sensor-ingestion prerequisites. |
+| standard | PostgreSQL + separate Kokonut API and worker + Caddy | The Standard overlay provides API/worker separation and Caddy by default. Coolify can replace public Caddy ingress with its Traefik network overlay. |
+| analytics | Standard + bounded DuckDB/Parquet analytical jobs and workers; optional Metabase | Current `analytics` selects Minimal + ClickHouse; `analytics --separate-workers` composes Standard + ClickHouse. Parquet export support and a standalone optional Metabase overlay exist, but no DuckDB runtime dependency/profile was found. The original design places bounded DuckDB/Parquet jobs in Analytics and ClickHouse projections in Scale; reconcile the current overlay placement against that separation. |
+| scale | Standard + Redis + ClickHouse + multiple workers + gRPC, only where workload requires them | `scale` is intentionally rejected. ClickHouse and gRPC overlays exist, but ClickHouse currently sits under Analytics; no Kernel Redis overlay or supported multi-worker release contract exists yet. Prepare the composition and acceptance contract without claiming the runtime is supported. |
+
+The profile alignment task is to make each tier an additive deployment choice,
+not a second implementation of domain behavior. Optional infrastructure must
+remain optional for the smaller tiers, and analytics projections, Redis/cache
+state, and gRPC transport must not replace canonical PostgreSQL state or
+governance rules.
 
 ## Current baseline and immediate actions
 
@@ -170,7 +198,7 @@ and the [token creation API](https://developers.cloudflare.com/fundamentals/api/
 - Candidate deployment context: VPS `167.88.45.47`; Coolify project `qwo0g0o40c48s4ccwcowwcw0`; environment `b84s4c8k8w48kscows4w8cw4`; target `hub.kokonut.network` and `auth.kokonut.network`. A clean/empty host is not a prerequisite: the candidate runs alongside existing Coolify workloads. The host is Ubuntu 24.04.5 LTS x86_64 with Docker 29.9.2 and a 96 GiB root filesystem. Coolify, its database/Redis, Traefik, and unrelated application, database, tunnel, and observability containers remain alongside Kokonut. Candidate deployment `19bku1slaqi3hlpatnlcf0l1` built the source-matched Gateway and worker; the later route deployment `ukfcvofktqaytvkzksuqnt3k` finished on exact head `0b956676`. Coolify's API reports `running:unknown`, while Docker health and HTTPS checks pass. ZITADEL discovery at `https://auth.kokonut.network/.well-known/openid-configuration` returns HTTP 200 with valid TLS and issuer `https://auth.kokonut.network`; the Console loads over HTTPS with an authenticated admin session. Migrations through 751 and runtime-role provisioning are applied; API, worker, scheduler, and operator-auth logins are non-superuser. The API and worker remain within the existing shared ACL boundary; no grants were changed. The confidential Gateway OIDC application is registered and its client ID/secret are synced to production Coolify variables. Cloudflare DNS now points `hub.kokonut.network` to the VPS with proxying enabled; the hostname-specific origin TLS rule uses Full (strict), while the zone-wide SSL mode remains unchanged. Coolify hosts the Gateway `app` route; Cloudflare Worker Static Assets handles the three frontend path groups, and the same-origin `/operator/*` paths reach the auth-gated Gateway. Public login begins at ZITADEL and anonymous session access returns 401. Trusted-browser and candidate workflow acceptance are still open. The Standard manifest routes public traffic through Traefik and keeps Caddy internal for ZITADEL path routing; Kokonut-prefixed networks and volumes isolate it from unrelated Compose projects. Fixed names currently support one candidate instance per Docker host. The 7 November post-build disk check reports 9.8 GiB free; remaining reclaimable volume data belongs to multiple projects/recovery and is preserved. The dated candidate-container snapshot later in this guide is historical, not current host state.
 - Exact-head CI [#42322712315](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/42322712315) and Security [#42322712821](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/42322712821) both passed on `fd37918623fa6d2b86bd8a397cb0011b1232e555`; preflight, source, database integration, AMD64/ARM64 image validation, aggregate CI, and Gitleaks are green.
 - The 6 November pre-deployment resource recheck reported 9.8 GiB free on `/` (90% used), 23 images (21 active) with 1.588 GB reclaimable, 23 containers (20 active), and 52 volumes (13 active) with 6.322 GB reclaimable. Candidate deployment expanded the Docker inventory to 34 images, 31 containers, and 68 volumes. The post-build check still reports 9.8 GiB free, 2.12 GB reclaimable images, 3.24 GB reclaimable volumes, and 301.8 MB build cache (38.64 MB reclaimable). No further cleanup was necessary; volume ownership spans other Coolify projects and recovery data.
-- G2 remains in progress. The candidate now has distinct API and general-worker logins for identity attribution, but both inherit the same existing ACL. Candidate verification confirms the worker inherits runtime privileges without SET ROLE; no grants were narrowed. Wasabi confirmed the source caller map and knows of no external callers. A read-only `docker ps -a` snapshot on the VPS (8 November 2026) found no Directus container on that host; externally hosted Directus permissions and non-repository callers/schedules remain unverified. Migration 750 moves Gateway scope checks and scope listings to bounded functions executed by the operator-auth login, with a column-limited NOLOGIN owner; synthetic PostgreSQL 16 apply/replay and forced-RLS acceptance passed. This does not narrow any pre-existing `kokonut_runtime` relation grants. Metrics and dataset refresh stay on the general worker and remain unavailable in the isolated scheduler profile until caller mapping or bounded worker contracts are complete.
+- G2 remains in progress. The candidate now has distinct API and general-worker logins for identity attribution, but both inherit the same existing ACL. Candidate verification confirms the worker inherits runtime privileges without SET ROLE; no grants were narrowed. Wasabi confirmed the source caller map and knows of no external callers. The 8 November read-only VPS container snapshot showed no Directus container, as expected for the selected Kernel Standard profile, which excludes the optional Directus overlay; this is not evidence about external Directus installations, permissions, or callers. Non-repository callers and schedules remain unverified. Migration 750 moves Gateway scope checks and scope listings to bounded functions executed by the operator-auth login, with a column-limited NOLOGIN owner; synthetic PostgreSQL 16 apply/replay and forced-RLS acceptance passed. This does not narrow any pre-existing `kokonut_runtime` relation grants. Metrics and dataset refresh stay on the general worker and remain unavailable in the isolated scheduler profile until caller mapping or bounded worker contracts are complete.
 - The source review now separately records `services.gateway.operator_cli`: the local CLI provisions/disables identities, grants/revokes location scopes and organization memberships, manages location shares and farm-activity role grants, and exposes audited tenant-transfer operations. It uses the configured `PG_*` connection rather than an OIDC operator session; no dedicated CLI database identity is selected by Standard. Review credential holders and direct-table/function effects before changing any related runtime grant.
 - Wasabi, Secretary of Kokonut, owns MAN-CAP outcomes across all five G3 capability groups. On 7 November 2026, Wasabi approved the source-derived primary review-group assignment for all 67 CAP rows in the acceptance table below and accepted source outcomes for all 67. Wasabi is assigned as the cross-cutting secondary reviewer for CAP-013, CAP-017–018, CAP-033, CAP-040, CAP-044, CAP-046, CAP-051, CAP-055, CAP-061–062, CAP-065, and CAP-067. Wasabi confirmed the [G3 cross-cutting review packet](g3-cross-cutting-review.md) is accurate on 8 November; the individual secondary-review decisions, all candidate/live outcomes, and final MAN-CAP acceptance remain open.
 - On 7 November 2026, Wasabi confirmed that the source maps for starter packets CAP-002, CAP-007, CAP-020, and CAP-039 accurately describe current implementation and open evidence. Their accepted source outcomes, along with later reviewed outcomes, are recorded in the table below; this source review does not accept candidate/live behavior or final MAN-CAP completion.
@@ -224,6 +252,7 @@ source-only G2/G3 work proceeds alongside it without narrowing persistent grants
 - [x] Expose the Gateway through the public HTTPS route with OIDC and Kokonut operator-grant authorization. Cloudflare edge checks confirm the login redirect and anonymous session denial; Wasabi reported authenticated callback/session/logout passing; protected API, CSRF, and grant behavior still require candidate acceptance. Gateway authorization comes from Kokonut operator grants, not IdP role claims.
 - [x] Enable the runtime profile in a controlled candidate deployment; Gateway/worker health, database identities, and source-image parity are verified.
 - [x] Wasabi reported the trusted-browser login redirect, callback/session, and logout pass on 7 November 2026. On 8 November, an allowlisted Brave session opened the login URL with `return_to=/ops`; because it already had a session, it redirected directly to `/ops`, and `/operator/auth/session` returned HTTP 200 with zero page/console errors. No identity payload was read. This confirms existing-session routing, not a fresh OIDC exchange or logout; no browser trace artifact was captured.
+- [ ] Reconnect the trusted-browser bridge before interactive acceptance. The 8 November attempt failed during setup because the installed browser package references a missing local module. Existing-session routing and the earlier owner-reported login/logout result do not establish fresh Authorization Code exchange, negative state/nonce or CSRF behavior, scoped grants, cross-location denial, or governed workflows.
 - [ ] Verify negative state/nonce behavior, CSRF denial, scope grants/denials, audit attribution, cross-location denial, and Traefik routing through the authenticated candidate.
 - [x] Retrieve the exact active operator subject through the ZITADEL UserService v2 API and preprovision its candidate `operator_identity` without scope grants. The read-only service-account PAT was removed from `.env` and SOPS; Wasabi revoked it and deleted the temporary account afterward.
 - [x] Revoke the temporary `kokonut-refactor-subject-reader` PAT after the API lookup; it was not synced to Coolify.
@@ -236,7 +265,7 @@ source-only G2/G3 work proceeds alongside it without narrowing persistent grants
 - [x] Record Wasabi's confirmation of the source-known API/worker caller map; external callers and live Directus permissions remain unverified, and grants are unchanged.
 - [x] Bound supported standalone BMC `get` and `health` reads to exactly one explicit location or organization; code review confirms the parent row is filtered before child rows are read, and the report path remains location-scoped. Exact-head CI #42354728635 passed the updated source and integration checks on `814cf115`; the later operator-session/Gateway auth source changes require fresh exact-head validation.
 - [x] Trace the 23 supplemental API DML candidates through routes, helpers, transactions and source-visible effects; identify three adjacent non-Gateway writers and shared scheduler activation/lifecycle writes. A read-only candidate schedule query returned zero persisted rows. B2 records the unresolved CLI/trigger/object-store effects; no grants changed.
-- [x] Complete the repository source caller/effect map for supported CLI, report generation, Directus configuration, dynamic SQL and persisted schedules. Wasabi confirmed the source map; no external callers are known to the owner. A read-only VPS container inventory on 8 November found no Directus container on that host, but external Directus permissions and all non-repository schedules remain unverified. Keep grants unchanged until independent live-access review and caller parity evidence exist.
+- [x] Complete the repository source caller/effect map for supported CLI, report generation, Directus configuration, dynamic SQL and persisted schedules. Wasabi confirmed the source map; no external callers are known to the owner. The read-only VPS inventory found no Directus container, as expected for Kernel Standard; external Directus permissions and all non-repository schedules remain unverified. Keep grants unchanged until independent live-access review and caller parity evidence exist.
 - [x] Assign all 67 CAP rows to one primary MAN-CAP review group using the source-derived crosswalk approved by Wasabi on 7 November 2026; the table below preserves candidate acceptance as open. Wasabi is assigned as secondary reviewer for the cross-cutting CAP-013, CAP-017–018, CAP-033, CAP-040, CAP-044, CAP-046, CAP-051, CAP-055, CAP-061–062, CAP-065, and CAP-067; review outcomes remain open.
 - [x] Prepare [Wasabi's G3 cross-cutting review packet](g3-cross-cutting-review.md) with the source claims, decision prompts, and capability-matrix evidence pointers for those 13 assigned CAPs; Wasabi confirmed the packet is accurate on 8 November 2026. The per-CAP review outcomes and candidate acceptance remain open.
 - [x] Prepare the initial five representative review packets from the capability catalog's source areas, test candidates, and named MAN-CAP checks. Source maps are confirmed and source outcomes are accepted for CAP-002, CAP-007, CAP-020, CAP-038, and CAP-039; candidate outcomes remain open.
@@ -256,6 +285,7 @@ source-only G2/G3 work proceeds alongside it without narrowing persistent grants
 - [x] Record Wasabi’s accepted source outcomes for CAP-057, CAP-060, CAP-062, CAP-063, CAP-065, and CAP-066 on 7 November 2026; candidate/live acceptance remains open.
 - [x] Complete all 67 source outcomes. Candidate/live acceptance and cross-cutting secondary reviews remain open; implementation labels alone are not acceptance.
 - [ ] Close each G2/G3 candidate acceptance gap with its required disposable, populated-data, browser or owner evidence; update this guide and the supporting evidence links.
+- [x] Repair and rerun the local optional Directus disposable checks. The role runner now builds from the pinned Kernel Dockerfile and mounts its schema fixtures; the profile fixture applies migration 705 and creates synthetic policy relations before bootstrap. The role boundary and full optional profile checks pass locally: 176 permission rows, zero managed `farm_activity` rules, stable seed replay, Directus health/admin login 200, and `kokonut_directus_runtime` identity. The unlicensed image denies custom permission management and denied writes persist zero rows. This is disposable source/profile evidence only; no candidate or VPS Directus permissions were inspected or changed. Evidence: [role acceptance](builds/2026-11-08-recovery/directus-runtime-role-disposable-local.json), [profile summary](builds/2026-11-08-recovery/directus-effective-permissions-local.json), [permission rows](builds/2026-11-08-recovery/directus-effective-permission-rows-local.json).
 
 | Primary group | Reviewed CAP | MAN-CAP check and current review status |
 | --- | --- | --- |
@@ -348,6 +378,59 @@ source-only G2/G3 work proceeds alongside it without narrowing persistent grants
 - [ ] Confirm G1–G6 evidence matches the accepted source, schema, image digests, Coolify target and candidate behavior; required hosted checks and review are green.
 - [ ] Obtain Wasabi's explicit acceptance and record open production/device/scale work as separate milestones. Do not infer production readiness or legacy retirement from candidate acceptance.
 
+### Deferred follow-on — profile alignment and Scale release-readiness
+
+Wasabi deferred this work until after the current candidate refactor on 8
+November 2026. It is not an active G1–G7 task. Keep
+`scripts/kernel-profile.py scale` rejected until a later implementation
+supplies the profile and passes its release gates. Resume this planning list
+after candidate sign-off.
+
+- [ ] Define the supported Scale envelope and deployment assumptions: whether
+  replicas target one shared Docker host or multiple hosts; ingress and health
+  routing; the authoritative PostgreSQL topology; and the measured request,
+  job, storage, and availability targets. Keep PostgreSQL single-writer unless
+  a separately reviewed database product proves otherwise.
+- [ ] Reconcile Analytics and Scale composition: keep the original target of
+  Standard plus bounded DuckDB/Parquet jobs and analytical workers, with
+  optional Metabase; evaluate moving/reclassifying the current ClickHouse
+  overlay as the Scale projection path. Preserve ClickHouse as a rebuildable
+  projection and keep all analytical adapters optional where the workload does
+  not need them.
+- [ ] Define the additive profile graph: Edge composes the compact base with
+  the farm sensor broker when required; Standard adds separate API/worker and
+  Caddy ingress; Analytics adds bounded DuckDB/Parquet analytical jobs and
+  optional Metabase; Scale adds Redis, ClickHouse, extra worker capacity, and
+  gRPC transport only when the accepted workload requires them. Preserve
+  current smaller-tier behavior and avoid feature-specific forks in domain
+  logic.
+- [ ] Map every stateful component and scaling boundary. Recommended baseline
+  to validate: Gateway replicas behind a health-aware ingress; one writable
+  PostgreSQL primary with an explicitly selected failover/restore service;
+  worker replicas governed by durable leases and idempotency; shared rate-limit
+  behavior; R2-backed shared media/backups; and one migration coordinator.
+  Define the exact Redis role (if any), ClickHouse rebuild boundary, and gRPC
+  auth/network contract. Verify authentication/session and CSRF behavior across
+  replicas. Do not assume container replication alone makes these safe.
+- [ ] Set an explicit connection and resource budget across API replicas,
+  workers, scheduler, migrations, and operator actions; define queue-lag and
+  latency/error SLOs, monitoring, alert routing, and capacity headroom.
+- [ ] Define and owner-approve Scale RPO/RTO, database and host failure
+  behavior, restore source, rollout/rollback procedure, and maintenance window.
+  Candidate 24-hour soak criteria do not supply production Scale targets.
+- [ ] Prepare a future acceptance matrix for at least two API replicas and two
+  worker replicas: auth/session/CSRF and shared rate-limit behavior;
+  concurrent task claims with no duplicate business effects; lease
+  expiry/recovery; bounded database
+  connections; ingress and process failure; database failover and checkpoint
+  restore; load/soak against the approved targets; and exact-digest upgrade and
+  rollback.
+- [ ] Review and approve this contract before a future implementation starts.
+  A later release may enable `scale` only after the deployment overlay,
+  planner/CI coverage, immutable multi-architecture artifacts, operational
+  runbook, and all target-specific acceptance evidence exist. Scale remains a
+  separate release milestone from Standard candidate sign-off.
+
 ## Completion register
 
 Only this register changes active status. Status vocabulary: **open**, **in progress**, **blocked**, **passed**, **deferred**. A gate passes only when every applicable requirement has evidence; missing inputs remain blocked, not silently deferred. Responsible roles below are assignments of work, not claims that named people have accepted ownership.
@@ -381,7 +464,7 @@ Execute these bounded work packages; the reconciliation entries below are refere
    | Report generation CLI | [`report_generator.py`](../../services/export/report_generator.py) uses the common `get_db()` connection. `python3 -m services.export.report_generator`, `python3 -m services.export`, `python3 -m services.export.cli`, and unified `python3 -m services.cli export` delegate to the same entrypoint. Each report calculation runs in a read-only transaction; `store_snapshot` then writes a draft `report_snapshot`. `--auto` also inserts/updates `report_generation_run` and `report_generation_run_item`; `--list` and `--verify` read snapshots. Generation requires a location or an explicitly supported `--all` scope for location-bound reports, but this is not authorization. Standard has no dedicated identity for this generation CLI; `kokonut_report_snapshot_export_login` belongs to the separate export worker and does not cover these writes. The [runtime SQL attribution inventory](runtime-role-attribution.json) leaves the generation writes unresolved and maps no static worker root to this module; external scheduling remains unverified. | Map CLI and scheduled callers, distinguish draft snapshot writes from the protected lifecycle, and confirm network-scope/list/verify authorization and populated report parity before designing a writer boundary. |
    | Operator authentication | `kokonut_operator_auth` uses bounded functions for OIDC sessions, global capabilities, and migration-750 location scope checks/listings. It has no direct scope/tenant table reads; the functions' non-login owner has only the predicate columns. | Map the remaining Gateway/worker/CLI/Directus/external callers before narrowing any pre-existing `kokonut_runtime` relation grants. |
    | Operator administration CLI | [`operator_cli.py`](../../services/gateway/operator_cli.py) provisions/disables identities, grants/revokes scopes and organization memberships, manages location shares and farm-activity role scopes, and exposes tenant-transfer operations. It uses shared `get_connection()` and the configured `PG_*` login, not an OIDC operator session. | Review the local credential holders and exact database effects. There is no dedicated Standard CLI login; actor labels and scoped CLI validation do not narrow the CLI's database principal. |
-   | Optional Directus | [`directus_role.py`](../../services/migration/directus_role.py) grants broad DML on public/kokonut relations and sequences, then applies declared exceptions. Migration 705 denies BMC request tables, not `business_model_canvas` or `canvas_version`. The checked-in permission seed currently parses to 176 literal inserts, seven updates, and one deletion; the 23 October disposable effective snapshot predates later seed changes and contains 175 rows. The pinned unlicensed API returned 403 for effective custom permissions ([parity record](directus-parity-inventory.md), [snapshot](builds/2026-10-23-recovery/directus-effective-permissions.json)). | Candidate/current effective role state and an owner decision to retain, narrow, or retire the adapter. The disposable snapshot is not live parity evidence. |
+   | Optional Directus | [`directus_role.py`](../../services/migration/directus_role.py) grants broad DML on public/kokonut relations and sequences, then applies declared exceptions. Migration 705 denies BMC request tables, not `business_model_canvas` or `canvas_version`. The 8 November isolated profile run applies migration 705, then verifies 176 permission rows (122 wildcard and 54 explicit fields), zero managed `farm_activity` rules, stable seed replay, health/admin login, and the `kokonut_directus_runtime` database identity. The pinned unlicensed API rejects custom permission management and denied writes persist zero rows ([role acceptance](builds/2026-11-08-recovery/directus-runtime-role-disposable-local.json), [profile summary](builds/2026-11-08-recovery/directus-effective-permissions-local.json), [permission rows](builds/2026-11-08-recovery/directus-effective-permission-rows-local.json)). The 23 October 175-row snapshot is historical and predates the current seed. | Candidate/current effective role state and an owner decision to retain, narrow, or retire the adapter. The local disposable profile does not establish live permission parity. |
    | General worker/scheduler | [`runtime-role-attribution.json`](runtime-role-attribution.json) distinguishes the default shared login from opt-in `kokonut_worker_runtime` and `kokonut_scheduler_login`. The current worker graph has 50 roots and 331 reachable SQL sites. Eleven scheduled roots lack an exact module-only identity map (144 operation-to-SQL references); `metrics` and `dataset_refresh` stay on the general worker and are skipped by isolated scheduler claims. | Reconcile persisted enabled tasks, external schedules, provider/callback effects, and active runtime identity. The worker login inherits the current runtime ACL, so no grant narrowing follows from the login split alone. |
 
    The owner confirmed the API/worker caller map on 5 November and knows of no non-repository callers; that is not an exhaustive live audit. This source review adds the report-generation CLI cohort, whose scheduled or external use is unverified. Directus disposition, active external callers/schedules, and operation effects remain unresolved; do not narrow grants. The separate login establishes attribution only and does not close C1.
