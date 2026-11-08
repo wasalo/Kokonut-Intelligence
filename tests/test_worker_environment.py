@@ -685,6 +685,28 @@ def test_operator_credentials_are_only_forwarded_to_the_api_child():
     assert "KOKONUT_CLICKHOUSE_OUTBOX_OPERATOR_PASSWORD" not in isolated_outbox_environment
 
 
+def test_media_encryption_key_is_forwarded_only_to_the_api_child():
+    source = {
+        "MOBILE_MEDIA_PROVIDER": "s3",
+        "MOBILE_MEDIA_ENCRYPTION_KEY": "synthetic-media-key",
+        "MOBILE_MEDIA_S3_ACCESS_KEY_ID": "synthetic-media-access",
+        "MOBILE_MEDIA_S3_SECRET_ACCESS_KEY": "synthetic-media-secret",
+    }
+
+    api_environment = worker_subprocess_environment(
+        allowed_worker_keys=(),
+        environ=source,
+        include_api_only_media_environment=True,
+    )
+    worker_environment = worker_subprocess_environment(
+        allowed_worker_keys=("event_dispatch",),
+        environ=source,
+    )
+
+    assert api_environment == source
+    assert not any(name.startswith("MOBILE_MEDIA_") for name in worker_environment)
+
+
 def test_every_service_subprocess_uses_the_shared_environment_policy():
     violations = []
     for path in sorted((ROOT / "services").rglob("*.py")):

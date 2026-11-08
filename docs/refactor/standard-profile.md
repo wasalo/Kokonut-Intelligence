@@ -498,19 +498,24 @@ keeping Standard's API/worker split, select `standard --edge`. The planner adds
 `docker-compose.kernel-edge.yml` after the Standard and runtime-role overlays,
 so the API command and independent worker command remain intact. Supply
 `MOBILE_MEDIA_LOCAL_KEY` through the encrypted environment before resolving or
-starting this composition. The Edge private-media volume, provider, directory,
-and key apply only to `app`; a source audit found no local-media storage caller
-in the worker, so the worker receives none of those settings. Edge sets limits
-on the database and API, not the worker; worker sizing remains a separate
-acceptance decision. Multiple worker replicas and API replicas remain scale
-acceptance work.
+starting this composition. This stable 32-byte key protects local media and is
+also the compatibility fallback for the API's S3/R2 `KKM1` envelope; the API
+receives it through `MOBILE_MEDIA_ENCRYPTION_KEY`, while isolated worker
+children strip both names and all media-provider settings. The Edge
+private-media volume, provider, directory, and key apply only to `app`; a
+source audit found no local-media storage caller in the worker. Preserve the
+key in the encrypted recovery set and do not rotate it while objects encrypted
+with it remain, unless they are first re-encrypted and verified. Edge sets
+limits on the database and API, not the worker; worker sizing remains a
+separate acceptance decision. Multiple worker replicas and API replicas
+remain scale acceptance work.
 
 Inspect this composition with
 `python3 scripts/kernel-profile.py standard --edge --action config` after
 loading the encrypted environment. The planner prints the resolved command;
-it does not execute it or supply `MOBILE_MEDIA_LOCAL_KEY` itself. Preserve the
-Edge private-media volume when changing profiles so stored private evidence is
-not lost.
+it does not execute it or supply the media key itself. Preserve the media key
+and Edge private-media volume when changing profiles so stored private
+evidence remains readable and available.
 
 ## Shared-host Coolify deployment
 

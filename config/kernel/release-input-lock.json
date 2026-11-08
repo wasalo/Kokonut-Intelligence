@@ -44,10 +44,10 @@
     "scripts/build-kernel-multiarch.sh": "d3cab27970fea09c8f27a3bec73b53816dcd9f3191000054c38f41b103720dd5",
     "scripts/validate-kernel-postgis-source-run.py": "a67b16a7917f17295232859d6029c9865a1a60bab71f7f07978ec27933bbe517",
     "scripts/verify-kernel-postgis-published.py": "39c2c9f715e7499fc7fc28886282ee97e288874e9667de9809eb743d910eb2db",
-    "docs/refactor/profile-selection.md": "fe1983cec5d2988c197dc913fa3ab486b56963fbe72a2a8844cfaa83cfeac541",
+    "docs/refactor/profile-selection.md": "d2dc4b1f4cf9a2ec06d6abca217fa8071718b747883ba755630abc1364fab8f2",
     "requirements/README.md": "699bfef971be138ca125640284a47ef7a3a73d67f1007ea85bc3d2217f2bed36",
     "docker-compose.kernel-candidate.yml": "c404109f71e175649d1cd99a447990e8b9f177666f10c8dc8c071a2a9b1f99af",
-    "docker-compose.kernel-standard.yml": "84e374ef96fd902eb6bb471e0894d473a0626fbe6fb10b974154c39d51dd632f",
+    "docker-compose.kernel-standard.yml": "31279ca2362c439b58d39a11bd6029e6bed65016c5ed79413012cf6eed9593da",
     "docker-compose.kernel-runtime-role.yml": "8944606fd80afa24c727cdce88c7c1bd72abcde092259bcf4dc3d657ae8c6f4a",
     "docker-compose.kernel-oidc.yml": "f066555b0d42ca7204f74a3d68b84f58503ad81f39081d63cacf62484cefbd42",
     "docker-compose.kernel-proxy.yml": "acb9828274e1a009c3b7d579fae438c4afe2ff70c619be3f9d4cc33fd2b96796",
@@ -55,7 +55,7 @@
     "docker-compose.kernel-coolify-network.yml": "607f80917635fbe63fbbdef752d677b0c2fa709a0b1842917037f26fa4a72305",
     "docker-compose.kernel-coolify-zitadel.yml": "6944c961d7044b235c6b10dac0ff33f228114489aca26fd30566bdb8c98bdd4a",
     "docker-compose.kernel-coolify-build.yml": "faf9dd842e1d809718d69e8125d5f8ad51fe04b4f7f8692c8015890ba4b4d8f6",
-    "docker-compose.kernel-coolify.yml": "cc8b1b9b4f386819138ece2b7e3875bdff2f46361371a556884f8d6c16b2020c",
+    "docker-compose.kernel-coolify.yml": "9aff9e6e344a599e8ed0638b4c0470f45df3023e68d2f7ae37b50ff7ca4da3c9",
     "scripts/render-kernel-coolify-compose.py": "82d9e0e44dd40c57104d7b8bc8b26f425fb3dee9476a4f4a1594e77f57722a67"
   },
   "postgis_packages": {

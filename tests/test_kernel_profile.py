@@ -653,6 +653,7 @@ def test_core_capabilities_are_explicit_build_overlays() -> None:
     assert media["services"]["app"]["build"]["args"]["KOKONUT_CORE_LOCAL_MEDIA"] == "true"
     assert "${MOBILE_MEDIA_LOCAL_KEY:?" in media["services"]["app"]["environment"]["MOBILE_MEDIA_LOCAL_KEY"]
     assert "MOBILE_MEDIA_LOCAL_KEY" not in (ROOT / "Dockerfile.kernel").read_text()
+    assert "MOBILE_MEDIA_ENCRYPTION_KEY" not in (ROOT / "Dockerfile.kernel").read_text()
 
 
 @pytest.mark.parametrize("overlay", ["--web3", "--exports", "--local-media"])

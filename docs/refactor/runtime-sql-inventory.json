@@ -3,7 +3,7 @@
   "generated_by": "scripts/runtime_sql_inventory.py",
   "scope": "Direct Python SQL execution calls in services/**/*.py, including API, worker, and CLI modules. The scan is driver-neutral, so local non-PostgreSQL stores may also appear; it is not a PostgreSQL-only inventory. Relation names and simple leading DML targets are regex-derived candidates, not a parsed SQL AST. Unquoted PostgreSQL identifiers are normalized to lower case and quoted identifiers preserve case. A query held in a local variable is resolved only from one unambiguous local assignment; an unconditional same-module string or literal-only f-string constant is resolved only when no shadowing or reassignment is found. Dynamic table identifiers stay unresolved. The scan cannot prove query reachability, ORM/extension/external effects, complete database access, required columns, or authorization. It is not a grant allowlist.",
   "summary": {
-    "source_files": 1009,
+    "source_files": 1010,
     "execution_sites": 5011,
     "worker_operation_roots": 50,
     "sites_with_worker_operation_refs": 439,
@@ -560,7 +560,7 @@
       "sites_with_worker_operation_refs": 0
     },
     "mobile": {
-      "source_files": 9,
+      "source_files": 10,
       "execution_sites": 59,
       "statement_groups": {
         "read_candidate": 37,

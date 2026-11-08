@@ -84,10 +84,14 @@ To retain the API/worker split while selecting Edge's local-media provider and
 resource limits, use `standard --edge`. The planner appends the Edge overlay
 after Standard's API/worker and runtime-role overlays. Load
 `MOBILE_MEDIA_LOCAL_KEY` through the encrypted environment before resolving or
-starting the composition. The private-media settings apply only to the API;
-the worker receives no media key, volume, or copied API/database resource
-limits. This is Compose/source capability, not physical-device, power-loss, or
-production acceptance.
+starting the composition. This stable key also encrypts S3/R2 field-media
+objects in the API; worker children receive neither key name nor any other
+media-provider setting. Preserve the key in the recovery set and do not rotate
+it while encrypted objects remain unless those objects are first re-encrypted
+and verified. The private-media settings apply only to the API; the worker
+receives no media key, volume, or copied API/database resource limits. This is
+Compose/source capability, not physical-device, power-loss, or production
+acceptance.
 
 `standard --action release-up` is the immutable-image deployment path. It
 requires `KOKONUT_KERNEL_APP_IMAGE` to be a registry reference pinned to a

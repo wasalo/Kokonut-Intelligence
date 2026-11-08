@@ -294,6 +294,7 @@ def test_standard_edge_keeps_media_settings_on_api_and_preserves_worker_split() 
     ]
     assert app["environment"]["MOBILE_MEDIA_PROVIDER"] == "local"
     assert app["environment"]["MOBILE_MEDIA_LOCAL_KEY"] == "compose-test-only-standard-edge-key"
+    assert app["environment"]["MOBILE_MEDIA_ENCRYPTION_KEY"] == "compose-test-only-standard-edge-key"
     assert any(
         volume.get("target") == "/app/private-media"
         for volume in app["volumes"]
@@ -301,6 +302,7 @@ def test_standard_edge_keeps_media_settings_on_api_and_preserves_worker_split() 
     assert "MOBILE_MEDIA_PROVIDER" not in worker["environment"]
     assert "MOBILE_MEDIA_LOCAL_DIRECTORY" not in worker["environment"]
     assert "MOBILE_MEDIA_LOCAL_KEY" not in worker["environment"]
+    assert "MOBILE_MEDIA_ENCRYPTION_KEY" not in worker["environment"]
     assert all(
         volume.get("target") != "/app/private-media"
         for volume in worker.get("volumes", [])
