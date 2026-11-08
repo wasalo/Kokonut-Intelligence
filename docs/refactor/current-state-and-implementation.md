@@ -128,6 +128,16 @@ artifacts whose project ownership and rollback value are understood.
 
 ### G5 source-derived provider, storage, and alert map — updated 8 November 2026
 
+**Owner direction received 8 November:** enable every repository-supported
+integration on the Coolify candidate: weather, remote sensing, World Bank
+market data, EAS/RPC/Gnosis/Baal indexing, SMTP alerts, Field Collector media
+R2, report-export R2, and encrypted backup R2. This is the selected candidate
+target; the candidate's current environment has not yet been configured for
+these integrations. Location-specific jobs still require populated locations
+and exact worker grants, and this direction does not authorize production
+schedules. Directus remains optional and is excluded from Standard.
+Earth Engine is the provider-access exception recorded in [OFU-22](open-follow-ups.md#ofu-22).
+
 This inventory was derived from repository code and Compose configuration, a
 presence-only check of decrypted SOPS settings using the owner-provided local
 key, and a Wrangler bucket-name listing. Secret values were not printed or
@@ -200,7 +210,7 @@ backup settings are absent from both app and worker containers. The worker has
 no media credentials, as intended. No candidate provider request was made and
 no environment values were changed ([candidate configuration evidence](builds/2026-11-08-recovery/g5-candidate-provider-config-presence.json)).
 
-### Proposed alert severity and routing policy
+### Owner-selected industry-aligned alert severity and routing policy
 
 Google SRE guidance favors timely, actionable alerts based on user-visible
 symptoms. Prometheus Alertmanager supports grouping, routing, deduplication, and
@@ -208,9 +218,9 @@ inhibition to reduce repeated or cascading notifications ([Google SRE incident
 management](https://sre.google/resources/practices-and-processes/incident-management-guide/),
 [Prometheus Alertmanager concepts](https://prometheus.io/docs/alerting/latest/overview/),
 [routing configuration](https://prometheus.io/docs/alerting/latest/configuration/)).
-The following is a proposed candidate policy for Wasabi to approve:
+Wasabi selected industry-aligned routing for the candidate on 8 November 2026:
 
-| Severity | Trigger | Proposed notification |
+| Severity | Trigger | Candidate notification |
 | --- | --- | --- |
 | P1 — Critical | Broad user-facing outage, suspected compromise, confirmed data integrity loss, or imminent recovery-objective breach. | Notify the on-call operator immediately and send a record to `intelligence@kokonut.network`. Add an acknowledged paging channel before treating email as a reliable P1 page. |
 | P2 — High | Significant sustained capability degradation or repeated failure with user impact and a workaround. | Send an immediate, grouped email to `intelligence@kokonut.network`; on-call follow-up is expected. |
@@ -219,7 +229,7 @@ The following is a proposed candidate policy for Wasabi to approve:
 
 Group related alerts by service and incident, deduplicate repeats, and suppress
 lower-level symptoms while a higher-severity cause is active. These are
-proposed impact categories, not currently implemented routing rules. The
+owner-selected impact categories, not currently implemented routing rules. The
 Gateway notification outbox currently uses one recipient and does not attach
 these severities; candidate acceptance also requires a successful test delivery
 and a decided P1 paging/acknowledgment path.
