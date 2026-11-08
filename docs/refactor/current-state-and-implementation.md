@@ -192,6 +192,14 @@ smokes and checkpoint restore evidence are recorded separately; candidate
 upload, report authorization, recurring backup, and recovery acceptance remain
 open. See the [sanitized provider smoke](builds/2026-11-08-recovery/g5-provider-credential-smoke-local.json).
 
+An 8 November candidate environment-name check found provider worker DSNs,
+worker credentials, and weather, remote-sensing, and chain endpoints blank or
+absent. Field-media provider, bucket, and region settings are present in the
+API, but its R2 endpoint and access-key pair are blank; report-export and
+backup settings are absent from both app and worker containers. The worker has
+no media credentials, as intended. No candidate provider request was made and
+no environment values were changed ([candidate configuration evidence](builds/2026-11-08-recovery/g5-candidate-provider-config-presence.json)).
+
 ### Proposed alert severity and routing policy
 
 Google SRE guidance favors timely, actionable alerts based on user-visible
