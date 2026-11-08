@@ -6,8 +6,8 @@
     "operation_roots": 50,
     "source_files": 149,
     "operations_without_resolved_entry_functions": 0,
-    "function_memberships": 1260,
-    "direct_call_edges": 1834,
+    "function_memberships": 1268,
+    "direct_call_edges": 1846,
     "callback_edges": 1,
     "dynamic_dispatch_edges": 88
   },
@@ -9993,7 +9993,7 @@
         {
           "function": "services.ingestion.market_data:main",
           "source": "services/ingestion/market_data.py",
-          "line": 487
+          "line": 651
         }
       ],
       "reachable_functions": [
@@ -10038,12 +10038,28 @@
           "line": 121
         },
         {
+          "key": "services.ingestion.market_data:_parse_current_monthly_layout",
+          "module": "services.ingestion.market_data",
+          "qualname": "_parse_current_monthly_layout",
+          "class_scope": null,
+          "source": "services/ingestion/market_data.py",
+          "line": 278
+        },
+        {
+          "key": "services.ingestion.market_data:_validated_pink_sheet_url",
+          "module": "services.ingestion.market_data",
+          "qualname": "_validated_pink_sheet_url",
+          "class_scope": null,
+          "source": "services/ingestion/market_data.py",
+          "line": 62
+        },
+        {
           "key": "services.ingestion.market_data:build_parser",
           "module": "services.ingestion.market_data",
           "qualname": "build_parser",
           "class_scope": null,
           "source": "services/ingestion/market_data.py",
-          "line": 445
+          "line": 609
         },
         {
           "key": "services.ingestion.market_data:download_pink_sheet",
@@ -10051,7 +10067,7 @@
           "qualname": "download_pink_sheet",
           "class_scope": null,
           "source": "services/ingestion/market_data.py",
-          "line": 180
+          "line": 255
         },
         {
           "key": "services.ingestion.market_data:main",
@@ -10059,7 +10075,15 @@
           "qualname": "main",
           "class_scope": null,
           "source": "services/ingestion/market_data.py",
-          "line": 463
+          "line": 627
+        },
+        {
+          "key": "services.ingestion.market_data:normalize_name",
+          "module": "services.ingestion.market_data",
+          "qualname": "normalize_name",
+          "class_scope": null,
+          "source": "services/ingestion/market_data.py",
+          "line": 236
         },
         {
           "key": "services.ingestion.market_data:parse_pink_sheet",
@@ -10067,7 +10091,7 @@
           "qualname": "parse_pink_sheet",
           "class_scope": null,
           "source": "services/ingestion/market_data.py",
-          "line": 200
+          "line": 350
         },
         {
           "key": "services.ingestion.market_data:prepare_world_bank_records",
@@ -10075,7 +10099,15 @@
           "qualname": "prepare_world_bank_records",
           "class_scope": null,
           "source": "services/ingestion/market_data.py",
-          "line": 347
+          "line": 511
+        },
+        {
+          "key": "services.ingestion.market_data:resolve_pink_sheet_url",
+          "module": "services.ingestion.market_data",
+          "qualname": "resolve_pink_sheet_url",
+          "class_scope": null,
+          "source": "services/ingestion/market_data.py",
+          "line": 84
         },
         {
           "key": "services.ingestion.market_data:run",
@@ -10083,7 +10115,7 @@
           "qualname": "run",
           "class_scope": null,
           "source": "services/ingestion/market_data.py",
-          "line": 435
+          "line": 599
         },
         {
           "key": "services.ingestion.market_data:validate_world_bank_filters",
@@ -10091,7 +10123,7 @@
           "qualname": "validate_world_bank_filters",
           "class_scope": null,
           "source": "services/ingestion/market_data.py",
-          "line": 393
+          "line": 557
         },
         {
           "key": "services.ingestion.market_data_worker:_call_worker",
@@ -10142,40 +10174,76 @@
           "line": 120
         },
         {
+          "caller": "services.ingestion.market_data:_parse_current_monthly_layout",
+          "callee": "services.ingestion.market_data:normalize_name",
+          "source": "services/ingestion/market_data.py",
+          "line": 301
+        },
+        {
+          "caller": "services.ingestion.market_data:download_pink_sheet",
+          "callee": "services.ingestion.market_data:resolve_pink_sheet_url",
+          "source": "services/ingestion/market_data.py",
+          "line": 261
+        },
+        {
           "caller": "services.ingestion.market_data:main",
           "callee": "services.common.cli:print_json",
           "source": "services/ingestion/market_data.py",
-          "line": 478
+          "line": 642
         },
         {
           "caller": "services.ingestion.market_data:main",
           "callee": "services.core.features:is_enabled",
           "source": "services/ingestion/market_data.py",
-          "line": 477
+          "line": 641
         },
         {
           "caller": "services.ingestion.market_data:main",
           "callee": "services.ingestion.market_data:build_parser",
           "source": "services/ingestion/market_data.py",
-          "line": 465
+          "line": 629
         },
         {
           "caller": "services.ingestion.market_data:main",
           "callee": "services.ingestion.market_data:run",
           "source": "services/ingestion/market_data.py",
-          "line": 483
+          "line": 647
         },
         {
           "caller": "services.ingestion.market_data:main",
           "callee": "services.ingestion.market_data:validate_world_bank_filters",
           "source": "services/ingestion/market_data.py",
-          "line": 468
+          "line": 632
+        },
+        {
+          "caller": "services.ingestion.market_data:parse_pink_sheet",
+          "callee": "services.ingestion.market_data:_parse_current_monthly_layout",
+          "source": "services/ingestion/market_data.py",
+          "line": 391
+        },
+        {
+          "caller": "services.ingestion.market_data:parse_pink_sheet",
+          "callee": "services.ingestion.market_data:normalize_name",
+          "source": "services/ingestion/market_data.py",
+          "line": 368
+        },
+        {
+          "caller": "services.ingestion.market_data:resolve_pink_sheet_url",
+          "callee": "services.ingestion.market_data:_validated_pink_sheet_url",
+          "source": "services/ingestion/market_data.py",
+          "line": 88
+        },
+        {
+          "caller": "services.ingestion.market_data:resolve_pink_sheet_url",
+          "callee": "services.ingestion.market_data:_validated_pink_sheet_url",
+          "source": "services/ingestion/market_data.py",
+          "line": 97
         },
         {
           "caller": "services.ingestion.market_data:run",
           "callee": "services.ingestion.market_data_worker:run_source",
           "source": "services/ingestion/market_data.py",
-          "line": 442
+          "line": 606
         },
         {
           "caller": "services.ingestion.market_data_worker:_call_worker",
@@ -10349,12 +10417,36 @@
           "line": 121
         },
         {
+          "key": "services.ingestion.market_data:_parse_current_monthly_layout",
+          "module": "services.ingestion.market_data",
+          "qualname": "_parse_current_monthly_layout",
+          "class_scope": null,
+          "source": "services/ingestion/market_data.py",
+          "line": 278
+        },
+        {
+          "key": "services.ingestion.market_data:_validated_pink_sheet_url",
+          "module": "services.ingestion.market_data",
+          "qualname": "_validated_pink_sheet_url",
+          "class_scope": null,
+          "source": "services/ingestion/market_data.py",
+          "line": 62
+        },
+        {
           "key": "services.ingestion.market_data:download_pink_sheet",
           "module": "services.ingestion.market_data",
           "qualname": "download_pink_sheet",
           "class_scope": null,
           "source": "services/ingestion/market_data.py",
-          "line": 180
+          "line": 255
+        },
+        {
+          "key": "services.ingestion.market_data:normalize_name",
+          "module": "services.ingestion.market_data",
+          "qualname": "normalize_name",
+          "class_scope": null,
+          "source": "services/ingestion/market_data.py",
+          "line": 236
         },
         {
           "key": "services.ingestion.market_data:parse_pink_sheet",
@@ -10362,7 +10454,7 @@
           "qualname": "parse_pink_sheet",
           "class_scope": null,
           "source": "services/ingestion/market_data.py",
-          "line": 200
+          "line": 350
         },
         {
           "key": "services.ingestion.market_data:prepare_world_bank_records",
@@ -10370,7 +10462,15 @@
           "qualname": "prepare_world_bank_records",
           "class_scope": null,
           "source": "services/ingestion/market_data.py",
-          "line": 347
+          "line": 511
+        },
+        {
+          "key": "services.ingestion.market_data:resolve_pink_sheet_url",
+          "module": "services.ingestion.market_data",
+          "qualname": "resolve_pink_sheet_url",
+          "class_scope": null,
+          "source": "services/ingestion/market_data.py",
+          "line": 84
         },
         {
           "key": "services.ingestion.market_data:validate_world_bank_filters",
@@ -10378,7 +10478,7 @@
           "qualname": "validate_world_bank_filters",
           "class_scope": null,
           "source": "services/ingestion/market_data.py",
-          "line": 393
+          "line": 557
         },
         {
           "key": "services.ingestion.market_data_worker:_call_worker",
@@ -10419,6 +10519,42 @@
           "callee": "services.common.worker_database:_worker_key",
           "source": "services/common/worker_database.py",
           "line": 120
+        },
+        {
+          "caller": "services.ingestion.market_data:_parse_current_monthly_layout",
+          "callee": "services.ingestion.market_data:normalize_name",
+          "source": "services/ingestion/market_data.py",
+          "line": 301
+        },
+        {
+          "caller": "services.ingestion.market_data:download_pink_sheet",
+          "callee": "services.ingestion.market_data:resolve_pink_sheet_url",
+          "source": "services/ingestion/market_data.py",
+          "line": 261
+        },
+        {
+          "caller": "services.ingestion.market_data:parse_pink_sheet",
+          "callee": "services.ingestion.market_data:_parse_current_monthly_layout",
+          "source": "services/ingestion/market_data.py",
+          "line": 391
+        },
+        {
+          "caller": "services.ingestion.market_data:parse_pink_sheet",
+          "callee": "services.ingestion.market_data:normalize_name",
+          "source": "services/ingestion/market_data.py",
+          "line": 368
+        },
+        {
+          "caller": "services.ingestion.market_data:resolve_pink_sheet_url",
+          "callee": "services.ingestion.market_data:_validated_pink_sheet_url",
+          "source": "services/ingestion/market_data.py",
+          "line": 88
+        },
+        {
+          "caller": "services.ingestion.market_data:resolve_pink_sheet_url",
+          "callee": "services.ingestion.market_data:_validated_pink_sheet_url",
+          "source": "services/ingestion/market_data.py",
+          "line": 97
         },
         {
           "caller": "services.ingestion.market_data_worker:_call_worker",

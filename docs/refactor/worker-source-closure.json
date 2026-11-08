@@ -4374,43 +4374,43 @@
         },
         {
           "source": "services/ingestion/market_data.py",
-          "line": 25,
+          "line": 28,
           "target": "services.common.cli",
           "kind": "from"
         },
         {
           "source": "services/ingestion/market_data.py",
-          "line": 26,
+          "line": 29,
           "target": "services.common.http",
           "kind": "from"
         },
         {
           "source": "services/ingestion/market_data.py",
-          "line": 27,
+          "line": 30,
           "target": "services.core.features",
           "kind": "from"
         },
         {
           "source": "services/ingestion/market_data.py",
-          "line": 29,
+          "line": 32,
           "target": "services.common.logging",
           "kind": "from"
         },
         {
           "source": "services/ingestion/market_data.py",
-          "line": 419,
+          "line": 583,
           "target": "services.ingestion.market_data_worker",
           "kind": "from"
         },
         {
           "source": "services/ingestion/market_data.py",
-          "line": 428,
+          "line": 592,
           "target": "services.ingestion.market_data_worker",
           "kind": "from"
         },
         {
           "source": "services/ingestion/market_data.py",
-          "line": 437,
+          "line": 601,
           "target": "services.ingestion.market_data_worker",
           "kind": "from"
         },
@@ -4607,43 +4607,43 @@
         },
         {
           "source": "services/ingestion/market_data.py",
-          "line": 25,
+          "line": 28,
           "target": "services.common.cli",
           "kind": "from"
         },
         {
           "source": "services/ingestion/market_data.py",
-          "line": 26,
+          "line": 29,
           "target": "services.common.http",
           "kind": "from"
         },
         {
           "source": "services/ingestion/market_data.py",
-          "line": 27,
+          "line": 30,
           "target": "services.core.features",
           "kind": "from"
         },
         {
           "source": "services/ingestion/market_data.py",
-          "line": 29,
+          "line": 32,
           "target": "services.common.logging",
           "kind": "from"
         },
         {
           "source": "services/ingestion/market_data.py",
-          "line": 419,
+          "line": 583,
           "target": "services.ingestion.market_data_worker",
           "kind": "from"
         },
         {
           "source": "services/ingestion/market_data.py",
-          "line": 428,
+          "line": 592,
           "target": "services.ingestion.market_data_worker",
           "kind": "from"
         },
         {
           "source": "services/ingestion/market_data.py",
-          "line": 437,
+          "line": 601,
           "target": "services.ingestion.market_data_worker",
           "kind": "from"
         },
