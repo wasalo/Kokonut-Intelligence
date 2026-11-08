@@ -582,12 +582,22 @@ After internal ZITADEL readiness is confirmed, set
 `auth.kokonut.network`; this profile does not start the Gateway, worker, or
 migration/role bootstrap. Map the Coolify `auth` domain to service `proxy` on
 port 80. The `auth` record can be cut over independently once that route is
-healthy. Keep the current `hub` DNS record while the candidate Gateway and all
-three frontend paths are being verified; no Baserow alternate hostname is
-required. Once the candidate routes pass trusted HTTPS checks, replace `hub`
-with the candidate target, enable Cloudflare proxying so the Worker routes can
-run, and retire Baserow. Preserve the previous CNAME value as the temporary
-DNS rollback target. From the VPS, set local shell variables to the
+healthy. If `hub` still points to Baserow or another service, first save the
+exact existing record as the temporary rollback target. Configure the Coolify
+`app` domain without deploying it. Once the candidate source, runtime health,
+and route mapping are ready, replace `hub` with a DNS-only A record to the VPS.
+This short, reversible cutover lets Traefik issue its trusted origin
+certificate and supports direct Gateway acceptance before Cloudflare proxying.
+If origin routing or TLS fails, restore the saved CNAME. Before enabling the
+Cloudflare proxy, verify the certificate directly with the intended hostname.
+When the zone's default SSL mode is Flexible, add a `http_config_settings`
+Configuration Rule matching `http.host eq "hub.kokonut.network"` with
+`action: "set_config"` and `action_parameters.ssl: "strict"`; this avoids
+changing the zone-wide mode and prevents HTTPS redirect loops. Then enable
+proxying, deploy the Worker routes, and verify `/health`, `/ops`, `/field`,
+`/governance`, and same-origin `/operator/*`. Retire Baserow only after the
+candidate route is accepted; no alternate Baserow hostname is required. From
+the VPS, set local shell variables to the
 Compose project name, generated Compose file, and generated environment file
 for this specific Coolify resource; do not guess these values or print the
 environment file. Run the ordered schema migration and the explicit role
