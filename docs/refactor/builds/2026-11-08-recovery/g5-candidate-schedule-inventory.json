@@ -1,0 +1,33 @@
+{
+  "observed_at_utc": "2026-11-08T22:01:07Z",
+  "target": {
+    "coolify_application_id": "fdphpruj8jxien23ockmbw0j",
+    "application_container": "app-fdphpruj8jxien23ockmbw0j-20261107T221509",
+    "worker_container": "worker-fdphpruj8jxien23ockmbw0j-20261107T221509",
+    "database_container": "database-fdphpruj8jxien23ockmbw0j-20261107T221509",
+    "database": "kokonut_intelligence"
+  },
+  "container_health": {
+    "application": "healthy",
+    "worker": "healthy",
+    "database": "healthy"
+  },
+  "inventory": {
+    "relation": "public.scheduled_task",
+    "transaction_read_only": true,
+    "columns_inspected": [
+      "name",
+      "module_path",
+      "cron_expression",
+      "is_enabled"
+    ],
+    "row_count": 0,
+    "provider_task_rows": 0,
+    "enabled_task_rows": 0
+  },
+  "limitations": [
+    "This records persisted rows in the candidate scheduled_task table at the observation time.",
+    "It does not prove provider credential validity, manual invocation behavior, external scheduler state, data parity, or live provider acceptance.",
+    "No schedule or provider configuration was changed."
+  ]
+}

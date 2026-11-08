@@ -175,12 +175,15 @@ cadences:
 | Gnosis and Baal indexers | 2 | 300 seconds |
 
 The scheduler planner offers hourly, every-6-hour, daily, and weekly cadences.
-Its generated plans set `is_enabled=false` and `activation_ready=false`; the
-candidate's persisted schedule inventory still needs reconciliation. Media and
-report exports are request-driven, while `scripts/backup_remote.py` has no
-approved recurring schedule. SMTP delivery uses durable retries starting at
-15 seconds with exponential backoff capped at one hour. No provider cadence or
-retry override has been approved.
+Its generated plans set `is_enabled=false` and `activation_ready=false`. A
+read-only inventory of the healthy Coolify candidate on 8 November found zero
+rows in `public.scheduled_task`, so no persisted candidate schedules are
+currently registered or enabled ([candidate inventory evidence](builds/2026-11-08-recovery/g5-candidate-schedule-inventory.json)).
+This does not establish provider validity, manual invocation behavior, or
+external scheduler state. Media and report exports are request-driven, while
+`scripts/backup_remote.py` has no approved recurring schedule. SMTP delivery
+uses durable retries starting at 15 seconds with exponential backoff capped at
+one hour. No provider cadence or retry override has been approved.
 
 The R2 media, report-reader, report-worker, and backup credentials each passed a
 read-only list request for their intended private prefix. This validates the
