@@ -212,6 +212,16 @@ backup settings are absent from both app and worker containers. The worker has
 no media credentials, as intended. No candidate provider request was made and
 no environment values were changed ([candidate configuration evidence](builds/2026-11-08-recovery/g5-candidate-provider-config-presence.json)).
 
+The source audit also found that signed location workers expect the
+migration-created `kokonut_worker_login`, which remains `NOLOGIN` until the
+runtime-role bootstrap receives `KOKONUT_WORKER_LOGIN_PASSWORD`. The bootstrap
+now gives this login only a non-inheriting `SET` membership in
+`kokonut_worker_execution`; it receives no direct table grants and no shared
+API login. Its bootstrap password is filtered from API and worker children.
+This makes the existing signed worker contracts provisionable, but the
+candidate password, per-worker DSNs/credentials, and live acceptance are still
+open.
+
 ### Owner-selected industry-aligned alert severity and routing policy
 
 Google SRE guidance favors timely, actionable alerts based on user-visible

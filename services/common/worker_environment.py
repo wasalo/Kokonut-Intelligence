@@ -331,7 +331,7 @@ def worker_subprocess_environment(
             continue
         if name in _REPORT_EXPORT_STORAGE_SECRETS:
             continue
-        if name == "KOKONUT_SCHEDULER_PASSWORD":
+        if name in {"KOKONUT_SCHEDULER_PASSWORD", "KOKONUT_WORKER_LOGIN_PASSWORD"}:
             continue  # Bootstrap-only credential; children use filtered connection settings.
         if name in {
             ISOLATED_WORKER_KEY_ENV,

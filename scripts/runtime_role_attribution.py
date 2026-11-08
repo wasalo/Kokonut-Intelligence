@@ -730,9 +730,10 @@ def _standard_role_contract() -> dict:
         },
         "role_bootstrap": {
             "source": "docker-compose.kernel-runtime-role.yml runtime-role-bootstrap",
-            "purpose": "provisions shared kokonut_runtime and dedicated operation logins; the optional worker-runtime overlay provisions kokonut_worker_runtime",
+            "purpose": "provisions shared kokonut_runtime, optional kokonut_worker_login for signed bounded functions, and dedicated operation logins; the optional worker-runtime overlay provisions kokonut_worker_runtime",
             "initial_runtime_compatibility_grant": "existing public table/sequence DML compatibility grants are not removed by later reprovisioning; exact relation ACLs require separate cohort review",
             "api_worker_identity_split": "optional source path implemented by --separate-api-worker-logins; worker login inherits the current kokonut_runtime ACL with SET ROLE disabled, so this does not close C1 or prove candidate activation",
+            "bounded_worker_login": "KOKONUT_WORKER_LOGIN_PASSWORD provisions the migration-created kokonut_worker_login with no direct table grants and only non-inheriting SET membership in kokonut_worker_execution; signed operations still require their exact worker credentials and location grants",
         },
         "api_worker_login_profiles": [
             {
