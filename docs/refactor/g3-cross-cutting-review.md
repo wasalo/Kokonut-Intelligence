@@ -1,7 +1,7 @@
 # G3 cross-cutting secondary review
 
 **Reviewer:** Wasabi, Secretary of Kokonut  
-**Status:** Assigned; review outcomes open. This packet supports source review only. Candidate/live acceptance and final MAN-CAP outcomes remain open.
+**Status:** Wasabi confirmed this packet is accurate on 8 November 2026. Per-CAP secondary review outcomes remain open. This packet supports source review only; candidate/live acceptance and final MAN-CAP outcomes remain open.
 
 The canonical gate status is in [current-state-and-implementation.md](current-state-and-implementation.md). Capability contracts, test references, and the detailed source history remain in the [capability matrix](capability-matrix.md). Review each row against its MAN-CAP check and the linked source/evidence. Record a source review as **confirmed** only when the source claim and its stated limitations are accurate. If not, identify the counterexample or missing evidence. Do not infer candidate, populated-data, provider, or live-chain acceptance from source or disposable evidence.
 
