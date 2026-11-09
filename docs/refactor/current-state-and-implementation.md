@@ -1,7 +1,7 @@
 # Kokonut Intelligence refactor: candidate completion guide
 
 **Authority:** this is the sole active status, completion register, and execution queue.
-**Candidate status (9 November 2026):** Coolify deployment `jln5t7uq8bspnnkkgkhwagl2` runs application commit `d5c32d06c446824c609a2c7e27db97bc124f6c89` on database schema 753. Exact-head CI [#42648564386](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/42648564386) and Security/Gitleaks [#42648565021](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/42648565021) passed on that commit. The pre-migration-752 encrypted checkpoint and isolated restore are recorded [here](builds/2026-11-09-recovery/candidate-pre-migration-752-r2-checkpoint.json); migration 753 was applied with 1 success and 0 failures, and the migration plan reports zero pending changes. Migration 753 grants only `organization_member.created_at` to the location-setup function owner, which the setup query needs to order membership rows. The Gateway now reports a location-setup authorization error only when PostgreSQL explicitly identifies the missing capability; unrelated database permission failures return 503 instead of misleading the operator with a 403. `/health` returns HTTP 200 and the unauthenticated setup API returns HTTP 401. Wasabi confirmed setup completed: location `1b1775d2-3043-42f9-9967-5d3f18db7ae0` and farm `827aaa01-e8a5-47f4-87d1-e43dbda9e425` were created under Kokonut Network with starter location-read and draft-only farm-activity access. Existing baseline and historical records were preserved. No provider request or reference-data import was run.
+**Candidate status (9 November 2026):** Coolify deployment `zwjtjcvqb3kzljmqiwjb1nur` runs application commit `4be4d588b72e13d83f267a2a39ace3d80d4c9340` on database schema 753. Exact-head CI [#42660079540](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/42660079540) and Security/Gitleaks [#42660079481](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/42660079481) passed on that commit. The pre-migration-752 encrypted checkpoint and isolated restore are recorded [here](builds/2026-11-09-recovery/candidate-pre-migration-752-r2-checkpoint.json); migration 753 was applied with 1 success and 0 failures, and the migration plan reports zero pending changes. Migration 753 grants only `organization_member.created_at` to the location-setup function owner, which the setup query needs to order membership rows. The Gateway now reports a location-setup authorization error only when PostgreSQL explicitly identifies the missing capability; unrelated database permission failures return 503 instead of misleading the operator with a 403. `/health` returns HTTP 200 and the unauthenticated setup API returns HTTP 401. The Gateway and Coolify Compose defaults now issue 12-hour operator sessions, with server-side expiry and existing authorization and CSRF checks retained. Wasabi confirmed setup completed: location `1b1775d2-3043-42f9-9967-5d3f18db7ae0` and farm `827aaa01-e8a5-47f4-87d1-e43dbda9e425` were created under Kokonut Network with starter location-read and draft-only farm-activity access. Existing baseline and historical records were preserved. No provider request or reference-data import was run.
 **Finish line selected by owner:** candidate accepted, not production cutover.
 **Owner scope update (8 November 2026):** preserve the original deployment
 profile progression as a future roadmap note. Wasabi deferred profile
@@ -87,15 +87,16 @@ initial farm setup alone.
 
 ### Operator session lifetime
 
-The deployed Gateway source had a 30-minute default session lifetime, which is
-too short for normal Control Plane work. This branch changes the Gateway and
-Compose defaults to 12 hours, while retaining the configured 5-minute minimum,
-12-hour maximum, server-side expiry, CSRF checks, and per-request capability
-authorization. Candidate rollout is pending CI and will wait until Wasabi
-confirmed the location-setup form saved, so the candidate update can proceed
-without interrupting unsaved data entry. Rollout is pending exact-head CI. A
-fresh sign-in after the candidate update will receive the longer lifetime;
-existing sessions keep their original expiry.
+The candidate's previous source defaulted to a 30-minute session lifetime,
+which is too short for normal Control Plane work. Commit
+`4be4d588b72e13d83f267a2a39ace3d80d4c9340` changes the Gateway and Compose
+defaults to 12 hours, retaining the configured 5-minute minimum, 12-hour
+maximum, server-side expiry, CSRF checks, and per-request capability
+authorization. Exact-head CI and Security/Gitleaks passed, and Coolify
+deployment `zwjtjcvqb3kzljmqiwjb1nur` finished on this commit. Public health
+returns 200 and the unauthenticated setup endpoint returns 401 after rollout.
+The previous browser session keeps its original expiry. A fresh sign-in starts
+a new 12-hour session.
 
 ### 9 November pre-migration 752 checkpoint and restore
 
