@@ -72,7 +72,7 @@ function parseSetupResult(value: unknown): LocationSetupResult {
       !isRecord(scope) ||
       Object.keys(scope).sort().join(",") !== "action,location_id,resource" ||
       typeof scope.resource !== "string" || typeof scope.action !== "string" ||
-      scope.location_id !== data.location_id
+      typeof scope.location_id !== "string" || scope.location_id !== data.location_id
     ) {
       throw new Error("The setup result contained an invalid starter scope.");
     }
