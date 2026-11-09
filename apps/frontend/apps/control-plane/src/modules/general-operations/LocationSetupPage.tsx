@@ -100,13 +100,25 @@ function parsePolygonGeoJSON(text: string): PolygonGeoJSON {
     throw new Error("Boundary GeoJSON must be 256 KB or smaller.");
   }
   const parsed: unknown = JSON.parse(text);
-  const geometry = isRecord(parsed) && parsed.type === "Feature" ? parsed.geometry : parsed;
+  let geometry: unknown = parsed;
+  if (isRecord(parsed) && parsed.type === "Feature") {
+    geometry = parsed.geometry;
+  } else if (isRecord(parsed) && parsed.type === "FeatureCollection") {
+    if (!Array.isArray(parsed.features) || parsed.features.length !== 1) {
+      throw new Error("Use a GeoJSON FeatureCollection with exactly one boundary feature.");
+    }
+    const feature = parsed.features[0];
+    if (!isRecord(feature) || feature.type !== "Feature") {
+      throw new Error("The GeoJSON FeatureCollection does not contain a valid boundary feature.");
+    }
+    geometry = feature.geometry;
+  }
   if (
     !isRecord(geometry) || geometry.type !== "Polygon" ||
     Object.keys(geometry).sort().join(",") !== "coordinates,type" ||
     !Array.isArray(geometry.coordinates) || geometry.coordinates.length === 0
   ) {
-    throw new Error("Choose a GeoJSON Polygon in WGS84 coordinates.");
+    throw new Error("Choose a WGS84 GeoJSON Polygon, Feature, or single-feature FeatureCollection.");
   }
   for (const ring of geometry.coordinates) {
     if (!Array.isArray(ring) || ring.length < 4) {
@@ -276,7 +288,7 @@ function BoundaryUploadField({
         aria-describedby={pasteError ? `${id}-hint ${id}-status ${id}-error` : `${id}-hint ${id}-status`}
       />
       <p className="location-setup__help" id={`${id}-hint`}>
-        {helpText} Use a GeoJSON Polygon exported in WGS84, paste its geometry, or enter one point per line. Coordinates use longitude, latitude order.
+        {helpText} Upload or paste a WGS84 Polygon, Feature, or single-feature FeatureCollection, or enter one point per line. Coordinates use longitude, latitude order.
       </p>
       <label className="location-setup__help" htmlFor={`${id}-coordinates`}>Enter boundary points manually</label>
       <textarea
