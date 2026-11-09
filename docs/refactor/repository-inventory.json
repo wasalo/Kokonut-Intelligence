@@ -1,5 +1,5 @@
 {
-  "baseline_commit": "df0049e36d0d41c016ce2cf2a6f67ef5ee2d9fb5",
+  "baseline_commit": "32edce008178ad6a928f4c0f7833503548eff5a1",
   "capabilities": [
     {
       "category": "Farm Operations",
@@ -1528,6 +1528,18 @@
       "source": "services/gateway/landscape_conservation_routes.py"
     },
     {
+      "line": 190,
+      "method": "GET",
+      "path": "/operator/api/location-setup/organizations",
+      "source": "services/gateway/location_setup_routes.py"
+    },
+    {
+      "line": 216,
+      "method": "POST",
+      "path": "/operator/api/location-setup",
+      "source": "services/gateway/location_setup_routes.py"
+    },
+    {
       "line": 44,
       "method": "GET",
       "path": "/operator/api/management/{location_id}/summary",
@@ -1858,187 +1870,187 @@
       "source": "services/gateway/operating_pilot_routes.py"
     },
     {
-      "line": 4243,
+      "line": 4286,
       "method": "GET",
       "path": "/operator/",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 4258,
+      "line": 4301,
       "method": "GET",
       "path": "/operator/auth/login",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 4282,
+      "line": 4327,
       "method": "GET",
       "path": "/operator/auth/callback",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 4340,
+      "line": 4386,
       "method": "GET",
       "path": "/operator/auth/session",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 4368,
+      "line": 4423,
       "method": "GET",
       "path": "/operator/api/report-review-queue",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 4450,
+      "line": 4505,
       "method": "GET",
       "path": "/operator/api/report-review-queue/{report_id}",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 4541,
+      "line": 4596,
       "method": "POST",
       "path": "/operator/api/report-exports",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 4630,
+      "line": 4685,
       "method": "GET",
       "path": "/operator/api/report-exports",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 4711,
+      "line": 4766,
       "method": "GET",
       "path": "/operator/api/report-export-snapshots",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 4799,
+      "line": 4854,
       "method": "GET",
       "path": "/operator/api/report-exports/{request_id}",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 4890,
+      "line": 4945,
       "method": "GET",
       "path": "/operator/api/report-exports/{request_id}/artifact",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 4967,
+      "line": 5022,
       "method": "GET",
       "path": "/operator/api/mobile-collection-review-queue",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 5030,
+      "line": 5085,
       "method": "GET",
       "path": "/operator/api/mobile-collection-review-queue/{collection_id}",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 5117,
+      "line": 5172,
       "method": "GET",
       "path": "/operator/api/mobile-collection-review-queue/{collection_id}/disposition-inventory",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 5198,
+      "line": 5253,
       "method": "POST",
       "path": "/operator/api/mobile-collection-review-queue/{collection_id}/events",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 5253,
+      "line": 5308,
       "method": "GET",
       "path": "/operator/api/farm-activity-intake-queue",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 5320,
+      "line": 5375,
       "method": "GET",
       "path": "/operator/api/farm-activity-intake-queue/{collection_id}",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 5381,
+      "line": 5436,
       "method": "POST",
       "path": "/operator/api/farm-activity-intake-queue/{collection_id}/draft",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 5464,
+      "line": 5519,
       "method": "POST",
       "path": "/operator/api/farm-activities/{activity_id}/{action}",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 5557,
+      "line": 5612,
       "method": "GET",
       "path": "/operator/api/farm-activities",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 5607,
+      "line": 5662,
       "method": "GET",
       "path": "/operator/api/farm-activities/published",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 5659,
+      "line": 5714,
       "method": "GET",
       "path": "/operator/api/farm-activities/published/{activity_id}",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 5717,
+      "line": 5772,
       "method": "GET",
       "path": "/operator/api/farm-activities/{activity_id}",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 5771,
+      "line": 5826,
       "method": "PATCH",
       "path": "/operator/api/farm-activities/{activity_id}/draft",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 5860,
+      "line": 5915,
       "method": "POST",
       "path": "/operator/api/mobile/locations/{location_id}/participants",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 5880,
+      "line": 5935,
       "method": "POST",
       "path": "/operator/api/mobile/locations/{location_id}/participants/revoke",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 5900,
+      "line": 5955,
       "method": "POST",
       "path": "/operator/api/mobile/locations/{location_id}/enrollments",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 5960,
+      "line": 6015,
       "method": "DELETE",
       "path": "/operator/api/mobile/locations/{location_id}/enrollments/{enrollment_id}",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 5988,
+      "line": 6043,
       "method": "POST",
       "path": "/operator/api/mobile/locations/{location_id}/devices/{device_id}/revoke",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 6016,
+      "line": 6071,
       "method": "GET",
       "path": "/operator/api/mobile/locations/{location_id}/inventory",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 6078,
+      "line": 6133,
       "method": "POST",
       "path": "/operator/auth/logout",
       "source": "services/gateway/operator_auth.py"
@@ -3838,7 +3850,9 @@
       "schemas/postgres/748_scheduler_executor_privileges.sql",
       "schemas/postgres/749_scheduler_operator_actions.sql",
       "schemas/postgres/750_operator_scope_read_functions.sql",
-      "schemas/postgres/751_authenticated_synthesis_one_shot_dispatch.sql"
+      "schemas/postgres/751_authenticated_synthesis_one_shot_dispatch.sql",
+      "schemas/postgres/752_control_plane_location_setup.sql",
+      "schemas/postgres/753_location_setup_membership_ordering_column.sql"
     ],
     "seeds": [
       "schemas/seeds/000_expense_categories.sql",
@@ -5363,6 +5377,8 @@
         "services/gateway/landscape_conservation_reads.py",
         "services/gateway/landscape_conservation_routes.py",
         "services/gateway/landscape_conservation_writes.py",
+        "services/gateway/location_setup.py",
+        "services/gateway/location_setup_routes.py",
         "services/gateway/locations.py",
         "services/gateway/management_work_reads.py",
         "services/gateway/management_work_routes.py",
@@ -6278,6 +6294,7 @@
         "KOKONUT_SENSOR_ANOMALY_ML_SOURCE_USER",
         "KOKONUT_SENSOR_INGESTION_PASSWORD",
         "KOKONUT_SENSOR_INGESTION_USER",
+        "KOKONUT_WORKER_LOGIN_PASSWORD",
         "KOKONUT_WORKER_RUNTIME_PASSWORD",
         "KOKONUT_WORKER_RUNTIME_USER",
         "MB_DB_DBNAME",
@@ -6324,6 +6341,7 @@
         "services/mobile/forms_cli.py",
         "services/mobile/local_media.py",
         "services/mobile/media_cleanup.py",
+        "services/mobile/media_encryption.py",
         "services/mobile/media_reconcile.py",
         "services/mobile/media_storage.py",
         "services/mobile/tenant_preflight.py"
