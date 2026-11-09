@@ -1,0 +1,35 @@
+{
+  "version": 1,
+  "recorded_at_utc": "2026-11-09T20:17:47Z",
+  "scope": "Candidate-only synthetic report-artifact storage adapter check using the opt-in report-export worker container and its writer credentials.",
+  "candidate": {
+    "coolify_application_id": "fdphpruj8jxien23ockmbw0j",
+    "deployment_id": "yimu12guwhwsfyzajq1vw4gm",
+    "source_commit": "2009a64d264bb8615e6d2d2cf987efa00e5bc01c",
+    "deployment_status": "finished",
+    "health_http_status": 200
+  },
+  "configuration": {
+    "worker_writer_settings_synced": true,
+    "writer_access_exposed_only_to_opt_in_worker_service": true,
+    "recurring_export_schedule_enabled": false,
+    "database_dependency_started": false,
+    "real_report_worker_command_invoked": false,
+    "report_request_created": false,
+    "secret_values_printed": false
+  },
+  "synthetic_artifact": {
+    "result": "passed",
+    "worker_write": true,
+    "worker_readback_matches": true,
+    "worker_delete": true,
+    "read_after_delete_denied": true,
+    "artifact_id_recorded": false,
+    "content_recorded": false
+  },
+  "limitations": [
+    "This exercised the S3-compatible artifact adapter in the candidate worker container; it did not execute the database-backed report worker or process a queued report request.",
+    "Report authorization, report-content parity, artifact download, disposition, disclosure review, and populated reference data remain open.",
+    "The probe created and deleted only one synthetic object; no report data was read or written."
+  ]
+}
