@@ -1,7 +1,7 @@
 # Kokonut Intelligence refactor: candidate completion guide
 
 **Authority:** this is the sole active status, completion register, and execution queue.
-**Baseline (9 November 2026):** the Coolify candidate runs application commit `badbbec293cfae4d75c1914008db870cdccbd300` on database schema 752. Exact-head CI [#42557548689](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/42557548689) and Security/Gitleaks [#42557548752](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/42557548752) passed. The earlier #425527 failure in migration-role and route inventories was repaired before this run. The pre-migration-752 encrypted checkpoint and isolated restore are recorded [here](builds/2026-11-09-recovery/candidate-pre-migration-752-r2-checkpoint.json). Coolify deployment `kfkhlmdolsql8djjudri52ht` finished on the CI-approved commit. Migration planning reports zero pending schema migrations; candidate checks confirm the isolated operator-auth login can execute both setup functions and `kokonut_runtime` cannot. Exactly one enabled operator identity exists for the configured ZITADEL issuer, with only the audited `location_setup:create` capability granted for Wasabi's onboarding workflow. Cloudflare Worker `ki-operator-control-plane` deployed version `cb7408b5-0abe-48dd-92ee-cd0c8b812760`; public health and `/ops/administration` return HTTP 200, and the unauthenticated setup API returns HTTP 401. No Adelphi values have been entered and no provider requests have run. Authenticated browser acceptance remains open because the paired Brave session was offline during rollout.
+**Baseline (9 November 2026, 14:53 UTC):** the Coolify candidate runs application commit `56f362a57a23238a8d6e4b0ae6ed42d701a0b20a` on database schema 752. Exact-head CI [#42633251067](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/42633251067) and Security/Gitleaks [#42633251306](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/42633251306) passed. Coolify deployment `mwihlybd3zxlwf4ycx9zd5br` finished on that commit. The pre-migration-752 encrypted checkpoint and isolated restore are recorded [here](builds/2026-11-09-recovery/candidate-pre-migration-752-r2-checkpoint.json). No schema migration was included in this deployment. Migration planning reports zero pending schema migrations; candidate checks confirm the isolated operator-auth login can execute both setup functions and `kokonut_runtime` cannot. Exactly one enabled operator identity exists for the configured ZITADEL issuer, with only the audited `location_setup:create` capability granted for Wasabi's onboarding workflow. Cloudflare Worker `ki-operator-control-plane` deployed version `cb7408b5-0abe-48dd-92ee-cd0c8b812760`. Post-deployment `/health` returned HTTP 200 and the unauthenticated setup API returned HTTP 401. The authenticated organization-list request had returned HTTP 503: a read-only transaction conflicted with the authorization resolver's `SELECT ... FOR UPDATE`, which serializes reads against session revocation. The bounded organization-list path no longer marks that transaction read-only; its business query performs no writes, while session locking and capability checks remain intact. Wasabi's authenticated browser refresh is still required to confirm the organizations load. No Adelphi values have been entered and no provider requests have run.
 **Finish line selected by owner:** candidate accepted, not production cutover.
 **Owner scope update (8 November 2026):** preserve the original deployment
 profile progression as a future roadmap note. Wasabi deferred profile
@@ -57,10 +57,11 @@ and draft-only field-activity grants atomically. It never verifies or publishes
 field records. Existing same-slug setup rows can be completed while preserving
 baseline and historical records; cross-tenant ownership conflicts fail closed.
 
-The source has been deployed to the candidate after exact-head CI passed. The
-earlier integration run exposed a clean-bootstrap ordering issue and then
-missing recovery-role and route-inventory entries; the fixes are covered by
-passing run #42557548689. Migration 752 is applied schema-only, the narrow
+The latest source commit `56f362a5` has been deployed to the candidate after
+all required gates passed in exact-head CI #42633251067. The earlier
+integration run exposed a clean-bootstrap ordering issue and then missing
+recovery-role and route-inventory entries; those fixes were covered by
+passing run #42557548689. Migration 752 remains applied schema-only, the narrow
 operator-auth function boundary is verified, and Wasabi's `location_setup:create`
 grant is audited. The deployed entry point is
 `https://hub.kokonut.network/ops/administration`. It accepts a WGS84 GeoJSON
@@ -69,10 +70,16 @@ latitude pairs; representative latitude and longitude are separate required
 fields. The location, farm, tenant decision, append-only setup evidence, and
 starter draft-only scopes are saved together. No Adelphi data has been entered.
 
-Public smoke checks pass, but authenticated browser acceptance of the deployed
-flow is still open: the paired Brave session was offline. Wasabi should sign in
-at the entry point, review the tenant decision and coordinate/boundary fields,
-and submit the actual Adelphi details himself. Successful setup links to the
+Public smoke checks now pass: `/health` returns HTTP 200 and the unauthenticated
+setup API returns HTTP 401. The first authenticated organization-list request
+returned HTTP 503 because a transaction marked read-only also called the
+operator-session resolver, which takes a row lock to serialize against session
+revocation. The fix removes the read-only transaction marker from this bounded
+list path; it does not add business-data writes or change the session or
+capability checks. Authenticated browser acceptance remains open until Wasabi
+reloads the entry point and confirms the organization choices load. Wasabi can
+then review the tenant decision and coordinate/boundary fields and submit the
+actual Adelphi details himself. Successful setup links to the
 existing operator console for supported location-scoped field activity; other
 farm data-entry screens remain in migration. G4/G5 are not closed by source,
 HTTP checks, or this initial farm-setup path.
