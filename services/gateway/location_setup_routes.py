@@ -250,8 +250,14 @@ def register_location_setup_routes(router: APIRouter, provider, run_in_threadpoo
             response = LocationSetupCreateResponse.model_validate({"data": result})
         except psycopg2.Error as exc:
             sqlstate = getattr(exc, "pgcode", None)
-            if sqlstate == "42501":
+            if (
+                sqlstate == "42501"
+                and "location setup capability is required" in str(exc)
+            ):
                 return _error(403, "Your location setup capability is no longer active.", "location_setup_forbidden")
+            if sqlstate == "42501":
+                _LOGGER.warning("Location setup database permission denied (%s)", type(exc).__name__)
+                return _error(503, "Location setup is temporarily unavailable.", "location_setup_unavailable")
             if sqlstate == "23505":
                 return _error(409, "A location slug, farm slug, or decision reference is already in use.", "location_setup_conflict")
             if sqlstate == "55000":
