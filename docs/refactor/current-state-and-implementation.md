@@ -1,7 +1,7 @@
 # Kokonut Intelligence refactor: candidate completion guide
 
 **Authority:** this is the sole active status, completion register, and execution queue.
-**Baseline (9 November 2026, 14:53 UTC):** the Coolify candidate runs application commit `56f362a57a23238a8d6e4b0ae6ed42d701a0b20a` on database schema 752. Exact-head CI [#42633251067](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/42633251067) and Security/Gitleaks [#42633251306](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/42633251306) passed. Coolify deployment `mwihlybd3zxlwf4ycx9zd5br` finished on that commit. The pre-migration-752 encrypted checkpoint and isolated restore are recorded [here](builds/2026-11-09-recovery/candidate-pre-migration-752-r2-checkpoint.json). No schema migration was included in this deployment. Migration planning reports zero pending schema migrations; candidate checks confirm the isolated operator-auth login can execute both setup functions and `kokonut_runtime` cannot. Exactly one enabled operator identity exists for the configured ZITADEL issuer, with only the audited `location_setup:create` capability granted for Wasabi's onboarding workflow. Cloudflare Worker `ki-operator-control-plane` deployed version `cb7408b5-0abe-48dd-92ee-cd0c8b812760`. Post-deployment `/health` returned HTTP 200 and the unauthenticated setup API returned HTTP 401. The authenticated organization-list request had returned HTTP 503: a read-only transaction conflicted with the authorization resolver's `SELECT ... FOR UPDATE`, which serializes reads against session revocation. The bounded organization-list path no longer marks that transaction read-only; its business query performs no writes, while session locking and capability checks remain intact. Wasabi's authenticated browser refresh is still required to confirm the organizations load. No Adelphi values have been entered and no provider requests have run.
+**Candidate status (9 November 2026):** Coolify deployment `jln5t7uq8bspnnkkgkhwagl2` runs application commit `d5c32d06c446824c609a2c7e27db97bc124f6c89` on database schema 753. Exact-head CI [#42648564386](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/42648564386) and Security/Gitleaks [#42648565021](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/42648565021) passed on that commit. The pre-migration-752 encrypted checkpoint and isolated restore are recorded [here](builds/2026-11-09-recovery/candidate-pre-migration-752-r2-checkpoint.json); migration 753 was applied with 1 success and 0 failures, and the migration plan reports zero pending changes. Migration 753 grants only `organization_member.created_at` to the location-setup function owner, which the setup query needs to order membership rows. The Gateway now reports a location-setup authorization error only when PostgreSQL explicitly identifies the missing capability; unrelated database permission failures return 503 instead of misleading the operator with a 403. `/health` returns HTTP 200 and the unauthenticated setup API returns HTTP 401. Wasabi's authenticated Save retry is still required to confirm the form completes. No Adelphi values are recorded as saved, and no provider requests have run.
 **Finish line selected by owner:** candidate accepted, not production cutover.
 **Owner scope update (8 November 2026):** preserve the original deployment
 profile progression as a future roadmap note. Wasabi deferred profile
@@ -44,45 +44,42 @@ governance rules.
 
 **8 November G2 source-map continuation:** the consolidated caller table below now explicitly includes Directus authorization/schedule hooks, shared-runtime event maintenance, and mobile private-media cleanup. Their live activation and external callers remain unverified; the Standard VPS intentionally excludes Directus, and all database grants remain unchanged.
 
-### 8 November dashboard-led Adelphi onboarding source slice
+### Location setup workflow and candidate acceptance
 
-Wasabi confirmed that he will enter the Kokonut Adelphi information himself
-through the Control Plane so the operator-facing workflow is exercised before
-the farm data is used for provider acceptance. The Control Plane now has source
-for an authenticated location/farm setup form with representative latitude and
-longitude fields, manual longitude/latitude boundary-point entry, and GeoJSON
-boundary upload or paste. Its additive migration 752 saves the location, farm,
-tenant-owner decision, append-only setup evidence, and limited location-read
-and draft-only field-activity grants atomically. It never verifies or publishes
-field records. Existing same-slug setup rows can be completed while preserving
-baseline and historical records; cross-tenant ownership conflicts fail closed.
+Wasabi will enter Kokonut Adelphi through the Control Plane so the operator
+workflow is exercised before farm data is used for provider acceptance. The
+authenticated form accepts representative latitude/longitude values and a
+WGS84 GeoJSON Polygon by upload or paste, or a boundary as manually entered
+longitude/latitude pairs. Migration 752 saves the location, farm, tenant-owner
+decision, append-only setup evidence, and limited location-read and draft-only
+field-activity grants atomically. It never verifies or publishes field records.
+Same-slug setup rows can be completed while preserving baseline and historical
+records; cross-tenant ownership conflicts fail closed. The deployed entry point
+is `https://hub.kokonut.network/ops/administration`.
 
-The latest source commit `56f362a5` has been deployed to the candidate after
-all required gates passed in exact-head CI #42633251067. The earlier
-integration run exposed a clean-bootstrap ordering issue and then missing
-recovery-role and route-inventory entries; those fixes were covered by
-passing run #42557548689. Migration 752 remains applied schema-only, the narrow
-operator-auth function boundary is verified, and Wasabi's `location_setup:create`
-grant is audited. The deployed entry point is
-`https://hub.kokonut.network/ops/administration`. It accepts a WGS84 GeoJSON
-Polygon by upload or paste, or a boundary as manually entered longitude,
-latitude pairs; representative latitude and longitude are separate required
-fields. The location, farm, tenant decision, append-only setup evidence, and
-starter draft-only scopes are saved together. No Adelphi data has been entered.
+The first authenticated organization-list request exposed a transaction mode
+issue: a read-only transaction conflicted with the session resolver's
+`SELECT ... FOR UPDATE`. The bounded listing path now permits the resolver's
+session lock while keeping its business query read-only. On the subsequent Save,
+the capability check passed, but the setup function's membership ordering read
+`organization_member.created_at`, a column omitted from the function owner's
+column grants. PostgreSQL raised `42501`, which the Gateway incorrectly mapped
+to “account is not authorized.” Migration 753 grants that single required column
+to `kokonut_location_setup_owner`; the Gateway now maps only the explicit
+missing-capability error to 403 and reports other database permission failures
+as 503. No caller identity or capability grant was broadened.
 
-Public smoke checks now pass: `/health` returns HTTP 200 and the unauthenticated
-setup API returns HTTP 401. The first authenticated organization-list request
-returned HTTP 503 because a transaction marked read-only also called the
-operator-session resolver, which takes a row lock to serialize against session
-revocation. The fix removes the read-only transaction marker from this bounded
-list path; it does not add business-data writes or change the session or
-capability checks. Authenticated browser acceptance remains open until Wasabi
-reloads the entry point and confirms the organization choices load. Wasabi can
-then review the tenant decision and coordinate/boundary fields and submit the
-actual Adelphi details himself. Successful setup links to the
-existing operator console for supported location-scoped field activity; other
-farm data-entry screens remain in migration. G4/G5 are not closed by source,
-HTTP checks, or this initial farm-setup path.
+Commit `d5c32d06c446824c609a2c7e27db97bc124f6c89` passed exact-head CI
+[#42648564386](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/42648564386)
+and Security/Gitleaks [#42648565021](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/42648565021),
+was deployed as Coolify deployment `jln5t7uq8bspnnkkgkhwagl2`, and migration
+753 is applied with no pending migrations. Live smoke checks return HTTP 200
+from `/health` and HTTP 401 from the unauthenticated setup API. The remaining
+step for this workflow is Wasabi's authenticated Save retry and confirmation;
+no Adelphi values are counted as saved until he confirms success. Successful
+setup links to the existing operator console for supported location-scoped
+field activity; other farm data-entry screens remain in migration. G4/G5 are
+not closed by source, deployment, or HTTP checks alone.
 
 ### 9 November pre-migration 752 checkpoint and restore
 
