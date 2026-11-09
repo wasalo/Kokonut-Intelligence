@@ -14,7 +14,10 @@ def list_location_setup_organizations(
     connection = connection_factory()
     try:
         with connection.cursor() as cursor:
-            cursor.execute("SET TRANSACTION READ ONLY")
+            # The security-definer capability check locks the active operator
+            # session and identity to serialize reads against revocation.
+            # PostgreSQL rejects that SELECT FOR UPDATE in a read-only txn;
+            # this path still performs no business-data writes.
             cursor.execute("SET LOCAL statement_timeout = '5s'")
             cursor.execute("SET LOCAL lock_timeout = '2s'")
             cursor.execute(
