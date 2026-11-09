@@ -74,11 +74,18 @@ def test_native_typer_command_surfaces_match_standalone_apps() -> None:
     root = get_command(unified_cli.app)
     root_context = click.Context(root)
 
+    def parameter_type_name(parameter: click.Parameter) -> str | None:
+        # Newer Typer releases no longer expose ``type`` on every
+        # TyperArgument. Compare it when the Click parameter API provides it;
+        # all other argument/option surface fields are still compared below.
+        parameter_type = getattr(parameter, "type", None)
+        return getattr(parameter_type, "name", None)
+
     def command_surface(command: click.Command, *, root: bool = False) -> tuple[object, ...]:
         parameters = tuple(
             (
                 parameter.name,
-                parameter.type.name,
+                parameter_type_name(parameter),
                 parameter.required,
                 parameter.nargs,
                 tuple(parameter.opts),

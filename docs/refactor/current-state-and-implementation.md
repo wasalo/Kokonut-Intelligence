@@ -85,6 +85,18 @@ location-scoped field activity; other farm data-entry screens remain in
 migration. G4/G5 are not closed by source, deployment, HTTP checks, or this
 initial farm setup alone.
 
+### Latest exact-head CI repair — 9 November 2026
+
+CI [#42695841606](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/42695841606)
+failed in integration on `tests/test_cli.py::test_native_typer_command_surfaces_match_standalone_apps`:
+the unpinned full requirements install resolved Typer 0.29, whose
+`TyperArgument` no longer exposes the `.type` attribute assumed by the CLI
+surface comparison. The test now reads the type through the Click parameter
+interface when present and continues comparing the remaining argument/option
+fields. The focused module passed locally (10 tests); Security/Gitleaks passed
+on the failed head. This repair and the current G5 evidence need a fresh
+exact-head CI/Security run before candidate redeployment.
+
 ### Operator session lifetime
 
 The candidate's previous source defaulted to a 30-minute session lifetime,
@@ -202,9 +214,13 @@ market data, EAS/RPC/Gnosis/Baal indexing, SMTP alerts, Field Collector media
 R2, report-export R2, and encrypted backup R2. This is the selected candidate
 target. Candidate configuration is partial: API media R2 and report-reader
 settings are deployed; report-writer settings are deployed to the opt-in
-service and its synthetic adapter probe passed. Provider workers, alert
-delivery, backup settings/cadence, and live jobs remain unconfigured or
-unaccepted.
+service and its synthetic adapter probe passed. Weather worker credentials are
+now encrypted in local SOPS and staged as runtime-only Coolify variables with
+the feature flag explicitly false. The candidate still has its prior
+materialized environment, so its optional worker login remains `NOLOGIN`; no
+weather grant, provider fetch, or deployment has occurred. Other provider
+workers, alert delivery, backup settings/cadence, and live jobs remain
+unconfigured or unaccepted.
 Location-specific jobs still require populated locations
 and exact worker grants, and this direction does not authorize production
 schedules. Directus remains optional and is excluded from Standard.
@@ -234,7 +250,7 @@ evidence. The earlier local-runner probes failed before an HTTP response.
 
 | Area | Source and configuration evidence | Status and remaining acceptance |
 | --- | --- | --- |
-| Weather | `services/ingestion/weather_worker.py` and `weather_forecast_worker.py` use scoped `KOKONUT_WEATHER_*` keys. Legacy `OpenWeatherMap_API_KEY` is non-empty in both `.env` and SOPS; their values match in memory. Read-only current-weather and 5-day forecast requests returned HTTP 200 ([provider smoke](builds/2026-11-08-recovery/g5-provider-credential-smoke-local.json)). Both scoped worker keys are absent. | The legacy key is valid for both source endpoints. Host-run current-weather and five-day forecast reads using the candidate Adelphi coordinates succeeded on 9 November; neither observation nor forecast was imported ([current-weather evidence](builds/2026-11-09-recovery/g5-adelphi-weather-read-smoke.json); [forecast evidence](builds/2026-11-09-recovery/g5-adelphi-weather-forecast-smoke.json)). Candidate worker credentials and schedules remain unconfigured; keep the dedicated jobs disabled until scoped settings, dispatcher ownership, and candidate behavior are reviewed. |
+| Weather | `services/ingestion/weather_worker.py` and `weather_forecast_worker.py` use scoped `KOKONUT_WEATHER_*` keys. Legacy `OpenWeatherMap_API_KEY` is present and was validated with read-only endpoint requests. Fresh observation-worker login password, location-bound credential, database URL, and scoped API key are encrypted in local SOPS; runtime-only Coolify variables are staged. The feature flag is explicitly false. | Host-run current-weather and five-day forecast reads using the candidate Adelphi coordinates succeeded on 9 November; neither observation nor forecast was imported ([current-weather evidence](builds/2026-11-09-recovery/g5-adelphi-weather-read-smoke.json); [forecast evidence](builds/2026-11-09-recovery/g5-adelphi-weather-forecast-smoke.json)). The weather observation worker passed disposable PostgreSQL acceptance for its signed exact-location grant, atomic/idempotent writes, cross-location denial, forced RLS, and absence of direct table grants ([disposable evidence](builds/2026-11-09-recovery/g5-weather-observation-worker-disposable.json)). Coolify has not materialized the staged environment; candidate bootstrap therefore left `kokonut_worker_login` at `NOLOGIN`. No candidate grant, provider fetch, or schedule exists yet. After exact-head CI is green, deploy the staged environment, provision only the Adelphi `weather_observation:ingest` grant, and run one current-weather ingestion with the feature enabled for that one-shot process. Keep forecast and recurring schedules disabled. |
 | Remote sensing | `services/ingestion/gee_remote_sensing.py` and `copernicus_remote_sensing.py` support Earth Engine and Copernicus. Legacy `GEE_*` and `COPERNICUS_*` settings are non-empty; scoped `KOKONUT_REMOTE_SENSING_*` worker settings are blank/absent. | Copernicus OAuth authentication and catalog read passed. On 9 November, a host-run Sentinel-2 catalog query using the candidate Adelphi boundary succeeded and matched five products; metadata was discarded and nothing was persisted ([candidate-location evidence](builds/2026-11-09-recovery/g5-adelphi-copernicus-catalog-smoke.json)). The Earth Engine service-account key issued a Google OAuth token, while a read-only Earth Engine request returned access denied; investigate the GCP project’s Earth Engine registration/permissions before changing the key. `GEE_API_KEY` is not used by the current adapter. Candidate worker settings remain absent; keep remote-sensing/climate jobs disabled ([provider smoke](builds/2026-11-08-recovery/g5-provider-credential-smoke-local.json)). |
 | Market data | `services/ingestion/market_data_worker.py` reads the public World Bank Pink Sheet workbook without an API key. The old pinned attachment URL returned 404, and the current workbook uses a period-row/commodity-column layout. | The official [World Bank Commodity Markets page](https://www.worldbank.org/en/research/commodity-markets) exposes the current historical workbook. The ingestion now discovers that HTTPS workbook link from the stable publication page, validates the official host/path, supports a validated direct-URL override, and parses both the current workbook layout and the legacy month-column layout. The current workbook downloaded and parsed in memory into 6,104 supported price rows through 2026-10-01. No candidate database import or output parity was run; schedule activation remains unverified ([provider smoke](builds/2026-11-08-recovery/g5-provider-credential-smoke-local.json)). |
 | Chain data | EAS, RPC, Gnosis, and Baal indexers have dedicated worker paths in `services/ingestion/`; legacy chain endpoint names exist in SOPS, but candidate worker database/endpoint settings are absent. | Read-only RPC checks matched expected chain IDs for Ethereum, Optimism, Base, Arbitrum, Gnosis, and the code-default Celo endpoint; the Celo EAS GraphQL read query returned data. The code-default Alfajores endpoint was unreachable and has no configured credential. Candidate worker database/endpoint settings, freshness, and live indexing remain unverified; keep schedules disabled ([provider smoke](builds/2026-11-08-recovery/g5-provider-credential-smoke-local.json)). |
