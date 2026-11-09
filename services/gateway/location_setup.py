@@ -8,10 +8,9 @@ from uuid import UUID
 
 
 def list_location_setup_organizations(
-    operator_id: str, *, connection_factory: Callable
+    session_token_hash: str, *, connection_factory: Callable
 ) -> list[dict]:
     """Return the bounded active organization choices for an authorized setup operator."""
-    normalized_operator_id = str(UUID(operator_id))
     connection = connection_factory()
     try:
         with connection.cursor() as cursor:
@@ -20,8 +19,8 @@ def list_location_setup_organizations(
             cursor.execute("SET LOCAL lock_timeout = '2s'")
             cursor.execute(
                 """SELECT id, org_key, name
-                     FROM kokonut_security.list_location_setup_organizations(%s::uuid)""",
-                (normalized_operator_id,),
+                     FROM kokonut_security.list_location_setup_organizations(%s::text)""",
+                (session_token_hash,),
             )
             rows = cursor.fetchall()
         connection.commit()
@@ -37,7 +36,7 @@ def list_location_setup_organizations(
 
 
 def create_operator_location_setup(
-    operator_id: str,
+    session_token_hash: str,
     organization_id: str,
     location: dict,
     farm: dict,
@@ -46,7 +45,6 @@ def create_operator_location_setup(
     connection_factory: Callable,
 ) -> dict:
     """Create a tenant-qualified location/farm and its bounded starter scopes."""
-    normalized_operator_id = str(UUID(operator_id))
     normalized_organization_id = str(UUID(organization_id))
     connection = connection_factory()
     try:
@@ -55,10 +53,10 @@ def create_operator_location_setup(
             cursor.execute("SET LOCAL lock_timeout = '5s'")
             cursor.execute(
                 """SELECT kokonut_security.create_operator_location_setup(
-                           %s::uuid, %s::uuid, %s::jsonb, %s::jsonb, %s
+                           %s::text, %s::uuid, %s::jsonb, %s::jsonb, %s
                        )""",
                 (
-                    normalized_operator_id,
+                    session_token_hash,
                     normalized_organization_id,
                     json.dumps(location, separators=(",", ":")),
                     json.dumps(farm, separators=(",", ":")),

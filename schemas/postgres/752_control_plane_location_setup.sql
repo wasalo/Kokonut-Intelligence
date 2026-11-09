@@ -214,28 +214,24 @@ CREATE TRIGGER trg_location_setup_audit_no_truncate
     FOR EACH STATEMENT EXECUTE FUNCTION kokonut_security.prevent_location_setup_audit_mutation();
 
 CREATE OR REPLACE FUNCTION kokonut_security.location_setup_capability_allows(
-    requested_operator_id UUID
+    requested_session_token_hash TEXT
 )
 RETURNS BOOLEAN
 LANGUAGE SQL
-STABLE
 SECURITY DEFINER
 SET search_path = pg_catalog
 AS $$
-    SELECT EXISTS (
-        SELECT 1
-          FROM kokonut_security.operator_global_capability capability
-          JOIN public.operator_identity identity
-            ON identity.id = capability.operator_id AND identity.enabled
-         WHERE capability.operator_id = requested_operator_id
-           AND capability.capability_code = 'location_setup:create'
-           AND capability.revoked_at IS NULL
+    SELECT kokonut_security.operator_global_capability_allows(
+        requested_session_token_hash,
+        'location_setup:create'
     )
 $$;
-ALTER FUNCTION kokonut_security.location_setup_capability_allows(UUID)
+ALTER FUNCTION kokonut_security.location_setup_capability_allows(TEXT)
     OWNER TO kokonut_operator_capability_owner;
-REVOKE ALL ON FUNCTION kokonut_security.location_setup_capability_allows(UUID) FROM PUBLIC;
-GRANT EXECUTE ON FUNCTION kokonut_security.location_setup_capability_allows(UUID)
+REVOKE ALL ON FUNCTION kokonut_security.location_setup_capability_allows(TEXT) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION kokonut_security.location_setup_capability_allows(TEXT)
+    TO kokonut_location_setup_owner;
+GRANT EXECUTE ON FUNCTION kokonut_security.resolve_clickhouse_outbox_operator_session(TEXT)
     TO kokonut_location_setup_owner;
 
 GRANT USAGE, CREATE ON SCHEMA kokonut_security TO kokonut_location_setup_owner;
@@ -451,7 +447,7 @@ END;
 $$;
 
 CREATE OR REPLACE FUNCTION kokonut_security.list_location_setup_organizations(
-    requested_operator_id UUID
+    requested_session_token_hash TEXT
 )
 RETURNS TABLE(id UUID, org_key TEXT, name TEXT)
 LANGUAGE plpgsql
@@ -459,7 +455,7 @@ SECURITY DEFINER
     SET search_path = pg_catalog
 AS $$
 BEGIN
-    IF NOT kokonut_security.location_setup_capability_allows(requested_operator_id) THEN
+    IF NOT kokonut_security.location_setup_capability_allows(requested_session_token_hash) THEN
         RAISE EXCEPTION 'location setup capability is required' USING ERRCODE = '42501';
     END IF;
     RETURN QUERY
@@ -470,14 +466,14 @@ BEGIN
      LIMIT 200;
 END;
 $$;
-ALTER FUNCTION kokonut_security.list_location_setup_organizations(UUID)
+ALTER FUNCTION kokonut_security.list_location_setup_organizations(TEXT)
     OWNER TO kokonut_location_setup_owner;
-REVOKE ALL ON FUNCTION kokonut_security.list_location_setup_organizations(UUID) FROM PUBLIC;
-GRANT EXECUTE ON FUNCTION kokonut_security.list_location_setup_organizations(UUID)
+REVOKE ALL ON FUNCTION kokonut_security.list_location_setup_organizations(TEXT) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION kokonut_security.list_location_setup_organizations(TEXT)
     TO kokonut_operator_auth;
 
 CREATE OR REPLACE FUNCTION kokonut_security.create_operator_location_setup(
-    requested_operator_id UUID,
+    requested_session_token_hash TEXT,
     requested_organization_id UUID,
     requested_location JSONB,
     requested_farm JSONB,
@@ -508,6 +504,7 @@ DECLARE
     existing_owned_membership_id UUID;
     existing_farm_id UUID;
     existing_farm_location_id UUID;
+    requested_operator_id UUID;
     farm_name TEXT;
     farm_slug TEXT;
     farm_description TEXT;
@@ -524,9 +521,12 @@ DECLARE
     granted_scopes JSONB;
     scope_row RECORD;
 BEGIN
-    IF NOT kokonut_security.location_setup_capability_allows(requested_operator_id) THEN
+    IF NOT kokonut_security.location_setup_capability_allows(requested_session_token_hash) THEN
         RAISE EXCEPTION 'location setup capability is required' USING ERRCODE = '42501';
     END IF;
+    requested_operator_id := kokonut_security.resolve_clickhouse_outbox_operator_session(
+        requested_session_token_hash
+    );
     IF requested_location IS NULL OR jsonb_typeof(requested_location) <> 'object'
        OR requested_farm IS NULL OR jsonb_typeof(requested_farm) <> 'object' THEN
         RAISE EXCEPTION 'location and farm details are required' USING ERRCODE = '22023';
@@ -835,13 +835,13 @@ EXCEPTION
             USING ERRCODE = '23505';
 END;
 $$;
-ALTER FUNCTION kokonut_security.create_operator_location_setup(UUID, UUID, JSONB, JSONB, TEXT)
+ALTER FUNCTION kokonut_security.create_operator_location_setup(TEXT, UUID, JSONB, JSONB, TEXT)
     OWNER TO kokonut_location_setup_owner;
-REVOKE ALL ON FUNCTION kokonut_security.create_operator_location_setup(UUID, UUID, JSONB, JSONB, TEXT) FROM PUBLIC;
-GRANT EXECUTE ON FUNCTION kokonut_security.create_operator_location_setup(UUID, UUID, JSONB, JSONB, TEXT)
+REVOKE ALL ON FUNCTION kokonut_security.create_operator_location_setup(TEXT, UUID, JSONB, JSONB, TEXT) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION kokonut_security.create_operator_location_setup(TEXT, UUID, JSONB, JSONB, TEXT)
     TO kokonut_operator_auth;
 
-COMMENT ON FUNCTION kokonut_security.create_operator_location_setup(UUID, UUID, JSONB, JSONB, TEXT) IS
+COMMENT ON FUNCTION kokonut_security.create_operator_location_setup(TEXT, UUID, JSONB, JSONB, TEXT) IS
     'Creates or completes one tenant-qualified location and farm from an authenticated Control Plane setup flow; preserves baseline/history fields, confirms tenant assignment from the submitted decision reference, and gives only location-read plus draft-only field activity scopes.';
 COMMENT ON TABLE kokonut_security.location_setup_audit IS
     'Append-only evidence for Control Plane location/farm setup, including the explicit tenant-owner decision reference.';

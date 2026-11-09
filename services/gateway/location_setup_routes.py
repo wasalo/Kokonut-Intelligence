@@ -198,7 +198,7 @@ def register_location_setup_routes(router: APIRouter, provider, run_in_threadpoo
         try:
             organizations = await run_in_threadpool(
                 list_location_setup_organizations,
-                session.operator.operator_id,
+                session.session_token_hash,
                 connection_factory=connection_factory,
             )
             response = LocationSetupOrganizationsResponse.model_validate({"data": organizations})
@@ -240,7 +240,7 @@ def register_location_setup_routes(router: APIRouter, provider, run_in_threadpoo
             farm_payload["total_area"] = float(body.farm.total_area)
             result = await run_in_threadpool(
                 create_operator_location_setup,
-                session.operator.operator_id,
+                session.session_token_hash,
                 str(body.organization_id),
                 body.location.model_dump(mode="json"),
                 farm_payload,
