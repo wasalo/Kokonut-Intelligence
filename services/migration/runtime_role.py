@@ -117,6 +117,10 @@ _CLICKHOUSE_OUTBOX_OPERATOR_FUNCTIONS = (
     "kokonut_security.transition_clickhouse_outbox_operator_dead_letter(text,uuid,text,text)",
 )
 _OPERATOR_GLOBAL_CAPABILITY_FUNCTION = "kokonut_security.operator_global_capability_allows(text,text)"
+_LOCATION_SETUP_FUNCTIONS = (
+    "kokonut_security.list_location_setup_organizations(text)",
+    "kokonut_security.create_operator_location_setup(text,uuid,jsonb,jsonb,text)",
+)
 _SCHEDULER_OPERATOR_ACTION_FUNCTION = "kokonut_security.audit_scheduler_operator_action(text,uuid,text,text)"
 _CLICKHOUSE_OUTBOX_OPERATOR_SESSION_FUNCTION = "kokonut_security.resolve_clickhouse_outbox_operator_session(text)"
 _OPERATOR_GLOBAL_CAPABILITY_ADMIN_FUNCTIONS = (
@@ -259,6 +263,7 @@ _SECURITY_DEFINER_OWNERS = (
     (_CLICKHOUSE_OUTBOX_OPERATOR_SESSION_FUNCTION, "kokonut_clickhouse_outbox_operator_owner"),
     *((function, "kokonut_clickhouse_outbox_operator_owner") for function in _CLICKHOUSE_OUTBOX_OPERATOR_FUNCTIONS),
     (_OPERATOR_GLOBAL_CAPABILITY_FUNCTION, "kokonut_operator_capability_owner"),
+    *((function, "kokonut_location_setup_owner") for function in _LOCATION_SETUP_FUNCTIONS),
     (_SCHEDULER_OPERATOR_ACTION_FUNCTION, "kokonut_operator_capability_owner"),
     *((function, "kokonut_operator_capability_owner") for function in _OPERATOR_GLOBAL_CAPABILITY_ADMIN_FUNCTIONS),
     *((function, "kokonut_report_snapshot_export_owner") for function in _REPORT_SNAPSHOT_EXPORT_FUNCTIONS),
@@ -298,6 +303,7 @@ _PRIVATE_RUNTIME_FUNCTIONS = (
     _CLICKHOUSE_OUTBOX_OPERATOR_SESSION_FUNCTION,
     *_CLICKHOUSE_OUTBOX_OPERATOR_FUNCTIONS,
     _OPERATOR_GLOBAL_CAPABILITY_FUNCTION,
+    *_LOCATION_SETUP_FUNCTIONS,
     _SCHEDULER_OPERATOR_ACTION_FUNCTION,
     *_OPERATOR_GLOBAL_CAPABILITY_ADMIN_FUNCTIONS,
     *_REPORT_SNAPSHOT_EXPORT_FUNCTIONS,
@@ -974,11 +980,12 @@ def _verify_security_definer_owners(cur) -> None:
         result = cur.fetchone()
         expected = (expected_owner, False, False, False, False, False, False, False, False)
         if result != expected:
-            migration_hint = (
-                "apply migration 750 before provisioning runtime roles"
-                if expected_owner == "kokonut_operator_scope_read_owner"
-                else "apply migration 400 before provisioning runtime roles"
-            )
+            if expected_owner == "kokonut_operator_scope_read_owner":
+                migration_hint = "apply migration 750 before provisioning runtime roles"
+            elif expected_owner == "kokonut_location_setup_owner":
+                migration_hint = "apply migration 752 before provisioning runtime roles"
+            else:
+                migration_hint = "apply migration 400 before provisioning runtime roles"
             raise RuntimeError(
                 f"{function} must be owned by isolated {expected_owner}; "
                 f"{migration_hint}"
@@ -2052,9 +2059,10 @@ def provision_runtime_role(
     When configured, the separate worker login inherits the current runtime
     ACL with ``SET ROLE`` disabled; this is identity attribution only and does
     not close the C1 caller/grant review.
-    The dedicated auth role can only execute
-    the three bounded functions from migration 395. This is scoped to a
-    dedicated Kernel PostgreSQL instance. When configured, the optional
+    The dedicated auth role receives only explicitly listed bounded session,
+    scope-read, and operator-control functions; it never reads session or
+    tenant tables directly. This is scoped to a dedicated Kernel PostgreSQL
+    instance. When configured, the optional
     notification-enqueue login receives only its bounded intent function.
     When configured, the market-data login receives only bounded global
     World Bank, reference-seed, and manual-price functions. When configured, the sensor-ingestion login can
@@ -2396,6 +2404,15 @@ def provision_runtime_role(
             raise RuntimeError(
                 "migration 750 operator-scope read functions must be applied before role provisioning"
             )
+        cur.execute(
+            "SELECT " + ", ".join("to_regprocedure(%s)" for _ in _LOCATION_SETUP_FUNCTIONS),
+            _LOCATION_SETUP_FUNCTIONS,
+        )
+        location_setup_functions = cur.fetchone()
+        if any(procedure is not None for procedure in location_setup_functions) and any(
+            procedure is None for procedure in location_setup_functions
+        ):
+            raise RuntimeError("location setup functions must be installed as a complete set")
         cur.execute(
             "SELECT to_regprocedure(%s), to_regprocedure(%s), to_regprocedure(%s)",
             (
@@ -3483,6 +3500,14 @@ def provision_runtime_role(
         cur.execute(
             sql.SQL("GRANT EXECUTE ON FUNCTION {} TO {}").format(sql.SQL(_OPERATOR_GLOBAL_CAPABILITY_FUNCTION), auth_ident)
         )
+        if all(procedure is not None for procedure in location_setup_functions):
+            for function in _LOCATION_SETUP_FUNCTIONS:
+                cur.execute(
+                    sql.SQL("REVOKE ALL ON FUNCTION {} FROM {}").format(sql.SQL(function), runtime_ident)
+                )
+                cur.execute(
+                    sql.SQL("GRANT EXECUTE ON FUNCTION {} TO {}").format(sql.SQL(function), auth_ident)
+                )
 
         _verify_role_attributes(cur, runtime_user)
         _verify_role_attributes(cur, operator_auth_user)
@@ -3789,6 +3814,29 @@ def provision_runtime_role(
         )
         if cur.fetchone()[0] is not True:
             raise RuntimeError("operator-auth role is missing the bounded scope-read functions")
+        if all(procedure is not None for procedure in location_setup_functions):
+            cur.execute(
+                "SELECT "
+                + " AND ".join(
+                    "has_function_privilege(%s, %s, 'EXECUTE')" for _ in _LOCATION_SETUP_FUNCTIONS
+                ),
+                tuple(
+                    value
+                    for function in _LOCATION_SETUP_FUNCTIONS
+                    for value in (operator_auth_user, function)
+                ),
+            )
+            if cur.fetchone()[0] is not True:
+                raise RuntimeError("operator-auth role is missing the bounded location-setup functions")
+            cur.execute(
+                "SELECT "
+                + " OR ".join(
+                    "has_function_privilege(%s, %s, 'EXECUTE')" for _ in _LOCATION_SETUP_FUNCTIONS
+                ),
+                tuple(value for function in _LOCATION_SETUP_FUNCTIONS for value in (runtime_user, function)),
+            )
+            if cur.fetchone()[0]:
+                raise RuntimeError("runtime role can execute isolated location-setup functions")
         cur.execute(
             "SELECT "
             + " OR ".join(

@@ -49,7 +49,8 @@ governance rules.
 Wasabi confirmed that he will enter the Kokonut Adelphi information himself
 through the Control Plane so the operator-facing workflow is exercised before
 the farm data is used for provider acceptance. The Control Plane now has source
-for an authenticated location/farm setup form with coordinates and GeoJSON
+for an authenticated location/farm setup form with representative latitude and
+longitude fields, manual longitude/latitude boundary-point entry, and GeoJSON
 boundary upload or paste. Its additive migration 752 saves the location, farm,
 tenant-owner decision, append-only setup evidence, and limited location-read
 and draft-only field-activity grants atomically. It never verifies or publishes
@@ -59,9 +60,13 @@ baseline and historical records; cross-tenant ownership conflicts fail closed.
 This is source implementation only. No Adelphi values have been entered, no
 provider request or reference-data import has run, migration 752 has not been
 applied to the VPS, and this dashboard route has not been deployed or browser
-accepted. PR #73 integration CI is being corrected for its three ARM64 Compose
-assertions; the onboarding path itself still needs exact-head CI, a reviewed
-candidate migration, an explicit DBA grant of `location_setup:create` to
+accepted. PR #73's previous exact-head integration run exposed a clean-bootstrap
+ordering issue: migration 752 could run before the optional operator-auth login
+was created. The migration now grants conditionally, and runtime-role
+provisioning grants and verifies the two setup functions for that isolated login
+while denying them to shared runtime. A fresh local clean PostgreSQL bootstrap
+passes; exact-head GitHub CI is pending. Candidate rollout still needs reviewed
+migration application, an explicit DBA grant of `location_setup:create` to
 Wasabi's operator identity, and authenticated browser acceptance. After that,
 the result links to the existing operator console for the location-scoped
 operational forms; those remaining forms have not yet been migrated into the

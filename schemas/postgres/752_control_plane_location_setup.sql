@@ -99,8 +99,6 @@ $$;
 ALTER FUNCTION kokonut_security.operator_global_capability_allows(TEXT, TEXT)
     OWNER TO kokonut_operator_capability_owner;
 REVOKE ALL ON FUNCTION kokonut_security.operator_global_capability_allows(TEXT, TEXT) FROM PUBLIC;
-GRANT EXECUTE ON FUNCTION kokonut_security.operator_global_capability_allows(TEXT, TEXT)
-    TO kokonut_operator_auth;
 
 CREATE OR REPLACE FUNCTION kokonut_security.grant_operator_global_capability(
     requested_operator_id UUID,
@@ -469,8 +467,16 @@ $$;
 ALTER FUNCTION kokonut_security.list_location_setup_organizations(TEXT)
     OWNER TO kokonut_location_setup_owner;
 REVOKE ALL ON FUNCTION kokonut_security.list_location_setup_organizations(TEXT) FROM PUBLIC;
-GRANT EXECUTE ON FUNCTION kokonut_security.list_location_setup_organizations(TEXT)
-    TO kokonut_operator_auth;
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM pg_catalog.pg_roles WHERE rolname = 'kokonut_operator_auth') THEN
+        EXECUTE pg_catalog.format(
+            'GRANT EXECUTE ON FUNCTION kokonut_security.list_location_setup_organizations(TEXT) TO %I',
+            'kokonut_operator_auth'
+        );
+    END IF;
+END;
+$$;
 
 CREATE OR REPLACE FUNCTION kokonut_security.create_operator_location_setup(
     requested_session_token_hash TEXT,
@@ -838,8 +844,16 @@ $$;
 ALTER FUNCTION kokonut_security.create_operator_location_setup(TEXT, UUID, JSONB, JSONB, TEXT)
     OWNER TO kokonut_location_setup_owner;
 REVOKE ALL ON FUNCTION kokonut_security.create_operator_location_setup(TEXT, UUID, JSONB, JSONB, TEXT) FROM PUBLIC;
-GRANT EXECUTE ON FUNCTION kokonut_security.create_operator_location_setup(TEXT, UUID, JSONB, JSONB, TEXT)
-    TO kokonut_operator_auth;
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM pg_catalog.pg_roles WHERE rolname = 'kokonut_operator_auth') THEN
+        EXECUTE pg_catalog.format(
+            'GRANT EXECUTE ON FUNCTION kokonut_security.create_operator_location_setup(TEXT, UUID, JSONB, JSONB, TEXT) TO %I',
+            'kokonut_operator_auth'
+        );
+    END IF;
+END;
+$$;
 
 COMMENT ON FUNCTION kokonut_security.create_operator_location_setup(TEXT, UUID, JSONB, JSONB, TEXT) IS
     'Creates or completes one tenant-qualified location and farm from an authenticated Control Plane setup flow; preserves baseline/history fields, confirms tenant assignment from the submitted decision reference, and gives only location-read plus draft-only field activity scopes.';

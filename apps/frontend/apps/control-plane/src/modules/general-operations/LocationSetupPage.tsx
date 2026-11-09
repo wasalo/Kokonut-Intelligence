@@ -134,6 +134,38 @@ function parsePolygonGeoJSON(text: string): PolygonGeoJSON {
   return geometry as PolygonGeoJSON;
 }
 
+function parseCoordinateList(text: string): PolygonGeoJSON {
+  if (new TextEncoder().encode(text).length > 262_144) {
+    throw new Error("Boundary coordinates must be 256 KB or smaller.");
+  }
+  const rows = text.split(/\r?\n/).map((row) => row.trim()).filter(Boolean);
+  if (rows.length < 3 || rows.length > 2048) {
+    throw new Error("Enter at least three boundary points and no more than 2,048.");
+  }
+  const points = rows.map((row) => {
+    const values = row.split(",").map((value) => value.trim());
+    if (values.length !== 2 || values.some((value) => value === "")) {
+      throw new Error("Enter one longitude, latitude pair on each line.");
+    }
+    const longitude = Number(values[0]);
+    const latitude = Number(values[1]);
+    if (
+      !Number.isFinite(longitude) || !Number.isFinite(latitude) ||
+      longitude < -180 || longitude > 180 || latitude < -90 || latitude > 90
+    ) {
+      throw new Error("Boundary points must use valid WGS84 longitude/latitude values.");
+    }
+    return [longitude, latitude];
+  });
+  if (new Set(points.map((point) => `${point[0]},${point[1]}`)).size < 3) {
+    throw new Error("The boundary must include at least three distinct points.");
+  }
+  const first = points[0];
+  const last = points[points.length - 1];
+  if (first[0] !== last[0] || first[1] !== last[1]) points.push([...first]);
+  return parsePolygonGeoJSON(JSON.stringify({ type: "Polygon", coordinates: [points] }));
+}
+
 function boundaryPointCount(boundary: PolygonGeoJSON): number {
   return boundary.coordinates.reduce((count, ring) => count + ring.length, 0);
 }
@@ -182,6 +214,7 @@ function BoundaryUploadField({
   onChange: (boundary: PolygonGeoJSON | null, message: string) => void;
 }) {
   const [pastedGeoJSON, setPastedGeoJSON] = useState("");
+  const [manualCoordinates, setManualCoordinates] = useState("");
   const [pasteError, setPasteError] = useState("");
 
   async function handleFile(event: ChangeEvent<HTMLInputElement>) {
@@ -219,6 +252,19 @@ function BoundaryUploadField({
     }
   }
 
+  function loadManualCoordinates() {
+    try {
+      const geometry = parseCoordinateList(manualCoordinates);
+      setPasteError("");
+      setPastedGeoJSON(JSON.stringify(geometry, null, 2));
+      onChange(geometry, "");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "The boundary points could not be read.";
+      setPasteError(message);
+      onChange(null, message);
+    }
+  }
+
   return (
     <div className="location-setup__field location-setup__field-wide">
       <label htmlFor={id}>{label}</label>
@@ -230,8 +276,29 @@ function BoundaryUploadField({
         aria-describedby={pasteError ? `${id}-hint ${id}-status ${id}-error` : `${id}-hint ${id}-status`}
       />
       <p className="location-setup__help" id={`${id}-hint`}>
-        {helpText} Upload a GeoJSON Polygon exported in WGS84, or paste its geometry below. Coordinates use longitude, latitude order.
+        {helpText} Use a GeoJSON Polygon exported in WGS84, paste its geometry, or enter one point per line. Coordinates use longitude, latitude order.
       </p>
+      <label className="location-setup__help" htmlFor={`${id}-coordinates`}>Enter boundary points manually</label>
+      <textarea
+        id={`${id}-coordinates`}
+        rows={5}
+        maxLength={262_144}
+        spellCheck={false}
+        placeholder="-72.1234, 18.5678\n-72.1200, 18.5680\n-72.1210, 18.5650"
+        value={manualCoordinates}
+        onChange={(event) => {
+          setManualCoordinates(event.target.value);
+          setPasteError("");
+          onChange(null, "");
+        }}
+        aria-describedby={`${id}-coordinates-hint ${pasteError ? `${id}-error` : `${id}-status`}`}
+      />
+      <p className="location-setup__help" id={`${id}-coordinates-hint`}>
+        Enter at least three distinct WGS84 points as longitude, latitude pairs. The first point is repeated automatically to close the outline.
+      </p>
+      <button className="location-setup__secondary-action" type="button" onClick={loadManualCoordinates}>
+        Use entered points
+      </button>
       <label className="location-setup__help" htmlFor={`${id}-geojson`}>Paste GeoJSON Polygon</label>
       <textarea
         id={`${id}-geojson`}
@@ -336,8 +403,8 @@ export function LocationSetupPage() {
     setSubmitError("");
     setResult(null);
     try {
-      if (!locationBoundary) throw new Error("Upload the location boundary before saving.");
-      if (!sameBoundary && !farmBoundary) throw new Error("Upload the farm boundary or confirm it matches the location boundary.");
+      if (!locationBoundary) throw new Error("Provide the location boundary as GeoJSON or coordinate points before saving.");
+      if (!sameBoundary && !farmBoundary) throw new Error("Provide the farm boundary as GeoJSON or coordinate points, or confirm it matches the location boundary.");
       const selectedOrganization = organizations.find((organization) => organization.id === selectedOrganizationId);
       if (!selectedOrganization) throw new Error("Choose an active tenant organization.");
       const latitudeValue = Number(latitude);
