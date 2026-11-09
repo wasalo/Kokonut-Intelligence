@@ -1,7 +1,7 @@
 # Kokonut Intelligence refactor: candidate completion guide
 
 **Authority:** this is the sole active status, completion register, and execution queue.
-**Baseline:** Kernel candidate source `0b956676`; execution status updated 8 November 2026. PR #73 head `ccf5a329` passed preflight, source checks, image checks, and Gitleaks, but integration CI failed in shard 13 on three ARM64 Compose topology/platform assertions ([run #42536972071](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/42536972071)). Local commit `db497b04` is one documentation commit ahead of that remote head; the current worktree also contains the Compose correction and dashboard onboarding source work. None of these newer changes has exact-head CI/Security evidence yet.
+**Baseline:** the Coolify candidate still runs application commit `0b956676` on database schema 751; execution status updated 9 November 2026. PR #73 head `b48d7506` passed preflight, source/security checks, and multi-architecture image validation, but integration CI [#42552767880](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/42552767880) failed two source-inventory assertions: migration 752's new disabled role was missing from the isolated-restore prerequisite set, and the exact OIDC route inventory omitted the two location-setup routes. The follow-up adds those entries; the focused local checks pass (10 tests), and exact-head CI is pending. The latest encrypted pre-migration checkpoint and isolated restore are recorded [here](builds/2026-11-09-recovery/candidate-pre-migration-752-r2-checkpoint.json). Migration 752 remains unapplied to the candidate, and no Adelphi values have been entered.
 **Finish line selected by owner:** candidate accepted, not production cutover.
 **Owner scope update (8 November 2026):** preserve the original deployment
 profile progression as a future roadmap note. Wasabi deferred profile
@@ -60,17 +60,31 @@ baseline and historical records; cross-tenant ownership conflicts fail closed.
 This is source implementation only. No Adelphi values have been entered, no
 provider request or reference-data import has run, migration 752 has not been
 applied to the VPS, and this dashboard route has not been deployed or browser
-accepted. PR #73's previous exact-head integration run exposed a clean-bootstrap
+accepted. PR #73's earlier exact-head integration run exposed a clean-bootstrap
 ordering issue: migration 752 could run before the optional operator-auth login
 was created. The migration now grants conditionally, and runtime-role
 provisioning grants and verifies the two setup functions for that isolated login
-while denying them to shared runtime. A fresh local clean PostgreSQL bootstrap
-passes; exact-head GitHub CI is pending. Candidate rollout still needs reviewed
-migration application, an explicit DBA grant of `location_setup:create` to
-Wasabi's operator identity, and authenticated browser acceptance. After that,
-the result links to the existing operator console for the location-scoped
-operational forms; those remaining forms have not yet been migrated into the
-Control Plane.
+while denying them to shared runtime. The 9 November run also caught missing
+recovery-role and route-inventory entries; both are repaired in the follow-up
+now awaiting exact-head CI. Candidate rollout still needs reviewed migration
+application, an explicit DBA grant of `location_setup:create` to Wasabi's
+operator identity, and authenticated browser acceptance. After that, the result
+links to the existing operator console for the location-scoped operational
+forms; those remaining forms have not yet been migrated into the Control Plane.
+
+### 9 November pre-migration 752 checkpoint and restore
+
+Before changing the candidate schema, both candidate PostgreSQL databases were
+dumped directly into AES-256-CBC/PBKDF2 encryption, signed with the checkpoint
+manifest, committed to `kokonut-backups/kokonut-kernel-backups`, and downloaded
+back. Manifest, artifact hashes, and sizes matched. The encrypted Kokonut and
+ZITADEL archives then restored successfully into separate, pinned PostgreSQL
+16/PostGIS and PostgreSQL 17 containers on Docker's `none` network. The restore
+used the repository's disabled NOLOGIN role prerequisites; it found 1,210
+Kokonut user tables and 144 ZITADEL user tables, with PostGIS present. Only the
+newly labeled temporary containers and volumes were removed after verification.
+This is a fresh database checkpoint and isolated restore, not the full Coolify
+recovery rehearsal or the 24-hour soak. See [checkpoint evidence](builds/2026-11-09-recovery/candidate-pre-migration-752-r2-checkpoint.json).
 
 ### 7 November candidate runtime rollout checkpoint
 

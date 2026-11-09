@@ -127,6 +127,14 @@ _EXPECTED_OPERATOR_POLICIES = {
     ): _expected("scheduler", "disable"),
     (
         "GET",
+        "/operator/api/location-setup/organizations",
+    ): _expected("location_setup", "read_organizations"),
+    (
+        "POST",
+        "/operator/api/location-setup",
+    ): _expected("location_setup", "create"),
+    (
+        "GET",
         "/operator/api/delphi/11111111-1111-4111-8111-111111111111/studies",
     ): _expected("delphi", "read", scoped=True, location_id=_LOCATION_ID),
     (

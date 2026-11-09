@@ -198,6 +198,7 @@ BEGIN
         'kokonut_landscape_capture_writer',
         'kokonut_metric_value_manager',
         'kokonut_operator_capability_owner',
+        'kokonut_location_setup_owner',
         'kokonut_rate_limit_maintenance_login',
         'kokonut_report_snapshot_export_login',
         'kokonut_report_snapshot_export_owner',
