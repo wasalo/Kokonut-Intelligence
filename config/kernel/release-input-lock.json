@@ -55,7 +55,7 @@
     "docker-compose.kernel-coolify-network.yml": "607f80917635fbe63fbbdef752d677b0c2fa709a0b1842917037f26fa4a72305",
     "docker-compose.kernel-coolify-zitadel.yml": "6944c961d7044b235c6b10dac0ff33f228114489aca26fd30566bdb8c98bdd4a",
     "docker-compose.kernel-coolify-build.yml": "faf9dd842e1d809718d69e8125d5f8ad51fe04b4f7f8692c8015890ba4b4d8f6",
-    "docker-compose.kernel-coolify.yml": "191080c3cc9ba86430206de37793ccacae5b595d8494e2a49cd5092035d96c4f",
+    "docker-compose.kernel-coolify.yml": "9332d4522fcbb433be78c3b0305f730f2bdea6b96d6bafcb504739107d989409",
     "scripts/render-kernel-coolify-compose.py": "82d9e0e44dd40c57104d7b8bc8b26f425fb3dee9476a4f4a1594e77f57722a67"
   },
   "postgis_packages": {
