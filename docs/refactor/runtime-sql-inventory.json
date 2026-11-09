@@ -4,10 +4,10 @@
   "scope": "Direct Python SQL execution calls in services/**/*.py, including API, worker, and CLI modules. The scan is driver-neutral, so local non-PostgreSQL stores may also appear; it is not a PostgreSQL-only inventory. Relation names and simple leading DML targets are regex-derived candidates, not a parsed SQL AST. Unquoted PostgreSQL identifiers are normalized to lower case and quoted identifiers preserve case. A query held in a local variable is resolved only from one unambiguous local assignment; an unconditional same-module string or literal-only f-string constant is resolved only when no shadowing or reassignment is found. Dynamic table identifiers stay unresolved. The scan cannot prove query reachability, ORM/extension/external effects, complete database access, required columns, or authorization. It is not a grant allowlist.",
   "summary": {
     "source_files": 1012,
-    "execution_sites": 5032,
+    "execution_sites": 5031,
     "worker_operation_roots": 50,
     "sites_with_worker_operation_refs": 439,
-    "sites_without_worker_operation_refs": 4593,
+    "sites_without_worker_operation_refs": 4592,
     "statement_kinds": {
       "CREATE": 1,
       "DELETE": 42,
@@ -16,7 +16,7 @@
       "ROLLBACK": 12,
       "SAVEPOINT": 11,
       "SELECT": 2921,
-      "SET": 696,
+      "SET": 695,
       "UNKNOWN": 288,
       "UPDATE": 408,
       "WITH": 28
@@ -24,7 +24,7 @@
     "statement_groups": {
       "read_candidate": 2921,
       "schema_change": 1,
-      "transaction_or_session": 739,
+      "transaction_or_session": 738,
       "unknown_requires_manual_review": 288,
       "with_requires_manual_review": 28,
       "write_candidate": 1055
@@ -33,11 +33,11 @@
       "composed": 47,
       "composed_or_variable": 387,
       "fstring": 308,
-      "literal": 4290
+      "literal": 4289
     },
     "relation_candidates": 1256,
     "write_target_relations": 563,
-    "sites_without_relation_candidates": 1346,
+    "sites_without_relation_candidates": 1345,
     "service_packages": 68
   },
   "service_packages": {
@@ -365,16 +365,16 @@
     },
     "gateway": {
       "source_files": 178,
-      "execution_sites": 1096,
+      "execution_sites": 1095,
       "statement_groups": {
         "read_candidate": 413,
-        "transaction_or_session": 625,
+        "transaction_or_session": 624,
         "unknown_requires_manual_review": 18,
         "with_requires_manual_review": 3,
         "write_candidate": 37
       },
       "candidate_relation_names": 266,
-      "sites_without_relation_candidates": 742,
+      "sites_without_relation_candidates": 741,
       "non_literal_sites": 17,
       "sites_with_worker_operation_refs": 0
     },
@@ -4858,13 +4858,12 @@
     {"id": "services/gateway/landscape_conservation_writes.py:116:12","source": "services/gateway/landscape_conservation_writes.py","line": 116,"column": 12,"scope": "create_location_landscape_record","method": "execute","expression_kind": "literal","statement_kind": "SET","candidate_relations": [],"static_sql_sha256": "7346ddf58ceeb31a31fd4f44990faf92a5bf015f93c675513e2bc17e5c3619db","operation_refs": [],"write_target_relations": [],"statement_group": "transaction_or_session"},
     {"id": "services/gateway/landscape_conservation_writes.py:117:12","source": "services/gateway/landscape_conservation_writes.py","line": 117,"column": 12,"scope": "create_location_landscape_record","method": "execute","expression_kind": "literal","statement_kind": "SET","candidate_relations": [],"static_sql_sha256": "e7919abcde4ac704789f51f749423dc38cacd353c98fb8c089b4c0c316e4df9c","operation_refs": [],"write_target_relations": [],"statement_group": "transaction_or_session"},
     {"id": "services/gateway/landscape_conservation_writes.py:126:12","source": "services/gateway/landscape_conservation_writes.py","line": 126,"column": 12,"scope": "create_location_landscape_record","method": "execute","expression_kind": "literal","statement_kind": "SELECT","candidate_relations": [],"static_sql_sha256": "f1cfa53bdbc708956784dd265701fc2dcb2bd8ea2ffd617ab0ccdca32c60c3d1","operation_refs": [],"write_target_relations": [],"statement_group": "read_candidate"},
-    {"id": "services/gateway/location_setup.py:17:12","source": "services/gateway/location_setup.py","line": 17,"column": 12,"scope": "list_location_setup_organizations","method": "execute","expression_kind": "literal","statement_kind": "SET","candidate_relations": [],"static_sql_sha256": "6c20e5345ee8028f61cc0541aeb60699e5cffa99c8f79ff7f8c62b0a8dad1837","operation_refs": [],"write_target_relations": [],"statement_group": "transaction_or_session"},
-    {"id": "services/gateway/location_setup.py:18:12","source": "services/gateway/location_setup.py","line": 18,"column": 12,"scope": "list_location_setup_organizations","method": "execute","expression_kind": "literal","statement_kind": "SET","candidate_relations": [],"static_sql_sha256": "d9946d44ba3ecfd34d8e9419a4918e0cee4d99c52737f63b62043c82b60030e5","operation_refs": [],"write_target_relations": [],"statement_group": "transaction_or_session"},
-    {"id": "services/gateway/location_setup.py:19:12","source": "services/gateway/location_setup.py","line": 19,"column": 12,"scope": "list_location_setup_organizations","method": "execute","expression_kind": "literal","statement_kind": "SET","candidate_relations": [],"static_sql_sha256": "e7919abcde4ac704789f51f749423dc38cacd353c98fb8c089b4c0c316e4df9c","operation_refs": [],"write_target_relations": [],"statement_group": "transaction_or_session"},
-    {"id": "services/gateway/location_setup.py:20:12","source": "services/gateway/location_setup.py","line": 20,"column": 12,"scope": "list_location_setup_organizations","method": "execute","expression_kind": "literal","statement_kind": "SELECT","candidate_relations": ["kokonut_security.list_location_setup_organizations"],"static_sql_sha256": "c9ea747f747b715cfe9c6d3ca87182e7c6b5f63ce0cef8683f63303d07d2b296","operation_refs": [],"write_target_relations": [],"statement_group": "read_candidate"},
-    {"id": "services/gateway/location_setup.py:52:12","source": "services/gateway/location_setup.py","line": 52,"column": 12,"scope": "create_operator_location_setup","method": "execute","expression_kind": "literal","statement_kind": "SET","candidate_relations": [],"static_sql_sha256": "f01332ffd2953142862fca68f095b2265b0586c95c965588322fb6b45b2ddf6a","operation_refs": [],"write_target_relations": [],"statement_group": "transaction_or_session"},
-    {"id": "services/gateway/location_setup.py:53:12","source": "services/gateway/location_setup.py","line": 53,"column": 12,"scope": "create_operator_location_setup","method": "execute","expression_kind": "literal","statement_kind": "SET","candidate_relations": [],"static_sql_sha256": "4554a9b04ca5377a8e5875d7314effe7a8fddae5de6256248df5b68e92844c6a","operation_refs": [],"write_target_relations": [],"statement_group": "transaction_or_session"},
-    {"id": "services/gateway/location_setup.py:54:12","source": "services/gateway/location_setup.py","line": 54,"column": 12,"scope": "create_operator_location_setup","method": "execute","expression_kind": "literal","statement_kind": "SELECT","candidate_relations": [],"static_sql_sha256": "68d610e1b1337bb7662c4262685474a6eeceb0c3ca9f56e71a964438e37210b3","operation_refs": [],"write_target_relations": [],"statement_group": "read_candidate"},
+    {"id": "services/gateway/location_setup.py:21:12","source": "services/gateway/location_setup.py","line": 21,"column": 12,"scope": "list_location_setup_organizations","method": "execute","expression_kind": "literal","statement_kind": "SET","candidate_relations": [],"static_sql_sha256": "d9946d44ba3ecfd34d8e9419a4918e0cee4d99c52737f63b62043c82b60030e5","operation_refs": [],"write_target_relations": [],"statement_group": "transaction_or_session"},
+    {"id": "services/gateway/location_setup.py:22:12","source": "services/gateway/location_setup.py","line": 22,"column": 12,"scope": "list_location_setup_organizations","method": "execute","expression_kind": "literal","statement_kind": "SET","candidate_relations": [],"static_sql_sha256": "e7919abcde4ac704789f51f749423dc38cacd353c98fb8c089b4c0c316e4df9c","operation_refs": [],"write_target_relations": [],"statement_group": "transaction_or_session"},
+    {"id": "services/gateway/location_setup.py:23:12","source": "services/gateway/location_setup.py","line": 23,"column": 12,"scope": "list_location_setup_organizations","method": "execute","expression_kind": "literal","statement_kind": "SELECT","candidate_relations": ["kokonut_security.list_location_setup_organizations"],"static_sql_sha256": "c9ea747f747b715cfe9c6d3ca87182e7c6b5f63ce0cef8683f63303d07d2b296","operation_refs": [],"write_target_relations": [],"statement_group": "read_candidate"},
+    {"id": "services/gateway/location_setup.py:55:12","source": "services/gateway/location_setup.py","line": 55,"column": 12,"scope": "create_operator_location_setup","method": "execute","expression_kind": "literal","statement_kind": "SET","candidate_relations": [],"static_sql_sha256": "f01332ffd2953142862fca68f095b2265b0586c95c965588322fb6b45b2ddf6a","operation_refs": [],"write_target_relations": [],"statement_group": "transaction_or_session"},
+    {"id": "services/gateway/location_setup.py:56:12","source": "services/gateway/location_setup.py","line": 56,"column": 12,"scope": "create_operator_location_setup","method": "execute","expression_kind": "literal","statement_kind": "SET","candidate_relations": [],"static_sql_sha256": "4554a9b04ca5377a8e5875d7314effe7a8fddae5de6256248df5b68e92844c6a","operation_refs": [],"write_target_relations": [],"statement_group": "transaction_or_session"},
+    {"id": "services/gateway/location_setup.py:57:12","source": "services/gateway/location_setup.py","line": 57,"column": 12,"scope": "create_operator_location_setup","method": "execute","expression_kind": "literal","statement_kind": "SELECT","candidate_relations": [],"static_sql_sha256": "68d610e1b1337bb7662c4262685474a6eeceb0c3ca9f56e71a964438e37210b3","operation_refs": [],"write_target_relations": [],"statement_group": "read_candidate"},
     {"id": "services/gateway/locations.py:20:11","source": "services/gateway/locations.py","line": 20,"column": 11,"scope": "public_locations","method": "execute","expression_kind": "composed_or_variable","statement_kind": "UNKNOWN","candidate_relations": [],"static_sql_sha256": null,"operation_refs": [],"write_target_relations": [],"statement_group": "unknown_requires_manual_review"},
     {"id": "services/gateway/management_work_reads.py:49:12","source": "services/gateway/management_work_reads.py","line": 49,"column": 12,"scope": "location_management_work_summary","method": "execute","expression_kind": "literal","statement_kind": "SET","candidate_relations": [],"static_sql_sha256": "6c20e5345ee8028f61cc0541aeb60699e5cffa99c8f79ff7f8c62b0a8dad1837","operation_refs": [],"write_target_relations": [],"statement_group": "transaction_or_session"},
     {"id": "services/gateway/management_work_reads.py:50:12","source": "services/gateway/management_work_reads.py","line": 50,"column": 12,"scope": "location_management_work_summary","method": "execute","expression_kind": "literal","statement_kind": "SET","candidate_relations": [],"static_sql_sha256": "7346ddf58ceeb31a31fd4f44990faf92a5bf015f93c675513e2bc17e5c3619db","operation_refs": [],"write_target_relations": [],"statement_group": "transaction_or_session"},
