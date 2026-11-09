@@ -30,6 +30,12 @@ _OPERATOR_SCOPE_READ_CHECK_FUNCTION = (
 )
 _GATEWAY_CONTEXT_FUNCTION = "kokonut_security.set_gateway_tenant_context(text,text,uuid,text,text)"
 _OPERATOR_CONTEXT_FUNCTION = "kokonut_security.set_operator_tenant_context(text,uuid,uuid,text,text,jsonb)"
+_OPERATOR_CONTEXT_WRITE_FUNCTION = (
+    "kokonut_security.set_operator_tenant_context_write(text,uuid,uuid,text,text,jsonb)"
+)
+_OPERATOR_CONTEXT_READONLY_FUNCTION = (
+    "kokonut_security.set_operator_tenant_context_readonly(text,uuid,uuid,text,text,jsonb)"
+)
 _MOBILE_DEVICE_REVOKE_FUNCTION = "kokonut_security.revoke_mobile_device(uuid,text,text,text,uuid,text)"
 _WORKER_CONTEXT_FUNCTION = "kokonut_security.set_worker_tenant_context(text,uuid,text,text)"
 _WORKER_SCOPE_FUNCTION = "kokonut_security.current_worker_scope(text,text)"
@@ -229,6 +235,8 @@ _SECURITY_DEFINER_OWNERS = (
         "kokonut_security.set_operator_tenant_context(text,uuid,uuid,text,text,jsonb)",
         "kokonut_operator_context_owner",
     ),
+    (_OPERATOR_CONTEXT_WRITE_FUNCTION, "kokonut_operator_context_owner"),
+    (_OPERATOR_CONTEXT_READONLY_FUNCTION, "kokonut_operator_context_owner"),
     (
         "kokonut_security.create_operator_session(text,text,text,text,text,text,timestamptz)",
         "kokonut_operator_auth_owner",
