@@ -1,7 +1,7 @@
 # Kokonut Intelligence refactor: candidate completion guide
 
 **Authority:** this is the sole active status, completion register, and execution queue.
-**Candidate status (9 November 2026):** Coolify deployment `jln5t7uq8bspnnkkgkhwagl2` runs application commit `d5c32d06c446824c609a2c7e27db97bc124f6c89` on database schema 753. Exact-head CI [#42648564386](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/42648564386) and Security/Gitleaks [#42648565021](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/42648565021) passed on that commit. The pre-migration-752 encrypted checkpoint and isolated restore are recorded [here](builds/2026-11-09-recovery/candidate-pre-migration-752-r2-checkpoint.json); migration 753 was applied with 1 success and 0 failures, and the migration plan reports zero pending changes. Migration 753 grants only `organization_member.created_at` to the location-setup function owner, which the setup query needs to order membership rows. The Gateway now reports a location-setup authorization error only when PostgreSQL explicitly identifies the missing capability; unrelated database permission failures return 503 instead of misleading the operator with a 403. `/health` returns HTTP 200 and the unauthenticated setup API returns HTTP 401. Wasabi's authenticated Save retry is still required to confirm the form completes. No Adelphi values are recorded as saved, and no provider requests have run.
+**Candidate status (9 November 2026):** Coolify deployment `jln5t7uq8bspnnkkgkhwagl2` runs application commit `d5c32d06c446824c609a2c7e27db97bc124f6c89` on database schema 753. Exact-head CI [#42648564386](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/42648564386) and Security/Gitleaks [#42648565021](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/42648565021) passed on that commit. The pre-migration-752 encrypted checkpoint and isolated restore are recorded [here](builds/2026-11-09-recovery/candidate-pre-migration-752-r2-checkpoint.json); migration 753 was applied with 1 success and 0 failures, and the migration plan reports zero pending changes. Migration 753 grants only `organization_member.created_at` to the location-setup function owner, which the setup query needs to order membership rows. The Gateway now reports a location-setup authorization error only when PostgreSQL explicitly identifies the missing capability; unrelated database permission failures return 503 instead of misleading the operator with a 403. `/health` returns HTTP 200 and the unauthenticated setup API returns HTTP 401. Wasabi confirmed setup completed: location `1b1775d2-3043-42f9-9967-5d3f18db7ae0` and farm `827aaa01-e8a5-47f4-87d1-e43dbda9e425` were created under Kokonut Network with starter location-read and draft-only farm-activity access. Existing baseline and historical records were preserved. No provider request or reference-data import was run.
 **Finish line selected by owner:** candidate accepted, not production cutover.
 **Owner scope update (8 November 2026):** preserve the original deployment
 profile progression as a future roadmap note. Wasabi deferred profile
@@ -74,12 +74,16 @@ Commit `d5c32d06c446824c609a2c7e27db97bc124f6c89` passed exact-head CI
 and Security/Gitleaks [#42648565021](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/42648565021),
 was deployed as Coolify deployment `jln5t7uq8bspnnkkgkhwagl2`, and migration
 753 is applied with no pending migrations. Live smoke checks return HTTP 200
-from `/health` and HTTP 401 from the unauthenticated setup API. The remaining
-step for this workflow is Wasabi's authenticated Save retry and confirmation;
-no Adelphi values are counted as saved until he confirms success. Successful
-setup links to the existing operator console for supported location-scoped
-field activity; other farm data-entry screens remain in migration. G4/G5 are
-not closed by source, deployment, or HTTP checks alone.
+from `/health` and HTTP 401 from the unauthenticated setup API. Wasabi confirmed
+successful setup on 9 November 2026: location
+`1b1775d2-3043-42f9-9967-5d3f18db7ae0` and farm
+`827aaa01-e8a5-47f4-87d1-e43dbda9e425` were created under Kokonut Network. The
+UI confirmed that existing baseline and historical records were preserved and
+the farm is ready for data entry. No provider request or reference-data import
+was run. Successful setup links to the existing operator console for supported
+location-scoped field activity; other farm data-entry screens remain in
+migration. G4/G5 are not closed by source, deployment, HTTP checks, or this
+initial farm setup alone.
 
 ### Operator session lifetime
 
@@ -88,9 +92,10 @@ too short for normal Control Plane work. This branch changes the Gateway and
 Compose defaults to 12 hours, while retaining the configured 5-minute minimum,
 12-hour maximum, server-side expiry, CSRF checks, and per-request capability
 authorization. Candidate rollout is pending CI and will wait until Wasabi
-confirms the open location-setup form has saved, so it does not interrupt data
-entry. An operator will receive the longer lifetime after the candidate update
-and a fresh sign-in.
+confirmed the location-setup form saved, so the candidate update can proceed
+without interrupting unsaved data entry. Rollout is pending exact-head CI. A
+fresh sign-in after the candidate update will receive the longer lifetime;
+existing sessions keep their original expiry.
 
 ### 9 November pre-migration 752 checkpoint and restore
 
