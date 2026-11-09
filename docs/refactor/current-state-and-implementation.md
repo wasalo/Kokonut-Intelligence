@@ -81,6 +81,17 @@ setup links to the existing operator console for supported location-scoped
 field activity; other farm data-entry screens remain in migration. G4/G5 are
 not closed by source, deployment, or HTTP checks alone.
 
+### Operator session lifetime
+
+The deployed Gateway source had a 30-minute default session lifetime, which is
+too short for normal Control Plane work. This branch changes the Gateway and
+Compose defaults to 12 hours, while retaining the configured 5-minute minimum,
+12-hour maximum, server-side expiry, CSRF checks, and per-request capability
+authorization. Candidate rollout is pending CI and will wait until Wasabi
+confirms the open location-setup form has saved, so it does not interrupt data
+entry. An operator will receive the longer lifetime after the candidate update
+and a fresh sign-in.
+
 ### 9 November pre-migration 752 checkpoint and restore
 
 Before changing the candidate schema, both candidate PostgreSQL databases were

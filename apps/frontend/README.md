@@ -24,9 +24,12 @@ cancellation, and shared session parsing. The Control Plane loads the session
 once and exposes Gateway-backed sign-in and sign-out across route modules. The
 Gateway returns a CSRF token only from the authenticated, no-store session
 response after matching it to the server-side session hash; the cookie remains
-scoped to `/operator`. Sign-in returns operators to the module route where they
-started. Mutation retries remain the caller's responsibility and must reuse
-the original request ID and unchanged payload.
+scoped to `/operator`. Operator sessions last 12 hours by default so a normal
+operations shift does not require repeated sign-in; deployments may configure
+`KOKONUT_OPERATOR_SESSION_TTL_SECONDS` from 300 seconds to the 12-hour maximum.
+The expiry remains enforced server-side. Sign-in returns operators to the
+module route where they started. Mutation retries remain the caller's
+responsibility and must reuse the original request ID and unchanged payload.
 
 ## Local development
 

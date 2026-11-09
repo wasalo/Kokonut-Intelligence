@@ -76,7 +76,7 @@ class OIDCSettings:
     operator_auth_user: str = field(repr=False)
     operator_auth_password: str = field(repr=False)
     ca_bundle: str | None = None
-    session_ttl_seconds: int = 1800
+    session_ttl_seconds: int = 43200
 
     @classmethod
     def from_env(cls) -> OIDCSettings | None:
@@ -142,7 +142,7 @@ class OIDCSettings:
                 "KOKONUT_OPERATOR_OIDC_REDIRECT_URI must end at /operator/auth/callback"
             )
         try:
-            ttl = int(os.environ.get("KOKONUT_OPERATOR_SESSION_TTL_SECONDS", "1800"))
+            ttl = int(os.environ.get("KOKONUT_OPERATOR_SESSION_TTL_SECONDS", "43200"))
         except ValueError as exc:
             raise OperatorAuthConfigurationError(
                 "KOKONUT_OPERATOR_SESSION_TTL_SECONDS must be an integer"
