@@ -275,7 +275,12 @@ def test_standard_edge_keeps_media_settings_on_api_and_preserves_worker_split() 
         },
     )
 
-    assert set(config["services"]) == {"database", "app", "worker"}
+    assert set(config["services"]) == {
+        "database",
+        "app",
+        "worker",
+        "report-snapshot-export-artifact-init",
+    }
     database = config["services"]["database"]
     app = config["services"]["app"]
     worker = config["services"]["worker"]

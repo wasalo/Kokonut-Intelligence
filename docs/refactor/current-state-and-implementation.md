@@ -1,7 +1,7 @@
 # Kokonut Intelligence refactor: candidate completion guide
 
 **Authority:** this is the sole active status, completion register, and execution queue.
-**Baseline:** Kernel candidate source `0b956676`; execution status updated 8 November 2026. Latest hosted CI and Security both pass on remote head `4d522456`; the local branch is three commits ahead with additional uncommitted changes, so those newer changes need exact-head CI/Security before promotion.
+**Baseline:** Kernel candidate source `0b956676`; execution status updated 8 November 2026. PR #73 head `ccf5a329` passed preflight, source checks, image checks, and Gitleaks, but integration CI failed in shard 13 on three ARM64 Compose topology/platform assertions ([run #42536972071](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/42536972071)). Local commit `db497b04` is one documentation commit ahead of that remote head; the current worktree also contains the Compose correction and dashboard onboarding source work. None of these newer changes has exact-head CI/Security evidence yet.
 **Finish line selected by owner:** candidate accepted, not production cutover.
 **Owner scope update (8 November 2026):** preserve the original deployment
 profile progression as a future roadmap note. Wasabi deferred profile
@@ -43,6 +43,29 @@ governance rules.
 ## Current baseline and immediate actions
 
 **8 November G2 source-map continuation:** the consolidated caller table below now explicitly includes Directus authorization/schedule hooks, shared-runtime event maintenance, and mobile private-media cleanup. Their live activation and external callers remain unverified; the Standard VPS intentionally excludes Directus, and all database grants remain unchanged.
+
+### 8 November dashboard-led Adelphi onboarding source slice
+
+Wasabi confirmed that he will enter the Kokonut Adelphi information himself
+through the Control Plane so the operator-facing workflow is exercised before
+the farm data is used for provider acceptance. The Control Plane now has source
+for an authenticated location/farm setup form with coordinates and GeoJSON
+boundary upload or paste. Its additive migration 752 saves the location, farm,
+tenant-owner decision, append-only setup evidence, and limited location-read
+and draft-only field-activity grants atomically. It never verifies or publishes
+field records. Existing same-slug setup rows can be completed while preserving
+baseline and historical records; cross-tenant ownership conflicts fail closed.
+
+This is source implementation only. No Adelphi values have been entered, no
+provider request or reference-data import has run, migration 752 has not been
+applied to the VPS, and this dashboard route has not been deployed or browser
+accepted. PR #73 integration CI is being corrected for its three ARM64 Compose
+assertions; the onboarding path itself still needs exact-head CI, a reviewed
+candidate migration, an explicit DBA grant of `location_setup:create` to
+Wasabi's operator identity, and authenticated browser acceptance. After that,
+the result links to the existing operator console for the location-scoped
+operational forms; those remaining forms have not yet been migrated into the
+Control Plane.
 
 ### 7 November candidate runtime rollout checkpoint
 

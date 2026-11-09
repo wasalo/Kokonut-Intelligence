@@ -286,6 +286,7 @@ def test_standard_zitadel_arm64_planner_command_resolves_all_services_for_arm64(
         "zitadel-api",
         "zitadel-login",
         "zitadel-bootstrap-permissions",
+        "report-snapshot-export-artifact-init",
     }
     assert all(service.get("platform") == "linux/arm64" for service in services.values())
     assert services["app"]["build"]["target"] == "oidc"

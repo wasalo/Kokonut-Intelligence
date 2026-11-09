@@ -3,6 +3,7 @@ import { VerticalShell, type NavigationItem } from "@kokonut/ui";
 import { ReportReviewPage } from "./ReportReviewPage";
 import { MetricListPage } from "./MetricListPage";
 import { CoordinationSummaryPage } from "./CoordinationSummaryPage";
+import { LocationSetupPage } from "./LocationSetupPage";
 import "./app.css";
 
 const navigation: NavigationItem[] = [
@@ -26,6 +27,14 @@ function GeneralOperationsHome() {
         each workflow is migrated and accepted.
       </p>
       <div className="workflow-grid">
+        <article className="workflow-card">
+          <div>
+            <p className="eyebrow">Farm onboarding</p>
+            <h3>Set up a location</h3>
+            <p>Register a location and farm, confirm its tenant, and prepare draft-only field entry.</p>
+          </div>
+          <Link className="button-link" to="/ops/administration">Open location setup</Link>
+        </article>
         <article className="workflow-card">
           <div>
             <p className="eyebrow">Existing workspace</p>
@@ -92,7 +101,7 @@ export function GeneralOperationsModule() {
         />
         <Route
           path="administration"
-          element={<WorkflowLanding title="Administration" description="Manage operational review workflows within your assigned capabilities." />}
+          element={<LocationSetupPage />}
         />
         <Route path="*" element={<section><h2>Page not found</h2><Link to="/ops/">Return to overview</Link></section>} />
       </Routes>

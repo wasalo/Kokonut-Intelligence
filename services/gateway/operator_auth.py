@@ -364,6 +364,7 @@ class OIDCOperatorProvider:
                 "scheduler:read",
                 "scheduler:enable",
                 "scheduler:disable",
+                "location_setup:create",
             }
         ):
             return False
@@ -505,6 +506,21 @@ def auth_route_policy(method: str, path: str, *, enabled: bool) -> dict | None:
                         "operator_auth": True,
                         "global_capability": capability,
                     }
+
+        if (normalized_method, path) in {
+            ("GET", "/operator/api/location-setup/organizations"),
+            ("POST", "/operator/api/location-setup"),
+        }:
+            action = "read_organizations" if normalized_method == "GET" else "create"
+            return {
+                "resource": "location_setup",
+                "action": action,
+                "public": False,
+                "location_id": None,
+                "scope_required": False,
+                "operator_auth": True,
+                "global_capability": "location_setup:create",
+            }
 
     environmental_baseline_capture_match = re.fullmatch(
         r"/operator/api/environmental-baselines/([0-9a-fA-F-]{36})/captures", path
@@ -6274,4 +6290,7 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
 
     router.include_router(create_clickhouse_outbox_router())
     router.include_router(create_scheduler_operator_router())
+    from services.gateway.location_setup_routes import register_location_setup_routes
+
+    register_location_setup_routes(router, provider, run_in_threadpool, psycopg2)
     return router
