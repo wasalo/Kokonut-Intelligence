@@ -101,9 +101,14 @@ The exact-head retry on commit `70b09a4c` passed [CI
 #42703911034](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/42703911034)
 and [Security #42703911087](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/42703911087),
 including database integration and AMD64/ARM64 image checks. A later G4
-positive farm-activity read returned HTTP 503, so a separate database-context
-fix is being prepared on top of that green head and must receive its own exact-
-head checks before candidate deployment.
+positive farm-activity read returned HTTP 503. The database-context fix was
+pushed on `3d1badd6`, but CI [#42712239602](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/42712239602)
+stopped at preflight because `docs/refactor/runtime-sql-inventory.json` had
+stale source offsets after the new function-owner entries; Security
+[#42712239857](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/42712239857)
+passed. The generated inventory is refreshed and its checker passes locally.
+The refreshed head needs exact-head CI/Security checks before candidate
+deployment.
 
 ### Operator session lifetime
 
