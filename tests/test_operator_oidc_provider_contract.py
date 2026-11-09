@@ -308,6 +308,27 @@ def test_oidc_login_session_and_logout_use_opaque_cookie_contract(
         assert client.get("/operator/auth/session").status_code == 401
 
 
+def test_oidc_callback_rejects_state_mismatch_without_creating_session(
+    monkeypatch, tmp_path
+):
+    provider = _FakeOIDCProvider()
+    with _client(monkeypatch, tmp_path, provider) as client:
+        login = _login(client)
+        assert parse_qs(urlsplit(login.headers["location"]).query)["state"] == [
+            "synthetic-state"
+        ]
+
+        callback = client.get(
+            "/operator/auth/callback?code=synthetic-code&state=attacker-state"
+        )
+
+        assert callback.status_code == 401
+        assert callback.json() == {"error": "OIDC login failed"}
+        assert provider.created_claims == []
+        assert client.cookies.get(SESSION_COOKIE) is None
+        assert client.get("/operator/auth/session").status_code == 401
+
+
 @pytest.mark.parametrize(
     ("userinfo", "expected_status"),
     [
