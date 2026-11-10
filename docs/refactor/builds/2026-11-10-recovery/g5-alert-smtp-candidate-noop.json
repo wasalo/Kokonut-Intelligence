@@ -1,0 +1,21 @@
+{
+  "status": "passed",
+  "checked_at": "2026-11-10",
+  "candidate": {
+    "coolify_application": "Kokonut Intelligence Kernel Candidate",
+    "worker_container": "worker-fdphpruj8jxien23ockmbw0j-20261110T023317",
+    "deployment_commit": "404d8c61b41a2536fcdb6dfa65ab118f4246c494"
+  },
+  "check": {
+    "transport": "SMTP STARTTLS",
+    "authentication_code": 235,
+    "noop_code": 250,
+    "email_sent": false,
+    "secret_values_printed": false
+  },
+  "acceptance": {
+    "candidate_credentials": "verified for SMTP authentication",
+    "email_delivery": "not tested; no message sent",
+    "p1_acknowledged_paging": "open; no paging channel selected"
+  }
+}
