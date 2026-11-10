@@ -3437,9 +3437,12 @@ def provision_runtime_role(
                 )
             cur.execute(sql.SQL("GRANT USAGE ON SCHEMA kokonut_security TO {}").format(market_data_ident))
             cur.execute(sql.SQL("REVOKE CREATE ON SCHEMA kokonut_security FROM {}").format(market_data_ident))
-            cur.execute(
-                sql.SQL("GRANT EXECUTE ON FUNCTION {} TO {}").format(sql.SQL(_MARKET_DATA_FUNCTION), market_data_ident)
-            )
+            for function in market_data_functions:
+                cur.execute(
+                    sql.SQL("GRANT EXECUTE ON FUNCTION {} TO {}").format(
+                        sql.SQL(function), market_data_ident
+                    )
+                )
         if eas_indexer_ident is not None:
             for object_kind in ("TABLES", "SEQUENCES"):
                 cur.execute(

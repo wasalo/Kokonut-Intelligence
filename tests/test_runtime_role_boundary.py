@@ -2440,6 +2440,7 @@ def test_market_data_function_is_private_and_owned_by_its_bounded_role():
     migration = (
         Path(__file__).resolve().parents[1] / "schemas/postgres/430_isolated_market_data_worker.sql"
     ).read_text()
+    runtime_source = (Path(__file__).resolve().parents[1] / "services/migration/runtime_role.py").read_text()
 
     assert runtime_role._MARKET_DATA_FUNCTION in runtime_role._PRIVATE_RUNTIME_FUNCTIONS
     assert (runtime_role._MARKET_DATA_FUNCTION, "kokonut_market_data_owner") in (runtime_role._SECURITY_DEFINER_OWNERS)
@@ -2450,8 +2451,12 @@ def test_market_data_function_is_private_and_owned_by_its_bounded_role():
     assert "REVOKE ALL (%s) ON TABLE public.%I FROM %I" in migration
     assert (
         "market-data login must connect only to its configured database"
-        in (Path(__file__).resolve().parents[1] / "services/migration/runtime_role.py").read_text()
+        in runtime_source
     )
+    final_reconciliation = runtime_source.rsplit("if market_data_ident is not None:", 1)[1].split(
+        "if eas_indexer_ident is not None:", 1
+    )[0]
+    assert "for function in market_data_functions:" in final_reconciliation
 
 
 def test_gnosis_indexer_has_its_own_execute_only_role_contract():

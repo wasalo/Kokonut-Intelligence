@@ -43,7 +43,8 @@
     "GET https://hub.kokonut.network/assets/FieldOperationsModule-xkjovps_.js": 200
   },
   "human_acceptance": {
-    "authenticated_browser_review": "pending",
-    "draft_write": "not exercised"
+    "authenticated_browser_review": "pass: Wasabi confirmed the authenticated /field/records page loaded, showed the farm-activity draft form and its fields, and displayed no non-Collector farm activity records",
+    "draft_write": "not exercised; no draft was saved during the browser check",
+    "cross_location_denial": "pass: authenticated request for an unrelated random location returned HTTP 403 with no data"
   }
 }
