@@ -148,10 +148,19 @@ functions require trigger context and cannot be invoked as ordinary functions
 Because the provisioner uses autocommit, its exact bounded grants persisted;
 readback confirms all three, with schema USAGE and no CREATE. No data was
 imported, the worker feature flag remains false, and no recurring task ran.
+The separate pre-import checkpoint `candidate-pre-world-bank-market-data-20261110T043635Z`
+was captured after the Adelphi draft and bounded grants were present, committed
+to `kokonut-backups`, and verified by readback ([evidence](builds/2026-11-10-recovery/candidate-market-data-bootstrap-retry.json)).
 The follow-up excludes trigger-returning functions from the direct
 callability audit, updates the source-contract assertion, and refreshes the
-SQL inventory. This correction needs a new exact-head CI run before the final
-candidate bootstrap verification and one-shot World Bank import.
+SQL inventory. Exact-head CI
+[#42756752651](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/42756752651)
+passed preflight, source checks, and Kernel image; Security passed. Its
+integration job failed only because the regression assertion searched the
+grant-reconciliation block instead of the separate verification query. The
+assertion scope has been corrected and its focused test passes locally. A new
+exact-head CI run is required before final candidate bootstrap verification
+and the one-shot World Bank import.
 
 ### Candidate G5 current-weather one-shot — 9 November 2026
 
