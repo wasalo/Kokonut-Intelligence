@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import {
   GatewayRequestError,
   LatestRequest,
@@ -18,6 +18,26 @@ const RECORD_FIELDS = [
   "farm_task_id",
   "id",
   "location_id",
+  "plot_id",
+  "source_system",
+  "status",
+  "updated_at",
+].sort().join(",");
+const DRAFT_WRITE_FIELDS = [
+  "activity_date",
+  "activity_type",
+  "created_at",
+  "crop_cycle_id",
+  "description",
+  "event_id",
+  "evidence_urls",
+  "farm_task_id",
+  "id",
+  "labor_cost",
+  "labor_hours",
+  "location_id",
+  "materials_used",
+  "notes",
   "plot_id",
   "source_system",
   "status",
@@ -59,6 +79,51 @@ function isDate(value: unknown): value is string {
 
 function isTimestamp(value: unknown): value is string {
   return typeof value === "string" && TIMESTAMP_PATTERN.test(value) && Number.isFinite(Date.parse(value));
+}
+
+function localDateToday(): string {
+  const now = new Date();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+  return `${now.getFullYear()}-${month}-${day}`;
+}
+
+function validateDraftWrite(
+  value: unknown,
+  locationId: string,
+  activityType: string,
+  activityDate: string,
+): string {
+  if (!isRecord(value) || Object.keys(value).sort().join(",") !== "data" || !isRecord(value.data)) {
+    throw new Error("The save response could not be confirmed. Refresh the records before retrying.");
+  }
+
+  const draft = value.data;
+  const isNullableUuid = (candidate: unknown) => candidate === null ||
+    (typeof candidate === "string" && UUID_PATTERN.test(candidate));
+  const isDecimalOrNull = (candidate: unknown) => candidate === null ||
+    (typeof candidate === "number" && Number.isFinite(candidate)) ||
+    (typeof candidate === "string" && /^\d+(?:\.\d+)?$/.test(candidate));
+
+  if (
+    Object.keys(draft).sort().join(",") !== DRAFT_WRITE_FIELDS ||
+    typeof draft.id !== "string" || !UUID_PATTERN.test(draft.id) ||
+    typeof draft.event_id !== "string" || !UUID_PATTERN.test(draft.event_id) ||
+    typeof draft.location_id !== "string" || draft.location_id.toLowerCase() !== locationId.toLowerCase() ||
+    !isNullableUuid(draft.plot_id) || !isNullableUuid(draft.crop_cycle_id) || !isNullableUuid(draft.farm_task_id) ||
+    draft.activity_type !== activityType || draft.activity_date !== activityDate ||
+    draft.status !== "draft" || draft.source_system !== "kokonut_gateway" ||
+    !(draft.description === null || typeof draft.description === "string") ||
+    !(draft.notes === null || typeof draft.notes === "string") ||
+    !isDecimalOrNull(draft.labor_hours) || !isDecimalOrNull(draft.labor_cost) ||
+    !(Array.isArray(draft.materials_used) || isRecord(draft.materials_used)) ||
+    !(Array.isArray(draft.evidence_urls) && draft.evidence_urls.every((url) => url === null || typeof url === "string")) ||
+    !isTimestamp(draft.created_at) || !isTimestamp(draft.updated_at)
+  ) {
+    throw new Error("The save response could not be confirmed. Refresh the records before retrying.");
+  }
+
+  return draft.id;
 }
 
 function validateRecord(value: unknown, locationId: string): FarmActivityRecord {
@@ -128,6 +193,21 @@ function requestErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : "Farm activity records could not be loaded.";
 }
 
+function draftRequestErrorMessage(error: unknown): string {
+  if (error instanceof GatewayRequestError) {
+    if (error.code === "network_error" || error.code === "invalid_response") {
+      return "The save could not be confirmed. Refresh or reload the page before retrying to avoid a duplicate draft.";
+    }
+    if (error.status === 401) return "Your operator session has expired. Sign in again before saving.";
+    if (error.status === 403) return "Your exact location draft-entry grant is no longer active.";
+    if (error.status === 503) return "Farm activity is temporarily unavailable. Refresh records before retrying.";
+    return error.message;
+  }
+  return error instanceof Error
+    ? error.message
+    : "The draft could not be confirmed. Refresh records before retrying.";
+}
+
 function isAbortError(error: unknown): boolean {
   return error instanceof Error && error.name === "AbortError";
 }
@@ -150,6 +230,15 @@ export function FarmActivityListPage() {
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
   const [refreshVersion, setRefreshVersion] = useState(0);
+  const [activityType, setActivityType] = useState("");
+  const [activityDate, setActivityDate] = useState(localDateToday);
+  const [description, setDescription] = useState("");
+  const [laborHours, setLaborHours] = useState("");
+  const [laborCost, setLaborCost] = useState("");
+  const [notes, setNotes] = useState("");
+  const [draftFormDirty, setDraftFormDirty] = useState(false);
+  const [savingDraft, setSavingDraft] = useState(false);
+  const [draftFeedback, setDraftFeedback] = useState<{ kind: "success" | "error"; text: string } | null>(null);
 
   const grantedLocations = useMemo(() => {
     if (sessionState.status !== "ready") return [];
@@ -159,20 +248,39 @@ export function FarmActivityListPage() {
       .filter((id) => UUID_PATTERN.test(id)))];
   }, [sessionState]);
 
+  const draftableLocations = useMemo(() => {
+    if (sessionState.status !== "ready") return [];
+    const detailLocations = new Set(sessionState.session.scopes
+      .filter((scope) => scope.resource === "farm_activity" && scope.action === "read_detail")
+      .map((scope) => scope.location_id.toLowerCase())
+      .filter((id) => UUID_PATTERN.test(id)));
+    return [...new Set(sessionState.session.scopes
+      .filter((scope) => scope.resource === "farm_activity" && scope.action === "create_draft")
+      .map((scope) => scope.location_id.toLowerCase())
+      .filter((id) => UUID_PATTERN.test(id) && detailLocations.has(id)))];
+  }, [sessionState]);
+
+  const selectableLocations = useMemo(
+    () => [...new Set([...grantedLocations, ...draftableLocations])].sort(),
+    [draftableLocations, grantedLocations],
+  );
+
   useEffect(() => {
-    if (!grantedLocations.length) {
+    if (!selectableLocations.length) {
       setLocationId("");
       setRecords([]);
       setMessage("");
       return;
     }
-    setLocationId((current) => grantedLocations.includes(current) ? current : grantedLocations[0]);
-  }, [grantedLocations]);
+    setLocationId((current) => selectableLocations.includes(current) ? current : selectableLocations[0]);
+  }, [selectableLocations]);
 
   useEffect(() => {
     if (!locationId || !grantedLocations.includes(locationId)) {
       setRecords([]);
-      setMessage("");
+      setMessage(locationId && draftableLocations.includes(locationId)
+        ? "This location permits draft entry, but your session has no farm-activity read grant."
+        : "");
       setLoading(false);
       return;
     }
@@ -204,7 +312,63 @@ export function FarmActivityListPage() {
       });
 
     return () => listRequest.current.cancel();
-  }, [grantedLocations, locationId, refreshVersion]);
+  }, [draftableLocations, grantedLocations, locationId, refreshVersion]);
+
+  async function submitDraft(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setDraftFeedback(null);
+    if (!draftableLocations.includes(locationId)) {
+      setDraftFeedback({ kind: "error", text: "Choose a location with an active draft-entry grant." });
+      return;
+    }
+    const parsedHours = laborHours.trim() ? Number(laborHours) : null;
+    const parsedCost = laborCost.trim() ? Number(laborCost) : null;
+    const hasAtMostTwoDecimals = (value: number) => Math.abs(value * 100 - Math.round(value * 100)) < 1e-8;
+    const normalizedActivityType = activityType.trim();
+    if (!normalizedActivityType || normalizedActivityType.length > 100 || !isDate(activityDate)) {
+      setDraftFeedback({ kind: "error", text: "Enter an activity name and a valid activity date." });
+      return;
+    }
+    if (
+      (parsedHours !== null && (!Number.isFinite(parsedHours) || parsedHours < 0 || parsedHours > 999999.99 || !hasAtMostTwoDecimals(parsedHours))) ||
+      (parsedCost !== null && (!Number.isFinite(parsedCost) || parsedCost < 0 || parsedCost > 9999999999.99 || !hasAtMostTwoDecimals(parsedCost)))
+    ) {
+      setDraftFeedback({ kind: "error", text: "Labor values must be non-negative and use at most two decimal places." });
+      return;
+    }
+
+    setSavingDraft(true);
+    const content = {
+      activity_type: normalizedActivityType,
+      activity_date: activityDate,
+      description: description.trim() || null,
+      labor_hours: parsedHours,
+      labor_cost: parsedCost,
+      notes: notes.trim() || null,
+    };
+
+    try {
+      const params = new URLSearchParams({ location_id: locationId });
+      const payload = await requestOperatorJson<unknown>(`/operator/api/farm-activity-records?${params}`, {
+        method: "POST",
+        body: { content },
+      });
+      const draftId = validateDraftWrite(payload, locationId, normalizedActivityType, activityDate);
+      setActivityType("");
+      setActivityDate(localDateToday());
+      setDescription("");
+      setLaborHours("");
+      setLaborCost("");
+      setNotes("");
+      setDraftFormDirty(false);
+      setDraftFeedback({ kind: "success", text: `Draft saved. Record ${draftId} remains unsubmitted and unverified.` });
+      if (grantedLocations.includes(locationId)) setRefreshVersion((version) => version + 1);
+    } catch (error) {
+      setDraftFeedback({ kind: "error", text: draftRequestErrorMessage(error) });
+    } finally {
+      setSavingDraft(false);
+    }
+  }
 
   if (sessionState.status === "loading") {
     return <p role="status">Loading operator session…</p>;
@@ -230,60 +394,185 @@ export function FarmActivityListPage() {
       <p className="eyebrow">Field Operations</p>
       <h2 id="farm-activity-heading">Farm activity records</h2>
       <p className="lead">
-        Review non-Collector records and their governed lifecycle status for an authorized location.
+        Record location-scoped farm activities and review non-Collector entries and their governed status.
       </p>
 
-      {grantedLocations.length === 0 ? (
+      {selectableLocations.length === 0 ? (
         <p className="migration-note" role="status">
-          Your operator session has no location-scoped farm-activity read grants. No record list was requested.
+          Your operator session has no location-scoped farm-activity read or draft-entry grants. No record request was made.
         </p>
       ) : (
         <>
           <div className="location-filter-toolbar">
-            <label htmlFor="farm-activity-location">Granted location</label>
+            <label htmlFor="farm-activity-location">Authorized location</label>
             <select
               id="farm-activity-location"
               value={locationId}
+              disabled={savingDraft || draftFormDirty}
               onChange={(event) => setLocationId(event.currentTarget.value)}
             >
-              {grantedLocations.map((id) => <option key={id} value={id}>{id}</option>)}
+              {selectableLocations.map((id) => <option key={id} value={id}>{id}</option>)}
             </select>
             <button
               className="secondary-action"
               type="button"
-              disabled={loading || !locationId}
+              disabled={loading || !grantedLocations.includes(locationId)}
               onClick={() => setRefreshVersion((version) => version + 1)}
             >
               Refresh records
             </button>
           </div>
+          {draftFormDirty && (
+            <p className="migration-note" role="note">Clear the unsaved form before switching locations.</p>
+          )}
 
-          <p className="operator-status-line" role="status" aria-live="polite">{message}</p>
+          {draftableLocations.includes(locationId) && (
+            <form className="farm-activity-draft-form" onSubmit={submitDraft}>
+              <h3>Record a farm activity</h3>
+              <p className="lead">Save a location-scoped draft. This does not submit, verify, or publish the activity.</p>
+              <div className="farm-activity-form-grid">
+                <div className="farm-activity-field">
+                  <label htmlFor="farm-activity-type">Activity</label>
+                  <input
+                    id="farm-activity-type"
+                    value={activityType}
+                    onChange={(event) => { setDraftFormDirty(true); setActivityType(event.currentTarget.value); }}
+                    disabled={savingDraft}
+                    required
+                    maxLength={100}
+                  />
+                </div>
+                <div className="farm-activity-field">
+                  <label htmlFor="farm-activity-date">Activity date</label>
+                  <input
+                    id="farm-activity-date"
+                    type="date"
+                    value={activityDate}
+                    onChange={(event) => { setDraftFormDirty(true); setActivityDate(event.currentTarget.value); }}
+                    disabled={savingDraft}
+                    required
+                  />
+                </div>
+                <div className="farm-activity-field">
+                  <label htmlFor="farm-activity-hours">Labor hours</label>
+                  <input
+                    id="farm-activity-hours"
+                    type="number"
+                    min="0"
+                    max="999999.99"
+                    step="0.01"
+                    value={laborHours}
+                    onChange={(event) => { setDraftFormDirty(true); setLaborHours(event.currentTarget.value); }}
+                    disabled={savingDraft}
+                  />
+                </div>
+                <div className="farm-activity-field">
+                  <label htmlFor="farm-activity-cost">Labor cost</label>
+                  <input
+                    id="farm-activity-cost"
+                    type="number"
+                    min="0"
+                    max="9999999999.99"
+                    step="0.01"
+                    value={laborCost}
+                    onChange={(event) => { setDraftFormDirty(true); setLaborCost(event.currentTarget.value); }}
+                    disabled={savingDraft}
+                  />
+                </div>
+                <div className="farm-activity-field farm-activity-field-wide">
+                  <label htmlFor="farm-activity-description">Description</label>
+                  <textarea
+                    id="farm-activity-description"
+                    value={description}
+                    onChange={(event) => { setDraftFormDirty(true); setDescription(event.currentTarget.value); }}
+                    disabled={savingDraft}
+                    maxLength={10000}
+                    rows={3}
+                  />
+                </div>
+                <div className="farm-activity-field farm-activity-field-wide">
+                  <label htmlFor="farm-activity-notes">Notes</label>
+                  <textarea
+                    id="farm-activity-notes"
+                    value={notes}
+                    onChange={(event) => { setDraftFormDirty(true); setNotes(event.currentTarget.value); }}
+                    disabled={savingDraft}
+                    maxLength={10000}
+                    rows={3}
+                  />
+                </div>
+              </div>
+              <div className="farm-activity-form-actions">
+                <button
+                  className="primary-action"
+                  type="submit"
+                  disabled={savingDraft || !locationId}
+                >
+                  {savingDraft ? "Saving draft…" : "Save draft"}
+                </button>
+                <button
+                  className="secondary-action"
+                  type="button"
+                  disabled={savingDraft || !draftFormDirty}
+                  onClick={() => {
+                    setActivityType("");
+                    setActivityDate(localDateToday());
+                    setDescription("");
+                    setLaborHours("");
+                    setLaborCost("");
+                    setNotes("");
+                    setDraftFormDirty(false);
+                    setDraftFeedback(null);
+                  }}
+                >
+                  Clear fields
+                </button>
+                {draftFeedback && (
+                  <p className="operator-status-line" role={draftFeedback.kind === "error" ? "alert" : "status"} aria-live="polite">
+                    {draftFeedback.text}
+                  </p>
+                )}
+              </div>
+              <p className="migration-note" role="note">
+                Supporting files and offline Collector submissions use separate workflows and are not attached by this form.
+              </p>
+            </form>
+          )}
 
-          {records.length > 0 && (
-            <div className="farm-activity-list">
-              {records.map((record) => (
-                <article className="farm-activity-card" key={record.id}>
-                  <header>
-                    <div>
-                      <h3>{record.activity_type}</h3>
-                      <p>Activity date: <time dateTime={record.activity_date}>{record.activity_date}</time></p>
-                    </div>
-                    <span className="status-label">{statusLabel(record.status)}</span>
-                  </header>
-                  <dl>
-                    <div><dt>Last updated</dt><dd>{record.updated_at ? new Date(record.updated_at).toLocaleString() : "Not recorded"}</dd></div>
-                    <div><dt>Source</dt><dd>{record.source_system || "Unspecified"}</dd></div>
-                  </dl>
-                </article>
-              ))}
-            </div>
+          {!grantedLocations.includes(locationId) && (
+            <p className="migration-note" role="status">This session can create drafts here but cannot read the farm activity list for this location.</p>
+          )}
+
+          {grantedLocations.includes(locationId) && (
+            <>
+              <p className="operator-status-line" role="status" aria-live="polite">{message}</p>
+
+              {records.length > 0 && (
+                <div className="farm-activity-list">
+                  {records.map((record) => (
+                    <article className="farm-activity-card" key={record.id}>
+                      <header>
+                        <div>
+                          <h3>{record.activity_type}</h3>
+                          <p>Activity date: <time dateTime={record.activity_date}>{record.activity_date}</time></p>
+                        </div>
+                        <span className="status-label">{statusLabel(record.status)}</span>
+                      </header>
+                      <dl>
+                        <div><dt>Last updated</dt><dd>{record.updated_at ? new Date(record.updated_at).toLocaleString() : "Not recorded"}</dd></div>
+                        <div><dt>Source</dt><dd>{record.source_system || "Unspecified"}</dd></div>
+                      </dl>
+                    </article>
+                  ))}
+                </div>
+              )}
+            </>
           )}
         </>
       )}
 
       <p className="migration-note" role="note">
-        This page is read-only and excludes Field Collector submissions. Draft verification and publication controls remain in the current supervisor console.
+        This page excludes Field Collector submissions. Draft verification and publication controls remain in the current supervisor console.
       </p>
     </section>
   );
