@@ -639,6 +639,12 @@ export function FarmActivityListPage() {
     return () => detailRequest.current.cancel();
   }, [detailableLocations, locationId, refreshVersion, selectedRecordId]);
 
+  const currentDetail = selectedDetail &&
+    selectedDetail.id.toLowerCase() === selectedRecordId.toLowerCase() &&
+    selectedDetail.location_id.toLowerCase() === locationId
+    ? selectedDetail
+    : null;
+
   async function submitDraft(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setDraftFeedback(null);
@@ -697,11 +703,12 @@ export function FarmActivityListPage() {
 
   async function transitionRecord(action: FarmActivityAction) {
     if (
-      !selectedDetail ||
+      !currentDetail ||
       !selectedRecordId ||
+      actionToConfirm !== action ||
       !locationActions.has(ACTION_GRANTS[action]) ||
-      !STATUS_ACTIONS[selectedDetail.status].includes(action) ||
-      selectedDetail.operator_events.some((event) => event.action === "exception_closed")
+      !STATUS_ACTIONS[currentDetail.status].includes(action) ||
+      currentDetail.operator_events.some((event) => event.action === "exception_closed")
     ) return;
     const reason = transitionReason.trim();
     if (REASON_REQUIRED_ACTIONS.has(action) && !reason) {
@@ -735,9 +742,9 @@ export function FarmActivityListPage() {
     }
   }
 
-  const exceptionClosed = selectedDetail?.operator_events.some((event) => event.action === "exception_closed") ?? false;
-  const availableActions = selectedDetail && !exceptionClosed
-    ? STATUS_ACTIONS[selectedDetail.status].filter((action) => locationActions.has(ACTION_GRANTS[action]))
+  const exceptionClosed = currentDetail?.operator_events.some((event) => event.action === "exception_closed") ?? false;
+  const availableActions = currentDetail && !exceptionClosed
+    ? STATUS_ACTIONS[currentDetail.status].filter((action) => locationActions.has(ACTION_GRANTS[action]))
     : [];
 
   if (sessionState.status === "loading") {
@@ -945,6 +952,9 @@ export function FarmActivityListPage() {
                           disabled={detailLoading || transitionBusy || selectedRecordId === record.id}
                           onClick={() => {
                             setTransitionFeedback(null);
+                            setActionToConfirm(null);
+                            setTransitionReason("");
+                            setDetailMessage("Loading farm activity detail…");
                             setSelectedRecordId(record.id);
                           }}
                         >
@@ -960,21 +970,21 @@ export function FarmActivityListPage() {
                 <section className="farm-activity-review" aria-labelledby="farm-activity-review-heading">
                   <h3 id="farm-activity-review-heading">Farm activity detail and lifecycle</h3>
                   {detailMessage && <p className="operator-status-line" role="status" aria-live="polite">{detailMessage}</p>}
-                  {selectedDetail && (
+                  {currentDetail && (
                     <>
-                      <p><strong>{selectedDetail.activity_type}</strong> · {selectedDetail.activity_date} · {statusLabel(selectedDetail.status)}</p>
+                      <p><strong>{currentDetail.activity_type}</strong> · {currentDetail.activity_date} · {statusLabel(currentDetail.status)}</p>
                       <dl>
-                        <div><dt>Description</dt><dd>{selectedDetail.description || "None"}</dd></div>
-                        <div><dt>Labor hours</dt><dd>{selectedDetail.labor_hours ?? "Not recorded"}</dd></div>
-                        <div><dt>Labor cost</dt><dd>{selectedDetail.labor_cost ?? "Not recorded"}</dd></div>
-                        <div><dt>Notes</dt><dd>{selectedDetail.notes || "None"}</dd></div>
-                        <div><dt>Materials</dt><dd><pre>{JSON.stringify(selectedDetail.materials_used, null, 2)}</pre></dd></div>
-                        <div><dt>Evidence URLs</dt><dd>{selectedDetail.evidence_urls?.filter((url): url is string => Boolean(url)).join("\n") || "None"}</dd></div>
+                        <div><dt>Description</dt><dd>{currentDetail.description || "None"}</dd></div>
+                        <div><dt>Labor hours</dt><dd>{currentDetail.labor_hours ?? "Not recorded"}</dd></div>
+                        <div><dt>Labor cost</dt><dd>{currentDetail.labor_cost ?? "Not recorded"}</dd></div>
+                        <div><dt>Notes</dt><dd>{currentDetail.notes || "None"}</dd></div>
+                        <div><dt>Materials</dt><dd><pre>{JSON.stringify(currentDetail.materials_used, null, 2)}</pre></dd></div>
+                        <div><dt>Evidence URLs</dt><dd>{currentDetail.evidence_urls?.filter((url): url is string => Boolean(url)).join("\n") || "None"}</dd></div>
                       </dl>
                       <h4>Decision history</h4>
-                      {selectedDetail.operator_events.length ? (
+                      {currentDetail.operator_events.length ? (
                         <ol>
-                          {selectedDetail.operator_events.map((event, index) => (
+                          {currentDetail.operator_events.map((event, index) => (
                             <li key={`${event.action}-${event.created_at}-${index}`}>
                               <strong>{event.action.replaceAll("_", " ")}</strong> · {new Date(event.created_at).toLocaleString()}
                               {event.reason ? <p>{event.reason}</p> : null}
@@ -1052,12 +1062,12 @@ export function FarmActivityListPage() {
                           No further lifecycle action is available to this session for the record’s current status.
                         </p>
                       )}
-                      {transitionFeedback && (
-                        <p className="operator-status-line" role={transitionFeedback.kind === "error" ? "alert" : "status"} aria-live="polite">
-                          {transitionFeedback.text}
-                        </p>
-                      )}
                     </>
+                  )}
+                  {transitionFeedback && (
+                    <p className="operator-status-line" role={transitionFeedback.kind === "error" ? "alert" : "status"} aria-live="polite">
+                      {transitionFeedback.text}
+                    </p>
                   )}
                 </section>
               )}
