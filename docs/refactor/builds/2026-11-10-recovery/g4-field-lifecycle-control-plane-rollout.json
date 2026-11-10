@@ -1,0 +1,39 @@
+{
+  "version": 1,
+  "recorded_date": "2026-11-10",
+  "scope": "Deploy the CI-approved field activity detail and lifecycle UI to the existing Control Plane Worker.",
+  "source": {
+    "commit": "32ef45ad4f4a057b7947f0026872710aaa39982d",
+    "ci_run": 42860024704,
+    "security_run": 42860024708,
+    "ci_conclusion": "success",
+    "security_conclusion": "success"
+  },
+  "cloudflare": {
+    "worker": "ki-operator-control-plane",
+    "version_id": "6ba59d2b-dc29-4b15-8caa-0ca00ac6b7e1",
+    "wrangler_version": "4.148.0",
+    "previous_version_id": "0dc0706e-aab2-422b-bc03-6e18d6f80cb0",
+    "assets_read": 11,
+    "assets_uploaded": 7,
+    "bindings": 0,
+    "dns_changed": false,
+    "coolify_changed": false
+  },
+  "http_checks": {
+    "ops": { "status": 200, "content_type": "text/html" },
+    "field_records": { "status": 200, "content_type": "text/html" },
+    "governance": { "status": 200, "content_type": "text/html" },
+    "anonymous_operator_session": { "status": 401, "content_type": "application/json" }
+  },
+  "acceptance": {
+    "authenticated_browser_review": "pending",
+    "lifecycle_grants_changed": false,
+    "gateway_or_database_policy_changed": false,
+    "secret_values_recorded": false
+  },
+  "limitations": [
+    "Public route and anonymous authentication checks do not establish authenticated detail or lifecycle behavior.",
+    "Wasabi must confirm the new /field/records detail panel in the authenticated browser; no transition was performed during deployment."
+  ]
+}
