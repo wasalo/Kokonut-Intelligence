@@ -36,10 +36,17 @@
       "session_after_logout_http_status": 401
     },
     {
-      "name": "positive_location_scoped_farm_activity_read",
+      "name": "pre_migration_754_positive_location_scoped_farm_activity_read",
       "result": "fail",
       "http_status": 503,
       "details": "The response body was not retained. Sanitized candidate logs show the operator context function attempting SELECT FOR SHARE in a read-only transaction."
+    },
+    {
+      "name": "post_migration_754_positive_location_scoped_farm_activity_read",
+      "result": "pass",
+      "http_status": 200,
+      "response_count": "not reported",
+      "details": "Wasabi reran the read-only same-origin Adelphi farm-activity request from an authenticated hub.kokonut.network page after migration 754."
     }
   ],
   "cross_location_denial": "not_tested; no second explicitly authorized test location",
