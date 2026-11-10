@@ -43,6 +43,112 @@ const DRAFT_WRITE_FIELDS = [
   "status",
   "updated_at",
 ].sort().join(",");
+const DETAIL_FIELDS = [
+  "activity_date",
+  "activity_type",
+  "created_at",
+  "crop_cycle_id",
+  "description",
+  "evidence_urls",
+  "farm_task_id",
+  "id",
+  "labor_cost",
+  "labor_hours",
+  "location_id",
+  "materials_used",
+  "notes",
+  "operator_events",
+  "plot_id",
+  "source_system",
+  "status",
+  "updated_at",
+].sort().join(",");
+const EVENT_FIELDS = [
+  "action",
+  "actor_operator_id",
+  "changed_fields",
+  "created_at",
+  "from_status",
+  "reason",
+  "to_status",
+].sort().join(",");
+const TRANSITION_FIELDS = [
+  "action",
+  "activity_id",
+  "created_at",
+  "event_id",
+  "from_status",
+  "location_id",
+  "reason",
+  "to_status",
+].sort().join(",");
+const FARM_ACTIVITY_ACTIONS = [
+  "submit",
+  "verify",
+  "reject",
+  "request-rework",
+  "publish",
+  "close-exception",
+] as const;
+const EVENT_ACTIONS = [
+  "draft_created",
+  "draft_edited",
+  "submitted",
+  "verified",
+  "published",
+  "rejected",
+  "rework_requested",
+  "exception_closed",
+] as const;
+const CHANGED_FIELDS = [
+  "plot_id",
+  "crop_cycle_id",
+  "farm_task_id",
+  "activity_type",
+  "activity_date",
+  "description",
+  "labor_hours",
+  "labor_cost",
+  "materials_used",
+  "evidence_urls",
+  "notes",
+] as const;
+const ACTION_GRANTS: Record<FarmActivityAction, string> = {
+  submit: "submit",
+  verify: "verify",
+  reject: "reject",
+  "request-rework": "rework",
+  publish: "publish",
+  "close-exception": "close_exception",
+};
+const ACTION_LABELS: Record<FarmActivityAction, string> = {
+  submit: "Submit for review",
+  verify: "Verify",
+  reject: "Reject for rework",
+  "request-rework": "Request rework",
+  publish: "Publish",
+  "close-exception": "Close exception",
+};
+const ACTION_RESULT_STATUS: Record<FarmActivityAction, FarmActivityRecord["status"]> = {
+  submit: "submitted",
+  verify: "verified",
+  reject: "rejected",
+  "request-rework": "draft",
+  publish: "published",
+  "close-exception": "rejected",
+};
+const REASON_REQUIRED_ACTIONS = new Set<FarmActivityAction>([
+  "reject",
+  "request-rework",
+  "close-exception",
+]);
+const STATUS_ACTIONS: Record<FarmActivityRecord["status"], FarmActivityAction[]> = {
+  draft: ["submit"],
+  submitted: ["verify", "reject"],
+  verified: ["publish", "reject"],
+  rejected: ["request-rework", "close-exception"],
+  published: [],
+};
 
 interface FarmActivityRecord {
   activity_date: string;
@@ -61,6 +167,41 @@ interface FarmActivityRecord {
 interface FarmActivityListResponse {
   data: FarmActivityRecord[];
   location_id: string;
+}
+
+type FarmActivityAction = typeof FARM_ACTIVITY_ACTIONS[number];
+type FarmActivityEventAction = typeof EVENT_ACTIONS[number];
+type FarmActivityChangedField = typeof CHANGED_FIELDS[number];
+
+interface FarmActivityOperatorEvent {
+  action: FarmActivityEventAction;
+  actor_operator_id: string;
+  changed_fields: FarmActivityChangedField[] | null;
+  created_at: string;
+  from_status: FarmActivityRecord["status"] | null;
+  reason: string | null;
+  to_status: FarmActivityRecord["status"];
+}
+
+interface FarmActivityDetail extends FarmActivityRecord {
+  description: string | null;
+  labor_hours: number | string | null;
+  labor_cost: number | string | null;
+  materials_used: unknown;
+  evidence_urls: Array<string | null> | null;
+  notes: string | null;
+  operator_events: FarmActivityOperatorEvent[];
+}
+
+interface FarmActivityTransition {
+  event_id: string;
+  activity_id: string;
+  location_id: string;
+  action: FarmActivityEventAction;
+  from_status: FarmActivityRecord["status"] | null;
+  to_status: FarmActivityRecord["status"];
+  reason: string | null;
+  created_at: string;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -183,6 +324,105 @@ function validateList(value: unknown, locationId: string): FarmActivityListRespo
   return { data, location_id: value.location_id };
 }
 
+function isActivityStatus(value: unknown): value is FarmActivityRecord["status"] {
+  return value === "draft" || value === "submitted" || value === "verified" ||
+    value === "published" || value === "rejected";
+}
+
+function isNullableText(value: unknown): value is string | null {
+  return value === null || typeof value === "string";
+}
+
+function isDecimalOrNull(value: unknown): value is number | string | null {
+  return value === null || (typeof value === "number" && Number.isFinite(value)) ||
+    (typeof value === "string" && /^-?\d+(?:\.\d+)?$/.test(value));
+}
+
+function validateDetail(value: unknown, activityId: string, locationId: string): FarmActivityDetail {
+  if (!isRecord(value) || Object.keys(value).sort().join(",") !== "data" || !isRecord(value.data)) {
+    throw new Error("The farm activity detail did not match the selected record.");
+  }
+  const detail = value.data;
+  if (
+    Object.keys(detail).sort().join(",") !== DETAIL_FIELDS ||
+    typeof detail.id !== "string" || detail.id.toLowerCase() !== activityId.toLowerCase() ||
+    typeof detail.location_id !== "string" || detail.location_id.toLowerCase() !== locationId.toLowerCase() ||
+    !isUuidOrNull(detail.plot_id) || !isUuidOrNull(detail.crop_cycle_id) || !isUuidOrNull(detail.farm_task_id) ||
+    typeof detail.activity_type !== "string" || !detail.activity_type.trim() || detail.activity_type.length > 100 ||
+    !isDate(detail.activity_date) || !isActivityStatus(detail.status) ||
+    !(detail.source_system === null || typeof detail.source_system === "string") ||
+    detail.source_system === "field_collector" ||
+    !isNullableText(detail.description) || !isNullableText(detail.notes) ||
+    !isDecimalOrNull(detail.labor_hours) || !isDecimalOrNull(detail.labor_cost) ||
+    !(detail.evidence_urls === null || (Array.isArray(detail.evidence_urls) &&
+      detail.evidence_urls.every((url) => url === null || typeof url === "string"))) ||
+    !(detail.created_at === null || isTimestamp(detail.created_at)) ||
+    !(detail.updated_at === null || isTimestamp(detail.updated_at)) ||
+    !Array.isArray(detail.operator_events) || detail.operator_events.length > 100
+  ) {
+    throw new Error("The farm activity detail did not match the selected location and record.");
+  }
+
+  for (const event of detail.operator_events) {
+    if (
+      !isRecord(event) || Object.keys(event).sort().join(",") !== EVENT_FIELDS ||
+      !(EVENT_ACTIONS as readonly unknown[]).includes(event.action) ||
+      typeof event.actor_operator_id !== "string" || !UUID_PATTERN.test(event.actor_operator_id) ||
+      !(event.from_status === null || isActivityStatus(event.from_status)) ||
+      !isActivityStatus(event.to_status) || !isNullableText(event.reason) || !isTimestamp(event.created_at) ||
+      !(event.changed_fields === null || (Array.isArray(event.changed_fields) &&
+        event.changed_fields.every((field) => (CHANGED_FIELDS as readonly unknown[]).includes(field))))
+    ) {
+      throw new Error("The farm activity audit history did not match its response contract.");
+    }
+  }
+
+  return detail as unknown as FarmActivityDetail;
+}
+
+function validateTransition(
+  value: unknown,
+  action: FarmActivityAction,
+  activityId: string,
+  locationId: string,
+): FarmActivityTransition {
+  if (!isRecord(value) || Object.keys(value).sort().join(",") !== TRANSITION_FIELDS) {
+    throw new Error("The lifecycle decision could not be confirmed. Refresh the record before retrying.");
+  }
+  const expectedAction: Record<FarmActivityAction, FarmActivityEventAction> = {
+    submit: "submitted",
+    verify: "verified",
+    reject: "rejected",
+    "request-rework": "rework_requested",
+    publish: "published",
+    "close-exception": "exception_closed",
+  };
+  const expectedStatuses: Record<FarmActivityAction, [FarmActivityRecord["status"] | null, FarmActivityRecord["status"]]> = {
+    submit: ["draft", "submitted"],
+    verify: ["submitted", "verified"],
+    reject: [null, "rejected"],
+    "request-rework": ["rejected", "draft"],
+    publish: ["verified", "published"],
+    "close-exception": ["rejected", "rejected"],
+  };
+  const expected = expectedStatuses[action];
+  const hasRequiredReason = typeof value.reason === "string" && Boolean(value.reason.trim());
+  const fromStatusIsValid = action === "reject"
+    ? value.from_status === "submitted" || value.from_status === "verified"
+    : value.from_status === expected[0];
+  if (
+    typeof value.event_id !== "string" || !UUID_PATTERN.test(value.event_id) ||
+    typeof value.activity_id !== "string" || value.activity_id.toLowerCase() !== activityId.toLowerCase() ||
+    typeof value.location_id !== "string" || value.location_id.toLowerCase() !== locationId.toLowerCase() ||
+    value.action !== expectedAction[action] || !fromStatusIsValid || value.to_status !== expected[1] ||
+    !isNullableText(value.reason) || !isTimestamp(value.created_at) ||
+    (REASON_REQUIRED_ACTIONS.has(action) && !hasRequiredReason)
+  ) {
+    throw new Error("The lifecycle decision response did not match the requested location, record, or transition.");
+  }
+  return value as unknown as FarmActivityTransition;
+}
+
 function requestErrorMessage(error: unknown): string {
   if (error instanceof GatewayRequestError) {
     if (error.status === 401) return "Your operator session has expired. Sign in again to continue.";
@@ -191,6 +431,16 @@ function requestErrorMessage(error: unknown): string {
     if (error.status === 503) return "Farm activity is temporarily unavailable. Try again shortly.";
   }
   return error instanceof Error ? error.message : "Farm activity records could not be loaded.";
+}
+
+function detailErrorMessage(error: unknown): string {
+  if (error instanceof GatewayRequestError) {
+    if (error.status === 401) return "Your operator session has expired. Sign in again to continue.";
+    if (error.status === 403) return "Your exact location farm-activity detail grant is no longer active.";
+    if (error.status === 404) return "This farm activity detail is unavailable for the selected location.";
+    if (error.status === 503) return "Farm activity detail is temporarily unavailable. Try again shortly.";
+  }
+  return error instanceof Error ? error.message : "Farm activity detail could not be loaded.";
 }
 
 function draftRequestErrorMessage(error: unknown): string {
@@ -222,9 +472,24 @@ function statusLabel(status: FarmActivityRecord["status"]): string {
   }
 }
 
+function transitionErrorMessage(error: unknown): string {
+  if (error instanceof GatewayRequestError) {
+    if (error.code === "network_error" || error.code === "invalid_response") {
+      return "The decision could not be confirmed. Refresh the record before retrying.";
+    }
+    if (error.status === 401) return "Your operator session has expired. Sign in again before deciding.";
+    if (error.status === 403) return "Your location does not have an active grant for this decision.";
+    if (error.status === 404) return "The record or required location grant is no longer available.";
+    if (error.status === 409) return "The record changed state. Refresh it before choosing another action.";
+    if (error.status >= 500) return "The decision service is temporarily unavailable. The record was refreshed; review its current status before retrying.";
+  }
+  return error instanceof Error ? error.message : "The lifecycle decision could not be completed.";
+}
+
 export function FarmActivityListPage() {
   const sessionState = useOperatorSession();
   const listRequest = useRef(new LatestRequest());
+  const detailRequest = useRef(new LatestRequest());
   const [locationId, setLocationId] = useState("");
   const [records, setRecords] = useState<FarmActivityRecord[]>([]);
   const [message, setMessage] = useState("");
@@ -239,6 +504,14 @@ export function FarmActivityListPage() {
   const [draftFormDirty, setDraftFormDirty] = useState(false);
   const [savingDraft, setSavingDraft] = useState(false);
   const [draftFeedback, setDraftFeedback] = useState<{ kind: "success" | "error"; text: string } | null>(null);
+  const [selectedRecordId, setSelectedRecordId] = useState("");
+  const [selectedDetail, setSelectedDetail] = useState<FarmActivityDetail | null>(null);
+  const [detailMessage, setDetailMessage] = useState("");
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [transitionReason, setTransitionReason] = useState("");
+  const [actionToConfirm, setActionToConfirm] = useState<FarmActivityAction | null>(null);
+  const [transitionBusy, setTransitionBusy] = useState(false);
+  const [transitionFeedback, setTransitionFeedback] = useState<{ kind: "success" | "error"; text: string } | null>(null);
 
   const grantedLocations = useMemo(() => {
     if (sessionState.status !== "ready") return [];
@@ -259,6 +532,21 @@ export function FarmActivityListPage() {
       .map((scope) => scope.location_id.toLowerCase())
       .filter((id) => UUID_PATTERN.test(id) && detailLocations.has(id)))];
   }, [sessionState]);
+
+  const detailableLocations = useMemo(() => {
+    if (sessionState.status !== "ready") return [];
+    return [...new Set(sessionState.session.scopes
+      .filter((scope) => scope.resource === "farm_activity" && scope.action === "read_detail")
+      .map((scope) => scope.location_id.toLowerCase())
+      .filter((id) => UUID_PATTERN.test(id)))];
+  }, [sessionState]);
+
+  const locationActions = useMemo(() => {
+    if (sessionState.status !== "ready" || !UUID_PATTERN.test(locationId)) return new Set<string>();
+    return new Set(sessionState.session.scopes
+      .filter((scope) => scope.resource === "farm_activity" && scope.location_id.toLowerCase() === locationId)
+      .map((scope) => scope.action));
+  }, [locationId, sessionState]);
 
   const selectableLocations = useMemo(
     () => [...new Set([...grantedLocations, ...draftableLocations])].sort(),
@@ -313,6 +601,43 @@ export function FarmActivityListPage() {
 
     return () => listRequest.current.cancel();
   }, [draftableLocations, grantedLocations, locationId, refreshVersion]);
+
+  useEffect(() => {
+    if (!selectedRecordId || !locationId || !detailableLocations.includes(locationId)) {
+      detailRequest.current.cancel();
+      setSelectedDetail(null);
+      setDetailMessage("");
+      setDetailLoading(false);
+      return;
+    }
+
+    const request = detailRequest.current.begin();
+    const params = new URLSearchParams({ location_id: locationId });
+    setSelectedDetail(null);
+    setDetailMessage("Loading farm activity detail…");
+    setDetailLoading(true);
+    setActionToConfirm(null);
+
+    void requestOperatorJson<unknown>(
+      `/operator/api/farm-activity-records/${encodeURIComponent(selectedRecordId)}?${params}`,
+      { signal: request.signal },
+    )
+      .then((payload) => {
+        if (!request.isCurrent()) return;
+        setSelectedDetail(validateDetail(payload, selectedRecordId, locationId));
+        setDetailMessage("");
+      })
+      .catch((error: unknown) => {
+        if (!request.isCurrent() || isAbortError(error)) return;
+        setSelectedDetail(null);
+        setDetailMessage(detailErrorMessage(error));
+      })
+      .finally(() => {
+        if (request.isCurrent()) setDetailLoading(false);
+      });
+
+    return () => detailRequest.current.cancel();
+  }, [detailableLocations, locationId, refreshVersion, selectedRecordId]);
 
   async function submitDraft(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -370,6 +695,51 @@ export function FarmActivityListPage() {
     }
   }
 
+  async function transitionRecord(action: FarmActivityAction) {
+    if (
+      !selectedDetail ||
+      !selectedRecordId ||
+      !locationActions.has(ACTION_GRANTS[action]) ||
+      !STATUS_ACTIONS[selectedDetail.status].includes(action) ||
+      selectedDetail.operator_events.some((event) => event.action === "exception_closed")
+    ) return;
+    const reason = transitionReason.trim();
+    if (REASON_REQUIRED_ACTIONS.has(action) && !reason) {
+      setTransitionFeedback({ kind: "error", text: "Enter a reason before recording this decision." });
+      return;
+    }
+
+    setTransitionBusy(true);
+    setTransitionFeedback(null);
+    try {
+      const params = new URLSearchParams({ location_id: locationId });
+      const payload = await requestOperatorJson<unknown>(
+        `/operator/api/farm-activity-records/${encodeURIComponent(selectedRecordId)}/${action}?${params}`,
+        { method: "POST", body: reason ? { reason } : {} },
+      );
+      const transition = validateTransition(payload, action, selectedRecordId, locationId);
+      setTransitionReason("");
+      setActionToConfirm(null);
+      setTransitionFeedback({
+        kind: "success",
+        text: `Decision recorded. The record is now ${statusLabel(transition.to_status)}.`,
+      });
+      setRefreshVersion((version) => version + 1);
+    } catch (error) {
+      setTransitionFeedback({ kind: "error", text: transitionErrorMessage(error) });
+      setActionToConfirm(null);
+      setTransitionReason("");
+      setRefreshVersion((version) => version + 1);
+    } finally {
+      setTransitionBusy(false);
+    }
+  }
+
+  const exceptionClosed = selectedDetail?.operator_events.some((event) => event.action === "exception_closed") ?? false;
+  const availableActions = selectedDetail && !exceptionClosed
+    ? STATUS_ACTIONS[selectedDetail.status].filter((action) => locationActions.has(ACTION_GRANTS[action]))
+    : [];
+
   if (sessionState.status === "loading") {
     return <p role="status">Loading operator session…</p>;
   }
@@ -408,8 +778,14 @@ export function FarmActivityListPage() {
             <select
               id="farm-activity-location"
               value={locationId}
-              disabled={savingDraft || draftFormDirty}
-              onChange={(event) => setLocationId(event.currentTarget.value)}
+              disabled={savingDraft || draftFormDirty || transitionBusy}
+              onChange={(event) => {
+                setSelectedRecordId("");
+                setSelectedDetail(null);
+                setActionToConfirm(null);
+                setTransitionFeedback(null);
+                setLocationId(event.currentTarget.value);
+              }}
             >
               {selectableLocations.map((id) => <option key={id} value={id}>{id}</option>)}
             </select>
@@ -562,9 +938,128 @@ export function FarmActivityListPage() {
                         <div><dt>Last updated</dt><dd>{record.updated_at ? new Date(record.updated_at).toLocaleString() : "Not recorded"}</dd></div>
                         <div><dt>Source</dt><dd>{record.source_system || "Unspecified"}</dd></div>
                       </dl>
+                      {detailableLocations.includes(locationId) && (
+                        <button
+                          className="secondary-action"
+                          type="button"
+                          disabled={detailLoading || transitionBusy || selectedRecordId === record.id}
+                          onClick={() => {
+                            setTransitionFeedback(null);
+                            setSelectedRecordId(record.id);
+                          }}
+                        >
+                          {selectedRecordId === record.id ? "Details open" : "Open details and review"}
+                        </button>
+                      )}
                     </article>
                   ))}
                 </div>
+              )}
+
+              {selectedRecordId && detailableLocations.includes(locationId) && (
+                <section className="farm-activity-review" aria-labelledby="farm-activity-review-heading">
+                  <h3 id="farm-activity-review-heading">Farm activity detail and lifecycle</h3>
+                  {detailMessage && <p className="operator-status-line" role="status" aria-live="polite">{detailMessage}</p>}
+                  {selectedDetail && (
+                    <>
+                      <p><strong>{selectedDetail.activity_type}</strong> · {selectedDetail.activity_date} · {statusLabel(selectedDetail.status)}</p>
+                      <dl>
+                        <div><dt>Description</dt><dd>{selectedDetail.description || "None"}</dd></div>
+                        <div><dt>Labor hours</dt><dd>{selectedDetail.labor_hours ?? "Not recorded"}</dd></div>
+                        <div><dt>Labor cost</dt><dd>{selectedDetail.labor_cost ?? "Not recorded"}</dd></div>
+                        <div><dt>Notes</dt><dd>{selectedDetail.notes || "None"}</dd></div>
+                        <div><dt>Materials</dt><dd><pre>{JSON.stringify(selectedDetail.materials_used, null, 2)}</pre></dd></div>
+                        <div><dt>Evidence URLs</dt><dd>{selectedDetail.evidence_urls?.filter((url): url is string => Boolean(url)).join("\n") || "None"}</dd></div>
+                      </dl>
+                      <h4>Decision history</h4>
+                      {selectedDetail.operator_events.length ? (
+                        <ol>
+                          {selectedDetail.operator_events.map((event, index) => (
+                            <li key={`${event.action}-${event.created_at}-${index}`}>
+                              <strong>{event.action.replaceAll("_", " ")}</strong> · {new Date(event.created_at).toLocaleString()}
+                              {event.reason ? <p>{event.reason}</p> : null}
+                              {event.changed_fields?.length ? <p>Changed fields: {event.changed_fields.join(", ")}</p> : null}
+                              <small>Operator {event.actor_operator_id}</small>
+                            </li>
+                          ))}
+                        </ol>
+                      ) : <p>No lifecycle decisions have been recorded.</p>}
+
+                      {availableActions.length > 0 ? (
+                        <div className="farm-activity-lifecycle-actions">
+                          <div className="farm-activity-form-actions">
+                            {availableActions.map((action) => (
+                              <button
+                                className={action === "publish" ? "primary-action" : "secondary-action"}
+                                key={action}
+                                type="button"
+                                disabled={transitionBusy || detailLoading || actionToConfirm !== null}
+                                onClick={() => {
+                                  setTransitionFeedback(null);
+                                  setTransitionReason("");
+                                  setActionToConfirm(action);
+                                }}
+                              >
+                                {ACTION_LABELS[action]}
+                              </button>
+                            ))}
+                          </div>
+                          {actionToConfirm && (
+                            <div className="farm-activity-decision-confirmation" role="group" aria-label="Confirm farm activity decision">
+                              <p>
+                                Confirm “{ACTION_LABELS[actionToConfirm]}”. The record will become {statusLabel(ACTION_RESULT_STATUS[actionToConfirm])}.
+                              </p>
+                              {REASON_REQUIRED_ACTIONS.has(actionToConfirm) && (
+                                <div className="farm-activity-field farm-activity-field-wide">
+                                  <label htmlFor="farm-activity-transition-reason">Decision reason (required)</label>
+                                  <textarea
+                                    id="farm-activity-transition-reason"
+                                    value={transitionReason}
+                                    onChange={(event) => setTransitionReason(event.currentTarget.value)}
+                                    maxLength={2000}
+                                    rows={3}
+                                    disabled={transitionBusy}
+                                  />
+                                </div>
+                              )}
+                              <div className="farm-activity-form-actions">
+                                <button
+                                  className={actionToConfirm === "publish" ? "primary-action" : "secondary-action"}
+                                  type="button"
+                                  disabled={transitionBusy || detailLoading}
+                                  onClick={() => void transitionRecord(actionToConfirm)}
+                                >
+                                  {transitionBusy ? "Recording decision…" : `Confirm ${ACTION_LABELS[actionToConfirm].toLowerCase()}`}
+                                </button>
+                                <button
+                                  className="secondary-action"
+                                  type="button"
+                                  disabled={transitionBusy}
+                                  onClick={() => {
+                                    setActionToConfirm(null);
+                                    setTransitionReason("");
+                                    setTransitionFeedback(null);
+                                  }}
+                                >
+                                  Cancel
+                                </button>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <p className="migration-note" role="note">
+                          No further lifecycle action is available to this session for the record’s current status.
+                        </p>
+                      )}
+                      {transitionFeedback && (
+                        <p className="operator-status-line" role={transitionFeedback.kind === "error" ? "alert" : "status"} aria-live="polite">
+                          {transitionFeedback.text}
+                        </p>
+                      )}
+                    </>
+                  )}
+                </section>
               )}
             </>
           )}
@@ -572,7 +1067,7 @@ export function FarmActivityListPage() {
       )}
 
       <p className="migration-note" role="note">
-        This page excludes Field Collector submissions. Draft verification and publication controls remain in the current supervisor console.
+        This page excludes Field Collector submissions. Detail and lifecycle actions appear only when the session has the matching location-scoped grant; the Gateway and database still enforce every transition.
       </p>
     </section>
   );

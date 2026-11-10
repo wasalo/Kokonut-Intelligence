@@ -110,6 +110,39 @@
 .farm-activity-card dt { color: var(--ink-muted); font-size: .82rem; }
 .farm-activity-card dd { margin: 0; }
 
+.farm-activity-review {
+  margin: 1.5rem 0;
+  padding: 1.25rem;
+  border: 1px solid var(--line);
+  border-radius: .8rem;
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+}
+
+.farm-activity-review > h3 { margin-top: 0; }
+.farm-activity-review > dl {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 14rem), 1fr));
+  gap: 1rem;
+}
+.farm-activity-review > dl div { min-width: 0; }
+.farm-activity-review > dl dt { color: var(--ink-muted); font-size: .82rem; }
+.farm-activity-review > dl dd { margin: .25rem 0 0; overflow-wrap: anywhere; }
+.farm-activity-review pre { max-width: 100%; white-space: pre-wrap; overflow-wrap: anywhere; }
+.farm-activity-review ol { padding-left: 1.5rem; }
+.farm-activity-review li { margin: .65rem 0; }
+.farm-activity-review small { color: var(--ink-muted); }
+
+.farm-activity-decision-confirmation {
+  margin-top: 1rem;
+  padding: 1rem;
+  border: 1px solid var(--line);
+  border-radius: .65rem;
+  background: var(--surface);
+}
+
+.farm-activity-decision-confirmation > p:first-child { margin-top: 0; }
+
 @media (max-width: 600px) {
   .field-actions { display: grid; }
   .field-actions > * { width: 100%; }
