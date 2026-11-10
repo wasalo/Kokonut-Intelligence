@@ -478,7 +478,7 @@ export function LocationSetupPage() {
         <p className="eyebrow">Administration</p>
         <h2 id="location-setup-heading">Set up a location</h2>
         <p className="lead">Sign in with your operator account to register a farm location.</p>
-        <a className="button-link" href="/operator/auth/login?return_to=%2Fops%2Fadministration">Sign in to continue</a>
+        <a className="button-link" href="/operator/auth/login?return_to=%2Fops%2Fadministration&amp;prompt=select_account">Sign in to continue</a>
       </section>
     );
   }

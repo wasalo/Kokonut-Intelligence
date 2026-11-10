@@ -279,7 +279,7 @@ export function MetricListPage() {
         <p className="eyebrow">General Operations</p>
         <h2 id="metric-list-heading">Metrics</h2>
         <p className="lead">Sign in to inspect metrics for your granted locations.</p>
-        <a className="primary-action" href="/operator/auth/login">Sign in</a>
+        <a className="primary-action" href="/operator/auth/login?return_to=%2Fops%2Fmetrics&amp;prompt=select_account">Sign in</a>
       </section>
     );
   }

@@ -283,9 +283,9 @@ button:focus-visible,
 }
 
 @media (max-width: 700px) {
-  .app-header { align-items: center; }
+  .app-header { align-items: center; flex-wrap: wrap; }
   .header-summary { display: none; }
-  .operator-account { margin-left: auto; }
+  .operator-account { width: 100%; margin-left: 0; justify-content: flex-end; flex-wrap: wrap; }
   .operator-account__name { max-width: 8rem; }
   .app-layout { display: block; }
   .primary-navigation {

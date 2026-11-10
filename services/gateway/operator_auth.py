@@ -4305,11 +4305,17 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
         from httpx2 import RequestError
 
         return_to = _operator_return_path(request.query_params.get("return_to"))
+        prompt = request.query_params.get("prompt")
         request.session.clear()
         request.session["operator_return_to"] = return_to
         try:
+            authorization_options = (
+                {"prompt": "select_account"} if prompt == "select_account" else {}
+            )
             return await provider.client.authorize_redirect(
-                request, redirect_uri=provider.settings.redirect_uri
+                request,
+                redirect_uri=provider.settings.redirect_uri,
+                **authorization_options,
             )
         except RequestError as exc:
             from services.common.logging import get_logger

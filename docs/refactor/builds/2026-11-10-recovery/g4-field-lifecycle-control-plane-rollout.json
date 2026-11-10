@@ -53,9 +53,11 @@
       "mutation_performed": false
     },
     "transition_actor_prerequisites": {
-      "status": "open",
+      "status": "submit_and_verify_passed_publish_pending",
       "candidate_accounts": {
-        "status": "provisioned_invitations_received_first_login_pending",
+        "status": "all_setup_flows_completed_operations_and_verifier_authenticated_publisher_first_signin_pending",
+        "setup_flows_completed": 3,
+        "confirmed_by": "Wasabi",
         "emails": [
           "operations@kokonut.network",
           "verifier@kokonut.network",
@@ -157,14 +159,50 @@
         "publisher_and_reviewer": "publisher@kokonut.network: farm_activity:publish and farm_activity:reject; distinct from submitter and verifier"
       },
       "reject_rework_path": "Use a second test draft for submit/verify/reject/rework; the publisher/reviewer rejects after verification, and the operations submitter returns it to draft. The first test draft can follow submit/verify/publish.",
-      "current_account_transition_grants_changed": false
+      "current_account_transition_grants_changed": false,
+      "live_transition_acceptance": {
+        "record_id": "7cc0b343-dd6a-405d-a25a-3f3e9dc0596a",
+        "activity_type": "A testing draft",
+        "location_id": "1b1775d2-3043-42f9-9967-5d3f18db7ae0",
+        "confirmed_by": "Wasabi",
+        "transitions": [
+          {
+            "action": "submit",
+            "from": "draft",
+            "to": "submitted",
+            "operator": "operations@kokonut.network",
+            "operator_id": "c706384a-cfe7-4f01-82b7-1b900a6c854d",
+            "at": "2026-11-10T21:51:11.577581+00:00",
+            "audit_reason": null
+          },
+          {
+            "action": "verify",
+            "from": "submitted",
+            "to": "verified",
+            "operator": "verifier@kokonut.network",
+            "operator_id": "a50501f2-2f98-4374-998d-1abc7ab87298",
+            "at": "2026-11-10T21:55:37.563079+00:00",
+            "audit_reason": "Im verifying the perms of this workflow account."
+          }
+        ],
+        "published": false,
+        "publish_requires_separate_owner_confirmation": true
+      },
+      "operator_console_usability": {
+        "reported_by": "Wasabi",
+        "issues": [
+          "The legacy /operator/ console placed navigation and sign-out after a long page.",
+          "ZITADEL reused the active identity instead of showing an account chooser on sign-in."
+        ],
+        "source_fix_status": "implemented_pending_exact_head_ci_and_candidate_deployment"
+      }
     },
     "lifecycle_grants_changed": true,
     "gateway_or_database_policy_changed": false,
     "secret_values_recorded": false
   },
   "limitations": [
-    "Lifecycle transitions remain untested until the three account holders complete account setup and sign in as distinct operators.",
-    "This confirms authenticated read/detail behavior only; lifecycle transition acceptance remains open."
+    "Operations submit and verifier approval passed; publisher first sign-in and publish/reject acceptance remain open.",
+    "Negative state/nonce behavior, audit attribution beyond the observed two transitions, second-location denial, and Collector offline media/consent/sync acceptance remain open."
   ]
 }

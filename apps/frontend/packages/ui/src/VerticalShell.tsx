@@ -12,6 +12,7 @@ const WORKSPACES = [
 function operatorLoginHref(): string {
   const login = new URL("/operator/auth/login", window.location.origin);
   login.searchParams.set("return_to", window.location.pathname);
+  login.searchParams.set("prompt", "select_account");
   return `${login.pathname}${login.search}`;
 }
 
@@ -53,12 +54,13 @@ function OperatorAccountControl() {
   const [signingOut, setSigningOut] = useState(false);
   const [signOutError, setSignOutError] = useState("");
 
-  async function handleSignOut() {
+  async function handleSignOut(switchAccount = false) {
     setSigningOut(true);
     setSignOutError("");
     try {
       await signOutOperatorSession();
-      window.location.reload();
+      if (switchAccount) window.location.assign(operatorLoginHref());
+      else window.location.reload();
     } catch {
       setSigningOut(false);
       setSignOutError("Sign out could not be completed. Try again.");
@@ -92,6 +94,14 @@ function OperatorAccountControl() {
         disabled={signingOut}
       >
         {signingOut ? "Signing out…" : "Sign out"}
+      </button>
+      <button
+        className="operator-account__action"
+        type="button"
+        onClick={() => void handleSignOut(true)}
+        disabled={signingOut}
+      >
+        {signingOut ? "Switching…" : "Switch account"}
       </button>
       {signOutError ? <span className="operator-account__error" role="alert">{signOutError}</span> : null}
     </div>

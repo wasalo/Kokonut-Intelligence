@@ -247,7 +247,7 @@ export function ReportReviewPage() {
         <p className="eyebrow">General Operations</p>
         <h2 id="report-review-heading">Submitted report review</h2>
         <p className="lead">Sign in to view report reviews for your granted locations.</p>
-        <a className="primary-action" href="/operator/auth/login">Sign in</a>
+        <a className="primary-action" href="/operator/auth/login?return_to=%2Fops%2Freports&amp;prompt=select_account">Sign in</a>
       </section>
     );
   }
