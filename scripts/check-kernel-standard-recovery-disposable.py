@@ -353,13 +353,25 @@ def _isolated_compose_model(model: dict[str, Any]) -> dict[str, Any]:
     services = isolated.get("services")
     if not isinstance(services, dict) or not required <= set(services):
         raise AcceptanceError("merged Standard Compose model lacks database/app/worker")
-    selected = ["database", "app", "worker", "runtime-role-bootstrap"]
+    selected = [
+        "database",
+        "app",
+        "worker",
+        "runtime-role-bootstrap",
+        "report-snapshot-export-artifact-init",
+    ]
+    if not set(selected) <= set(services):
+        raise AcceptanceError(
+            "merged Standard Compose model lacks the private report artifact initializer"
+        )
     if "proxy" in services:
         selected.append("proxy")
     isolated["services"] = {name: services[name] for name in selected}
 
     for service in isolated["services"].values():
         service.pop("ports", None)
+        if service.get("network_mode") == "none":
+            continue
         networks = service.get("networks", {})
         if not isinstance(networks, dict) or not networks:
             raise AcceptanceError("Standard service has no explicit runtime network")
@@ -829,38 +841,73 @@ def _assert_directus_reference_read_only_boundary(
         "quality_grade",
         "readiness_dimension",
     )
-    query = "SET ROLE kokonut_directus_runtime;\n" + "\n".join(
+    read_query = "SET ROLE kokonut_directus_runtime;\n" + "\n".join(
         f"SELECT count(*) >= 0 FROM public.{relation};" for relation in targets
-    ) + "\nRESET ROLE;\n" + "\n".join(
-        "SELECT "
-        f"has_table_privilege('{directus}', 'public.{relation}', 'SELECT'), "
-        f"has_table_privilege('{directus}', 'public.{relation}', 'INSERT'), "
-        f"has_table_privilege('{directus}', 'public.{relation}', 'UPDATE'), "
-        f"has_table_privilege('{directus}', 'public.{relation}', 'DELETE'), "
-        f"has_table_privilege('{directus}', 'public.{relation}', 'TRUNCATE'), "
-        f"has_table_privilege('{directus}', 'public.{relation}', 'REFERENCES'), "
-        f"has_table_privilege('{directus}', 'public.{relation}', 'TRIGGER'), "
-        "NOT EXISTS (SELECT 1 FROM pg_catalog.pg_attribute AS attribute "
-        f"WHERE attribute.attrelid = 'public.{relation}'::regclass "
-        "AND attribute.attnum > 0 AND NOT attribute.attisdropped AND ("
-        f"has_column_privilege('{directus}', attribute.attrelid, attribute.attname, 'INSERT') "
-        "OR "
-        f"has_column_privilege('{directus}', attribute.attrelid, attribute.attname, 'UPDATE') "
-        "OR "
-        f"has_column_privilege('{directus}', attribute.attrelid, attribute.attname, 'REFERENCES')));"
-        for relation in targets
-    )
-    result = _run(
+    ) + "\nRESET ROLE;"
+    read_result = _run(
         [
             *_compose_command(project, manifest),
             "exec", "-T", "database", "psql", "-XAtq", "-F", "|",
             "-U", "kokonut", "-d", "kokonut_intelligence",
-            "-v", "ON_ERROR_STOP=1", "-c", query,
+            "-v", "ON_ERROR_STOP=1", "-c", read_query,
         ],
         environment=environment,
     )
+    if read_result.returncode:
+        raise AcceptanceError(
+            "optional Directus cannot read the reviewed reference relations; "
+            f"received {(read_result.stdout + read_result.stderr).strip()}"
+        )
+
+    target_values = ", ".join(
+        f"({index}, '{relation}')" for index, relation in enumerate(targets, start=1)
+    )
+    privilege_query = f"""
+WITH targets(ordinal, relation_name) AS (VALUES {target_values})
+SELECT
+    has_table_privilege('{directus}', format('public.%I', relation_name), 'SELECT'),
+    has_table_privilege('{directus}', format('public.%I', relation_name), 'INSERT'),
+    has_table_privilege('{directus}', format('public.%I', relation_name), 'UPDATE'),
+    has_table_privilege('{directus}', format('public.%I', relation_name), 'DELETE'),
+    has_table_privilege('{directus}', format('public.%I', relation_name), 'TRUNCATE'),
+    has_table_privilege('{directus}', format('public.%I', relation_name), 'REFERENCES'),
+    has_table_privilege('{directus}', format('public.%I', relation_name), 'TRIGGER'),
+    NOT EXISTS (
+        SELECT 1
+          FROM pg_catalog.pg_attribute AS attribute
+         WHERE attribute.attrelid = format('public.%I', relation_name)::regclass
+           AND attribute.attnum > 0
+           AND NOT attribute.attisdropped
+           AND (
+               has_column_privilege('{directus}', attribute.attrelid, attribute.attname, 'INSERT')
+               OR has_column_privilege('{directus}', attribute.attrelid, attribute.attname, 'UPDATE')
+               OR has_column_privilege('{directus}', attribute.attrelid, attribute.attname, 'REFERENCES')
+           )
+    )
+  FROM targets
+ ORDER BY ordinal
+"""
+    privilege_result = _run(
+        [
+            *_compose_command(project, manifest),
+            "exec", "-T", "database", "psql", "-XAtq", "-F", "|",
+            "-U", "kokonut", "-d", "kokonut_intelligence",
+            "-v", "ON_ERROR_STOP=1", "-c", privilege_query,
+        ],
+        environment=environment,
+    )
+    if privilege_result.returncode:
+        raise AcceptanceError(
+            "optional Directus relation privilege query failed; "
+            f"received {(privilege_result.stdout + privilege_result.stderr).strip()}"
+        )
     expected = ["t"] * len(targets) + ["t|f|f|f|f|f|f|t"] * len(targets)
-    observed = [line.strip() for line in result.stdout.splitlines() if line.strip()]
+    observed = [
+        line.strip()
+        for result in (read_result, privilege_result)
+        for line in result.stdout.splitlines()
+        if line.strip()
+    ]
     if observed != expected:
         raise AcceptanceError(
             "optional Directus does not retain SELECT-only access to reviewed tables; "

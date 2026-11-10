@@ -27,13 +27,21 @@
     "anonymous_operator_session": { "status": 401, "content_type": "application/json" }
   },
   "acceptance": {
-    "authenticated_browser_review": "pending",
+    "authenticated_browser_review": {
+      "status": "passed_read_detail",
+      "confirmed_by": "Wasabi",
+      "draft_summary_visible": true,
+      "detail_and_audit_history_visible": true,
+      "lifecycle_actions_rendered": false,
+      "decision": "no further lifecycle action was available to the current session and record state",
+      "mutation_performed": false
+    },
     "lifecycle_grants_changed": false,
     "gateway_or_database_policy_changed": false,
     "secret_values_recorded": false
   },
   "limitations": [
-    "Public route and anonymous authentication checks do not establish authenticated detail or lifecycle behavior.",
-    "Wasabi must confirm the new /field/records detail panel in the authenticated browser; no transition was performed during deployment."
+    "No submit, verify, reject, rework, publish, or exception-closure action was exercised because the current session and record state exposed no lifecycle action.",
+    "This confirms authenticated read/detail behavior only; lifecycle transition acceptance remains open."
   ]
 }
