@@ -133,6 +133,9 @@ function VerticalShellContent({
       </header>
 
       <nav className="vertical-switcher" aria-label="Kokonut workspaces">
+        <Link to="/" className="vertical-switcher__link">
+          Ecosystem overview
+        </Link>
         {WORKSPACES.map(({ path, label }) => {
           const isCurrent = basePath === path;
           return (

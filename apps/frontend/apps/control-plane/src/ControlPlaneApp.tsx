@@ -1,6 +1,7 @@
-import { lazy, Suspense } from "react";
-import { Navigate, Route, Routes } from "react-router";
+import { lazy, Suspense, useEffect } from "react";
+import { Navigate, Outlet, Route, Routes, useLocation } from "react-router";
 import { OperatorSessionProvider } from "@kokonut/operator-client/react";
+import { PublicEcosystemPage } from "./modules/public-home/PublicEcosystemPage";
 
 const FieldOperationsModule = lazy(() =>
   import("./modules/field-operations/FieldOperationsModule")
@@ -24,9 +25,18 @@ function WorkspaceLoading() {
 }
 
 export function ControlPlaneApp() {
+  const { pathname } = useLocation();
+
+  useEffect(() => {
+    document.title = pathname === "/"
+      ? "Kokonut Intelligence · A clearer view of a regenerative network"
+      : "Kokonut Intelligence · Control Plane";
+  }, [pathname]);
+
   return (
-    <OperatorSessionProvider>
-      <Routes>
+    <Routes>
+      <Route path="/" element={<PublicEcosystemPage />} />
+      <Route element={<OperatorSessionProvider><Outlet /></OperatorSessionProvider>}>
         <Route
           path="/ops/*"
           element={
@@ -51,8 +61,8 @@ export function ControlPlaneApp() {
             </Suspense>
           }
         />
-        <Route path="*" element={<Navigate to="/ops/" replace />} />
-      </Routes>
-    </OperatorSessionProvider>
+      </Route>
+      <Route path="*" element={<Navigate to="/ops/" replace />} />
+    </Routes>
   );
 }

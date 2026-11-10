@@ -4,6 +4,7 @@
   "compatibility_date": "2026-11-05",
   "workers_dev": false,
   "routes": [
+    { "pattern": "hub.kokonut.network/", "zone_name": "kokonut.network" },
     { "pattern": "hub.kokonut.network/ops", "zone_name": "kokonut.network" },
     { "pattern": "hub.kokonut.network/ops/*", "zone_name": "kokonut.network" },
     { "pattern": "hub.kokonut.network/field", "zone_name": "kokonut.network" },
