@@ -1,0 +1,49 @@
+{
+  "observed_at_utc": "2026-11-10T01:54:56Z",
+  "source": {
+    "repository": "wasalo/Kokonut-Intelligence",
+    "branch": "chore/finalize-kokonut-intelligence-refactor",
+    "commit": "b0958ef70da0f1054b476dd6c9ed0189a2e4f9a5",
+    "changed_paths": [
+      "apps/frontend/apps/control-plane/src/modules/field-operations/FarmActivityListPage.tsx",
+      "apps/frontend/apps/control-plane/src/modules/field-operations/app.css",
+      "docs/refactor/current-state-and-implementation.md"
+    ]
+  },
+  "ci": {
+    "run_id": "42732349484",
+    "result": "success",
+    "security_run_id": "42732349756",
+    "security_result": "success"
+  },
+  "coolify": {
+    "application": "Kokonut Intelligence Kernel Candidate",
+    "application_uuid": "fdphpruj8jxien23ockmbw0j",
+    "deployment_uuid": "0lnxiybztkypx1vpf7p5y8j7",
+    "commit": "b0958ef70da0f1054b476dd6c9ed0189a2e4f9a5",
+    "status": "finished"
+  },
+  "cloudflare": {
+    "worker": "ki-operator-control-plane",
+    "version_id": "0dc0706e-aab2-422b-bc03-6e18d6f80cb0",
+    "environment": "top-level",
+    "routes": [
+      "hub.kokonut.network/ops",
+      "hub.kokonut.network/ops/*",
+      "hub.kokonut.network/field",
+      "hub.kokonut.network/field/*",
+      "hub.kokonut.network/governance",
+      "hub.kokonut.network/governance/*",
+      "hub.kokonut.network/assets/*"
+    ]
+  },
+  "public_checks": {
+    "GET https://hub.kokonut.network/health": 200,
+    "GET https://hub.kokonut.network/field/records": 200,
+    "GET https://hub.kokonut.network/assets/FieldOperationsModule-xkjovps_.js": 200
+  },
+  "human_acceptance": {
+    "authenticated_browser_review": "pending",
+    "draft_write": "not exercised"
+  }
+}
