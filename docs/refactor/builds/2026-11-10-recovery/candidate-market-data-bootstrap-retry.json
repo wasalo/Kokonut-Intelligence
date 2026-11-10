@@ -1,0 +1,38 @@
+{
+  "status": "verification_blocked_by_trigger_function_classification",
+  "checked_at": "2026-11-10",
+  "candidate": {
+    "coolify_application": "Kokonut Intelligence Kernel Candidate",
+    "deployment_uuid": "ixqtocgchicjbabecwtbsi2m",
+    "deployment_commit": "89bc3772d9dbf5f611c9d24aa7cd923570d0603f",
+    "database_health": "running|healthy",
+    "api_health": "running|healthy",
+    "worker_health": "running|healthy"
+  },
+  "role_bootstrap": {
+    "exit_status": "verification_error",
+    "allowed_market_data_functions_execute": [true, true, true],
+    "kokonut_security_schema_usage": true,
+    "kokonut_security_schema_create": false,
+    "direct_relation_privileges": false,
+    "direct_sequence_privileges": false,
+    "verification_error": "market-data login can execute another SECURITY DEFINER function",
+    "functions_reported": [
+      "enforce_farm_task_framework_step_location()",
+      "enforce_location_adoption_program_review()",
+      "kokonut_security.enforce_location_retirement_replacement_scope()",
+      "prevent_unresolved_farm_task_framework_step_move()",
+      "require_location_adoption_consent_policy()"
+    ],
+    "reported_return_type": "trigger",
+    "function_acl_source": "PUBLIC EXECUTE default",
+    "grant_changes_persisted": true,
+    "reason_grants_persisted": "The provisioner uses PostgreSQL autocommit; the later callability validation raised after the bounded grants were applied."
+  },
+  "ingestion": {
+    "world_bank_rows_imported": 0,
+    "persistent_worker_feature_flag": false,
+    "recurring_task_started": false
+  },
+  "next_action": "Run the exact-head CI for the trigger-return-type verifier correction, then repeat bootstrap verification and perform the bounded one-shot import."
+}

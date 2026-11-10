@@ -2457,6 +2457,7 @@ def test_market_data_function_is_private_and_owned_by_its_bounded_role():
         "if eas_indexer_ident is not None:", 1
     )[0]
     assert "for function in market_data_functions:" in final_reconciliation
+    assert "procedure.prorettype <> 'trigger'::regtype" in final_reconciliation
 
 
 def test_gnosis_indexer_has_its_own_execute_only_role_contract():

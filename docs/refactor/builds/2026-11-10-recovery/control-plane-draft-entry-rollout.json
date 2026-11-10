@@ -44,7 +44,7 @@
   },
   "human_acceptance": {
     "authenticated_browser_review": "pass: Wasabi confirmed the authenticated /field/records page loaded, showed the farm-activity draft form and its fields, and displayed no non-Collector farm activity records",
-    "draft_write": "not exercised; no draft was saved during the browser check",
+    "draft_write": "pass: Wasabi saved a real non-Collector activity labeled 'A testing draft' for activity date 2026-11-09; the page reported one recent record and displayed Draft — unverified from kokonut_gateway",
     "cross_location_denial": "pass: authenticated request for an unrelated random location returned HTTP 403 with no data"
   }
 }

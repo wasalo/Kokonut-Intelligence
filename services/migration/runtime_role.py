@@ -4055,6 +4055,7 @@ def provision_runtime_role(
                       JOIN pg_namespace AS namespace ON namespace.oid = procedure.pronamespace
                      WHERE namespace.nspname IN ('public', 'kokonut_security')
                        AND procedure.prosecdef
+                       AND procedure.prorettype <> 'trigger'::regtype
                        AND {other_function_predicate}
                        AND has_function_privilege(%s, procedure.oid, 'EXECUTE')
                      LIMIT 1""",
