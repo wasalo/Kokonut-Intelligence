@@ -26,6 +26,18 @@
     "governance": { "status": 200, "content_type": "text/html" },
     "anonymous_operator_session": { "status": 401, "content_type": "application/json" }
   },
+  "zitadel_email_delivery": {
+    "provider": "Maileroo SMTP",
+    "provider_test_http_status": 200,
+    "provider_activation_http_status": 200,
+    "provider_active": true,
+    "setup_invitations_requested": 3,
+    "setup_invitation_inbox_receipts_confirmed": 3,
+    "receipt_confirmation_by": "Wasabi",
+    "invite_codes_or_credentials_recorded": false,
+    "temporary_provisioner_deleted_after_delivery": true,
+    "temporary_iam_owner_removed_from_local_env_and_sops": true
+  },
   "acceptance": {
     "authenticated_browser_review": {
       "status": "passed_read_detail",
@@ -43,7 +55,7 @@
     "transition_actor_prerequisites": {
       "status": "open",
       "candidate_accounts": {
-        "status": "provisioned_invitation_requested_first_login_pending",
+        "status": "provisioned_invitations_received_first_login_pending",
         "emails": [
           "operations@kokonut.network",
           "verifier@kokonut.network",
@@ -83,7 +95,8 @@
         "resolution": "Wasabi assigned ORG_USER_MANAGER to the organization-scoped provisioning service account; user.write then appeared and all three users were created.",
         "users_created": 3,
         "setup_invitations_requested": 3,
-        "invitation_inbox_receipt_confirmed": false,
+        "invitation_inbox_receipt_confirmed": true,
+        "invitation_inbox_receipt_confirmed_by": "Wasabi",
         "required_role": "ORG_USER_MANAGER on the target organization",
         "pat_storage": "The temporary PAT was briefly stored in encrypted .env.sops for provisioning, then removed; plaintext was removed from root .env. No token value was recorded.",
         "temporary_provisioner_cleanup": {
@@ -91,7 +104,10 @@
           "service_account_deleted": true,
           "pat_invalidated_by_account_deletion": true,
           "local_plaintext_removed": true,
-          "encrypted_pat_removed": true
+          "encrypted_pat_removed": true,
+          "iam_owner_absent_from_root_env": true,
+          "iam_owner_absent_from_decrypted_sops": true,
+          "committed_sops_ciphertext_restored": true
         }
       },
       "operator_membership_and_scopes": {
@@ -148,8 +164,7 @@
     "secret_values_recorded": false
   },
   "limitations": [
-    "Lifecycle transitions remain untested until the three account holders complete their setup invitations and sign in as distinct operators.",
-    "ZITADEL setup invitation inbox receipt has not been independently confirmed.",
+    "Lifecycle transitions remain untested until the three account holders complete account setup and sign in as distinct operators.",
     "This confirms authenticated read/detail behavior only; lifecycle transition acceptance remains open."
   ]
 }
