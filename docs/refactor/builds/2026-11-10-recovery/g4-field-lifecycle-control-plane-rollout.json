@@ -43,7 +43,7 @@
     "transition_actor_prerequisites": {
       "status": "open",
       "candidate_accounts": {
-        "status": "approved_but_provisioning_blocked_by_org_user_write",
+        "status": "provisioned_invitation_requested_first_login_pending",
         "emails": [
           "operations@kokonut.network",
           "verifier@kokonut.network",
@@ -72,19 +72,67 @@
         "credentials_recorded": false
       },
       "provisioning_attempt": {
-        "status": "blocked",
+        "status": "completed_after_role_correction",
         "date": "2026-11-10",
         "service_account": "KokonutProvisioner",
         "target_organization_id": "398487505738992133",
         "target_project_id": "398568044462344709",
         "attempted_endpoint": "POST /v2/users/new",
-        "http_status": 403,
-        "reason": "The temporary PAT has project management permissions but lacks organization-scoped user.write; ZITADEL found no matching permission for user creation.",
-        "users_created": 0,
-        "invitations_sent": 0,
+        "initial_attempt_http_status": 403,
+        "initial_failure": "The temporary PAT had project management permissions but lacked organization-scoped user.write.",
+        "resolution": "Wasabi assigned ORG_USER_MANAGER to the organization-scoped provisioning service account; user.write then appeared and all three users were created.",
+        "users_created": 3,
+        "setup_invitations_requested": 3,
+        "invitation_inbox_receipt_confirmed": false,
         "required_role": "ORG_USER_MANAGER on the target organization",
-        "owner_role_update": "Wasabi is adding the required organization role",
-        "pat_storage": "Encrypted in .env.sops; plaintext removed from root .env; no token value recorded."
+        "pat_storage": "The temporary PAT was briefly stored in encrypted .env.sops for provisioning, then removed; plaintext was removed from root .env. No token value was recorded.",
+        "temporary_provisioner_cleanup": {
+          "status": "completed",
+          "service_account_deleted": true,
+          "pat_invalidated_by_account_deletion": true,
+          "local_plaintext_removed": true,
+          "encrypted_pat_removed": true
+        }
+      },
+      "operator_membership_and_scopes": {
+        "status": "provisioned_and_verified",
+        "location_id": "1b1775d2-3043-42f9-9967-5d3f18db7ae0",
+        "tenant_organization_id": "a0000000-0000-0000-0000-000000000701",
+        "membership_role": "operator",
+        "granted_by": "Wasabi (Secretary of Kokonut)",
+        "database_role_or_grant_changes": false,
+        "accounts": {
+          "operations@kokonut.network": {
+            "zitadel_subject": "399033500503640581",
+            "operator_id": "c706384a-cfe7-4f01-82b7-1b900a6c854d",
+            "scopes": [
+              "farm_activity:read",
+              "farm_activity:read_detail",
+              "farm_activity:submit",
+              "farm_activity:rework",
+              "farm_activity:edit_draft"
+            ]
+          },
+          "verifier@kokonut.network": {
+            "zitadel_subject": "399033501392833029",
+            "operator_id": "a50501f2-2f98-4374-998d-1abc7ab87298",
+            "scopes": [
+              "farm_activity:read",
+              "farm_activity:read_detail",
+              "farm_activity:verify"
+            ]
+          },
+          "publisher@kokonut.network": {
+            "zitadel_subject": "399033502231693829",
+            "operator_id": "000aab91-ab93-438b-831f-0ad2f240035c",
+            "scopes": [
+              "farm_activity:read",
+              "farm_activity:read_detail",
+              "farm_activity:publish",
+              "farm_activity:reject"
+            ]
+          }
+        }
       },
       "minimum_distinct_candidate_operators": 3,
       "roles": {
@@ -95,12 +143,13 @@
       "reject_rework_path": "Use a second test draft for submit/verify/reject/rework; the publisher/reviewer rejects after verification, and the operations submitter returns it to draft. The first test draft can follow submit/verify/publish.",
       "current_account_transition_grants_changed": false
     },
-    "lifecycle_grants_changed": false,
+    "lifecycle_grants_changed": true,
     "gateway_or_database_policy_changed": false,
     "secret_values_recorded": false
   },
   "limitations": [
-    "No submit, verify, reject, rework, publish, or exception-closure action was exercised because the current session and record state exposed no lifecycle action.",
+    "Lifecycle transitions remain untested until the three account holders complete their setup invitations and sign in as distinct operators.",
+    "ZITADEL setup invitation inbox receipt has not been independently confirmed.",
     "This confirms authenticated read/detail behavior only; lifecycle transition acceptance remains open."
   ]
 }
