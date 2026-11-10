@@ -1,38 +1,55 @@
 {
-  "status": "verification_blocked_by_trigger_function_classification",
+  "status": "passed",
   "checked_at": "2026-11-10",
   "candidate": {
     "coolify_application": "Kokonut Intelligence Kernel Candidate",
-    "deployment_uuid": "ixqtocgchicjbabecwtbsi2m",
-    "deployment_commit": "89bc3772d9dbf5f611c9d24aa7cd923570d0603f",
+    "deployment_uuid": "bf8swctp02pxlxlyhcscyyzt",
+    "deployment_commit": "7a2b0547f915bd83bd65daf534e0e05fda1b5c17",
     "database_health": "running|healthy",
     "api_health": "running|healthy",
     "worker_health": "running|healthy"
   },
+  "ci": {
+    "head_sha": "7a2b0547f915bd83bd65daf534e0e05fda1b5c17",
+    "ci_run": {
+      "id": 42762118887,
+      "conclusion": "success",
+      "url": "https://github.com/wasalo/Kokonut-Intelligence/actions/runs/42762118887"
+    },
+    "security_run": {
+      "id": 42762118905,
+      "conclusion": "success",
+      "url": "https://github.com/wasalo/Kokonut-Intelligence/actions/runs/42762118905"
+    }
+  },
   "role_bootstrap": {
-    "exit_status": "verification_error",
+    "exit_status": "passed",
+    "result": "provisioned",
     "allowed_market_data_functions_execute": [true, true, true],
     "kokonut_security_schema_usage": true,
     "kokonut_security_schema_create": false,
     "direct_relation_privileges": false,
     "direct_sequence_privileges": false,
-    "verification_error": "market-data login can execute another SECURITY DEFINER function",
-    "functions_reported": [
-      "enforce_farm_task_framework_step_location()",
-      "enforce_location_adoption_program_review()",
-      "kokonut_security.enforce_location_retirement_replacement_scope()",
-      "prevent_unresolved_farm_task_framework_step_move()",
-      "require_location_adoption_consent_policy()"
-    ],
-    "reported_return_type": "trigger",
-    "function_acl_source": "PUBLIC EXECUTE default",
-    "grant_changes_persisted": true,
-    "reason_grants_persisted": "The provisioner uses PostgreSQL autocommit; the later callability validation raised after the bounded grants were applied."
+    "trigger_returning_functions_excluded_from_callable_audit": 5,
+    "trigger_audit_rationale": "PostgreSQL trigger-returning functions can only execute in trigger context and are not directly callable routines.",
+    "previous_verifier_attempt": {
+      "status": "failed_after_bounded_grants_committed",
+      "error": "The earlier verifier classified five PUBLIC-executable SECURITY DEFINER trigger-returning functions as directly callable.",
+      "grant_changes_persisted": true,
+      "resolution": "The verifier now excludes trigger-returning functions from direct-callability checks."
+    }
   },
   "ingestion": {
-    "world_bank_rows_imported": 0,
+    "status": "success",
+    "source": "world_bank_pink_sheet",
+    "rows_inserted": 6104,
+    "date_min": "1960-01-01",
+    "date_max": "2026-10-01",
+    "location_linked_rows": 0,
+    "unique_source_commodity_market_date_keys": 6104,
     "persistent_worker_feature_flag": false,
-    "recurring_task_started": false
+    "recurring_task_started": false,
+    "execution": "One explicitly enabled worker process; no persistent feature or schedule was enabled."
   },
   "pre_import_checkpoint": {
     "backup_id": "candidate-pre-world-bank-market-data-20261110T043635Z",
@@ -43,7 +60,6 @@
     "upload": "committed",
     "readback": "passed; downloaded artifacts and signed manifest verified",
     "database_restore_performed": false,
-    "purpose": "Fresh pre-import recovery point captured after the Adelphi testing draft and bounded grants were present."
-  },
-  "next_action": "Run the exact-head CI for the trigger-return-type verifier correction, then repeat bootstrap verification and perform the bounded one-shot import."
+    "purpose": "Fresh pre-import recovery point captured after the Adelphi testing draft and bounded market-data grants were present."
+  }
 }
