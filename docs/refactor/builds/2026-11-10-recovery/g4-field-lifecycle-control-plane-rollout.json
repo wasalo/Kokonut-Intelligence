@@ -30,11 +30,70 @@
     "authenticated_browser_review": {
       "status": "passed_read_detail",
       "confirmed_by": "Wasabi",
+      "routes_reviewed": [
+        "/operator/",
+        "/field/records"
+      ],
       "draft_summary_visible": true,
       "detail_and_audit_history_visible": true,
       "lifecycle_actions_rendered": false,
       "decision": "no further lifecycle action was available to the current session and record state",
       "mutation_performed": false
+    },
+    "transition_actor_prerequisites": {
+      "status": "open",
+      "candidate_accounts": {
+        "status": "approved_but_provisioning_blocked_by_org_user_write",
+        "emails": [
+          "operations@kokonut.network",
+          "verifier@kokonut.network",
+          "publisher@kokonut.network"
+        ],
+        "proposed_location_scopes": {
+          "operations@kokonut.network": [
+            "farm_activity:read",
+            "farm_activity:read_detail",
+            "farm_activity:submit",
+            "farm_activity:rework",
+            "farm_activity:edit_draft"
+          ],
+          "verifier@kokonut.network": [
+            "farm_activity:read",
+            "farm_activity:read_detail",
+            "farm_activity:verify"
+          ],
+          "publisher@kokonut.network": [
+            "farm_activity:read",
+            "farm_activity:read_detail",
+            "farm_activity:publish",
+            "farm_activity:reject"
+          ]
+        },
+        "credentials_recorded": false
+      },
+      "provisioning_attempt": {
+        "status": "blocked",
+        "date": "2026-11-10",
+        "service_account": "KokonutProvisioner",
+        "target_organization_id": "398487505738992133",
+        "target_project_id": "398568044462344709",
+        "attempted_endpoint": "POST /v2/users/new",
+        "http_status": 403,
+        "reason": "The temporary PAT has project management permissions but lacks organization-scoped user.write; ZITADEL found no matching permission for user creation.",
+        "users_created": 0,
+        "invitations_sent": 0,
+        "required_role": "ORG_USER_MANAGER on the target organization",
+        "owner_role_update": "Wasabi is adding the required organization role",
+        "pat_storage": "Encrypted in .env.sops; plaintext removed from root .env; no token value recorded."
+      },
+      "minimum_distinct_candidate_operators": 3,
+      "roles": {
+        "submitter": "operations@kokonut.network: farm_activity:submit; distinct from verifier and publisher",
+        "verifier": "verifier@kokonut.network: farm_activity:verify; distinct from submitter and publisher",
+        "publisher_and_reviewer": "publisher@kokonut.network: farm_activity:publish and farm_activity:reject; distinct from submitter and verifier"
+      },
+      "reject_rework_path": "Use a second test draft for submit/verify/reject/rework; the publisher/reviewer rejects after verification, and the operations submitter returns it to draft. The first test draft can follow submit/verify/publish.",
+      "current_account_transition_grants_changed": false
     },
     "lifecycle_grants_changed": false,
     "gateway_or_database_policy_changed": false,
