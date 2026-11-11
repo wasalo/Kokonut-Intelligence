@@ -1,0 +1,70 @@
+{
+  "recorded_at_utc": "2026-11-11T17:52:31Z",
+  "source": {
+    "branch": "chore/finalize-kokonut-intelligence-refactor",
+    "commit": "cbc758f58966184306ea8ff700ab50aeab567c44",
+    "ci_run": "43061679933",
+    "security_run": "43061679859",
+    "ci_and_security": "success"
+  },
+  "coolify": {
+    "project_uuid": "qwo0g0o40c48s4ccwcowwcw0",
+    "environment_uuid": "b84s4c8k8w48kscows4w8cw4",
+    "application_uuid": "fdphpruj8jxien23ockmbw0j",
+    "deployment_uuid": "qdickqqlxcj0csivwjplxj1i",
+    "deployment_status": "finished",
+    "deployed_commit": "cbc758f58966184306ea8ff700ab50aeab567c44",
+    "services_after_migration": {
+      "gateway": "healthy",
+      "worker": "healthy",
+      "postgres_postgis": "healthy",
+      "zitadel_api": "healthy",
+      "zitadel_login": "healthy"
+    },
+    "readiness_behavior": "Gateway and worker stayed fail-closed/restarting until migration 755 applied, then recovered healthy; no readiness bypass was made."
+  },
+  "pre_migration_checkpoint": {
+    "backup_id": "candidate-pre-migration-755-20261111T171322Z",
+    "bucket": "kokonut-backups",
+    "artifact_count": 2,
+    "artifacts": [
+      "encrypted kokonut_intelligence PostgreSQL archive",
+      "encrypted ZITADEL PostgreSQL archive"
+    ],
+    "status": "committed",
+    "upload_readback_hash_verification": "passed",
+    "restore_rehearsal": "not run"
+  },
+  "migration": {
+    "planned_pending_before_apply": [
+      "schema:755_operator_hub_relational_forms.sql"
+    ],
+    "applied": [
+      "schema:755_operator_hub_relational_forms.sql"
+    ],
+    "result": "Applied 1; failed 0.",
+    "scope": "Bounded location-choice and existing-location farm functions, helper-owner column grants, and farm-activity relation validation. No broad kokonut_runtime grant was narrowed or widened."
+  },
+  "cloudflare": {
+    "worker": "ki-operator-control-plane",
+    "environment": "top-level production",
+    "version_id": "77564893-2c14-4053-9910-0da656fb7bed",
+    "http_smoke": {
+      "/": 200,
+      "/ops": 200,
+      "/field/records": 200,
+      "/governance": 200,
+      "/health": 200,
+      "/operator/api/session (anonymous)": 401,
+      "/operator/api/farm-activity-records/relations (anonymous)": 401
+    }
+  },
+  "frontend_build": "passed",
+  "candidate_browser_acceptance": "pending Wasabi review of existing-location farm setup and farm/activity relation choices",
+  "remaining_gates": [
+    "G4 second-authorized-location denial, OIDC nonce-negative behavior, and Field Collector offline media/consent/sync",
+    "G5 populated report/provider/media acceptance and event-driven alerts",
+    "G6 isolated checkpoint restore rehearsal, outage/recovery checks, recurring backup evidence, and 24-hour soak",
+    "G7 evidence review and Wasabi sign-off"
+  ]
+}
