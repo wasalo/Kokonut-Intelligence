@@ -152,6 +152,9 @@ function parseCoordinateList(text: string): PolygonGeoJSON {
   }
   const rows = text.split(/\r?\n/).map((row) => row.trim()).filter(Boolean);
   if (rows.length < 3 || rows.length > 2048) {
+    if (rows.length === 1 && rows[0].split(",").length === 2) {
+      throw new Error("This is one map pin, not a boundary. Put it in the location Latitude and Longitude fields above. A boundary needs at least three perimeter points, one longitude/latitude pair per line.");
+    }
     throw new Error("Enter at least three boundary points and no more than 2,048.");
   }
   const points = rows.map((row) => {
@@ -176,6 +179,22 @@ function parseCoordinateList(text: string): PolygonGeoJSON {
   const last = points[points.length - 1];
   if (first[0] !== last[0] || first[1] !== last[1]) points.push([...first]);
   return parsePolygonGeoJSON(JSON.stringify({ type: "Polygon", coordinates: [points] }));
+}
+
+function parseLatitudeLongitudePair(text: string): [number, number] {
+  const match = text.trim().match(/^(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)$/);
+  if (!match) {
+    throw new Error("Paste one coordinate pair as latitude, longitude, for example 18.2473709, -71.3396854.");
+  }
+  const latitude = Number(match[1]);
+  const longitude = Number(match[2]);
+  if (
+    !Number.isFinite(latitude) || !Number.isFinite(longitude) ||
+    latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180
+  ) {
+    throw new Error("The coordinate pair is outside the valid WGS84 latitude/longitude ranges.");
+  }
+  return [latitude, longitude];
 }
 
 function boundaryPointCount(boundary: PolygonGeoJSON): number {
@@ -288,9 +307,9 @@ function BoundaryUploadField({
         aria-describedby={pasteError ? `${id}-hint ${id}-status ${id}-error` : `${id}-hint ${id}-status`}
       />
       <p className="location-setup__help" id={`${id}-hint`}>
-        {helpText} Upload or paste a WGS84 Polygon, Feature, or single-feature FeatureCollection, or enter one point per line. Coordinates use longitude, latitude order.
+        {helpText} Upload or paste a WGS84 Polygon, Feature, or single-feature FeatureCollection, or enter at least three distinct boundary vertices below. A single map pin belongs in the location latitude/longitude fields, not here.
       </p>
-      <label className="location-setup__help" htmlFor={`${id}-coordinates`}>Enter boundary points manually</label>
+      <label className="location-setup__help" htmlFor={`${id}-coordinates`}>Enter boundary vertices manually</label>
       <textarea
         id={`${id}-coordinates`}
         rows={5}
@@ -306,7 +325,7 @@ function BoundaryUploadField({
         aria-describedby={`${id}-coordinates-hint ${pasteError ? `${id}-error` : `${id}-status`}`}
       />
       <p className="location-setup__help" id={`${id}-coordinates-hint`}>
-        Enter at least three distinct WGS84 points as longitude, latitude pairs. The first point is repeated automatically to close the outline.
+        Add at least three distinct perimeter points, one longitude, latitude pair per line. Google Maps usually displays latitude first, so reverse each pair for this boundary field. The first point is repeated automatically to close the outline.
       </p>
       <button className="location-setup__secondary-action" type="button" onClick={loadManualCoordinates}>
         Use entered points
@@ -361,6 +380,8 @@ export function LocationSetupPage() {
   const [timezone, setTimezone] = useState("");
   const [latitude, setLatitude] = useState("");
   const [longitude, setLongitude] = useState("");
+  const [pastedPinCoordinates, setPastedPinCoordinates] = useState("");
+  const [pinCoordinateError, setPinCoordinateError] = useState("");
   const [locationDescription, setLocationDescription] = useState("");
   const [locationBoundary, setLocationBoundary] = useState<PolygonGeoJSON | null>(null);
   const [locationBoundaryError, setLocationBoundaryError] = useState("");
@@ -379,6 +400,24 @@ export function LocationSetupPage() {
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
   const [result, setResult] = useState<LocationSetupResult | null>(null);
+  const latitudeValue = latitude.trim() === "" ? Number.NaN : Number(latitude);
+  const longitudeValue = longitude.trim() === "" ? Number.NaN : Number(longitude);
+  const hasValidLocationPoint = Number.isFinite(latitudeValue) && latitudeValue >= -90 && latitudeValue <= 90 &&
+    Number.isFinite(longitudeValue) && longitudeValue >= -180 && longitudeValue <= 180;
+  const googleMapsPointUrl = hasValidLocationPoint
+    ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${latitudeValue},${longitudeValue}`)}`
+    : null;
+
+  function applyPastedPinCoordinates() {
+    try {
+      const [parsedLatitude, parsedLongitude] = parseLatitudeLongitudePair(pastedPinCoordinates);
+      setLatitude(String(parsedLatitude));
+      setLongitude(String(parsedLongitude));
+      setPinCoordinateError("");
+    } catch (error) {
+      setPinCoordinateError(error instanceof Error ? error.message : "The map coordinates could not be read.");
+    }
+  }
 
   useEffect(() => {
     if (!session) {
@@ -415,8 +454,8 @@ export function LocationSetupPage() {
     setSubmitError("");
     setResult(null);
     try {
-      if (!locationBoundary) throw new Error("Provide the location boundary as GeoJSON or coordinate points before saving.");
-      if (!sameBoundary && !farmBoundary) throw new Error("Provide the farm boundary as GeoJSON or coordinate points, or confirm it matches the location boundary.");
+      if (!locationBoundary) throw new Error("The map pin is only a location point. Before saving, provide a location boundary with at least three perimeter vertices as GeoJSON or coordinate points.");
+      if (!sameBoundary && !farmBoundary) throw new Error("Provide the farm boundary as GeoJSON or at least three perimeter points, or confirm that it matches the location boundary.");
       const selectedOrganization = organizations.find((organization) => organization.id === selectedOrganizationId);
       if (!selectedOrganization) throw new Error("Choose an active tenant organization.");
       const latitudeValue = Number(latitude);
@@ -567,8 +606,26 @@ export function LocationSetupPage() {
               <div className="location-setup__field"><label htmlFor="location-region">Region or province</label><input id="location-region" value={region} onChange={(event) => setRegion(event.target.value)} required maxLength={255} /></div>
               <div className="location-setup__field"><label htmlFor="location-sub-region">Municipality or sub-region</label><input id="location-sub-region" value={subRegion} onChange={(event) => setSubRegion(event.target.value)} maxLength={255} /></div>
               <div className="location-setup__field"><label htmlFor="location-timezone">IANA time zone</label><input id="location-timezone" value={timezone} onChange={(event) => setTimezone(event.target.value)} placeholder="America/Santo_Domingo" required maxLength={50} /></div>
-              <div className="location-setup__field"><label htmlFor="location-latitude">Latitude</label><input id="location-latitude" type="number" min="-90" max="90" step="any" value={latitude} onChange={(event) => setLatitude(event.target.value)} required /></div>
-              <div className="location-setup__field"><label htmlFor="location-longitude">Longitude</label><input id="location-longitude" type="number" min="-180" max="180" step="any" value={longitude} onChange={(event) => setLongitude(event.target.value)} required /></div>
+              <div className="location-setup__field"><label htmlFor="location-latitude">Latitude</label><input id="location-latitude" type="number" min="-90" max="90" step="any" value={latitude} onChange={(event) => setLatitude(event.target.value)} placeholder="18.2473709" required /></div>
+              <div className="location-setup__field"><label htmlFor="location-longitude">Longitude</label><input id="location-longitude" type="number" min="-180" max="180" step="any" value={longitude} onChange={(event) => setLongitude(event.target.value)} placeholder="-71.3396854" required /></div>
+              <div className="location-setup__field location-setup__field-wide">
+                <label htmlFor="location-pin-coordinates">Paste a map pin coordinate pair</label>
+                <div className="location-setup__coordinate-entry">
+                  <input
+                    id="location-pin-coordinates"
+                    type="text"
+                    inputMode="decimal"
+                    value={pastedPinCoordinates}
+                    onChange={(event) => { setPastedPinCoordinates(event.target.value); setPinCoordinateError(""); }}
+                    placeholder="18.2473709, -71.3396854"
+                    aria-describedby={pinCoordinateError ? "location-pin-coordinates-hint location-pin-coordinates-error" : "location-pin-coordinates-hint"}
+                  />
+                  <button className="location-setup__secondary-action" type="button" onClick={applyPastedPinCoordinates}>Use map pin</button>
+                </div>
+                <p className="location-setup__help" id="location-pin-coordinates-hint">Paste latitude, longitude from Google Maps. This sets the location’s representative point only; it does not create a boundary.</p>
+                {pinCoordinateError ? <p className="location-setup__alert" id="location-pin-coordinates-error" role="alert">{pinCoordinateError}</p> : null}
+                {googleMapsPointUrl ? <a href={googleMapsPointUrl} target="_blank" rel="noreferrer">View this point in Google Maps</a> : <a href="https://www.google.com/maps/" target="_blank" rel="noreferrer">Find a point in Google Maps</a>}
+              </div>
               <div className="location-setup__field location-setup__field-wide"><label htmlFor="location-description">Description</label><textarea id="location-description" value={locationDescription} onChange={(event) => setLocationDescription(event.target.value)} rows={3} maxLength={2000} /></div>
               <BoundaryUploadField id="location-boundary" label="Location boundary" helpText="This defines the farm’s spatial extent; the representative coordinates must fall inside it." boundary={locationBoundary} onChange={(value, message) => { setLocationBoundary(value); setLocationBoundaryError(message); if (sameBoundary) setFarmBoundary(value); }} />
               {locationBoundaryError ? <p className="location-setup__field-wide location-setup__alert" role="alert">{locationBoundaryError}</p> : null}

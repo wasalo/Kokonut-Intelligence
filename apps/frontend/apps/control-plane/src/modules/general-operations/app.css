@@ -183,6 +183,7 @@
 
 .location-setup__field textarea { min-height: 5.5rem; resize: vertical; }
 .location-setup__field input[type="file"] { max-width: 100%; padding: .25rem 0; }
+.location-setup__coordinate-entry { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: .6rem; }
 .location-setup__help,
 .location-setup__boundary-status { margin: 0; color: var(--ink-muted); font-size: .88rem; line-height: 1.5; }
 .location-setup__boundary-status { overflow-wrap: anywhere; }
@@ -249,6 +250,7 @@
 
 @media (max-width: 700px) {
   .location-setup__grid { grid-template-columns: minmax(0, 1fr); }
+  .location-setup__coordinate-entry { grid-template-columns: minmax(0, 1fr); }
   .location-setup__field-wide { grid-column: auto; }
   .location-setup__result div { grid-template-columns: minmax(0, 1fr); gap: .2rem; }
 }
