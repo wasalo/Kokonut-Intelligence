@@ -1,0 +1,51 @@
+{
+  "version": 1,
+  "observed_at_utc": "2026-11-11T00:32:16Z",
+  "scope": "Publish the public ecosystem overview to the existing Control Plane Worker without changing DNS, Coolify, Gateway policy, or API routes.",
+  "source": {
+    "repository": "wasalo/Kokonut-Intelligence",
+    "branch": "chore/finalize-kokonut-intelligence-refactor",
+    "commit": "5978cfddf2082ca7b74135c8fbfc3df5e76e15cb",
+    "ci_run": 42925644201,
+    "ci_conclusion": "success",
+    "security_run": 42925644187,
+    "security_conclusion": "success"
+  },
+  "cloudflare": {
+    "worker": "ki-operator-control-plane",
+    "version_id": "bf4eb487-7131-430e-bdca-ac98e7c16d95",
+    "previous_version_id": "6ba59d2b-dc29-4b15-8caa-0ca00ac6b7e1",
+    "wrangler_version": "4.148.0",
+    "assets_read": 12,
+    "assets_uploaded": 8,
+    "dns_changed": false,
+    "coolify_changed": false,
+    "routes": [
+      "hub.kokonut.network/",
+      "hub.kokonut.network/ops",
+      "hub.kokonut.network/ops/*",
+      "hub.kokonut.network/field",
+      "hub.kokonut.network/field/*",
+      "hub.kokonut.network/governance",
+      "hub.kokonut.network/governance/*",
+      "hub.kokonut.network/assets/*"
+    ]
+  },
+  "http_checks": {
+    "root": { "status": 200, "content_type": "text/html", "title": "Kokonut Intelligence · A clearer view of a regenerative network" },
+    "brand_mark": { "status": 200, "content_type": "image/svg+xml" },
+    "ops": { "status": 200, "content_type": "text/html" },
+    "field_records": { "status": 200, "content_type": "text/html" },
+    "governance": { "status": 200, "content_type": "text/html" },
+    "health": { "status": 200, "content_type": "application/json", "service": "gateway" },
+    "public_locations": { "status": 200, "content_type": "application/json", "body": { "data": [] } },
+    "anonymous_operator_session": { "status": 401, "content_type": "application/json" }
+  },
+  "acceptance": {
+    "public_page_served_at_root": true,
+    "public_location_source_empty": true,
+    "operational_activity_exposed_by_directory": false,
+    "operator_and_field_routes_preserved": true,
+    "gateway_and_authorization_routes_preserved": true
+  }
+}
