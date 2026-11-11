@@ -8,6 +8,13 @@ export interface OperatorScope {
   location_id: string;
 }
 
+export interface OperatorLocationOption {
+  id: string;
+  name: string;
+  country: string | null;
+  region: string | null;
+}
+
 export interface OperatorSession {
   operator: {
     operator_id: string;
@@ -17,6 +24,14 @@ export interface OperatorSession {
     email: string | null;
   };
   scopes: OperatorScope[];
+  locations: OperatorLocationOption[];
+}
+
+export function operatorLocationLabel(locations: OperatorLocationOption[], locationId: string): string {
+  const location = locations.find((option) => option.id.toLowerCase() === locationId.toLowerCase());
+  if (!location) return "Location unavailable";
+  const context = [location.region, location.country].filter((part): part is string => Boolean(part?.trim()));
+  return context.length ? `${location.name} · ${context.join(", ")}` : location.name;
 }
 
 export interface OperatorJsonRequestOptions

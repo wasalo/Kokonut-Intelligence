@@ -216,6 +216,15 @@
 
 .location-setup__check input { flex: 0 0 auto; width: 1.15rem; height: 1.15rem; margin: .16rem 0 0; }
 
+.location-setup__mode-options {
+  display: grid;
+  gap: .75rem;
+  padding: .9rem 1rem;
+  border: 1px solid var(--line);
+  border-radius: .65rem;
+  background: var(--surface-soft);
+}
+
 .location-setup__actions { display: flex; flex-wrap: wrap; align-items: center; gap: 1rem; }
 .location-setup__actions button { cursor: pointer; }
 .location-setup__actions button:disabled { cursor: wait; opacity: .62; }

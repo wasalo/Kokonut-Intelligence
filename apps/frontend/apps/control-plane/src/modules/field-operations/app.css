@@ -48,6 +48,7 @@
 .farm-activity-field label { font-weight: 600; }
 
 .farm-activity-field input,
+.farm-activity-field select,
 .farm-activity-field textarea {
   box-sizing: border-box;
   width: 100%;

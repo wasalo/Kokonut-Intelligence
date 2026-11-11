@@ -13,6 +13,15 @@ interface OrganizationOption {
   name: string;
 }
 
+interface ExistingLocationOption {
+  id: string;
+  name: string;
+  slug: string;
+  country: string | null;
+  region: string | null;
+  active_farm_count: number;
+}
+
 interface LocationSetupResult {
   location_id: string;
   location_created: boolean;
@@ -47,6 +56,38 @@ function parseOrganizations(value: unknown): OrganizationOption[] {
     }
     return { id: item.id, org_key: item.org_key, name: item.name };
   });
+}
+
+function parseExistingLocations(value: unknown): ExistingLocationOption[] {
+  if (!isRecord(value) || Object.keys(value).sort().join(",") !== "data" || !Array.isArray(value.data) || value.data.length > 200) {
+    throw new Error("Location choices did not match the Gateway response contract.");
+  }
+  return value.data.map((item) => {
+    if (
+      !isRecord(item) || Object.keys(item).sort().join(",") !== "active_farm_count,country,id,name,region,slug" ||
+      typeof item.id !== "string" || !UUID_PATTERN.test(item.id) ||
+      typeof item.name !== "string" || typeof item.slug !== "string" ||
+      !(typeof item.country === "string" || item.country === null) ||
+      !(typeof item.region === "string" || item.region === null) ||
+      typeof item.active_farm_count !== "number" || !Number.isSafeInteger(item.active_farm_count) ||
+      item.active_farm_count < 1 || item.active_farm_count > 10000
+    ) {
+      throw new Error("Location choices did not match the Gateway response contract.");
+    }
+    return {
+      id: item.id,
+      name: item.name,
+      slug: item.slug,
+      country: item.country,
+      region: item.region,
+      active_farm_count: item.active_farm_count,
+    };
+  });
+}
+
+function setupLocationLabel(location: ExistingLocationOption): string {
+  const context = [location.region, location.country].filter(Boolean).join(", ");
+  return `${location.name}${context ? ` · ${context}` : ""} · ${location.active_farm_count} active farm${location.active_farm_count === 1 ? "" : "s"}`;
 }
 
 function parseSetupResult(value: unknown): LocationSetupResult {
@@ -368,9 +409,15 @@ export function LocationSetupPage() {
   const sessionState = useOperatorSession();
   const session = sessionState.status === "ready" ? sessionState.session : null;
   const organizationRequest = useRef(new LatestRequest());
+  const locationRequest = useRef(new LatestRequest());
   const [organizations, setOrganizations] = useState<OrganizationOption[]>([]);
+  const [existingLocations, setExistingLocations] = useState<ExistingLocationOption[]>([]);
+  const [existingLocationsLoading, setExistingLocationsLoading] = useState(false);
   const [organizationError, setOrganizationError] = useState("");
+  const [existingLocationsError, setExistingLocationsError] = useState("");
   const [selectedOrganizationId, setSelectedOrganizationId] = useState("");
+  const [selectedLocationId, setSelectedLocationId] = useState("");
+  const [setupMode, setSetupMode] = useState<"new_location" | "existing_location">("new_location");
   const [locationName, setLocationName] = useState("");
   const [locationSlug, setLocationSlug] = useState("");
   const [locationSlugEdited, setLocationSlugEdited] = useState(false);
@@ -448,27 +495,90 @@ export function LocationSetupPage() {
     return () => organizationRequest.current.cancel();
   }, [session?.operator.operator_id]);
 
+  useEffect(() => {
+    if (!session || setupMode !== "existing_location" || !selectedOrganizationId) {
+      locationRequest.current.cancel();
+      setExistingLocations([]);
+      setExistingLocationsLoading(false);
+      setExistingLocationsError("");
+      setSelectedLocationId("");
+      return;
+    }
+    const current = locationRequest.current.begin();
+    setExistingLocations([]);
+    setExistingLocationsLoading(true);
+    setExistingLocationsError("");
+    setSelectedLocationId("");
+    const params = new URLSearchParams({ organization_id: selectedOrganizationId });
+    void requestOperatorJson<unknown>(`/operator/api/location-setup/locations?${params}`, {
+      signal: current.signal,
+    })
+      .then((payload) => {
+        if (!current.isCurrent()) return;
+        const options = parseExistingLocations(payload);
+        setExistingLocations(options);
+        setSelectedLocationId(options[0]?.id ?? "");
+      })
+      .catch((error: unknown) => {
+        if (!current.isCurrent() || (error instanceof Error && error.name === "AbortError")) return;
+        setExistingLocationsError(boundaryError(error));
+      })
+      .finally(() => {
+        if (current.isCurrent()) setExistingLocationsLoading(false);
+      });
+    return () => locationRequest.current.cancel();
+  }, [selectedOrganizationId, session?.operator.operator_id, setupMode]);
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setSubmitting(true);
     setSubmitError("");
     setResult(null);
     try {
-      if (!locationBoundary) throw new Error("The map pin is only a location point. Before saving, provide a location boundary with at least three perimeter vertices as GeoJSON or coordinate points.");
-      if (!sameBoundary && !farmBoundary) throw new Error("Provide the farm boundary as GeoJSON or at least three perimeter points, or confirm that it matches the location boundary.");
       const selectedOrganization = organizations.find((organization) => organization.id === selectedOrganizationId);
       if (!selectedOrganization) throw new Error("Choose an active tenant organization.");
-      const latitudeValue = Number(latitude);
-      const longitudeValue = Number(longitude);
       const farmAreaValue = Number(farmArea);
-      if (!Number.isFinite(latitudeValue) || !Number.isFinite(longitudeValue)) {
-        throw new Error("Enter valid latitude and longitude values.");
-      }
       if (!Number.isFinite(farmAreaValue) || farmAreaValue <= 0) {
         throw new Error("Enter a farm area greater than zero.");
       }
       if (!ownerDecisionConfirmed) {
-        throw new Error("Confirm the tenant assignment before saving.");
+        throw new Error(setupMode === "new_location"
+          ? "Confirm the tenant assignment before saving."
+          : "Confirm the existing location and tenant assignment before saving.");
+      }
+      const farm = {
+        name: farmName.trim(),
+        slug: farmSlug.trim(),
+        description: farmDescription.trim() || null,
+        farm_type: farmType,
+        total_area: farmAreaValue,
+        area_unit: farmAreaUnit,
+        boundary_geojson: farmBoundary,
+      };
+      if (setupMode === "existing_location") {
+        if (!selectedLocationId || !existingLocations.some((location) => location.id === selectedLocationId)) {
+          throw new Error("Choose an existing location owned by the selected organization.");
+        }
+        if (!farmBoundary) throw new Error("Provide this farm’s boundary as GeoJSON or at least three perimeter points.");
+        const response = await requestOperatorJson<unknown>("/operator/api/location-setup/existing-location-farms", {
+          method: "POST",
+          body: {
+            organization_id: selectedOrganization.id,
+            location_id: selectedLocationId,
+            owner_decision_reference: ownerDecisionReference.trim(),
+            owner_decision_confirmed: true,
+            farm,
+          },
+        });
+        setResult(parseSetupResult(response));
+        return;
+      }
+      if (!locationBoundary) throw new Error("The map pin is only a location point. Before saving, provide a location boundary with at least three perimeter vertices as GeoJSON or coordinate points.");
+      if (!sameBoundary && !farmBoundary) throw new Error("Provide the farm boundary as GeoJSON or at least three perimeter points, or confirm that it matches the location boundary.");
+      const latitudeValue = Number(latitude);
+      const longitudeValue = Number(longitude);
+      if (!Number.isFinite(latitudeValue) || !Number.isFinite(longitudeValue)) {
+        throw new Error("Enter valid latitude and longitude values.");
       }
       const payload = {
         organization_id: selectedOrganization.id,
@@ -486,15 +596,7 @@ export function LocationSetupPage() {
           longitude: longitudeValue,
           boundary_geojson: locationBoundary,
         },
-        farm: {
-          name: farmName.trim(),
-          slug: farmSlug.trim(),
-          description: farmDescription.trim() || null,
-          farm_type: farmType,
-          total_area: farmAreaValue,
-          area_unit: farmAreaUnit,
-          boundary_geojson: sameBoundary ? locationBoundary : farmBoundary,
-        },
+        farm: { ...farm, boundary_geojson: sameBoundary ? locationBoundary : farmBoundary },
       };
       const response = await requestOperatorJson<unknown>("/operator/api/location-setup", {
         method: "POST",
@@ -528,13 +630,15 @@ export function LocationSetupPage() {
   if (result) {
     const setupSummary = result.location_created && result.farm_created
       ? `The location and ${result.farm_name} farm were created`
-      : `The setup was saved for ${result.location_name} and ${result.farm_name}`;
+      : result.farm_created
+        ? `${result.farm_name} was added as a farm under the existing ${result.location_name} location`
+        : `The setup was saved for ${result.location_name} and ${result.farm_name}`;
     return (
       <section aria-labelledby="location-setup-success-heading">
         <p className="eyebrow">Administration · Complete</p>
-        <h2 id="location-setup-success-heading">{result.location_name} is ready for data entry</h2>
+        <h2 id="location-setup-success-heading">{result.farm_name} is ready under {result.location_name}</h2>
         <p className="lead">
-          {setupSummary} under {result.organization_name}. Any existing baseline and historical records were preserved. No provider request or reference-data import was run.
+          {setupSummary} under {result.organization_name}. The existing location was not changed. Any baseline and historical records were preserved. No provider request or reference-data import was run.
         </p>
         <dl className="location-setup__result">
           <div><dt>Location ID</dt><dd>{result.location_id}</dd></div>
@@ -558,12 +662,12 @@ export function LocationSetupPage() {
   return (
     <section aria-labelledby="location-setup-heading">
       <p className="eyebrow">Administration · Farm onboarding</p>
-      <h2 id="location-setup-heading">Set up a location and farm</h2>
+      <h2 id="location-setup-heading">Set up a location or farm</h2>
       <p className="lead">
-        Enter the farm’s operating location and boundary first. The current operator console still handles the supported field-activity forms while the remaining data-entry screens are migrated.
+        Create a new operating location with its first farm, or add a farm to an existing verified location.
       </p>
       <p className="migration-note" role="note">
-        Saving creates or completes the location and farm together. Existing baseline and historical records are preserved; a record assigned to another tenant cannot be changed here. The creator receives location read and draft-only farm activity access, without review or publication permissions.
+        Existing locations are read-only in this form. A new farm must fit inside its selected parent location boundary; if its boundary is outside that area, create or review a separate location instead. Existing baseline and historical records are preserved. The creator receives location read and draft-only farm activity access, without review or publication permissions.
       </p>
 
       {organizationError ? <p className="location-setup__alert" role="alert">{organizationError}</p> : null}
@@ -586,17 +690,54 @@ export function LocationSetupPage() {
                 <p className="location-setup__help">This chooses the Kokonut tenant that administers the record. It does not establish land title.</p>
               </div>
               <div className="location-setup__field location-setup__field-wide">
+                <span className="location-setup__help">What are you setting up?</span>
+                <div className="location-setup__mode-options">
+                  <label className="location-setup__check">
+                    <input type="radio" name="location-setup-mode" value="new_location" checked={setupMode === "new_location"} onChange={() => { setSetupMode("new_location"); setOwnerDecisionConfirmed(false); }} />
+                    <span>Create a new location and its first farm</span>
+                  </label>
+                  <label className="location-setup__check">
+                    <input type="radio" name="location-setup-mode" value="existing_location" checked={setupMode === "existing_location"} onChange={() => { setSetupMode("existing_location"); setOwnerDecisionConfirmed(false); }} />
+                    <span>Add a farm to an existing location</span>
+                  </label>
+                </div>
+              </div>
+              <div className="location-setup__field location-setup__field-wide">
                 <label htmlFor="location-setup-owner-reference">Owner/tenant decision reference</label>
                 <input id="location-setup-owner-reference" value={ownerDecisionReference} onChange={(event) => setOwnerDecisionReference(event.target.value)} minLength={3} maxLength={2000} required />
-                <p className="location-setup__help">Use an owner approval, agreement, or internal decision reference. Do not enter private personal details.</p>
+                <p className="location-setup__help">Use an owner approval, agreement, or internal decision reference for this location or farm assignment. Do not enter private personal details.</p>
               </div>
               <label className="location-setup__check location-setup__field-wide">
                 <input type="checkbox" checked={ownerDecisionConfirmed} onChange={(event) => setOwnerDecisionConfirmed(event.target.checked)} required />
-                <span>I am authorized to assign this location to the selected tenant organization.</span>
+                <span>{setupMode === "new_location" ? "I am authorized to assign this new location and farm to the selected tenant organization." : "I am authorized to add this farm under the selected organization’s existing location."}</span>
               </label>
             </div>
           </fieldset>
 
+          {setupMode === "existing_location" ? (
+            <fieldset disabled={submitting}>
+              <legend>Existing location</legend>
+              {existingLocationsError ? <p className="location-setup__alert" role="alert">{existingLocationsError}</p> : null}
+              {existingLocationsLoading ? <p role="status">Loading verified locations…</p> : null}
+              {!existingLocationsLoading && !existingLocationsError && existingLocations.length === 0 ? (
+                <p className="location-setup__alert" role="status">
+                  {selectedOrganizationId ? "No verified existing locations with an active farm are available under this organization. Create a new location or resolve the ownership record first." : "Choose an organization to load its existing locations."}
+                </p>
+              ) : null}
+              {existingLocations.length > 0 ? (
+                <div className="location-setup__grid">
+                  <div className="location-setup__field location-setup__field-wide">
+                    <label htmlFor="location-setup-existing-location">Location</label>
+                    <select id="location-setup-existing-location" value={selectedLocationId} onChange={(event) => setSelectedLocationId(event.target.value)} required>
+                      {existingLocations.map((location) => <option key={location.id} value={location.id}>{setupLocationLabel(location)}</option>)}
+                    </select>
+                    <p className="location-setup__help">The selected location’s name, boundary, ownership and history are kept as they are.</p>
+                  </div>
+                  <p className="location-setup__field-wide location-setup__help">Farm boundaries must be completely inside the selected location boundary. A neighboring parcel outside that boundary needs its own location record.</p>
+                </div>
+              ) : null}
+            </fieldset>
+          ) : (
           <fieldset disabled={submitting}>
             <legend>Location details</legend>
             <div className="location-setup__grid">
@@ -631,6 +772,7 @@ export function LocationSetupPage() {
               {locationBoundaryError ? <p className="location-setup__field-wide location-setup__alert" role="alert">{locationBoundaryError}</p> : null}
             </div>
           </fieldset>
+          )}
 
           <fieldset disabled={submitting}>
             <legend>Farm details</legend>
@@ -641,23 +783,31 @@ export function LocationSetupPage() {
               <div className="location-setup__field"><label htmlFor="farm-area">Farm area</label><input id="farm-area" type="number" min="0.0001" step="0.0001" value={farmArea} onChange={(event) => setFarmArea(event.target.value)} required /></div>
               <div className="location-setup__field"><label htmlFor="farm-area-unit">Area unit</label><select id="farm-area-unit" value={farmAreaUnit} onChange={(event) => setFarmAreaUnit(event.target.value)}><option value="hectares">Hectares</option><option value="acres">Acres</option><option value="square_meters">Square meters</option></select></div>
               <div className="location-setup__field location-setup__field-wide"><label htmlFor="farm-description">Description</label><textarea id="farm-description" value={farmDescription} onChange={(event) => setFarmDescription(event.target.value)} rows={3} maxLength={2000} /></div>
-              <div className="location-setup__field location-setup__field-wide">
+              {setupMode === "new_location" ? <div className="location-setup__field location-setup__field-wide">
                 <label className="location-setup__check">
                   <input type="checkbox" checked={sameBoundary} onChange={(event) => { const checked = event.target.checked; setSameBoundary(checked); setFarmBoundary(checked ? locationBoundary : null); setFarmBoundaryError(""); }} disabled={!locationBoundary} />
                   <span>The farm boundary is the same as the location boundary.</span>
                 </label>
-              </div>
-              {!sameBoundary ? <BoundaryUploadField id="farm-boundary" label="Farm boundary" helpText="This polygon must fit inside the location boundary." boundary={farmBoundary} onChange={(value, message) => { setFarmBoundary(value); setFarmBoundaryError(message); }} /> : null}
+              </div> : null}
+              {(setupMode === "existing_location" || !sameBoundary) ? <BoundaryUploadField id="farm-boundary" label="Farm boundary" helpText={setupMode === "existing_location" ? "This polygon must fit inside the existing location boundary." : "This polygon must fit inside the location boundary."} boundary={farmBoundary} onChange={(value, message) => { setFarmBoundary(value); setFarmBoundaryError(message); }} /> : null}
               {farmBoundaryError ? <p className="location-setup__field-wide location-setup__alert" role="alert">{farmBoundaryError}</p> : null}
             </div>
           </fieldset>
 
           {submitError ? <p className="location-setup__alert" role="alert">{submitError}</p> : null}
           <div className="location-setup__actions">
-            <button className="button-link" type="submit" disabled={submitting || !ownerDecisionConfirmed || !locationBoundary || (!sameBoundary && !farmBoundary)}>
-              {submitting ? "Saving setup…" : "Save location and farm setup"}
+            <button
+              className="button-link"
+              type="submit"
+              disabled={
+                submitting || !ownerDecisionConfirmed ||
+                (setupMode === "new_location" && (!locationBoundary || (!sameBoundary && !farmBoundary))) ||
+                (setupMode === "existing_location" && (!selectedLocationId || !farmBoundary))
+              }
+            >
+              {submitting ? "Saving setup…" : setupMode === "existing_location" ? "Add farm to existing location" : "Save location and farm setup"}
             </button>
-            {submitting ? <span role="status">Saving both records and the tenant decision in one transaction…</span> : null}
+            {submitting ? <span role="status">Saving the farm and tenant decision in one transaction…</span> : null}
           </div>
         </form>
       ) : null}

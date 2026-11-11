@@ -63,6 +63,21 @@ Same-slug setup rows can be completed while preserving baseline and historical
 records; cross-tenant ownership conflicts fail closed. The deployed entry point
 is `https://hub.kokonut.network/ops/administration`.
 
+### Hub relational form support — pending exact-head CI and rollout
+
+The current `chore/finalize-kokonut-intelligence-refactor` work adds a second
+location-setup path for adding a farm beneath an existing, active, verified
+tenant location. It lists only locations with an active owned farm, preserves
+the parent location, and requires the new farm polygon to be covered by that
+location boundary. Farm-activity draft entry now offers bounded, readable
+choices for farm, plot, crop cycle, and farm task; the database trigger checks
+that the selected relations remain location- and parent-consistent. Hub
+location selectors use bounded names and region/country labels instead of
+displaying UUIDs. Migration 755 contains the setup and relation-integrity
+changes. These are source changes only: exact-head CI/Security, deployment,
+and candidate migration 755 are pending; no candidate state or G4 evidence was
+changed by this work.
+
 The first authenticated organization-list request exposed a transaction mode
 issue: a read-only transaction conflicted with the session resolver's
 `SELECT ... FOR UPDATE`. The bounded listing path now permits the resolver's

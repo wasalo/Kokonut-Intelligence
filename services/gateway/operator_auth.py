@@ -184,6 +184,8 @@ class OperatorIdentityProvider(Protocol):
 
     def list_scopes(self, operator_id: str) -> list[dict]: ...
 
+    def list_location_options(self, operator_id: str) -> list[dict]: ...
+
     def revoke_session(self, session_id: str) -> None: ...
 
 
@@ -433,6 +435,37 @@ class OIDCOperatorProvider:
         finally:
             conn.close()
 
+    def list_location_options(self, operator_id: str) -> list[dict]:
+        try:
+            operator_id = str(UUID(operator_id))
+        except ValueError:
+            return []
+        conn = _get_operator_auth_db(self.settings)
+        try:
+            with conn.cursor() as cur:
+                cur.execute("SET TRANSACTION READ ONLY")
+                cur.execute("SET LOCAL statement_timeout = '5s'")
+                cur.execute("SET LOCAL lock_timeout = '2s'")
+                cur.execute(
+                    """SELECT id, name, country, region
+                         FROM kokonut_security.operator_scope_grant_read_location_options(%s::uuid)
+                        ORDER BY name, region, country, id""",
+                    (operator_id,),
+                )
+                options = [
+                    {
+                        "id": str(row[0]),
+                        "name": row[1],
+                        "country": row[2],
+                        "region": row[3],
+                    }
+                    for row in cur.fetchall()
+                ]
+            conn.rollback()
+            return options
+        finally:
+            conn.close()
+
     def revoke_session(self, session_id: str) -> None:
         conn = _get_operator_auth_db(self.settings)
         try:
@@ -509,7 +542,9 @@ def auth_route_policy(method: str, path: str, *, enabled: bool) -> dict | None:
 
         if (normalized_method, path) in {
             ("GET", "/operator/api/location-setup/organizations"),
+            ("GET", "/operator/api/location-setup/locations"),
             ("POST", "/operator/api/location-setup"),
+            ("POST", "/operator/api/location-setup/existing-location-farms"),
         }:
             action = "read_organizations" if normalized_method == "GET" else "create"
             return {
@@ -4036,6 +4071,19 @@ def auth_route_policy(method: str, path: str, *, enabled: bool) -> dict | None:
             "scope_required": True,
             "operator_auth": True,
         }
+    farm_activity_relation_choices_match = re.fullmatch(
+        r"/operator/api/farm-activity-records/relations",
+        path,
+    )
+    if farm_activity_relation_choices_match and method.upper() == "GET" and enabled:
+        return {
+            "resource": "farm_activity",
+            "action": "read",
+            "public": False,
+            "location_id": None,
+            "scope_required": True,
+            "operator_auth": True,
+        }
     farm_activity_record_edit_match = re.fullmatch(
         r"/operator/api/farm-activity-records/([0-9a-fA-F-]{36})/draft",
         path,
@@ -4398,6 +4446,12 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
         session = request.state.operator_session
         try:
             scopes = await run_in_threadpool(provider.list_scopes, session.operator.operator_id)
+            list_location_options = getattr(provider, "list_location_options", None)
+            location_options = (
+                await run_in_threadpool(list_location_options, session.operator.operator_id)
+                if callable(list_location_options)
+                else []
+            )
         except psycopg2.Error as exc:
             from services.common.logging import get_logger
 
@@ -4422,6 +4476,7 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
             {
                 "operator": asdict(session.operator),
                 "scopes": scopes,
+                "locations": location_options,
             },
             headers=headers,
         )

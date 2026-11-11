@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { GatewayRequestError, LatestRequest, requestOperatorJson } from "@kokonut/operator-client";
+import { GatewayRequestError, LatestRequest, operatorLocationLabel, requestOperatorJson } from "@kokonut/operator-client";
 import { useOperatorSession } from "@kokonut/operator-client/react";
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -317,7 +317,7 @@ export function MetricListPage() {
               value={locationId}
               onChange={(event) => setLocationId(event.currentTarget.value)}
             >
-              {readLocations.map((id) => <option key={id} value={id}>{id}</option>)}
+              {readLocations.map((id) => <option key={id} value={id}>{operatorLocationLabel(sessionState.session.locations, id)}</option>)}
             </select>
             <button
               className="secondary-action"

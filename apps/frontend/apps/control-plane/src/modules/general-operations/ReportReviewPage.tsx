@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import {
   GatewayRequestError,
   LatestRequest,
+  operatorLocationLabel,
   requestOperatorJson,
 } from "@kokonut/operator-client";
 import { useOperatorSession } from "@kokonut/operator-client/react";
@@ -285,7 +286,7 @@ export function ReportReviewPage() {
               value={locationId}
               onChange={(event) => setLocationId(event.currentTarget.value)}
             >
-              {grantedLocations.map((id) => <option key={id} value={id}>{id}</option>)}
+              {grantedLocations.map((id) => <option key={id} value={id}>{operatorLocationLabel(sessionState.session.locations, id)}</option>)}
             </select>
             <button
               className="secondary-action"

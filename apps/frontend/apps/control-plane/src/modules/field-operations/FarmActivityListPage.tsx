@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import {
   GatewayRequestError,
   LatestRequest,
+  operatorLocationLabel,
   requestOperatorJson,
 } from "@kokonut/operator-client";
 import { useOperatorSession } from "@kokonut/operator-client/react";
@@ -16,6 +17,7 @@ const RECORD_FIELDS = [
   "created_at",
   "crop_cycle_id",
   "farm_task_id",
+  "farm_id",
   "id",
   "location_id",
   "plot_id",
@@ -32,6 +34,7 @@ const DRAFT_WRITE_FIELDS = [
   "event_id",
   "evidence_urls",
   "farm_task_id",
+  "farm_id",
   "id",
   "labor_cost",
   "labor_hours",
@@ -51,6 +54,7 @@ const DETAIL_FIELDS = [
   "description",
   "evidence_urls",
   "farm_task_id",
+  "farm_id",
   "id",
   "labor_cost",
   "labor_hours",
@@ -156,6 +160,7 @@ interface FarmActivityRecord {
   created_at: string | null;
   crop_cycle_id: string | null;
   farm_task_id: string | null;
+  farm_id: string | null;
   id: string;
   location_id: string;
   plot_id: string | null;
@@ -167,6 +172,51 @@ interface FarmActivityRecord {
 interface FarmActivityListResponse {
   data: FarmActivityRecord[];
   location_id: string;
+}
+
+interface FarmOption {
+  id: string;
+  name: string;
+  slug: string;
+  total_area: string | null;
+  area_unit: string | null;
+}
+
+interface PlotOption {
+  id: string;
+  name: string;
+  slug: string;
+  farm_id: string;
+  farm_name: string;
+}
+
+interface CropCycleOption {
+  id: string;
+  cycle_name: string | null;
+  status: string;
+  plot_id: string;
+  plot_name: string;
+  farm_id: string;
+  crop_name: string;
+}
+
+interface FarmTaskOption {
+  id: string;
+  name: string;
+  status: string;
+  farm_id: string | null;
+  plot_id: string | null;
+  crop_cycle_id: string | null;
+  farm_name: string | null;
+}
+
+interface FarmActivityRelationChoices {
+  location_id: string;
+  farms: FarmOption[];
+  plots: PlotOption[];
+  crop_cycles: CropCycleOption[];
+  farm_tasks: FarmTaskOption[];
+  truncated: { farms: boolean; plots: boolean; crop_cycles: boolean; farm_tasks: boolean };
 }
 
 type FarmActivityAction = typeof FARM_ACTIVITY_ACTIONS[number];
@@ -206,6 +256,112 @@ interface FarmActivityTransition {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+
+function parseRelationChoices(value: unknown, locationId: string): FarmActivityRelationChoices {
+  if (!isRecord(value) || Object.keys(value).sort().join(",") !== "data" || !isRecord(value.data)) {
+    throw new Error("Farm and activity relation choices did not match the Gateway contract.");
+  }
+  const data = value.data;
+  if (
+    Object.keys(data).sort().join(",") !== "crop_cycles,farm_tasks,farms,location_id,plots,truncated" ||
+    typeof data.location_id !== "string" || data.location_id.toLowerCase() !== locationId.toLowerCase() ||
+    !Array.isArray(data.farms) || data.farms.length > 1000 ||
+    !Array.isArray(data.plots) || data.plots.length > 1000 ||
+    !Array.isArray(data.crop_cycles) || data.crop_cycles.length > 1000 ||
+    !Array.isArray(data.farm_tasks) || data.farm_tasks.length > 1000 ||
+    !isRecord(data.truncated) ||
+    Object.keys(data.truncated).sort().join(",") !== "crop_cycles,farm_tasks,farms,plots" ||
+    typeof data.truncated.farms !== "boolean" ||
+    typeof data.truncated.plots !== "boolean" ||
+    typeof data.truncated.crop_cycles !== "boolean" ||
+    typeof data.truncated.farm_tasks !== "boolean"
+  ) {
+    throw new Error("Farm and activity relation choices did not match the selected location.");
+  }
+  const farms = data.farms.map((item): FarmOption => {
+    if (
+      !isRecord(item) || Object.keys(item).sort().join(",") !== "area_unit,id,name,slug,total_area" ||
+      typeof item.id !== "string" || !UUID_PATTERN.test(item.id) ||
+      typeof item.name !== "string" || typeof item.slug !== "string" ||
+      !(typeof item.total_area === "string" || item.total_area === null) ||
+      !(typeof item.area_unit === "string" || item.area_unit === null)
+    ) throw new Error("A farm choice was invalid.");
+    return {
+      id: item.id,
+      name: item.name,
+      slug: item.slug,
+      total_area: item.total_area,
+      area_unit: item.area_unit,
+    };
+  });
+  const plots = data.plots.map((item): PlotOption => {
+    if (
+      !isRecord(item) || Object.keys(item).sort().join(",") !== "farm_id,farm_name,id,name,slug" ||
+      typeof item.id !== "string" || !UUID_PATTERN.test(item.id) ||
+      typeof item.farm_id !== "string" || !UUID_PATTERN.test(item.farm_id) ||
+      typeof item.name !== "string" || typeof item.slug !== "string" || typeof item.farm_name !== "string"
+    ) throw new Error("A plot choice was invalid.");
+    return {
+      id: item.id,
+      name: item.name,
+      slug: item.slug,
+      farm_id: item.farm_id,
+      farm_name: item.farm_name,
+    };
+  });
+  const cropCycles = data.crop_cycles.map((item): CropCycleOption => {
+    if (
+      !isRecord(item) || Object.keys(item).sort().join(",") !== "crop_name,cycle_name,farm_id,id,plot_id,plot_name,status" ||
+      typeof item.id !== "string" || !UUID_PATTERN.test(item.id) ||
+      typeof item.plot_id !== "string" || !UUID_PATTERN.test(item.plot_id) ||
+      typeof item.farm_id !== "string" || !UUID_PATTERN.test(item.farm_id) ||
+      !(typeof item.cycle_name === "string" || item.cycle_name === null) ||
+      typeof item.status !== "string" || typeof item.plot_name !== "string" || typeof item.crop_name !== "string"
+    ) throw new Error("A crop-cycle choice was invalid.");
+    return {
+      id: item.id,
+      cycle_name: item.cycle_name,
+      status: item.status,
+      plot_id: item.plot_id,
+      plot_name: item.plot_name,
+      farm_id: item.farm_id,
+      crop_name: item.crop_name,
+    };
+  });
+  const farmTasks = data.farm_tasks.map((item): FarmTaskOption => {
+    if (
+      !isRecord(item) || Object.keys(item).sort().join(",") !== "crop_cycle_id,farm_id,farm_name,id,name,plot_id,status" ||
+      typeof item.id !== "string" || !UUID_PATTERN.test(item.id) ||
+      !(item.farm_id === null || (typeof item.farm_id === "string" && UUID_PATTERN.test(item.farm_id))) ||
+      !(item.plot_id === null || (typeof item.plot_id === "string" && UUID_PATTERN.test(item.plot_id))) ||
+      !(item.crop_cycle_id === null || (typeof item.crop_cycle_id === "string" && UUID_PATTERN.test(item.crop_cycle_id))) ||
+      typeof item.name !== "string" || typeof item.status !== "string" ||
+      !(typeof item.farm_name === "string" || item.farm_name === null)
+    ) throw new Error("A farm-task choice was invalid.");
+    return {
+      id: item.id,
+      name: item.name,
+      status: item.status,
+      farm_id: item.farm_id,
+      plot_id: item.plot_id,
+      crop_cycle_id: item.crop_cycle_id,
+      farm_name: item.farm_name,
+    };
+  });
+  return {
+    location_id: data.location_id,
+    farms,
+    plots,
+    crop_cycles: cropCycles,
+    farm_tasks: farmTasks,
+    truncated: {
+      farms: data.truncated.farms,
+      plots: data.truncated.plots,
+      crop_cycles: data.truncated.crop_cycles,
+      farm_tasks: data.truncated.farm_tasks,
+    },
+  };
 }
 
 function isUuidOrNull(value: unknown): value is string | null {
@@ -251,7 +407,7 @@ function validateDraftWrite(
     typeof draft.id !== "string" || !UUID_PATTERN.test(draft.id) ||
     typeof draft.event_id !== "string" || !UUID_PATTERN.test(draft.event_id) ||
     typeof draft.location_id !== "string" || draft.location_id.toLowerCase() !== locationId.toLowerCase() ||
-    !isNullableUuid(draft.plot_id) || !isNullableUuid(draft.crop_cycle_id) || !isNullableUuid(draft.farm_task_id) ||
+    !isNullableUuid(draft.farm_id) || !isNullableUuid(draft.plot_id) || !isNullableUuid(draft.crop_cycle_id) || !isNullableUuid(draft.farm_task_id) ||
     draft.activity_type !== activityType || draft.activity_date !== activityDate ||
     draft.status !== "draft" || draft.source_system !== "kokonut_gateway" ||
     !(draft.description === null || typeof draft.description === "string") ||
@@ -273,7 +429,7 @@ function validateRecord(value: unknown, locationId: string): FarmActivityRecord 
     Object.keys(value).sort().join(",") !== RECORD_FIELDS ||
     typeof value.id !== "string" || !UUID_PATTERN.test(value.id) ||
     typeof value.location_id !== "string" || value.location_id.toLowerCase() !== locationId.toLowerCase() ||
-    !isUuidOrNull(value.plot_id) || !isUuidOrNull(value.crop_cycle_id) || !isUuidOrNull(value.farm_task_id) ||
+    !isUuidOrNull(value.farm_id) || !isUuidOrNull(value.plot_id) || !isUuidOrNull(value.crop_cycle_id) || !isUuidOrNull(value.farm_task_id) ||
     typeof value.activity_type !== "string" || !value.activity_type.trim() || value.activity_type.length > 100 ||
     !isDate(value.activity_date) ||
     !(value.status === "draft" || value.status === "submitted" || value.status === "verified" ||
@@ -347,7 +503,7 @@ function validateDetail(value: unknown, activityId: string, locationId: string):
     Object.keys(detail).sort().join(",") !== DETAIL_FIELDS ||
     typeof detail.id !== "string" || detail.id.toLowerCase() !== activityId.toLowerCase() ||
     typeof detail.location_id !== "string" || detail.location_id.toLowerCase() !== locationId.toLowerCase() ||
-    !isUuidOrNull(detail.plot_id) || !isUuidOrNull(detail.crop_cycle_id) || !isUuidOrNull(detail.farm_task_id) ||
+    !isUuidOrNull(detail.farm_id) || !isUuidOrNull(detail.plot_id) || !isUuidOrNull(detail.crop_cycle_id) || !isUuidOrNull(detail.farm_task_id) ||
     typeof detail.activity_type !== "string" || !detail.activity_type.trim() || detail.activity_type.length > 100 ||
     !isDate(detail.activity_date) || !isActivityStatus(detail.status) ||
     !(detail.source_system === null || typeof detail.source_system === "string") ||
@@ -433,6 +589,17 @@ function requestErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : "Farm activity records could not be loaded.";
 }
 
+function relationChoicesErrorMessage(error: unknown): string {
+  if (error instanceof GatewayRequestError) {
+    if (error.status === 401) return "Your operator session has expired. Sign in again to load farm relations.";
+    if (error.status === 403) return "Your location does not have an active farm-activity read grant for relation choices.";
+    if (error.status === 503) return "Linked farm and activity choices are temporarily unavailable. You can still save a location-level draft.";
+  }
+  return error instanceof Error
+    ? error.message
+    : "Linked farm and activity choices could not be loaded. You can still save a location-level draft.";
+}
+
 function detailErrorMessage(error: unknown): string {
   if (error instanceof GatewayRequestError) {
     if (error.status === 401) return "Your operator session has expired. Sign in again to continue.";
@@ -490,13 +657,21 @@ export function FarmActivityListPage() {
   const sessionState = useOperatorSession();
   const listRequest = useRef(new LatestRequest());
   const detailRequest = useRef(new LatestRequest());
+  const relationChoicesRequest = useRef(new LatestRequest());
   const [locationId, setLocationId] = useState("");
   const [records, setRecords] = useState<FarmActivityRecord[]>([]);
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
   const [refreshVersion, setRefreshVersion] = useState(0);
+  const [relationChoices, setRelationChoices] = useState<FarmActivityRelationChoices | null>(null);
+  const [relationChoicesMessage, setRelationChoicesMessage] = useState("");
+  const [relationChoicesLoading, setRelationChoicesLoading] = useState(false);
   const [activityType, setActivityType] = useState("");
   const [activityDate, setActivityDate] = useState(localDateToday);
+  const [farmId, setFarmId] = useState("");
+  const [plotId, setPlotId] = useState("");
+  const [cropCycleId, setCropCycleId] = useState("");
+  const [farmTaskId, setFarmTaskId] = useState("");
   const [description, setDescription] = useState("");
   const [laborHours, setLaborHours] = useState("");
   const [laborCost, setLaborCost] = useState("");
@@ -603,6 +778,42 @@ export function FarmActivityListPage() {
   }, [draftableLocations, grantedLocations, locationId, refreshVersion]);
 
   useEffect(() => {
+    setFarmId("");
+    setPlotId("");
+    setCropCycleId("");
+    setFarmTaskId("");
+    if (!locationId || !grantedLocations.includes(locationId)) {
+      relationChoicesRequest.current.cancel();
+      setRelationChoices(null);
+      setRelationChoicesMessage("");
+      setRelationChoicesLoading(false);
+      return;
+    }
+    const request = relationChoicesRequest.current.begin();
+    setRelationChoices(null);
+    setRelationChoicesMessage("Loading linked farms, plots, crop cycles, and tasks…");
+    setRelationChoicesLoading(true);
+    const params = new URLSearchParams({ location_id: locationId });
+    void requestOperatorJson<unknown>(`/operator/api/farm-activity-records/relations?${params}`, {
+      signal: request.signal,
+    })
+      .then((payload) => {
+        if (!request.isCurrent()) return;
+        setRelationChoices(parseRelationChoices(payload, locationId));
+        setRelationChoicesMessage("");
+      })
+      .catch((error: unknown) => {
+        if (!request.isCurrent() || isAbortError(error)) return;
+        setRelationChoices(null);
+        setRelationChoicesMessage(relationChoicesErrorMessage(error));
+      })
+      .finally(() => {
+        if (request.isCurrent()) setRelationChoicesLoading(false);
+      });
+    return () => relationChoicesRequest.current.cancel();
+  }, [grantedLocations, locationId, refreshVersion]);
+
+  useEffect(() => {
     if (!selectedRecordId || !locationId || !detailableLocations.includes(locationId)) {
       detailRequest.current.cancel();
       setSelectedDetail(null);
@@ -645,6 +856,68 @@ export function FarmActivityListPage() {
     ? selectedDetail
     : null;
 
+  function selectFarm(value: string) {
+    setDraftFormDirty(true);
+    setFarmId(value);
+    if (!value) {
+      setPlotId("");
+      setCropCycleId("");
+      setFarmTaskId("");
+      return;
+    }
+    if (!relationChoices) return;
+    const selectedPlot = relationChoices.plots.find((item) => item.id === plotId);
+    const selectedCycle = relationChoices.crop_cycles.find((item) => item.id === cropCycleId);
+    const selectedTask = relationChoices.farm_tasks.find((item) => item.id === farmTaskId);
+    if (selectedPlot && selectedPlot.farm_id !== value) setPlotId("");
+    if (selectedCycle && selectedCycle.farm_id !== value) setCropCycleId("");
+    if (selectedTask && selectedTask.farm_id && selectedTask.farm_id !== value) setFarmTaskId("");
+  }
+
+  function selectPlot(value: string) {
+    setDraftFormDirty(true);
+    setPlotId(value);
+    const selectedPlot = relationChoices?.plots.find((item) => item.id === value);
+    if (!selectedPlot) return;
+    setFarmId(selectedPlot.farm_id);
+    const selectedCycle = relationChoices?.crop_cycles.find((item) => item.id === cropCycleId);
+    const selectedTask = relationChoices?.farm_tasks.find((item) => item.id === farmTaskId);
+    if (selectedCycle && selectedCycle.plot_id !== value) setCropCycleId("");
+    if (selectedTask && selectedTask.plot_id && selectedTask.plot_id !== value) setFarmTaskId("");
+  }
+
+  function selectCropCycle(value: string) {
+    setDraftFormDirty(true);
+    setCropCycleId(value);
+    const cycle = relationChoices?.crop_cycles.find((item) => item.id === value);
+    if (!cycle) return;
+    setFarmId(cycle.farm_id);
+    setPlotId(cycle.plot_id);
+    const selectedTask = relationChoices?.farm_tasks.find((item) => item.id === farmTaskId);
+    if (selectedTask && selectedTask.crop_cycle_id && selectedTask.crop_cycle_id !== value) setFarmTaskId("");
+  }
+
+  function selectFarmTask(value: string) {
+    setDraftFormDirty(true);
+    setFarmTaskId(value);
+    const task = relationChoices?.farm_tasks.find((item) => item.id === value);
+    if (!task) return;
+    if (task.farm_id) setFarmId(task.farm_id);
+    if (task.plot_id) {
+      setPlotId(task.plot_id);
+      const plot = relationChoices?.plots.find((item) => item.id === task.plot_id);
+      if (plot) setFarmId(plot.farm_id);
+    }
+    if (task.crop_cycle_id) {
+      setCropCycleId(task.crop_cycle_id);
+      const cycle = relationChoices?.crop_cycles.find((item) => item.id === task.crop_cycle_id);
+      if (cycle) {
+        setPlotId(cycle.plot_id);
+        setFarmId(cycle.farm_id);
+      }
+    }
+  }
+
   async function submitDraft(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setDraftFeedback(null);
@@ -670,6 +943,10 @@ export function FarmActivityListPage() {
 
     setSavingDraft(true);
     const content = {
+      farm_id: farmId || null,
+      plot_id: plotId || null,
+      crop_cycle_id: cropCycleId || null,
+      farm_task_id: farmTaskId || null,
       activity_type: normalizedActivityType,
       activity_date: activityDate,
       description: description.trim() || null,
@@ -687,6 +964,10 @@ export function FarmActivityListPage() {
       const draftId = validateDraftWrite(payload, locationId, normalizedActivityType, activityDate);
       setActivityType("");
       setActivityDate(localDateToday());
+      setFarmId("");
+      setPlotId("");
+      setCropCycleId("");
+      setFarmTaskId("");
       setDescription("");
       setLaborHours("");
       setLaborCost("");
@@ -794,7 +1075,7 @@ export function FarmActivityListPage() {
                 setLocationId(event.currentTarget.value);
               }}
             >
-              {selectableLocations.map((id) => <option key={id} value={id}>{id}</option>)}
+              {selectableLocations.map((id) => <option key={id} value={id}>{operatorLocationLabel(sessionState.session.locations, id)}</option>)}
             </select>
             <button
               className="secondary-action"
@@ -836,6 +1117,76 @@ export function FarmActivityListPage() {
                     required
                   />
                 </div>
+                <div className="farm-activity-field">
+                  <label htmlFor="farm-activity-farm">Farm</label>
+                  <select
+                    id="farm-activity-farm"
+                    value={farmId}
+                    onChange={(event) => selectFarm(event.currentTarget.value)}
+                    disabled={savingDraft || relationChoicesLoading || !relationChoices}
+                  >
+                    <option value="">No farm link</option>
+                    {relationChoices?.farms.map((farm) => (
+                      <option key={farm.id} value={farm.id}>
+                        {farm.name}{farm.total_area ? ` · ${farm.total_area} ${farm.area_unit || "area"}` : ""}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="farm-activity-field">
+                  <label htmlFor="farm-activity-plot">Plot</label>
+                  <select
+                    id="farm-activity-plot"
+                    value={plotId}
+                    onChange={(event) => selectPlot(event.currentTarget.value)}
+                    disabled={savingDraft || relationChoicesLoading || !relationChoices}
+                  >
+                    <option value="">No plot link</option>
+                    {relationChoices?.plots.map((plot) => (
+                      <option key={plot.id} value={plot.id}>{plot.farm_name} / {plot.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="farm-activity-field">
+                  <label htmlFor="farm-activity-crop-cycle">Crop cycle</label>
+                  <select
+                    id="farm-activity-crop-cycle"
+                    value={cropCycleId}
+                    onChange={(event) => selectCropCycle(event.currentTarget.value)}
+                    disabled={savingDraft || relationChoicesLoading || !relationChoices}
+                  >
+                    <option value="">No crop-cycle link</option>
+                    {relationChoices?.crop_cycles.map((cycle) => (
+                      <option key={cycle.id} value={cycle.id}>
+                        {cycle.cycle_name || cycle.crop_name} · {cycle.plot_name} · {cycle.status}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="farm-activity-field">
+                  <label htmlFor="farm-activity-task">Farm task</label>
+                  <select
+                    id="farm-activity-task"
+                    value={farmTaskId}
+                    onChange={(event) => selectFarmTask(event.currentTarget.value)}
+                    disabled={savingDraft || relationChoicesLoading || !relationChoices}
+                  >
+                    <option value="">No task link</option>
+                    {relationChoices?.farm_tasks.map((task) => (
+                      <option key={task.id} value={task.id}>
+                        {task.farm_name ? `${task.farm_name} / ` : ""}{task.name} · {task.status}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <p className="farm-activity-field farm-activity-field-wide" role={relationChoicesMessage && !relationChoicesLoading ? "status" : undefined}>
+                  {relationChoicesLoading
+                    ? relationChoicesMessage
+                    : relationChoicesMessage || "Relations are optional for a general location-level entry. Selecting a plot, crop cycle, or task links the matching farm where available."}
+                </p>
+                {relationChoices && Object.values(relationChoices.truncated).some(Boolean) ? (
+                  <p className="farm-activity-field farm-activity-field-wide" role="status">Some relation lists exceed 1,000 records; the shown choices are the first bounded results.</p>
+                ) : null}
                 <div className="farm-activity-field">
                   <label htmlFor="farm-activity-hours">Labor hours</label>
                   <input
@@ -900,6 +1251,10 @@ export function FarmActivityListPage() {
                   onClick={() => {
                     setActivityType("");
                     setActivityDate(localDateToday());
+                    setFarmId("");
+                    setPlotId("");
+                    setCropCycleId("");
+                    setFarmTaskId("");
                     setDescription("");
                     setLaborHours("");
                     setLaborCost("");
@@ -974,6 +1329,10 @@ export function FarmActivityListPage() {
                     <>
                       <p><strong>{currentDetail.activity_type}</strong> · {currentDetail.activity_date} · {statusLabel(currentDetail.status)}</p>
                       <dl>
+                        <div><dt>Farm</dt><dd>{currentDetail.farm_id ? relationChoices?.farms.find((item) => item.id === currentDetail.farm_id)?.name || "Linked farm" : "None"}</dd></div>
+                        <div><dt>Plot</dt><dd>{currentDetail.plot_id ? relationChoices?.plots.find((item) => item.id === currentDetail.plot_id)?.name || "Linked plot" : "None"}</dd></div>
+                        <div><dt>Crop cycle</dt><dd>{currentDetail.crop_cycle_id ? relationChoices?.crop_cycles.find((item) => item.id === currentDetail.crop_cycle_id)?.cycle_name || relationChoices?.crop_cycles.find((item) => item.id === currentDetail.crop_cycle_id)?.crop_name || "Linked crop cycle" : "None"}</dd></div>
+                        <div><dt>Farm task</dt><dd>{currentDetail.farm_task_id ? relationChoices?.farm_tasks.find((item) => item.id === currentDetail.farm_task_id)?.name || "Linked task" : "None"}</dd></div>
                         <div><dt>Description</dt><dd>{currentDetail.description || "None"}</dd></div>
                         <div><dt>Labor hours</dt><dd>{currentDetail.labor_hours ?? "Not recorded"}</dd></div>
                         <div><dt>Labor cost</dt><dd>{currentDetail.labor_cost ?? "Not recorded"}</dd></div>

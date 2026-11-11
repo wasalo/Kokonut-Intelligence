@@ -10,7 +10,7 @@ import {
 import { GatewayRequestError } from "./request";
 import { LatestRequest } from "./latest-request";
 import { requestOperatorJson } from "./request";
-import type { OperatorScope, OperatorSession } from "./request";
+import type { OperatorLocationOption, OperatorScope, OperatorSession } from "./request";
 
 export type OperatorSessionState =
   | { status: "loading" }
@@ -31,8 +31,17 @@ function isOperatorScope(value: unknown): value is OperatorScope {
     typeof value.location_id === "string";
 }
 
+function isOperatorLocationOption(value: unknown): value is OperatorLocationOption {
+  return isRecord(value) &&
+    typeof value.id === "string" &&
+    typeof value.name === "string" &&
+    (typeof value.country === "string" || value.country === null) &&
+    (typeof value.region === "string" || value.region === null);
+}
+
 function parseOperatorSession(value: unknown): OperatorSession {
-  if (!isRecord(value) || !isRecord(value.operator) || !Array.isArray(value.scopes)) {
+  if (!isRecord(value) || !isRecord(value.operator) || !Array.isArray(value.scopes) ||
+      !(value.locations === undefined || Array.isArray(value.locations))) {
     throw new Error("The operator session response is invalid.");
   }
 
@@ -43,7 +52,8 @@ function parseOperatorSession(value: unknown): OperatorSession {
     typeof operator.subject !== "string" ||
     !(typeof operator.display_name === "string" || operator.display_name === null) ||
     !(typeof operator.email === "string" || operator.email === null) ||
-    !value.scopes.every(isOperatorScope)
+    !value.scopes.every(isOperatorScope) ||
+    (Array.isArray(value.locations) && !value.locations.every(isOperatorLocationOption))
   ) {
     throw new Error("The operator session response is invalid.");
   }
@@ -51,6 +61,7 @@ function parseOperatorSession(value: unknown): OperatorSession {
   return {
     operator: operator as OperatorSession["operator"],
     scopes: value.scopes,
+    locations: Array.isArray(value.locations) ? value.locations : [],
   };
 }
 
