@@ -63,7 +63,7 @@ Same-slug setup rows can be completed while preserving baseline and historical
 records; cross-tenant ownership conflicts fail closed. The deployed entry point
 is `https://hub.kokonut.network/ops/administration`.
 
-### Hub relational form support — pending exact-head CI and rollout
+### Hub relational form support — exact-head CI passed; candidate rollout pending
 
 The current `chore/finalize-kokonut-intelligence-refactor` work adds a second
 location-setup path for adding a farm beneath an existing, active, verified
@@ -74,9 +74,16 @@ choices for farm, plot, crop cycle, and farm task; the database trigger checks
 that the selected relations remain location- and parent-consistent. Hub
 location selectors use bounded names and region/country labels instead of
 displaying UUIDs. Migration 755 contains the setup and relation-integrity
-changes. These are source changes only: exact-head CI/Security, deployment,
-and candidate migration 755 are pending; no candidate state or G4 evidence was
-changed by this work.
+changes. Exact-head CI [#43050323471](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/43050323471)
+and Security [#43050323567](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/43050323567)
+passed on `a6baa3da`. This remains source/disposable acceptance only: the
+candidate API and Worker have not been updated to this head, and candidate
+migration 755 has not been applied. A read-only VPS inventory found the
+candidate API, worker, and database healthy, but it did not establish their
+source SHA or migration ledger state. No candidate data or grants changed.
+Before rollout, capture and verify a fresh encrypted pre-migration checkpoint;
+then deploy the API/worker and Cloudflare Worker and apply only the ordered
+migration after reviewing the exact candidate state.
 
 The first authenticated organization-list request exposed a transaction mode
 issue: a read-only transaction conflicted with the session resolver's
