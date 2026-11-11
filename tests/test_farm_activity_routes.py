@@ -179,6 +179,7 @@ def test_farm_activity_write_openapi_contracts_are_exact():
         "created_at",
         "updated_at",
         "event_id",
+        "farm_id",
     }
     assert set(schemas["FarmActivityDraftWriteResponseData"]["properties"]) == draft_fields
     assert schemas["FarmActivityDraftWriteResponse"]["additionalProperties"] is False
@@ -482,6 +483,7 @@ def test_detail_routes_publish_exact_openapi_contract():
         "created_at",
         "updated_at",
         "operator_events",
+        "farm_id",
     }
 
 

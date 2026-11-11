@@ -124,6 +124,11 @@ def test_gateway_threadpool_callbacks_reach_known_sql_service_helpers():
         (
             "services.gateway.farm_activity_routes:"
             "register_farm_activity_record_routes._invoke",
+            "services.gateway.farm_activity_records:list_farm_activity_relation_choices",
+        ),
+        (
+            "services.gateway.farm_activity_routes:"
+            "register_farm_activity_record_routes._invoke",
             "services.gateway.farm_activity_records:transition_farm_activity_record",
         ),
     }

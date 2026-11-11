@@ -101,6 +101,15 @@ _EXPECTED_OPERATOR_POLICIES = {
     ("GET", "/operator/auth/callback"): _expected("operator_auth", "callback", public=True),
     ("GET", "/operator/auth/session"): _expected("operator_auth", "read"),
     ("POST", "/operator/auth/logout"): _expected("operator_auth", "logout"),
+    ("GET", "/operator/api/farm-activity-records/relations"): _expected(
+        "farm_activity", "read", scoped=True
+    ),
+    ("GET", "/operator/api/location-setup/locations"): _expected(
+        "location_setup", "read_organizations"
+    ),
+    ("POST", "/operator/api/location-setup/existing-location-farms"): _expected(
+        "location_setup", "create"
+    ),
     ("GET", "/operator/api/clickhouse-outbox/dead-letters"): _expected(
         "clickhouse_outbox", "read"
     ),
