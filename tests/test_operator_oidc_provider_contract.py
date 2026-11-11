@@ -329,6 +329,29 @@ def test_oidc_callback_rejects_state_mismatch_without_creating_session(
         assert client.get("/operator/auth/session").status_code == 401
 
 
+def test_oidc_callback_fails_closed_when_provider_rejects_nonce(
+    monkeypatch, tmp_path
+):
+    provider = _FakeOIDCProvider()
+
+    async def reject_nonce(_request):
+        raise ValueError("synthetic ID-token nonce mismatch")
+
+    provider.client.authorize_access_token = reject_nonce
+    with _client(monkeypatch, tmp_path, provider) as client:
+        _login(client)
+
+        callback = client.get(
+            "/operator/auth/callback?code=synthetic-code&state=synthetic-state"
+        )
+
+        assert callback.status_code == 401
+        assert callback.json() == {"error": "OIDC login failed"}
+        assert provider.created_claims == []
+        assert client.cookies.get(SESSION_COOKIE) is None
+        assert client.get("/operator/auth/session").status_code == 401
+
+
 @pytest.mark.parametrize(
     ("userinfo", "expected_status"),
     [
