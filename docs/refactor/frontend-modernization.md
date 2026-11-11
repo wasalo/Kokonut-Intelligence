@@ -2,53 +2,71 @@
 
 ## Purpose and status
 
-This plan organizes the authenticated operator browser interface as one
-**Kokonut Intelligence Control Plane** with three lazy-loaded route modules:
-**General Operations**, **Field Operations**, and **Governance**. The goal is a
-coherent, usable front end for the Kernel without dropping any workflow or
-changing the authorization and data contracts that the backend already
-enforces. The Delphi participant app and encrypted offline Field Collector
-remain separate clients because their consent, invitation, device-identity, and
-offline-storage boundaries differ from the operator Control Plane.
+This plan organizes the browser experience as one **Kokonut Intelligence
+Control Plane**: a public ecosystem overview at `/` and three lazy-loaded
+authenticated route modules—**General Operations**, **Field Operations**, and
+**Governance**. The goal is a coherent, usable front end for the Kernel without
+dropping any workflow or changing the authorization and data contracts that
+the backend already enforces. The Delphi participant app and encrypted offline
+Field Collector remain separate clients because their consent, invitation,
+device-identity, and offline-storage boundaries differ from the operator
+Control Plane.
 
-This is a supporting design plan, not evidence that the applications have been
-migrated or accepted. The candidate completion guide remains authoritative for
-refactor status and acceptance gates. Keep the existing applications available
-until the replacement for their workflows passes the corresponding acceptance
-checks.
+This is a supporting design plan, not candidate acceptance evidence. The
+Control Plane now contains deployed slices, while many workflows remain
+unmigrated or unaccepted. The candidate completion guide remains authoritative
+for refactor status and gates. Keep existing applications available until each
+replacement workflow passes its corresponding acceptance checks.
 
-The initial TypeScript workspace, shared Control Plane shell, and three route
-modules now exist under
-[`apps/frontend`](../../apps/frontend/README.md). General Operations also has a
-read-only submitted-report review slice at `/ops/reports`, a paginated,
-read-only metric list at `/ops/metrics`, and an aggregate coordination
-overview at `/ops/planning`. These pages load the existing operator session
-and use exact location read scopes; report detail and metric/coordination pages
-are bound to the selected location. Metric drafts stay visibly unverified.
-Compute, verification, coordination mutations, and other workflows remain
-available in the current console.
-Governance now includes a read-only Delphi facilitator recommendation queue at
+The TypeScript workspace, shared shell, public landing page, and three route
+modules are implemented under
+[`apps/frontend`](../../apps/frontend/README.md). As of 11 November 2026, the
+candidate is deployed at `hub.kokonut.network` through Cloudflare Worker Static
+Assets; Gateway and retained compatibility routes continue to the Coolify
+origin. This is candidate deployment evidence, not production readiness or
+complete workflow parity. The canonical
+[candidate completion guide](current-state-and-implementation.md) owns current
+acceptance status.
+
+General Operations has submitted-report review at `/ops/reports`, metric reads
+at `/ops/metrics`, coordination summaries at `/ops/planning`, location/farm
+setup at `/ops/administration`, and private report-export requests at
+`/ops/exports`. The report and metric reads use exact location scopes; metric
+drafts remain visibly unverified. Export creation and download are bounded,
+location-scoped operations and do not generate, verify, or publish reports.
+The location form can add a farm beneath an existing active, verified tenant
+location without modifying its parent.
+
+Field Operations at `/field/records` lists non-Collector Gateway farm
+activities and supports draft creation, detail, and grant-controlled lifecycle
+actions. Draft entry offers bounded farm, plot, crop-cycle, and farm-task
+choices. Wasabi confirmed that the signed-in existing-location picker and these
+relation controls load on 11 November 2026. Field Collector submissions remain
+separate from this form.
+
+Governance includes the read-only Delphi facilitator recommendation queue at
 `/governance/recommendations`, with exact location review scopes, bounded
-pagination, and the existing approval blockers displayed without decision or
-publication controls. Participant invite handling remains on its separate
-compatibility path.
-Field Operations includes a read-only farm activity summary at `/field/records`
-using the exact `farm_activity:read` scope. The existing Gateway list excludes
-Field Collector submissions; the encrypted offline Collector and its sync
-protocol remain on the current implementation.
-Feature parity beyond these slices, trusted-browser identity acceptance,
-Cloudflare routing, and R2 acceptance remain open.
+pagination, and approval blockers shown without decision or publication
+controls. Participant invite handling remains on its separate compatibility
+path.
+
+G4 still needs negative live ID-token nonce validation, a denial check against
+a second authorized location, and Field Collector offline/media/consent/sync
+acceptance. G5 populated farm/report references and provider acceptance, G6
+recovery and soak, and G7 sign-off remain open.
 
 The shared `@kokonut/operator-client` foundation now enforces same-origin
 operator API paths, no-store requests, the existing operator CSRF cookie/header
 contract for mutations, and stale-read cancellation primitives. Its shared
 operator-session hook validates session/scope data and cancels on unmount. The
-report, metric, and coordination slices use it for no-store reads, validate
-location-bound identities and response contracts, and cancel stale requests when
-their selection changes.
-They do not add write operations. The Delphi and Field Collector auth protocols
-remain separate. Candidate browser acceptance is still required before these
-source slices can count as accepted parity.
+report, metric, and coordination read slices use it for no-store requests,
+validate location-bound identities and response contracts, and cancel stale
+requests when selection changes. The export workspace adds idempotent,
+location-scoped request and download operations; the Field Operations workflow
+adds draft creation and separately granted lifecycle actions. Those writes use
+existing Gateway contracts and do not grant authority through the UI. The
+Delphi and Field Collector auth protocols remain separate. Browser and
+populated-data acceptance is still required for the remaining capabilities.
 
 ## Existing surfaces and boundaries
 
@@ -65,30 +83,28 @@ is a usability feature; it never authorizes an API operation.
 ## Application boundaries and route plan
 
 Build and deploy one Control Plane entry point. Its shared Router, operator
-session, navigation shell, API client, and design system contain three
-capability-oriented modules at `/ops/*`, `/field/*`, and `/governance/*`. Lazy
-loading keeps inactive module code and styles out of the initial download while
-preserving a single authenticated application and seamless workspace switching.
+session, navigation shell, API client, and design system contain a public root
+page and three capability-oriented modules at `/ops/*`, `/field/*`, and
+`/governance/*`. Lazy loading keeps inactive module code and styles out of the
+initial download while preserving one web application and workspace switching.
 The paths are a front-end routing choice; existing Gateway API paths remain
-stable during migration. The proposed public app origin is
-`hub.kokonut.network`, with `auth.kokonut.network` reserved for ZITADEL. One
-Cloudflare Worker Static Assets deployment serves the shared bundle and SPA
-shell for the exact `/ops`, `/field`, and `/governance` roots and their
-descendants. Other same-origin paths do not match those Worker routes and
-continue to the proxied Coolify/VPS origin. This keeps `/operator/*`,
-`/api/mobile/*`, and `/participation/*` on their current Gateway paths without an
-additional API proxy Worker. Dynamic requests, invite flows, and personal data
-must be `no-store`; cache only versioned static assets. Do not put API secrets,
-database credentials, or authorization decisions in the browser or Worker. The
-Wrangler route patterns are source configuration only; DNS, HTTPS, and Worker
-deployment remain pending G4.
+stable. The candidate uses `hub.kokonut.network`, with
+`auth.kokonut.network` reserved for ZITADEL. The deployed Cloudflare Worker
+serves `/`, the three module roots and descendants, and `/assets/*`. Other
+same-origin paths continue to the proxied Coolify/VPS Gateway origin, including
+`/operator/*`, `/api/mobile/*`, and `/participation/*`. Dynamic requests, invite
+flows, and personal data must be `no-store`; cache only static assets. Do not
+put API secrets, database credentials, or authorization decisions in the
+browser or Worker. The exact route patterns are maintained in
+[`wrangler.jsonc`](../../apps/frontend/apps/control-plane/wrangler.jsonc); the
+current deployment version and acceptance limits are recorded in the candidate
+completion guide.
 
-The workspace pins Wrangler 4.148.0 for a reproducible deployment toolchain.
-Keep `workers_dev` disabled and retain exact-root plus descendant route pairs so
-paths such as `/ops-other` continue to the VPS instead of matching the app
-Worker. Dry runs of the former three-worker layout do not validate the new
-single-Worker configuration; the consolidated configuration has not yet been
-deployed.
+The workspace pins Wrangler 4.148.0 for its deployment toolchain. Keep
+`workers_dev` disabled in the configured candidate and retain exact-root plus
+descendant route pairs so paths such as `/ops-other` continue to the VPS instead
+of matching the app Worker. The `preview` environment intentionally enables a
+`workers.dev` visual preview and has no `hub` routes or Gateway-origin setup.
 
 | Control Plane module | Audience and feature groups | Current console panels to migrate |
 |---|---|---|
@@ -173,25 +189,32 @@ for production media.
 
 ## No-loss migration sequence
 
-1. Freeze the source feature inventory above and derive an acceptance manifest
-   from the existing panel IDs, route policies, API operations, and app tests.
-   This is the preservation baseline; don't remove or silently combine an
-   operation without documenting the replacement.
-2. Create the TypeScript workspace, shared application shell, module route
-   guards for navigation, shared API client, design tokens, responsive layout,
-   and error/loading/empty states. Do not alter Gateway behavior in this step.
-3. Migrate one complete vertical slice per Control Plane module. Start with
-   high-value read-only workflows, then forms and lifecycle decisions. Keep
-   the existing endpoint, payload, CSRF, location, consent, and human-review
-   semantics.
+The shared app, representative workflows, and candidate Cloudflare route are
+implemented. The remaining sequence is for parity and retirement; the
+[candidate completion guide](current-state-and-implementation.md) records
+which acceptance items have passed.
+
+1. Maintain the source feature inventory and acceptance manifest derived from
+   the existing panel IDs, route policies, API operations, and app behavior.
+   Do not remove or silently combine an operation without recording its
+   replacement and acceptance evidence.
+2. Continue the TypeScript workspace, shared application shell, route guards
+   for navigation, shared API client, Kokonut design tokens, responsive layout,
+   and error/loading/empty states. The current Control Plane is partial and
+   does not change Gateway authorization.
+3. Migrate a complete vertical slice per module. Preserve the existing
+   endpoint, payload, CSRF, location, consent, and human-review semantics.
+   Existing location/farm setup and relational farm-activity draft entry are
+   implemented; other farm and legacy workflows remain to be reconciled.
 4. Preserve the Delphi participant and Field Collector clients as their own
-   specialized experiences; validate consent recovery, invite secrecy, offline
+   specialized experiences. Their consent recovery, invite secrecy, offline
    encryption, queue durability, media reconciliation, and service-worker
-   upgrade behavior before changing their current entry points.
-5. Deploy candidate builds to Cloudflare preview URLs with synthetic data and
-   no production credentials. Verify same-origin auth/API routing, restrictive
-   cache headers, accessibility, mobile layout, reconnect/offline behavior,
-   and rollback before custom domains or live R2 access are enabled.
+   upgrade behavior still require candidate acceptance.
+5. The candidate has already been deployed to `hub.kokonut.network`; this is
+   not production sign-off. Complete authenticated API routing, restrictive
+   cache, accessibility, mobile layout, offline/reconnect behavior, and
+   rollback acceptance while keeping the existing Gateway compatibility paths
+   intact. Do not infer acceptance from the custom-domain deployment.
 6. Retire an old UI route only after every feature ID assigned to it has
    explicit parity evidence and its owners accept the new workflow. The backend
    refactor can continue independently; UI modernization does not waive G1–G7

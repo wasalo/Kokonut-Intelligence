@@ -112,6 +112,12 @@ isolation or enable broad RLS based only on the Gateway check; use the current
 [C1 ACL closure plan](refactor/c1-runtime-acl-closure-plan.md) and refactor
 status for the reviewed scope.
 
+The Control Plane's location-onboarding and relational farm-activity routes,
+request shapes, and capability requirements are documented in the
+[Gateway route reference](../services/gateway/README.md#location-setup-and-farm-activity-relationship-routes).
+Those route contracts are source documentation; the candidate completion guide
+records which workflows have been accepted in a deployed environment.
+
 ## Rate limiting
 
 The limiter is a replaceable interface selected by

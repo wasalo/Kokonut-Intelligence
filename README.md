@@ -7,6 +7,14 @@ PostgreSQL with PostGIS is the canonical operational store and schema. The Kokon
 > [!IMPORTANT]
 > The repository contains both the legacy Compose bundle and an isolated Kernel candidate. The candidate is under active parity and deployment acceptance; its successful build or health check is not a production-readiness claim. Use the [current refactor status and implementation guide](docs/refactor/current-state-and-implementation.md) for the authoritative gates, completed work, and remaining decisions. No physical Raspberry Pi acceptance is claimed.
 
+The Kokonut Intelligence Hub candidate is available at
+[`hub.kokonut.network`](https://hub.kokonut.network): `/` is the public
+ecosystem overview, while `/ops`, `/field`, and `/governance` are the shared
+operator Control Plane workspaces. Delphi participants and the offline Field
+Collector remain separate clients. Candidate availability does not mean all
+capabilities have passed acceptance; see the
+[Control Plane guide](apps/frontend/README.md) and the current refactor guide.
+
 ## Table Of Contents
 
 - [Architecture](#architecture)

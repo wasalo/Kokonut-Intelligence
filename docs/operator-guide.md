@@ -71,6 +71,35 @@ docker compose up -d
 - Keep private evidence offchain; store only hashes, CIDs, UIDs, transaction hashes, and timestamps in public metadata.
 - Check required source fields on pilot `expense_event` and `harvest_event` rows: `source_system`, `source_id`, and `source_raw`.
 
+### Hub location and farm entry (candidate)
+
+The current candidate Control Plane is available at
+[`hub.kokonut.network`](https://hub.kokonut.network). Use
+[`/ops/administration`](https://hub.kokonut.network/ops/administration) to
+create a location with its first farm or add a farm to an existing active,
+verified tenant location. The existing-location form does not edit the parent
+location, and the new farm boundary must fit inside it. Saving creates durable
+location/farm records and requires an approval or internal decision reference;
+it does not import provider data or establish land title.
+
+For a new location, enter the representative point as latitude and longitude,
+or paste `latitude, longitude` from Google Maps and select **Use map pin**. The
+pin is not a boundary. Upload a WGS84 GeoJSON Polygon or enter at least three
+distinct boundary points as `longitude, latitude` pairs, one per line. The
+current form does not embed a click-to-pin map; that improvement is tracked in
+the [refactor follow-ups](refactor/open-follow-ups.md). Copy coordinates from a GeoJSON
+Point into the representative-point fields; do not upload a Point file as the
+boundary.
+
+Use [`/field/records`](https://hub.kokonut.network/field/records) for the
+location-scoped Gateway farm activity form. Farm, plot, crop-cycle, and farm-task
+links are optional and validated against their parent relationships and chosen
+location. Saving creates an unsubmitted draft; submission, verification,
+rejection, publication, and rework require their separate grants and human
+decisions. Field Collector submissions stay in the separate offline workflow.
+The candidate remains under the acceptance gates in the
+[current refactor guide](refactor/current-state-and-implementation.md).
+
 ## Stakeholder Feedback
 
 - Ask for explicit consent before recording feedback and keep feedback private by default.
