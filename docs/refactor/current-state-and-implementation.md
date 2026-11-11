@@ -1,8 +1,8 @@
 # Kokonut Intelligence refactor: candidate completion guide
 
 **Authority:** this is the sole active status, completion register, and execution queue.
-**Candidate status (11 November 2026):** PR #73 branch `chore/finalize-kokonut-intelligence-refactor` at `cbc758f58966184306ea8ff700ab50aeab567c44` passed exact-head [CI #43061679933](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/43061679933) and [Security #43061679859](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/43061679859). Coolify deployment `qdickqqlxcj0csivwjplxj1i` runs that revision on the candidate; migration 755 is applied and Gateway, general worker, PostgreSQL/PostGIS, and ZITADEL are healthy. A pre-migration encrypted checkpoint with separate Kokonut and ZITADEL PostgreSQL archives was committed to R2 bucket `kokonut-backups`; upload readback hashes passed. It has not been restore-rehearsed ([rollout evidence](builds/2026-11-11-recovery/relational-hub-candidate-rollout.json)). The API and worker remained fail-closed under the schema-readiness check until migration 755 applied; no readiness bypass was made. Cloudflare Worker `ki-operator-control-plane` now serves version `77564893-2c14-4053-9910-0da656fb7bed`; `/`, `/ops`, `/field/records`, and `/governance` returned HTML 200, Gateway `/health` returned 200, and anonymous session/relation API requests returned 401. The relational Hub slice is deployed; signed-in browser acceptance remains open. No recurring integration jobs are enabled. Populated Adelphi measurements and report reference data remain absent, so G5/G6/G7 are still open.
-**Latest exact-head CI (11 November 2026):** CI [#43061679933](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/43061679933) and Security [#43061679859](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/43061679859) passed on PR #73 commit `cbc758f58966184306ea8ff700ab50aeab567c44`; the Coolify candidate and Cloudflare Worker rollouts now serve that source.
+**Candidate status (11 November 2026):** PR #73 code revision `cbc758f58966184306ea8ff700ab50aeab567c44` passed exact-head [CI #43061679933](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/43061679933) and [Security #43061679859](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/43061679859). Coolify deployment `qdickqqlxcj0csivwjplxj1i` runs that revision on the candidate; migration 755 is applied and Gateway, general worker, PostgreSQL/PostGIS, and ZITADEL are healthy. A pre-migration encrypted checkpoint with separate Kokonut and ZITADEL PostgreSQL archives was committed to R2 bucket `kokonut-backups`; upload readback hashes passed. It has not been restore-rehearsed ([rollout evidence](builds/2026-11-11-recovery/relational-hub-candidate-rollout.json)). The API and worker remained fail-closed under the schema-readiness check until migration 755 applied; no readiness bypass was made. Cloudflare Worker `ki-operator-control-plane` now serves version `77564893-2c14-4053-9910-0da656fb7bed`; `/`, `/ops`, `/field/records`, and `/governance` returned HTML 200, Gateway `/health` returned 200, and anonymous session/relation API requests returned 401. The relational Hub slice is deployed; signed-in browser acceptance remains open. No recurring integration jobs are enabled. Populated Adelphi measurements and report reference data remain absent, so G5/G6/G7 are still open.
+**Latest completed code CI (11 November 2026):** CI [#43061679933](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/43061679933) and Security [#43061679859](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/43061679859) passed on candidate code revision `cbc758f58966184306ea8ff700ab50aeab567c44`; the Coolify candidate and Cloudflare Worker rollouts serve that source.
 **Public hub experience (10 November 2026):** PR source implements a public Kokonut Intelligence landing page at `/`, informed by the [Kokonut Network knowledge base](https://kokonut.network/llms.txt) and the visual and messaging guidance in the [Kokonut Public Site](https://github.com/wasalo/Kokonut-Public-Site). The page fetches only the explicit public location directory and loads a location summary on demand from existing public projections; it adds no API route or authorization policy. The Control Plane session provider is restricted to operator workspaces so the public page does not trigger an operator-session request. Workspace navigation includes a route back to the ecosystem overview. Frontend build, TypeScript check, Wrangler dry-run, exact-head CI, and Security passed. Cloudflare Worker version `bf4eb487-7131-430e-bdca-ac98e7c16d95` now serves it at the root; root, assets, operator, field, governance, and health routes return HTTP 200, and anonymous operator session returns 401. The public locations endpoint currently returns an empty list, which the page displays without sample impact claims ([rollout evidence](builds/2026-11-10-recovery/public-ecosystem-landing-rollout.json)).
 **G5 private report-export workspace (10 November 2026):** `/ops/exports` provides location-scoped snapshot selection, idempotent private export requests, status, and download through existing bounded Gateway endpoints. It lists only verified/published snapshots, asks the operator to confirm audience/disclosure review before submission, and relies on the Gateway for each authorization check; the UI confirmation is not recorded as separate approval. It does not generate, verify, or publish report content. Typecheck, production build, exact-head CI, and Security passed. Cloudflare Worker version `26a85cda-4058-4ec9-a9d2-d33d03a97686` now serves the route. `/ops/exports`, other workspaces, and health returned 200; anonymous operator session and export API returned 401. No export scope, report request, artifact, DNS, or Coolify setting changed. Candidate use still needs an operator with the reviewed read/create/download grants and an eligible snapshot; queued execution, download/disposition, per-report audience approval, and populated-output parity remain open.
 **Historical exact-head CI failure (10 November 2026):** CI [#42874451723](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/42874451723) on PR #73 head `c7c16453` passed preflight, source checks, and the AMD64/ARM64 image gate, then failed three tests in `tests/test_kernel_standard_recovery_disposable.py` during integration. The recovery-checker fixture omitted its new private report-artifact initializer, which masked the intended missing-network error; Directus mocks also returned stale combined results after the checker split readable-row and privilege probes. The checker was unchanged. Updated fixtures and mocks passed the focused module (42 tests); the subsequent exact-head CI/Security result is recorded above.
@@ -63,7 +63,7 @@ Same-slug setup rows can be completed while preserving baseline and historical
 records; cross-tenant ownership conflicts fail closed. The deployed entry point
 is `https://hub.kokonut.network/ops/administration`.
 
-### Hub relational form support — exact-head CI passed; candidate rollout pending
+### Hub relational form support — candidate deployed; signed-in acceptance open
 
 The current `chore/finalize-kokonut-intelligence-refactor` work adds a second
 location-setup path for adding a farm beneath an existing, active, verified
@@ -74,16 +74,27 @@ choices for farm, plot, crop cycle, and farm task; the database trigger checks
 that the selected relations remain location- and parent-consistent. Hub
 location selectors use bounded names and region/country labels instead of
 displaying UUIDs. Migration 755 contains the setup and relation-integrity
-changes. Exact-head CI [#43050323471](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/43050323471)
-and Security [#43050323567](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/43050323567)
-passed on `a6baa3da`. This remains source/disposable acceptance only: the
-candidate API and Worker have not been updated to this head, and candidate
-migration 755 has not been applied. A read-only VPS inventory found the
-candidate API, worker, and database healthy, but it did not establish their
-source SHA or migration ledger state. No candidate data or grants changed.
-Before rollout, capture and verify a fresh encrypted pre-migration checkpoint;
-then deploy the API/worker and Cloudflare Worker and apply only the ordered
-migration after reviewing the exact candidate state.
+changes. Exact-head CI [#43061679933](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/43061679933)
+and Security [#43061679859](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/43061679859)
+passed on code revision `cbc758f5`. Coolify deployment
+`qdickqqlxcj0csivwjplxj1i` and Cloudflare Worker version
+`77564893-2c14-4053-9910-0da656fb7bed` serve that revision, and migration 755
+is applied. Anonymous route checks passed: app pages and Gateway health
+returned 200, while session and relation-choice APIs returned 401. The
+pre-migration candidate checkpoint was encrypted, uploaded to `kokonut-backups`,
+and verified by readback hashes; a restore rehearsal remains open. Signed-in
+browser acceptance of the existing-location farm picker and the farm, plot,
+crop-cycle, and farm-task choices remains open. Do not create a test farm or
+activity just to inspect these forms. See the linked candidate rollout
+evidence for the recorded sequence and service health.
+
+Live OIDC callback testing rejected a synthetic callback with a mismatched
+state (login 302, callback 401, resulting session 401); evidence is in
+[`g4-candidate-oidc-state-mismatch.json`](builds/2026-11-11-recovery/g4-candidate-oidc-state-mismatch.json).
+Negative ID-token nonce validation, the second-location denial, and Field
+Collector offline/media/consent/sync acceptance remain open. Provider schedules
+remain disabled; existing one-shot and credential evidence does not establish
+populated Adelphi parity or recurring candidate operation.
 
 The first authenticated organization-list request exposed a transaction mode
 issue: a read-only transaction conflicted with the session resolver's
