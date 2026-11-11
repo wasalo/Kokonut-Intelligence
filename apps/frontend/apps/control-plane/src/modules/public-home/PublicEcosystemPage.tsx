@@ -75,16 +75,16 @@ function EcosystemMap() {
       <svg viewBox="0 0 620 520" role="presentation" focusable="false">
         <defs>
           <radialGradient id="map-glow">
-            <stop offset="0" stopColor="#d9f07c" stopOpacity=".21" />
-            <stop offset="1" stopColor="#d9f07c" stopOpacity="0" />
+            <stop offset="0" stopColor="var(--kokonut-lime)" stopOpacity=".21" />
+            <stop offset="1" stopColor="var(--kokonut-lime)" stopOpacity="0" />
           </radialGradient>
           <pattern id="map-dots" width="19" height="19" patternUnits="userSpaceOnUse">
-            <circle cx="1" cy="1" r="1" fill="#e8f3cb" fillOpacity=".3" />
+            <circle cx="1" cy="1" r="1" fill="var(--kokonut-lime-soft)" fillOpacity=".3" />
           </pattern>
         </defs>
         <circle cx="318" cy="256" r="226" fill="url(#map-glow)" />
         <circle cx="318" cy="256" r="226" fill="url(#map-dots)" opacity=".22" />
-        <g fill="none" stroke="#d9f07c" strokeOpacity=".14">
+        <g fill="none" stroke="var(--kokonut-lime)" strokeOpacity=".14">
           <path d="M26 294c87-104 108-94 178-159s124-95 216-68 112 71 176 32" />
           <path d="M17 333c88-104 117-84 187-149s124-95 216-68 112 71 176 32" />
           <path d="M4 371c91-103 130-80 204-146s124-95 216-68 112 71 176 32" />
@@ -93,13 +93,13 @@ function EcosystemMap() {
           <path d="M59 75c49 22 63 53 112 63s90-29 147-5 68 67 125 78 93-13 151 22" />
           <path d="M43 112c49 22 63 53 112 63s90-29 147-5 68 67 125 78 93-13 151 22" />
         </g>
-        <g fill="none" stroke="#d9f07c" strokeOpacity=".48" strokeWidth="1.5">
+        <g fill="none" stroke="var(--kokonut-lime)" strokeOpacity=".48" strokeWidth="1.5">
           <path d="M313 253 139 151M313 253l181-116M313 253 147 383M313 253l180 127" />
         </g>
-        <circle cx="313" cy="253" r="79" fill="#102f25" stroke="#d9f07c" strokeOpacity=".54" />
-        <circle cx="313" cy="253" r="65" fill="none" stroke="#d9f07c" strokeOpacity=".2" />
-        <path d="M314 279v-45m0 22c-17 0-28-10-28-27 17 0 28 10 28 27Zm0-18c0-17 11-28 28-28 0 17-11 28-28 28Z" fill="none" stroke="#d9f07c" strokeLinecap="round" strokeLinejoin="round" strokeWidth="4" />
-        <g fill="#d9f07c" stroke="#102f25" strokeWidth="6">
+        <circle cx="313" cy="253" r="79" fill="var(--kokonut-forest-deep)" stroke="var(--kokonut-lime)" strokeOpacity=".54" />
+        <circle cx="313" cy="253" r="65" fill="none" stroke="var(--kokonut-lime)" strokeOpacity=".2" />
+        <path d="M314 279v-45m0 22c-17 0-28-10-28-27 17 0 28 10 28 27Zm0-18c0-17 11-28 28-28 0 17-11 28-28 28Z" fill="none" stroke="var(--kokonut-lime)" strokeLinecap="round" strokeLinejoin="round" strokeWidth="4" />
+        <g fill="var(--kokonut-lime)" stroke="var(--kokonut-forest-deep)" strokeWidth="6">
           <circle cx="139" cy="151" r="9" />
           <circle cx="494" cy="137" r="9" />
           <circle cx="147" cy="383" r="9" />

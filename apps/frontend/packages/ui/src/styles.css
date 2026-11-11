@@ -1,8 +1,8 @@
 :root {
   font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
     "Segoe UI", sans-serif;
-  color: #1c2b25;
-  background: #f4f6f3;
+  color: var(--kokonut-ink);
+  background: var(--kokonut-cream);
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -10,15 +10,38 @@
   font-optical-sizing: auto;
   font-weight: 400;
 
-  --brand: #1e5b49;
-  --brand-strong: #174637;
-  --ink: #1c2b25;
-  --ink-muted: #586760;
-  --surface: #fff;
-  --surface-soft: #edf2ee;
-  --line: #d5dfd8;
-  --focus: #a15010;
-  --shadow-sm: 0 8px 24px rgb(20 45 34 / 7%);
+  /* Kokonut Network palette from the public site, shared by every Hub app. */
+  --kokonut-forest-deep: #061c13;
+  --kokonut-forest: #09281b;
+  --kokonut-forest-light: #155438;
+  --kokonut-green: #009f4d;
+  --kokonut-green-strong: #0e6d3e;
+  --kokonut-lime: #bbef87;
+  --kokonut-lime-soft: #e9f5e6;
+  --kokonut-mint: #c2d4c5;
+  --kokonut-cream: #f7f8f1;
+  --kokonut-ink: #11251a;
+  --kokonut-muted: #496b56;
+  --kokonut-line: #d6e5d7;
+  --kokonut-line-strong: #a9c3ac;
+  --kokonut-surface: #fff;
+  --kokonut-surface-soft: #edf5ed;
+  --kokonut-accent: #ffcd00;
+  /* Dark green remains visible on light surfaces; yellow is reserved for dark surfaces. */
+  --kokonut-focus: #087d40;
+  --kokonut-danger: #76251d;
+  --kokonut-danger-surface: #fbefed;
+
+  /* Use the deeper brand green for text and filled controls to preserve contrast. */
+  --brand: var(--kokonut-green-strong);
+  --brand-strong: var(--kokonut-green-strong);
+  --ink: var(--kokonut-ink);
+  --ink-muted: var(--kokonut-muted);
+  --surface: var(--kokonut-surface);
+  --surface-soft: var(--kokonut-surface-soft);
+  --line: var(--kokonut-line);
+  --focus: var(--kokonut-focus);
+  --shadow-sm: 0 8px 24px color-mix(in srgb, var(--kokonut-forest) 8%, transparent);
 }
 
 * { box-sizing: border-box; }
@@ -84,8 +107,8 @@ button:focus-visible,
   aspect-ratio: 1;
   place-items: center;
   border-radius: .8rem;
-  background: var(--brand);
-  color: white;
+  background: var(--kokonut-forest);
+  color: var(--kokonut-lime);
   font-size: 1.3rem;
   font-weight: 750;
 }
@@ -122,7 +145,7 @@ button:focus-visible,
 }
 .operator-account__action:hover { background: var(--surface-soft); }
 .operator-account__action:disabled { cursor: wait; opacity: .65; }
-.operator-account__error { color: #8f2d24; font-size: .8rem; }
+.operator-account__error { color: var(--kokonut-danger); font-size: .8rem; }
 .operator-account__error button {
   padding: 0;
   border: 0;
@@ -154,7 +177,7 @@ button:focus-visible,
 }
 
 .vertical-switcher__link:hover { background: var(--surface); color: var(--ink); }
-.vertical-switcher__link.is-current { background: var(--brand); color: white; }
+.vertical-switcher__link.is-current { background: var(--brand); color: var(--kokonut-cream); }
 
 .app-layout {
   display: grid;
@@ -181,7 +204,7 @@ button:focus-visible,
 }
 
 .navigation-link:hover { background: var(--surface-soft); color: var(--ink); }
-.navigation-link.is-active { background: #e2eee7; color: var(--brand-strong); font-weight: 650; }
+.navigation-link.is-active { background: var(--kokonut-lime-soft); color: var(--kokonut-forest); font-weight: 650; }
 
 .main-content {
   min-width: 0;
@@ -225,7 +248,7 @@ button:focus-visible,
   border: 1px solid var(--brand);
   border-radius: .55rem;
   background: var(--brand);
-  color: white;
+  color: var(--kokonut-cream);
   font-weight: 650;
   text-decoration: none;
 }
@@ -266,8 +289,8 @@ button:focus-visible,
   width: fit-content;
   padding: .35rem .6rem;
   border-radius: 999px;
-  background: #e8eee9;
-  color: #3d5146;
+  background: var(--kokonut-lime-soft);
+  color: var(--kokonut-forest);
   font-size: .8rem;
   font-weight: 650;
 }

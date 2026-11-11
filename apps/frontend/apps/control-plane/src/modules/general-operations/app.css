@@ -81,7 +81,7 @@
   gap: 1rem;
 }
 .report-export-panel__header p { margin: .35rem 0 0; color: var(--ink-muted); }
-.report-export-error { color: #76251d; font-size: .86rem; }
+.report-export-error { color: var(--kokonut-danger); font-size: .86rem; }
 .report-export-download { display: inline-block; text-decoration: none; }
 
 .coordination-summary-groups {
@@ -175,7 +175,7 @@
   width: 100%;
   min-height: 2.75rem;
   padding: .65rem .75rem;
-  border: 1px solid #aebbb2;
+  border: 1px solid var(--kokonut-line-strong);
   border-radius: .5rem;
   background: var(--surface);
   color: var(--ink);
@@ -241,7 +241,7 @@
 }
 .location-setup__secondary-action:hover { border-color: var(--brand); }
 .location-setup__secondary-action:focus-visible { outline: 3px solid var(--brand); outline-offset: 2px; }
-.location-setup__alert { padding: .9rem 1rem; border-left: .25rem solid #a33b2f; border-radius: .35rem; background: #fbefed; color: #76251d; }
+.location-setup__alert { padding: .9rem 1rem; border-left: .25rem solid var(--kokonut-danger); border-radius: .35rem; background: var(--kokonut-danger-surface); color: var(--kokonut-danger); }
 
 .location-setup__result {
   display: grid;
