@@ -10,6 +10,7 @@ import pytest
 from services.common.worker_environment import (
     DENY_SHARED_DATABASE_ENV,
     ISOLATED_WORKER_KEY_ENV,
+    scheduled_module_worker_environment,
     scheduled_module_worker_key,
     worker_subprocess_environment,
 )
@@ -120,6 +121,105 @@ def test_scheduled_noi_worker_receives_only_its_exact_secret_pair():
     assert scheduled_module_worker_key("services.metrics.noi_snapshot_worker.extra") is None
 
 
+@pytest.mark.parametrize(
+    ("task_key", "worker_key"),
+    [
+        ("ai_summary_synthesis", "agent_summary_deterministic_source"),
+        ("feedback_synthesis", "agent_feedback_source"),
+        ("organic_readiness_synthesis", "agent_organic_readiness_source"),
+    ],
+)
+def test_scheduled_synthesis_dispatch_receives_only_its_registered_worker(task_key, worker_key):
+    arguments = (
+        "--location-id", "a0000000-0000-4000-8000-000000000001",
+        "--task-key", task_key,
+    ) if task_key != "ai_summary_synthesis" else (
+        "--location-id", "a0000000-0000-4000-8000-000000000001",
+        "--summary-type", "combined",
+    )
+    source = {
+        "PATH": "/synthetic/bin",
+        "PG_USER": "kokonut_runtime",
+        "PG_PASSWORD": "shared-secret",
+        f"KOKONUT_{worker_key.upper()}_DATABASE_URL": "postgresql://task-worker",
+        f"KOKONUT_{worker_key.upper()}_WORKER_CREDENTIAL": "task-worker-secret",
+        "KOKONUT_AGENT_BIO_FACTORY_SOURCE_DATABASE_URL": "postgresql://other-task",
+        "KOKONUT_AGENT_BIO_FACTORY_SOURCE_WORKER_CREDENTIAL": "other-task-secret",
+        "KOKONUT_SCHEDULER_DATABASE_URL": "postgresql://scheduler",
+    }
+
+    assert scheduled_module_worker_key("services.agents.worker_cli", arguments) == worker_key
+    assert scheduled_module_worker_environment(
+        "services.agents.worker_cli", arguments, environ=source
+    ) == {
+        "PATH": "/synthetic/bin",
+        f"KOKONUT_{worker_key.upper()}_DATABASE_URL": "postgresql://task-worker",
+        f"KOKONUT_{worker_key.upper()}_WORKER_CREDENTIAL": "task-worker-secret",
+        ISOLATED_WORKER_KEY_ENV: worker_key,
+        DENY_SHARED_DATABASE_ENV: "true",
+    }
+
+
+@pytest.mark.parametrize(
+    "isolation_environment",
+    [
+        {DENY_SHARED_DATABASE_ENV: "true"},
+        {ISOLATED_WORKER_KEY_ENV: "scheduler"},
+        {"KOKONUT_SCHEDULER_DATABASE_URL": "postgresql://scheduler"},
+        {"KOKONUT_SCHEDULER_DATABASE_URL": ""},
+    ],
+    ids=(
+        "deny-marker",
+        "scheduler-marker",
+        "dedicated-scheduler-dsn",
+        "empty-dedicated-scheduler-dsn",
+    ),
+)
+def test_unmapped_scheduled_child_preserves_isolation(
+    isolation_environment: dict[str, str],
+):
+    source = {
+        "PATH": "/synthetic/bin",
+        "PG_HOST": "database",
+        "PG_PORT": "5432",
+        "PG_DB": "kokonut_intelligence",
+        "PG_USER": "kokonut_runtime",
+        "PG_PASSWORD": "shared-runtime-secret",
+        "POSTGRES_PASSWORD": "admin-secret",
+        "KOKONUT_RUNTIME_PASSWORD": "runtime-secret",
+        "KOKONUT_WEATHER_DATABASE_URL": "postgresql://weather-worker",
+        "KOKONUT_WEATHER_WORKER_CREDENTIAL": "weather-secret",
+        **isolation_environment,
+    }
+
+    child = scheduled_module_worker_environment(
+        "services.metrics", ("--compute",), environ=source
+    )
+
+    assert child == {"PATH": "/synthetic/bin", DENY_SHARED_DATABASE_ENV: "true"}
+    assert ISOLATED_WORKER_KEY_ENV not in child
+
+
+def test_unmapped_scheduled_child_keeps_legacy_shared_database_compatibility():
+    source = {
+        "PATH": "/synthetic/bin",
+        "PG_USER": "kokonut_runtime",
+        "PG_PASSWORD": "shared-runtime-secret",
+        "KOKONUT_WEATHER_DATABASE_URL": "postgresql://weather-worker",
+        "KOKONUT_WEATHER_WORKER_CREDENTIAL": "weather-secret",
+    }
+
+    child = scheduled_module_worker_environment(
+        "services.metrics", ("--compute",), environ=source
+    )
+
+    assert child == {
+        "PATH": "/synthetic/bin",
+        "PG_USER": "kokonut_runtime",
+        "PG_PASSWORD": "shared-runtime-secret",
+    }
+
+
 def test_isolated_clickhouse_outbox_receives_only_its_dedicated_dsn():
     source = {
         "KOKONUT_CLICKHOUSE_OUTBOX_DATABASE_URL": "postgresql://clickhouse-worker",
@@ -127,6 +227,7 @@ def test_isolated_clickhouse_outbox_receives_only_its_dedicated_dsn():
         "PG_HOST": "database",
         "PG_USER": "kokonut_runtime",
         "PG_PASSWORD": "shared-secret",
+        "KOKONUT_RUNTIME_PARENT_ROLE": "kokonut_runtime",
         "DATABASE_URL": "postgresql://shared/app",
         "CLICKHOUSE_PASSWORD": "synthetic-clickhouse-sink-secret",
         "ETH_RPC_URL": "https://rpc.example.invalid/?key=synthetic-rpc-secret",
@@ -548,6 +649,62 @@ def test_scheduled_worker_help_imports_without_shared_database_credentials(modul
 
     assert result.returncode == 0, result.stderr
     assert "usage:" in result.stdout.lower()
+
+
+def test_operator_credentials_are_only_forwarded_to_the_api_child():
+    source = {
+        "PATH": "/synthetic/bin",
+        "PG_USER": "kokonut_runtime",
+        "PG_PASSWORD": "runtime-secret",
+        "KOKONUT_OPERATOR_AUTH_USER": "kokonut_operator_auth",
+        "KOKONUT_OPERATOR_AUTH_PASSWORD": "auth-secret",
+        "KOKONUT_CLICKHOUSE_OUTBOX_OPERATOR_PASSWORD": "outbox-secret",
+    }
+
+    api_environment = worker_subprocess_environment(
+        allowed_worker_keys=("operator_auth", "clickhouse_outbox_operator"),
+        environ=source,
+    )
+    assert api_environment == source
+
+    scheduler_environment = worker_subprocess_environment(
+        allowed_worker_keys=("scheduler",),
+        environ=source,
+    )
+    assert "KOKONUT_OPERATOR_AUTH_USER" not in scheduler_environment
+    assert "KOKONUT_OPERATOR_AUTH_PASSWORD" not in scheduler_environment
+    assert "KOKONUT_CLICKHOUSE_OUTBOX_OPERATOR_PASSWORD" not in scheduler_environment
+
+    isolated_outbox_environment = worker_subprocess_environment(
+        allowed_worker_keys=("clickhouse_outbox",),
+        isolated_database_credentials=True,
+        environ=source,
+    )
+    assert "PG_PASSWORD" not in isolated_outbox_environment
+    assert "KOKONUT_OPERATOR_AUTH_PASSWORD" not in isolated_outbox_environment
+    assert "KOKONUT_CLICKHOUSE_OUTBOX_OPERATOR_PASSWORD" not in isolated_outbox_environment
+
+
+def test_media_encryption_key_is_forwarded_only_to_the_api_child():
+    source = {
+        "MOBILE_MEDIA_PROVIDER": "s3",
+        "MOBILE_MEDIA_ENCRYPTION_KEY": "synthetic-media-key",
+        "MOBILE_MEDIA_S3_ACCESS_KEY_ID": "synthetic-media-access",
+        "MOBILE_MEDIA_S3_SECRET_ACCESS_KEY": "synthetic-media-secret",
+    }
+
+    api_environment = worker_subprocess_environment(
+        allowed_worker_keys=(),
+        environ=source,
+        include_api_only_media_environment=True,
+    )
+    worker_environment = worker_subprocess_environment(
+        allowed_worker_keys=("event_dispatch",),
+        environ=source,
+    )
+
+    assert api_environment == source
+    assert not any(name.startswith("MOBILE_MEDIA_") for name in worker_environment)
 
 
 def test_every_service_subprocess_uses_the_shared_environment_policy():

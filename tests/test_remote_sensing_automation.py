@@ -168,10 +168,20 @@ def test_fetcher_has_cli() -> None:
     assert "--job-id" in content
 
 
-def test_fetcher_queries_active_jobs() -> None:
-    content = Path("services/ingestion/remote_sensing_fetcher.py").read_text()
-    assert "remote_sensing_job" in content
-    assert "status = 'active'" in content
+def test_active_job_claiming_uses_signed_worker_and_migration() -> None:
+    fetcher = Path("services/ingestion/remote_sensing_fetcher.py").read_text()
+    worker = Path("services/ingestion/remote_sensing_worker.py").read_text()
+    migration = Path("schemas/postgres/432_signed_remote_sensing_worker.sql").read_text()
+
+    assert "legacy remote-sensing due-job claims are disabled" in fetcher
+    assert "use services.ingestion.remote_sensing_worker" in fetcher
+    assert "status = 'active'" not in fetcher
+    assert "SELECT kokonut_security.claim_remote_sensing_job(%s::uuid)" in worker
+    assert "CREATE OR REPLACE FUNCTION kokonut_security.claim_remote_sensing_job(" in migration
+    assert "session_user <> 'kokonut_remote_sensing_login'" in migration
+    assert "current_worker_scope('remote_sensing', 'run')" in migration
+    assert "job.status = 'active'" in migration
+    assert "FOR UPDATE SKIP LOCKED" in migration
 
 
 def test_fetcher_dispatches_to_providers() -> None:

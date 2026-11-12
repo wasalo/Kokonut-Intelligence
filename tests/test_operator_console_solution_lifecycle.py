@@ -1650,7 +1650,16 @@ def test_retirement_migration_sunset_and_post_review_are_scoped_acknowledged_and
         'solutionLifecycleGatesLoad.addEventListener("click", () => loadSolutionLifecycleGates())',
     )
     assert "Resolve the pending retirement transition before changing locations." in location_change
-    assert "|| solutionLifecyclePendingRetirementTransition)" in source
+
+    unload_guard = re.search(
+        r'window\.addEventListener\("beforeunload",\s*\(event\)\s*=>\s*\{\s*'
+        r'if\s*\((?P<condition>.*?)\)\s*\{\s*event\.preventDefault\(\);\s*'
+        r'event\.returnValue\s*=\s*"";',
+        source,
+        re.DOTALL,
+    )
+    assert unload_guard is not None
+    assert "solutionLifecyclePendingRetirementTransition" in unload_guard.group("condition")
 
 
 def test_location_solution_creation_is_exact_grant_gated_acknowledged_and_retry_stable():

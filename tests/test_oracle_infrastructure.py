@@ -273,19 +273,52 @@ def test_gee_climate_has_sentinel1_dataset() -> None:
     assert "VH" in content
 
 
-def test_gee_climate_dual_writes() -> None:
-    content = Path("services/ingestion/gee_climate.py").read_text()
-    assert "log_ingestion" in content
-    assert "INSERT INTO" in content
+def test_gee_climate_persists_through_signed_worker_and_migration() -> None:
+    provider = Path("services/ingestion/gee_climate.py").read_text()
+    worker = Path("services/ingestion/climate_worker.py").read_text()
+    migration = Path("schemas/postgres/713_signed_climate_summary_audit_parity.sql").read_text()
+
+    assert "if not worker_credentials or not callable(persist_summary)" in provider
+    assert "return persist_summary(provider_summary, legacy_audit_payload)" in provider
+    assert "log_ingestion" not in provider
+    assert "INSERT INTO" not in provider
+
+    assert "SELECT kokonut_security.store_climate_summary_v2(" in worker
+    assert "legacy_audit_payload=legacy_payload" in worker
+    assert "persist_summary=persist" in worker
+    assert "current_worker_scope('climate', 'ingest')" in migration
+    assert "legacy_audit_payload IS NULL" in migration
+    assert "climate legacy audit payload does not match the validated summary" in migration
+    assert "payload_hash := encode(" in migration
+
+    for table in (
+        "worldclim_climate",
+        "ncep_weather_summary",
+        "modis_lst_summary",
+        "smap_soil_moisture",
+        "sentinel1_sar_summary",
+    ):
+        assert f"INSERT INTO public.{table} (" in migration
+    assert "INSERT INTO public.ingestion_log (" in migration
+    assert "payload_hash, status, rows_affected, processing_time_ms" in migration
+    assert "summary_id, 'upsert', payload_hash, 'success', 1" in migration
+    assert "'upsert', 'failed'" in migration
+    assert "REVOKE ALL ON FUNCTION kokonut_security.store_climate_summary_v2(" in migration
+    assert "GRANT EXECUTE ON FUNCTION kokonut_security.store_climate_summary_v2(" in migration
+    assert "TO kokonut_worker_execution" in migration
 
 
-def test_climate_data_updated_to_gee() -> None:
-    content = Path("services/ingestion/climate_data.py").read_text()
-    assert "gee_climate" in content
-    assert "fetch_era5_land" in content
-    assert "fetch_modis_lst" in content
-    assert "fetch_smap_moisture" in content
-    assert "fetch_sentinel1_sar" in content
+def test_climate_data_dispatches_to_signed_gee_worker() -> None:
+    compatibility = Path("services/ingestion/climate_data.py").read_text()
+    worker = Path("services/ingestion/climate_worker.py").read_text()
+    assert '"services.ingestion.climate_worker"' in compatibility
+    assert "validate_scheduled_command(_CLIMATE_WORKER_MODULE, arguments)" in compatibility
+    assert "isolated_database_credentials=True" in compatibility
+    assert "from services.ingestion.gee_climate import" in worker
+    assert "fetch_era5_land" in worker
+    assert "fetch_modis_lst" in worker
+    assert "fetch_smap_moisture" in worker
+    assert "fetch_sentinel1_sar" in worker
 
 
 def test_anomaly_detector_has_actuation() -> None:

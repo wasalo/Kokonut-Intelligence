@@ -1,0 +1,26 @@
+{
+  "date": "2026-11-05",
+  "checked_at": "2026-11-05T13:52:28.883976+00:00",
+  "source_revision": "66f33c2634903cbe270b178c61ab15685d6fa5ab",
+  "source_worktree_clean": true,
+  "evidence_level": "disposable_acceptance",
+  "kind": "scheduler-operator-migration-acceptance",
+  "migration_id": "schema:749_scheduler_operator_actions.sql",
+  "migration_sha256": "11f139b6858a15f01724cfc1923a9947902a5ddf0c8f1a4a10d21cafa63403df",
+  "dependency_migration_id": "schema:746_clickhouse_outbox_operator_actions.sql",
+  "dependency_migration_sha256": "e8b7a5d7e2e29abd921aaad7ff083a3ff41780e6a7d0d19952773f4242c426aa",
+  "database_image": "postgis/postgis:16-3.4@sha256:44126d872ac91993766c341e369c539e8196614321765d36a6f1bab0419a5fa5",
+  "requested_platform": null,
+  "container_architecture": "x86_64",
+  "network": "disabled; no host ports published",
+  "checks": [
+    "migration 749 extends the reviewed global capability catalog with scheduler read/enable/disable actions",
+    "operator-auth can check scheduler capabilities but cannot execute schedule mutation audit functions",
+    "the dedicated scheduler executor login cannot execute the schedule administration function",
+    "the runtime action is session-bound, capability-checked, and records operator, task, action, and reason",
+    "ungranted actions fail closed and runtime has no direct scheduler audit-table access",
+    "the security-definer audit function is owned by the unprivileged NOLOGIN capability owner"
+  ],
+  "candidate_legacy_production_touched": false,
+  "result": "passed"
+}

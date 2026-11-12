@@ -65,7 +65,9 @@ class LocalPrivateArtifactStore:
     _DIRECTORY_MODE = 0o700
     _FILE_MODE = 0o600
 
-    def __init__(self, directory: str | os.PathLike[str]):
+    def __init__(self, directory: str | os.PathLike[str], *, read_only: bool = False):
+        if not isinstance(read_only, bool):
+            raise ValueError("private artifact read-only mode must be a boolean")
         if not isinstance(directory, (str, os.PathLike)):
             raise ValueError("artifact storage directory is required")
         raw_directory = os.fspath(directory)
@@ -76,6 +78,7 @@ class LocalPrivateArtifactStore:
         if root == Path(root.anchor):
             raise ValueError("artifact storage requires a dedicated directory")
         self._directory = root
+        self._read_only = read_only
         try:
             directory_fd = self._open_directory()
             os.close(directory_fd)
@@ -89,6 +92,8 @@ class LocalPrivateArtifactStore:
 
     def write(self, artifact_id: UUID | str, content: bytes) -> None:
         """Atomically create or replace an artifact; retries with the same ID are safe."""
+        if self._read_only:
+            raise ArtifactStorageError("private artifact storage is read-only")
         filename = _artifact_name(artifact_id)
         if not isinstance(content, bytes):
             raise TypeError("artifact content must be bytes")
@@ -184,6 +189,8 @@ class LocalPrivateArtifactStore:
 
     def delete(self, artifact_id: UUID | str) -> None:
         """Explicitly remove one artifact; deleting an already absent ID is safe."""
+        if self._read_only:
+            raise ArtifactStorageError("private artifact storage is read-only")
         filename = _artifact_name(artifact_id)
         directory_fd = self._open_directory()
         try:
@@ -212,6 +219,10 @@ class LocalPrivateArtifactStore:
                 try:
                     next_fd = os.open(component, flags, dir_fd=directory_fd)
                 except FileNotFoundError:
+                    if self._read_only:
+                        raise ArtifactStorageError(
+                            "private artifact storage directory is unavailable"
+                        ) from None
                     try:
                         os.mkdir(component, self._DIRECTORY_MODE, dir_fd=directory_fd)
                     except FileExistsError:
@@ -238,9 +249,14 @@ class LocalPrivateArtifactStore:
                 previous_fd = directory_fd
                 directory_fd = next_fd
                 os.close(previous_fd)
-            if not stat.S_ISDIR(os.fstat(directory_fd).st_mode):
+            metadata = os.fstat(directory_fd)
+            if not stat.S_ISDIR(metadata.st_mode):
                 raise ArtifactStorageError("artifact storage directory is unsafe")
-            os.fchmod(directory_fd, self._DIRECTORY_MODE)
+            if self._read_only:
+                if metadata.st_mode & 0o077:
+                    raise ArtifactStorageError("artifact storage directory is unsafe")
+            else:
+                os.fchmod(directory_fd, self._DIRECTORY_MODE)
             return directory_fd
         except ArtifactStorageError:
             if directory_fd is not None:
@@ -441,7 +457,7 @@ def create_private_artifact_store(
         directory = str(source.get("KOKONUT_PRIVATE_EXPORT_DIR", "")).strip()
         if not directory:
             raise ArtifactStorageError("private export storage is not configured")
-        return LocalPrivateArtifactStore(directory)
+        return LocalPrivateArtifactStore(directory, read_only=access == "reader")
     if provider != "s3":
         raise ArtifactStorageError("unknown private export storage provider")
 

@@ -1,314 +1,9 @@
 {
   "version": 1,
   "scope": "Tracks direct SQL DML and conservative WITH candidates whose target relation is unresolved. Legacy entries are acknowledged inventory debt only; they do not grant or approve ACLs. New candidates require a reviewed_sites entry with reviewer, date, decision note, and reason.",
-  "legacy_fingerprint_sha256": "6a008bb860b38e3ce8d8fb8b797bdf540b2851a2a255a9e3acb1af96004b2589",
-  "legacy_unreviewed": [
-    {
-      "fingerprint": "121bdc4b3054f807d73fdec63415c04a2cd0409e41cfd1a91fe3c8aa891e550f",
-      "source": "services/graph_projection/query.py",
-      "line": 23,
-      "scope": "query_graph",
-      "method": "execute",
-      "statement_kind": "WITH",
-      "expression_kind": "literal",
-      "review_status": "preexisting_unreviewed",
-      "reason": "Preexisting WITH statement cannot be classified as read-only by this gate; keep tracked for manual source review. This is not an ACL approval."
-    },
-    {
-      "fingerprint": "17285b250cc1776104efd1c43217009ecc393b55166720f54bb961616babf571",
-      "source": "services/analytics/value_stream.py",
-      "line": 210,
-      "scope": "first_time_through",
-      "method": "execute",
-      "statement_kind": "WITH",
-      "expression_kind": "fstring",
-      "review_status": "preexisting_unreviewed",
-      "reason": "Preexisting WITH statement cannot be classified as read-only by this gate; keep tracked for manual source review. This is not an ACL approval."
-    },
-    {
-      "fingerprint": "1904aa623d8a539594f8d159738b31c698473ea6cfd9dea18e482dbca667aec4",
-      "source": "services/revenue_multiplier/dimensions/regional_clusters.py",
-      "line": 17,
-      "scope": "analyze",
-      "method": "execute",
-      "statement_kind": "WITH",
-      "expression_kind": "literal",
-      "review_status": "preexisting_unreviewed",
-      "reason": "Preexisting WITH statement cannot be classified as read-only by this gate; keep tracked for manual source review. This is not an ACL approval."
-    },
-    {
-      "fingerprint": "1ea7aa26df02bc4b6ec954adcd3dd081ee89cfd01c836b905fee416f50784d50",
-      "source": "services/systems/velocity_tracker.py",
-      "line": 346,
-      "scope": "AdaptationVelocityTracker._compute_cycle_time_trend",
-      "method": "execute",
-      "statement_kind": "WITH",
-      "expression_kind": "literal",
-      "review_status": "preexisting_unreviewed",
-      "reason": "Preexisting WITH statement cannot be classified as read-only by this gate; keep tracked for manual source review. This is not an ACL approval."
-    },
-    {
-      "fingerprint": "23e9cc5c236e158e2f7224d6ebca0188d7d1f15c345cb1fddc7481db6ec4d0e4",
-      "source": "services/mobile/tenant_preflight.py",
-      "line": 715,
-      "scope": "_preflight_execution_identity",
-      "method": "execute",
-      "statement_kind": "WITH",
-      "expression_kind": "literal",
-      "review_status": "preexisting_unreviewed",
-      "reason": "Preexisting WITH statement cannot be classified as read-only by this gate; keep tracked for manual source review. This is not an ACL approval."
-    },
-    {
-      "fingerprint": "26b4327509233a27818432813a807adbf690b259b48d89f54b7167aa1019c3da",
-      "source": "services/systems/process_control.py",
-      "line": 78,
-      "scope": "_fty_pct",
-      "method": "execute",
-      "statement_kind": "WITH",
-      "expression_kind": "literal",
-      "review_status": "preexisting_unreviewed",
-      "reason": "Preexisting WITH statement cannot be classified as read-only by this gate; keep tracked for manual source review. This is not an ACL approval."
-    },
-    {
-      "fingerprint": "2e0ecd63f74b3a6805d42f83049ba78732f255b9adf813b64277a84b52ddb933",
-      "source": "services/events/bus.py",
-      "line": 315,
-      "scope": "EventBus.replay_dead_letter",
-      "method": "execute",
-      "statement_kind": "WITH",
-      "expression_kind": "literal",
-      "review_status": "preexisting_unreviewed",
-      "reason": "Preexisting WITH statement cannot be classified as read-only by this gate; keep tracked for manual source review. This is not an ACL approval."
-    },
-    {
-      "fingerprint": "33913f666595505c929366240b60feac3afc70fe5fc631bb258b69ea7db62c36",
-      "source": "services/metrics/calculators/first_time_through_yield.py",
-      "line": 39,
-      "scope": "compute_first_time_through_yield",
-      "method": "execute",
-      "statement_kind": "WITH",
-      "expression_kind": "fstring",
-      "review_status": "preexisting_unreviewed",
-      "reason": "Preexisting WITH statement cannot be classified as read-only by this gate; keep tracked for manual source review. This is not an ACL approval."
-    },
-    {
-      "fingerprint": "3df619d71786bfb81465beaf711e4e2d4fbbbe4023980211a0c9481f9277d692",
-      "source": "services/systems/process_control.py",
-      "line": 52,
-      "scope": "_cycle_time_mean",
-      "method": "execute",
-      "statement_kind": "WITH",
-      "expression_kind": "literal",
-      "review_status": "preexisting_unreviewed",
-      "reason": "Preexisting WITH statement cannot be classified as read-only by this gate; keep tracked for manual source review. This is not an ACL approval."
-    },
-    {
-      "fingerprint": "409a9b7682ebbf2119f49219b0052ddcd921058823fa3587cdb2b07c9f620d81",
-      "source": "services/analytics/coordination.py",
-      "line": 43,
-      "scope": "_insert",
-      "method": "execute",
-      "statement_kind": "INSERT",
-      "expression_kind": "fstring",
-      "review_status": "preexisting_unreviewed",
-      "reason": "Preexisting direct write with an unresolved target; track for source follow-up. This is not an ACL approval."
-    },
-    {
-      "fingerprint": "429f412c5292787945444ed1fcc1be01f0b2634440ccefcfe3795d067137a841",
-      "source": "services/analytics/portfolio.py",
-      "line": 26,
-      "scope": "portfolio_theme_summary",
-      "method": "execute",
-      "statement_kind": "WITH",
-      "expression_kind": "literal",
-      "review_status": "preexisting_unreviewed",
-      "reason": "Preexisting WITH statement cannot be classified as read-only by this gate; keep tracked for manual source review. This is not an ACL approval."
-    },
-    {
-      "fingerprint": "44cd11fb9fcf37f7d94bc1de1b9b843670f9050b8bddccbed3f12e00349e9f32",
-      "source": "services/ingestion/gis_import.py",
-      "line": 438,
-      "scope": "import_record",
-      "method": "execute",
-      "statement_kind": "UPDATE",
-      "expression_kind": "fstring",
-      "review_status": "preexisting_unreviewed",
-      "reason": "Preexisting direct write with an unresolved target; track for source follow-up. This is not an ACL approval."
-    },
-    {
-      "fingerprint": "466e6a1ee6419f822183d95ef51ecf2296939f6ec218a0c405ee7eeea956b759",
-      "source": "services/metrics/calculators/rework_rate.py",
-      "line": 50,
-      "scope": "compute_rework_rate",
-      "method": "execute",
-      "statement_kind": "WITH",
-      "expression_kind": "fstring",
-      "review_status": "preexisting_unreviewed",
-      "reason": "Preexisting WITH statement cannot be classified as read-only by this gate; keep tracked for manual source review. This is not an ACL approval."
-    },
-    {
-      "fingerprint": "4aca5b9e9e98337e9c9ba48c612a1b5e5d3bc5b39dec2c69a8f07e7feb0a2b3d",
-      "source": "services/analytics/data_governance.py",
-      "line": 1543,
-      "scope": "enforce_retention_policies",
-      "method": "execute",
-      "statement_kind": "UPDATE",
-      "expression_kind": "fstring",
-      "review_status": "preexisting_unreviewed",
-      "reason": "Preexisting direct write with an unresolved target; track for source follow-up. This is not an ACL approval."
-    },
-    {
-      "fingerprint": "4dc9e9893ef0feda8d0101b1008d38a363500faa360a01f945dfc579f2c4dd09",
-      "source": "services/systems/velocity_tracker.py",
-      "line": 425,
-      "scope": "AdaptationVelocityTracker._compute_time_to_action_trend",
-      "method": "execute",
-      "statement_kind": "WITH",
-      "expression_kind": "literal",
-      "review_status": "preexisting_unreviewed",
-      "reason": "Preexisting WITH statement cannot be classified as read-only by this gate; keep tracked for manual source review. This is not an ACL approval."
-    },
-    {
-      "fingerprint": "5139d4fc0db3c5e96292fb38e0b7b9845531f31eed920cc75b4712b8b63cec47",
-      "source": "services/mobile/tenant_preflight.py",
-      "line": 832,
-      "scope": "_runtime_role_preflight",
-      "method": "execute",
-      "statement_kind": "WITH",
-      "expression_kind": "literal",
-      "review_status": "preexisting_unreviewed",
-      "reason": "Preexisting WITH statement cannot be classified as read-only by this gate; keep tracked for manual source review. This is not an ACL approval."
-    },
-    {
-      "fingerprint": "56c31b6f2d61b5b03919e328b8bfff4e95ee193c37fa2a277cd91f6314bb0942",
-      "source": "services/gateway/ecocredits.py",
-      "line": 57,
-      "scope": "list_location_ecocredit_batches",
-      "method": "execute",
-      "statement_kind": "WITH",
-      "expression_kind": "literal",
-      "review_status": "preexisting_unreviewed",
-      "reason": "Preexisting WITH statement cannot be classified as read-only by this gate; keep tracked for manual source review. This is not an ACL approval."
-    },
-    {
-      "fingerprint": "67ef4a94b592638c3b6a18c79c9cb36fbbdc80381dfe801d4a301090dd9d1d7c",
-      "source": "services/metrics/calculators/governed_lead_time.py",
-      "line": 40,
-      "scope": "compute_governed_lead_time",
-      "method": "execute",
-      "statement_kind": "WITH",
-      "expression_kind": "fstring",
-      "review_status": "preexisting_unreviewed",
-      "reason": "Preexisting WITH statement cannot be classified as read-only by this gate; keep tracked for manual source review. This is not an ACL approval."
-    },
-    {
-      "fingerprint": "75c3d120dc4d4d4f5886b2057d33532465a22437a4ddfb353bc43f22cb6f46a1",
-      "source": "services/ingestion/clickhouse_outbox.py",
-      "line": 373,
-      "scope": "_operator_transition",
-      "method": "execute",
-      "statement_kind": "WITH",
-      "expression_kind": "literal",
-      "review_status": "preexisting_unreviewed",
-      "reason": "Preexisting WITH statement cannot be classified as read-only by this gate; keep tracked for manual source review. This is not an ACL approval."
-    },
-    {
-      "fingerprint": "9014e82ce4352e6b766576fb4805d1e27b53df5b43b94643b96ebd4570f0c0f6",
-      "source": "services/systems/velocity_tracker.py",
-      "line": 370,
-      "scope": "AdaptationVelocityTracker._compute_feedback_trend",
-      "method": "execute",
-      "statement_kind": "WITH",
-      "expression_kind": "literal",
-      "review_status": "preexisting_unreviewed",
-      "reason": "Preexisting WITH statement cannot be classified as read-only by this gate; keep tracked for manual source review. This is not an ACL approval."
-    },
-    {
-      "fingerprint": "a2a3a63b75d55f193da4452956496bed431ffd830e2a2e181c1937d108286b71",
-      "source": "services/scoring/trust_graph.py",
-      "line": 22,
-      "scope": "export_trust_graph",
-      "method": "execute",
-      "statement_kind": "WITH",
-      "expression_kind": "fstring",
-      "review_status": "preexisting_unreviewed",
-      "reason": "Preexisting WITH statement cannot be classified as read-only by this gate; keep tracked for manual source review. This is not an ACL approval."
-    },
-    {
-      "fingerprint": "a589f2bf1af30e94eda0ce37606a4dccf0b426a1f50e2878301de9bd25739f45",
-      "source": "services/analytics/value_stream.py",
-      "line": 162,
-      "scope": "stage_lead_times",
-      "method": "execute",
-      "statement_kind": "WITH",
-      "expression_kind": "fstring",
-      "review_status": "preexisting_unreviewed",
-      "reason": "Preexisting WITH statement cannot be classified as read-only by this gate; keep tracked for manual source review. This is not an ACL approval."
-    },
-    {
-      "fingerprint": "b22b1e23856ede834a94601ebc22dabe823472da39a7dcd3c3c880bc947bc746",
-      "source": "services/events/bus.py",
-      "line": 421,
-      "scope": "EventBus.cleanup_old_events",
-      "method": "execute",
-      "statement_kind": "WITH",
-      "expression_kind": "literal",
-      "review_status": "preexisting_unreviewed",
-      "reason": "Preexisting WITH statement cannot be classified as read-only by this gate; keep tracked for manual source review. This is not an ACL approval."
-    },
-    {
-      "fingerprint": "d6f690facbce75c16dd59a85608f0d672aecf76c0784b3f3849a80d467ef526b",
-      "source": "services/analytics/coordination.py",
-      "line": 219,
-      "scope": "_insert_idempotent",
-      "method": "execute",
-      "statement_kind": "INSERT",
-      "expression_kind": "fstring",
-      "review_status": "preexisting_unreviewed",
-      "reason": "Preexisting direct write with an unresolved target; track for source follow-up. This is not an ACL approval."
-    },
-    {
-      "fingerprint": "d893caf2eb1bd1c6da408e8e94cf41be34db2dc013b7210a11b7ff8f86cc47fc",
-      "source": "services/analytics/value_stream.py",
-      "line": 91,
-      "scope": "wip_by_stage",
-      "method": "execute",
-      "statement_kind": "WITH",
-      "expression_kind": "literal",
-      "review_status": "preexisting_unreviewed",
-      "reason": "Preexisting WITH statement cannot be classified as read-only by this gate; keep tracked for manual source review. This is not an ACL approval."
-    },
-    {
-      "fingerprint": "ddb325cc2115ac1e7b25d710fb60954328a21cc87868810bb71f178c597e86cb",
-      "source": "services/planning/model.py",
-      "line": 72,
-      "scope": "governed_transition",
-      "method": "execute",
-      "statement_kind": "UPDATE",
-      "expression_kind": "fstring",
-      "review_status": "preexisting_unreviewed",
-      "reason": "Preexisting direct write with an unresolved target; track for source follow-up. This is not an ACL approval."
-    },
-    {
-      "fingerprint": "e02dd33ed0270587eb45aeca63f4041d9bdc5cc324c5f6b5e9d3ba44eb0dd647",
-      "source": "services/ingestion/gis_import.py",
-      "line": 425,
-      "scope": "import_record",
-      "method": "execute",
-      "statement_kind": "UPDATE",
-      "expression_kind": "fstring",
-      "review_status": "preexisting_unreviewed",
-      "reason": "Preexisting direct write with an unresolved target; track for source follow-up. This is not an ACL approval."
-    }
-  ],
+  "legacy_fingerprint_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "legacy_unreviewed": [],
   "reviewed_sites": [
-    {
-      "fingerprint": "4394d51bfcfc1572d8047e03b078748453442dbeb83bac6783b4eb1f5e2fc508",
-      "review_status": "reviewed_unresolved",
-      "reviewed_by": "Codex source review",
-      "reviewed_on": "2026-10-28",
-      "reason": "Reviewed list_location_kriging_summaries: its WITH clause selects the bounded, location-filtered kriging_prediction page and aggregates kriging_point rows; no DML or mutating SQL is present. This edit only clamps has_more at the supported offset ceiling. The inventory retains WITH for conservative manual review; this is not an ACL approval."
-    },
     {
       "fingerprint": "d78ae2503389732a99dd050750419582974f2bc4b9a7066d0ed38a545c8c338f",
       "review_status": "reviewed_unresolved",
@@ -356,7 +51,189 @@
       "review_status": "reviewed_unresolved",
       "reviewed_by": "Codex source review",
       "reviewed_on": "2026-10-29",
-      "reason": "Reviewed compute_revenue_per_acre at services/analytics/economic_performance.py:15: its CTEs select eligible location-scoped cycles and independently aggregate verified revenue and expense events by cycle with matching event/cycle location IDs; the final statement is SELECT-only and no DML or mutating function is present. The inventory conservatively retains WITH; this source review is not an ACL approval."
+      "reason": "Reviewed compute_revenue_per_acre at services/analytics/economic_performance.py:15: its CTEs select eligible location-scoped cycles and independently aggregate verified revenue and expense events by cycle with matching event/cycle location IDs; the final statement is SELECT-only and no DML or mutating function is present. The inventory conservatively retains WITH; this is not an ACL approval."
+    },
+    {
+      "fingerprint": "121bdc4b3054f807d73fdec63415c04a2cd0409e41cfd1a91fe3c8aa891e550f",
+      "review_status": "reviewed_unresolved",
+      "reviewed_by": "Automated source review",
+      "reviewed_on": "2026-11-02",
+      "reason": "Reviewed query_graph at services/graph_projection/query.py:23: the recursive CTE only traverses active-generation graph_node/graph_edge rows and the statement ends in a SELECT; depth and node count are bounded, edge types/audience are allowlisted, and optional location filters are parameterized. Tests assert the read-only shape and bounds. The inventory conservatively retains WITH; this is not an ACL approval."
+    },
+    {
+      "fingerprint": "2e0ecd63f74b3a6805d42f83049ba78732f255b9adf813b64277a84b52ddb933",
+      "review_status": "reviewed_unresolved",
+      "reviewed_by": "Automated source review",
+      "reviewed_on": "2026-11-02",
+      "reason": "Reviewed EventBus.replay_dead_letter at services/events/bus.py:188: the CTE locks the matching pending dead-letter and dead_letter event, resets event retry/lease state, and records the actor in disposed_by in the same transition. Tests assert status predicates, row locks, and actor binding. The CLI actor remains self-asserted and replay has no reason field; this is not an ACL approval."
+    },
+    {
+      "fingerprint": "23e9cc5c236e158e2f7224d6ebca0188d7d1f15c345cb1fddc7481db6ec4d0e4",
+      "review_status": "reviewed_unresolved",
+      "reviewed_by": "Automated source review",
+      "reviewed_on": "2026-11-02",
+      "reason": "Reviewed _preflight_execution_identity at services/mobile/tenant_preflight.py:715: the CTE only reads PostgreSQL role, membership, relation-privilege, and RLS catalog state. It runs before schema inventory under a dedicated direct read-only preflight identity; tests assert role/session/read-only and deny unsafe identities. This is source review, not an ACL approval."
+    },
+    {
+      "fingerprint": "5139d4fc0db3c5e96292fb38e0b7b9845531f31eed920cc75b4712b8b63cec47",
+      "review_status": "reviewed_unresolved",
+      "reviewed_by": "Automated source review",
+      "reviewed_on": "2026-11-02",
+      "reason": "Reviewed _runtime_role_preflight at services/mobile/tenant_preflight.py:832: the CTE only reads role attributes, relation ownership/privileges, and RLS state using a bound role name; it performs no DML. Its output is part of the dedicated read-only preflight and tests verify the bound parameter and risk report. This is source review, not an ACL approval."
+    },
+    {
+      "fingerprint": "4aca5b9e9e98337e9c9ba48c612a1b5e5d3bc5b39dec2c69a8f07e7feb0a2b3d",
+      "review_status": "reviewed_unresolved",
+      "reviewed_by": "Automated source review",
+      "reviewed_on": "2026-11-02",
+      "reason": "Reviewed enforce_retention_policies at services/analytics/data_governance.py:1543: execution is feature-gated and requires an active, non-overlapping, explicitly approved policy with owner, approver, positive window, supported soft-delete, checked table/columns, and available configured scope; active legal holds are excluded. Unit tests pin the bound UPDATE; migration 401/402 disposable acceptance covers supporting policy/hold schema. This is not an ACL approval."
+    },
+    {
+      "fingerprint": "0dbf6a88324097247a65159ab5285732145772ecffe815a196175f86d8a55638",
+      "review_status": "reviewed_unresolved",
+      "reviewed_by": "Automated source review",
+      "reviewed_on": "2026-11-02",
+      "reason": "Reviewed import_record at services/ingestion/gis_import.py:427: the low-level helper rejects targets outside VALID_TARGETS before cursor access, and WKT/coordinates/record IDs remain bound parameters. The inventory retains the f-string conservatively; this is not an ACL approval."
+    },
+    {
+      "fingerprint": "c84970a2e08b5c568e18d3cc93036b59f1b4d43ce6c08d180ea3f7a402ef0b98",
+      "review_status": "reviewed_unresolved",
+      "reviewed_by": "Automated source review",
+      "reviewed_on": "2026-11-02",
+      "reason": "Reviewed import_record at services/ingestion/gis_import.py:440: the low-level helper rejects targets outside VALID_TARGETS before cursor access, and WKT/coordinates/record IDs remain bound parameters. The inventory retains the f-string conservatively; this is not an ACL approval."
+    },
+    {
+      "fingerprint": "d250d8378134324779f0b7e8cce0398bf30b8afdd8a30d3839020ac2b3076348",
+      "review_status": "reviewed_unresolved",
+      "reviewed_by": "Automated source review",
+      "reviewed_on": "2026-11-02",
+      "reason": "Reviewed coordination._insert at services/analytics/coordination.py:65: the helper rejects targets outside the fixed 12-table set, first-party callers use literal table names, and values remain parameters. Tests pin literal callsites and rejection before connection. The inventory retains the f-string; this is not an ACL approval."
+    },
+    {
+      "fingerprint": "ddd852d0cd0045d7395233042fc961d54a896349e320f0958be5da77fec0a282",
+      "review_status": "reviewed_unresolved",
+      "reviewed_by": "Automated source review",
+      "reviewed_on": "2026-11-02",
+      "reason": "Reviewed coordination._insert_idempotent at services/analytics/coordination.py:242: the helper rejects targets outside the fixed 12-table set, first-party callers use literal table names, and values remain parameters. Tests pin literal callsites and rejection before connection. The inventory retains the f-string; this is not an ACL approval."
+    },
+    {
+      "fingerprint": "d893caf2eb1bd1c6da408e8e94cf41be34db2dc013b7210a11b7ff8f86cc47fc",
+      "review_status": "reviewed_unresolved",
+      "reviewed_by": "Automated source review",
+      "reviewed_on": "2026-11-02",
+      "reason": "Reviewed wip_by_stage at services/analytics/value_stream.py:92: its CTE aggregates source-governed statuses through SELECT/UNION ALL and a final GROUP BY; location scope is bound, and network-wide agent_task inclusion is explicit only when location_id is omitted. The farm_activity eligibility helper is STABLE and read-only. Tests pin these scope rules. This is not an ACL approval; this does not establish tenant isolation."
+    },
+    {
+      "fingerprint": "a589f2bf1af30e94eda0ce37606a4dccf0b426a1f50e2878301de9bd25739f45",
+      "review_status": "reviewed_unresolved",
+      "reviewed_by": "Automated source review",
+      "reviewed_on": "2026-11-02",
+      "reason": "Reviewed stage_lead_times at services/analytics/value_stream.py:163: its CTEs select location-qualified goal entities and lifecycle transitions, then aggregate elapsed time with bound parameters; no DML or mutating function is present. The farm_activity eligibility helper is STABLE. This is source review, not an ACL approval; this does not establish tenant isolation."
+    },
+    {
+      "fingerprint": "17285b250cc1776104efd1c43217009ecc393b55166720f54bb961616babf571",
+      "review_status": "reviewed_unresolved",
+      "reviewed_by": "Automated source review",
+      "reviewed_on": "2026-11-02",
+      "reason": "Reviewed first_time_through at services/analytics/value_stream.py:211: the CTE selects location-qualified goal entities and checks failure-terminal history by the same entity key using bound parameters; it is SELECT-only and the farm_activity eligibility helper is STABLE. Network-wide results remain an explicit caller scope, not tenant isolation. This is not an ACL approval."
+    },
+    {
+      "fingerprint": "56c31b6f2d61b5b03919e328b8bfff4e95ee193c37fa2a277cd91f6314bb0942",
+      "review_status": "reviewed_unresolved",
+      "reviewed_by": "Automated source review",
+      "reviewed_on": "2026-11-02",
+      "reason": "Reviewed list_location_ecocredit_batches at services/gateway/ecocredits.py:57: the handler starts a read-only transaction, sets signed operator/location context for ecocredit:read before the query, and runs a literal WITH SELECT bounded by location_id and limit. The projection omits wallet/account data and tests cover the route scope and no-store response. This is not an ACL approval and does not prove platform-wide tenant isolation."
+    },
+    {
+      "fingerprint": "816bb8cd0aa0514879b071a827be2483f92d01b3cef5845e0044af172691ba98",
+      "review_status": "reviewed_unresolved",
+      "reviewed_by": "Automated source review",
+      "reviewed_on": "2026-11-02",
+      "reason": "Reviewed regional_clusters.analyze at services/revenue_multiplier/dimensions/regional_clusters.py:18: the CTE computes distance_km with SELECT-only spatial functions and returns no neighbor ids, names, or coordinates; target location parameters are bound. Other locations are included intentionally for network-level proximity, which is not tenant isolation. Tests pin projection and read-only connection use. This is not an ACL approval."
+    },
+    {
+      "fingerprint": "1ea7aa26df02bc4b6ec954adcd3dd081ee89cfd01c836b905fee416f50784d50",
+      "review_status": "reviewed_unresolved",
+      "reviewed_by": "Automated source review",
+      "reviewed_on": "2026-11-02",
+      "reason": "Reviewed _compute_cycle_time_trend: the CTE reads only completed ooda_cycle_log rows for the requested location and time window, with bound parameters. Tests pin location and period parameter order. This is not an ACL approval."
+    },
+    {
+      "fingerprint": "4dc9e9893ef0feda8d0101b1008d38a363500faa360a01f945dfc579f2c4dd09",
+      "review_status": "reviewed_unresolved",
+      "reviewed_by": "Automated source review",
+      "reviewed_on": "2026-11-02",
+      "reason": "Reviewed _compute_time_to_action_trend: the CTE reads only completed ooda_cycle_log rows with non-null action/observation timestamps for the requested location and time window, with bound parameters. Tests pin location and period parameter order. This is not an ACL approval."
+    },
+    {
+      "fingerprint": "47617cb7cbe8e0799e3b80fa44c0e1dc9b30cf472789f7abb5d26c85f2b8eb60",
+      "review_status": "reviewed_unresolved",
+      "reviewed_by": "Automated source review",
+      "reviewed_on": "2026-11-02",
+      "reason": "Reviewed _compute_feedback_trend: the CTE now filters feedback_loop by the requested location_id and bound time window; the schema requires location_id and source writers populate it. Tests pin location/period parameter order. This is not an ACL approval or tenant-isolation attestation."
+    },
+    {
+      "fingerprint": "3df619d71786bfb81465beaf711e4e2d4fbbbe4023980211a0c9481f9277d692",
+      "review_status": "reviewed_unresolved",
+      "reviewed_by": "Automated source review",
+      "reviewed_on": "2026-11-02",
+      "reason": "Reviewed _cycle_time_mean: the CTE aggregates draft-to-published lifecycle transitions for a bound entity_type and contains only SELECTs. It intentionally spans locations because the API takes no location_id; this is a global source aggregate, not a tenant-isolation claim. This is not an ACL approval. Tests pin the entity_type parameters."
+    },
+    {
+      "fingerprint": "26b4327509233a27818432813a807adbf690b259b48d89f54b7167aa1019c3da",
+      "review_status": "reviewed_unresolved",
+      "reviewed_by": "Automated source review",
+      "reviewed_on": "2026-11-02",
+      "reason": "Reviewed _fty_pct: the CTE counts published versus rejected lifecycle transitions for a bound entity_type and contains only SELECTs. It intentionally spans locations because the API takes no location_id; this is a global source aggregate, not a tenant-isolation claim. This is not an ACL approval. Tests pin the entity_type parameters."
+    },
+    {
+      "fingerprint": "33913f666595505c929366240b60feac3afc70fe5fc631bb258b69ea7db62c36",
+      "review_status": "reviewed_unresolved",
+      "reviewed_by": "Automated source review",
+      "reviewed_on": "2026-11-02",
+      "reason": "Reviewed compute_first_time_through_yield: the f-string inserts the fixed _ENTITY_LOC SELECT/UNION fragment, while location and period values are bound. The CTE joins published entities to rejection history by entity_type/entity_id and uses the STABLE farm_activity_source_eligible_for_use helper; it contains no DML. Tests pin the location and parameter map. This is not an ACL approval or platform-wide tenant-isolation proof."
+    },
+    {
+      "fingerprint": "67ef4a94b592638c3b6a18c79c9cb36fbbdc80381dfe801d4a301090dd9d1d7c",
+      "review_status": "reviewed_unresolved",
+      "reviewed_by": "Automated source review",
+      "reviewed_on": "2026-11-02",
+      "reason": "Reviewed compute_governed_lead_time: the CTE inserts the fixed _ENTITY_LOC SELECT/UNION fragment, binds the location and date range, and computes an aggregate from lifecycle_transition without DML. Its source helpers are read-only. This is not an ACL approval or tenant-isolation attestation."
+    },
+    {
+      "fingerprint": "466e6a1ee6419f822183d95ef51ecf2296939f6ec218a0c405ee7eeea956b759",
+      "review_status": "reviewed_unresolved",
+      "reviewed_by": "Automated source review",
+      "reviewed_on": "2026-11-02",
+      "reason": "Reviewed compute_rework_rate: the CTE inserts the fixed _ENTITY_LOC SELECT/UNION fragment, binds location and date values, and computes published/rejected counts without DML. It returns location-scoped source ids by design; output visibility remains subject to API scope review. This is not an ACL approval or tenant-isolation attestation."
+    },
+    {
+      "fingerprint": "429f412c5292787945444ed1fcc1be01f0b2634440ccefcfe3795d067137a841",
+      "review_status": "reviewed_unresolved",
+      "reviewed_by": "Automated source review",
+      "reviewed_on": "2026-11-02",
+      "reason": "Reviewed portfolio_theme_summary: its CTE reads verified/published impact claims and groups aggregate counts by theme, with no DML or row identifiers returned. It intentionally covers the network rather than a single location, so authorization and tenant isolation remain separate review items. This is not an ACL approval."
+    },
+    {
+      "fingerprint": "eb3e961b93ba185c32db7665eae31585f9113e03a774db4db0f86d75b431d42b",
+      "review_status": "reviewed_unresolved",
+      "reviewed_by": "Automated source review",
+      "reviewed_on": "2026-11-02",
+      "reason": "Reviewed export_trust_graph at services/scoring/trust_graph.py:23: the read-only CTE filters seed nodes, discovery edges, final connected nodes, and returned edges when public_safe is enabled; reference IDs are bound and the regression excludes a private node reached through a public edge. The CLI defaults to internal output and no Gateway route was found; this is not an ACL approval or tenant-isolation proof."
+    },
+    {
+      "fingerprint": "1fc46e10ea0e7e8edf41c9c5f930a36cb325ac0f5064772a663f5da97e79b703",
+      "review_status": "reviewed_unresolved",
+      "reviewed_by": "Automated source review",
+      "reviewed_on": "2026-11-02",
+      "reason": "Reviewed EventBus.cleanup_old_events at services/events/bus.py:294: the hard-delete CTE runs only after an enabled feature flag and exactly one active, non-overlapping, explicitly approved global hard-delete policy; it removes only old completed/dead-letter rows with no pending dead-letter, failed handler delivery, or active legal hold, then records the enforcement result. Tests pin these guards and explicit CLI actor handling. This is not an ACL approval or legal-policy/owner acceptance; no live cleanup was executed."
+    },
+    {
+      "fingerprint": "4394d51bfcfc1572d8047e03b078748453442dbeb83bac6783b4eb1f5e2fc508",
+      "review_status": "reviewed_unresolved",
+      "reviewed_by": "Codex source review",
+      "reviewed_on": "2026-10-28",
+      "reason": "Reviewed list_location_kriging_summaries: its WITH clause selects the bounded, location-filtered kriging_prediction page and aggregates kriging_point rows; no DML or mutating SQL is present. This edit clamps has_more at the supported offset ceiling. The inventory retains WITH for conservative review; this is not an ACL approval."
     }
   ]
 }

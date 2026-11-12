@@ -1,0 +1,34 @@
+{
+  "name": "@kokonut/frontend-workspace",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22.22"
+  },
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev:control-plane",
+    "dev:control-plane": "vite --config apps/control-plane/vite.config.ts",
+    "build": "npm run build:control-plane",
+    "build:control-plane": "vite build --config apps/control-plane/vite.config.ts",
+    "deploy:control-plane": "npm run build:control-plane && wrangler deploy --config apps/control-plane/wrangler.jsonc",
+    "deploy:control-plane:preview": "npm run build:control-plane && wrangler deploy --config apps/control-plane/wrangler.jsonc --env preview",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.3",
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
+    "@vitejs/plugin-react": "^6.1.2",
+    "typescript": "7.0.2",
+    "vite": "^8.3.0",
+    "wrangler": "4.148.0"
+  },
+  "allowScripts": {
+    "esbuild@0.28.1": true,
+    "workerd@1.20261006.1": true
+  }
+}

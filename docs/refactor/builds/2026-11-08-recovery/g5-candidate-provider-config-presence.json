@@ -1,0 +1,31 @@
+{
+  "observed_at_utc": "2026-11-08T22:20:36Z",
+  "target": {
+    "coolify_application_id": "fdphpruj8jxien23ockmbw0j",
+    "application_container": "app-fdphpruj8jxien23ockmbw0j-20261107T221509",
+    "worker_container": "worker-fdphpruj8jxien23ockmbw0j-20261107T221509"
+  },
+  "method": {
+    "read_only": true,
+    "secret_values_read_or_recorded": false,
+    "recorded_data": "environment variable names and whether values were non-empty"
+  },
+  "provider_jobs": {
+    "api_rpc_gnosis_baal": "database DSNs and RPC endpoint settings are blank or absent",
+    "weather_and_forecast": "database DSNs, worker credentials, and OpenWeatherMap keys are blank or absent",
+    "market_data": "database DSN and optional workbook URL are blank or absent",
+    "remote_sensing": "database DSN, worker credential, Copernicus credentials, and Earth Engine key reference are blank or absent",
+    "eas_indexer": "database DSN and worker credentials are blank or absent"
+  },
+  "storage": {
+    "field_media": "provider, bucket, and region settings are non-empty in the API; S3 endpoint and access-key pair are blank; no media settings are present in the worker",
+    "report_exports": "no matching report-export settings are present in the API or worker",
+    "encrypted_backups": "no matching backup settings are present in the API or worker"
+  },
+  "limitations": [
+    "This is candidate environment presence evidence only; no provider authentication or request was made from the candidate.",
+    "Local credential smoke results do not establish candidate credential validity or provider job behavior.",
+    "The candidate scheduled_task table contains zero rows as recorded separately in g5-candidate-schedule-inventory.json.",
+    "No environment values were changed."
+  ]
+}

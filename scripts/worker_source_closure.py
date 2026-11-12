@@ -201,7 +201,7 @@ def _operation(kind: str, name: str, root_modules: list[str]) -> dict:
                     pending.append(resolved_target)
 
             if (
-                kind == "isolated_worker"
+                kind in {"scheduled_module", "isolated_worker"}
                 and name == "services.agents.worker_cli"
                 and module == name
             ):

@@ -11,7 +11,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 import math
 import unittest
 from datetime import date, datetime, timezone
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 from services.analytics.marketplace import (
     create_buyer_profile,
@@ -192,32 +192,51 @@ class TestRecordPrice(unittest.TestCase):
 
     def setUp(self):
         self.conn = MagicMock()
-        self.mock_cursor = MagicMock()
-        self.conn.cursor.return_value = self.mock_cursor
-        self.mock_cursor.fetchone.return_value = ("price-001",)
+        self.worker_conn = MagicMock()
+        self.worker_cursor = MagicMock()
+        self.worker_conn.cursor.return_value.__enter__.return_value = self.worker_cursor
+        self.worker_cursor.fetchone.return_value = ("price-001",)
+
+        enabled = patch(
+            "services.ingestion.market_data_worker.is_enabled", return_value=True
+        )
+        database = patch(
+            "services.ingestion.market_data_worker.get_worker_db",
+            return_value=self.worker_conn,
+        )
+        enabled.start()
+        database.start()
+        self.addCleanup(enabled.stop)
+        self.addCleanup(database.stop)
 
     def test_record_price_records_price(self):
         result = record_price(
             self.conn, "maize", "Adelphi Coop", 0.55, quality_grade="A",
         )
-        self.assertIn("price_id", result)
+        self.assertEqual(result["price_id"], "price-001")
         self.assertEqual(result["crop_name"], "maize")
         self.assertEqual(result["market_name"], "Adelphi Coop")
         self.assertEqual(result["price"], 0.55)
         self.assertEqual(result["quality_grade"], "A")
 
-    def test_record_price_persists_quality_grade(self):
+    def test_record_price_uses_bounded_writer_and_persists_quality_grade(self):
         record_price(
             self.conn, "maize", "Adelphi Coop", 0.55, quality_grade="A",
         )
-        query, params = self.mock_cursor.execute.call_args.args
-        self.assertIn("quality_grade", query)
-        self.assertEqual(params[9], "A")
+        query, params = self.worker_cursor.execute.call_args.args
+        self.assertIn("kokonut_security.store_manual_market_price", query)
+        self.assertNotIn("INSERT INTO", query.upper())
+        self.assertEqual(params, ("maize", "Adelphi Coop", 0.55, "A", "kg", "USD", "{}"))
+        self.worker_conn.cursor.assert_called_once_with()
+        self.conn.cursor.assert_not_called()
 
-    def test_record_price_completes(self):
+    def test_record_price_commits_only_the_isolated_worker_connection(self):
         record_price(self.conn, "maize", "Market", 0.55)
-        self.conn.commit.assert_called_once()
-        self.mock_cursor.close.assert_called_once()
+        self.worker_conn.commit.assert_called_once()
+        self.worker_conn.close.assert_called_once()
+        self.conn.commit.assert_not_called()
+        self.conn.cursor.assert_not_called()
+        self.worker_cursor.close.assert_not_called()
 
 
 class TestGetPriceTrends(unittest.TestCase):

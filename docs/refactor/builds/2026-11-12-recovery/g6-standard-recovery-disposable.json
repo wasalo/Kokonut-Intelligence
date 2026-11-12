@@ -1,0 +1,75 @@
+{
+  "recorded_at_utc": "2026-11-12T05:59:24Z",
+  "gate": "G6",
+  "result": "passed",
+  "source": {
+    "branch": "chore/finalize-kokonut-intelligence-refactor",
+    "commit": "a77751708816b43fa05cfb21051c00f098508fc4"
+  },
+  "environment": {
+    "profile": "standard",
+    "compose_project": "kokonut-standard-recovery-b1cee1c41a",
+    "database_image": "postgis/postgis:16-3.4@sha256:44126d872ac91993766c341e369c539e8196614321765d36a6f1bab0419a5fa5",
+    "host_ports_published": false,
+    "runtime_network_internal": true,
+    "internet_egress": false,
+    "synthetic_credentials_and_data": true,
+    "candidate_legacy_production_touched": false
+  },
+  "migration_snapshot": {
+    "schema_count": 746,
+    "latest_migration": "schema:755_operator_hub_relational_forms.sql",
+    "sha256": "bfcd87ac85ede9c798d3a74a450c4bd6a049b50549f25b9e4bdce2820bba460a",
+    "app_image_matches": true,
+    "worker_image_matches": true,
+    "applied": 746,
+    "failed": 0,
+    "seed_entries": 0,
+    "missing_schema_readiness_fails_closed": true
+  },
+  "identity_and_health": {
+    "api_database_user": "kokonut_runtime",
+    "worker_database_user": "kokonut_scheduler_login",
+    "runtime_role_bootstrap_after_migrations": true,
+    "reapplying_bootstrap_preserved_role_attributes_and_denials": true,
+    "runtime_roles_non_superuser_and_no_bypass_rls": true,
+    "unsafe_admin_runtime_role_fails_before_children": true,
+    "api_healthy": true,
+    "worker_healthy": true,
+    "worker_children_alive_and_progressing": true,
+    "proxy_running": true,
+    "private_supervisor_heartbeat_shape_and_permissions_valid": true
+  },
+  "recovery_checks": {
+    "stalled_child": {
+      "child": "events",
+      "stall_detected": true,
+      "process_remained_alive": true,
+      "database_remained_available": true,
+      "health_state_after_database_and_child_recovery": "healthy"
+    },
+    "database_outage": {
+      "worker_degraded_state_observed": "unhealthy",
+      "database_healthy_after_restart": true,
+      "api_healthy_after_restart": true,
+      "worker_healthy_after_restart": true
+    },
+    "graceful_shutdown": {
+      "worker_stopped": true,
+      "supervisor_heartbeat_removed": true,
+      "active_durable_work_leases": 0
+    }
+  },
+  "cleanup": {
+    "containers_removed": true,
+    "volumes_removed": true,
+    "network_removed": true,
+    "local_images_removed": true
+  },
+  "limitations": [
+    "This is a short disposable restart/recovery check, not 24-hour endurance or scale acceptance.",
+    "It does not verify a live Coolify application restore, production RPO, acknowledged-write loss, or rollback.",
+    "The seed-free run does not claim recovery of leases from a long-running handler.",
+    "ClickHouse retention behavior is a separate disposable check and is not covered by this evidence."
+  ]
+}

@@ -1,0 +1,219 @@
+{
+  "version": 1,
+  "recorded_date": "2026-11-10",
+  "scope": "Deploy the CI-approved field activity detail and lifecycle UI to the existing Control Plane Worker.",
+  "source": {
+    "commit": "32ef45ad4f4a057b7947f0026872710aaa39982d",
+    "ci_run": 42860024704,
+    "security_run": 42860024708,
+    "ci_conclusion": "success",
+    "security_conclusion": "success"
+  },
+  "cloudflare": {
+    "worker": "ki-operator-control-plane",
+    "version_id": "6ba59d2b-dc29-4b15-8caa-0ca00ac6b7e1",
+    "wrangler_version": "4.148.0",
+    "previous_version_id": "0dc0706e-aab2-422b-bc03-6e18d6f80cb0",
+    "assets_read": 11,
+    "assets_uploaded": 7,
+    "bindings": 0,
+    "dns_changed": false,
+    "coolify_changed": false
+  },
+  "http_checks": {
+    "ops": { "status": 200, "content_type": "text/html" },
+    "field_records": { "status": 200, "content_type": "text/html" },
+    "governance": { "status": 200, "content_type": "text/html" },
+    "anonymous_operator_session": { "status": 401, "content_type": "application/json" }
+  },
+  "zitadel_email_delivery": {
+    "provider": "Maileroo SMTP",
+    "provider_test_http_status": 200,
+    "provider_activation_http_status": 200,
+    "provider_active": true,
+    "setup_invitations_requested": 3,
+    "setup_invitation_inbox_receipts_confirmed": 3,
+    "receipt_confirmation_by": "Wasabi",
+    "invite_codes_or_credentials_recorded": false,
+    "temporary_provisioner_deleted_after_delivery": true,
+    "temporary_iam_owner_removed_from_local_env_and_sops": true
+  },
+  "acceptance": {
+    "authenticated_browser_review": {
+      "status": "passed_read_detail",
+      "confirmed_by": "Wasabi",
+      "routes_reviewed": [
+        "/operator/",
+        "/field/records"
+      ],
+      "draft_summary_visible": true,
+      "detail_and_audit_history_visible": true,
+      "lifecycle_actions_rendered": false,
+      "decision": "no further lifecycle action was available to the current session and record state",
+      "mutation_performed": false
+    },
+    "transition_actor_prerequisites": {
+      "status": "submit_verify_and_publish_passed",
+      "candidate_accounts": {
+        "status": "all_setup_flows_completed_and_three_distinct_lifecycle_actors_authenticated",
+        "setup_flows_completed": 3,
+        "confirmed_by": "Wasabi",
+        "emails": [
+          "operations@kokonut.network",
+          "verifier@kokonut.network",
+          "publisher@kokonut.network"
+        ],
+        "proposed_location_scopes": {
+          "operations@kokonut.network": [
+            "farm_activity:read",
+            "farm_activity:read_detail",
+            "farm_activity:submit",
+            "farm_activity:rework",
+            "farm_activity:edit_draft"
+          ],
+          "verifier@kokonut.network": [
+            "farm_activity:read",
+            "farm_activity:read_detail",
+            "farm_activity:verify"
+          ],
+          "publisher@kokonut.network": [
+            "farm_activity:read",
+            "farm_activity:read_detail",
+            "farm_activity:publish",
+            "farm_activity:reject"
+          ]
+        },
+        "credentials_recorded": false
+      },
+      "provisioning_attempt": {
+        "status": "completed_after_role_correction",
+        "date": "2026-11-10",
+        "service_account": "KokonutProvisioner",
+        "target_organization_id": "398487505738992133",
+        "target_project_id": "398568044462344709",
+        "attempted_endpoint": "POST /v2/users/new",
+        "initial_attempt_http_status": 403,
+        "initial_failure": "The temporary PAT had project management permissions but lacked organization-scoped user.write.",
+        "resolution": "Wasabi assigned ORG_USER_MANAGER to the organization-scoped provisioning service account; user.write then appeared and all three users were created.",
+        "users_created": 3,
+        "setup_invitations_requested": 3,
+        "invitation_inbox_receipt_confirmed": true,
+        "invitation_inbox_receipt_confirmed_by": "Wasabi",
+        "required_role": "ORG_USER_MANAGER on the target organization",
+        "pat_storage": "The temporary PAT was briefly stored in encrypted .env.sops for provisioning, then removed; plaintext was removed from root .env. No token value was recorded.",
+        "temporary_provisioner_cleanup": {
+          "status": "completed",
+          "service_account_deleted": true,
+          "pat_invalidated_by_account_deletion": true,
+          "local_plaintext_removed": true,
+          "encrypted_pat_removed": true,
+          "iam_owner_absent_from_root_env": true,
+          "iam_owner_absent_from_decrypted_sops": true,
+          "committed_sops_ciphertext_restored": true
+        }
+      },
+      "operator_membership_and_scopes": {
+        "status": "provisioned_and_verified",
+        "location_id": "1b1775d2-3043-42f9-9967-5d3f18db7ae0",
+        "tenant_organization_id": "a0000000-0000-0000-0000-000000000701",
+        "membership_role": "operator",
+        "granted_by": "Wasabi (Secretary of Kokonut)",
+        "database_role_or_grant_changes": false,
+        "accounts": {
+          "operations@kokonut.network": {
+            "zitadel_subject": "399033500503640581",
+            "operator_id": "c706384a-cfe7-4f01-82b7-1b900a6c854d",
+            "scopes": [
+              "farm_activity:read",
+              "farm_activity:read_detail",
+              "farm_activity:submit",
+              "farm_activity:rework",
+              "farm_activity:edit_draft"
+            ]
+          },
+          "verifier@kokonut.network": {
+            "zitadel_subject": "399033501392833029",
+            "operator_id": "a50501f2-2f98-4374-998d-1abc7ab87298",
+            "scopes": [
+              "farm_activity:read",
+              "farm_activity:read_detail",
+              "farm_activity:verify"
+            ]
+          },
+          "publisher@kokonut.network": {
+            "zitadel_subject": "399033502231693829",
+            "operator_id": "000aab91-ab93-438b-831f-0ad2f240035c",
+            "scopes": [
+              "farm_activity:read",
+              "farm_activity:read_detail",
+              "farm_activity:publish",
+              "farm_activity:reject"
+            ]
+          }
+        }
+      },
+      "minimum_distinct_candidate_operators": 3,
+      "roles": {
+        "submitter": "operations@kokonut.network: farm_activity:submit; distinct from verifier and publisher",
+        "verifier": "verifier@kokonut.network: farm_activity:verify; distinct from submitter and publisher",
+        "publisher_and_reviewer": "publisher@kokonut.network: farm_activity:publish and farm_activity:reject; distinct from submitter and verifier"
+      },
+      "reject_rework_path": "Use a second test draft for submit/verify/reject/rework; the publisher/reviewer rejects after verification, and the operations submitter returns it to draft. The first test draft can follow submit/verify/publish.",
+      "current_account_transition_grants_changed": false,
+      "live_transition_acceptance": {
+        "record_id": "7cc0b343-dd6a-405d-a25a-3f3e9dc0596a",
+        "activity_type": "A testing draft",
+        "location_id": "1b1775d2-3043-42f9-9967-5d3f18db7ae0",
+        "confirmed_by": "Wasabi",
+        "transitions": [
+          {
+            "action": "submit",
+            "from": "draft",
+            "to": "submitted",
+            "operator": "operations@kokonut.network",
+            "operator_id": "c706384a-cfe7-4f01-82b7-1b900a6c854d",
+            "at": "2026-11-10T21:51:11.577581+00:00",
+            "audit_reason": null
+          },
+          {
+            "action": "verify",
+            "from": "submitted",
+            "to": "verified",
+            "operator": "verifier@kokonut.network",
+            "operator_id": "a50501f2-2f98-4374-998d-1abc7ab87298",
+            "at": "2026-11-10T21:55:37.563079+00:00",
+            "audit_reason": "Im verifying the perms of this workflow account."
+          },
+          {
+            "action": "publish",
+            "from": "verified",
+            "to": "published",
+            "operator": "publisher@kokonut.network",
+            "operator_id": "000aab91-ab93-438b-831f-0ad2f240035c",
+            "at": "2026-11-10T23:59:33.558453+00:00",
+            "audit_reason": "Testing publishing perms"
+          }
+        ],
+        "published": true,
+        "distinct_operator_count": 3,
+        "published_transition_confirmed_by": "Wasabi",
+        "publish_requires_separate_owner_confirmation": false
+      },
+      "operator_console_usability": {
+        "reported_by": "Wasabi",
+        "issues": [
+          "The legacy /operator/ console placed navigation and sign-out after a long page.",
+          "ZITADEL reused the active identity instead of showing an account chooser on sign-in."
+        ],
+        "source_fix_status": "implemented_and_candidate_deployed"
+      }
+    },
+    "lifecycle_grants_changed": true,
+    "gateway_or_database_policy_changed": false,
+    "secret_values_recorded": false
+  },
+  "limitations": [
+    "Submit, verify, and publish passed on one test record with three distinct operators. Publisher reject/rework, negative state/nonce behavior, second-location denial, and Collector offline media/consent/sync acceptance remain open.",
+    "The published transition was reported by Wasabi from the authenticated Control Plane and included the record state, actor identity, timestamp, and audit reason."
+  ]
+}

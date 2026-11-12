@@ -14,9 +14,9 @@ ALLOWED_EVENT_HANDLERS = frozenset(
     }
 )
 
-# Explicit one-shot/long-running worker entrypoints that are not valid
-# database-scheduled commands. Static worker inventories include these roots
-# without adding them to the persisted scheduler allowlist.
+# Explicit one-shot/long-running worker entrypoints. Static worker inventories
+# include these roots; worker_cli is scheduler-allowlisted only through its
+# strict registered synthesis draft contract.
 ISOLATED_WORKER_MODULES = frozenset(
     {
         "services.agents.worker_cli",
@@ -87,6 +87,10 @@ ALLOWED_SCHEDULED_MODULES = frozenset(
         "services.ingestion.clickhouse_outbox",
         "services.ingestion.clickhouse_outbox_worker",
         "services.events",
+        # This worker has a strict registered synthesis-task command contract
+        # in scheduled_command_contracts; arbitrary worker_cli arguments remain
+        # rejected before scheduler activation or subprocess execution.
+        "services.agents.worker_cli",
     }
 )
 

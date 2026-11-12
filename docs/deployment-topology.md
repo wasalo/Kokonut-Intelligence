@@ -36,6 +36,18 @@ The workflow file is the authoritative description of its triggers and gates.
 For the current deployment procedure, inspect the workflow and deploy script
 together; do not infer runtime state from this table.
 
+## Current Hub web delivery
+
+The candidate Control Plane is served from `hub.kokonut.network` by the
+Cloudflare Worker Static Assets configuration in
+[`apps/control-plane/wrangler.jsonc`](../apps/frontend/apps/control-plane/wrangler.jsonc).
+The Worker serves `/`, `/ops/*`, `/field/*`, `/governance/*`, and `/assets/*`;
+unmatched Gateway and compatibility paths continue to the Coolify/VPS origin.
+This candidate web deployment does not mean production acceptance or the
+Kernel production workflow has passed. See the
+[current refactor status](refactor/current-state-and-implementation.md) for
+the deployed revision and remaining gates.
+
 ## Kernel profile topology
 
 | Profile or overlay | Services/behavior | Default exposure |

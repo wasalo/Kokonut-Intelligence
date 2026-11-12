@@ -3,16 +3,39 @@
 services:
   app:
     command: ["python3", "-m", "services.core.runtime", "--port", "8099", "--require-schema", "--require-runtime-role"]
+    depends_on:
+      report-snapshot-export-artifact-init:
+        condition: service_completed_successfully
     environment:
       KOKONUT_RATE_LIMIT_PROVIDER: ${KOKONUT_RATE_LIMIT_PROVIDER:-postgres}
       KOKONUT_FEATURE_DIRECTUS: ${KOKONUT_FEATURE_DIRECTUS:-false}
       KOKONUT_FEATURE_LEGACY_DATASET_SQL: ${KOKONUT_FEATURE_LEGACY_DATASET_SQL:-false}
+      # Private field media belongs to the API process. The runtime supervisor
+      # strips these settings from scheduler/event/notification children.
+      MOBILE_MEDIA_PROVIDER: ${MOBILE_MEDIA_PROVIDER:-s3}
+      MOBILE_MEDIA_ENCRYPTION_KEY: ${MOBILE_MEDIA_ENCRYPTION_KEY:-${MOBILE_MEDIA_LOCAL_KEY:-}}
+      MOBILE_MEDIA_S3_ENDPOINT: ${MOBILE_MEDIA_S3_ENDPOINT:-}
+      MOBILE_MEDIA_S3_BUCKET: ${MOBILE_MEDIA_S3_BUCKET:-kokonut-kernel-media}
+      MOBILE_MEDIA_S3_ACCESS_KEY_ID: ${MOBILE_MEDIA_S3_ACCESS_KEY_ID:-}
+      MOBILE_MEDIA_S3_SECRET_ACCESS_KEY: ${MOBILE_MEDIA_S3_SECRET_ACCESS_KEY:-}
+      MOBILE_MEDIA_S3_REGION: ${MOBILE_MEDIA_S3_REGION:-auto}
+      # The Gateway can read only completed private report artifacts. Its
+      # separate R2 key never reaches scheduled or event-handler children.
+      KOKONUT_PRIVATE_EXPORT_PROVIDER: ${KOKONUT_PRIVATE_EXPORT_PROVIDER:-local}
+      KOKONUT_PRIVATE_EXPORT_DIR: /var/lib/kokonut/report-snapshot-exports
+      KOKONUT_PRIVATE_EXPORT_S3_ENDPOINT: ${KOKONUT_PRIVATE_EXPORT_S3_ENDPOINT:-}
+      KOKONUT_PRIVATE_EXPORT_S3_BUCKET: ${KOKONUT_PRIVATE_EXPORT_S3_BUCKET:-}
+      KOKONUT_PRIVATE_EXPORT_S3_REGION: ${KOKONUT_PRIVATE_EXPORT_S3_REGION:-auto}
+      KOKONUT_PRIVATE_EXPORT_S3_READER_ACCESS_KEY_ID: ${KOKONUT_PRIVATE_EXPORT_S3_READER_ACCESS_KEY_ID:-}
+      KOKONUT_PRIVATE_EXPORT_S3_READER_SECRET_ACCESS_KEY: ${KOKONUT_PRIVATE_EXPORT_S3_READER_SECRET_ACCESS_KEY:-}
       DIRECTUS_URL: ${DIRECTUS_URL:-http://directus:8055}
       DIRECTUS_ADMIN_TOKEN: ${DIRECTUS_ADMIN_TOKEN:-}
       # The API creates intents from a non-secret presence flag; only the
-      # delivery worker receives the endpoint itself.
+      # delivery worker receives the endpoint itself. Set the flag explicitly
+      # when ALERT_WEBHOOK_URL is configured; the simple default interpolation
+      # is compatible with Compose parsers that do not implement the `:+` form.
       ALERT_WEBHOOK_URL: ""
-      KOKONUT_NOTIFICATION_WEBHOOK_CONFIGURED: ${ALERT_WEBHOOK_URL:+true}
+      KOKONUT_NOTIFICATION_WEBHOOK_CONFIGURED: ${KOKONUT_NOTIFICATION_WEBHOOK_CONFIGURED:-false}
       ALERT_SMTP_HOST: ${ALERT_SMTP_HOST:-}
       ALERT_SMTP_PORT: ${ALERT_SMTP_PORT:-587}
       ALERT_SMTP_TLS_MODE: ${ALERT_SMTP_TLS_MODE:-starttls}
@@ -24,6 +47,11 @@ services:
       ALERT_EMAIL_TO: ${ALERT_EMAIL_TO:-}
       KOKONUT_NOTIFICATION_OUTBOX_WARN_BYTES: ${KOKONUT_NOTIFICATION_OUTBOX_WARN_BYTES:-268435456}
       KOKONUT_NOTIFICATION_OUTBOX_CRITICAL_BYTES: ${KOKONUT_NOTIFICATION_OUTBOX_CRITICAL_BYTES:-536870912}
+    volumes:
+      - type: volume
+        source: report-snapshot-export-artifacts
+        target: /var/lib/kokonut/report-snapshot-exports
+        read_only: true
 
   worker:
     init: true
@@ -50,6 +78,17 @@ services:
       PG_USER: ${KOKONUT_RUNTIME_USER:?KOKONUT_RUNTIME_USER must be set}
       KOKONUT_ENV: production
       PG_PASSWORD: ${KOKONUT_RUNTIME_PASSWORD:?KOKONUT_RUNTIME_PASSWORD must be set}
+      # Keep Collector media settings out of the general worker. Coolify's
+      # generated profile loads them only into the Gateway child process.
+      MOBILE_MEDIA_PROVIDER: ""
+      MOBILE_MEDIA_LOCAL_DIRECTORY: ""
+      MOBILE_MEDIA_LOCAL_KEY: ""
+      MOBILE_MEDIA_ENCRYPTION_KEY: ""
+      MOBILE_MEDIA_S3_ENDPOINT: ""
+      MOBILE_MEDIA_S3_BUCKET: ""
+      MOBILE_MEDIA_S3_ACCESS_KEY_ID: ""
+      MOBILE_MEDIA_S3_SECRET_ACCESS_KEY: ""
+      MOBILE_MEDIA_S3_REGION: ""
       KOKONUT_SENSOR_ANOMALY_DATABASE_URL: ${KOKONUT_SENSOR_ANOMALY_DATABASE_URL:-}
       KOKONUT_SENSOR_ANOMALY_WORKER_CREDENTIAL: ${KOKONUT_SENSOR_ANOMALY_WORKER_CREDENTIAL:-}
       KOKONUT_CACHE_INVALIDATION_DATABASE_URL: ${KOKONUT_CACHE_INVALIDATION_DATABASE_URL:-}
@@ -140,4 +179,69 @@ services:
       - kernel
     volumes:
       - kernel-gateway-audit-spool:/var/lib/kokonut/gateway-audit
-      - ${KOKONUT_SENSOR_CSV_HOST_DIR:-./data/sensor-inputs}:/var/lib/kokonut/sensor-inputs:ro
+      - type: bind
+        source: ${KOKONUT_SENSOR_CSV_HOST_DIR:-./data/sensor-inputs}
+        target: /var/lib/kokonut/sensor-inputs
+        read_only: true
+
+  report-snapshot-export-worker:
+    init: true
+    stop_grace_period: 20s
+    image: ${KOKONUT_KERNEL_APP_IMAGE:-kokonut-kernel-candidate:local}
+    build:
+      context: .
+      dockerfile: Dockerfile.kernel
+      target: kernel
+    command:
+      - python3
+      - -m
+      - services.export.report_snapshot_export_worker
+      - --worker-id
+      - kokonut-report-snapshot-export
+      - --limit
+      - "10"
+      - --lease-seconds
+      - "300"
+    user: appuser
+    restart: "no"
+    depends_on:
+      database:
+        condition: service_healthy
+      report-snapshot-export-artifact-init:
+        condition: service_completed_successfully
+    environment:
+      KOKONUT_ENV: production
+      KOKONUT_FEATURE_ISOLATED_REPORT_SNAPSHOT_EXPORT_WORKER: ${KOKONUT_FEATURE_ISOLATED_REPORT_SNAPSHOT_EXPORT_WORKER:-false}
+      KOKONUT_REPORT_SNAPSHOT_EXPORT_DATABASE_URL: ${KOKONUT_REPORT_SNAPSHOT_EXPORT_DATABASE_URL:-}
+      KOKONUT_PRIVATE_EXPORT_PROVIDER: ${KOKONUT_PRIVATE_EXPORT_PROVIDER:-local}
+      KOKONUT_PRIVATE_EXPORT_DIR: /var/lib/kokonut/report-snapshot-exports
+      KOKONUT_PRIVATE_EXPORT_S3_ENDPOINT: ${KOKONUT_PRIVATE_EXPORT_S3_ENDPOINT:-}
+      KOKONUT_PRIVATE_EXPORT_S3_BUCKET: ${KOKONUT_PRIVATE_EXPORT_S3_BUCKET:-}
+      KOKONUT_PRIVATE_EXPORT_S3_REGION: ${KOKONUT_PRIVATE_EXPORT_S3_REGION:-auto}
+      KOKONUT_PRIVATE_EXPORT_S3_WORKER_ACCESS_KEY_ID: ${KOKONUT_PRIVATE_EXPORT_S3_WORKER_ACCESS_KEY_ID:-}
+      KOKONUT_PRIVATE_EXPORT_S3_WORKER_SECRET_ACCESS_KEY: ${KOKONUT_PRIVATE_EXPORT_S3_WORKER_SECRET_ACCESS_KEY:-}
+    networks:
+      - kernel
+    volumes:
+      - report-snapshot-export-artifacts:/var/lib/kokonut/report-snapshot-exports
+    profiles:
+      - report-snapshot-export
+
+  report-snapshot-export-artifact-init:
+    image: ${KOKONUT_KERNEL_APP_IMAGE:-kokonut-kernel-candidate:local}
+    build:
+      context: .
+      dockerfile: Dockerfile.kernel
+      target: kernel
+    user: "0:0"
+    command:
+      - sh
+      - -c
+      - install -d -o 10001 -g 10001 -m 0700 /var/lib/kokonut/report-snapshot-exports
+    restart: "no"
+    network_mode: none
+    volumes:
+      - report-snapshot-export-artifacts:/var/lib/kokonut/report-snapshot-exports
+
+volumes:
+  report-snapshot-export-artifacts:

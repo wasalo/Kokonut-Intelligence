@@ -1382,7 +1382,9 @@ def test_gateway_mobile_context_requires_exact_authenticated_route_marker(
     setter.assert_not_called()
 
 
-def test_participant_link_api_key_route_keeps_gateway_scope_and_skips_oidc_context(monkeypatch):
+def test_participant_link_api_key_route_revalidates_gateway_scope(monkeypatch):
+    import hashlib
+
     location_id = "11111111-1111-4111-8111-111111111111"
     connection = MagicMock()
     connection.cursor.return_value.fetchone.side_effect = [
@@ -1392,6 +1394,14 @@ def test_participant_link_api_key_route_keeps_gateway_scope_and_skips_oidc_conte
     monkeypatch.setattr(mobile_api, "get_db", lambda: connection)
     tenant_context = MagicMock()
     monkeypatch.setattr(mobile_api, "set_operator_tenant_context", tenant_context)
+    gateway_context = MagicMock(
+        return_value=GatewayTenantContext(
+            "a0000000-0000-0000-0000-000000000801",
+            location_id,
+            "a0000000-0000-0000-0000-000000000910",
+        )
+    )
+    monkeypatch.setattr(mobile_api, "set_gateway_tenant_context", gateway_context)
     monkeypatch.setenv("KOKONUT_API_KEYS", "participant-secret:field-reviewer")
     monkeypatch.setenv(
         "KOKONUT_API_KEY_SCOPES",
@@ -1411,6 +1421,14 @@ def test_participant_link_api_key_route_keeps_gateway_scope_and_skips_oidc_conte
     assert response.status_code == 201, response.text
     assert response.headers["cache-control"] == "no-store"
     assert response.json()["link_id"] == "link-id"
+    gateway_context.assert_called_once_with(
+        connection,
+        credential_type="api_key",
+        credential_hash=hashlib.sha256(b"participant-secret").hexdigest(),
+        location_id=location_id,
+        resource="mobile_participant",
+        action="create",
+    )
     insert = next(
         call for call in connection.cursor.return_value.execute.call_args_list
         if "INSERT INTO mobile_participant_link" in call.args[0]

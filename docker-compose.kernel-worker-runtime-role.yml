@@ -1,0 +1,13 @@
+# Optional G2 identity attribution layer. The worker inherits the current
+# runtime ACL through a non-SETtable membership; this does not narrow grants.
+services:
+  runtime-role-bootstrap:
+    environment:
+      KOKONUT_WORKER_RUNTIME_USER: ${KOKONUT_WORKER_RUNTIME_USER:-kokonut_worker_runtime}
+      KOKONUT_WORKER_RUNTIME_PASSWORD: ${KOKONUT_WORKER_RUNTIME_PASSWORD:?distinct worker runtime password required}
+
+  worker:
+    environment:
+      PG_USER: ${KOKONUT_WORKER_RUNTIME_USER:-kokonut_worker_runtime}
+      PG_PASSWORD: ${KOKONUT_WORKER_RUNTIME_PASSWORD:?distinct worker runtime password required}
+      KOKONUT_RUNTIME_PARENT_ROLE: ${KOKONUT_RUNTIME_USER:-kokonut_runtime}

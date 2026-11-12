@@ -12,8 +12,10 @@ def test_confidence_label_thresholds() -> None:
 
 def test_portfolio_theme_summary_adds_confidence() -> None:
     class Cursor:
+        query = ""
+
         def execute(self, query):
-            pass
+            self.query = query
 
         def fetchall(self):
             return [{
@@ -30,10 +32,19 @@ def test_portfolio_theme_summary_adds_confidence() -> None:
             pass
 
     class Conn:
-        def cursor(self, cursor_factory=None):
-            return Cursor()
+        def __init__(self):
+            self.cursor_instance = Cursor()
 
-    result = portfolio_theme_summary(Conn())
+        def cursor(self, cursor_factory=None):
+            return self.cursor_instance
+
+    connection = Conn()
+    result = portfolio_theme_summary(connection)
+    query = connection.cursor_instance.query
+    assert query.lstrip().upper().startswith("WITH THEME_CLAIMS")
+    assert "WHERE ic.status IN ('verified', 'published')" in query
+    assert "COUNT(DISTINCT location_id)" in query
+    assert not any(token in query.upper() for token in ("INSERT INTO", "UPDATE ", "DELETE FROM", "MERGE INTO"))
     assert result["theme_count"] == 1
     assert result["themes"][0]["confidence_label"] == "high"
 

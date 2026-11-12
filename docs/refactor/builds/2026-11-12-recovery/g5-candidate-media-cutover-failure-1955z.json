@@ -1,0 +1,14 @@
+{
+  "captured_at_utc": "2026-11-12T19:55:23Z",
+  "application_uuid": "fdphpruj8jxien23ockmbw0j",
+  "candidate_branch": "chore/finalize-kokonut-intelligence-refactor",
+  "candidate_commit": "be401628d1f2478516e31cfe947e1a982c0c36d0",
+  "deployment_uuid": "oflpsaiipmzc9jzaabbpgknb",
+  "deployment_status": "failed_before_container_replacement",
+  "failure_class": "coolify_compose_validation",
+  "failure_summary": "Coolify rejected a Compose bind-mount source containing variable interpolation. The source fix uses a relative file source in the app-only Coolify Compose overlay.",
+  "raw_deployment_logs_recorded": false,
+  "prior_candidate_containers": "remained in service; deployment did not replace them",
+  "candidate_media_isolation_verified": false,
+  "secret_values_recorded": false
+}

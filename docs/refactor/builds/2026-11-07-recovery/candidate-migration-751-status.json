@@ -1,0 +1,108 @@
+{
+  "evidence_kind": "read-only persistent candidate migration and role status",
+  "observed_on": "2026-11-07",
+  "candidate_application_uuid": "fdphpruj8jxien23ockmbw0j",
+  "method": "Read-only PostgreSQL queries executed inside the candidate database container through SSH; no application rows or credential values were selected.",
+  "schema_migrations": [
+    {
+      "migration_id": "schema:748_scheduler_executor_privileges.sql",
+      "status": "applied"
+    },
+    {
+      "migration_id": "schema:749_scheduler_operator_actions.sql",
+      "status": "applied"
+    },
+    {
+      "migration_id": "schema:750_operator_scope_read_functions.sql",
+      "status": "applied"
+    },
+    {
+      "migration_id": "schema:751_authenticated_synthesis_one_shot_dispatch.sql",
+      "status": "applied"
+    }
+  ],
+  "scheduler_login": {
+    "exists": true,
+    "can_login": true,
+    "inherits": false,
+    "superuser": false,
+    "membership_count": 0,
+    "secret_values_recorded": false,
+    "scheduler_dsn_present_in_worker_configuration": true
+  },
+  "checkpoint": {
+    "backup_id": "candidate-post-migration-751-20261107T204144Z",
+    "bucket": "kokonut-backups",
+    "databases": [
+      "kokonut_intelligence",
+      "zitadel"
+    ],
+    "source_revision": "0b9566764f463036cd9486ca57a6ec04c481aee8",
+    "upload_status": "committed",
+    "readback_status": "restored",
+    "readback_verified_manifest_signature_and_artifact_hashes": true,
+    "database_restore_performed": false
+  },
+  "coolify_deployment": {
+    "deployment_uuid": "ukfcvofktqaytvkzksuqnt3k",
+    "status": "finished",
+    "source_build_deployment_uuid": "19bku1slaqi3hlpatnlcf0l1",
+    "source_revision": "0b9566764f463036cd9486ca57a6ec04c481aee8",
+    "gateway": {
+      "container_health": "healthy",
+      "internal_health_http_status": 200,
+      "database_login": "kokonut_runtime",
+      "source_manifest_target": "oidc",
+      "source_manifest_file_count": 1893,
+      "source_manifest_matches_checkout": true,
+      "source_manifest_sha256": "67d9d82e3af058be80aa2c35efb90454a3097c6f2de01de9ca0abaeebd054342"
+    },
+    "worker": {
+      "container_health": "healthy",
+      "database_login": "kokonut_worker_runtime",
+      "scheduler_dsn_present": true,
+      "source_manifest_target": "kernel",
+      "source_manifest_file_count": 1890,
+      "source_manifest_matches_checkout": true,
+      "source_manifest_sha256": "e1cdc9069704c2da35d28e86ba26980882e86766567a11074d26fb8d33449539"
+    },
+    "postgres_and_zitadel_health": "healthy",
+    "coolify_resource_status": "running:unknown",
+    "public_gateway_route_configured": true,
+    "hub_dns_changed": true,
+    "synthesis_dispatch_enabled_in_candidate": true
+  },
+  "cloudflare_cutover": {
+    "hub_dns_type": "A",
+    "hub_dns_target": "167.88.45.47",
+    "hub_dns_proxied": true,
+    "zone_wide_ssl_mode_changed": false,
+    "hostname_specific_origin_tls_mode": "strict",
+    "hostname_specific_rule_name": "Kokonut hub origin TLS",
+    "temporary_dns_api_token_revoked": true,
+    "control_plane_worker_version": "a0a950fb-7112-4353-8f95-2f6142354944",
+    "control_plane_routes": ["/ops", "/field", "/governance"],
+    "edge_checks": [
+      {"path": "/health", "status": 200},
+      {"path": "/operator/auth/login?next=/ops", "status": 302, "redirect_host": "auth.kokonut.network"},
+      {"path": "/operator/auth/session", "status": 401},
+      {"path": "/ops", "status": 200},
+      {"path": "/field/records", "status": 200},
+      {"path": "/governance/recommendations", "status": 200}
+    ]
+  },
+  "acceptance_boundary": "This records candidate schema and role presence, checkpoint readback, container health, source-image parity, the finished Coolify route deployment, hostname-scoped strict TLS, and Cloudflare edge route/status checks. It does not establish authenticated browser login/callback/logout, authorized capability workflows, application media integration, 24-hour recovery acceptance, or MAN-CAP-038 candidate/live acceptance.",
+  "host_storage_check": {
+    "filesystem": "/",
+    "total": "96G",
+    "used": "87G",
+    "available": "9.8G",
+    "use_percent": 90,
+    "docker_reclaimable_images": "2.12GB",
+    "docker_reclaimable_volumes": "3.24GB",
+    "docker_build_cache": "301.8MB",
+    "docker_reclaimable_build_cache": "38.64MB",
+    "additional_cleanup_performed": false,
+    "cleanup_decision": "Capacity remains adequate for the candidate; preserve volumes spanning other Coolify projects and recovery data."
+  }
+}

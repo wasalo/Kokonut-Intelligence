@@ -18,7 +18,14 @@ services:
       start_period: 5s
 
   runner:
-    image: sha256:65827b0ffbb2b30d8a979006a81216660ba2915922118adb8d0aa0a877c20b10
+    image: kokonut-directus-role-check:local
+    pull_policy: build
+    build:
+      context: .
+      dockerfile: Dockerfile.kernel
+      target: kernel
+      args:
+        KOKONUT_CLICKHOUSE: "false"
     platform: linux/amd64
     init: true
     restart: "no"
@@ -38,6 +45,7 @@ services:
       PYTHONPATH: /workspace
     volumes:
       - ./VERSION:/workspace/VERSION:ro
+      - ./schemas:/workspace/schemas:ro
       - ./services:/workspace/services:ro
       - ./scripts/fixtures/directus-role-disposable-check.py:/workspace/scripts/fixtures/directus-role-disposable-check.py:ro
     networks: [directus-role-recovery]

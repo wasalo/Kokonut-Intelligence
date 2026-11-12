@@ -51,6 +51,19 @@ Python and package versions are pinned in the dependency manifests and image
 build inputs. Avoid inferring runtime capabilities from upstream version
 marketing notes; the repository lock files and CI define the tested set.
 
+## Browser surfaces
+
+The Control Plane is one React application with a public ecosystem page at `/`
+and authenticated General Operations, Field Operations, and Governance modules
+at `/ops`, `/field`, and `/governance`. Cloudflare serves those static app
+routes; unmatched Gateway and compatibility requests continue to the Coolify
+origin. The Delphi participant experience and encrypted offline Field
+Collector remain separate clients because their invitation, consent, and device
+protocols differ from operator OIDC. The
+[Control Plane guide](../apps/frontend/README.md) describes routes and current
+form behavior; the [refactor guide](refactor/current-state-and-implementation.md)
+records candidate acceptance.
+
 ### Kernel Deployment Profiles
 
 `scripts/kernel-profile.py` accepts `core`, `minimal`, `edge`, `standard`,

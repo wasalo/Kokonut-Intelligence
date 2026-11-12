@@ -1,0 +1,45 @@
+{
+  "title": "Candidate Adelphi current-weather one-shot",
+  "recorded_date": "2026-11-09",
+  "scope": "Coolify Kernel candidate only; one current-weather observation for Kokonut Adelphi.",
+  "source_commit": "9d361bd1aab5ec8c483af8e2f04d3ae736e8fc41",
+  "deployment": {
+    "application_uuid": "fdphpruj8jxien23ockmbw0j",
+    "deployment_uuid": "6e78rgtuuy4ntns3hbuoc9cm"
+  },
+  "runtime_role_bootstrap": {
+    "result": "provisioned",
+    "profile": "runtime-admin",
+    "worker_login": "kokonut_worker_login",
+    "worker_login_database_connect": true,
+    "worker_login_direct_relation_grants": false,
+    "worker_login_membership": "SET-only kokonut_worker_execution",
+    "legacy_compatibility_grants_applied": false,
+    "unrelated_optional_logins_provisioned": false
+  },
+  "location": {
+    "location_id": "1b1775d2-3043-42f9-9967-5d3f18db7ae0",
+    "tenant_id": "a0000000-0000-0000-0000-000000000701",
+    "resource": "weather_observation",
+    "action": "ingest"
+  },
+  "one_shot": {
+    "provider": "OpenWeatherMap current weather",
+    "result": "success",
+    "observation_id": "e9f23df8-978b-43ed-859b-4c340ad8dac3",
+    "inserted": true,
+    "feature_flag_enabled_only_in_ephemeral_process": true,
+    "worker_credential_revoked": true,
+    "worker_scope_grant_revoked": true,
+    "temporary_worker_principal_disabled": true,
+    "temporary_credential_and_grant_expiry_minutes": 30,
+    "recurring_schedule_enabled": false,
+    "forecast_worker_enabled": false
+  },
+  "secret_handling": "No password, raw worker credential, API key, or environment value was recorded.",
+  "limitations": [
+    "This is candidate integration acceptance, not production acceptance.",
+    "One successful current-weather write does not establish populated calculation parity.",
+    "No forecast, recurring provider work, email, or other integration job was run."
+  ]
+}

@@ -20,6 +20,8 @@ FILES = (
 TEST_ENV = {
     "PATH": os.environ["PATH"],
     "POSTGRES_PASSWORD": "compose-test-only-postgres",
+    "KOKONUT_RUNTIME_USER": "kokonut_runtime",
+    "KOKONUT_RUNTIME_PASSWORD": "compose-test-only-runtime-password",
     "MOBILE_MEDIA_LOCAL_KEY": "compose-test-only-local-media-key",
     "KOKONUT_OPERATOR_AUTH_PASSWORD": "compose-test-only-auth-password",
     "KOKONUT_OPERATOR_OIDC_ISSUER": "https://zitadel.example.test:9443",
@@ -27,6 +29,7 @@ TEST_ENV = {
     "KOKONUT_OPERATOR_OIDC_CLIENT_SECRET": "compose-test-client-secret",
     "KOKONUT_OPERATOR_OIDC_REDIRECT_URI": "https://hub.example.test:9443/operator/auth/callback",
     "KOKONUT_OPERATOR_OIDC_STATE_SECRET": "compose-test-state-secret-at-least-32-bytes",
+    "KOKONUT_OPERATOR_OIDC_CA_BUNDLE": "/run/test-ca/caddy-root.crt",
     "KOKONUT_ZITADEL_DOMAIN": "zitadel.example.test",
     "KOKONUT_KERNEL_HTTPS_PORT": "9443",
     "KOKONUT_ZITADEL_POSTGRES_ADMIN_PASSWORD": "compose-test-db-admin-password",
@@ -100,6 +103,16 @@ def test_zitadel_profile_is_private_and_uses_a_dedicated_non_superuser_database_
     assert not services["zitadel-api"].get("ports")
     assert not services["zitadel-login"].get("ports")
 
+    app = services["app"]
+    assert app["environment"]["KOKONUT_OPERATOR_OIDC_CA_BUNDLE"] == "/run/test-ca/caddy-root.crt"
+    assert all(volume["source"] != "kernel-caddy-data" for volume in app.get("volumes", []))
+
+    proxy = services["proxy"]
+    assert "zitadel.example.test" in proxy["networks"]["kernel"]["aliases"]
+    https_binding = next(port for port in proxy["ports"] if port["target"] == 443)
+    assert https_binding["host_ip"] == "127.0.0.1"
+    assert https_binding["published"] == "9443"
+
     db = services["zitadel-db"]
     assert "zitadel-data" in db["networks"]
     assert db["environment"]["POSTGRES_USER"] == "postgres"
@@ -111,7 +124,7 @@ def test_zitadel_profile_is_private_and_uses_a_dedicated_non_superuser_database_
         "ghcr.io/zitadel/zitadel:v4.19.4@sha256:"
         "90a3045b80a2b5b395e1e770302076906af3a5911225af7c464b4f3bd00d0a1b"
     )
-    assert api["command"] == ["start-from-init", "--masterkeyFromEnv", "--tlsMode", "disabled"]
+    assert api["command"] == ["start-from-init", "--masterkeyFromEnv", "--tlsMode", "external"]
     assert api["environment"]["ZITADEL_DATABASE_POSTGRES_DSN"].startswith(
         "postgresql://zitadel:"
     )
@@ -189,6 +202,11 @@ def test_optional_identity_proxy_uses_h2c_and_routes_login_v2_separately() -> No
     assert "reverse_proxy h2c://zitadel-api:8080" in caddyfile
     assert "header_up -TE" in caddyfile
     assert "reverse_proxy app:8099" in caddyfile
+    assert caddyfile.count("import zitadel_routes") == 2
+    assert (
+        "https://{$KOKONUT_ZITADEL_DOMAIN:zitadel.localhost}:"
+        "{$KOKONUT_KERNEL_HTTPS_PORT:8448} {"
+    ) in caddyfile
 
 
 def test_zitadel_planner_selects_only_the_required_optional_overlays() -> None:
@@ -268,6 +286,7 @@ def test_standard_zitadel_arm64_planner_command_resolves_all_services_for_arm64(
         "zitadel-api",
         "zitadel-login",
         "zitadel-bootstrap-permissions",
+        "report-snapshot-export-artifact-init",
     }
     assert all(service.get("platform") == "linux/arm64" for service in services.values())
     assert services["app"]["build"]["target"] == "oidc"

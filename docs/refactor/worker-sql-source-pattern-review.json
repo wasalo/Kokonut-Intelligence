@@ -63,7 +63,7 @@
       "expression_kind": "fstring",
       "site_count": 1,
       "sites": [
-        "services/agents/worker_cli.py:252:12"
+        "services/agents/worker_cli.py:261:12"
       ],
       "finding": "The role identifier comes from the immutable source-owned _SYNTHESIS_WORKERS entry selected by the registered task key, not from a CLI role argument. Live role grants and database identity provisioning remain unverified here."
     },

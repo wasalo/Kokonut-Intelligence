@@ -1,3 +1,5 @@
+> **Historical planning/status record:** the sole active completion register is the [candidate completion guide](current-state-and-implementation.md). Preserve the detail below as evidence/specification; do not maintain a separate active queue here.
+
 # Kokonut Kernel refactor TODO
 
 Updated: 1 November 2026. This is the active cross-phase work queue for the
@@ -5095,3 +5097,64 @@ deployed, and 36 prepared across 67 rows.
   745: 736/736 schemas, 47 checks passed, zero failures/pending, cleanup
   complete. QEMU does not establish physical Raspberry Pi acceptance
   ([evidence](builds/2026-11-01-recovery/arm64-qemu-current-schema-745-operator-probe.json)).
+
+### Current C1 continuation — migration 746 and operator outbox boundary — 3 November 2026
+
+Migration 746 moves manual ClickHouse outbox dead-letter actions from the shared
+CLI connection to OIDC-authenticated Gateway routes with separate global
+capabilities and a dedicated optional action login. Runtime retains enqueue/read
+and `updated_at` only; the legacy mutating CLI flags fail closed. Network-disabled
+PostgreSQL acceptance covers grants/revocations, session binding, bounded
+replay/resolve/discard actions, audit, and denial of direct writes. Standard
+recovery passed all 737 schemas through 746, including runtime-role
+bootstrap/reapplication and outage/stalled-child recovery. No live capabilities
+were granted and no candidate, legacy, or production database was changed.
+
+The runtime SQL review ledger has 0 legacy-unreviewed and 33
+reviewed-unresolved source records. Static role attribution covers 4,967 SQL
+sites (1,000 API, 328 worker, 3 shared, 3,636 unresolved), 358 API route roots,
+268 verified helper-callback edges, and 56 worker dynamic-dispatch edges. Seven
+literal callbacks now cross verified Gateway threadpool helpers; this source
+mapping adds no grants or RLS. The BMC `from-data` Gateway path is location-bound
+and uses signed context; the legacy CLI persistence commands are retired, while
+the read-only `suggest` CLI remains outside the OIDC route graph. The native
+source/ACL report remains through migration 745 at 906 public-schema tables with
+effective runtime DML while RLS is disabled. C1 remains open; next review the
+3,636 unattributed sites and external callers without inferring privilege
+revocations from source absence.
+
+The PR #73 review follow-up re-applies migration 746's outbox enqueue-only
+runtime boundary after compatibility grants, denies runtime mutation of the
+operator audit table, forwards the optional operator password, and scopes its
+CONNECT grant to the configured database. `ci-check.sh` now runs the clean
+bootstrap against a separate network-disabled Compose project and removes that
+project, preventing migration 542's cluster-global role memberships from leaking
+into the main integration cluster. The Gitleaks finding was a SHA-256 source
+fingerprint and is covered by the existing narrow digest allowlist. Source tests
+and inventories pass; the GitHub integration rerun is still pending. No migration
+or persistent ACL changed.
+
+The scheduled sensor worker is source-mapped to its literal CSV-driver target,
+dedicated `sensor_ingestion` login, signed location context, and bounded batch
+functions. Its temporary-file test runs the real registry and safe CSV reader
+without a database. A separate migration-431 disposable acceptance passed
+forced-RLS scope, atomic side effects, duplicate/rollback, status audit, and direct
+privilege checks. It used a loopback-only host port on default bridge networking;
+only its synthetic fixture changed. The four registry edges remain among the 56
+dynamic worker edges, and the optional schedule/credential are not activated. No
+persistent grants or RLS changed. See
+[migration-746 acceptance](builds/2026-11-03-recovery/clickhouse-outbox-operator-746-disposable.json),
+[Standard recovery](builds/2026-11-03-recovery/standard-profile-recovery-746-disposable.json),
+and the [C1 closure plan](c1-runtime-acl-closure-plan.md).
+
+The migration-745 privilege report continues to show effective shared-runtime
+DML on `business_model_canvas` and `canvas_version`, with RLS disabled. The four
+BMC CLI persistence commands (`create`, `create-from-data`, `update-block`, and
+`version`) are now retired and fail before database access. `health` calculates
+on demand without writing, and the report generator returns a populated health
+summary from its already-loaded canvas data inside the read-only wrapper.
+
+The Python `create`, `create_from_data`, `update_block`, and `create_version`
+helpers remain direct-write sources; no claim is made that external callers are
+absent. Their caller review and effective shared-runtime table privileges remain
+open. No migration, grant, RLS policy, or persistent database was changed.

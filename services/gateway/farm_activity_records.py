@@ -24,6 +24,7 @@ _EDITABLE_FIELDS = (
     "evidence_urls",
     "notes",
 )
+_CREATE_FIELDS = ("farm_id", *_EDITABLE_FIELDS)
 _TRANSITIONS = {
     "submit": ("submit", "submitted", "submitted", {"draft"}, False),
     "verify": ("verify", "verified", "verified", {"submitted"}, False),
@@ -61,7 +62,8 @@ def _normalize_content(content: dict, *, creating: bool) -> dict:
         raise FarmActivityRecordInvalid("Farm activity content must be an object")
     if not content and not creating:
         raise FarmActivityRecordInvalid("Provide at least one farm activity field to edit")
-    unknown = set(content) - set(_EDITABLE_FIELDS)
+    allowed_fields = set(_EDITABLE_FIELDS) | ({"farm_id"} if creating else set())
+    unknown = set(content) - allowed_fields
     if unknown:
         raise FarmActivityRecordInvalid("Farm activity content contains a protected or unsupported field")
     if creating and not {"activity_type", "activity_date"}.issubset(content):
@@ -69,7 +71,7 @@ def _normalize_content(content: dict, *, creating: bool) -> dict:
 
     normalized = {}
     for field, value in content.items():
-        if field in {"plot_id", "crop_cycle_id", "farm_task_id"}:
+        if field in {"farm_id", "plot_id", "crop_cycle_id", "farm_task_id"}:
             if value is None:
                 normalized[field] = None
                 continue
@@ -177,11 +179,11 @@ def _activity_result(row) -> dict:
         "id", "location_id", "plot_id", "crop_cycle_id", "farm_task_id",
         "activity_type", "activity_date",
         "description", "labor_hours", "labor_cost", "materials_used", "evidence_urls",
-        "notes", "status", "source_system", "created_at", "updated_at",
+        "notes", "status", "source_system", "created_at", "updated_at", "farm_id",
     )
     result = dict(zip(names, row))
-    for field in ("id", "location_id", "plot_id", "crop_cycle_id", "farm_task_id"):
-        if result[field] is not None:
+    for field in ("id", "location_id", "plot_id", "crop_cycle_id", "farm_task_id", "farm_id"):
+        if field in result and result[field] is not None:
             result[field] = str(result[field])
     if result["activity_date"] is not None:
         result["activity_date"] = result["activity_date"].isoformat()
@@ -194,11 +196,11 @@ def _activity_result(row) -> dict:
 def _activity_summary_result(row) -> dict:
     names = (
         "id", "location_id", "plot_id", "crop_cycle_id", "farm_task_id", "activity_type",
-        "activity_date", "status", "source_system", "created_at", "updated_at",
+        "activity_date", "status", "source_system", "created_at", "updated_at", "farm_id",
     )
     result = dict(zip(names, row))
-    for field in ("id", "location_id", "plot_id", "crop_cycle_id", "farm_task_id"):
-        if result[field] is not None:
+    for field in ("id", "location_id", "plot_id", "crop_cycle_id", "farm_task_id", "farm_id"):
+        if field in result and result[field] is not None:
             result[field] = str(result[field])
     if result["activity_date"] is not None:
         result["activity_date"] = result["activity_date"].isoformat()
@@ -230,7 +232,7 @@ def list_farm_activity_records(
         with conn.cursor() as cur:
             cur.execute(
                 """SELECT id, location_id, plot_id, crop_cycle_id, farm_task_id, activity_type,
-                          activity_date, status, source_system, created_at, updated_at
+                          activity_date, status, source_system, created_at, updated_at, farm_id
                      FROM farm_activity
                     WHERE location_id = %s::uuid
                       AND source_system IS DISTINCT FROM 'field_collector'
@@ -240,6 +242,108 @@ def list_farm_activity_records(
                 (location_id, published_only, limit),
             )
             return [_activity_summary_result(row) for row in cur.fetchall()]
+    finally:
+        try:
+            conn.rollback()
+        finally:
+            conn.close()
+
+
+def list_farm_activity_relation_choices(
+    operator_id: str,
+    location_id: str,
+    *,
+    connection_factory: Callable | None = None,
+) -> dict:
+    """Return bounded, human-readable relation choices for one authorized location."""
+    operator_id, location_id = _normalize_ids(operator_id, location_id)
+    conn = (connection_factory or _connection_factory())()
+    try:
+        _set_context(conn, operator_id, location_id, "read")
+        with conn.cursor() as cur:
+            cur.execute(
+                """SELECT id::text, name, slug, total_area::text, area_unit
+                     FROM farm
+                    WHERE location_id = %s::uuid AND status = 'active'
+                    ORDER BY name, id
+                    LIMIT 1001""",
+                (location_id,),
+            )
+            farms = [
+                {"id": row[0], "name": row[1], "slug": row[2], "total_area": row[3], "area_unit": row[4]}
+                for row in cur.fetchall()
+            ]
+            cur.execute(
+                """SELECT plot.id::text, plot.name, plot.slug, plot.farm_id::text, farm.name
+                     FROM plot
+                     JOIN farm ON farm.id = plot.farm_id
+                    WHERE farm.location_id = %s::uuid
+                      AND farm.status = 'active'
+                      AND plot.status = 'active'
+                    ORDER BY farm.name, plot.name, plot.id
+                    LIMIT 1001""",
+                (location_id,),
+            )
+            plots = [
+                {"id": row[0], "name": row[1], "slug": row[2], "farm_id": row[3], "farm_name": row[4]}
+                for row in cur.fetchall()
+            ]
+            cur.execute(
+                """SELECT cycle.id::text, cycle.cycle_name, cycle.status,
+                          cycle.plot_id::text, plot.name, plot.farm_id::text,
+                          crop.name
+                     FROM crop_cycle AS cycle
+                     JOIN plot ON plot.id = cycle.plot_id
+                     JOIN farm ON farm.id = plot.farm_id
+                     JOIN crop ON crop.id = cycle.crop_id
+                    WHERE cycle.location_id = %s::uuid
+                      AND farm.location_id = %s::uuid
+                    ORDER BY cycle.cycle_name NULLS LAST, crop.name, cycle.id
+                    LIMIT 1001""",
+                (location_id, location_id),
+            )
+            crop_cycles = [
+                {
+                    "id": row[0], "cycle_name": row[1], "status": row[2],
+                    "plot_id": row[3], "plot_name": row[4], "farm_id": row[5],
+                    "crop_name": row[6],
+                }
+                for row in cur.fetchall()
+            ]
+            cur.execute(
+                """SELECT task.id::text, task.task_name, task.status,
+                          task.farm_id::text, task.plot_id::text, task.crop_cycle_id::text,
+                          farm.name
+                     FROM farm_task AS task
+                     LEFT JOIN farm ON farm.id = task.farm_id
+                    WHERE task.location_id = %s::uuid
+                      AND (task.farm_id IS NULL OR farm.location_id = %s::uuid)
+                    ORDER BY task.task_name, task.id
+                    LIMIT 1001""",
+                (location_id, location_id),
+            )
+            tasks = [
+                {
+                    "id": row[0], "name": row[1], "status": row[2],
+                    "farm_id": row[3], "plot_id": row[4],
+                    "crop_cycle_id": row[5], "farm_name": row[6],
+                }
+                for row in cur.fetchall()
+            ]
+        conn.rollback()
+        return {
+            "location_id": location_id,
+            "farms": farms[:1000],
+            "plots": plots[:1000],
+            "crop_cycles": crop_cycles[:1000],
+            "farm_tasks": tasks[:1000],
+            "truncated": {
+                "farms": len(farms) > 1000,
+                "plots": len(plots) > 1000,
+                "crop_cycles": len(crop_cycles) > 1000,
+                "farm_tasks": len(tasks) > 1000,
+            },
+        }
     finally:
         try:
             conn.rollback()
@@ -290,7 +394,8 @@ def get_farm_activity_record(
                                      ORDER BY event.created_at DESC, event.id DESC
                                      LIMIT 100
                                 ) AS bounded
-                          ), '[]'::jsonb) AS operator_events
+                          ), '[]'::jsonb) AS operator_events,
+                          activity.farm_id
                      FROM farm_activity AS activity
                     WHERE activity.id = %s::uuid
                       AND activity.location_id = %s::uuid
@@ -302,6 +407,8 @@ def get_farm_activity_record(
         if row is None:
             return None
         result = _activity_result(row[:17])
+        if len(row) > 18:
+            result["farm_id"] = str(row[18]) if row[18] is not None else None
         result["operator_events"] = [
             {
                 **event,
@@ -328,13 +435,27 @@ def create_farm_activity_record(
 ) -> dict:
     operator_id, location_id = _normalize_ids(operator_id, location_id)
     values = _normalize_content(content, creating=True)
+    values.setdefault("farm_id", None)
     values.setdefault("materials_used", [])
     values.setdefault("evidence_urls", [])
-    columns = ("location_id", *_EDITABLE_FIELDS)
+    columns = ("location_id", *_CREATE_FIELDS)
     params = [location_id]
-    for field in _EDITABLE_FIELDS:
+    placeholders = ["%s::uuid"]
+    casts = {
+        "farm_id": "uuid",
+        "plot_id": "uuid",
+        "crop_cycle_id": "uuid",
+        "farm_task_id": "uuid",
+        "activity_date": "date",
+        "labor_hours": "numeric",
+        "labor_cost": "numeric",
+        "materials_used": "jsonb",
+        "evidence_urls": "text[]",
+    }
+    for field in _CREATE_FIELDS:
         value = values.get(field)
         params.append(json.dumps(value, separators=(",", ":")) if field == "materials_used" else value)
+        placeholders.append(f"%s::{casts[field]}" if field in casts else "%s")
 
     conn = (connection_factory or _connection_factory())()
     try:
@@ -350,14 +471,13 @@ def create_farm_activity_record(
                         {", ".join(columns)}, status, schema_version, source_system,
                         created_by, updated_by
                     ) VALUES (
-                        %s::uuid, %s::uuid, %s::uuid, %s::uuid, %s, %s::date, %s,
-                        %s::numeric, %s::numeric, %s::jsonb, %s::text[], %s,
+                        {", ".join(placeholders)},
                         'draft', 'gateway_v1', 'kokonut_gateway', %s::uuid, %s::uuid
                     )
                     RETURNING id, location_id, plot_id, crop_cycle_id, farm_task_id, activity_type,
                               activity_date, description, labor_hours, labor_cost,
                               materials_used, evidence_urls, notes, status, source_system,
-                              created_at, updated_at""",
+                              created_at, updated_at, farm_id""",
                 (*params, operator_id, operator_id),
             )
             row = cur.fetchone()
@@ -436,7 +556,7 @@ def edit_farm_activity_record_draft(
                     RETURNING id, location_id, plot_id, crop_cycle_id, farm_task_id, activity_type,
                               activity_date, description, labor_hours, labor_cost,
                               materials_used, evidence_urls, notes, status, source_system,
-                              created_at, updated_at""",
+                              created_at, updated_at, farm_id""",
                 (*params, activity_id, location_id),
             )
             activity = _activity_result(cur.fetchone())

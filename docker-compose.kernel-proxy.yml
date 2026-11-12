@@ -14,9 +14,6 @@ services:
       - ./config/caddy/Caddyfile.kernel:/etc/caddy/Caddyfile:ro
       - kernel-caddy-data:/data
       - kernel-caddy-config:/config
-    depends_on:
-      app:
-        condition: service_healthy
     networks:
       - kernel
 

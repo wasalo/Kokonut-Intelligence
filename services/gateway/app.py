@@ -302,9 +302,18 @@ def create_app(*, rate_limiter: RateLimitBackend | None = None):
                 headers={"Retry-After": "30"},
             )
         if not auth_result.get("authenticated"):
-            denial_status = 403 if auth_result.get("reason") in {
-                "api_key_scope_denied", "csrf_validation_failed", "operator_scope_denied",
-            } else 401
+            denial_reason = auth_result.get("reason")
+            if denial_reason == "operator_global_capability_unavailable":
+                denial_status = 503
+            elif denial_reason in {
+                "api_key_scope_denied",
+                "csrf_validation_failed",
+                "operator_scope_denied",
+                "operator_global_capability_denied",
+            }:
+                denial_status = 403
+            else:
+                denial_status = 401
             await run_in_threadpool(
                 audit.log,
                 caller=auth_result.get("caller", caller),
@@ -415,12 +424,13 @@ def create_app(*, rate_limiter: RateLimitBackend | None = None):
 
     @app.middleware("http")
     async def private_report_export_headers(request: Request, call_next):
-        """Keep export API success, denial, validation, and error responses private."""
+        """Keep export and ClickHouse outbox responses private."""
         response = await call_next(request)
         if (
             request.url.path == "/operator/api/report-export-snapshots"
             or request.url.path == "/operator/api/report-exports"
             or request.url.path.startswith("/operator/api/report-exports/")
+            or request.url.path.startswith("/operator/api/clickhouse-outbox/")
         ):
             response.headers["Cache-Control"] = "no-store"
             response.headers["Pragma"] = "no-cache"
@@ -436,6 +446,12 @@ def create_app(*, rate_limiter: RateLimitBackend | None = None):
 
     @app.exception_handler(RequestValidationError)
     async def request_validation_error(request: Request, exc: RequestValidationError):
+        if request.url.path.startswith("/operator/api/clickhouse-outbox/"):
+            return JSONResponse(
+                status_code=422,
+                content={"error": "ClickHouse outbox request is invalid"},
+                headers={"Cache-Control": "no-store", "Vary": "Cookie"},
+            )
         if request.url.path == "/api/data-stream/post":
             return JSONResponse(
                 status_code=422,
@@ -477,6 +493,37 @@ def create_app(*, rate_limiter: RateLimitBackend | None = None):
             "git_sha": __git_sha__,
             "timestamp": datetime.now(timezone.utc).isoformat(),
         }
+
+    @app.get("/health/ready")
+    async def readiness():
+        """Return a minimal readiness signal when PostgreSQL is reachable."""
+        def check_database() -> bool:
+            from services.common.database import get_db
+
+            connection = get_db()
+            try:
+                with connection.cursor() as cursor:
+                    cursor.execute("SELECT 1")
+                    row = cursor.fetchone()
+                return row is not None and row[0] == 1
+            finally:
+                connection.close()
+
+        try:
+            ready = await run_in_threadpool(check_database)
+        except Exception as exc:
+            logger.warning("Gateway readiness probe failed (%s)", type(exc).__name__)
+            ready = False
+
+        status = "ready" if ready else "not_ready"
+        return JSONResponse(
+            status_code=200 if ready else 503,
+            content={"status": status},
+            headers={
+                "Cache-Control": "no-store",
+                "X-Content-Type-Options": "nosniff",
+            },
+        )
 
     @app.get("/")
     async def root():

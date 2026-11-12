@@ -124,6 +124,7 @@ class FarmActivitySummaryResponse(BaseModel):
     source_system: str | None
     created_at: _ResponseDateTime | None
     updated_at: _ResponseDateTime | None
+    farm_id: _ResponseUUID | None = None
 
 
 class FarmActivitySummaryListResponse(BaseModel):
@@ -175,6 +176,7 @@ class FarmActivityDetailResponseData(BaseModel):
     created_at: _ResponseDateTime | None
     updated_at: _ResponseDateTime | None
     operator_events: list[FarmActivityOperatorEventResponse] = Field(max_length=100)
+    farm_id: _ResponseUUID | None = None
 
 
 class FarmActivityDetailResponse(BaseModel):
@@ -204,6 +206,7 @@ class FarmActivityDraftWriteResponseData(BaseModel):
     created_at: _ResponseDateTime
     updated_at: _ResponseDateTime
     event_id: _ResponseUUID
+    farm_id: _ResponseUUID | None = None
 
 
 class FarmActivityDraftWriteResponse(BaseModel):
@@ -249,6 +252,76 @@ class FarmActivityTransitionResponse(BaseModel):
         return self
 
 
+class FarmChoiceResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True)
+
+    id: _ResponseUUID
+    name: str = Field(min_length=1, max_length=255)
+    slug: str = Field(min_length=1, max_length=255)
+    total_area: str | None
+    area_unit: str | None
+
+
+class PlotChoiceResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True)
+
+    id: _ResponseUUID
+    name: str = Field(min_length=1, max_length=255)
+    slug: str = Field(min_length=1, max_length=255)
+    farm_id: _ResponseUUID
+    farm_name: str = Field(min_length=1, max_length=255)
+
+
+class CropCycleChoiceResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True)
+
+    id: _ResponseUUID
+    cycle_name: str | None
+    status: str = Field(min_length=1, max_length=50)
+    plot_id: _ResponseUUID
+    plot_name: str = Field(min_length=1, max_length=255)
+    farm_id: _ResponseUUID
+    crop_name: str = Field(min_length=1, max_length=255)
+
+
+class FarmTaskChoiceResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True)
+
+    id: _ResponseUUID
+    name: str = Field(min_length=1, max_length=255)
+    status: str = Field(min_length=1, max_length=50)
+    farm_id: _ResponseUUID | None
+    plot_id: _ResponseUUID | None
+    crop_cycle_id: _ResponseUUID | None
+    farm_name: str | None
+
+
+class RelationChoicesTruncatedResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True)
+
+    farms: bool
+    plots: bool
+    crop_cycles: bool
+    farm_tasks: bool
+
+
+class FarmActivityRelationChoicesData(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True)
+
+    location_id: _ResponseUUID
+    farms: list[FarmChoiceResponse] = Field(max_length=1000)
+    plots: list[PlotChoiceResponse] = Field(max_length=1000)
+    crop_cycles: list[CropCycleChoiceResponse] = Field(max_length=1000)
+    farm_tasks: list[FarmTaskChoiceResponse] = Field(max_length=1000)
+    truncated: RelationChoicesTruncatedResponse
+
+
+class FarmActivityRelationChoicesResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True)
+
+    data: FarmActivityRelationChoicesData
+
+
 def register_farm_activity_record_routes(router, provider, run_in_threadpool, psycopg2):
     from fastapi import Query
     from fastapi.encoders import jsonable_encoder
@@ -264,6 +337,7 @@ def register_farm_activity_record_routes(router, provider, run_in_threadpool, ps
         get_farm_activity_record,
         list_farm_activity_records,
         transition_farm_activity_record,
+        list_farm_activity_relation_choices,
     )
 
     def _invalid_projection(exc):
@@ -311,7 +385,7 @@ def register_farm_activity_record_routes(router, provider, run_in_threadpool, ps
         except (ValidationError, ValueError, TypeError) as exc:
             return _invalid_projection(exc)
         return JSONResponse(
-            jsonable_encoder(response.model_dump()),
+            jsonable_encoder(response.model_dump(exclude_unset=True)),
             headers={"Cache-Control": "no-store", "Vary": "Cookie"},
         )
 
@@ -325,7 +399,7 @@ def register_farm_activity_record_routes(router, provider, run_in_threadpool, ps
         except (ValidationError, TypeError, ValueError) as exc:
             return _invalid_projection(exc)
         return JSONResponse(
-            jsonable_encoder(response.model_dump()),
+            jsonable_encoder(response.model_dump(exclude_unset=True)),
             status_code=status_code,
             headers={"Cache-Control": "no-store", "Vary": "Cookie"},
         )
@@ -392,7 +466,32 @@ def register_farm_activity_record_routes(router, provider, run_in_threadpool, ps
         except (ValidationError, ValueError, TypeError) as exc:
             return _invalid_projection(exc)
         return JSONResponse(
-            jsonable_encoder(response.model_dump()),
+            jsonable_encoder(response.model_dump(exclude_unset=True)),
+            headers={"Cache-Control": "no-store", "Vary": "Cookie"},
+        )
+
+    @router.get(
+        "/operator/api/farm-activity-records/relations",
+        response_model=FarmActivityRelationChoicesResponse,
+    )
+    async def farm_activity_relation_choices(request: Request, location_id: str):
+        if provider is None:
+            return _disabled()
+        result = await _invoke(
+            list_farm_activity_relation_choices,
+            request.state.operator_session.operator.operator_id,
+            location_id,
+        )
+        if isinstance(result, JSONResponse):
+            return result
+        try:
+            response = FarmActivityRelationChoicesResponse.model_validate({"data": result})
+            if response.data.location_id != UUID(location_id):
+                raise ValueError("farm relation choices do not match request location")
+        except (ValidationError, ValueError, TypeError) as exc:
+            return _invalid_projection(exc)
+        return JSONResponse(
+            jsonable_encoder(response.model_dump(exclude_unset=True)),
             headers={"Cache-Control": "no-store", "Vary": "Cookie"},
         )
 
@@ -425,7 +524,7 @@ def register_farm_activity_record_routes(router, provider, run_in_threadpool, ps
         except (ValidationError, ValueError, TypeError) as exc:
             return _invalid_projection(exc)
         return JSONResponse(
-            jsonable_encoder(response.model_dump()),
+            jsonable_encoder(response.model_dump(exclude_unset=True)),
             headers={"Cache-Control": "no-store", "Vary": "Cookie"},
         )
 

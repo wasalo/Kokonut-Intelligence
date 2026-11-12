@@ -7,6 +7,14 @@ PostgreSQL with PostGIS is the canonical operational store and schema. The Kokon
 > [!IMPORTANT]
 > The repository contains both the legacy Compose bundle and an isolated Kernel candidate. The candidate is under active parity and deployment acceptance; its successful build or health check is not a production-readiness claim. Use the [current refactor status and implementation guide](docs/refactor/current-state-and-implementation.md) for the authoritative gates, completed work, and remaining decisions. No physical Raspberry Pi acceptance is claimed.
 
+The Kokonut Intelligence Hub candidate is available at
+[`hub.kokonut.network`](https://hub.kokonut.network): `/` is the public
+ecosystem overview, while `/ops`, `/field`, and `/governance` are the shared
+operator Control Plane workspaces. Delphi participants and the offline Field
+Collector remain separate clients. Candidate availability does not mean all
+capabilities have passed acceptance; see the
+[Control Plane guide](apps/frontend/README.md) and the current refactor guide.
+
 ## Table Of Contents
 
 - [Architecture](#architecture)
@@ -114,27 +122,16 @@ the candidate defaults; it is not a production acceptance matrix.
 | gRPC (optional overlay) | Private Compose service | External API transport; opt in explicitly |
 | Metabase | Legacy `metabase` Compose profile | Not part of the candidate planner's standard defaults |
 
-The current ordered migration chain reaches 745. Migrations 742–745 make the
-global `readiness_dimension` catalog and three public aggregate views read-only
-to the relevant application roles while preserving their read contracts. These
-narrow ACL changes do not close the broad C1 review or establish universal
-tenant/RLS isolation. External consumers using the shared login and live/custom
-Directus API permissions still require reconciliation. The authoritative
-counts, acceptance evidence, and open gates are maintained in the
-[consolidated refactor status and implementation guide](docs/refactor/current-state-and-implementation.md).
-
-The Standard supervisor preserves the configured runtime `PG_*` connection
-for its Gateway API child while filtering worker-specific credentials from
-other children. The API and general worker still use the same
-`kokonut_runtime` login; separate service containers do not imply separate
-database identities. Portless, network-disabled Standard first-install/recovery
-passes through migration 745 from the same captured 736-schema snapshot in both
-application images. Native and ARM64/QEMU replays also pass through 745 with
-the 47-check synthetic operator/two-tenant probe. These short disposable checks
-do not constitute candidate/production rollout, live-provider acceptance,
-scale, 24-hour recovery, or physical Raspberry Pi acceptance. See the
-[current refactor guide](docs/refactor/current-state-and-implementation.md)
-for evidence links and remaining gates.
+Schema migrations are ordered, checksummed, and append-only. Inspect the
+selected database's ledger with `python3 -m services.migration status`; the
+candidate's applied migration and recovery evidence belong to the
+[current refactor status and implementation guide](docs/refactor/current-state-and-implementation.md).
+The API and general worker run in separate services in Standard, but still
+share the `kokonut_runtime` database login. Dedicated bounded identities for
+other worker operations do not close that API/worker C1 boundary or establish
+universal tenant/RLS isolation. Disposable migration, profile, and ARM64/QEMU
+checks are software evidence; they do not substitute for candidate rollout,
+populated-data parity, recovery, production, or physical-device acceptance.
 
 To combine the Standard API/worker split with Edge's local encrypted media and
 resource settings, inspect the planner output before starting it:
@@ -238,6 +235,7 @@ integrations must be selected and configured explicitly.
 | **External** | gRPC API | Optional type-safe transport with Protobuf schemas and API-key policy; it is not required by the native Kernel profile |
 | | Business Model Canvas | 1-click BMC derivation from canonical tables; 14-section comprehensive status with an exact-location Gateway read and network-wide CLI rollup |
 | | State of Kokonut | Ecosystem report across locations with ecosystem-actor funding view; Mermaid + JSON visual timelines (ecosystem tree, Ikigai, farm phases, crop timelines) |
+| | Kokonut Protocol execution bridge | Prepared approval-bound, location-linked intent and reconciliation records with a transport-injected connector; execution remains disabled, with no built-in signing or broadcast |
 
 > [!NOTE]
 > Agents can draft and submit governed records but **cannot** verify, publish, attest, or score. Contract identity, payments, escrow, and marketplace logic remain external to this repository.
@@ -554,16 +552,18 @@ Documentation lives under `docs/`. Key entry points:
 | Document | Description |
 |----------|-------------|
 | **Core Platform** | |
-| [User Guide](docs/user-guide.md) | Role workflows, data entry, lifecycle, dashboards, analytics, export |
+| [User Guide](docs/user-guide.md) | Current Hub entry points, identity/grant model, and domain workflow references |
+| [Control Plane guide](apps/frontend/README.md) | Public landing page, operator workspaces, current forms, local development, and Worker routing |
 | [Architecture](docs/architecture.md) | System overview, data flow, security model |
 | [Platform Integrity](docs/platform-integrity.md) | Cross-cutting integrity boundaries and operational guarantees |
-| [Current refactor status](docs/refactor/current-state-and-implementation.md) | Consolidated architecture, implementation progress, and open gates |
+| [Current refactor status](docs/refactor/current-state-and-implementation.md) | Sole completion register, candidate acceptance gates, and execution plan |
 | [Refactor documentation map](docs/refactor/README.md) | Where to find current status, phase alignment, acceptance records, and historical evidence |
 | [Standard profile](docs/refactor/standard-profile.md) | Separate API/worker deployment, digest-pinned release flow, and recovery limits |
 | [Migrations](docs/migrations.md) | Ordered migration execution, checksums, drift detection, and recovery |
 | [Gateway](docs/gateway.md) | Route policy, authentication, default-deny behavior, rate limits, and audit |
-| [Data Dictionary](docs/data-dictionary.md) | Collections, fields, governed metrics |
-| [API Reference](docs/api-reference.md) | Native Gateway routes plus optional Directus, gRPC, and analytics interfaces |
+| [Data Dictionary](docs/data-dictionary.md) | Entities, relationships, schema concepts, and governed metrics |
+| [Gateway route reference](services/gateway/README.md) | Implemented native Gateway routes and capability requirements |
+| [Directus compatibility API reference](docs/api-reference.md) | Optional Directus REST/GraphQL adapter only; not the native Gateway API |
 | [gRPC API](docs/grpc-api.md) | Type-safe external API, streaming, Protobuf schemas |
 | **Metrics & Analytics** | |
 | [Metric Verification](docs/metric-verification.md) | Draft computation, independent human verification, and public exposure |

@@ -1,0 +1,12 @@
+{
+  "checks": [
+    "fresh provisioning and repeat provisioning retain one non-SETtable runtime membership",
+    "API login passes standalone identity readiness and retains its current runtime ACL",
+    "worker login inherits the API grant, is separately attributable, and cannot SET ROLE to API"
+  ],
+  "postgres_image": "postgis/postgis:16-3.4@sha256:44126d872ac91993766c341e369c539e8196614321765d36a6f1bab0419a5fa5",
+  "privilege_scope": "identity attribution only; inherited ACL is unchanged; C1 remains open",
+  "recorded_at_utc": "2026-11-05T17:55:45.834071+00:00",
+  "status": "passed",
+  "target": "synthetic disposable PostgreSQL 16; no repository or candidate database"
+}

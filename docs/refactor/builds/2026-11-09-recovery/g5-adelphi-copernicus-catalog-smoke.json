@@ -1,0 +1,33 @@
+{
+  "version": 1,
+  "recorded_at_utc": "2026-11-09T19:28:18Z",
+  "scope": "Read-only Copernicus Sentinel-2 catalog query for the candidate Kokonut Adelphi boundary.",
+  "candidate": {
+    "coolify_application_id": "fdphpruj8jxien23ockmbw0j",
+    "deployment_id": "vrumrlexudsdjsv9xf6zbcrn",
+    "source_commit": "0c69f39f5cb598c08c45a204f90eb331dbb9ccdb",
+    "schema_version": 753,
+    "location_id": "1b1775d2-3043-42f9-9967-5d3f18db7ae0"
+  },
+  "request": {
+    "provider": "Copernicus Data Space",
+    "operation": "Sentinel-2 product catalog search",
+    "credential_source": "local encrypted SOPS environment",
+    "http_request_result": "success",
+    "products_matched": 5,
+    "boundary_values_recorded": false,
+    "product_names_or_ids_recorded": false,
+    "credential_values_printed": false
+  },
+  "data_handling": {
+    "candidate_boundary_query": "read-only transaction",
+    "imagery_or_measurement_data_downloaded": false,
+    "database_write_attempted": false,
+    "catalog_records_persisted": false,
+    "schedule_run": false
+  },
+  "limitations": [
+    "This was a host-run catalog check using the candidate boundary; it does not exercise the candidate remote-sensing worker, signed worker identity, ingestion path, or output parity.",
+    "The returned catalog metadata was discarded after counting matches."
+  ]
+}

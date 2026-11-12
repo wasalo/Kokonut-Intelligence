@@ -162,7 +162,7 @@ def test_clickhouse_outbox_compatibility_sql_follows_exact_callback_edges():
     report = build_inventory()
     adapter_ref = "scheduled_module:services.ingestion.clickhouse_outbox"
     worker_ref = "scheduled_module:services.ingestion.clickhouse_outbox_worker"
-    adapter_scopes = {"reconcile_pending", "_operator_transition", "list_dead_letters"}
+    adapter_scopes = {"reconcile_pending", "list_dead_letters"}
     adapter_sites = [
         site
         for site in report["execution_sites"]

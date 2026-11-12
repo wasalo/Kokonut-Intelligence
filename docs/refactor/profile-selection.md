@@ -42,6 +42,8 @@ certify Raspberry Pi hardware. See the
 | minimal | PostgreSQL + combined API/workers | End-to-end governed workflow, populated-data parity, backup/restore, and operational recovery |
 | edge | Minimal + encrypted local media/resource limits | Media failure/recovery, offline/device acceptance, and physical-hardware behavior |
 | standard | PostgreSQL + separate API and worker sharing one app image + dedicated runtime-role overlay + loopback Caddy ingress by default; PostgreSQL shared limiter by default | Publish and verify immutable multi-architecture images, current-target ordered migration/role rollout, worker progress monitoring, public ingress/TLS and trusted-proxy policy, backups, and recovery acceptance |
+| standard --separate-api-worker-logins | Standard plus a distinct general-worker login that inherits the current runtime grants through a membership that cannot be used with `SET ROLE` | Configure a separate worker secret and bootstrap it; this adds identity attribution only and does not narrow privileges or close C1 |
+| standard --separate-api-worker-logins --scheduler-role | API on `kokonut_runtime`, worker supervisor on `kokonut_worker_runtime`, scheduler child on `kokonut_scheduler_login` | Configure both worker secrets and run disposable role/recovery acceptance; general worker grants remain inherited until reviewed caller cohorts justify narrowing |
 | standard --edge | Standard plus Edge local-media and resource overlays. The media key/provider and private-media volume are API-only; resource limits apply to PostgreSQL and the API without changing the worker command. | Standard gates plus local-media key provisioning and storage recovery; worker sizing remains separate. No physical Raspberry Pi acceptance is claimed. |
 | analytics | Minimal + private ClickHouse | Schema bootstrap, projection parity, and outage/rebuild acceptance |
 | analytics --separate-workers | Standard + ClickHouse settings for both roles | Standard gates plus worker analytics parity and recovery |
@@ -63,7 +65,7 @@ starting children. Load the encrypted environment, then execute the planner
 actions and their printed commands in this order:
 
 1. `python3 scripts/kernel-profile.py standard --action database-up` starts
-   only PostgreSQL.
+   only PostgreSQL and waits for its healthcheck before returning.
 2. `python3 scripts/kernel-profile.py standard --action migrate` prints the
    Python command for the complete ordered schema migration. Run that command
    as the database owner.
@@ -82,10 +84,14 @@ To retain the API/worker split while selecting Edge's local-media provider and
 resource limits, use `standard --edge`. The planner appends the Edge overlay
 after Standard's API/worker and runtime-role overlays. Load
 `MOBILE_MEDIA_LOCAL_KEY` through the encrypted environment before resolving or
-starting the composition. The private-media settings apply only to the API;
-the worker receives no media key, volume, or copied API/database resource
-limits. This is Compose/source capability, not physical-device, power-loss, or
-production acceptance.
+starting the composition. This stable key also encrypts S3/R2 field-media
+objects in the API; worker children receive neither key name nor any other
+media-provider setting. Preserve the key in the recovery set and do not rotate
+it while encrypted objects remain unless those objects are first re-encrypted
+and verified. The private-media settings apply only to the API; the worker
+receives no media key, volume, or copied API/database resource limits. This is
+Compose/source capability, not physical-device, power-loss, or production
+acceptance.
 
 `standard --action release-up` is the immutable-image deployment path. It
 requires `KOKONUT_KERNEL_APP_IMAGE` to be a registry reference pinned to a

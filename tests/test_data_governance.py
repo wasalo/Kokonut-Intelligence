@@ -870,6 +870,52 @@ class TestRetentionSweep(unittest.TestCase):
         self.assertIn('"jurisdiction_code" = %s', target_queries[0].args[0])
         self.assertIn('"purpose_code" = %s', target_queries[0].args[0])
 
+    @patch.dict(os.environ, {"KOKONUT_FEATURE_DATA_RETENTION_ENFORCEMENT": "true"})
+    def test_approved_scoped_policy_executes_soft_delete_with_legal_hold_guard(self):
+        conn = MagicMock()
+        cursor = MagicMock()
+        conn.cursor.return_value = cursor
+        location_id = "a0000000-0000-0000-0000-000000000412"
+        cursor.fetchall.return_value = [
+            (
+                "pol-004", "soil", "retention_fixture", location_id, "us-ca",
+                "research", 42, "soft_delete", False, True, "active",
+                "reviewer-1", date(2026, 10, 15), "owner-1",
+            ),
+        ]
+        cursor.fetchone.side_effect = [
+            (0,), (True,), (1, 1, 1, 1, 1), (3,), (True,),
+        ]
+        cursor.rowcount = 2
+
+        result = enforce_retention_policies(conn, "operator-1")
+
+        policy = result["policies"][0]
+        self.assertEqual(policy["status"], "completed")
+        self.assertEqual(policy["candidates"], 3)
+        self.assertEqual(policy["affected"], 2)
+        update_calls = [
+            call for call in cursor.execute.call_args_list
+            if call.args[0].startswith('UPDATE "retention_fixture" SET deleted_at')
+        ]
+        self.assertEqual(len(update_calls), 1)
+        update_sql, update_params = update_calls[0].args
+        self.assertIn("NOT EXISTS (SELECT 1 FROM data_retention_legal_hold", update_sql)
+        self.assertIn('"location_id" = %s', update_sql)
+        self.assertIn('"jurisdiction_code" = %s', update_sql)
+        self.assertIn('"purpose_code" = %s', update_sql)
+        self.assertIn('deleted_at IS NULL', update_sql)
+        self.assertNotIn("DELETE FROM", update_sql)
+        self.assertEqual(
+            update_params,
+            [42, "retention_fixture", location_id, "us-ca", "research"],
+        )
+        self.assertTrue(any(
+            "last_enforced_at" in call.args[0]
+            for call in cursor.execute.call_args_list
+        ))
+        conn.commit.assert_called_once()
+
     def test_scoped_retention_skips_before_candidate_query_when_scope_column_missing(self):
         conn = MagicMock()
         cursor = MagicMock()

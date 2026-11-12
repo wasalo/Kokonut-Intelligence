@@ -1,0 +1,63 @@
+{
+  "version": 1,
+  "recorded_date": "2026-11-10",
+  "scope": "Stage bounded Copernicus worker runtime settings in Coolify and verify the candidate after redeployment.",
+  "candidate": {
+    "coolify_application_id": "fdphpruj8jxien23ockmbw0j",
+    "deployment_id": "tfsthmpzes1w1txxh2wafv9u",
+    "source_commit": "7ed3eae437899bf0fe3917c8ed4e09ba4144bac8",
+    "schema_version": 754
+  },
+  "coolify_environment": {
+    "runtime_only": true,
+    "buildtime": false,
+    "secret_values_visible_in_evidence": false,
+    "staged_secret_names": [
+      "KOKONUT_REMOTE_SENSING_PASSWORD",
+      "KOKONUT_REMOTE_SENSING_DATABASE_URL",
+      "KOKONUT_REMOTE_SENSING_COPERNICUS_EMAIL",
+      "KOKONUT_REMOTE_SENSING_COPERNICUS_PASSWORD"
+    ],
+    "persistent_worker_feature_flag": "false",
+    "worker_credential_persisted": false,
+    "earth_engine_service_account_staged": false
+  },
+  "redeploy": {
+    "status": "finished",
+    "application": "healthy",
+    "worker": "healthy",
+    "database": "healthy",
+    "public_health_http_status": 200,
+    "migration_applied": false
+  },
+  "worker_runtime_verification": {
+    "database_dsn_present": true,
+    "copernicus_email_present": true,
+    "copernicus_password_present": true,
+    "temporary_worker_credential_present": false,
+    "persistent_worker_feature_flag": "false",
+    "database_authentication": "passed",
+    "database": "kokonut_intelligence",
+    "login": "kokonut_remote_sensing_login",
+    "worker_execution_membership": "SET-only kokonut_worker_execution",
+    "direct_job_select": false,
+    "direct_job_insert": false
+  },
+  "one_shot_postflight": {
+    "candidate_job_count": 1,
+    "job_status": "paused",
+    "last_run_status": "success",
+    "provider_outcome": "no_data",
+    "observations_fetched": 0,
+    "active_temporary_principals": 0,
+    "unrevoked_temporary_credentials": 0,
+    "unrevoked_temporary_scope_grants": 0,
+    "login_and_database_connect_retained": true
+  },
+  "secret_values_printed": false,
+  "limitations": [
+    "The worker runtime is configured for a future scoped invocation, but no worker credential or recurring scope grant is stored and the persistent feature flag remains off.",
+    "The previous one-shot returned no observations under its 20% cloud ceiling and 14-day lookback; positive-data ingestion and populated parity remain open.",
+    "Earth Engine remains blocked by OFU-22; the service account was not staged."
+  ]
+}

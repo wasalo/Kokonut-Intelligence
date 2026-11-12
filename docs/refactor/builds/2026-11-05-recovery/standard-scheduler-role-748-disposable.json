@@ -1,0 +1,88 @@
+{
+  "acceptance": "full Standard disposable recovery with scheduler-role overlay",
+  "candidate_legacy_production_touched": false,
+  "read_only_candidate_callable_function_audit": {
+    "candidate_schema_through": 745,
+    "public_executable_security_definer_count": 5,
+    "all_five_return_trigger": true,
+    "candidate_mutated": false
+  },
+  "database_image": "postgis/postgis:16-3.4@sha256:44126d872ac91993766c341e369c539e8196614321765d36a6f1bab0419a5fa5",
+  "host_ports_published": false,
+  "migration_snapshot": {
+    "schema_count": 739,
+    "latest_migration": "schema:748_scheduler_executor_privileges.sql",
+    "sha256": "36b1e05d8cab8a78d72d01dfbcf287892992ca0fc8d09cafb083717feafc22d0",
+    "app_image_matches": true,
+    "worker_image_matches": true
+  },
+  "migrations": {
+    "schemas_applied": 739,
+    "schemas_failed": 0,
+    "seed_rows": 0
+  },
+  "profile": "standard",
+  "project": "kokonut-standard-recovery-ea04d06c84",
+  "result": "passed",
+  "runtime_network_internal": true,
+  "scheduler_cli_boundaries": {
+    "focused_tests": 172,
+    "one_shot_tick_uses_selected_scheduler_connection": true,
+    "isolated_run_now_rejected_before_database_access": true,
+    "definition_enable_disable_fail_closed_without_operator_path": true
+  },
+  "profile_planner": {
+    "scheduler_overlay_opt_in_only": true,
+    "scheduler_overlay_included_after_other_overlays": true,
+    "release_up_accepts_overlay_without_additional_image": true,
+    "scheduler_secret_values_omitted_from_printed_command": true,
+    "arm64_overlay_ordering_verified": true,
+    "focused_profile_tests": 112
+  },
+  "runtime_role": {
+    "bootstrap_profile": "runtime-admin",
+    "bootstrap_ran_explicitly_after_migrations": true,
+    "provisioner_reapply_passed": true,
+    "app_database_user": "kokonut_runtime",
+    "worker_database_user": "kokonut_scheduler_login",
+    "scheduler_role_overlay": "enabled",
+    "callable_security_definer_allowlist": "kokonut_security.enqueue_scheduler_run_event(uuid,text)",
+    "unreviewed_public_callable_security_definer_rejected": true,
+    "role_attributes_preserved_after_reapply": true,
+    "runtime_reference_read_only_after_reapply": true,
+    "freshness_worker_bounded_access_after_reapply": true,
+    "directus_reference_read_only_after_reapply": true
+  },
+  "startup": {
+    "api_healthy": true,
+    "worker_healthy": true,
+    "proxy_running": true,
+    "worker_children_alive": true,
+    "worker_children_progressing": true,
+    "private_supervisor_heartbeat_valid": true
+  },
+  "stalled_child_healthcheck": {
+    "passed": true,
+    "child_process_alive_during_stall": true,
+    "stalled_state_detected": true,
+    "healthy_after_restore": true
+  },
+  "database_outage_recovery": {
+    "degraded_state_observed": "unhealthy",
+    "database_healthy_after_restart": true,
+    "api_healthy_after_restart": true,
+    "worker_healthy_after_restart": true,
+    "worker_restart_count": 0
+  },
+  "shutdown": {
+    "worker_container_stopped": true,
+    "supervisor_heartbeat_removed": true,
+    "active_work_leases_after_shutdown": 0
+  },
+  "limitations": [
+    "Short disposable recovery is not the required 24-hour endurance or scale acceptance.",
+    "No seeds, populated data, real providers, candidate, legacy, or production data were used.",
+    "This did not exercise two-tenant RLS, live scheduler jobs, or surviving API scheduler writers.",
+    "This is not physical ARM hardware acceptance or candidate rollout."
+  ]
+}

@@ -11,6 +11,14 @@ Lifecycle fields generally use `draft`, `submitted`, `verified`, and `published`
 review, and domain states use separate fields unless a table explicitly defines
 another state machine.
 
+For `farm_activity`, the location is the scope root. Its optional farm, plot,
+crop-cycle, and farm-task references must resolve to that location and remain
+mutually consistent; database validation rejects mismatched parent links. A
+single-plot activity can use `plot_id`; `farm_activity_plot` stores additional
+plot associations for a multi-plot activity. The Hub exposes bounded choices
+for these relations, but a form selector is not itself an authorization
+boundary. See the [Gateway route contract](../services/gateway/README.md#location-setup-and-farm-activity-relationship-routes).
+
 ## Governed Metric Definitions
 
 | Metric Key | Display Name | Formula | Source Tables | Update Freq | Report Usage | Validation |
@@ -54,7 +62,8 @@ All metrics include `validation_tests` (JSONB), `report_usage` (TEXT[]), and `de
 
 | Entity | Description | Key Fields |
 |--------|-------------|------------|
-| `farm_activity` | General field activity log | activity_type, activity_date, status |
+| `farm_activity` | Location-scoped field activity with optional farm, plot, crop-cycle, and farm-task relationships | location_id, farm_id, plot_id, crop_cycle_id, farm_task_id, activity_type, activity_date, status |
+| `farm_activity_plot` | Additional plot links for activities associated with multiple plots | activity_id, plot_id, source-edge identity |
 | `harvest_event` | Quantity harvested | quantity, unit, quality_grade, loss_* |
 | `sales_event` | Sales transaction | buyer, quantity, total_amount, payment_status |
 | `expense_event` | Expense record | category, amount, allocation_method, status |
@@ -568,6 +577,7 @@ All metrics include `validation_tests` (JSONB), `report_usage` (TEXT[]), and `de
 | `verification_review` | Verification review result | entity_type, entity_id, result, reviewer_id |
 | `approval` | Human approval record | entity_type, entity_id, decision, decided_by |
 | `workflow_history` | Lifecycle transition audit | entity_type, entity_id, from_state, to_state, changed_by |
+| `kokonut_security.location_setup_audit` | Append-only evidence for operator-created location/farm setup and tenant decision reference | operator_id, organization_id, location_id, farm_id, owner_decision_reference, database_principal, created_at |
 | `file_upload` | Uploaded file metadata | filename, storage_path, mime_type |
 
 ### Event Bus And Cache

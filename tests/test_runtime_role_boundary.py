@@ -30,6 +30,7 @@ def test_runtime_acl_policy_matches_all_recorded_migration_revokes():
     assert report["runtime_role_policy_source"]["sha256"] == hashlib.sha256(source).hexdigest()
     revokes = REPORTER["_source_revokes"]()
     configured_boundaries, _ = REPORTER["_runtime_role_boundaries"]()
+    assert configured_boundaries["clickhouse_outbox"] == "runtime_outbox_enqueue_only"
     expected_relations = {
         relation
         for relation in set(revokes) | set(REPORTER["_SOURCE_REVOKE_POLICY_OVERRIDES"])
@@ -374,10 +375,17 @@ def test_runtime_compatibility_grant_is_one_time_and_scoped_denials_are_reapplie
     broad_grant = source.index("GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public")
     broad_grant_guard = source.rindex("if runtime_compatibility_grants_applied:", 0, broad_grant)
     scoped_reapply = source.index("scoped_write_grants = _apply_scoped_write_boundary(")
+    outbox_reapply = source.index(
+        "clickhouse_outbox_runtime_write_boundary = _apply_clickhouse_outbox_runtime_write_boundary(",
+        broad_grant,
+    )
     scoped_verification = source.index("_verify_scoped_write_boundary(cur, runtime_user)")
+    outbox_boundary = source.split("def _apply_clickhouse_outbox_runtime_write_boundary", 1)[1].split("\ndef ", 1)[0]
 
     assert placeholder_marker_check < role_creation < broad_grant_guard < broad_grant
-    assert broad_grant_guard < scoped_reapply < scoped_verification
+    assert broad_grant_guard < scoped_reapply < outbox_reapply < scoped_verification
+    assert "clickhouse_outbox_operator_audit" in outbox_boundary
+    assert "clickhouse_outbox_operator_audit" in runtime_role._RUNTIME_MUTATION_TABLES
     assert "kokonut.compatibility_grant_state = 'applied'" in source
     assert '"legacy_compatibility_grants_applied": runtime_compatibility_grants_applied' in source
 
@@ -2432,6 +2440,7 @@ def test_market_data_function_is_private_and_owned_by_its_bounded_role():
     migration = (
         Path(__file__).resolve().parents[1] / "schemas/postgres/430_isolated_market_data_worker.sql"
     ).read_text()
+    runtime_source = (Path(__file__).resolve().parents[1] / "services/migration/runtime_role.py").read_text()
 
     assert runtime_role._MARKET_DATA_FUNCTION in runtime_role._PRIVATE_RUNTIME_FUNCTIONS
     assert (runtime_role._MARKET_DATA_FUNCTION, "kokonut_market_data_owner") in (runtime_role._SECURITY_DEFINER_OWNERS)
@@ -2442,8 +2451,13 @@ def test_market_data_function_is_private_and_owned_by_its_bounded_role():
     assert "REVOKE ALL (%s) ON TABLE public.%I FROM %I" in migration
     assert (
         "market-data login must connect only to its configured database"
-        in (Path(__file__).resolve().parents[1] / "services/migration/runtime_role.py").read_text()
+        in runtime_source
     )
+    final_reconciliation = runtime_source.rsplit("if market_data_ident is not None:", 1)[1].split(
+        "if eas_indexer_ident is not None:", 1
+    )[0]
+    assert "for function in market_data_functions:" in final_reconciliation
+    assert "procedure.prorettype <> 'trigger'::regtype" in runtime_source
 
 
 def test_gnosis_indexer_has_its_own_execute_only_role_contract():
@@ -2870,7 +2884,21 @@ def test_global_indexer_logins_receive_only_configured_database_connect_grants()
         assert f"if {role_identifier} is not None:" in protected_login_block
         assert f"protected_login_idents.append({role_identifier})" in protected_login_block
 
+    assert "if clickhouse_outbox_operator_password is not None:" in protected_login_block
+    assert "protected_login_idents.append(clickhouse_outbox_operator_ident)" in protected_login_block
+    checked_login_block = source.split("checked_login_names = [runtime_user, operator_auth_user]", 1)[1]
+    checked_login_block = checked_login_block.split("for role_name in checked_login_names:", 1)[0]
+    assert "if clickhouse_outbox_operator_password is not None:" in checked_login_block
+    assert 'checked_login_names.append("kokonut_clickhouse_outbox_operator_login")' in checked_login_block
     assert '"GRANT CONNECT ON DATABASE {} TO {}"' in source
+
+
+def test_runtime_role_main_forwards_clickhouse_outbox_operator_password():
+    source = (Path(__file__).resolve().parents[1] / "services/migration/runtime_role.py").read_text()
+    main = source.split("def main()", 1)[1]
+
+    assert 'os.environ.get("KOKONUT_CLICKHOUSE_OUTBOX_OPERATOR_PASSWORD", "")' in main
+    assert "clickhouse_outbox_operator_password=(" in main
 
 
 def test_baal_indexer_dedicated_secret_stays_outside_worker_compose_profiles():
@@ -3449,3 +3477,41 @@ def test_readiness_dimension_disposable_checker_covers_seed_replay_and_overrides
     assert "READINESS_SEED_SQL" in checker
     assert "_query_location_weights" in checker
     assert "per-location override writes were not preserved" in checker
+
+
+def test_worker_runtime_login_requires_a_distinct_paired_credential():
+    common = {
+        "database": "kokonut_intelligence",
+        "admin_user": "kokonut",
+        "admin_password": "a" * 32,
+        "runtime_user": "kokonut_runtime",
+        "runtime_password": "r" * 32,
+        "operator_auth_user": "kokonut_operator_auth",
+        "operator_auth_password": "o" * 32,
+    }
+    with pytest.raises(ValueError, match="worker runtime user and password must be provided together"):
+        runtime_role.provision_runtime_role(
+            None,
+            **common,
+            worker_runtime_user="kokonut_worker_runtime",
+        )
+    with pytest.raises(ValueError, match="worker runtime user and password must be provided together"):
+        runtime_role.provision_runtime_role(
+            None,
+            **common,
+            worker_runtime_password="w" * 32,
+        )
+    with pytest.raises(ValueError, match="roles must be distinct"):
+        runtime_role.provision_runtime_role(
+            None,
+            **common,
+            worker_runtime_user="kokonut_runtime",
+            worker_runtime_password="w" * 32,
+        )
+    with pytest.raises(ValueError, match="passwords must be distinct"):
+        runtime_role.provision_runtime_role(
+            None,
+            **common,
+            worker_runtime_user="kokonut_worker_runtime",
+            worker_runtime_password=common["runtime_password"],
+        )

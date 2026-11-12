@@ -379,7 +379,7 @@ def main() -> int:
         ready = False
         for _ in range(60):
             result = run(
-                ["docker", "exec", container, "pg_isready", "-U", "postgres", "-d", "postgres"],
+                ["docker", "exec", container, "pg_isready", "-h", "127.0.0.1", "-U", "postgres", "-d", "postgres"],
                 check=False,
             )
             if result.returncode == 0:

@@ -246,6 +246,20 @@ def test_import_preflight_rejects_invalid_target_before_database_access(monkeypa
         gis_import.run("boundaries.geojson", target="unsafe_table")
 
 
+def test_import_record_rejects_invalid_identifier_before_database_access():
+    class NoDatabaseAccess:
+        def cursor(self):
+            pytest.fail("database must remain closed")
+
+    with pytest.raises(ValueError, match="target must be a supported GIS entity"):
+        gis_import.import_record(
+            NoDatabaseAccess(),
+            "record-id",
+            'location"; DROP TABLE location; --',
+            "SRID=4326;POLYGON((0 0, 1 0, 1 1, 0 1, 0 0))",
+        )
+
+
 def test_import_preflight_rejects_unsupported_format_before_database_access(monkeypatch):
     monkeypatch.setattr(gis_import, "get_db", lambda: pytest.fail("database must remain closed"))
 

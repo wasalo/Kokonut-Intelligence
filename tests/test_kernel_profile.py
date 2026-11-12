@@ -94,6 +94,200 @@ def test_standard_profile_selects_runtime_role_after_app_and_worker_overlays() -
     assert "--profile" not in command
 
 
+def test_standard_api_worker_login_split_is_explicit_and_requires_its_secret() -> None:
+    missing_secret = _run_planner(
+        "standard",
+        "--separate-api-worker-logins",
+        env={"KOKONUT_WORKER_RUNTIME_PASSWORD": ""},
+    )
+    assert missing_secret.returncode != 0
+    assert "KOKONUT_WORKER_RUNTIME_PASSWORD" in missing_secret.stderr
+
+    result = _run_planner(
+        "standard",
+        "--separate-api-worker-logins",
+        env={"KOKONUT_WORKER_RUNTIME_PASSWORD": "synthetic-worker-runtime-password"},
+    )
+    command = shlex.split(result.stdout)
+    manifests = [
+        command[index + 1]
+        for index, value in enumerate(command[:-1])
+        if value == "-f"
+    ]
+    runtime_role = str(ROOT / "docker-compose.kernel-runtime-role.yml")
+    worker_role = str(ROOT / "docker-compose.kernel-worker-runtime-role.yml")
+    proxy = str(ROOT / "docker-compose.kernel-proxy.yml")
+
+    assert result.returncode == 0, result.stderr
+    assert manifests.index(runtime_role) < manifests.index(worker_role) < manifests.index(proxy)
+    assert "synthetic-worker-runtime-password" not in result.stdout
+
+
+def test_api_worker_login_split_supports_standard_analytics_and_scheduler_composition() -> None:
+    minimal = _run_planner(
+        "minimal",
+        "--separate-api-worker-logins",
+        env={"KOKONUT_WORKER_RUNTIME_PASSWORD": "synthetic-worker-runtime-password"},
+    )
+    assert minimal.returncode != 0
+    assert "--separate-api-worker-logins applies only" in minimal.stderr
+
+    analytics = _run_planner(
+        "analytics",
+        "--separate-workers",
+        "--separate-api-worker-logins",
+        env={"KOKONUT_WORKER_RUNTIME_PASSWORD": "synthetic-worker-runtime-password"},
+    )
+    assert analytics.returncode == 0, analytics.stderr
+    assert "docker-compose.kernel-worker-runtime-role.yml" in analytics.stdout
+
+    scheduler = _run_planner(
+        "standard",
+        "--scheduler-role",
+        "--separate-api-worker-logins",
+        env={
+            "KOKONUT_WORKER_RUNTIME_PASSWORD": "synthetic-worker-runtime-password",
+            "KOKONUT_SCHEDULER_PASSWORD": "synthetic-scheduler-password",
+            "KOKONUT_SCHEDULER_DATABASE_URL": "postgresql://synthetic",
+        },
+    )
+    command = shlex.split(scheduler.stdout)
+    manifests = [
+        command[index + 1]
+        for index, value in enumerate(command[:-1])
+        if value == "-f"
+    ]
+    worker_role = str(ROOT / "docker-compose.kernel-worker-runtime-role.yml")
+    scheduler_role = str(ROOT / "docker-compose.kernel-scheduler-role.yml")
+    worker_supervisor = str(ROOT / "docker-compose.kernel-worker-runtime-supervisor.yml")
+    assert scheduler.returncode == 0, scheduler.stderr
+    assert manifests.index(worker_role) < manifests.index(scheduler_role) < manifests.index(worker_supervisor)
+    assert "synthetic-worker-runtime-password" not in scheduler.stdout
+    assert "synthetic-scheduler-password" not in scheduler.stdout
+
+    for action in ("database-up", "migrate"):
+        bootstrap_only = _run_planner(
+            "standard",
+            "--scheduler-role",
+            "--separate-api-worker-logins",
+            "--action",
+            action,
+            env={
+                "KOKONUT_WORKER_RUNTIME_PASSWORD": "",
+                "KOKONUT_SCHEDULER_PASSWORD": "synthetic-scheduler-password",
+                "KOKONUT_SCHEDULER_DATABASE_URL": "postgresql://synthetic",
+            },
+        )
+        assert bootstrap_only.returncode == 0, bootstrap_only.stderr
+        assert "docker-compose.kernel-worker-runtime-role.yml" not in bootstrap_only.stdout
+        assert "docker-compose.kernel-worker-runtime-supervisor.yml" not in bootstrap_only.stdout
+
+
+def test_standard_scheduler_role_is_opt_in_and_appended_last() -> None:
+    default = _run_planner("standard")
+    assert "docker-compose.kernel-scheduler-role.yml" not in default.stdout
+
+    result = _run_planner(
+        "standard", "--scheduler-role",
+        env={
+            "KOKONUT_SCHEDULER_PASSWORD": "synthetic-scheduler-password-0123456789",
+            "KOKONUT_SCHEDULER_DATABASE_URL": (
+                "postgresql://kokonut_scheduler_login:synthetic@database:5432/kokonut_intelligence"
+            ),
+        },
+    )
+    command = shlex.split(result.stdout)
+    manifests = [
+        command[index + 1]
+        for index, value in enumerate(command[:-1])
+        if value == "-f"
+    ]
+    candidate = str(ROOT / "docker-compose.kernel-candidate.yml")
+    standard = str(ROOT / "docker-compose.kernel-standard.yml")
+    runtime_role = str(ROOT / "docker-compose.kernel-runtime-role.yml")
+    scheduler_role = str(ROOT / "docker-compose.kernel-scheduler-role.yml")
+    scheduler_overlay = yaml.safe_load((ROOT / "docker-compose.kernel-scheduler-role.yml").read_text())
+    assert result.returncode == 0, result.stderr
+    assert manifests.index(candidate) < manifests.index(standard) < manifests.index(runtime_role)
+    assert manifests[-1] == scheduler_role
+    assert scheduler_overlay["services"]["worker"]["environment"]["KOKONUT_RUNTIME_PARENT_ROLE"] == ""
+    assert "synthetic-scheduler-password" not in result.stdout
+    assert "postgresql://" not in result.stdout
+
+
+@pytest.mark.parametrize("profile", ["minimal", "core", "edge", "analytics"])
+def test_scheduler_role_is_standard_only(profile: str) -> None:
+    result = _run_planner(
+        profile,
+        "--scheduler-role",
+        env={
+            "KOKONUT_SCHEDULER_PASSWORD": "synthetic-scheduler-password-0123456789",
+            "KOKONUT_SCHEDULER_DATABASE_URL": "postgresql://synthetic",
+        },
+    )
+    assert result.returncode != 0
+    assert "--scheduler-role applies only to standard" in result.stderr
+
+
+def test_scheduler_role_requires_loaded_encrypted_environment_values() -> None:
+    result = _run_planner(
+        "standard",
+        "--scheduler-role",
+        env={
+            "KOKONUT_SCHEDULER_PASSWORD": "",
+            "KOKONUT_SCHEDULER_DATABASE_URL": "",
+        },
+    )
+    assert result.returncode != 0
+    assert "KOKONUT_SCHEDULER_PASSWORD" in result.stderr
+    assert "KOKONUT_SCHEDULER_DATABASE_URL" in result.stderr
+
+
+def test_scheduler_role_release_up_keeps_credentials_out_of_command() -> None:
+    image = "ghcr.io/wasalo/kokonut-kernel@sha256:" + ("b" * 64)
+    password = "synthetic-scheduler-password-0123456789"
+    dsn = f"postgresql://kokonut_scheduler_login:{password}@database:5432/kokonut_intelligence"
+    result = _run_planner(
+        "standard",
+        "--scheduler-role",
+        "--action",
+        "release-up",
+        env={
+            "KOKONUT_KERNEL_APP_IMAGE": image,
+            "KOKONUT_SCHEDULER_PASSWORD": password,
+            "KOKONUT_SCHEDULER_DATABASE_URL": dsn,
+        },
+    )
+    assert result.returncode == 0, result.stderr
+    assert "docker-compose.kernel-scheduler-role.yml" in result.stdout
+    assert password not in result.stdout
+    assert dsn not in result.stdout
+    assert "--no-build" in result.stdout
+
+
+def test_scheduler_role_is_composed_after_arm64_standard_overlays() -> None:
+    result = _run_planner(
+        "standard",
+        "--target-platform",
+        "linux/arm64",
+        "--scheduler-role",
+        env={
+            "KOKONUT_SCHEDULER_PASSWORD": "synthetic-scheduler-password-0123456789",
+            "KOKONUT_SCHEDULER_DATABASE_URL": "postgresql://synthetic",
+        },
+    )
+    command = shlex.split(result.stdout)
+    manifests = [
+        command[index + 1]
+        for index, value in enumerate(command[:-1])
+        if value == "-f"
+    ]
+    assert result.returncode == 0, result.stderr
+    assert str(ROOT / "docker-compose.kernel-arm64.yml") in manifests
+    assert str(ROOT / "docker-compose.kernel-arm64-standard.yml") in manifests
+    assert manifests[-1] == str(ROOT / "docker-compose.kernel-scheduler-role.yml")
+
+
 def test_standard_edge_composition_orders_edge_after_the_split_role_overlays() -> None:
     result = _run_planner("standard", "--edge")
     command = shlex.split(result.stdout)
@@ -325,11 +519,13 @@ def test_oidc_compose_profile_uses_a_distinct_release_image_from_the_base() -> N
     assert oidc["services"]["app"]["image"] == "${KOKONUT_KERNEL_OIDC_IMAGE:-kokonut-kernel-oidc:local}"
 
 
-def test_standard_database_up_action_starts_only_the_database() -> None:
+def test_standard_database_up_action_waits_for_only_the_database() -> None:
     result = _run_planner("standard", "--action", "database-up")
 
     assert result.returncode == 0, result.stderr
-    assert shlex.split(result.stdout)[-3:] == ["up", "-d", "database"]
+    assert shlex.split(result.stdout)[-6:] == [
+        "up", "-d", "--wait", "--wait-timeout", "300", "database"
+    ]
 
 
 def test_standard_migrate_action_prints_ordered_schema_only_runner() -> None:
@@ -354,12 +550,36 @@ def test_standard_migrate_action_prints_ordered_schema_only_runner() -> None:
     ]
 
 
+@pytest.mark.parametrize("profile", ["minimal", "analytics"])
 @pytest.mark.parametrize("action", ["database-up", "migrate", "bootstrap-runtime-role"])
-def test_standard_admin_actions_are_rejected_for_other_profiles(action: str) -> None:
-    result = _run_planner("minimal", "--action", action)
+def test_runtime_role_actions_require_a_role_separated_profile(profile: str, action: str) -> None:
+    result = _run_planner(profile, "--action", action)
 
     assert result.returncode != 0
-    assert f"--action {action} applies only to standard" in result.stderr
+    assert f"--action {action} applies only to standard or analytics with --separate-workers" in result.stderr
+
+
+@pytest.mark.parametrize("action", ["database-up", "migrate", "bootstrap-runtime-role"])
+def test_analytics_separate_workers_support_runtime_role_actions(action: str) -> None:
+    result = _run_planner("analytics", "--separate-workers", "--project", "kokonut-analytics-split", "--action", action)
+
+    assert result.returncode == 0, result.stderr
+    command = shlex.split(result.stdout)
+    runtime_role = str(ROOT / "docker-compose.kernel-runtime-role.yml")
+    assert command.count(runtime_role) == 1
+
+    if action == "database-up":
+        assert command[command.index("-p") + 1] == "kokonut-analytics-split"
+        assert command[-6:] == [
+            "up", "-d", "--wait", "--wait-timeout", "300", "database"
+        ]
+    elif action == "migrate":
+        assert command[command.index("--compose-project") + 1] == "kokonut-analytics-split"
+        compose_files = [command[index + 1] for index, value in enumerate(command[:-1]) if value == "--compose-file"]
+        assert Path(runtime_role) in [Path(value) for value in compose_files]
+    else:
+        assert command[command.index("--profile") + 1] == "runtime-admin"
+        assert command[-4:] == ["run", "--rm", "--build", "runtime-role-bootstrap"]
 
 
 def test_minimal_and_edge_keep_proxy_opt_in() -> None:
@@ -433,6 +653,7 @@ def test_core_capabilities_are_explicit_build_overlays() -> None:
     assert media["services"]["app"]["build"]["args"]["KOKONUT_CORE_LOCAL_MEDIA"] == "true"
     assert "${MOBILE_MEDIA_LOCAL_KEY:?" in media["services"]["app"]["environment"]["MOBILE_MEDIA_LOCAL_KEY"]
     assert "MOBILE_MEDIA_LOCAL_KEY" not in (ROOT / "Dockerfile.kernel").read_text()
+    assert "MOBILE_MEDIA_ENCRYPTION_KEY" not in (ROOT / "Dockerfile.kernel").read_text()
 
 
 @pytest.mark.parametrize("overlay", ["--web3", "--exports", "--local-media"])
@@ -531,7 +752,7 @@ def test_standard_compose_keeps_notification_secrets_on_delivery_worker_only() -
     assert app_environment["ALERT_SMTP_PASSWORD"] == ""
     assert app_environment["ALERT_WEBHOOK_URL"] == ""
     assert app_environment["KOKONUT_NOTIFICATION_WEBHOOK_CONFIGURED"] == (
-        "${ALERT_WEBHOOK_URL:+true}"
+        "${KOKONUT_NOTIFICATION_WEBHOOK_CONFIGURED:-false}"
     )
     assert worker_environment["ALERT_SMTP_USER"] == "${ALERT_SMTP_USER:-}"
     assert worker_environment["ALERT_SMTP_PASSWORD"] == "${ALERT_SMTP_PASSWORD:-}"
@@ -544,7 +765,6 @@ def test_standard_compose_keeps_notification_secrets_on_delivery_worker_only() -
     )
     assert "KOKONUT_NOTIFICATION_DELIVERY_DATABASE_URL" not in app_environment
     assert "KOKONUT_FEATURE_ISOLATED_NOTIFICATION_DELIVERY" not in app_environment
-
     # The event producer keeps non-secret channel/routing settings needed to
     # enqueue intents; the worker keeps those settings plus SMTP credentials.
     smtp_configuration = (
@@ -558,6 +778,43 @@ def test_standard_compose_keeps_notification_secrets_on_delivery_worker_only() -
         assert app_environment[key] == standard["services"]["app"]["environment"][key]
     for key in smtp_configuration:
         assert worker_environment[key] == standard["services"]["worker"]["environment"][key]
+
+
+def test_worker_runtime_identity_overlay_keeps_api_credentials_private() -> None:
+    candidate = yaml.safe_load((ROOT / "docker-compose.kernel-candidate.yml").read_text())
+    standard = yaml.safe_load((ROOT / "docker-compose.kernel-standard.yml").read_text())
+    runtime_role = yaml.safe_load((ROOT / "docker-compose.kernel-runtime-role.yml").read_text())
+    worker_role = yaml.safe_load((ROOT / "docker-compose.kernel-worker-runtime-role.yml").read_text())
+
+    app_environment = {
+        **candidate["services"]["app"].get("environment", {}),
+        **standard["services"]["app"].get("environment", {}),
+        **runtime_role["services"]["app"].get("environment", {}),
+    }
+    worker_environment = {
+        **standard["services"]["worker"].get("environment", {}),
+        **runtime_role["services"]["worker"].get("environment", {}),
+        **worker_role["services"]["worker"].get("environment", {}),
+    }
+    bootstrap_environment = {
+        **runtime_role["services"]["runtime-role-bootstrap"].get("environment", {}),
+        **worker_role["services"]["runtime-role-bootstrap"].get("environment", {}),
+    }
+
+    assert app_environment["PG_USER"] == "${KOKONUT_RUNTIME_USER:?KOKONUT_RUNTIME_USER must be set}"
+    assert app_environment["PG_PASSWORD"] == "${KOKONUT_RUNTIME_PASSWORD:?KOKONUT_RUNTIME_PASSWORD must be set}"
+    assert "KOKONUT_RUNTIME_PARENT_ROLE" not in app_environment
+    assert "KOKONUT_WORKER_RUNTIME_PASSWORD" not in app_environment
+    assert "KOKONUT_RUNTIME_PASSWORD" not in worker_environment
+    assert worker_environment["PG_USER"] == "${KOKONUT_WORKER_RUNTIME_USER:-kokonut_worker_runtime}"
+    assert worker_environment["PG_PASSWORD"] == (
+        "${KOKONUT_WORKER_RUNTIME_PASSWORD:?distinct worker runtime password required}"
+    )
+    assert worker_environment["KOKONUT_RUNTIME_PARENT_ROLE"] == "${KOKONUT_RUNTIME_USER:-kokonut_runtime}"
+    assert "KOKONUT_RUNTIME_PASSWORD" not in worker_environment
+    assert bootstrap_environment["KOKONUT_WORKER_RUNTIME_PASSWORD"] == (
+        "${KOKONUT_WORKER_RUNTIME_PASSWORD:?distinct worker runtime password required}"
+    )
 
 
 def test_standard_resolved_compose_keeps_notification_secrets_on_delivery_worker() -> None:
@@ -581,6 +838,7 @@ def test_standard_resolved_compose_keeps_notification_secrets_on_delivery_worker
         "ALERT_SMTP_HOST": "smtp.example.test",
         "ALERT_EMAIL_TO": "ops@example.test",
         "ALERT_WEBHOOK_URL": "https://hooks.example.test/synthetic-token",
+        "KOKONUT_NOTIFICATION_WEBHOOK_CONFIGURED": "true",
     }
     command = [
         docker,
@@ -627,6 +885,223 @@ def test_standard_resolved_compose_keeps_notification_secrets_on_delivery_worker
     assert "KOKONUT_NOTIFICATION_DELIVERY_DATABASE_URL" not in app_environment
     assert "KOKONUT_FEATURE_ISOLATED_NOTIFICATION_DELIVERY" not in app_environment
     assert environment["ALERT_WEBHOOK_URL"] not in json.dumps(model["services"]["app"])
+
+
+def test_standard_resolved_compose_separates_api_and_worker_runtime_logins() -> None:
+    docker = shutil.which("docker")
+    if docker is None:
+        pytest.skip("Docker CLI is required to resolve the Standard Compose model")
+
+    environment = {
+        "HOME": str(Path.home()),
+        "PATH": os.environ.get("PATH", ""),
+        "POSTGRES_PASSWORD": "synthetic-postgres-password",
+        "KOKONUT_RUNTIME_USER": "kokonut_runtime",
+        "KOKONUT_RUNTIME_PASSWORD": "synthetic-runtime-password",
+        "KOKONUT_WORKER_RUNTIME_USER": "kokonut_worker_runtime",
+        "KOKONUT_WORKER_RUNTIME_PASSWORD": "synthetic-worker-runtime-password",
+        "KOKONUT_OPERATOR_AUTH_PASSWORD": "synthetic-operator-password",
+    }
+    command = [
+        docker,
+        "compose",
+        "--env-file",
+        os.devnull,
+        "-f",
+        "docker-compose.kernel-candidate.yml",
+        "-f",
+        "docker-compose.kernel-standard.yml",
+        "-f",
+        "docker-compose.kernel-runtime-role.yml",
+        "-f",
+        "docker-compose.kernel-worker-runtime-role.yml",
+        "--profile",
+        "runtime-admin",
+        "config",
+        "--format",
+        "json",
+    ]
+    result = subprocess.run(
+        command,
+        cwd=ROOT,
+        env=environment,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    assert result.returncode == 0, result.stderr
+    model = json.loads(result.stdout)
+    app_environment = model["services"]["app"]["environment"]
+    worker_environment = model["services"]["worker"]["environment"]
+    bootstrap_environment = model["services"]["runtime-role-bootstrap"]["environment"]
+
+    assert app_environment["PG_USER"] == environment["KOKONUT_RUNTIME_USER"]
+    assert app_environment["PG_PASSWORD"] == environment["KOKONUT_RUNTIME_PASSWORD"]
+    assert worker_environment["PG_USER"] == environment["KOKONUT_WORKER_RUNTIME_USER"]
+    assert worker_environment["PG_PASSWORD"] == environment["KOKONUT_WORKER_RUNTIME_PASSWORD"]
+    assert worker_environment["KOKONUT_RUNTIME_PARENT_ROLE"] == environment["KOKONUT_RUNTIME_USER"]
+    assert "KOKONUT_RUNTIME_PASSWORD" not in worker_environment
+    assert environment["KOKONUT_RUNTIME_PASSWORD"] not in json.dumps(worker_environment)
+    assert bootstrap_environment["KOKONUT_WORKER_RUNTIME_PASSWORD"] == (
+        environment["KOKONUT_WORKER_RUNTIME_PASSWORD"]
+    )
+    assert "KOKONUT_WORKER_RUNTIME_PASSWORD" not in app_environment
+    assert environment["KOKONUT_WORKER_RUNTIME_PASSWORD"] not in json.dumps(model["services"]["app"])
+
+
+def test_standard_resolved_compose_composes_worker_and_scheduler_child_logins() -> None:
+    docker = shutil.which("docker")
+    if docker is None:
+        pytest.skip("Docker CLI is required to resolve the Standard Compose model")
+
+    worker_password = "synthetic-worker-runtime-password"
+    scheduler_password = "synthetic-scheduler-password-0123456789"
+    scheduler_dsn = (
+        "postgresql://kokonut_scheduler_login:synthetic-scheduler-password-0123456789"
+        "@database:5432/kokonut_intelligence"
+    )
+    environment = {
+        "HOME": str(Path.home()),
+        "PATH": os.environ.get("PATH", ""),
+        "POSTGRES_PASSWORD": "synthetic-postgres-password",
+        "KOKONUT_RUNTIME_USER": "kokonut_runtime",
+        "KOKONUT_RUNTIME_PASSWORD": "synthetic-runtime-password",
+        "KOKONUT_WORKER_RUNTIME_USER": "kokonut_worker_runtime",
+        "KOKONUT_WORKER_RUNTIME_PASSWORD": worker_password,
+        "KOKONUT_OPERATOR_AUTH_PASSWORD": "synthetic-operator-password",
+        "KOKONUT_SCHEDULER_PASSWORD": scheduler_password,
+        "KOKONUT_SCHEDULER_DATABASE_URL": scheduler_dsn,
+    }
+    command = [
+        docker,
+        "compose",
+        "--env-file",
+        os.devnull,
+        "-p",
+        "kokonut-standard-three-login-test",
+        "-f",
+        str(ROOT / "docker-compose.kernel-candidate.yml"),
+        "-f",
+        str(ROOT / "docker-compose.kernel-standard.yml"),
+        "-f",
+        str(ROOT / "docker-compose.kernel-runtime-role.yml"),
+        "-f",
+        str(ROOT / "docker-compose.kernel-worker-runtime-role.yml"),
+        "-f",
+        str(ROOT / "docker-compose.kernel-scheduler-role.yml"),
+        "-f",
+        str(ROOT / "docker-compose.kernel-worker-runtime-supervisor.yml"),
+        "--profile",
+        "runtime-admin",
+        "config",
+        "--format",
+        "json",
+    ]
+    result = subprocess.run(
+        command,
+        cwd=ROOT,
+        env=environment,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    assert result.returncode == 0, result.stderr
+    model = json.loads(result.stdout)
+    app_environment = model["services"]["app"]["environment"]
+    worker_environment = model["services"]["worker"]["environment"]
+    bootstrap_environment = model["services"]["runtime-role-bootstrap"]["environment"]
+
+    assert app_environment["PG_USER"] == "kokonut_runtime"
+    assert app_environment["PG_PASSWORD"] == "synthetic-runtime-password"
+    assert worker_environment["PG_USER"] == "kokonut_worker_runtime"
+    assert worker_environment["PG_PASSWORD"] == worker_password
+    assert worker_environment["KOKONUT_RUNTIME_PARENT_ROLE"] == "kokonut_runtime"
+    assert worker_environment["KOKONUT_SCHEDULER_DATABASE_URL"] == scheduler_dsn
+    assert "KOKONUT_SCHEDULER_PASSWORD" not in worker_environment
+    assert bootstrap_environment["KOKONUT_WORKER_RUNTIME_PASSWORD"] == worker_password
+    assert bootstrap_environment["KOKONUT_SCHEDULER_PASSWORD"] == scheduler_password
+    assert "KOKONUT_WORKER_RUNTIME_PASSWORD" not in app_environment
+    assert "KOKONUT_SCHEDULER_PASSWORD" not in app_environment
+
+
+def test_analytics_separate_workers_resolved_compose_keeps_runtime_and_clickhouse_environment() -> None:
+    docker = shutil.which("docker")
+    if docker is None:
+        pytest.skip("Docker CLI is required to resolve the analytics Compose model")
+
+    environment = {
+        "HOME": str(Path.home()),
+        "PATH": os.environ.get("PATH", ""),
+        "POSTGRES_PASSWORD": "synthetic-postgres-password",
+        "KOKONUT_RUNTIME_USER": "kokonut_runtime",
+        "KOKONUT_RUNTIME_PASSWORD": "synthetic-runtime-password",
+        "KOKONUT_OPERATOR_AUTH_PASSWORD": "synthetic-operator-password",
+        "KOKONUT_CLICKHOUSE_OUTBOX_OPERATOR_PASSWORD": "synthetic-outbox-operator-password",
+        "CLICKHOUSE_PASSWORD": "synthetic-clickhouse-password",
+    }
+    command = [
+        docker,
+        "compose",
+        "--env-file",
+        os.devnull,
+        "-p",
+        "kokonut-analytics-split-test",
+        "-f",
+        str(ROOT / "docker-compose.kernel-candidate.yml"),
+        "-f",
+        str(ROOT / "docker-compose.kernel-standard.yml"),
+        "-f",
+        str(ROOT / "docker-compose.kernel-analytics.yml"),
+        "-f",
+        str(ROOT / "docker-compose.kernel-runtime-role.yml"),
+        "-f",
+        str(ROOT / "docker-compose.kernel-standard-analytics.yml"),
+        "--profile",
+        "runtime-admin",
+        "config",
+        "--format",
+        "json",
+    ]
+    result = subprocess.run(
+        command,
+        cwd=ROOT,
+        env=environment,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    assert result.returncode == 0, result.stderr
+    model = json.loads(result.stdout)
+    app_environment = model["services"]["app"]["environment"]
+    worker_environment = model["services"]["worker"]["environment"]
+    bootstrap_environment = model["services"]["runtime-role-bootstrap"]["environment"]
+
+    assert app_environment["PG_USER"] == "kokonut_runtime"
+    assert worker_environment["PG_USER"] == "kokonut_runtime"
+    assert app_environment["PG_PASSWORD"] == environment["KOKONUT_RUNTIME_PASSWORD"]
+    assert worker_environment["PG_PASSWORD"] == environment["KOKONUT_RUNTIME_PASSWORD"]
+    assert app_environment["KOKONUT_OPERATOR_AUTH_PASSWORD"] == environment[
+        "KOKONUT_OPERATOR_AUTH_PASSWORD"
+    ]
+    assert app_environment["KOKONUT_CLICKHOUSE_OUTBOX_OPERATOR_PASSWORD"] == environment[
+        "KOKONUT_CLICKHOUSE_OUTBOX_OPERATOR_PASSWORD"
+    ]
+    assert bootstrap_environment["KOKONUT_CLICKHOUSE_OUTBOX_OPERATOR_PASSWORD"] == environment[
+        "KOKONUT_CLICKHOUSE_OUTBOX_OPERATOR_PASSWORD"
+    ]
+    assert "KOKONUT_OPERATOR_AUTH_PASSWORD" not in worker_environment
+    assert "KOKONUT_CLICKHOUSE_OUTBOX_OPERATOR_PASSWORD" not in worker_environment
+    assert app_environment["CLICKHOUSE_PASSWORD"] == environment["CLICKHOUSE_PASSWORD"]
+    assert worker_environment["CLICKHOUSE_PASSWORD"] == environment["CLICKHOUSE_PASSWORD"]
+    assert app_environment["KOKONUT_FEATURE_CLICKHOUSE"] == "true"
+    assert worker_environment["KOKONUT_FEATURE_CLICKHOUSE"] == "true"
+    assert bootstrap_environment["KOKONUT_DB_ADMIN_PASSWORD"] == environment["POSTGRES_PASSWORD"]
+    for service_environment in (app_environment, worker_environment):
+        assert "KOKONUT_DB_ADMIN_PASSWORD" not in service_environment
+        assert "POSTGRES_PASSWORD" not in service_environment
 
 
 def test_standard_worker_uses_durable_progress_healthcheck_without_merging_roles() -> None:
@@ -862,6 +1337,33 @@ def test_arm64_sensor_anomaly_ml_profile_selects_architecture_overlay() -> None:
     assert plan.returncode == 0
     assert "docker-compose.kernel-sensor-anomaly-ml.yml" in plan.stdout
     assert "docker-compose.kernel-arm64-sensor-anomaly-ml.yml" in plan.stdout
+
+
+@pytest.mark.parametrize("target_platform", ["linux/amd64", "linux/arm64"])
+def test_analytics_separate_workers_select_runtime_role_after_profile_overlays(
+    target_platform: str,
+) -> None:
+    result = _run_planner("analytics", "--separate-workers", "--target-platform", target_platform)
+    command = shlex.split(result.stdout)
+    manifests = [Path(command[index + 1]).name for index, value in enumerate(command[:-1]) if value == "-f"]
+
+    assert result.returncode == 0, result.stderr
+    assert manifests.count("docker-compose.kernel-runtime-role.yml") == 1
+    assert manifests.index("docker-compose.kernel-candidate.yml") < manifests.index(
+        "docker-compose.kernel-standard.yml"
+    )
+    assert manifests.index("docker-compose.kernel-standard.yml") < manifests.index(
+        "docker-compose.kernel-analytics.yml"
+    )
+    assert manifests.index("docker-compose.kernel-analytics.yml") < manifests.index(
+        "docker-compose.kernel-runtime-role.yml"
+    )
+    assert manifests.index("docker-compose.kernel-runtime-role.yml") < manifests.index(
+        "docker-compose.kernel-standard-analytics.yml"
+    )
+    if target_platform == "linux/arm64":
+        assert "docker-compose.kernel-arm64-standard.yml" in manifests
+        assert "docker-compose.kernel-arm64-analytics.yml" in manifests
 
 
 def test_arm64_analytics_selects_clickhouse_and_worker_platform_overlays() -> None:

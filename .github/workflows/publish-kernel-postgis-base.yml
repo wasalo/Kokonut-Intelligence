@@ -1,0 +1,210 @@
+name: Publish Kernel PostGIS base
+
+run-name: Publish PostGIS base from CI run ${{ inputs.source_run_id }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: Type publish to authorize publication from a successful main CI run
+        type: choice
+        options: [no, publish]
+        default: no
+        required: true
+      source_run_id:
+        description: Successful CI workflow run ID from a push to main
+        type: string
+        required: true
+      expected_sha:
+        description: Expected 40-character main commit SHA for the source run
+        type: string
+        required: true
+      package_access:
+        description: Confirm the GHCR package is private and repository-only read access is configured
+        type: choice
+        options: [not-confirmed, private-repository-read]
+        default: not-confirmed
+        required: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: kernel-postgis-base-publish-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    name: publish
+    if: github.ref == 'refs/heads/main' && inputs.confirm == 'publish' && inputs.package_access == 'private-repository-read'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    outputs:
+      postgis_base_image: ${{ steps.verify_remote.outputs.image }}
+    environment:
+      name: kernel-release
+    permissions:
+      actions: read
+      checks: read
+      contents: read
+      packages: write
+    steps:
+      - name: Check out publisher source from main
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Require explicit publication and package-access confirmation
+        env:
+          RELEASE_CONFIRMATION: ${{ inputs.confirm }}
+          PACKAGE_ACCESS_CONFIRMATION: ${{ inputs.package_access }}
+          EXPECTED_SHA: ${{ inputs.expected_sha }}
+          SOURCE_RUN_ID: ${{ inputs.source_run_id }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "$GITHUB_REF" != refs/heads/main ]]; then
+            echo "PostGIS base publication is allowed only from main." >&2
+            exit 1
+          fi
+          if [[ "$RELEASE_CONFIRMATION" != publish ]]; then
+            echo "PostGIS base publication requires the explicit publish confirmation." >&2
+            exit 1
+          fi
+          if [[ "$PACKAGE_ACCESS_CONFIRMATION" != private-repository-read ]]; then
+            echo "Confirm private GHCR visibility and repository-only read access before publishing." >&2
+            exit 1
+          fi
+          if [[ ! "$EXPECTED_SHA" =~ ^[a-f0-9]{40}$ || ! "$SOURCE_RUN_ID" =~ ^[1-9][0-9]*$ ]]; then
+            echo "A full source commit SHA and positive source run ID are required." >&2
+            exit 1
+          fi
+
+      - name: Validate successful main CI and Security source runs
+        id: source
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EXPECTED_SHA: ${{ inputs.expected_sha }}
+          SOURCE_RUN_ID: ${{ inputs.source_run_id }}
+        run: >-
+          python3 scripts/validate-kernel-postgis-source-run.py
+          --run-id "$SOURCE_RUN_ID"
+          --expected-sha "$EXPECTED_SHA"
+          --github-output "$GITHUB_OUTPUT"
+
+      - name: Download and verify the exact source artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ARTIFACT_ID: ${{ steps.source.outputs.artifact_id }}
+          ARTIFACT_DIGEST: ${{ steps.source.outputs.artifact_digest }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          artifact_zip="$RUNNER_TEMP/kernel-postgis-artifact.zip"
+          artifact_tar="$RUNNER_TEMP/kernel-postgis.oci.tar"
+          curl --fail --silent --show-error --location \
+            --retry 5 --retry-delay 2 --retry-max-time 300 \
+            --connect-timeout 30 --max-time 1800 \
+            --header "Authorization: Bearer $GH_TOKEN" \
+            --header "Accept: application/vnd.github+json" \
+            "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/actions/artifacts/$ARTIFACT_ID/zip" \
+            --output "$artifact_zip"
+          python3 - "$artifact_zip" "$ARTIFACT_DIGEST" "$artifact_tar" <<'PY'
+          import hashlib
+          import shutil
+          import stat
+          import sys
+          import zipfile
+          from pathlib import Path
+
+          archive_path = Path(sys.argv[1])
+          expected_digest = sys.argv[2]
+          output_path = Path(sys.argv[3])
+          digest = hashlib.sha256()
+          with archive_path.open("rb") as archive_file:
+              for chunk in iter(lambda: archive_file.read(1024 * 1024), b""):
+                  digest.update(chunk)
+          if f"sha256:{digest.hexdigest()}" != expected_digest:
+              raise SystemExit("Downloaded GitHub artifact ZIP digest does not match its API metadata.")
+          with zipfile.ZipFile(archive_path) as archive:
+              members = archive.infolist()
+              if len(members) != 1 or members[0].filename != "kernel-postgis.oci.tar" or members[0].is_dir():
+                  raise SystemExit("Source artifact must contain only kernel-postgis.oci.tar.")
+              if stat.S_IFMT(members[0].external_attr >> 16) == stat.S_IFLNK or members[0].file_size <= 0:
+                  raise SystemExit("Source artifact contains an invalid OCI archive entry.")
+              with archive.open(members[0]) as source, output_path.open("xb") as destination:
+                  shutil.copyfileobj(source, destination, length=1024 * 1024)
+          PY
+
+      - name: Check out the exact source-run commit
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ steps.source.outputs.source_sha }}
+          persist-credentials: false
+
+      - name: Recheck both PostGIS package inventories before publication
+        run: python3 scripts/check-kernel-release-inputs.py --postgis-oci "$RUNNER_TEMP/kernel-postgis.oci.tar"
+
+      - name: Set up pinned ORAS CLI
+        uses: oras-project/setup-oras@5e2f2482b30b0cb3e14e67f89a80c88c659a7c63 # v2.0.3
+        with:
+          version: 1.3.1
+
+      - name: Set up Docker Buildx for registry verification
+        uses: docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c # v4
+
+      - name: Authenticate to GitHub Container Registry
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: printf '%s' "$GH_TOKEN" | oras login ghcr.io --username "$GITHUB_ACTOR" --password-stdin
+
+      - name: Copy the verified OCI archive under a unique tag
+        id: publish_copy
+        env:
+          SOURCE_SHA: ${{ steps.source.outputs.source_sha }}
+          SOURCE_RUN_ID: ${{ steps.source.outputs.source_run_id }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          repository="ghcr.io/${GITHUB_REPOSITORY,,}-postgis-base"
+          release_tag="verified-${SOURCE_SHA}-${SOURCE_RUN_ID}-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          oras cp --from-oci-layout "$RUNNER_TEMP/kernel-postgis.oci.tar:verified" "$repository:$release_tag"
+          echo "repository=$repository" >> "$GITHUB_OUTPUT"
+          echo "release_tag=$release_tag" >> "$GITHUB_OUTPUT"
+
+      - name: Verify remote digest and multi-platform index
+        id: verify_remote
+        env:
+          REPOSITORY: ${{ steps.publish_copy.outputs.repository }}
+          RELEASE_TAG: ${{ steps.publish_copy.outputs.release_tag }}
+          SOURCE_SHA: ${{ steps.source.outputs.source_sha }}
+          SOURCE_RUN_ID: ${{ steps.source.outputs.source_run_id }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          repository="$REPOSITORY"
+          release_tag="$RELEASE_TAG"
+          descriptor="$RUNNER_TEMP/kernel-postgis-descriptor.json"
+          manifest="$RUNNER_TEMP/kernel-postgis-index.json"
+          oras manifest fetch --descriptor "$repository:$release_tag" > "$descriptor"
+          digest="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1], encoding="utf-8"))["digest"])' "$descriptor")"
+          if [[ ! "$digest" =~ ^sha256:[a-f0-9]{64}$ ]]; then
+            echo "Registry did not return an immutable sha256 image digest." >&2
+            exit 1
+          fi
+          docker buildx imagetools inspect --raw "$repository@$digest" > "$manifest"
+          image="$(python3 scripts/verify-kernel-postgis-published.py \
+            --descriptor "$descriptor" \
+            --manifest "$manifest" \
+            --repository "$repository")"
+          echo "image=$image" >> "$GITHUB_OUTPUT"
+          {
+            echo "## Verified build-only PostGIS base"
+            echo
+            echo "Source commit: $SOURCE_SHA"
+            echo "Source CI run: $SOURCE_RUN_ID"
+            echo "Immutable image: $image"
+            echo
+            echo "The image is a build-only base, not runtime-certified. Keep the package private and repository-only read-accessible."
+          } >> "$GITHUB_STEP_SUMMARY"

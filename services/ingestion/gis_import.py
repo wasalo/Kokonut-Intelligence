@@ -417,6 +417,8 @@ def import_record(db, record_id: str, target: str, wkt: str, lat: float = None, 
 
     Returns True if the record was updated.
     """
+    if not isinstance(target, str) or target not in VALID_TARGETS:
+        raise ValueError("target must be a supported GIS entity")
     savepoint = "gis_import_update"
     try:
         with db.cursor() as cur:

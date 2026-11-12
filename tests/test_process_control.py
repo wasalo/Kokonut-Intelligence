@@ -6,9 +6,10 @@ lifecycle ledger, and out-of-control detection. Skips without a DB.
 
 import uuid
 from datetime import datetime, timedelta, timezone
+from unittest.mock import MagicMock
 
-import pytest
 import psycopg2
+import pytest
 
 from services.ingestion.base import get_db
 from services.systems import process_control as pc
@@ -126,3 +127,33 @@ def test_evaluate_control():
     finally:
         _cleanup(conn, ids)
         conn.close()
+
+
+def test_cycle_time_mean_cte_is_a_read_only_entity_type_aggregate():
+    connection = MagicMock()
+    cursor = connection.cursor.return_value
+    cursor.fetchone.return_value = None
+
+    assert pc._cycle_time_mean(connection, "pc_test") is None
+
+    query, params = cursor.execute.call_args.args
+    assert query.lstrip().upper().startswith("WITH START")
+    assert query.upper().count("ENTITY_TYPE = %S") == 2
+    assert "FROM LIFECYCLE_TRANSITION" in query.upper()
+    assert not any(token in query.upper() for token in ("INSERT INTO", "UPDATE ", "DELETE FROM", "MERGE INTO"))
+    assert params == ("pc_test", "pc_test")
+
+
+def test_fty_pct_cte_is_a_read_only_entity_type_aggregate():
+    connection = MagicMock()
+    cursor = connection.cursor.return_value
+    cursor.fetchone.return_value = (2, 2)
+
+    assert pc._fty_pct(connection, "pc_test") == 100.0
+
+    query, params = cursor.execute.call_args.args
+    assert query.lstrip().upper().startswith("WITH PUB")
+    assert query.upper().count("ENTITY_TYPE = %S") == 2
+    assert "FROM LIFECYCLE_TRANSITION" in query.upper()
+    assert not any(token in query.upper() for token in ("INSERT INTO", "UPDATE ", "DELETE FROM", "MERGE INTO"))
+    assert params == ("pc_test", "pc_test")

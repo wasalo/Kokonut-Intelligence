@@ -1,0 +1,23 @@
+{
+  "date": "2026-11-11",
+  "target": "https://hub.kokonut.network",
+  "check": "OIDC callback rejects a mismatched state",
+  "procedure": [
+    "Start a fresh operator login and retain its temporary session cookie only for the check.",
+    "Request the callback with a synthetic authorization code and a state value that does not match the login session.",
+    "Check the resulting operator session endpoint."
+  ],
+  "observed_http_status": {
+    "login": 302,
+    "mismatched_callback": 401,
+    "session_after_callback": 401
+  },
+  "result": "passed",
+  "notes": [
+    "The callback rejected the mismatched state before creating an authenticated operator session.",
+    "The session remained unauthorized after the callback.",
+    "The temporary cookie jar was removed after the check; no cookie or response body was retained.",
+    "No farm or operational records were changed."
+  ],
+  "remaining": "Live ID-token nonce-mismatch validation remains open."
+}

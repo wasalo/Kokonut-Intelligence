@@ -10,9 +10,25 @@ import yaml
 ROOT = Path(__file__).resolve().parents[1]
 
 
+class ComposeLoader(yaml.SafeLoader):
+    """Read Compose merge tags while inspecting service healthchecks."""
+
+
+def _construct_compose_reset(loader: ComposeLoader, node: yaml.Node):
+    if isinstance(node, yaml.SequenceNode):
+        return loader.construct_sequence(node)
+    if isinstance(node, yaml.MappingNode):
+        return loader.construct_mapping(node)
+    return loader.construct_scalar(node)
+
+
+ComposeLoader.add_constructor("!reset", _construct_compose_reset)
+ComposeLoader.add_constructor("!override", _construct_compose_reset)
+
+
 def test_compose_postgres_healthchecks_use_tcp() -> None:
     for compose_file in ROOT.glob("docker-compose*.yml"):
-        config = yaml.safe_load(compose_file.read_text())
+        config = yaml.load(compose_file.read_text(), Loader=ComposeLoader)
         for service in config.get("services", {}).values():
             healthcheck = service.get("healthcheck") or {}
             command = healthcheck.get("test", [])

@@ -1,6 +1,9 @@
-# ARM64 platform selection for the worker declared by the standard profile.
+# ARM64 platform selection for Standard's worker and private-export initializer.
 # Must be selected after docker-compose.kernel-standard.yml.
 services:
+  report-snapshot-export-artifact-init:
+    platform: linux/arm64
+
   worker:
     platform: linux/arm64
     build:

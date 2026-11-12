@@ -1,0 +1,33 @@
+{
+  "candidate_or_legacy_database_used": false,
+  "candidate_configuration_changed": false,
+  "date": "2026-11-08",
+  "provider": "Cloudflare R2 through the S3-compatible Field Collector adapter",
+  "adapter": "services.mobile.media_storage.S3CompatibleMediaStore",
+  "encryption": {
+    "format": "KKM1 AES-GCM authenticated envelope",
+    "key_custody": "existing 32-byte SOPS-managed media key; value not logged",
+    "associated_data": "exact private/field-collector object key",
+    "stored_content_type": "application/octet-stream",
+    "stored_bytes_contain_plaintext": false
+  },
+  "object": {
+    "content": "synthetic JPEG bytes",
+    "key_policy": "private/field-collector/<synthetic-location>/<synthetic-device>/<random-uuid>.jpg",
+    "secret_values_logged": false
+  },
+  "operations": {
+    "application_adapter_write": "passed",
+    "head_returns_plaintext_size_and_type": "passed",
+    "R2_ciphertext_readback": "passed",
+    "authenticated_decryption_matches_input": "passed",
+    "application_adapter_delete": "passed",
+    "object_absent_after_cleanup": "passed"
+  },
+  "limitations": [
+    "This validates the local adapter and bucket-scoped credential only.",
+    "No candidate Gateway request, database attachment, consent flow, browser sync, or populated media was used.",
+    "The existing SOPS media key must be available to the API service and included in full application recovery."
+  ],
+  "result": "passed"
+}

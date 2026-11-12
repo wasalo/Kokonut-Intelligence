@@ -1,0 +1,23 @@
+{
+  "application_database_only": "passed",
+  "checked_at": "2026-11-10T18:13:17.176913+00:00",
+  "database": "kokonut_intelligence",
+  "database_names": [
+    "kokonut_intelligence"
+  ],
+  "existing_and_future_dml": "passed",
+  "explicit_metadata_service_grant_preserved": "passed",
+  "first_provision": "provisioned",
+  "idempotent_replay": "passed",
+  "migration_705_replay": "passed",
+  "migration_denies_survive_reprovision": "passed",
+  "read_only_and_no_access_policies": "passed",
+  "role": "kokonut_directus_runtime",
+  "schema_and_role_ownership_denials": "passed",
+  "second_provision": "provisioned",
+  "secrets_logged": false,
+  "sequence_and_column_denials": "passed",
+  "stale_schema_acl_removed": "passed",
+  "status": "passed",
+  "third_provision": "provisioned"
+}

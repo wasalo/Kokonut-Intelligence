@@ -17,8 +17,8 @@ def test_inventory_distinguishes_location_and_sensor_driver_instance_inputs():
     jobs = {entry["job"]: entry for entry in inventory["jobs"]}
 
     assert inventory["summary"]["outcomes"] == {
-        "default_arguments_accepted": 9,
-        "required_runtime_inputs_validated": 14,
+        "default_arguments_accepted": 8,
+        "required_runtime_inputs_validated": 13,
     }
     assert jobs["eas"]["required_inputs"] == ["chain"]
     assert jobs["eas"]["module"] == "services.ingestion.eas_worker"

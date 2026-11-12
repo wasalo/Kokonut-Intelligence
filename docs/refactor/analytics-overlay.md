@@ -49,6 +49,29 @@ docker compose -p kokonut-kernel-candidate \
   -f docker-compose.kernel-standard-analytics.yml build app worker
 ```
 
+The profile planner includes the runtime-role overlay and supports the complete
+role-separated lifecycle for analytics:
+
+```sh
+python3 scripts/kernel-profile.py analytics --separate-workers \
+  --project kokonut-kernel-analytics --action config
+python3 scripts/kernel-profile.py analytics --separate-workers \
+  --project kokonut-kernel-analytics --action database-up
+python3 scripts/kernel-profile.py analytics --separate-workers \
+  --project kokonut-kernel-analytics --action migrate
+python3 scripts/kernel-profile.py analytics --separate-workers \
+  --project kokonut-kernel-analytics --action bootstrap-runtime-role
+python3 scripts/kernel-profile.py analytics --separate-workers \
+  --project kokonut-kernel-analytics --action up
+```
+
+The planner prints commands; it does not read secrets, apply migrations, or run
+Compose. Review `config` first, then execute the printed database, migration,
+and bootstrap commands separately. Bootstrap only after the full ordered
+migration run. The app and general worker still use the shared
+`kokonut_runtime` login, so this composition does not close their C1 identity
+boundary or establish tenant isolation.
+
 This sets the worker's driver build argument, explicit provider flag, password,
 database/host/port/user, and ClickHouse health dependency to the same values as
 the app. It must accompany all three preceding manifests: the companion alone

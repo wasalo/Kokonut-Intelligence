@@ -18,6 +18,7 @@ def export_trust_graph(conn, reference_id: str, public_safe: bool = False) -> di
     """Export trust graph nodes and edges connected to a reference UUID."""
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     public_filter = "AND n.public_safe = TRUE" if public_safe else ""
+    node_public_filter = "WHERE n.public_safe = TRUE" if public_safe else ""
     edge_public_filter = "AND e.public_safe = TRUE" if public_safe else ""
     cur.execute(
         f"""
@@ -34,6 +35,7 @@ def export_trust_graph(conn, reference_id: str, public_safe: bool = False) -> di
         SELECT n.*
         FROM ebf_trust_graph_node n
         JOIN connected_nodes cn ON cn.id = n.id
+        {node_public_filter}
         ORDER BY n.node_type, n.label, n.id
         """,
         (reference_id,),

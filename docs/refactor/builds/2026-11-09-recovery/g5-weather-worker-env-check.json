@@ -1,0 +1,31 @@
+{
+  "title": "Candidate weather-worker environment presence check",
+  "recorded_date": "2026-11-09",
+  "check_stage": "Before the one-shot role bootstrap, grant, and ingestion",
+  "scope": "Coolify Kernel candidate only; no environment values or secrets were recorded.",
+  "deployment": {
+    "application_uuid": "fdphpruj8jxien23ockmbw0j",
+    "source_commit": "9d361bd1aab5ec8c483af8e2f04d3ae736e8fc41"
+  },
+  "containers": {
+    "gateway": {
+      "KOKONUT_WEATHER_DATABASE_URL_present": true,
+      "KOKONUT_WEATHER_WORKER_CREDENTIAL_present": true,
+      "KOKONUT_WEATHER_OPENWEATHERMAP_API_KEY_present": true,
+      "KOKONUT_WORKER_LOGIN_PASSWORD_present": true,
+      "KOKONUT_FEATURE_SIGNED_WEATHER_WORKER": "false"
+    },
+    "worker": {
+      "KOKONUT_WEATHER_DATABASE_URL_present": true,
+      "KOKONUT_WEATHER_WORKER_CREDENTIAL_present": true,
+      "KOKONUT_WEATHER_OPENWEATHERMAP_API_KEY_present": true,
+      "KOKONUT_WORKER_LOGIN_PASSWORD_present": true,
+      "KOKONUT_FEATURE_SIGNED_WEATHER_WORKER": "false"
+    }
+  },
+  "not_performed_at_environment_check": [
+    "No role bootstrap or database grant change",
+    "No provider request or observation write",
+    "No recurring schedule or forecast job"
+  ]
+}

@@ -38,6 +38,7 @@ _SOURCE_REVOKE_POLICY_OVERRIDES = {
     # The migration revokes table-wide access, then restores a verified read-only
     # column allowlist for API-key authentication.
     "api_key": "read_only_column_allowlist",
+    "clickhouse_outbox": "runtime_outbox_enqueue_only",
     "farm_activity_operator_event": "runtime_mutations_denied",
     "farm_activity_workflow_event": "runtime_append_only_read_insert",
     "advisory_rule": "runtime_mutations_denied",
@@ -334,6 +335,11 @@ def _runtime_role_boundaries() -> tuple[dict[str, str], str]:
         and {"_apply_api_key_boundary", "_verify_api_key_boundary"} <= provisioner_calls
     ):
         denials["api_key"] = "read_only_column_allowlist"
+    if (
+        "_apply_clickhouse_outbox_runtime_write_boundary" in functions
+        and "_apply_clickhouse_outbox_runtime_write_boundary" in provisioner_calls
+    ):
+        denials["clickhouse_outbox"] = "runtime_outbox_enqueue_only"
     return denials, hashlib.sha256(source_text.encode("utf-8")).hexdigest()
 
 
@@ -524,7 +530,11 @@ def build_report(probe: dict[str, Any], inventory: dict[str, Any]) -> dict[str, 
         }
         # data_access_log restores INSERT after a migration-level REVOKE ALL;
         # its only intended runtime DML privilege is the append operation.
-        policy_allowed_dml = {"INSERT"} if expected_boundary == "runtime_append_only_read_insert" else set()
+        policy_allowed_dml = (
+            {"INSERT"}
+            if expected_boundary in {"runtime_append_only_read_insert", "runtime_outbox_enqueue_only"}
+            else set()
+        )
         effective_dml_revokes = sorted((effective_dml_privileges & revoked_dml_privileges) - policy_allowed_dml)
         output_rows.append(
             {

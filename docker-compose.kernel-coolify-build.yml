@@ -1,0 +1,8 @@
+# Coolify's Git-based Compose path must build these local image tags from the
+# checked-out source. Without this policy, Compose can reuse an old `:local`
+# image even when the build context has changed.
+services:
+  app:
+    pull_policy: build
+  worker:
+    pull_policy: build

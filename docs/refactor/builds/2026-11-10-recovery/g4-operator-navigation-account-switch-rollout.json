@@ -1,0 +1,90 @@
+{
+  "version": 1,
+  "recorded_at_utc": "2026-11-10T23:13:17Z",
+  "scope": "Deploy the green operator navigation and OIDC account-switching change to the existing Coolify Gateway and Cloudflare Control Plane Worker.",
+  "source": {
+    "repository": "wasalo/Kokonut-Intelligence",
+    "branch": "chore/finalize-kokonut-intelligence-refactor",
+    "commit": "59ac52fbbb99b242c47fcb0c9408ade2ff1a0113",
+    "ci_run": 42911266339,
+    "ci_conclusion": "success",
+    "security_run": 42911266372,
+    "security_conclusion": "success"
+  },
+  "coolify": {
+    "application": "Kokonut Intelligence Kernel Candidate",
+    "application_uuid": "fdphpruj8jxien23ockmbw0j",
+    "deployment_uuid": "9agy0exulfynvrhyy32essfs",
+    "deployment_commit": "59ac52fbbb99b242c47fcb0c9408ade2ff1a0113",
+    "deployment_status": "finished",
+    "checked_at_utc": "2026-11-10T23:13:17Z",
+    "services": {
+      "gateway": "healthy",
+      "general_worker": "healthy",
+      "postgresql_postgis": "healthy",
+      "zitadel_api": "healthy",
+      "zitadel_login": "healthy"
+    },
+    "schema_migration_change": false
+  },
+  "cloudflare": {
+    "worker": "ki-operator-control-plane",
+    "version_id": "3c3d7f8c-5c47-4295-bdcd-44325738353a",
+    "previous_version_id": "6ba59d2b-dc29-4b15-8caa-0ca00ac6b7e1",
+    "wrangler_version": "4.148.0",
+    "environment": "top-level",
+    "assets_read": 11,
+    "assets_uploaded": 7,
+    "bindings": 0,
+    "dns_changed": false,
+    "route_configuration_changed": false,
+    "coolify_deployment_changed": true
+  },
+  "public_http_checks": {
+    "health": { "status": 200, "content_type": "application/json" },
+    "ops": { "status": 200, "content_type": "text/html" },
+    "field_records": { "status": 200, "content_type": "text/html" },
+    "governance": { "status": 200, "content_type": "text/html" },
+    "legacy_operator_console": { "status": 200, "content_type": "text/html" },
+    "anonymous_operator_session": { "status": 401, "content_type": "application/json" },
+    "operator_navigation_markers": [
+      "General Operations",
+      "Supervisor console",
+      "Switch account",
+      "Sign out"
+    ],
+    "oidc_account_selection_prompt": {
+      "status": 302,
+      "forwarded_prompt": "select_account",
+      "redirect_url_or_parameters_recorded": false
+    }
+  },
+  "temporary_deployment_credential": {
+    "status": "created_for_deploy_request_then_revoked_and_removed",
+    "permission": "deploy",
+    "scope": "single Coolify application resource",
+    "secret_value_recorded": false,
+    "preexisting_tokens_changed": false
+  },
+  "acceptance": {
+    "exact_head_ci_and_security": "passed",
+    "coolify_candidate_deployment": "passed",
+    "cloudflare_static_worker_deployment": "passed",
+    "public_route_smoke_checks": "passed",
+    "oidc_redirect_prompt": "passed",
+    "human_account_chooser_browser_check": "pending",
+    "publisher_first_sign_in": "pending",
+    "publish_or_reject_transition": "pending_separate_owner_confirmation",
+    "remaining_g4_checks": [
+      "negative OIDC state and nonce behavior",
+      "remaining audit-attribution checks",
+      "denial against a second authorized location",
+      "Field Collector offline media, consent, sync, and retry acceptance"
+    ]
+  },
+  "limitations": [
+    "HTTP status and redirect checks do not prove a human can switch accounts in the browser or complete Publisher sign-in.",
+    "No farm activity was published or otherwise mutated during rollout verification.",
+    "G4, G5, G6, and G7 remain open; this candidate deployment does not establish production readiness."
+  ]
+}

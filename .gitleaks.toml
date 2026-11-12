@@ -34,7 +34,21 @@ paths = [
   '''^docs/refactor/builds/2026-10-14-recovery/notification-outbox-failure-injection\.json$''',
   '''^docs/refactor/builds/2026-10-13-recovery/tenant-preflight-operator-access-disposable\.json$''',
   '''^docs/refactor/builds/2026-10-14-recovery/directus-schema-preflight-guard\.json$''',
+  '''^docs/refactor/runtime-role-attribution\.json$''',
 ]
+
+[[allowlists]]
+description = "Kernel release-input lock entries are tracked source SHA-256 digests, not credentials."
+targetRules = ["generic-api-key"]
+condition = "AND"
+regexTarget = "line"
+regexes = [
+  '''^\s*"config/kernel/coolify-environment-key-inventory\.json": "[a-fA-F0-9]{64}",?$''',
+  '''^\s*"docker-compose.kernel-coolify-media\.yml": "[a-fA-F0-9]{64}",?$''',
+  '''^\s*"docker-compose.kernel-coolify\.yml": "[a-fA-F0-9]{64}",?$''',
+  '''^\s*"scripts/render-kernel-coolify-compose\.py": "[a-fA-F0-9]{64}",?$''',
+]
+paths = ['''^config/kernel/release-input-lock\.json$''']
 
 [[allowlists]]
 description = "Generated Kernel locks record public package-artifact SHA-256 checksums, not credentials."

@@ -1,0 +1,25 @@
+{
+  "scope": "network-disabled synthetic PostgreSQL fixture plus synthetic Compose rendering",
+  "migration": "748_scheduler_executor_privileges.sql",
+  "migration_sha256": "01cfc4381597026abab0181f6f65609b7f112344b04b2ce184beaf4c7aeb3a91",
+  "result": "passed",
+  "checks": [
+    "provision and reprovision with transactional/autocommit connections",
+    "actual SchedulerEngine claim",
+    "resource acquire/release",
+    "run completion and bounded event",
+    "queue health SQL",
+    "non-admin readiness role and ledger columns",
+    "denied definition edit/run deletion/resource maximum mutation/direct event/payload access",
+    "stale broad grant rejection",
+    "Compose API environment unchanged",
+    "bootstrap password absent from worker"
+  ],
+  "candidate_changed": false,
+  "limitations": [
+    "no full-schema acceptance",
+    "no API scheduler privilege retirement",
+    "no profile planner integration",
+    "not enabled in Standard default"
+  ]
+}

@@ -1,0 +1,44 @@
+{
+  "evidence_type": "g4_candidate_oidc_negative_callbacks",
+  "observed_at_utc": "2026-11-12T22:19:02Z",
+  "candidate": {
+    "pull_request": 73,
+    "source_commit": "d8f2b9aa98181944cf26896e9f613a2f11be7737",
+    "coolify_application_id": "fdphpruj8jxien23ockmbw0j",
+    "request_origin": "authorized VPS; public Gateway HTTPS"
+  },
+  "method": {
+    "authorization_route": "/operator/auth/login?return_to=%2Fops",
+    "callback_route": "/operator/auth/callback",
+    "session_route": "/operator/auth/session",
+    "redirects_followed": false,
+    "credentials_used": false,
+    "callback_values_recorded": false,
+    "session_cookie_values_recorded": false,
+    "account_or_data_writes": false
+  },
+  "authorization_redirect": {
+    "http_status": 302,
+    "state_present": true,
+    "nonce_present": true,
+    "pkce_method": "S256"
+  },
+  "negative_callback_cases": [
+    {
+      "case": "mismatched state and synthetic invalid code",
+      "callback_http_status": 401,
+      "session_http_status": 401
+    },
+    {
+      "case": "missing state and synthetic invalid code",
+      "callback_http_status": 401,
+      "session_http_status": 401
+    },
+    {
+      "case": "matching state and synthetic invalid code",
+      "callback_http_status": 401,
+      "session_http_status": 401
+    }
+  ],
+  "interpretation": "The live candidate rejects missing/mismatched state and provider-rejected code without establishing an operator session. This does not test cryptographic nonce rejection for a validly signed ID token; that remains open."
+}

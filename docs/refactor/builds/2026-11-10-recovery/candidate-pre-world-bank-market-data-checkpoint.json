@@ -1,0 +1,30 @@
+{
+  "status": "passed",
+  "backup_id": "candidate-pre-world-bank-market-data-20261110T022430Z",
+  "created_at": "2026-11-10T02:24:40.853381+00:00",
+  "source_revision": "404d8c61b41a2536fcdb6dfa65ab118f4246c494",
+  "purpose": "Fresh encrypted database checkpoint before candidate World Bank market-data ingestion.",
+  "scope": {
+    "target": "Coolify Kernel candidate",
+    "databases": ["kokonut_intelligence", "zitadel"],
+    "r2_bucket": "kokonut-backups",
+    "r2_prefix": "kokonut-kernel-backups",
+    "database_restore_performed": false
+  },
+  "transfer": {
+    "upload": "committed; encrypted artifacts were read back and SHA-256/size verified",
+    "download": "passed; signed manifest and local backup verifier passed"
+  },
+  "artifacts": [
+    {
+      "path": "postgres/kokonut_intelligence.dump.enc",
+      "size": 9435792,
+      "sha256": "6bdf90bf79c8b0ad530ae04fb1dc0bbabf35e1483d97831dd9b985e41c2ca8a6"
+    },
+    {
+      "path": "postgres/zitadel.dump.enc",
+      "size": 389392,
+      "sha256": "016dac46a6e15c515b68985e946b2a97feecd16b35eb13a273bdd89616a80a05"
+    }
+  ]
+}

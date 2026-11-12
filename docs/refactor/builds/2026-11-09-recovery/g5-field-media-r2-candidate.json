@@ -1,0 +1,52 @@
+{
+  "version": 1,
+  "recorded_at_utc": "2026-11-09T18:50:40Z",
+  "scope": "Candidate-only private Field Collector media adapter check against the deployed Coolify Gateway container.",
+  "candidate": {
+    "coolify_application_id": "fdphpruj8jxien23ockmbw0j",
+    "deployment_id": "yclx1da2t6mtgf1wamihwugc",
+    "source_commit": "0c69f39f5cb598c08c45a204f90eb331dbb9ccdb",
+    "schema_version": 753,
+    "application_container": "app-fdphpruj8jxien23ockmbw0j-20261109T184619",
+    "health_http_status": 200,
+    "container_health": "healthy"
+  },
+  "configuration": {
+    "source": "local .env.sops loaded through scripts/load-secrets.sh",
+    "coolify_scope": "production Gateway environment only",
+    "variables_synced": [
+      "MOBILE_MEDIA_PROVIDER",
+      "MOBILE_MEDIA_ENCRYPTION_KEY",
+      "MOBILE_MEDIA_S3_ENDPOINT",
+      "MOBILE_MEDIA_S3_BUCKET",
+      "MOBILE_MEDIA_S3_ACCESS_KEY_ID",
+      "MOBILE_MEDIA_S3_SECRET_ACCESS_KEY",
+      "MOBILE_MEDIA_S3_REGION"
+    ],
+    "secret_values_printed": false,
+    "provider_worker_settings_changed": false,
+    "smtp_settings_changed": false,
+    "backup_settings_changed": false,
+    "schedule_activation_changed": false
+  },
+  "synthetic_object_acceptance": {
+    "result": "passed",
+    "operations": {
+      "put_private": true,
+      "head_metadata": true,
+      "raw_ciphertext_readback": true,
+      "authenticated_decryption": true,
+      "delete": true,
+      "exact_object_absent_after_delete": true
+    },
+    "object_key_recorded": false,
+    "user_media_accessed": false,
+    "database_rows_created": false,
+    "object_remains": false
+  },
+  "limitations": [
+    "This validates the candidate's configured AES-GCM R2 adapter and its bounded bucket access, not the authenticated upload or attachment API.",
+    "Collector browser sync, consent withdrawal, offline retry/deduplication, and media recovery acceptance remain open.",
+    "Provider jobs, report export, SMTP delivery, backup cadence, and recurring schedules were not run or enabled."
+  ]
+}

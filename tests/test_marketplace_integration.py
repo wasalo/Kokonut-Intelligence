@@ -7,8 +7,11 @@ reachable, matching the repo's offline-test convention.
 """
 
 import pytest
-from services.ingestion.base import get_db
+
 from services.analytics import marketplace as mp
+from services.common.worker_database import get_worker_db
+from services.core.features import is_enabled
+from services.ingestion.base import get_db
 
 
 def _db():
@@ -37,9 +40,13 @@ def _seed(conn):
 
 def test_full_roundtrip():
     conn = _db()
-    loc, crop = _seed(conn)
     created = []
+    market_data_worker_enabled = is_enabled("isolated_market_data_worker")
+    if market_data_worker_enabled:
+        worker_conn = get_worker_db("market_data")
+        worker_conn.close()
     try:
+        loc, crop = _seed(conn)
         listing = mp.create_listing(conn, loc, crop, 500.0, unit="kg",
                                    price_per_unit=0.5, quality_grade="A")
         assert listing["status"] == "published"
@@ -49,15 +56,26 @@ def test_full_roundtrip():
 
         active = mp.list_active_listings(conn, loc, crop)
         assert active["total"] >= 1
-        assert any(l["crop_name"] == crop for l in active["listings"])
+        assert any(listing_row["crop_name"] == crop for listing_row in active["listings"])
 
-        price = mp.record_price(conn, crop, "Test Market", 0.55,
-                                quality_grade="A", unit="kg", currency="USD")
-        assert price["crop_name"] == crop
-        created.append(("price_observation", price["price_id"]))
+        if market_data_worker_enabled:
+            price = mp.record_price(
+                conn, crop, "Test Market", 0.55, quality_grade="A", unit="kg", currency="USD"
+            )
+            assert price["crop_name"] == crop
+            created.append(("price_observation", price["price_id"]))
+        else:
+            with pytest.raises(RuntimeError, match="isolated market-data worker is disabled"):
+                mp.record_price(
+                    conn, crop, "Test Market", 0.55, quality_grade="A", unit="kg", currency="USD"
+                )
 
         trends = mp.get_price_trends(conn, crop, days=30)
-        assert trends["data_points"] >= 1
+        assert trends["crop_name"] == crop
+        assert trends["days"] == 30
+        assert trends["trend"] in {"no_data", "stable", "increasing", "decreasing", "insufficient_data"}
+        if market_data_worker_enabled:
+            assert trends["data_points"] >= 1
 
         buyer_party_id = "b0000000-0000-0000-0000-000000009301"
         with conn.cursor() as cur:
