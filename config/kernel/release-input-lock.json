@@ -1,6 +1,6 @@
 {
   "format_version": 1,
-  "lock_scope": "Kernel default and ClickHouse-enabled application, opt-in lean core app and capability overlays, optional sensor-anomaly ML worker, PostGIS image build inputs, Standard profile release image selection, and Coolify per-service environment isolation",
+  "lock_scope": "Kernel default and ClickHouse-enabled application, opt-in lean core app and capability overlays, optional sensor-anomaly ML worker, PostGIS image build inputs, Standard profile release image selection, and Coolify environment-key inventory and Gateway-only media secret-file mount",
   "base_images": {
     "application": "python:3.11-slim@sha256:db3ff2e1800a8581e2c48a27c3995339d47bdf046da21c7627accd3d51053a93",
     "database": "postgres:16-bookworm@sha256:0ea6700a3b4f0ae6ce746519073558aed4d88a79d8d07622a9a644946c7319c4"
@@ -55,9 +55,10 @@
     "docker-compose.kernel-coolify-network.yml": "607f80917635fbe63fbbdef752d677b0c2fa709a0b1842917037f26fa4a72305",
     "docker-compose.kernel-coolify-zitadel.yml": "6944c961d7044b235c6b10dac0ff33f228114489aca26fd30566bdb8c98bdd4a",
     "docker-compose.kernel-coolify-build.yml": "faf9dd842e1d809718d69e8125d5f8ad51fe04b4f7f8692c8015890ba4b4d8f6",
-    "docker-compose.kernel-coolify.yml": "ded6868da2cb64de93186784056bbc7710971f7da5b3ada54b03b4573f963598",
-    "scripts/render-kernel-coolify-compose.py": "6db6270dc681b4729b2f49e2a2828a6d2066b2b9d7a64595efd6154b2c808ab8",
-    "config/kernel/coolify-environment-key-inventory.json": "b6f197e40f05373df9cc94fe14278356540b277a65cef055007586f377182aa6"
+    "docker-compose.kernel-coolify.yml": "0b9c83716a85f938ab2bc9d98e6d51aa3189c3c2f2eaeb4143b292cfea1ba152",
+    "scripts/render-kernel-coolify-compose.py": "b16f2e21004b3ec64f60b31f7673c9eb99341bf0500d96ebe490c9ac536ef262",
+    "config/kernel/coolify-environment-key-inventory.json": "48a05b8934e96672753b29f6ca71328fe340b064a62588358a745315cf78871a",
+    "docker-compose.kernel-coolify-media.yml": "c6b9c7f3f22c6ee6b5bf62211b666d314a8a8f2338bfebcf47af81596d6f8f4d"
   },
   "postgis_packages": {
     "POSTGIS_PACKAGE_VERSION": "3.6.4+dfsg-2.pgdg12+1",

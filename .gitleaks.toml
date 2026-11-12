@@ -42,7 +42,12 @@ description = "Kernel release-input lock entries are tracked source SHA-256 dige
 targetRules = ["generic-api-key"]
 condition = "AND"
 regexTarget = "line"
-regexes = ['''^\s*"config/kernel/coolify-environment-key-inventory\.json": "[a-fA-F0-9]{64}",?$''']
+regexes = [
+  '''^\s*"config/kernel/coolify-environment-key-inventory\.json": "[a-fA-F0-9]{64}",?$''',
+  '''^\s*"docker-compose.kernel-coolify-media\.yml": "[a-fA-F0-9]{64}",?$''',
+  '''^\s*"docker-compose.kernel-coolify\.yml": "[a-fA-F0-9]{64}",?$''',
+  '''^\s*"scripts/render-kernel-coolify-compose\.py": "[a-fA-F0-9]{64}",?$''',
+]
 paths = ['''^config/kernel/release-input-lock\.json$''']
 
 [[allowlists]]

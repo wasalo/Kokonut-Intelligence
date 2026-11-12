@@ -46,6 +46,109 @@ def test_default_supervisor_heartbeat_uses_user_writable_state_path():
     assert not str(expected).startswith("/tmp/")
 
 
+def _write_valid_media_config(path: Path, *, mode: int = 0o440) -> dict[str, str]:
+    values = {
+        "MOBILE_MEDIA_PROVIDER": "s3",
+        "MOBILE_MEDIA_ENCRYPTION_KEY": "synthetic-media-encryption-key",
+        "MOBILE_MEDIA_S3_ENDPOINT": "https://r2.example.test",
+        "MOBILE_MEDIA_S3_BUCKET": "synthetic-media-bucket",
+        "MOBILE_MEDIA_S3_ACCESS_KEY_ID": "synthetic-media-access",
+        "MOBILE_MEDIA_S3_SECRET_ACCESS_KEY": "synthetic-media-secret",
+        "MOBILE_MEDIA_S3_REGION": "auto",
+    }
+    path.write_text("".join(f"{key}={value}\n" for key, value in values.items()))
+    path.chmod(mode)
+    return values
+
+
+def test_private_api_media_config_reads_only_allowlisted_s3_values(tmp_path):
+    path = tmp_path / "private-media.env"
+    expected = _write_valid_media_config(path)
+
+    assert runtime._read_api_media_environment({
+        runtime.API_MEDIA_CONFIG_FILE_ENV: str(path),
+    }) == expected
+
+
+@pytest.mark.parametrize(
+    ("content", "mode", "message"),
+    [
+        (
+            "MOBILE_MEDIA_PROVIDER=s3\nMOBILE_MEDIA_PROVIDER=s3\n",
+            0o440,
+            "duplicates MOBILE_MEDIA_PROVIDER",
+        ),
+        (
+            "MOBILE_MEDIA_PROVIDER=s3\nUNRELATED_SECRET=synthetic\n",
+            0o440,
+            "invalid entry",
+        ),
+        (
+            "MOBILE_MEDIA_PROVIDER=s3\n",
+            0o644,
+            "permissions are invalid",
+        ),
+    ],
+)
+def test_private_api_media_config_rejects_unsafe_or_invalid_files(
+    tmp_path, content, mode, message
+):
+    path = tmp_path / "private-media.env"
+    path.write_text(content)
+    path.chmod(mode)
+
+    with pytest.raises(ValueError, match=message):
+        runtime._read_api_media_environment({runtime.API_MEDIA_CONFIG_FILE_ENV: str(path)})
+
+
+def test_private_api_media_config_rejects_symlink(tmp_path):
+    target = tmp_path / "target.env"
+    _write_valid_media_config(target)
+    link = tmp_path / "private-media.env"
+    link.symlink_to(target)
+
+    with pytest.raises(ValueError, match="unavailable"):
+        runtime._read_api_media_environment({runtime.API_MEDIA_CONFIG_FILE_ENV: str(link)})
+
+
+def test_supervisor_loads_media_file_for_api_and_never_for_worker(monkeypatch, tmp_path):
+    config_path = tmp_path / "private-media.env"
+    expected = _write_valid_media_config(config_path)
+    monkeypatch.setenv(runtime.API_MEDIA_CONFIG_FILE_ENV, str(config_path))
+    monkeypatch.setenv(runtime.COOLIFY_MEDIA_SECRET_HOST_FILE_ENV, "/host/private-media.env")
+    for key in runtime._API_MEDIA_ENVIRONMENT_KEYS:
+        monkeypatch.setenv(key, "injected-shared-app-value")
+    monkeypatch.setenv(
+        runtime.SUPERVISOR_HEARTBEAT_FILE_ENV,
+        str(tmp_path / "worker" / "supervisor.json"),
+    )
+    processes = iter((_Process(501), _Process(502)))
+    spawned = []
+    _install_signal_fakes(monkeypatch, stop_on_sleep=True)
+    monkeypatch.setattr(
+        runtime,
+        "commands",
+        lambda *_args, **_kwargs: [("api", ["api"]), ("worker", ["worker"])],
+    )
+    monkeypatch.setattr(
+        runtime.subprocess,
+        "Popen",
+        lambda argv, **kwargs: spawned.append((argv, kwargs)) or next(processes),
+    )
+    monkeypatch.setattr(runtime.os, "killpg", lambda *_args: None)
+
+    assert runtime.run(with_workers=True) == 0
+
+    api_environment = spawned[0][1]["env"]
+    worker_environment = spawned[1][1]["env"]
+    assert {key: api_environment[key] for key in expected} == expected
+    assert not any(key.startswith("MOBILE_MEDIA_") for key in worker_environment)
+    assert runtime.API_MEDIA_CONFIG_FILE_ENV not in api_environment
+    assert runtime.API_MEDIA_CONFIG_FILE_ENV not in worker_environment
+    assert runtime.COOLIFY_MEDIA_SECRET_HOST_FILE_ENV not in api_environment
+    assert runtime.COOLIFY_MEDIA_SECRET_HOST_FILE_ENV not in worker_environment
+
+
 def _install_signal_fakes(monkeypatch, *, stop_on_sleep: bool = False):
     handlers = {}
     registrations = []

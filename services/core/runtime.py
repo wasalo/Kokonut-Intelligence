@@ -14,10 +14,12 @@ import tempfile
 import time
 import uuid
 from pathlib import Path
-from typing import Callable
+from typing import Callable, Mapping
 
 from services.common.logging import get_logger
 from services.common.worker_environment import (
+    API_MEDIA_CONFIG_FILE_ENV,
+    COOLIFY_MEDIA_SECRET_HOST_FILE_ENV,
     SCHEDULED_WORKER_KEYS,
     event_dispatch_worker_keys,
     worker_subprocess_environment,
@@ -34,6 +36,17 @@ DEFAULT_SUPERVISOR_HEARTBEAT_FILE = str(
     Path.home() / ".local" / "state" / "kokonut" / "worker-progress" / "supervisor.json"
 )
 SUPERVISOR_HEARTBEAT_INTERVAL_SECONDS = 5
+_API_MEDIA_ENVIRONMENT_KEYS = frozenset({
+    "MOBILE_MEDIA_PROVIDER",
+    "MOBILE_MEDIA_ENCRYPTION_KEY",
+    "MOBILE_MEDIA_LOCAL_DIRECTORY",
+    "MOBILE_MEDIA_LOCAL_KEY",
+    "MOBILE_MEDIA_S3_ENDPOINT",
+    "MOBILE_MEDIA_S3_BUCKET",
+    "MOBILE_MEDIA_S3_ACCESS_KEY_ID",
+    "MOBILE_MEDIA_S3_SECRET_ACCESS_KEY",
+    "MOBILE_MEDIA_S3_REGION",
+})
 
 
 class _SupervisorHeartbeat:
@@ -109,6 +122,81 @@ def _supervisor_heartbeat() -> _SupervisorHeartbeat:
     return _SupervisorHeartbeat(path)
 
 
+def _read_api_media_environment(
+    environ: Mapping[str, str] | None = None,
+) -> dict[str, str]:
+    """Load the Gateway-only media environment from a private mounted file."""
+    source = os.environ if environ is None else environ
+    configured_path = source.get(API_MEDIA_CONFIG_FILE_ENV, "").strip()
+    if not configured_path:
+        return {}
+
+    descriptor = -1
+    try:
+        descriptor = os.open(
+            configured_path,
+            os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0),
+        )
+        file_stat = os.fstat(descriptor)
+        if (
+            not stat.S_ISREG(file_stat.st_mode)
+            or file_stat.st_uid not in {0, os.getuid()}
+            or file_stat.st_mode & 0o027
+            or file_stat.st_mode & 0o111
+        ):
+            raise ValueError("private media configuration file permissions are invalid")
+        with os.fdopen(descriptor, "r", encoding="utf-8") as handle:
+            descriptor = -1
+            content = handle.read()
+    except OSError as exc:
+        raise ValueError("private media configuration file is unavailable") from exc
+    finally:
+        if descriptor >= 0:
+            os.close(descriptor)
+
+    values: dict[str, str] = {}
+    for line_number, raw_line in enumerate(content.splitlines(), start=1):
+        line = raw_line.strip()
+        if not line or line.startswith("#"):
+            continue
+        key, separator, raw_value = line.partition("=")
+        key = key.strip()
+        if not separator or key not in _API_MEDIA_ENVIRONMENT_KEYS:
+            raise ValueError(
+                f"private media configuration has an invalid entry on line {line_number}"
+            )
+        if key in values:
+            raise ValueError(f"private media configuration duplicates {key}")
+        value = raw_value.strip()
+        if len(value) >= 2 and value[0] == value[-1] and value[0] in {"'", '"'}:
+            value = value[1:-1]
+        values[key] = value
+
+    if not values:
+        raise ValueError("private media configuration is empty")
+    provider = values.get("MOBILE_MEDIA_PROVIDER", "s3").strip().lower()
+    if provider not in {"local", "s3"}:
+        raise ValueError("private media configuration has an unsupported provider")
+    if not (values.get("MOBILE_MEDIA_ENCRYPTION_KEY") or values.get("MOBILE_MEDIA_LOCAL_KEY")):
+        raise ValueError("private media configuration is missing its encryption key")
+    if provider == "s3":
+        required = (
+            "MOBILE_MEDIA_S3_ENDPOINT",
+            "MOBILE_MEDIA_S3_BUCKET",
+            "MOBILE_MEDIA_S3_ACCESS_KEY_ID",
+            "MOBILE_MEDIA_S3_SECRET_ACCESS_KEY",
+            "MOBILE_MEDIA_S3_REGION",
+        )
+        missing = [key for key in required if not values.get(key, "").strip()]
+        if missing:
+            raise ValueError(
+                "private media configuration is missing: " + ", ".join(missing)
+            )
+    elif not values.get("MOBILE_MEDIA_LOCAL_DIRECTORY", "").strip():
+        raise ValueError("private media configuration is missing MOBILE_MEDIA_LOCAL_DIRECTORY")
+    return values
+
+
 def commands(port: int, with_workers: bool, workers_only: bool = False) -> list[tuple[str, list[str]]]:
     from services.core.features import is_enabled
 
@@ -151,6 +239,18 @@ def run(port: int = 8099, with_workers: bool = False, shutdown_seconds: float = 
     children: list[tuple[str, subprocess.Popen]] = []
     old_handlers = {}
     heartbeat: _SupervisorHeartbeat | None = None
+    media_file_configured = bool(os.environ.get(API_MEDIA_CONFIG_FILE_ENV, "").strip())
+    api_media_environment: dict[str, str] = {}
+
+    if media_file_configured and not workers_only:
+        try:
+            api_media_environment = _read_api_media_environment()
+        except ValueError as exc:
+            logger.error(
+                "Kernel private-media configuration failed validation (%s)",
+                type(exc).__name__,
+            )
+            return 1
 
     if require_schema or require_runtime_role:
         from services.core.schema_readiness import SchemaReadinessError, require_schema_ready
@@ -231,7 +331,20 @@ def run(port: int = 8099, with_workers: bool = False, shutdown_seconds: float = 
                 }
             if name == "scheduler" and "KOKONUT_SCHEDULER_DATABASE_URL" in os.environ:
                 environment_options["isolated_worker_key"] = "scheduler"
-            child_environment = worker_subprocess_environment(**environment_options)
+            if media_file_configured:
+                child_source = dict(os.environ)
+                child_source.pop(API_MEDIA_CONFIG_FILE_ENV, None)
+                child_source.pop(COOLIFY_MEDIA_SECRET_HOST_FILE_ENV, None)
+                for media_key in _API_MEDIA_ENVIRONMENT_KEYS:
+                    child_source.pop(media_key, None)
+                if name == "api":
+                    child_source.update(api_media_environment)
+                child_environment = worker_subprocess_environment(
+                    **environment_options,
+                    environ=child_source,
+                )
+            else:
+                child_environment = worker_subprocess_environment(**environment_options)
             if name in {"scheduler", "events", "notifications"}:
                 child_environment[WORKER_PROGRESS_NAME_ENV] = name
             process = subprocess.Popen(

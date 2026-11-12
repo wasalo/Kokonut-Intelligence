@@ -574,27 +574,53 @@ explicit policy Compose may reuse an existing local image instead of building
 the checked-out source. The renderer requires this policy for both services.
 See Docker's [`pull_policy` behavior](https://docs.docker.com/reference/compose-file/services/#pull_policy).
 
-### Coolify per-service environment isolation
+### Coolify private media configuration
 
-Coolify 4.7.5 attaches the application `.env` to each Compose service. This
-means a value can reach a container even when that service does not reference
-it in the Compose `environment` block. Docker Compose gives an explicit
-service `environment` entry precedence over `env_file`, including an explicit
-empty value. The generated manifest therefore includes the known app
-environment key inventory plus every key declared by a Compose service on
-every service: keys not declared for that service are set to empty, while
-service-declared values keep their normal interpolation.
+Treat Coolify application environment variables as shared across every service
+in the Compose resource. The live candidate showed that media credentials could
+appear in non-Gateway containers even though the generated Compose manifest
+declares explicit empty values for those services. The inventory and empty
+overrides remain useful for ordinary settings, but they are not the security
+boundary for media credentials.
 
-The inventory contains variable names only and is checked against `.env.example`
-and the tracked `.env.sops` key names. Add each new app variable to the
-inventory source and declare it only on services that need it. This keeps the
-Gateway's `MOBILE_MEDIA_*` settings on the API service while the general worker,
-databases, proxy, and ZITADEL services receive empty values. The Gateway
-supervisor continues to remove media settings from scheduler, event, and
-notification child environments. Keep the temporary VPS override until the
-new candidate deployment confirms all service environment values are scoped.
-Standard Compose deployments continue to use their normal per-service
-environment declarations.
+For Coolify, keep the nine `MOBILE_MEDIA_*` values in `.env.sops` and remove
+them from both production and preview application environment rows. Install the
+allowlisted values from SOPS directly to the VPS without writing a plaintext
+local file:
+
+```sh
+COOLIFY_SSH_HOST=root@your-coolify-host
+COOLIFY_APPLICATION_ID=your-24-character-application-id
+python3 scripts/install-coolify-media-config.py \
+  --ssh-host "$COOLIFY_SSH_HOST" \
+  --application-id "$COOLIFY_APPLICATION_ID" \
+  --destination "/data/coolify/applications/$COOLIFY_APPLICATION_ID/private/media.env"
+```
+
+If SOPS cannot find the local age identity at its default path, set
+`SOPS_AGE_KEY_FILE` to the authorized key file before running the command.
+
+The installer validates the selected provider and required settings, streams
+only the media keys over SSH stdin, and atomically creates a root-owned,
+`10001` group-readable `0440` file. It prints the key names and permissions,
+never their values. The file's parent is restricted to root. Use the same
+procedure after rotating media credentials.
+
+Set the nonsecret Coolify application variable
+`KOKONUT_COOLIFY_MEDIA_SECRET_HOST_FILE` to the installed host path. The
+Coolify-only overlay bind-mounts it read-only into the Gateway container at
+`/run/kokonut/private-media.env`; it does not mount the file into the worker,
+database, proxy, or ZITADEL services. The supervisor validates the file type,
+ownership, permissions, provider, and required keys before starting the API.
+It loads those values only into the Gateway child environment and removes the
+file-path markers before creating child environments. The worker, scheduler,
+event, and notification children receive no `MOBILE_MEDIA_*` values.
+
+The Coolify environment-key inventory contains names only and is still checked
+against `.env.example` and the tracked `.env.sops` key names. Add new nonsecret
+app variables there. Standard Compose deployments continue to use their
+normal per-service environment declarations; this private host-file procedure
+is specific to the Coolify candidate.
 
 Create a normal Git-based Docker Compose Application in the owner-provided
 Coolify project/environment. Set Base Directory to the repository root and

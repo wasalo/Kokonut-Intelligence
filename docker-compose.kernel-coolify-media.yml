@@ -1,0 +1,21 @@
+# Coolify stores application environment variables at the Compose-resource
+# level and may inject them into every service. Keep media credentials out of
+# that shared environment: mount the SOPS-rendered file only into the Gateway.
+services:
+  app:
+    environment:
+      MOBILE_MEDIA_PROVIDER: ""
+      MOBILE_MEDIA_LOCAL_DIRECTORY: ""
+      MOBILE_MEDIA_LOCAL_KEY: ""
+      MOBILE_MEDIA_ENCRYPTION_KEY: ""
+      MOBILE_MEDIA_S3_ENDPOINT: ""
+      MOBILE_MEDIA_S3_BUCKET: ""
+      MOBILE_MEDIA_S3_ACCESS_KEY_ID: ""
+      MOBILE_MEDIA_S3_SECRET_ACCESS_KEY: ""
+      MOBILE_MEDIA_S3_REGION: ""
+      KOKONUT_API_MEDIA_CONFIG_FILE: /run/kokonut/private-media.env
+    volumes:
+      - type: bind
+        source: ${KOKONUT_COOLIFY_MEDIA_SECRET_HOST_FILE:?KOKONUT_COOLIFY_MEDIA_SECRET_HOST_FILE must point to the private media configuration file}
+        target: /run/kokonut/private-media.env
+        read_only: true
