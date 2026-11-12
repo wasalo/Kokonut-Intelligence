@@ -574,25 +574,27 @@ explicit policy Compose may reuse an existing local image instead of building
 the checked-out source. The renderer requires this policy for both services.
 See Docker's [`pull_policy` behavior](https://docs.docker.com/reference/compose-file/services/#pull_policy).
 
-### Coolify Gateway-only Field Collector media settings
+### Coolify per-service environment isolation
 
-Coolify 4.7.5 adds application-wide runtime variables to each Compose service
-after the service-level environment is parsed and replaces `env_file` lists at
-deployment. Do not put `MOBILE_MEDIA_*` credentials in the shared application
-environment: other services would receive them even when their Compose
-environment lists empty values.
+Coolify 4.7.5 attaches the application `.env` to each Compose service. This
+means a value can reach a container even when that service does not reference
+it in the Compose `environment` block. Docker Compose gives an explicit
+service `environment` entry precedence over `env_file`, including an explicit
+empty value. The generated manifest therefore includes the known app
+environment key inventory plus every key declared by a Compose service on
+every service: keys not declared for that service are set to empty, while
+service-declared values keep their normal interpolation.
 
-The generated Coolify manifest mounts these settings read-only at
-`/run/secrets/kokonut-gateway-media.env` on the Gateway only and sets
-`KOKONUT_GATEWAY_MEDIA_ENV_FILE` to that path. The supervisor validates the
-allowlisted dotenv file and passes its values only to the API child; isolated
-worker children receive neither the file path nor its values. Coolify's File
-Storage entry is encrypted at rest. Remove the corresponding `MOBILE_MEDIA_*`
-rows from shared application environment variables. The application container
-runs as UID/GID `10001`, so set the managed file owner to `10001:10001` and
-mode to `0400`. Keep secrets out of the repository and worker environment.
-Standard Compose deployments continue to load media settings from their normal
-secret environment.
+The inventory contains variable names only and is checked against `.env.example`
+and the tracked `.env.sops` key names. Add each new app variable to the
+inventory source and declare it only on services that need it. This keeps the
+Gateway's `MOBILE_MEDIA_*` settings on the API service while the general worker,
+databases, proxy, and ZITADEL services receive empty values. The Gateway
+supervisor continues to remove media settings from scheduler, event, and
+notification child environments. Keep the temporary VPS override until the
+new candidate deployment confirms all service environment values are scoped.
+Standard Compose deployments continue to use their normal per-service
+environment declarations.
 
 Create a normal Git-based Docker Compose Application in the owner-provided
 Coolify project/environment. Set Base Directory to the repository root and

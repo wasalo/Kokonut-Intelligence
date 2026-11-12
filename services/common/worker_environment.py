@@ -102,8 +102,7 @@ _GLOBAL_PROVIDER_SECRETS = frozenset({
     "CELO_ALFAJORES_RPC_URL",
     "GNOSIS_RPC_URL",
 })
-GATEWAY_MEDIA_ENV_FILE_ENV = "KOKONUT_GATEWAY_MEDIA_ENV_FILE"
-API_ONLY_MEDIA_ENV = frozenset({
+_API_ONLY_MEDIA_ENV = frozenset({
     "MOBILE_MEDIA_PROVIDER",
     "MOBILE_MEDIA_ENCRYPTION_KEY",
     "MOBILE_MEDIA_LOCAL_DIRECTORY",
@@ -113,7 +112,6 @@ API_ONLY_MEDIA_ENV = frozenset({
     "MOBILE_MEDIA_S3_ACCESS_KEY_ID",
     "MOBILE_MEDIA_S3_SECRET_ACCESS_KEY",
     "MOBILE_MEDIA_S3_REGION",
-    GATEWAY_MEDIA_ENV_FILE_ENV,
 })
 _ISOLATED_WORKER_PROVIDER_SECRETS = {
     # The outbox worker is the only isolated child that writes to ClickHouse.
@@ -329,7 +327,7 @@ def worker_subprocess_environment(
     enqueue_only = "event_dispatch" in allowed or "notification_enqueue" in allowed
     child_environment: dict[str, str] = {}
     for name, value in source.items():
-        if name in API_ONLY_MEDIA_ENV and not include_api_only_media_environment:
+        if name in _API_ONLY_MEDIA_ENV and not include_api_only_media_environment:
             continue
         if name in _REPORT_EXPORT_STORAGE_SECRETS:
             continue

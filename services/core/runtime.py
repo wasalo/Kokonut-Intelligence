@@ -6,7 +6,6 @@ import argparse
 import json
 import math
 import os
-import re
 import signal
 import stat
 import subprocess
@@ -19,8 +18,6 @@ from typing import Callable
 
 from services.common.logging import get_logger
 from services.common.worker_environment import (
-    API_ONLY_MEDIA_ENV,
-    GATEWAY_MEDIA_ENV_FILE_ENV,
     SCHEDULED_WORKER_KEYS,
     event_dispatch_worker_keys,
     worker_subprocess_environment,
@@ -37,77 +34,6 @@ DEFAULT_SUPERVISOR_HEARTBEAT_FILE = str(
     Path.home() / ".local" / "state" / "kokonut" / "worker-progress" / "supervisor.json"
 )
 SUPERVISOR_HEARTBEAT_INTERVAL_SECONDS = 5
-_GATEWAY_MEDIA_ENV_KEYS = frozenset(
-    key for key in API_ONLY_MEDIA_ENV if key.startswith("MOBILE_MEDIA_")
-)
-_ENVIRONMENT_KEY = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
-
-
-class GatewayMediaEnvironmentError(RuntimeError):
-    """The API-only media environment file is missing or invalid."""
-
-
-def _gateway_media_environment(child_environment: dict[str, str]) -> dict[str, str]:
-    """Read a private, allowlisted media dotenv file for the API child only."""
-    file_name = child_environment.pop(GATEWAY_MEDIA_ENV_FILE_ENV, None)
-    if file_name is None:
-        return {}
-    path = Path(file_name)
-    if not path.is_absolute():
-        raise GatewayMediaEnvironmentError("media environment path must be absolute")
-    try:
-        metadata = path.lstat()
-        if (
-            not stat.S_ISREG(metadata.st_mode)
-            or metadata.st_uid != os.getuid()
-            or stat.S_IMODE(metadata.st_mode) != 0o400
-        ):
-            raise GatewayMediaEnvironmentError("media environment file permissions are invalid")
-        content = path.read_text(encoding="utf-8")
-    except (OSError, UnicodeError) as exc:
-        raise GatewayMediaEnvironmentError("media environment file is unavailable") from exc
-
-    values: dict[str, str] = {}
-    for raw_line in content.splitlines():
-        line = raw_line.strip()
-        if not line or line.startswith("#"):
-            continue
-        if line.startswith("export "):
-            line = line[7:].lstrip()
-        key, separator, value = line.partition("=")
-        key = key.strip()
-        if not separator or not _ENVIRONMENT_KEY.fullmatch(key) or key not in _GATEWAY_MEDIA_ENV_KEYS:
-            raise GatewayMediaEnvironmentError("media environment file contains an unsupported assignment")
-        if key in values:
-            raise GatewayMediaEnvironmentError("media environment file contains a duplicate assignment")
-        value = value.strip()
-        if len(value) >= 2 and value[0] == value[-1] and value[0] in {"'", '"'}:
-            value = value[1:-1]
-        values[key] = value
-
-    provider = values.get("MOBILE_MEDIA_PROVIDER", "").strip().lower()
-    encryption_key = values.get("MOBILE_MEDIA_ENCRYPTION_KEY", "").strip() or values.get(
-        "MOBILE_MEDIA_LOCAL_KEY", ""
-    ).strip()
-    if provider == "s3":
-        required = (
-            "MOBILE_MEDIA_S3_ENDPOINT",
-            "MOBILE_MEDIA_S3_BUCKET",
-            "MOBILE_MEDIA_S3_ACCESS_KEY_ID",
-            "MOBILE_MEDIA_S3_SECRET_ACCESS_KEY",
-            "MOBILE_MEDIA_S3_REGION",
-        )
-        missing = [key for key in required if not values.get(key, "").strip()]
-        if missing or not encryption_key:
-            raise GatewayMediaEnvironmentError("S3 media environment is incomplete")
-    elif provider == "local":
-        if not values.get("MOBILE_MEDIA_LOCAL_DIRECTORY", "").strip() or not encryption_key:
-            raise GatewayMediaEnvironmentError("local media environment is incomplete")
-    else:
-        raise GatewayMediaEnvironmentError("media provider is missing or unsupported")
-    for key in _GATEWAY_MEDIA_ENV_KEYS:
-        child_environment.pop(key, None)
-    return values
 
 
 class _SupervisorHeartbeat:
@@ -306,12 +232,6 @@ def run(port: int = 8099, with_workers: bool = False, shutdown_seconds: float = 
             if name == "scheduler" and "KOKONUT_SCHEDULER_DATABASE_URL" in os.environ:
                 environment_options["isolated_worker_key"] = "scheduler"
             child_environment = worker_subprocess_environment(**environment_options)
-            if name == "api":
-                try:
-                    child_environment.update(_gateway_media_environment(child_environment))
-                except GatewayMediaEnvironmentError as exc:
-                    logger.error("Kernel Gateway media configuration failed closed (%s)", exc)
-                    return 1
             if name in {"scheduler", "events", "notifications"}:
                 child_environment[WORKER_PROGRESS_NAME_ENV] = name
             process = subprocess.Popen(
