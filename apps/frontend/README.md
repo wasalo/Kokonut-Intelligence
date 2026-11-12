@@ -83,16 +83,15 @@ HTTPS and browser identity acceptance in G4.
 
 ## Production routing and deployment
 
-As of 11 November 2026, the candidate Control Plane is deployed through Cloudflare
-Worker Static Assets at `hub.kokonut.network` (version
-`77564893-2c14-4053-9910-0da656fb7bed`). The Worker serves `/`, `/ops` and
-descendants, `/field` and descendants, `/governance` and descendants, plus
+The configured delivery uses Cloudflare Worker Static Assets for `/`, `/ops`
+and descendants, `/field` and descendants, `/governance` and descendants, plus
 `/assets/*`. SPA navigation on those paths returns the app shell. The Worker
 does not claim Gateway or compatibility routes: `/operator/*`, `/api/mobile/*`,
-and `/participation/*` continue to Coolify's VPS origin. Personalized/API/auth/
-media responses are not served from the static asset cache. Candidate deployment
-does not mean all workflows or production acceptance gates have passed; use the
-[current refactor status](../../docs/refactor/current-state-and-implementation.md).
+and `/participation/*` continue to Coolify's VPS origin. Personalized, API,
+authentication, and media responses are not served from the static asset cache.
+The currently deployed Worker version and candidate acceptance evidence are
+recorded in the [current refactor status](../../docs/refactor/current-state-and-implementation.md),
+which is the source of truth for live deployment state.
 
 For an isolated layout and asset preview on the account's `workers.dev`
 subdomain, run `npm run deploy:control-plane:preview`. This preview has no
@@ -106,8 +105,9 @@ npm run deploy:control-plane
 ```
 
 The command builds the Control Plane and deploys the routes in
-`apps/control-plane/wrangler.jsonc`; it updates the live `hub` Worker and does
-not create DNS records or configure ZITADEL, R2, or the Coolify Gateway origin.
+`apps/control-plane/wrangler.jsonc`; it updates the live `hub` Worker. Confirm
+the intended branch/account before running it. It does not create DNS records
+or configure ZITADEL, R2, or the Coolify Gateway origin.
 Use `npm run deploy:control-plane:preview` for an isolated `workers.dev` visual
 preview. Keep Cloudflare credentials in the operator's environment or secret
 store, not in this workspace. The partial Control Plane does not replace the

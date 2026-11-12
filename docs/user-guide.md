@@ -1,6 +1,16 @@
 # Kokonut Intelligence — User Guide
 
-Welcome to the Kokonut Intelligence Platform. This guide walks you through using the platform day-to-day — from logging in and entering data to viewing dashboards and running analytics.
+This guide is a domain-workflow reference for Kokonut Intelligence. Available
+screens, grants, integrations, and data depend on the selected deployment and
+its acceptance status.
+
+> [!IMPORTANT]
+> The current Hub is a candidate Control Plane with a public ecosystem page and
+> partially migrated operator screens. Its accepted forms and route boundaries
+> are documented in the [Control Plane guide](../apps/frontend/README.md); live
+> deployment and remaining gates are in the [current refactor guide](refactor/current-state-and-implementation.md).
+> The older Directus examples later in this document are compatibility
+> references, not instructions for the current Hub or Standard VPS profile.
 
 ---
 
@@ -8,9 +18,9 @@ Welcome to the Kokonut Intelligence Platform. This guide walks you through using
 
 1. [Welcome](#1-welcome--what-is-kokonut-intelligence)
 2. [Getting Started](#2-getting-started)
-3. [Your Role — What You Can Do](#3-your-role--what-you-can-do)
+3. [Your Grants — What You Can Do](#3-your-grants--what-you-can-do)
 4. [The Workflow — How Records Move](#4-the-workflow--how-records-move)
-5. [Entering Data — Step-by-Step](#5-entering-data--step-by-step)
+5. [Entering Data — Legacy Directus Reference](#5-entering-data--legacy-directus-reference)
 6. [Understanding Validation & AI Assistance](#6-understanding-validation--ai-assistance)
 7. [Viewing Dashboards](#7-viewing-dashboards)
 8. [Partner Access — What External Partners See](#8-partner-access--what-external-partners-see)
@@ -38,27 +48,25 @@ Kokonut Intelligence is an open-source platform for managing regenerative farm o
 
 | Audience | What to read |
 |----------|-------------|
-| Field workers entering daily data | Sections 2–6 |
-| Supervisors and managers approving records | Sections 2–6 |
-| Finance staff reviewing expenses and sales | Sections 2–6 |
-| Analysts querying verified data | Sections 2, 7, 10 |
-| External partners (buyers, funders, vendors) | Sections 2, 7–8 |
-| Developers building integrations | Sections 9–12 |
-| Platform administrators | All sections |
+| Operators entering current candidate data | Sections 2–5 and the [Operator Guide](operator-guide.md) |
+| Reviewers and workflow owners | Sections 3–4 and the [Reviewer Guide](reviewer-guide.md) |
+| Developers building integrations | [Gateway policy guide](gateway.md) and [Gateway route reference](../services/gateway/README.md) |
+| Field Collector users | [Field Data Collection Guide](field-data-collection-guide.md) |
+| Platform administrators | [Current refactor guide](refactor/current-state-and-implementation.md) and deployment/secrets runbooks |
 
 **What you'll learn:**
 
 - How to log in and navigate the platform
-- What your role allows you to do
-- How to enter, submit, and approve records
-- How to view dashboards and reports
-- How to run analytics and export data
+- Which current Hub entry points exist and how Gateway grants control them
+- How governed workflows separate draft creation, review, and publication
+- Where to find the domain, reporting, and integration references
 
 ### Related Documentation
 
 | Topic | Document |
 |-------|----------|
 | Daily operations SOP | [Operator Guide](operator-guide.md) |
+| Current Hub screens | [Control Plane guide](../apps/frontend/README.md) |
 | Field data collection procedures | [Field Data Collection Guide](field-data-collection-guide.md) |
 | Export and report details | [Export Guide](export-guide.md) |
 | EAS on-chain verification | [Attestation Guide](attestation-guide.md) |
@@ -67,168 +75,86 @@ Kokonut Intelligence is an open-source platform for managing regenerative farm o
 | Metric compute vs verify | [Metric Verification](metric-verification.md) |
 | Field definitions and formulas | [Data Dictionary](data-dictionary.md) |
 | System architecture | [Architecture Guide](architecture.md) |
-| API endpoint reference | [API Reference](api-reference.md) |
+| Native Gateway endpoints | [Gateway route reference](../services/gateway/README.md) |
+| Optional Directus compatibility API | [Directus API Reference](api-reference.md) |
+| Candidate gates | [Current refactor guide](refactor/current-state-and-implementation.md) |
 | Full platform description | [Green Paper](green-paper.md) |
 
 ---
 
 ## 2. Getting Started
 
-### Logging In
+### Current Hub
 
-1. Open your browser and go to `https://localhost/admin` for base Compose, or to your organization's Directus URL. If a local override exposes Directus directly, `http://localhost:8055` may also be available.
-2. Enter your email and password provided by your administrator.
-3. You'll land on the Directus home screen.
+The Hub at [`https://hub.kokonut.network`](https://hub.kokonut.network) has a
+public ecosystem overview at `/` and authenticated workspaces at `/ops`,
+`/field`, and `/governance`. The public page does not require operator login.
+Candidate availability does not mean every capability is available or accepted.
 
+1. Open the workspace you need, then choose **Sign in**. The Gateway redirects
+   to the configured OIDC identity provider and returns you to the requested
+   workspace.
+2. Use **Switch account** in the Hub navigation when you need a different
+   identity; use **Sign out** to clear the Gateway session.
+3. The screens shown and actions available depend on explicit Gateway grants
+   for the signed-in operator and, for farm work, the selected location.
 
-### Navigating the Interface
+Current candidate entry flows:
 
-The Directus interface has three main areas:
+- `/ops/administration` creates a location with its first farm, or adds a farm
+  to an active, verified location already owned by the selected tenant. It
+  requires a decision reference, spatial boundary data, and the global
+  `location_setup:create` capability.
+- `/field/records` lists non-Collector farm activities and creates an
+  unsubmitted draft. Farm, plot, crop-cycle, and farm-task links are optional;
+  selected relations must match each other and the authorized location.
+- Submission, verification, rejection, rework, and publication are separate
+  governed actions. Field Collector records use a separate offline client,
+  device identity, consent, and sync workflow.
 
-- **Left sidebar** — Lists all collections (tables) you have access to. Click a collection name to browse its records.
-- **Main content area** — Shows the selected collection's records in a table, or a single record's detail view.
-- **Top bar** — Contains search, filters, your user menu, and the Dashboard link.
+See the [Operator Guide](operator-guide.md) for current location/farm and
+farm-activity entry details. Do not infer candidate acceptance from an API
+route, a visible form, or a successful local build.
 
-**Key navigation actions:**
+### Optional Directus compatibility interface
 
-| Action | How |
-|--------|-----|
-| Browse a collection | Click its name in the left sidebar |
-| Create a new record | Click the `+` button in the top right of a collection view |
-| Filter records | Click the filter icon and add conditions |
-| Edit a record | Click any row in the table, then click the edit (pencil) icon |
-| Export data | Click the `...` menu → Export |
+When Directus is explicitly deployed, its admin UI and role/collection
+permissions are a separate compatibility surface. It is not the native Hub,
+and its grants do not substitute for Gateway operator grants. Directus is not
+included in the Standard VPS profile.
 
-### Your User Menu
+## 3. Your Grants — What You Can Do
 
-Click your avatar/name in the top right corner to:
+Kokonut Intelligence does not use generic Field Worker/Supervisor/Manager
+labels as a universal authorization contract. OIDC proves the operator's
+identity; Gateway grants decide what that operator may do. An identity-provider
+organization role, a Directus role, or the label “administrator” does not by
+itself prove access to a Gateway resource.
 
-- View your profile (including your assigned role and location)
-- Access the Dashboard module (if you have permission)
-- Log out
+| Capability | Scope | What it allows |
+|---|---|---|
+| `location_setup:create` | Global operator capability | Create a location and its first farm, or add a farm under an eligible existing tenant location |
+| `farm_activity:read` | Exact location | Read non-Collector activity summaries and bounded relation choices |
+| `farm_activity:read_detail` | Exact location | Read private activity details and audit history |
+| `farm_activity:create_draft` | Exact location | Create an unsubmitted Gateway activity draft |
+| `farm_activity:edit_draft` | Exact location | Correct an eligible draft with a recorded reason |
+| `farm_activity:submit`, `verify`, `reject`, `rework`, `publish`, `close_exception` | Exact location | Perform only the named governed transition when the record state allows it |
 
----
-
-## 3. Your Role — What You Can Do
-
-Every user is assigned a **role** that determines what they can see and do. Your administrator sets your role when creating your account.
-
-### Field Worker
-
-**Icon:** 🌾 agriculture
-
-**What you can do:**
-- Create new records: farm activities, harvests, expenses, sales, losses, labor events, field notes
-- Edit your own records while they are in **draft** status
-- View your own records
-
-**What you cannot do:**
-- See records from other locations
-- Submit records for approval (that's your Supervisor's job)
-- Edit records that have already been submitted
-
-**Your typical day:**
-1. Log in to Directus
-2. Navigate to the collection for what you're recording (e.g., `harvest_event`)
-3. Click `+` to create a new record
-4. Fill in the fields — the system will auto-calculate costs and validate your entries
-5. Save the record (it stays in **draft** status)
-6. Your Supervisor will review and submit it
-
-### Supervisor
-
-**Icon:** 👁 supervisor_account
-
-**What you can do:**
-- **Read** all records across all locations
-- **Submit** records for approval (change status from draft → submitted)
-- View the full workflow history
-
-**What you cannot do:**
-- Edit record data (only Field Workers can edit drafts)
-- Verify or approve records (that's the Manager's job)
-
-**Your typical day:**
-1. Log in and review the `submitted` queue — records waiting for approval
-2. Check that records from your team are complete and accurate
-3. Submit draft records that are ready for review (change status to **submitted**)
-4. If a record needs correction, ask the Field Worker to fix it (it stays in draft)
-
-### Manager
-
-**Icon:** 👤 supervised_user_circle
-
-**What you can do:**
-- **Read** all records across all locations
-- **Verify** records (change status from submitted → verified)
-- **Reject** records with a reason (change status from submitted → rejected)
-- Publish records for operational data (verified → published)
-
-**What you cannot do:**
-- Verify expenses or sales (that's the Finance role's job)
-- Edit record data
-
-**Your typical day:**
-1. Log in and review the **submitted** queue
-2. Review each record for accuracy and completeness
-3. **Approve** (verify) records that pass review — they become verified
-4. **Reject** records that need correction — provide a reason so the Field Worker knows what to fix
-5. **Publish** verified records to make them available to dashboards and analysts
-
-### Finance
-
-**Icon:** 💰 account_balance
-
-**What you can do:**
-- **Read** all records across all locations, including financial summaries (NOI snapshots)
-- **Verify** expenses and sales (submitted → verified)
-- **Reject** expenses and sales with a reason
-- **Publish** verified expenses and sales
-
-**What you cannot do:**
-- Verify operational records (farm activities, harvests, losses — that's the Manager)
-- Edit record data
-
-**Your typical day:**
-1. Log in and review submitted expenses and sales
-2. Check amounts, categories, and receipts
-3. **Approve** valid expenses and sales
-4. **Reject** entries with discrepancies and provide a reason
-5. Review NOI snapshots and financial summaries
-
-### Analyst
-
-**Icon:** 📊 analytics
-
-**What you can do:**
-- **Read** verified and published records (read-only)
-- Run queries, exports, and reports
-- View all dashboards
-
-**What you cannot do:**
-- Edit, create, or delete any records
-- Submit or approve records
-
-**Your typical day:**
-1. Log in and browse verified/published data
-2. If the optional Metabase profile is enabled, use its dashboards at the configured BI URL for visual analysis
-3. Export data to CSV/JSON for deeper analysis
-4. Run reports via the CLI or SDK
-
-### Administrator
-
-**What you can do:**
-- Full access to everything
-- Manage users, roles, and permissions
-- Create and modify the database schema
-- Deploy contracts and manage EAS attestations
-- Create partner user accounts
+These capabilities are provisioned and checked server-side. Actions are
+independent; permission to create a draft does not grant verification or
+publication. Workflows that require independent review should use different
+operators for the separate decisions. For exact route contracts, see the
+[Gateway route reference](../services/gateway/README.md).
 
 ---
 
 ## 4. The Workflow — How Records Move
 
-Every operational record follows a **4-stage lifecycle**. This ensures data goes through proper review before it's published to dashboards and reports.
+Some governed record types use the lifecycle below. It is not a universal state
+machine for every table or service. Each workflow defines its own allowed
+transitions, required evidence, visibility, and grants. In the current Hub,
+creating a farm-activity record creates a draft only; submission, verification,
+rejection, rework, and publication are separate signed actions.
 
 ```
   ┌─────────┐
@@ -261,46 +187,48 @@ Every operational record follows a **4-stage lifecycle**. This ensures data goes
 
 ### Who Can Do What
 
-| Transition | Who can do it |
+| Transition | Authorization |
 |-----------|--------------|
-| Draft → Submitted | Any authenticated user |
-| Submitted → Verified | Manager, Supervisor (operational records) or Finance (expenses/sales) |
-| Submitted → Rejected | Manager, Supervisor (operational records) or Finance (expenses/sales) |
-| Rejected → Draft | Any authenticated user (rework) |
-| Verified → Published | Manager or Finance |
+| Draft → Submitted | Exact workflow grant and eligible record state |
+| Submitted → Verified | Separate verifier grant and eligible record state |
+| Submitted/verified → Rejected | Separate reject grant and workflow-required reason |
+| Rejected → Draft | Separate rework grant |
+| Verified → Published | Separate publication grant and eligible record state |
 
 ### What Happens at Each Stage
 
 | Stage | What it means | Who sees it |
 |-------|--------------|-------------|
-| **Draft** | Record is being created or edited. Not yet reviewed. | Creator + Supervisor + Manager |
-| **Submitted** | Record is ready for review. Waiting in the approval queue. | Supervisor + Manager + Finance |
-| **Verified** | Record has been reviewed and approved. Ready to publish. | Manager + Analyst + dashboards |
-| **Rejected** | Record needs correction. A reason is provided. | Creator (to fix and re-submit) |
-| **Published** | Record is final. Available to all dashboards and reports. | Everyone (read-only) |
+| **Draft** | Record has not completed review. | Visibility is defined by that workflow's grants. |
+| **Submitted** | Record was submitted for the next review step. | Visibility is defined by that workflow's grants. |
+| **Verified** | A reviewer accepted it for the next governed step. | Verification does not automatically publish it. |
+| **Rejected** | A reviewer returned it for rework or exception handling. | A reason is recorded where the workflow requires one. |
+| **Published** | The workflow approved its publication. | Exposure remains subject to the record's projection and disclosure policy. |
 
 ### Handling Rejections
 
-When a record is rejected:
-
-1. The system sets `rejected_by` and records the rejection reason
-2. The record status changes to **rejected**
-3. The creator can see the rejection reason in the record's workflow history
-4. To fix: change the status back to **draft**, edit the record, and re-submit
+When a record is rejected, follow the workflow's rework path and provide the
+required correction reason. For farm activity, `rejected → draft` is a separate
+`rework` action; the operator and decision remain in its audit history.
 
 ### Audit Trail
 
-Every status change is automatically logged to the `workflow_history` table with:
-- Who made the change
-- When it happened
-- What the previous and new status are
-- Any notes or rejection reason
+Audit storage is workflow-specific. The native farm-activity Gateway records
+the operator, action, previous/new state, time, and supplied reason in its
+operator event history. Do not assume every lifecycle is stored in a universal
+`workflow_history` table.
 
 ---
 
-## 5. Entering Data — Step-by-Step
+## 5. Entering Data — Legacy Directus Reference
 
-This section covers how to enter each type of record through the Directus interface. Records are organized by category.
+The steps in this section describe older Directus collection workflows and
+domain examples. They do not describe the current Hub forms or prove that a
+particular collection is available, permissioned, or accepted in a deployment.
+For current candidate entry, use `/ops/administration` and `/field/records` as
+described in the [Control Plane guide](../apps/frontend/README.md) and
+[Operator Guide](operator-guide.md). Directus remains an optional compatibility
+adapter; its permissions and hooks are separate from the Gateway.
 
 ### Overview
 
@@ -762,7 +690,13 @@ python3 -m services.analytics.llm_chat intents
 
 ## 7. Viewing Dashboards
 
-### Directus Dashboards
+The dashboard examples below refer to optional legacy Directus or Metabase
+surfaces. Their presence in the repository does not mean they are deployed,
+populated, or available to the signed-in Hub account. The current public Hub
+page is a separate public-data overview; its available locations depend on
+approved public projections and populated records.
+
+### Optional Directus Dashboards
 
 To access the Dashboard module:
 
@@ -1874,7 +1808,8 @@ python3 -m services.metadata_api.cli serve --port 8099
 | Topic | Document |
 |-------|----------|
 | System overview | [Architecture Guide](architecture.md) |
-| API endpoints | [API Reference](api-reference.md) |
+| Native Gateway endpoints | [Gateway route reference](../services/gateway/README.md) |
+| Optional Directus endpoints | [Directus API Reference](api-reference.md) |
 | Field definitions | [Data Dictionary](data-dictionary.md) |
 | EAS setup | [Attestation Guide](attestation-guide.md) |
 | Export details | [Export Guide](export-guide.md) |
