@@ -374,11 +374,6 @@ services:
         source: report-snapshot-export-artifacts
         target: /var/lib/kokonut/report-snapshot-exports
         type: volume
-      - read_only: true
-        source: ${KOKONUT_COOLIFY_MEDIA_SECRET_HOST_FILE:?KOKONUT_COOLIFY_MEDIA_SECRET_HOST_FILE
-          must point to the private media configuration file}
-        target: /run/kokonut/private-media.env
-        type: bind
   database:
     environment:
       ADMIN_EMAIL: ""

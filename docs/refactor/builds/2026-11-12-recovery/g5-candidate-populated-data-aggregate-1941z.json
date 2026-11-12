@@ -1,0 +1,21 @@
+{
+  "captured_at_utc": "2026-11-12T19:41:42Z",
+  "candidate_source_commit": "da6dd018350da0ccdd89860e3034a67d258374d4",
+  "database_access": "authenticated candidate connection in a read-only transaction",
+  "query_scope": "aggregate counts only; no row values or identifiers returned",
+  "counts": {
+    "locations": 1,
+    "farms": 1,
+    "farm_activities": 2,
+    "weather_observations": 1,
+    "yield_observations": 0,
+    "irrigation_events": 0,
+    "soil_samples": 0,
+    "metric_values": 0,
+    "report_snapshots": 0
+  },
+  "acceptance": {
+    "g4_second_authorized_location_denial": "open; a second authorized location does not yet exist",
+    "g5_populated_data_parity": "open; Adelphi measurement and report reference data are not populated"
+  }
+}

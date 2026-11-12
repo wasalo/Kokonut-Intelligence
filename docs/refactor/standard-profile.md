@@ -606,15 +606,23 @@ only the media keys over SSH stdin, and atomically creates a root-owned,
 never their values. The file's parent is restricted to root. Use the same
 procedure after rotating media credentials.
 
-Set the nonsecret Coolify application variable
-`KOKONUT_COOLIFY_MEDIA_SECRET_HOST_FILE` to the installed host path. The
-Coolify-only overlay bind-mounts it read-only into the Gateway container at
-`/run/kokonut/private-media.env`; it does not mount the file into the worker,
-database, proxy, or ZITADEL services. The supervisor validates the file type,
-ownership, permissions, provider, and required keys before starting the API.
-It loads those values only into the Gateway child environment and removes the
-file-path markers before creating child environments. The worker, scheduler,
-event, and notification children receive no `MOBILE_MEDIA_*` values.
+In Coolify, add a **Host File Mount** to the `app` service with the installed
+file as its source and `/run/kokonut/private-media.env` as its container path.
+For this candidate, use source
+`/data/coolify/applications/<application-id>/private/media.env`. Do not add a
+Compose bind mount or an application environment variable for the host path:
+Coolify validates Compose mount sources before interpolation and rejects
+`${...}` there. Leave the deprecated
+`KOKONUT_COOLIFY_MEDIA_SECRET_HOST_FILE` marker blank in Coolify. The mount
+belongs only to `app`, not the worker, database,
+proxy, or ZITADEL services. The installer creates a root-owned `10001`-group
+readable `0440` file; the Gateway image runs as UID `10001`, so it can read
+the file without being able to change it. The supervisor validates the file
+type, ownership, permissions, provider, and required keys before starting the
+API. It loads those values only into the Gateway child environment and removes
+the file-path markers before creating child environments. The worker,
+scheduler, event, and notification children receive no `MOBILE_MEDIA_*`
+values.
 
 The Coolify environment-key inventory contains names only and is still checked
 against `.env.example` and the tracked `.env.sops` key names. Add new nonsecret

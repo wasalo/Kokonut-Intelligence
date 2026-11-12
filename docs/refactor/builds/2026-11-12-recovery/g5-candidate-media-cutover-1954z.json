@@ -1,0 +1,19 @@
+{
+  "configured_at_utc": "2026-11-12T19:54:41Z",
+  "application_uuid": "fdphpruj8jxien23ockmbw0j",
+  "project_uuid": "qwo0g0o40c48s4ccwcowwcw0",
+  "environment_uuid": "b84s4c8k8w48kscows4w8cw4",
+  "candidate_branch": "chore/finalize-kokonut-intelligence-refactor",
+  "candidate_commit": "be401628d1f2478516e31cfe947e1a982c0c36d0",
+  "host_file_path": "/data/coolify/applications/fdphpruj8jxien23ockmbw0j/private/media.env",
+  "coolify_environment_update": {
+    "production_and_preview_host_path_rows_created": 2,
+    "production_and_preview_media_rows_blank_value_updates_accepted": 16,
+    "api_response_secret_values": "redacted; no values captured"
+  },
+  "deployment_uuid": "oflpsaiipmzc9jzaabbpgknb",
+  "deployment_status_at_capture": "in_progress",
+  "old_candidate_runtime": "still serving; public /health returned HTTP 200 before replacement",
+  "runtime_isolation_verification": "pending deployment completion",
+  "secret_values_recorded": false
+}

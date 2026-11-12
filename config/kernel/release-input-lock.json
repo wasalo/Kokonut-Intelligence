@@ -55,10 +55,10 @@
     "docker-compose.kernel-coolify-network.yml": "607f80917635fbe63fbbdef752d677b0c2fa709a0b1842917037f26fa4a72305",
     "docker-compose.kernel-coolify-zitadel.yml": "6944c961d7044b235c6b10dac0ff33f228114489aca26fd30566bdb8c98bdd4a",
     "docker-compose.kernel-coolify-build.yml": "faf9dd842e1d809718d69e8125d5f8ad51fe04b4f7f8692c8015890ba4b4d8f6",
-    "docker-compose.kernel-coolify.yml": "0b9c83716a85f938ab2bc9d98e6d51aa3189c3c2f2eaeb4143b292cfea1ba152",
+    "docker-compose.kernel-coolify.yml": "1f2a38f21a7ee86b579cdb7a2cb6657baf4e3df92d06d0f2d0e078b400d95b39",
     "scripts/render-kernel-coolify-compose.py": "b16f2e21004b3ec64f60b31f7673c9eb99341bf0500d96ebe490c9ac536ef262",
     "config/kernel/coolify-environment-key-inventory.json": "48a05b8934e96672753b29f6ca71328fe340b064a62588358a745315cf78871a",
-    "docker-compose.kernel-coolify-media.yml": "c6b9c7f3f22c6ee6b5bf62211b666d314a8a8f2338bfebcf47af81596d6f8f4d"
+    "docker-compose.kernel-coolify-media.yml": "fea29f717825cc4aeee7b2c844e3ff6c81e693e1abf77585ce8a958b8254e22f"
   },
   "postgis_packages": {
     "POSTGIS_PACKAGE_VERSION": "3.6.4+dfsg-2.pgdg12+1",
