@@ -1,0 +1,24 @@
+{
+  "evidence_type": "read_only_candidate_data_readiness_aggregate",
+  "observed_at_utc": "2026-11-12T06:37:24Z",
+  "coolify_application_uuid": "fdphpruj8jxien23ockmbw0j",
+  "candidate_generation": "20261111T172834",
+  "query_scope": "public-schema aggregate row counts only; no row values or identifiers returned",
+  "counts": {
+    "locations": 1,
+    "farms": 1,
+    "farm_activities": 2,
+    "weather_observations": 1,
+    "yield_observations": 0,
+    "irrigation_events": 0,
+    "soil_samples": 0,
+    "metric_values": 0,
+    "report_snapshots": 0
+  },
+  "interpretation": "The farm-activity rows are known workflow test records. No second location or populated Adelphi measurement/report reference data is present in these acceptance surfaces. This is readiness evidence only; it does not establish populated parity or G5 acceptance.",
+  "limitations": [
+    "Counts are a point-in-time aggregate and may change after owner data entry.",
+    "No record content, operator identity, or location identifier was read or recorded.",
+    "No writes, provider requests, or reference-data imports were performed."
+  ]
+}

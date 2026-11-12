@@ -78,9 +78,8 @@ services:
       PG_USER: ${KOKONUT_RUNTIME_USER:?KOKONUT_RUNTIME_USER must be set}
       KOKONUT_ENV: production
       PG_PASSWORD: ${KOKONUT_RUNTIME_PASSWORD:?KOKONUT_RUNTIME_PASSWORD must be set}
-      # Coolify may inject application-level variables into every service.
-      # Explicitly clear Collector media settings so credentials and storage
-      # configuration remain exclusive to the API process.
+      # Keep Collector media settings out of the general worker. Coolify's
+      # generated profile loads them only into the Gateway child process.
       MOBILE_MEDIA_PROVIDER: ""
       MOBILE_MEDIA_LOCAL_DIRECTORY: ""
       MOBILE_MEDIA_LOCAL_KEY: ""

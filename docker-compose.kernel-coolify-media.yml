@@ -1,0 +1,11 @@
+# Coolify merges application-wide runtime variables into every service. Mount
+# private Collector settings for the Gateway supervisor to load into its API child.
+services:
+  app:
+    environment:
+      KOKONUT_GATEWAY_MEDIA_ENV_FILE: /run/secrets/kokonut-gateway-media.env
+    volumes:
+      - type: bind
+        source: ./.coolify-secrets/gateway-media.env
+        target: /run/secrets/kokonut-gateway-media.env
+        read_only: true

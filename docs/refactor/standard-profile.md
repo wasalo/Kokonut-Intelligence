@@ -574,6 +574,26 @@ explicit policy Compose may reuse an existing local image instead of building
 the checked-out source. The renderer requires this policy for both services.
 See Docker's [`pull_policy` behavior](https://docs.docker.com/reference/compose-file/services/#pull_policy).
 
+### Coolify Gateway-only Field Collector media settings
+
+Coolify 4.7.5 adds application-wide runtime variables to each Compose service
+after the service-level environment is parsed and replaces `env_file` lists at
+deployment. Do not put `MOBILE_MEDIA_*` credentials in the shared application
+environment: other services would receive them even when their Compose
+environment lists empty values.
+
+The generated Coolify manifest mounts these settings read-only at
+`/run/secrets/kokonut-gateway-media.env` on the Gateway only and sets
+`KOKONUT_GATEWAY_MEDIA_ENV_FILE` to that path. The supervisor validates the
+allowlisted dotenv file and passes its values only to the API child; isolated
+worker children receive neither the file path nor its values. Coolify's File
+Storage entry is encrypted at rest. Remove the corresponding `MOBILE_MEDIA_*`
+rows from shared application environment variables. The application container
+runs as UID/GID `10001`, so set the managed file owner to `10001:10001` and
+mode to `0400`. Keep secrets out of the repository and worker environment.
+Standard Compose deployments continue to load media settings from their normal
+secret environment.
+
 Create a normal Git-based Docker Compose Application in the owner-provided
 Coolify project/environment. Set Base Directory to the repository root and
 Compose Location to `docker-compose.kernel-coolify.yml`; keep normal Coolify
