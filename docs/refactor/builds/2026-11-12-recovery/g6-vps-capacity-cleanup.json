@@ -42,8 +42,22 @@
     "gateway_health_http_status": 200,
     "zitadel_discovery_http_status": 200
   },
+  "follow_up": {
+    "observed_at_utc": "2026-11-12T14:21:25Z",
+    "root_filesystem": {
+      "size_bytes": 102888095744,
+      "used_bytes": 91257077760,
+      "available_bytes": 11614240768,
+      "use_percent": 89
+    },
+    "docker_reclaimable_images_gb": 1.137,
+    "docker_reclaimable_build_cache_mb": 0,
+    "docker_reclaimable_volumes_gb": 3.24,
+    "candidate_services": "all seven remain running; six healthy and proxy has no healthcheck",
+    "additional_cleanup": "none; shared-host image and volume rollback/ownership context is not established"
+  },
   "limitations": [
-    "The host is shared and still has only 12 GB available after safe image/cache cleanup.",
+    "The host is shared and had 11.6 GB available at the follow-up; unused images and volumes were not removed because ownership and rollback value are not established.",
     "No Docker volumes were pruned because they may contain application data.",
     "This capacity preflight is not the full Coolify recovery rehearsal or 24-hour soak."
   ]
