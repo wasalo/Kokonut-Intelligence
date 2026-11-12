@@ -47,7 +47,7 @@
     "docs/refactor/profile-selection.md": "d2dc4b1f4cf9a2ec06d6abca217fa8071718b747883ba755630abc1364fab8f2",
     "requirements/README.md": "699bfef971be138ca125640284a47ef7a3a73d67f1007ea85bc3d2217f2bed36",
     "docker-compose.kernel-candidate.yml": "c404109f71e175649d1cd99a447990e8b9f177666f10c8dc8c071a2a9b1f99af",
-    "docker-compose.kernel-standard.yml": "9870c6589d9c1bf3b35f5b15cbb363cead82e0077a00da2a3533ccf52dd4899c",
+    "docker-compose.kernel-standard.yml": "4b88161bf8664eaa8d267db33df975d8384872c0e35bdda3caa5441bada39054",
     "docker-compose.kernel-runtime-role.yml": "306b4b59a12aabe87d905d311fa4883915de97838a1a18e39025c9a90379b180",
     "docker-compose.kernel-oidc.yml": "8bc4a74071151194f8498702efc6cc927151de190ba8925ed06a127630bd5a7d",
     "docker-compose.kernel-proxy.yml": "acb9828274e1a009c3b7d579fae438c4afe2ff70c619be3f9d4cc33fd2b96796",
@@ -55,7 +55,7 @@
     "docker-compose.kernel-coolify-network.yml": "607f80917635fbe63fbbdef752d677b0c2fa709a0b1842917037f26fa4a72305",
     "docker-compose.kernel-coolify-zitadel.yml": "6944c961d7044b235c6b10dac0ff33f228114489aca26fd30566bdb8c98bdd4a",
     "docker-compose.kernel-coolify-build.yml": "faf9dd842e1d809718d69e8125d5f8ad51fe04b4f7f8692c8015890ba4b4d8f6",
-    "docker-compose.kernel-coolify.yml": "9332d4522fcbb433be78c3b0305f730f2bdea6b96d6bafcb504739107d989409",
+    "docker-compose.kernel-coolify.yml": "a1a1446d2583f1fc346dbd2723fb5e4a240b27675960736ba724bcbda05377bc",
     "scripts/render-kernel-coolify-compose.py": "82d9e0e44dd40c57104d7b8bc8b26f425fb3dee9476a4f4a1594e77f57722a67"
   },
   "postgis_packages": {
