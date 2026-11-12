@@ -4,10 +4,10 @@
   "scope": "Direct Python SQL execution calls in services/**/*.py, including API, worker, and CLI modules. The scan is driver-neutral, so local non-PostgreSQL stores may also appear; it is not a PostgreSQL-only inventory. Relation names and simple leading DML targets are regex-derived candidates, not a parsed SQL AST. Unquoted PostgreSQL identifiers are normalized to lower case and quoted identifiers preserve case. A query held in a local variable is resolved only from one unambiguous local assignment; an unconditional same-module string or literal-only f-string constant is resolved only when no shadowing or reassignment is found. Dynamic table identifiers stay unresolved. The scan cannot prove query reachability, ORM/extension/external effects, complete database access, required columns, or authorization. It is not a grant allowlist.",
   "summary": {
     "source_files": 1012,
-    "execution_sites": 5045,
+    "execution_sites": 5046,
     "worker_operation_roots": 50,
     "sites_with_worker_operation_refs": 439,
-    "sites_without_worker_operation_refs": 4606,
+    "sites_without_worker_operation_refs": 4607,
     "statement_kinds": {
       "CREATE": 1,
       "DELETE": 42,
@@ -15,14 +15,14 @@
       "RELEASE": 20,
       "ROLLBACK": 12,
       "SAVEPOINT": 11,
-      "SELECT": 2928,
+      "SELECT": 2929,
       "SET": 702,
       "UNKNOWN": 288,
       "UPDATE": 408,
       "WITH": 28
     },
     "statement_groups": {
-      "read_candidate": 2928,
+      "read_candidate": 2929,
       "schema_change": 1,
       "transaction_or_session": 745,
       "unknown_requires_manual_review": 288,
@@ -33,11 +33,11 @@
       "composed": 47,
       "composed_or_variable": 387,
       "fstring": 308,
-      "literal": 4303
+      "literal": 4304
     },
     "relation_candidates": 1258,
     "write_target_relations": 563,
-    "sites_without_relation_candidates": 1353,
+    "sites_without_relation_candidates": 1354,
     "service_packages": 68
   },
   "service_packages": {
@@ -365,16 +365,16 @@
     },
     "gateway": {
       "source_files": 178,
-      "execution_sites": 1109,
+      "execution_sites": 1110,
       "statement_groups": {
-        "read_candidate": 420,
+        "read_candidate": 421,
         "transaction_or_session": 631,
         "unknown_requires_manual_review": 18,
         "with_requires_manual_review": 3,
         "write_candidate": 37
       },
       "candidate_relation_names": 270,
-      "sites_without_relation_candidates": 749,
+      "sites_without_relation_candidates": 750,
       "non_literal_sites": 17,
       "sites_with_worker_operation_refs": 0
     },
@@ -4489,6 +4489,7 @@
     {"id": "services/gateway/ai_summary_task_request.py:61:12","source": "services/gateway/ai_summary_task_request.py","line": 61,"column": 12,"scope": "create_operator_ai_summary_task_request","method": "execute","expression_kind": "literal","statement_kind": "SELECT","candidate_relations": ["kokonut_security.enqueue_location_ai_summary_operator_task_request"],"static_sql_sha256": "61b5186ff0ad7cdcd0514ee8695b9a1d63771d7f46beb7edadbe2793ce013aa1","operation_refs": [],"write_target_relations": [],"statement_group": "read_candidate"},
     {"id": "services/gateway/api_key_provisioning.py:111:13","source": "services/gateway/api_key_provisioning.py","line": 111,"column": 13,"scope": "_existing_key","method": "execute","expression_kind": "literal","statement_kind": "SELECT","candidate_relations": ["public.api_key"],"static_sql_sha256": "6c691ff26eb00393d6494e92d94878f58627ce273812c9ab2a5091f273931037","operation_refs": [],"write_target_relations": [],"statement_group": "read_candidate"},
     {"id": "services/gateway/api_key_provisioning.py:162:27","source": "services/gateway/api_key_provisioning.py","line": 162,"column": 27,"scope": "provision_api_key_manifest","method": "execute","expression_kind": "literal","statement_kind": "INSERT","candidate_relations": ["public.api_key"],"static_sql_sha256": "6b4c19de520b05b4ed7ab793a3aa6d4a1063cbb8ffbdbb0c2049de4d41c5df40","operation_refs": [],"write_target_relations": ["public.api_key"],"statement_group": "write_candidate"},
+    {"id": "services/gateway/app.py:506:20","source": "services/gateway/app.py","line": 506,"column": 20,"scope": "create_app.readiness.check_database","method": "execute","expression_kind": "literal","statement_kind": "SELECT","candidate_relations": [],"static_sql_sha256": "e004ebd5b5532a4b85984a62f8ad48a81aa3460c1ca07701f386135d72cdecf5","operation_refs": [],"write_target_relations": [],"statement_group": "read_candidate"},
     {"id": "services/gateway/attestations.py:42:12","source": "services/gateway/attestations.py","line": 42,"column": 12,"scope": "list_location_attestations","method": "execute","expression_kind": "literal","statement_kind": "SET","candidate_relations": [],"static_sql_sha256": "6c20e5345ee8028f61cc0541aeb60699e5cffa99c8f79ff7f8c62b0a8dad1837","operation_refs": [],"write_target_relations": [],"statement_group": "transaction_or_session"},
     {"id": "services/gateway/attestations.py:43:12","source": "services/gateway/attestations.py","line": 43,"column": 12,"scope": "list_location_attestations","method": "execute","expression_kind": "literal","statement_kind": "SET","candidate_relations": [],"static_sql_sha256": "d9946d44ba3ecfd34d8e9419a4918e0cee4d99c52737f63b62043c82b60030e5","operation_refs": [],"write_target_relations": [],"statement_group": "transaction_or_session"},
     {"id": "services/gateway/attestations.py:44:12","source": "services/gateway/attestations.py","line": 44,"column": 12,"scope": "list_location_attestations","method": "execute","expression_kind": "literal","statement_kind": "SET","candidate_relations": [],"static_sql_sha256": "e7919abcde4ac704789f51f749423dc38cacd353c98fb8c089b4c0c316e4df9c","operation_refs": [],"write_target_relations": [],"statement_group": "transaction_or_session"},
