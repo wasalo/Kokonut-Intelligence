@@ -54,6 +54,17 @@ def _validate_inputs(lock: dict) -> None:
                 "Review the change and update config/kernel/release-input-lock.json."
             )
 
+    dockerignore_lines = [
+        line.strip()
+        for line in (ROOT / ".dockerignore").read_text(encoding="utf-8").splitlines()
+        if line.strip() and not line.lstrip().startswith("#")
+    ]
+    ignored_paths = {line.lstrip("/").rstrip("/") for line in dockerignore_lines}
+    if "private" not in ignored_paths:
+        raise LockError(
+            "Docker build contexts must exclude the root private/ directory so Coolify-only media files cannot enter images"
+        )
+
     base_images = lock.get("base_images", {})
     for dockerfile, expected_base in (
         ("Dockerfile.kernel", base_images.get("application")),

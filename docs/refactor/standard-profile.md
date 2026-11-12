@@ -611,7 +611,9 @@ resource root to `/run/kokonut/private-media.env`, read-only and on the `app`
 service only. Coolify's checkout keeps the Compose file at the resource root;
 the installer writes the host file to
 `/data/coolify/applications/<application-id>/private/media.env`, which is that
-relative source path. Keep the deprecated
+relative source path. The root `private/` directory is excluded from every
+Docker build context, and the release-input check enforces that boundary so
+the host-only file cannot be baked into the Gateway or worker image. Keep the deprecated
 `KOKONUT_COOLIFY_MEDIA_SECRET_HOST_FILE` marker blank in Coolify. Do not use
 variable interpolation for the bind source: Coolify's validator rejects it.
 The installer creates a root-owned `10001`-group-readable `0440` file; the

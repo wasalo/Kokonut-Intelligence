@@ -1,6 +1,6 @@
 {
   "format_version": 1,
-  "lock_scope": "Kernel default and ClickHouse-enabled application, opt-in lean core app and capability overlays, optional sensor-anomaly ML worker, PostGIS image build inputs, Standard profile release image selection, and Coolify environment-key inventory and Gateway-only media secret-file mount",
+  "lock_scope": "Kernel default and ClickHouse-enabled application, opt-in lean core app and capability overlays, optional sensor-anomaly ML worker, PostGIS image build inputs, Standard profile release image selection, Coolify environment-key inventory, Gateway-only media secret-file mount, and private Docker build-context exclusion",
   "base_images": {
     "application": "python:3.11-slim@sha256:db3ff2e1800a8581e2c48a27c3995339d47bdf046da21c7627accd3d51053a93",
     "database": "postgres:16-bookworm@sha256:0ea6700a3b4f0ae6ce746519073558aed4d88a79d8d07622a9a644946c7319c4"
@@ -40,7 +40,7 @@
     "requirements/kernel-core-storage.lock": "e34f4138c02279044f016ddda963ab442b691e0da42d906f2ca0a1c98c66f149",
     "services/core/image_manifest.py": "3d9f2d39463e7c3ba25c0d8673182df7255b5c69bc43d6c5e4633f7032abed39",
     "scripts/kernel-profile.py": "24e1da5ab32e602585123abd5bd43a1ae8cc44256a5aa845c023adc9cc83af53",
-    "scripts/check-kernel-release-inputs.py": "5283d4f189dd9ce42ec8d1e26edccfb21135270becea37fb90dcabd5986573e7",
+    "scripts/check-kernel-release-inputs.py": "fda361103b304df6d3544636f158bf2f17a35a2e2cde617d394dfcca285e57b6",
     "scripts/build-kernel-multiarch.sh": "d3cab27970fea09c8f27a3bec73b53816dcd9f3191000054c38f41b103720dd5",
     "scripts/validate-kernel-postgis-source-run.py": "a67b16a7917f17295232859d6029c9865a1a60bab71f7f07978ec27933bbe517",
     "scripts/verify-kernel-postgis-published.py": "39c2c9f715e7499fc7fc28886282ee97e288874e9667de9809eb743d910eb2db",
@@ -58,7 +58,8 @@
     "docker-compose.kernel-coolify.yml": "e338a6a71366b2821e451b1911cc806193bac51beefdc3045b7316675b90a8db",
     "scripts/render-kernel-coolify-compose.py": "b16f2e21004b3ec64f60b31f7673c9eb99341bf0500d96ebe490c9ac536ef262",
     "config/kernel/coolify-environment-key-inventory.json": "48a05b8934e96672753b29f6ca71328fe340b064a62588358a745315cf78871a",
-    "docker-compose.kernel-coolify-media.yml": "677321c9930fb5eed04e9ce5d577e84b4a0dad860501232924bc9f000881059e"
+    "docker-compose.kernel-coolify-media.yml": "677321c9930fb5eed04e9ce5d577e84b4a0dad860501232924bc9f000881059e",
+    ".dockerignore": "02ea91f43589f3fde3fa4d899fa8489fd48d2e5897084dc093508651f7008ff1"
   },
   "postgis_packages": {
     "POSTGIS_PACKAGE_VERSION": "3.6.4+dfsg-2.pgdg12+1",
