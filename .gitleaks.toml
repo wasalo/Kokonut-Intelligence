@@ -38,6 +38,14 @@ paths = [
 ]
 
 [[allowlists]]
+description = "Kernel release-input lock entries are tracked source SHA-256 digests, not credentials."
+targetRules = ["generic-api-key"]
+condition = "AND"
+regexTarget = "line"
+regexes = ['''^\s*"config/kernel/coolify-environment-key-inventory\.json": "[a-fA-F0-9]{64}",?$''']
+paths = ['''^config/kernel/release-input-lock\.json$''']
+
+[[allowlists]]
 description = "Generated Kernel locks record public package-artifact SHA-256 checksums, not credentials."
 targetRules = ["generic-api-key"]
 condition = "AND"
