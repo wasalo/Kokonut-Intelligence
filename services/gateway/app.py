@@ -494,6 +494,37 @@ def create_app(*, rate_limiter: RateLimitBackend | None = None):
             "timestamp": datetime.now(timezone.utc).isoformat(),
         }
 
+    @app.get("/health/ready")
+    async def readiness():
+        """Return a minimal readiness signal when PostgreSQL is reachable."""
+        def check_database() -> bool:
+            from services.common.database import get_db
+
+            connection = get_db()
+            try:
+                with connection.cursor() as cursor:
+                    cursor.execute("SELECT 1")
+                    row = cursor.fetchone()
+                return row is not None and row[0] == 1
+            finally:
+                connection.close()
+
+        try:
+            ready = await run_in_threadpool(check_database)
+        except Exception as exc:
+            logger.warning("Gateway readiness probe failed (%s)", type(exc).__name__)
+            ready = False
+
+        status = "ready" if ready else "not_ready"
+        return JSONResponse(
+            status_code=200 if ready else 503,
+            content={"status": status},
+            headers={
+                "Cache-Control": "no-store",
+                "X-Content-Type-Options": "nosniff",
+            },
+        )
+
     @app.get("/")
     async def root():
         """Root endpoint."""
