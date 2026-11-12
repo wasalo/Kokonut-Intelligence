@@ -2,10 +2,12 @@
 
 from __future__ import annotations
 
+import asyncio
 import hashlib
 import hmac
 import ssl
 import sys
+import time
 from types import ModuleType, SimpleNamespace
 from urllib.parse import parse_qs, urlsplit
 
@@ -350,6 +352,66 @@ def test_oidc_callback_fails_closed_when_provider_rejects_nonce(
         assert provider.created_claims == []
         assert client.cookies.get(SESSION_COOKIE) is None
         assert client.get("/operator/auth/session").status_code == 401
+
+
+def test_authlib_rejects_signed_id_token_with_wrong_nonce(monkeypatch):
+    pytest.importorskip("joserfc")
+    pytest.importorskip("cryptography.hazmat.primitives.asymmetric.rsa")
+    from cryptography.hazmat.primitives.asymmetric import rsa
+    from cryptography.hazmat.primitives.serialization import (
+        Encoding,
+        NoEncryption,
+        PrivateFormat,
+    )
+    from joserfc import jwk, jwt
+    from joserfc.errors import InvalidClaimError
+
+    private_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+    private_pem = private_key.private_bytes(
+        Encoding.PEM, PrivateFormat.PKCS8, NoEncryption()
+    )
+    key_id = "synthetic-oidc-nonce-key"
+    signing_key = jwk.import_key(
+        private_pem,
+        key_type="RSA",
+        parameters={"kid": key_id},
+    )
+    now = int(time.time())
+    id_token = jwt.encode(
+        {"alg": "RS256", "kid": key_id},
+        {
+            "iss": "https://identity.example.test",
+            "sub": "operator-subject-1",
+            "aud": "operator-client",
+            "iat": now,
+            "exp": now + 300,
+            "nonce": "attacker-nonce",
+        },
+        signing_key,
+        algorithms=["RS256"],
+    )
+    client = OIDCOperatorProvider(_oidc_settings()).client
+
+    async def server_metadata():
+        return {
+            "issuer": "https://identity.example.test",
+            "id_token_signing_alg_values_supported": ["RS256"],
+        }
+
+    async def jwk_set(*, force=False):
+        assert force is False
+        return {"keys": [signing_key.as_dict(private=False)]}
+
+    monkeypatch.setattr(client, "load_server_metadata", server_metadata)
+    monkeypatch.setattr(client, "fetch_jwk_set", jwk_set)
+
+    with pytest.raises(InvalidClaimError, match="nonce"):
+        asyncio.run(
+            client.parse_id_token(
+                {"id_token": id_token, "access_token": "synthetic-access-token"},
+                nonce="expected-nonce",
+            )
+        )
 
 
 @pytest.mark.parametrize(

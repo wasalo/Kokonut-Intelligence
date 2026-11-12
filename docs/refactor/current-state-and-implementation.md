@@ -96,7 +96,11 @@ sequence and service health.
 Live OIDC callback testing rejected a synthetic callback with a mismatched
 state (login 302, callback 401, resulting session 401); evidence is in
 [`g4-candidate-oidc-state-mismatch.json`](builds/2026-11-11-recovery/g4-candidate-oidc-state-mismatch.json).
-Negative ID-token nonce validation, the second-location denial, and Field
+The local OIDC contract now also signs an ephemeral RS256 ID token and confirms
+Authlib rejects its mismatched nonce; the callback contract test confirms the
+failure creates no operator session ([focused contract tests](../../tests/test_operator_oidc_provider_contract.py)).
+This is source-level verifier coverage, not a live candidate callback. Live
+negative ID-token nonce validation, the second-location denial, and Field
 Collector offline/media/consent/sync acceptance remain open. Provider schedules
 remain disabled; existing one-shot and credential evidence does not establish
 populated Adelphi parity or recurring candidate operation.
