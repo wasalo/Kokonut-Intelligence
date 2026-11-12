@@ -304,10 +304,15 @@ def test_standard_edge_keeps_media_settings_on_api_and_preserves_worker_split() 
         volume.get("target") == "/app/private-media"
         for volume in app["volumes"]
     )
-    assert "MOBILE_MEDIA_PROVIDER" not in worker["environment"]
-    assert "MOBILE_MEDIA_LOCAL_DIRECTORY" not in worker["environment"]
-    assert "MOBILE_MEDIA_LOCAL_KEY" not in worker["environment"]
-    assert "MOBILE_MEDIA_ENCRYPTION_KEY" not in worker["environment"]
+    assert worker["environment"]["MOBILE_MEDIA_PROVIDER"] == ""
+    assert worker["environment"]["MOBILE_MEDIA_LOCAL_DIRECTORY"] == ""
+    assert worker["environment"]["MOBILE_MEDIA_LOCAL_KEY"] == ""
+    assert worker["environment"]["MOBILE_MEDIA_ENCRYPTION_KEY"] == ""
+    assert worker["environment"]["MOBILE_MEDIA_S3_ENDPOINT"] == ""
+    assert worker["environment"]["MOBILE_MEDIA_S3_BUCKET"] == ""
+    assert worker["environment"]["MOBILE_MEDIA_S3_ACCESS_KEY_ID"] == ""
+    assert worker["environment"]["MOBILE_MEDIA_S3_SECRET_ACCESS_KEY"] == ""
+    assert worker["environment"]["MOBILE_MEDIA_S3_REGION"] == ""
     assert all(
         volume.get("target") != "/app/private-media"
         for volume in worker.get("volumes", [])

@@ -1,0 +1,60 @@
+{
+  "recorded_at_utc": "2026-11-12T05:41:58Z",
+  "gate": "G5",
+  "result": "candidate_worker_isolated_by_temporary_override_source_fix_pending",
+  "candidate": {
+    "coolify_application": "fdphpruj8jxien23ockmbw0j",
+    "deployed_revision": "cbc758f58966184306ea8ff700ab50aeab567c44",
+    "services": {
+      "gateway": "healthy",
+      "worker": "healthy",
+      "postgres_postgis": "healthy",
+      "zitadel_api": "healthy",
+      "zitadel_login": "healthy"
+    }
+  },
+  "gateway_environment_presence": {
+    "MOBILE_MEDIA_PROVIDER": "present",
+    "MOBILE_MEDIA_ENCRYPTION_KEY": "present",
+    "MOBILE_MEDIA_S3_ENDPOINT": "present",
+    "MOBILE_MEDIA_S3_BUCKET": "present",
+    "MOBILE_MEDIA_S3_ACCESS_KEY_ID": "present",
+    "MOBILE_MEDIA_S3_SECRET_ACCESS_KEY": "present",
+    "MOBILE_MEDIA_S3_REGION": "present"
+  },
+  "worker_environment_presence": {
+    "MOBILE_MEDIA_PROVIDER": "empty",
+    "MOBILE_MEDIA_LOCAL_DIRECTORY": "empty",
+    "MOBILE_MEDIA_LOCAL_KEY": "empty",
+    "MOBILE_MEDIA_ENCRYPTION_KEY": "empty",
+    "MOBILE_MEDIA_S3_ENDPOINT": "empty",
+    "MOBILE_MEDIA_S3_BUCKET": "empty",
+    "MOBILE_MEDIA_S3_ACCESS_KEY_ID": "empty",
+    "MOBILE_MEDIA_S3_SECRET_ACCESS_KEY": "empty",
+    "MOBILE_MEDIA_S3_REGION": "empty"
+  },
+  "gateway_mounts": [
+    "/var/lib/kokonut/gateway-audit",
+    "/var/lib/kokonut/report-snapshot-exports"
+  ],
+  "temporary_worker_override": {
+    "path": "/tmp/kokonut-worker-media-isolation-20261112.yml",
+    "mode": "0600",
+    "active": true,
+    "removal_condition": "deploy and verify the permanent source-level worker environment clearing"
+  },
+  "source_fix": {
+    "files": [
+      "docker-compose.kernel-standard.yml",
+      "docker-compose.kernel-coolify.yml",
+      "tests/test_compose_metabase_profile.py"
+    ],
+    "focused_compose_profile_tests": "23 passed",
+    "exact_head_ci": "not yet run for this local change",
+    "candidate_deployment": "not yet performed"
+  },
+  "limitations": [
+    "This is environment presence evidence, not an end-to-end media upload, consent, attachment, or offline-sync acceptance.",
+    "After source deployment, remove the temporary override and repeat the worker/API presence and health checks."
+  ]
+}
