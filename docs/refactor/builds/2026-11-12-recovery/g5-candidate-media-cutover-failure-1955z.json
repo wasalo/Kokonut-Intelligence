@@ -6,7 +6,7 @@
   "deployment_uuid": "oflpsaiipmzc9jzaabbpgknb",
   "deployment_status": "failed_before_container_replacement",
   "failure_class": "coolify_compose_validation",
-  "failure_summary": "Coolify rejected a Compose bind-mount source containing variable interpolation. Configure the absolute host file path through a Coolify Host File Mount on the Gateway service instead.",
+  "failure_summary": "Coolify rejected a Compose bind-mount source containing variable interpolation. The source fix uses a relative file source in the app-only Coolify Compose overlay.",
   "raw_deployment_logs_recorded": false,
   "prior_candidate_containers": "remained in service; deployment did not replace them",
   "candidate_media_isolation_verified": false,

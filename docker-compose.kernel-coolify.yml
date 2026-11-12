@@ -374,6 +374,10 @@ services:
         source: report-snapshot-export-artifacts
         target: /var/lib/kokonut/report-snapshot-exports
         type: volume
+      - read_only: true
+        source: ./private/media.env
+        target: /run/kokonut/private-media.env
+        type: bind
   database:
     environment:
       ADMIN_EMAIL: ""
