@@ -50,6 +50,12 @@ COOLIFY_RUNTIME_PASSWORD_SERVICES = {
     "KOKONUT_RUNTIME_PASSWORD": {"runtime-role-bootstrap"},
     "KOKONUT_WORKER_RUNTIME_PASSWORD": {"runtime-role-bootstrap"},
 }
+COOLIFY_REPORT_EXPORT_STORAGE_SECRET_SERVICES = {
+    "KOKONUT_PRIVATE_EXPORT_S3_READER_ACCESS_KEY_ID": {"app"},
+    "KOKONUT_PRIVATE_EXPORT_S3_READER_SECRET_ACCESS_KEY": {"app"},
+    "KOKONUT_PRIVATE_EXPORT_S3_WORKER_ACCESS_KEY_ID": {"report-snapshot-export-worker"},
+    "KOKONUT_PRIVATE_EXPORT_S3_WORKER_SECRET_ACCESS_KEY": {"report-snapshot-export-worker"},
+}
 
 
 def _compose_command(files: tuple[str, ...], output_format: str) -> list[str]:
@@ -217,7 +223,7 @@ def _is_sensitive_environment_key(key: str) -> bool:
 
 
 def _validate_coolify_secret_scope(services: dict[str, object]) -> None:
-    """Ensure runtime login secrets are not serialized into unrelated services."""
+    """Ensure runtime and private-export credentials stay on their owning services."""
     for secret_name, allowed_services in COOLIFY_RUNTIME_PASSWORD_SERVICES.items():
         actual_services: set[str] = set()
         for service_name, service in services.items():
@@ -231,6 +237,22 @@ def _validate_coolify_secret_scope(services: dict[str, object]) -> None:
             expected = ", ".join(sorted(allowed_services))
             raise RuntimeError(
                 f"Coolify runtime secret {secret_name} is exposed to [{actual}], expected only [{expected}]"
+            )
+
+    for secret_name, allowed_services in COOLIFY_REPORT_EXPORT_STORAGE_SECRET_SERVICES.items():
+        actual_services: set[str] = set()
+        for service_name, service in services.items():
+            if not isinstance(service, dict):
+                continue
+            environment = dict(_environment_entries(service.get("environment", {})))
+            if secret_name in environment:
+                actual_services.add(service_name)
+        if actual_services != allowed_services:
+            actual = ", ".join(sorted(actual_services)) or "none"
+            expected = ", ".join(sorted(allowed_services))
+            raise RuntimeError(
+                f"Coolify report-export secret {secret_name} is exposed to [{actual}], "
+                f"expected only [{expected}]"
             )
 
     environment = {

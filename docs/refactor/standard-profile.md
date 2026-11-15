@@ -67,9 +67,12 @@ selected Compose overlays and does not backfill sensitive keys as blank
 placeholders on every service. Its G2 guard requires raw API and worker login
 password variables only on the one-shot `runtime-role-bootstrap` service; the
 API and worker receive their respective `PG_PASSWORD` settings. Other
-explicit cross-service credentials still require caller review. Do not add
-empty secret placeholders: Coolify resolves app variables by key name, so an
-empty placeholder can expose the configured secret to that container.
+explicit cross-service credentials still require caller review. The renderer
+also enforces that report-export reader credentials appear only on `app` and
+writer credentials only on `report-snapshot-export-worker`; a wider mapping
+fails profile rendering. Do not add empty secret placeholders: Coolify resolves
+app variables by key name, so an empty placeholder can expose the configured
+secret to that container.
 An explicit provider override is available for a reviewed deployment topology;
 multi-replica APIs must retain a shared limiter.
 
