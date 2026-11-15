@@ -19,6 +19,7 @@ _LOADED = False
 _PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 _KEY_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
 _PLACEHOLDER_RE = re.compile(r"^(replace-with|your[_-]|change[_-]me|todo|none|null|0x\.\.\.)", re.IGNORECASE)
+_PLAINTEXT_ENVIRONMENTS = frozenset({"development", "dev", "local", "test", "ci"})
 _PRODUCTION_REQUIRED = ("PG_HOST", "PG_DB", "PG_USER", "PG_PASSWORD")
 
 
@@ -107,13 +108,24 @@ def _dotenv_flag(env_path: Path, key: str) -> str | None:
         if not line or line.startswith("#") or "=" not in line:
             continue
         name, value = line.split("=", 1)
-        if name.strip() == key:
+        name = name.strip()
+        if name.startswith("export "):
+            name = name[7:].strip()
+        if name == key:
             return value.strip().strip("\"'")
     return None
 
 
 def _plaintext_allowed(env_path: Path) -> bool:
-    """Return whether an explicit local/test plaintext opt-in is active."""
+    """Return whether explicit local/test/CI plaintext opt-in is active."""
+    environment = os.environ.get("KOKONUT_ENV")
+    if environment is None:
+        environment = _dotenv_flag(env_path, "KOKONUT_ENV")
+    if environment is None:
+        return False
+    if str(environment).strip().lower() not in _PLAINTEXT_ENVIRONMENTS:
+        return False
+
     explicit = os.environ.get("KOKONUT_ALLOW_PLAINTEXT_ENV")
     if explicit is None:
         explicit = _dotenv_flag(env_path, "KOKONUT_ALLOW_PLAINTEXT_ENV")

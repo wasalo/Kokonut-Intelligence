@@ -43,6 +43,54 @@ def test_sops_failure_does_not_fall_back_in_production(monkeypatch, tmp_path):
     assert env._LOADED is False
 
 
+def test_sops_failure_does_not_fall_back_in_production_with_plaintext_flag(monkeypatch, tmp_path):
+    _reset_loader(monkeypatch, tmp_path)
+    monkeypatch.setenv("KOKONUT_ENV", "production")
+    monkeypatch.setenv("KOKONUT_ALLOW_PLAINTEXT_ENV", "true")
+    (tmp_path / ".env.sops").write_text("encrypted")
+    (tmp_path / ".env").write_text("FALLBACK_SECRET=plaintext\n")
+    monkeypatch.setattr(
+        env.subprocess,
+        "run",
+        lambda *args, **kwargs: (_ for _ in ()).throw(subprocess.CalledProcessError(1, "sops")),
+    )
+
+    with pytest.raises(env.SecretLoadError, match="SOPS decryption failed"):
+        env.load_dotenv()
+
+    assert "FALLBACK_SECRET" not in env.os.environ
+    assert env._LOADED is False
+
+
+def test_plaintext_dotenv_declaring_production_cannot_opt_into_fallback(monkeypatch, tmp_path):
+    _reset_loader(monkeypatch, tmp_path)
+    (tmp_path / ".env").write_text(
+        "export KOKONUT_ENV=production\n"
+        "export KOKONUT_ALLOW_PLAINTEXT_ENV=true\n"
+        "FALLBACK_SECRET=plaintext\n"
+    )
+
+    with pytest.raises(env.SecretLoadError, match="explicit development opt-in"):
+        env.load_dotenv()
+
+    assert "FALLBACK_SECRET" not in env.os.environ
+    assert env._LOADED is False
+
+
+def test_plaintext_fallback_requires_an_explicit_environment_mode(monkeypatch, tmp_path):
+    _reset_loader(monkeypatch, tmp_path)
+    (tmp_path / ".env").write_text(
+        "KOKONUT_ALLOW_PLAINTEXT_ENV=true\n"
+        "FALLBACK_SECRET=plaintext\n"
+    )
+
+    with pytest.raises(env.SecretLoadError, match="explicit development opt-in"):
+        env.load_dotenv()
+
+    assert "FALLBACK_SECRET" not in env.os.environ
+    assert env._LOADED is False
+
+
 def test_sops_child_receives_the_filtered_environment(monkeypatch, tmp_path):
     child_env = {"PATH": "/synthetic/bin"}
     captured = {}
@@ -116,7 +164,7 @@ def test_script_loaded_marker_keeps_production_environment_validation(monkeypatc
     assert env._LOADED is False
 
 
-def test_development_plaintext_fallback_requires_explicit_flag(monkeypatch, tmp_path):
+def test_ci_plaintext_fallback_requires_explicit_flag(monkeypatch, tmp_path):
     _reset_loader(monkeypatch, tmp_path)
     monkeypatch.setenv("KOKONUT_ENV", "ci")
     monkeypatch.setenv("KOKONUT_ALLOW_PLAINTEXT_ENV", "true")
