@@ -84,8 +84,9 @@ this path is disabled or unprovisioned, the handler fails and the event follows
 its retry/dead-letter policy; it does not silently acknowledge a missing
 notification. Migration 723 removes direct shared-runtime DML from event
 receipts, freshness output state, and notification attempts while preserving
-reads. The API and general worker still share `kokonut_runtime`, so these
-operation identities do not complete C1. See the
+reads. The API and general worker use distinct login identities, but the
+worker inherits the API role's current runtime ACL. These operation identities
+do not narrow that shared effective grant set or complete C1. See the
 [migration-647 disposable acceptance](builds/2026-10-25-recovery/notification-delivery-worker-disposable.json),
 the [focused supervisor/profile checks](../../tests/test_kernel_runtime_supervisor.py),
 and the current [C1 status](current-state-and-implementation.md#c1-runtime-acl-work-current-batch).
@@ -216,8 +217,8 @@ the isolated scheduler executor still cannot edit definitions. A DBA must
 explicitly provision the operator's `scheduler:read`, `scheduler:enable`, or
 `scheduler:disable` global capabilities through
 `kokonut_security.grant_operator_global_capability`. The route uses the
-Gateway's existing `kokonut_runtime` connection, so it does not close the
-API/general-worker identity gap (C1) and is not candidate rollout acceptance.
+Gateway's `kokonut_runtime` API login; it does not narrow the worker's inherited
+runtime ACL or close C1, and it is not candidate rollout acceptance.
 
 Inspect existing schedules, handler registrations, leases, and Prefect/cron
 ownership before switching roles. For source acceptance, `--action build` builds

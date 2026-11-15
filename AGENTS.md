@@ -89,7 +89,9 @@ Commands:
   closed; they must not fall back to shared-runtime writes. Notification
   enqueue handlers run in filtered children and use the migration-417
   bounded function when enabled. These operation identities do not separate
-  the API from the general worker, which still share `kokonut_runtime`.
+  permissions from the inherited Standard runtime ACL. The API and general
+  worker already use distinct login identities, but the worker inherits the
+  runtime grants; the identity split does not narrow access or close C1.
 - Isolated subprocesses carry `KOKONUT_DENY_SHARED_DATABASE=true`; dotenv
   loading and the canonical shared connector must honor that marker even when
   no worker-specific identity is enabled. Never weaken it by changing Docker
