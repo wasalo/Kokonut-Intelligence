@@ -578,11 +578,40 @@ python3 scripts/render-kernel-coolify-compose.py --check
 
 The renderer pins the Standard profile's separate API/worker database logins,
 isolated scheduler executor, and self-hosted ZITADEL overlays. It asks Docker
-Compose to merge those files without resolving environment variables or
-absolute paths, so secrets stay as Coolify-managed placeholders and build/bind
-paths remain relative to the repository root. Regenerate and check the artifact
-whenever one of its source overlays changes. Do not hand-edit
+Compose to merge those files without resolving environment variables, env-file
+contents, or absolute paths. It removes sensitive keys from Compose's
+application-wide environment mappings and adds a private env file for each
+service that owns those keys. Build and bind paths remain relative to the
+repository root. Regenerate and check the artifact whenever one of its source
+overlays or the secret-key inventory changes. Do not hand-edit
 `docker-compose.kernel-coolify.yml`.
+
+Coolify application environment variables are shared across every Compose
+service. Keep sensitive variables out of both production and preview
+application environment rows, even when Compose maps them to one service.
+Before each candidate deployment, render the files from `.env.sops` directly
+to the VPS:
+
+```sh
+SOPS_AGE_KEY_FILE=/path/to/authorized/age/keys.txt \
+  python3 scripts/install-coolify-service-secrets.py \
+    --ssh-host root@your-coolify-host \
+    --application-id your-24-character-application-id \
+    --install
+```
+
+The installer decrypts SOPS in memory and writes only inventoried keys to
+`private/runtime-env/<service>.env`. It creates a root-only directory and
+root-owned `0440` files for the host's Compose process to read; it prints counts
+and permissions, not secret values. Keep `private/` excluded from every Docker
+build context. `MOBILE_MEDIA_*` stays in the separately managed
+`private/media.env` file mounted into the Gateway only. Compose passes the
+other inventoried values as environment variables only to
+their owning containers, so Docker's container metadata remains visible to
+the VPS root/Docker administrator; this boundary prevents cross-service
+injection and does not protect secrets from a host administrator. The
+`runtime-role-bootstrap` profile remains manual and one-shot; use the planner's
+`bootstrap-runtime-role` action, which runs it with `--rm`.
 
 The Coolify-only build overlay sets `pull_policy: build` on the Gateway and
 worker. Both services name local images and define build contexts; without an
