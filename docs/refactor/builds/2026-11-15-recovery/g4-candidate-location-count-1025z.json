@@ -1,0 +1,9 @@
+{
+  "checked_at_utc": "2026-11-15T10:25:27Z",
+  "scope": "read-only aggregate count from the candidate Gateway's existing database connection",
+  "locations": 1,
+  "farms": 1,
+  "row_identifiers_recorded": false,
+  "data_written": false,
+  "result": "second-location prerequisite remains absent"
+}

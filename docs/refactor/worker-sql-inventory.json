@@ -7875,9 +7875,9 @@
       ]
     },
     {
-      "id": "services/ingestion/weather.py:203:16",
+      "id": "services/ingestion/weather.py:224:16",
       "source": "services/ingestion/weather.py",
-      "line": 203,
+      "line": 224,
       "column": 16,
       "scope": "run",
       "method": "execute",
@@ -7893,9 +7893,9 @@
       ]
     },
     {
-      "id": "services/ingestion/weather.py:208:16",
+      "id": "services/ingestion/weather.py:229:16",
       "source": "services/ingestion/weather.py",
-      "line": 208,
+      "line": 229,
       "column": 16,
       "scope": "run",
       "method": "execute",
@@ -7911,9 +7911,9 @@
       ]
     },
     {
-      "id": "services/ingestion/weather.py:241:16",
+      "id": "services/ingestion/weather.py:262:16",
       "source": "services/ingestion/weather.py",
-      "line": 241,
+      "line": 262,
       "column": 16,
       "scope": "run",
       "method": "execute",
@@ -7927,9 +7927,9 @@
       ]
     },
     {
-      "id": "services/ingestion/weather.py:261:16",
+      "id": "services/ingestion/weather.py:283:16",
       "source": "services/ingestion/weather.py",
-      "line": 261,
+      "line": 283,
       "column": 16,
       "scope": "run",
       "method": "execute",
@@ -7943,9 +7943,9 @@
       ]
     },
     {
-      "id": "services/ingestion/weather.py:267:24",
+      "id": "services/ingestion/weather.py:289:24",
       "source": "services/ingestion/weather.py",
-      "line": 267,
+      "line": 289,
       "column": 24,
       "scope": "run",
       "method": "execute",
@@ -7959,9 +7959,9 @@
       ]
     },
     {
-      "id": "services/ingestion/weather.py:268:24",
+      "id": "services/ingestion/weather.py:290:24",
       "source": "services/ingestion/weather.py",
-      "line": 268,
+      "line": 290,
       "column": 24,
       "scope": "run",
       "method": "execute",

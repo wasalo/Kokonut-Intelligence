@@ -7,7 +7,7 @@
     "source_files": 149,
     "operations_without_resolved_entry_functions": 0,
     "function_memberships": 1268,
-    "direct_call_edges": 1846,
+    "direct_call_edges": 1848,
     "callback_edges": 1,
     "dynamic_dispatch_edges": 88
   },
@@ -14377,7 +14377,7 @@
         {
           "function": "services.ingestion.weather:main",
           "source": "services/ingestion/weather.py",
-          "line": 339
+          "line": 361
         }
       ],
       "reachable_functions": [
@@ -14499,7 +14499,7 @@
           "qualname": "main",
           "class_scope": null,
           "source": "services/ingestion/weather.py",
-          "line": 317
+          "line": 339
         },
         {
           "key": "services.ingestion.weather:parse_weather",
@@ -14515,7 +14515,7 @@
           "qualname": "run",
           "class_scope": null,
           "source": "services/ingestion/weather.py",
-          "line": 183
+          "line": 204
         }
       ],
       "direct_call_edges": [
@@ -14563,15 +14563,27 @@
         },
         {
           "caller": "services.ingestion.weather:insert_weather_clickhouse",
+          "callee": "services.ingestion.base:hash_payload",
+          "source": "services/ingestion/weather.py",
+          "line": 170
+        },
+        {
+          "caller": "services.ingestion.weather:insert_weather_clickhouse",
           "callee": "services.ingestion.base:insert_clickhouse_rows",
           "source": "services/ingestion/weather.py",
-          "line": 172
+          "line": 193
         },
         {
           "caller": "services.ingestion.weather:insert_weather_clickhouse",
           "callee": "services.ingestion.clickhouse_outbox:enqueue",
           "source": "services/ingestion/weather.py",
-          "line": 165
+          "line": 171
+        },
+        {
+          "caller": "services.ingestion.weather:insert_weather_clickhouse",
+          "callee": "services.ingestion.clickhouse_outbox:enqueue",
+          "source": "services/ingestion/weather.py",
+          "line": 186
         },
         {
           "caller": "services.ingestion.weather:insert_weather_clickhouse",
@@ -14583,55 +14595,55 @@
           "caller": "services.ingestion.weather:main",
           "callee": "services.ingestion.weather:run",
           "source": "services/ingestion/weather.py",
-          "line": 333
+          "line": 355
         },
         {
           "caller": "services.ingestion.weather:run",
           "callee": "services.ingestion.base:get_db",
           "source": "services/ingestion/weather.py",
-          "line": 199
+          "line": 220
         },
         {
           "caller": "services.ingestion.weather:run",
           "callee": "services.ingestion.base:hash_payload",
           "source": "services/ingestion/weather.py",
-          "line": 251
+          "line": 273
         },
         {
           "caller": "services.ingestion.weather:run",
           "callee": "services.ingestion.base:log_ingestion",
           "source": "services/ingestion/weather.py",
-          "line": 244
+          "line": 266
         },
         {
           "caller": "services.ingestion.weather:run",
           "callee": "services.ingestion.base:log_ingestion",
           "source": "services/ingestion/weather.py",
-          "line": 270
+          "line": 292
         },
         {
           "caller": "services.ingestion.weather:run",
           "callee": "services.ingestion.weather:fetch_weather",
           "source": "services/ingestion/weather.py",
-          "line": 234
+          "line": 255
         },
         {
           "caller": "services.ingestion.weather:run",
           "callee": "services.ingestion.weather:insert_weather",
           "source": "services/ingestion/weather.py",
-          "line": 243
+          "line": 264
         },
         {
           "caller": "services.ingestion.weather:run",
           "callee": "services.ingestion.weather:insert_weather_clickhouse",
           "source": "services/ingestion/weather.py",
-          "line": 306
+          "line": 328
         },
         {
           "caller": "services.ingestion.weather:run",
           "callee": "services.ingestion.weather:parse_weather",
           "source": "services/ingestion/weather.py",
-          "line": 237
+          "line": 258
         }
       ],
       "callback_edges": [],

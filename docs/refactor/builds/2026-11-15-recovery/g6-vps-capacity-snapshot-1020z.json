@@ -1,0 +1,44 @@
+{
+  "captured_at_utc": "2026-11-15T10:20:04Z",
+  "scope": "read-only shared-host capacity and candidate-container snapshot",
+  "host": {
+    "logical_cpu_count": 2,
+    "load_average": {
+      "1m": 1.28,
+      "5m": 1.06,
+      "15m": 1.01
+    },
+    "uptime": "28 days, 22 hours",
+    "memory": {
+      "total": "7.8 GiB",
+      "used": "2.4 GiB",
+      "free": "2.3 GiB",
+      "available": "5.4 GiB",
+      "buffer_cache": "3.7 GiB",
+      "swap_total": "8.0 GiB",
+      "swap_used": "1.4 GiB",
+      "swap_free": "6.6 GiB"
+    },
+    "root_filesystem": {
+      "size": "96G",
+      "used": "87G",
+      "available": "9.7G",
+      "use_percent": 90
+    }
+  },
+  "candidate_containers": [
+    {"service": "gateway", "cpu_percent": 0.28, "memory": "19.55 MiB", "memory_percent": 0.25},
+    {"service": "proxy", "cpu_percent": 0.0, "memory": "10.02 MiB", "memory_percent": 0.13},
+    {"service": "zitadel_login", "cpu_percent": 0.67, "memory": "65.81 MiB", "memory_percent": 0.83},
+    {"service": "worker", "cpu_percent": 0.18, "memory": "19.86 MiB", "memory_percent": 0.25},
+    {"service": "zitadel_api", "cpu_percent": 56.91, "memory": "58.21 MiB", "memory_percent": 0.73},
+    {"service": "database", "cpu_percent": 0.0, "memory": "26.83 MiB", "memory_percent": 0.34},
+    {"service": "zitadel_database", "cpu_percent": 0.28, "memory": "30.43 MiB", "memory_percent": 0.38}
+  ],
+  "limitations": [
+    "Point-in-time observation; it does not establish peak or sustained resource demand.",
+    "Candidate container statistics do not include other services on the shared host.",
+    "Repeat the host and service measurement immediately before rollout and the 24-hour soak.",
+    "No limits, containers, volumes, or disk objects were changed."
+  ]
+}
