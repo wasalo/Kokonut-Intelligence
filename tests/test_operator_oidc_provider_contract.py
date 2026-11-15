@@ -64,6 +64,44 @@ def _oidc_settings(ca_bundle=None):
     )
 
 
+def _signed_wrong_nonce_id_token():
+    pytest.importorskip("joserfc")
+    pytest.importorskip("cryptography.hazmat.primitives.asymmetric.rsa")
+    from cryptography.hazmat.primitives.asymmetric import rsa
+    from cryptography.hazmat.primitives.serialization import (
+        Encoding,
+        NoEncryption,
+        PrivateFormat,
+    )
+    from joserfc import jwk, jwt
+
+    private_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+    private_pem = private_key.private_bytes(
+        Encoding.PEM, PrivateFormat.PKCS8, NoEncryption()
+    )
+    key_id = "synthetic-oidc-nonce-key"
+    signing_key = jwk.import_key(
+        private_pem,
+        key_type="RSA",
+        parameters={"kid": key_id},
+    )
+    now = int(time.time())
+    id_token = jwt.encode(
+        {"alg": "RS256", "kid": key_id},
+        {
+            "iss": "https://identity.example.test",
+            "sub": "operator-subject-1",
+            "aud": "operator-client",
+            "iat": now,
+            "exp": now + 300,
+            "nonce": "attacker-nonce",
+        },
+        signing_key,
+        algorithms=["RS256"],
+    )
+    return id_token, signing_key
+
+
 def test_actual_oidc_adapter_registers_discovery_and_s256_pkce(monkeypatch):
     registrations = _install_authlib_stub(monkeypatch)
     provider = OIDCOperatorProvider(_oidc_settings())
@@ -412,6 +450,65 @@ def test_authlib_rejects_signed_id_token_with_wrong_nonce(monkeypatch):
                 nonce="expected-nonce",
             )
         )
+
+
+def test_operator_callback_rejects_signed_wrong_nonce_without_session(
+    monkeypatch, tmp_path
+):
+    id_token, signing_key = _signed_wrong_nonce_id_token()
+    verifier = OIDCOperatorProvider(_oidc_settings()).client
+
+    async def server_metadata():
+        return {
+            "issuer": "https://identity.example.test",
+            "id_token_signing_alg_values_supported": ["RS256"],
+        }
+
+    async def jwk_set(*, force=False):
+        assert force is False
+        return {"keys": [signing_key.as_dict(private=False)]}
+
+    monkeypatch.setattr(verifier, "load_server_metadata", server_metadata)
+    monkeypatch.setattr(verifier, "fetch_jwk_set", jwk_set)
+    provider = _FakeOIDCProvider()
+
+    async def authorize_redirect(request, *, redirect_uri):
+        assert redirect_uri == provider.settings.redirect_uri
+        request.session["synthetic_oidc_state"] = "synthetic-state"
+        request.session["synthetic_oidc_nonce"] = "expected-nonce"
+        return RedirectResponse(
+            "https://identity.example.test/authorize?state=synthetic-state",
+            status_code=302,
+        )
+
+    async def authorize_access_token(request):
+        state = parse_qs(urlsplit(str(request.url)).query).get("state", [None])[0]
+        if state != request.session.get("synthetic_oidc_state"):
+            raise ValueError("synthetic OIDC state mismatch")
+        claims = await verifier.parse_id_token(
+            {"id_token": id_token, "access_token": "synthetic-access-token"},
+            nonce=request.session.get("synthetic_oidc_nonce"),
+        )
+        return {"userinfo": claims}
+
+    provider.client.authorize_redirect = authorize_redirect
+    provider.client.authorize_access_token = authorize_access_token
+    with _client(monkeypatch, tmp_path, provider) as client:
+        login = _login(client)
+        assert parse_qs(urlsplit(login.headers["location"]).query)["state"] == [
+            "synthetic-state"
+        ]
+
+        callback = client.get(
+            "/operator/auth/callback?code=synthetic-code&state=synthetic-state"
+        )
+
+        assert callback.status_code == 401
+        assert callback.json() == {"error": "OIDC login failed"}
+        assert provider.created_claims == []
+        assert client.cookies.get(SESSION_COOKIE) is None
+        assert client.get("/operator/auth/session").status_code == 401
+        assert "attacker-nonce" not in callback.text
 
 
 @pytest.mark.parametrize(
