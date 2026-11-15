@@ -1,0 +1,20 @@
+{
+  "evidence_type": "g2_runtime_identity_compose_source_tests",
+  "recorded_at_utc": "2026-11-15T05:54:00Z",
+  "source_head": "60b6409a2773d4a5ddf98e18f026505894885768",
+  "command": "python3 -m pytest tests/test_kernel_profile.py -q",
+  "result": {
+    "passed": 117,
+    "failed": 0,
+    "duration_seconds": 18.36
+  },
+  "scope": [
+    "Standard profile Compose rendering",
+    "runtime-role bootstrap identity separation",
+    "sensitive runtime password omission from long-lived API and worker environments",
+    "required password presence and fail-closed validation"
+  ],
+  "candidate_contacted": false,
+  "candidate_state_changed": false,
+  "interpretation": "The source-level profile and Compose contracts pass locally. The candidate runtime still has stale unprovenanced local images and needs the reviewed deployment plus read-only identity/secret-presence recheck."
+}
