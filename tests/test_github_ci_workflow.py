@@ -281,7 +281,9 @@ def test_ci_dependency_bootstrap_is_bounded_visible_and_skips_redundant_runner_a
     assert "run_ci_timeout()" in runner
     assert "run_ci_timeout 25m python -m pip install --only-binary=:all:" in runner
     assert 'run_ci_timeout 20m "$CI_TOOLS_VENV/bin/python" -m pip install --only-binary=:all:' in runner
-    assert "run_ci_timeout 15m npm install --global" in runner
+    # Aderyn was retired after its published installer artifacts were withdrawn.
+    assert "npm install --global" not in runner
+    assert "@cyfrin/aderyn" not in runner
     assert 'run_ci_timeout 30s "${CI_COMPOSE[@]}" ps --all' in runner
     assert 'run_ci_timeout 2m "${CI_COMPOSE[@]}" logs' in runner
     assert 'run_ci_timeout 2m "${CI_COMPOSE[@]}" down -v --remove-orphans' in runner

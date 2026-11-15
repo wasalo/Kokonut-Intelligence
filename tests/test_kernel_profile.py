@@ -185,7 +185,7 @@ def test_api_worker_login_split_supports_standard_analytics_and_scheduler_compos
         assert "docker-compose.kernel-worker-runtime-supervisor.yml" not in bootstrap_only.stdout
 
 
-def test_standard_scheduler_role_is_opt_in_and_appended_last() -> None:
+def test_standard_scheduler_role_is_opt_in_before_final_worker_supervisor() -> None:
     default = _run_planner("standard")
     assert "docker-compose.kernel-scheduler-role.yml" not in default.stdout
 
@@ -208,10 +208,11 @@ def test_standard_scheduler_role_is_opt_in_and_appended_last() -> None:
     standard = str(ROOT / "docker-compose.kernel-standard.yml")
     runtime_role = str(ROOT / "docker-compose.kernel-runtime-role.yml")
     scheduler_role = str(ROOT / "docker-compose.kernel-scheduler-role.yml")
+    worker_supervisor = str(ROOT / "docker-compose.kernel-worker-runtime-supervisor.yml")
     scheduler_overlay = yaml.safe_load((ROOT / "docker-compose.kernel-scheduler-role.yml").read_text())
     assert result.returncode == 0, result.stderr
     assert manifests.index(candidate) < manifests.index(standard) < manifests.index(runtime_role)
-    assert manifests[-1] == scheduler_role
+    assert manifests[-2:] == [scheduler_role, worker_supervisor]
     assert scheduler_overlay["services"]["worker"]["environment"]["KOKONUT_RUNTIME_PARENT_ROLE"] == ""
     assert "synthetic-scheduler-password" not in result.stdout
     assert "postgresql://" not in result.stdout
@@ -287,7 +288,10 @@ def test_scheduler_role_is_composed_after_arm64_standard_overlays() -> None:
     assert result.returncode == 0, result.stderr
     assert str(ROOT / "docker-compose.kernel-arm64.yml") in manifests
     assert str(ROOT / "docker-compose.kernel-arm64-standard.yml") in manifests
-    assert manifests[-1] == str(ROOT / "docker-compose.kernel-scheduler-role.yml")
+    assert manifests[-2:] == [
+        str(ROOT / "docker-compose.kernel-scheduler-role.yml"),
+        str(ROOT / "docker-compose.kernel-worker-runtime-supervisor.yml"),
+    ]
 
 
 def test_standard_edge_composition_orders_edge_after_the_split_role_overlays() -> None:
