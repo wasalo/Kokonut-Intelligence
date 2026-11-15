@@ -1,0 +1,13 @@
+{
+  "observed_at": "2026-11-15T12:57:12Z",
+  "coolify_application": "fdphpruj8jxien23ockmbw0j",
+  "configured_branch": "chore/finalize-kokonut-intelligence-refactor",
+  "configured_commit_marker": "HEAD",
+  "compose_path": "/docker-compose.kernel-coolify.yml",
+  "include_source_commit_in_build": false,
+  "method": "Read-only transaction against Coolify's application metadata over authorized root SSH; selected only app UUID, branch, commit marker, Compose path, and one build-provenance setting.",
+  "secrets_or_compose_values_read": false,
+  "candidate_or_coolify_settings_changed": false,
+  "deployment_triggered": false,
+  "assessment": "The Coolify app is configured for the intended refactor branch and Compose path. Its commit marker is HEAD rather than an immutable SHA, and source-commit injection is disabled. A deploy-only API token can trigger a deployment but cannot change this setting; enable source-commit availability through the Coolify UI or an appropriately scoped write token before the candidate rebuild so the image revision can be verified."
+}
