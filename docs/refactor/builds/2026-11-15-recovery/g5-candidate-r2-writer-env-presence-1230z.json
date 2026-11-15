@@ -1,0 +1,68 @@
+{
+  "observed_at": "2026-11-15T12:30:47Z",
+  "scope": "Read-only Coolify candidate inspection over authorized root SSH. Inspection retained only container roles, image tags, service declarations, feature-flag state, and nonempty credential-variable presence. Credential values were never read or recorded.",
+  "candidate": {
+    "coolify_application": "fdphpruj8jxien23ockmbw0j",
+    "running_application_containers": 7,
+    "container_roles_with_nonempty_report_export_writer_variables": [
+      "app",
+      "database",
+      "proxy",
+      "worker",
+      "zitadel-api",
+      "zitadel-db",
+      "zitadel-login"
+    ],
+    "variables": {
+      "KOKONUT_PRIVATE_EXPORT_S3_WORKER_ACCESS_KEY_ID": "nonempty in all seven running application containers",
+      "KOKONUT_PRIVATE_EXPORT_S3_WORKER_SECRET_ACCESS_KEY": "nonempty in all seven running application containers"
+    },
+    "isolated_report_export_worker_flag": {
+      "app_enabled": false,
+      "general_worker_enabled": false
+    },
+    "image_tags": {
+      "app": "kokonut-kernel-oidc:local",
+      "worker": "kokonut-kernel-candidate:local"
+    }
+  },
+  "deployed_compose": {
+    "path": "/data/coolify/applications/fdphpruj8jxien23ockmbw0j/docker-compose.kernel-coolify.yml",
+    "rendered_services": [
+      "app",
+      "database",
+      "proxy",
+      "report-snapshot-export-artifact-init",
+      "worker",
+      "zitadel-api",
+      "zitadel-bootstrap-permissions",
+      "zitadel-db",
+      "zitadel-login"
+    ],
+    "dedicated_report_snapshot_export_worker_present": false,
+    "writer_variable_names_rendered_for": [
+      "app",
+      "database",
+      "proxy",
+      "report-snapshot-export-artifact-init",
+      "worker",
+      "zitadel-api",
+      "zitadel-bootstrap-permissions",
+      "zitadel-db",
+      "zitadel-login"
+    ]
+  },
+  "source_comparison": {
+    "repository_compose_declares_dedicated_report_snapshot_export_worker": true,
+    "repository_compose_declares_writer_variables_on_dedicated_worker": true,
+    "candidate_matches_repository_compose_service_inventory": false
+  },
+  "assessment": "The running candidate exposes the nonempty report-export R2 writer credential variables to every inspected application container, including unrelated database, proxy, and identity services. The dedicated export worker is absent from the deployed Compose service set, and the isolated export flag is off in the app and general worker. This is an environment-isolation defect in the current candidate and prevents claiming report-export credential isolation or G5 acceptance. It does not establish external access or credential misuse.",
+  "state_changes": {
+    "candidate_or_coolify_settings_changed": false,
+    "containers_recreated": false,
+    "credentials_or_values_read": false,
+    "database_contacted": false,
+    "external_resources_written": false
+  }
+}
