@@ -76,25 +76,40 @@ def test_coolify_standard_compose_passes_revision_to_both_runtime_images() -> No
         assert build_args["SOURCE_COMMIT"] == "${SOURCE_COMMIT:-unknown}"
 
 
-def test_coolify_resource_paths_use_validator_accepted_interpolation() -> None:
+def test_coolify_host_paths_are_relative_and_traversal_free() -> None:
     compose = yaml.safe_load((ROOT / "docker-compose.kernel-coolify.yml").read_text(encoding="utf-8"))
     validate_paths = COOLIFY_RENDERER["_validate_coolify_host_resource_paths"]
 
     validate_paths(compose["services"])
 
-    with pytest.raises(RuntimeError, match=r"bare \$\{COOLIFY_RESOURCE_UUID\}"):
-        validate_paths(
-            {
-                "gateway": {
-                    "volumes": [
-                        {
-                            "source": "/data/coolify/applications/"
-                            "${COOLIFY_RESOURCE_UUID:?Coolify resource UUID is required}/private/media.env"
-                        }
-                    ]
-                }
+    unsafe_paths = (
+        {
+            "gateway": {
+                "volumes": [
+                    {
+                        "type": "bind",
+                        "source": "/data/coolify/applications/${COOLIFY_RESOURCE_UUID}/private/media.env",
+                    }
+                ]
             }
-        )
+        },
+        {"gateway": {"volumes": [{"type": "bind", "source": "./private/../outside.env"}]}},
+        {"gateway": {"env_file": [{"path": "./private/${SERVICE}.env"}]}},
+    )
+    for services in unsafe_paths:
+        with pytest.raises(RuntimeError, match="relative, traversal-free, and not interpolated"):
+            validate_paths(services)
+
+
+def test_coolify_app_and_worker_mark_scoped_environment_injected() -> None:
+    compose = yaml.safe_load((ROOT / "docker-compose.kernel-coolify.yml").read_text(encoding="utf-8"))
+    services = compose["services"]
+
+    for service_name in ("app", "worker"):
+        assert services[service_name]["environment"]["KOKONUT_ENV_SECRETS_INJECTED"] == "true"
+    for service_name, service in services.items():
+        if service_name not in {"app", "worker"}:
+            assert "KOKONUT_ENV_SECRETS_INJECTED" not in service.get("environment", {})
 
 
 @pytest.mark.parametrize(

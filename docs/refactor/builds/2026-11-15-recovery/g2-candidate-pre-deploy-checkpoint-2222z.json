@@ -1,0 +1,43 @@
+{
+  "format_version": 1,
+  "gate": "G2",
+  "observed_at": "2026-11-15T22:22:42Z",
+  "target_commit": "d61d0b308be7a0257e7a9e9646aeaebcca197c85",
+  "coolify_application_uuid": "fdphpruj8jxien23ockmbw0j",
+  "backup_id": "candidate-pre-d61d0b30-20261115T222242Z-retry",
+  "storage": {
+    "bucket": "kokonut-backups",
+    "prefix": "kokonut-kernel-backups",
+    "status": "committed",
+    "remote_readback_hash_verified": true,
+    "remote_delete_supported_by_tool": false
+  },
+  "manifest": {
+    "signed": true,
+    "encryption": "AES-256-CBC with PBKDF2",
+    "verification": "local signature, artifact inventory, SHA-256, and encrypted PostgreSQL archive headers passed"
+  },
+  "databases": [
+    {
+      "name": "kokonut_intelligence",
+      "candidate_size": "135 MB",
+      "artifact": "postgres/kokonut_intelligence.dump.enc",
+      "bytes": 10348320,
+      "sha256": "81c2586510eefd3583bc4d8c20ed262f429fb0c3e0e5c9f62b75869699a6e32d"
+    },
+    {
+      "name": "zitadel",
+      "candidate_size": "16 MB",
+      "artifact": "postgres/zitadel.dump.enc",
+      "bytes": 406624,
+      "sha256": "57c168695552a72bd11f0099f98335df0e5b2a259e6e13741098f861b049c14d"
+    }
+  ],
+  "migration_ledger": {
+    "schema_migrations_applied": 746,
+    "latest_applied": "schema:755_operator_hub_relational_forms.sql"
+  },
+  "restore_performed": false,
+  "grants_changed": false,
+  "candidate_database_or_volume_changed": false
+}

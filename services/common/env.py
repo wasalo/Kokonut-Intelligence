@@ -182,10 +182,14 @@ def load_dotenv() -> None:
         _LOADED = True
         return
 
-    if os.environ.get("KOKONUT_ENV_SECRETS_LOADED_BY_SCRIPT", "").lower() == "true":
-        # scripts/load-secrets.sh has already decrypted and exported the
-        # encrypted environment in the parent process. Re-decrypting it in
-        # each Python child is unnecessary and can exceed the SOPS timeout.
+    if (
+        os.environ.get("KOKONUT_ENV_SECRETS_LOADED_BY_SCRIPT", "").lower() == "true"
+        or os.environ.get("KOKONUT_ENV_SECRETS_INJECTED", "").lower() == "true"
+    ):
+        # A trusted bootstrap has already loaded the encrypted environment,
+        # either in the parent shell or through a service-scoped runtime env
+        # file. Re-decrypting it in each Python process is unnecessary and
+        # can exceed the SOPS timeout.
         if os.environ.get("KOKONUT_ENV", "development").lower() in {"ci", "production"}:
             _validate_production_environment()
         _LOADED = True

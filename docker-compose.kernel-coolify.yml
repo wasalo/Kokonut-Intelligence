@@ -34,7 +34,7 @@ services:
         required: true
     env_file:
       - format: raw
-        path: /data/coolify/applications/${COOLIFY_RESOURCE_UUID}/private/runtime-env/app.env
+        path: ./private/runtime-env/app.env
         required: true
     environment:
       ADMIN_EMAIL: ""
@@ -83,6 +83,7 @@ services:
       KOKONUT_DIRECTUS_RUNTIME_USER: ""
       KOKONUT_EAS_INDEXER_USER: ""
       KOKONUT_ENV: production
+      KOKONUT_ENV_SECRETS_INJECTED: "true"
       KOKONUT_EVENT_DISPATCH_USER: ""
       KOKONUT_FEATURE_AUTHENTICATED_SYNTHESIS_DISPATCH: "true"
       KOKONUT_FEATURE_CLICKHOUSE: "false"
@@ -256,13 +257,13 @@ services:
         target: /var/lib/kokonut/report-snapshot-exports
         type: volume
       - read_only: true
-        source: /data/coolify/applications/${COOLIFY_RESOURCE_UUID}/private/media.env
+        source: ./private/media.env
         target: /run/kokonut/private-media.env
         type: bind
   database:
     env_file:
       - format: raw
-        path: /data/coolify/applications/${COOLIFY_RESOURCE_UUID}/private/runtime-env/database.env
+        path: ./private/runtime-env/database.env
         required: true
     environment:
       ADMIN_EMAIL: ""
@@ -910,7 +911,7 @@ services:
         required: true
     env_file:
       - format: raw
-        path: /data/coolify/applications/${COOLIFY_RESOURCE_UUID}/private/runtime-env/report-snapshot-export-worker.env
+        path: ./private/runtime-env/report-snapshot-export-worker.env
         required: true
     environment:
       ADMIN_EMAIL: ""
@@ -1121,7 +1122,7 @@ services:
         required: true
     env_file:
       - format: raw
-        path: /data/coolify/applications/${COOLIFY_RESOURCE_UUID}/private/runtime-env/runtime-role-bootstrap.env
+        path: ./private/runtime-env/runtime-role-bootstrap.env
         required: true
     environment:
       ADMIN_EMAIL: ""
@@ -1324,7 +1325,7 @@ services:
         required: true
     env_file:
       - format: raw
-        path: /data/coolify/applications/${COOLIFY_RESOURCE_UUID}/private/runtime-env/worker.env
+        path: ./private/runtime-env/worker.env
         required: true
     environment:
       ADMIN_EMAIL: ""
@@ -1373,6 +1374,7 @@ services:
       KOKONUT_DIRECTUS_RUNTIME_USER: ""
       KOKONUT_EAS_INDEXER_USER: ""
       KOKONUT_ENV: production
+      KOKONUT_ENV_SECRETS_INJECTED: "true"
       KOKONUT_EVENT_DISPATCH_USER: ""
       KOKONUT_FEATURE_AUTHENTICATED_SYNTHESIS_DISPATCH: ""
       KOKONUT_FEATURE_CLICKHOUSE: "false"
@@ -1529,7 +1531,7 @@ services:
         type: volume
         volume: {}
       - read_only: true
-        source: /data/coolify/applications/${COOLIFY_RESOURCE_UUID}/data/sensor-inputs
+        source: ./data/sensor-inputs
         target: /var/lib/kokonut/sensor-inputs
         type: bind
   zitadel-api:
@@ -1547,7 +1549,7 @@ services:
         required: true
     env_file:
       - format: raw
-        path: /data/coolify/applications/${COOLIFY_RESOURCE_UUID}/private/runtime-env/zitadel-api.env
+        path: ./private/runtime-env/zitadel-api.env
         required: true
     environment:
       ADMIN_EMAIL: ""
@@ -1958,7 +1960,7 @@ services:
   zitadel-db:
     env_file:
       - format: raw
-        path: /data/coolify/applications/${COOLIFY_RESOURCE_UUID}/private/runtime-env/zitadel-db.env
+        path: ./private/runtime-env/zitadel-db.env
         required: true
     environment:
       ADMIN_EMAIL: ""
@@ -2167,7 +2169,7 @@ services:
         required: true
     env_file:
       - format: raw
-        path: /data/coolify/applications/${COOLIFY_RESOURCE_UUID}/private/runtime-env/zitadel-login.env
+        path: ./private/runtime-env/zitadel-login.env
         required: true
     environment:
       ADMIN_EMAIL: ""

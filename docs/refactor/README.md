@@ -1,6 +1,6 @@
 # Refactor documentation
 
-Start with the **[candidate completion guide](current-state-and-implementation.md)**. It alone owns current status, remaining work, owner inputs, acceptance gates and execution order. The selected finish line is candidate acceptance, separate from production cutover.
+Start with the **[candidate completion guide](current-state-and-implementation.md)** for canonical gate status, decisions, and accepted evidence. The [closure checklist](closure-checklist.md) groups the remaining actions into an ordered tracker; its boxes do not override the guide. The selected finish line is candidate acceptance, separate from production cutover.
 
 ## Documentation authority
 
@@ -11,6 +11,7 @@ and actual behavior.
 | Question | Source of truth |
 |---|---|
 | Which refactor gates are open or accepted? | [Candidate completion guide](current-state-and-implementation.md) |
+| What concrete actions close the remaining gates? | [Refactor closure checklist](closure-checklist.md); the candidate completion guide remains authoritative for gate status |
 | How do current Hub screens, form relations, sessions, and Worker routes behave? | [Control Plane guide](../../apps/frontend/README.md) |
 | Which native Gateway routes and capabilities exist in source? | [Gateway route reference](../../services/gateway/README.md), with policy context in [Gateway guide](../gateway.md) |
 | What does the optional Directus API expose? | [Directus compatibility API reference](../api-reference.md) |

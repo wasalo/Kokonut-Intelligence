@@ -14,9 +14,10 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 OUTPUT = ROOT / "docker-compose.kernel-coolify.yml"
-# Coolify's raw Compose bind-path validator permits the bare predefined
-# ${COOLIFY_RESOURCE_UUID} form and rejects Compose's ${VAR:?message} form.
-COOLIFY_APPLICATION_ROOT = "/data/coolify/applications/${COOLIFY_RESOURCE_UUID}"
+# Coolify resolves relative Compose paths from the application directory. Keep
+# host-managed files relative because its bind-source validator rejects all
+# `${...}` interpolation before Compose is loaded.
+COOLIFY_PRIVATE_ENV_ROOT = "./private/runtime-env"
 # Keep this aligned with:
 # standard --coolify --scheduler-role --zitadel
 COMPOSE_FILES = (
@@ -168,7 +169,7 @@ def _validate_rendered_secret_scoping(config: object, secret_environment_keys: d
             )
         if service_name in secret_environment_keys:
             env_files = service.get("env_file", [])
-            expected = f"{COOLIFY_APPLICATION_ROOT}/private/runtime-env/{service_name}.env"
+            expected = f"{COOLIFY_PRIVATE_ENV_ROOT}/{service_name}.env"
             if not any(
                 isinstance(entry, dict)
                 and entry.get("path") == expected
@@ -180,8 +181,8 @@ def _validate_rendered_secret_scoping(config: object, secret_environment_keys: d
 
 
 def _set_coolify_persistent_paths(services: dict[str, object]) -> None:
-    """Point host-managed files at the persistent Coolify resource directory."""
-    expected_sensor_source = f"{COOLIFY_APPLICATION_ROOT}/data/sensor-inputs"
+    """Use Coolify application-rooted paths accepted by its Compose validator."""
+    expected_sensor_source = "./data/sensor-inputs"
     sensor_mounts = []
     media_mounts = []
     for service_name, service in services.items():
@@ -198,7 +199,7 @@ def _set_coolify_persistent_paths(services: dict[str, object]) -> None:
                 mount["source"] = expected_sensor_source
                 sensor_mounts.append(mount)
             if target == "/run/kokonut/private-media.env":
-                mount["source"] = f"{COOLIFY_APPLICATION_ROOT}/private/media.env"
+                mount["source"] = "./private/media.env"
                 media_mounts.append((service_name, mount))
     if len(sensor_mounts) != 1 or len(media_mounts) != 1:
         raise RuntimeError("Coolify must define one sensor-input and one private media host mount")
@@ -207,31 +208,38 @@ def _set_coolify_persistent_paths(services: dict[str, object]) -> None:
 
 
 def _validate_coolify_host_resource_paths(services: dict[str, object]) -> None:
-    """Use the exact resource interpolation form accepted by Coolify's bind validator."""
-    resource_root = "/data/coolify/applications/"
-    allowed_root = f"{resource_root}${{COOLIFY_RESOURCE_UUID}}/"
+    """Reject interpolated, absolute, or traversing Coolify host file paths."""
     paths: list[str] = []
     for service in services.values():
         if not isinstance(service, dict):
             continue
         for mount in service.get("volumes", []):
-            if isinstance(mount, dict) and isinstance(mount.get("source"), str):
+            if (
+                isinstance(mount, dict)
+                and mount.get("type") == "bind"
+                and isinstance(mount.get("source"), str)
+            ):
                 paths.append(mount["source"])
             elif isinstance(mount, str):
-                paths.append(mount.partition(":")[0])
+                source = mount.partition(":")[0]
+                if source.startswith(("/", "./", "../")) or "${" in source:
+                    paths.append(source)
         for env_file in service.get("env_file", []):
             if isinstance(env_file, dict) and isinstance(env_file.get("path"), str):
                 paths.append(env_file["path"])
 
     for path in paths:
-        if path.startswith(resource_root) and (
-            not path.startswith(allowed_root)
-            or "${" in path[len(allowed_root):]
-            or any(part in {"", ".", ".."} for part in path[len(allowed_root):].split("/"))
+        relative = path[2:] if path.startswith("./") else ""
+        if (
+            not relative
+            or "${" in path
+            or "\\" in path
+            or path.startswith("/")
+            or any(part in {"", ".", ".."} for part in relative.split("/"))
         ):
             raise RuntimeError(
-                "Coolify host paths must use bare ${COOLIFY_RESOURCE_UUID} interpolation "
-                "with traversal-free path segments"
+                "Coolify bind and environment file paths must be relative, "
+                "traversal-free, and not interpolated"
             )
 
 
@@ -395,7 +403,7 @@ def _isolate_coolify_service_environments(
             service["env_file"] = [
                 *service.get("env_file", []),
                 {
-                    "path": f"{COOLIFY_APPLICATION_ROOT}/private/runtime-env/{service_name}.env",
+                    "path": f"{COOLIFY_PRIVATE_ENV_ROOT}/{service_name}.env",
                     "required": True,
                     "format": "raw",
                 },
@@ -464,7 +472,7 @@ def _validate_coolify_secret_scope(
 
         if service_name in secret_environment_keys:
             env_files = service.get("env_file", [])
-            expected = f"{COOLIFY_APPLICATION_ROOT}/private/runtime-env/{service_name}.env"
+            expected = f"{COOLIFY_PRIVATE_ENV_ROOT}/{service_name}.env"
             if not any(
                 isinstance(entry, dict)
                 and entry.get("path") == expected
@@ -500,6 +508,11 @@ def _coolify_config(files: tuple[str, ...]) -> tuple[object, dict[str, list[str]
     _validate_coolify_host_resource_paths(services)
     _validate_coolify_raw_proxy(config)
     secret_environment_keys, original_environments = _isolate_coolify_service_environments(services)
+    for service_name in ("app", "worker"):
+        service = services[service_name]
+        environment = dict(_environment_entries(service.get("environment", {})))
+        environment["KOKONUT_ENV_SECRETS_INJECTED"] = "true"
+        service["environment"] = environment
     _validate_coolify_secret_scope(services, secret_environment_keys, original_environments)
     for service_name, service in services.items():
         environment = dict(_environment_entries(service.get("environment", {})))

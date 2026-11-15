@@ -16,6 +16,7 @@ def _reset_loader(monkeypatch, tmp_path):
     monkeypatch.setattr(env, "_LOADED", False)
     monkeypatch.delenv("KOKONUT_ALLOW_PLAINTEXT_ENV", raising=False)
     monkeypatch.delenv("KOKONUT_ENV_SECRETS_LOADED_BY_SCRIPT", raising=False)
+    monkeypatch.delenv("KOKONUT_ENV_SECRETS_INJECTED", raising=False)
     monkeypatch.delenv("KOKONUT_ENV_SECRETS_NOT_REQUIRED", raising=False)
     monkeypatch.delenv(ISOLATED_WORKER_KEY_ENV, raising=False)
     monkeypatch.delenv(DENY_SHARED_DATABASE_ENV, raising=False)
@@ -162,6 +163,26 @@ def test_script_loaded_marker_keeps_production_environment_validation(monkeypatc
     with pytest.raises(env.SecretLoadError, match="required environment variable is missing: PG_PASSWORD"):
         env.load_dotenv()
     assert env._LOADED is False
+
+
+def test_service_injected_marker_reuses_scoped_runtime_environment(monkeypatch, tmp_path):
+    _reset_loader(monkeypatch, tmp_path)
+    monkeypatch.setenv("KOKONUT_ENV", "production")
+    monkeypatch.setenv("KOKONUT_ENV_SECRETS_INJECTED", "true")
+    monkeypatch.setenv("PG_HOST", "database")
+    monkeypatch.setenv("PG_DB", "kokonut_intelligence")
+    monkeypatch.setenv("PG_USER", "kokonut_runtime")
+    monkeypatch.setenv("PG_PASSWORD", "test-password")
+    (tmp_path / ".env.sops").write_text("encrypted")
+    monkeypatch.setattr(
+        env,
+        "_sops_decrypt",
+        lambda *_args: pytest.fail("Python tried to decrypt the service-injected environment"),
+    )
+
+    env.load_dotenv()
+
+    assert env._LOADED is True
 
 
 def test_ci_plaintext_fallback_requires_explicit_flag(monkeypatch, tmp_path):
