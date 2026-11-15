@@ -1,0 +1,12 @@
+{
+  "captured_at": "2026-11-15T09:28:06Z",
+  "host": "167.88.45.47",
+  "method": "SSH read-only aggregate query against the Coolify candidate database",
+  "query": "BEGIN READ ONLY; SELECT count(*) FROM public.location; SELECT count(*) FROM public.farm; COMMIT;",
+  "counts": {
+    "location": 1,
+    "farm": 1
+  },
+  "row_contents_or_identifiers_read": false,
+  "conclusion": "The second-location denial prerequisite remains absent."
+}
