@@ -1,6 +1,6 @@
 {
   "format_version": 1,
-  "lock_scope": "Kernel default and ClickHouse-enabled application, opt-in lean core app and capability overlays, optional sensor-anomaly ML worker, PostGIS image build inputs, Standard profile release image selection, Coolify sensitive-environment placeholder filtering, Gateway-only media secret-file mount, private Docker build-context exclusion, and checked-out source commit propagation into final-stage OCI source/revision labels",
+  "lock_scope": "Kernel default and ClickHouse-enabled application, opt-in lean core app and capability overlays, optional sensor-anomaly ML worker, PostGIS image build inputs, Standard profile release image selection, Coolify sensitive-environment placeholder filtering and per-service report-export credential scope guard, Gateway-only media secret-file mount, private Docker build-context exclusion, and checked-out source commit propagation into final-stage OCI source/revision labels",
   "base_images": {
     "application": "python:3.11-slim@sha256:db3ff2e1800a8581e2c48a27c3995339d47bdf046da21c7627accd3d51053a93",
     "database": "postgres:16-bookworm@sha256:0ea6700a3b4f0ae6ce746519073558aed4d88a79d8d07622a9a644946c7319c4"
@@ -56,7 +56,7 @@
     "docker-compose.kernel-coolify-zitadel.yml": "6944c961d7044b235c6b10dac0ff33f228114489aca26fd30566bdb8c98bdd4a",
     "docker-compose.kernel-coolify-build.yml": "faf9dd842e1d809718d69e8125d5f8ad51fe04b4f7f8692c8015890ba4b4d8f6",
     "docker-compose.kernel-coolify.yml": "725490b45d9bd85dbdb5eeb2e69971b4cc6f56d05f0fa7c5745ccb124193cc88",
-    "scripts/render-kernel-coolify-compose.py": "6c155e8331bdb800e56e1a9f01a4a6516ef310cabb1a33496624f2bf3534cba1",
+    "scripts/render-kernel-coolify-compose.py": "7e45476edebd3b1d3232fe339f18d87bad9f4b9843863f51139d9647616f58f2",
     "config/kernel/coolify-environment-key-inventory.json": "48a05b8934e96672753b29f6ca71328fe340b064a62588358a745315cf78871a",
     "docker-compose.kernel-coolify-media.yml": "677321c9930fb5eed04e9ce5d577e84b4a0dad860501232924bc9f000881059e",
     ".dockerignore": "02ea91f43589f3fde3fa4d899fa8489fd48d2e5897084dc093508651f7008ff1",
