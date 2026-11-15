@@ -15,6 +15,7 @@ SOURCE_REPOSITORY = RELEASE_GATE["SOURCE_REPOSITORY"]
 SOURCE_LABEL = RELEASE_GATE["SOURCE_LABEL"]
 REVISION_LABEL = RELEASE_GATE["REVISION_LABEL"]
 LOCK_ERROR = RELEASE_GATE["LockError"]
+COOLIFY_RENDERER = run_path(str(ROOT / "scripts" / "render-kernel-coolify-compose.py"))
 
 
 def _image_config(*, source: str, revision: str) -> dict:
@@ -73,6 +74,27 @@ def test_coolify_standard_compose_passes_revision_to_both_runtime_images() -> No
             continue
         build_args = build["args"]
         assert build_args["SOURCE_COMMIT"] == "${SOURCE_COMMIT:-unknown}"
+
+
+def test_coolify_resource_paths_use_validator_accepted_interpolation() -> None:
+    compose = yaml.safe_load((ROOT / "docker-compose.kernel-coolify.yml").read_text(encoding="utf-8"))
+    validate_paths = COOLIFY_RENDERER["_validate_coolify_host_resource_paths"]
+
+    validate_paths(compose["services"])
+
+    with pytest.raises(RuntimeError, match=r"bare \$\{COOLIFY_RESOURCE_UUID\}"):
+        validate_paths(
+            {
+                "gateway": {
+                    "volumes": [
+                        {
+                            "source": "/data/coolify/applications/"
+                            "${COOLIFY_RESOURCE_UUID:?Coolify resource UUID is required}/private/media.env"
+                        }
+                    ]
+                }
+            }
+        )
 
 
 @pytest.mark.parametrize(

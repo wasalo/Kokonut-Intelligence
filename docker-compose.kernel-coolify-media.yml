@@ -16,6 +16,6 @@ services:
       KOKONUT_API_MEDIA_CONFIG_FILE: /run/kokonut/private-media.env
     volumes:
       - type: bind
-        source: /data/coolify/applications/${COOLIFY_RESOURCE_UUID:?Coolify resource UUID is required}/private/media.env
+        source: /data/coolify/applications/${COOLIFY_RESOURCE_UUID}/private/media.env
         target: /run/kokonut/private-media.env
         read_only: true

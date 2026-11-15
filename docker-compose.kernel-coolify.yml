@@ -34,8 +34,7 @@ services:
         required: true
     env_file:
       - format: raw
-        path: /data/coolify/applications/${COOLIFY_RESOURCE_UUID:?Coolify resource
-          UUID is required}/private/runtime-env/app.env
+        path: /data/coolify/applications/${COOLIFY_RESOURCE_UUID}/private/runtime-env/app.env
         required: true
     environment:
       ADMIN_EMAIL: ""
@@ -257,15 +256,13 @@ services:
         target: /var/lib/kokonut/report-snapshot-exports
         type: volume
       - read_only: true
-        source: /data/coolify/applications/${COOLIFY_RESOURCE_UUID:?Coolify resource
-          UUID is required}/private/media.env
+        source: /data/coolify/applications/${COOLIFY_RESOURCE_UUID}/private/media.env
         target: /run/kokonut/private-media.env
         type: bind
   database:
     env_file:
       - format: raw
-        path: /data/coolify/applications/${COOLIFY_RESOURCE_UUID:?Coolify resource
-          UUID is required}/private/runtime-env/database.env
+        path: /data/coolify/applications/${COOLIFY_RESOURCE_UUID}/private/runtime-env/database.env
         required: true
     environment:
       ADMIN_EMAIL: ""
@@ -913,8 +910,7 @@ services:
         required: true
     env_file:
       - format: raw
-        path: /data/coolify/applications/${COOLIFY_RESOURCE_UUID:?Coolify resource
-          UUID is required}/private/runtime-env/report-snapshot-export-worker.env
+        path: /data/coolify/applications/${COOLIFY_RESOURCE_UUID}/private/runtime-env/report-snapshot-export-worker.env
         required: true
     environment:
       ADMIN_EMAIL: ""
@@ -1125,8 +1121,7 @@ services:
         required: true
     env_file:
       - format: raw
-        path: /data/coolify/applications/${COOLIFY_RESOURCE_UUID:?Coolify resource
-          UUID is required}/private/runtime-env/runtime-role-bootstrap.env
+        path: /data/coolify/applications/${COOLIFY_RESOURCE_UUID}/private/runtime-env/runtime-role-bootstrap.env
         required: true
     environment:
       ADMIN_EMAIL: ""
@@ -1329,8 +1324,7 @@ services:
         required: true
     env_file:
       - format: raw
-        path: /data/coolify/applications/${COOLIFY_RESOURCE_UUID:?Coolify resource
-          UUID is required}/private/runtime-env/worker.env
+        path: /data/coolify/applications/${COOLIFY_RESOURCE_UUID}/private/runtime-env/worker.env
         required: true
     environment:
       ADMIN_EMAIL: ""
@@ -1535,8 +1529,7 @@ services:
         type: volume
         volume: {}
       - read_only: true
-        source: /data/coolify/applications/${COOLIFY_RESOURCE_UUID:?Coolify resource
-          UUID is required}/data/sensor-inputs
+        source: /data/coolify/applications/${COOLIFY_RESOURCE_UUID}/data/sensor-inputs
         target: /var/lib/kokonut/sensor-inputs
         type: bind
   zitadel-api:
@@ -1554,8 +1547,7 @@ services:
         required: true
     env_file:
       - format: raw
-        path: /data/coolify/applications/${COOLIFY_RESOURCE_UUID:?Coolify resource
-          UUID is required}/private/runtime-env/zitadel-api.env
+        path: /data/coolify/applications/${COOLIFY_RESOURCE_UUID}/private/runtime-env/zitadel-api.env
         required: true
     environment:
       ADMIN_EMAIL: ""
@@ -1966,8 +1958,7 @@ services:
   zitadel-db:
     env_file:
       - format: raw
-        path: /data/coolify/applications/${COOLIFY_RESOURCE_UUID:?Coolify resource
-          UUID is required}/private/runtime-env/zitadel-db.env
+        path: /data/coolify/applications/${COOLIFY_RESOURCE_UUID}/private/runtime-env/zitadel-db.env
         required: true
     environment:
       ADMIN_EMAIL: ""
@@ -2176,8 +2167,7 @@ services:
         required: true
     env_file:
       - format: raw
-        path: /data/coolify/applications/${COOLIFY_RESOURCE_UUID:?Coolify resource
-          UUID is required}/private/runtime-env/zitadel-login.env
+        path: /data/coolify/applications/${COOLIFY_RESOURCE_UUID}/private/runtime-env/zitadel-login.env
         required: true
     environment:
       ADMIN_EMAIL: ""

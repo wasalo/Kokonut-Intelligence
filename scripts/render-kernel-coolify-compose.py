@@ -14,9 +14,9 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 OUTPUT = ROOT / "docker-compose.kernel-coolify.yml"
-COOLIFY_APPLICATION_ROOT = (
-    "/data/coolify/applications/${COOLIFY_RESOURCE_UUID:?Coolify resource UUID is required}"
-)
+# Coolify's raw Compose bind-path validator permits the bare predefined
+# ${COOLIFY_RESOURCE_UUID} form and rejects Compose's ${VAR:?message} form.
+COOLIFY_APPLICATION_ROOT = "/data/coolify/applications/${COOLIFY_RESOURCE_UUID}"
 # Keep this aligned with:
 # standard --coolify --scheduler-role --zitadel
 COMPOSE_FILES = (
@@ -204,6 +204,35 @@ def _set_coolify_persistent_paths(services: dict[str, object]) -> None:
         raise RuntimeError("Coolify must define one sensor-input and one private media host mount")
     if media_mounts[0][0] != "app" or media_mounts[0][1].get("read_only") is not True:
         raise RuntimeError("Coolify private media must remain a read-only Gateway-only host mount")
+
+
+def _validate_coolify_host_resource_paths(services: dict[str, object]) -> None:
+    """Use the exact resource interpolation form accepted by Coolify's bind validator."""
+    resource_root = "/data/coolify/applications/"
+    allowed_root = f"{resource_root}${{COOLIFY_RESOURCE_UUID}}/"
+    paths: list[str] = []
+    for service in services.values():
+        if not isinstance(service, dict):
+            continue
+        for mount in service.get("volumes", []):
+            if isinstance(mount, dict) and isinstance(mount.get("source"), str):
+                paths.append(mount["source"])
+            elif isinstance(mount, str):
+                paths.append(mount.partition(":")[0])
+        for env_file in service.get("env_file", []):
+            if isinstance(env_file, dict) and isinstance(env_file.get("path"), str):
+                paths.append(env_file["path"])
+
+    for path in paths:
+        if path.startswith(resource_root) and (
+            not path.startswith(allowed_root)
+            or "${" in path[len(allowed_root):]
+            or any(part in {"", ".", ".."} for part in path[len(allowed_root):].split("/"))
+        ):
+            raise RuntimeError(
+                "Coolify host paths must use bare ${COOLIFY_RESOURCE_UUID} interpolation "
+                "with traversal-free path segments"
+            )
 
 
 def _validate_coolify_raw_proxy(config: object) -> None:
@@ -468,6 +497,7 @@ def _coolify_config(files: tuple[str, ...]) -> tuple[object, dict[str, list[str]
 
     _add_coolify_management_labels(services)
     _set_coolify_persistent_paths(services)
+    _validate_coolify_host_resource_paths(services)
     _validate_coolify_raw_proxy(config)
     secret_environment_keys, original_environments = _isolate_coolify_service_environments(services)
     _validate_coolify_secret_scope(services, secret_environment_keys, original_environments)

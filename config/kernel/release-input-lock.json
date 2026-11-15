@@ -1,6 +1,6 @@
 {
   "format_version": 1,
-  "lock_scope": "Kernel default and ClickHouse-enabled application, opt-in lean core app and capability overlays, optional sensor-anomaly ML worker, PostGIS image build inputs, Standard profile release image selection, Coolify raw Compose management and Traefik labels, external network, service-scoped runtime secrets and persistent host paths, Coolify sensitive-environment placeholder filtering and per-service report-export credential scope guard, Gateway-only media secret-file mount, private Docker build-context exclusion, and checked-out source commit propagation into final-stage OCI source/revision labels",
+  "lock_scope": "Kernel default and ClickHouse-enabled application, opt-in lean core app and capability overlays, optional sensor-anomaly ML worker, PostGIS image build inputs, Standard profile release image selection, Coolify raw Compose management and Traefik labels, external network, service-scoped runtime secrets and persistent host paths using validator-accepted bare Coolify resource UUID interpolation, Coolify sensitive-environment placeholder filtering and per-service report-export credential scope guard, Gateway-only media secret-file mount, private Docker build-context exclusion, and checked-out source commit propagation into final-stage OCI source/revision labels",
   "base_images": {
     "application": "python:3.11-slim@sha256:db3ff2e1800a8581e2c48a27c3995339d47bdf046da21c7627accd3d51053a93",
     "database": "postgres:16-bookworm@sha256:0ea6700a3b4f0ae6ce746519073558aed4d88a79d8d07622a9a644946c7319c4"
@@ -55,10 +55,10 @@
     "docker-compose.kernel-coolify-network.yml": "b08c190b0a3ffa203f9333919fc44abcfa5352c01e1e48f888ab8bed99606b9d",
     "docker-compose.kernel-coolify-zitadel.yml": "6944c961d7044b235c6b10dac0ff33f228114489aca26fd30566bdb8c98bdd4a",
     "docker-compose.kernel-coolify-build.yml": "faf9dd842e1d809718d69e8125d5f8ad51fe04b4f7f8692c8015890ba4b4d8f6",
-    "docker-compose.kernel-coolify.yml": "8b7cae5cddbc7cc45b0fbd549e86c8f8827467103338ac8ba7f737d222514827",
-    "scripts/render-kernel-coolify-compose.py": "999a06a26976d155845203f4eb0f3898fc4ec6c1e4844ba991d53c0db63ae51f",
+    "docker-compose.kernel-coolify.yml": "0829870f8672dea8556681d88c5e7cc089fcdfa835c0c1a9b7297425e05e0053",
+    "scripts/render-kernel-coolify-compose.py": "bd74ea223734ab66308605dd78dd78e05fbac9ac826df8536129754976d9d561",
     "config/kernel/coolify-environment-key-inventory.json": "48a05b8934e96672753b29f6ca71328fe340b064a62588358a745315cf78871a",
-    "docker-compose.kernel-coolify-media.yml": "33f2a0780abebd44cea4435b488149ccfae4bed0fa86c06c6fed8230ed6bd5d3",
+    "docker-compose.kernel-coolify-media.yml": "7102c79ae4b01d8db8ea77c167a15fbbf827abd142ffc172f2078af5ffa719da",
     ".dockerignore": "02ea91f43589f3fde3fa4d899fa8489fd48d2e5897084dc093508651f7008ff1",
     ".github/workflows/ci.yml": "03848b42449ab629a54abe1db647c5a04a043510566f4e5904f0a8484b8cad01",
     ".github/workflows/publish-kernel-images.yml": "edbdbc2e3344dff989ea4afbe7c1134e5d3d0607d55375397d9f9391b1d5861f",
