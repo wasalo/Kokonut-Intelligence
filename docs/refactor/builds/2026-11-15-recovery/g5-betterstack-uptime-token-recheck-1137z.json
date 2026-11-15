@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "recorded_at_utc": "2026-11-15T11:37:00Z",
+  "scope": "Read-only Better Stack Uptime API credential check using the current local SOPS value. The token and response body were not printed or recorded; no Better Stack resources changed.",
+  "request": {
+    "method": "GET",
+    "endpoint": "https://betterstack.com/api/v2/roles"
+  },
+  "result": {
+    "http_status": 401,
+    "interpretation": "The current SOPS-stored Uptime token is not accepted by the documented read-only roles endpoint.",
+    "plaintext_root_env_token_variable_present": false
+  }
+}
