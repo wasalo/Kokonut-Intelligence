@@ -53,10 +53,15 @@ workflow. For local source-only or integration-only runs, use the corresponding
 `scripts/run-github-ci.sh`; review that script before running because the
 integration mode starts and removes its isolated Compose resources.
 
-The shared static-analysis gate is `scripts/static-analysis.sh`. Required
-GitHub status checks and rulesets are repository controls, not inferred from a
-local pass. Workflow triggers, deployment workflows, and protection setup are
-documented in [GitHub Actions](github-actions.md).
+The shared static-analysis gate is `scripts/static-analysis.sh`: Slither scans
+Solidity and Semgrep applies the configured Python rule packs. Foundry format,
+build, and contract tests run as a separate source-check phase. The CI no
+longer installs Aderyn: Cyfrin withdrew its published binaries and package
+artifacts on 13 November 2026, so the pinned installer became unavailable
+([release notice](https://github.com/Cyfrin/aderyn/releases/tag/aderyn-v0.6.8)).
+Required GitHub status checks and rulesets are repository controls, not
+inferred from a local pass. Workflow triggers, deployment workflows, and
+protection setup are documented in [GitHub Actions](github-actions.md).
 
 Foundry dependencies are committed vendor trees under `contracts/lib/`, not
 Git submodules. Their exact revisions are pinned in `contracts/foundry.lock`.

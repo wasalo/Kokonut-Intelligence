@@ -266,11 +266,6 @@ if [ "$RUN_MODE" != --integration-only ]; then
     fi
     "$CI_TOOLS_VENV/bin/python" -m pip check
     CI_TOOLS_BIN="$CI_TOOLS_VENV/bin"
-    if ! run_ci_timeout 15m npm install --global --no-audit --no-fund \
-        --fetch-retries=5 --fetch-retry-factor=2 @cyfrin/aderyn@0.6.8; then
-        echo 'Aderyn installation failed or exceeded 15 minutes.' >&2
-        exit 1
-    fi
     # GitHub Actions installs a pinned Foundry action/toolchain before this script.
     # Local runs must provide forge on PATH; the CI script never downloads a moving
     # installer or toolchain release itself.

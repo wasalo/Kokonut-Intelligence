@@ -2,7 +2,7 @@
 set -euo pipefail
 
 missing=0
-for tool in python3 node npm forge slither aderyn semgrep ruff pip-audit; do
+for tool in python3 node npm forge slither semgrep ruff pip-audit; do
     if ! command -v "$tool" >/dev/null 2>&1; then
         echo "ERROR: required CI tool is missing: $tool" >&2
         missing=1
@@ -18,7 +18,6 @@ node --version
 npm --version
 forge --version
 slither --version
-aderyn --version
 semgrep --version
 ruff --version
 pip-audit --version

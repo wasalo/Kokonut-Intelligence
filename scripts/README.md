@@ -45,7 +45,7 @@ published loopback ports and does not require the production worker credential.
 | Script | Purpose | Context |
 |--------|---------|---------|
 | `verify-platform.sh` | Validate platform definition of done via `tests/test_platform_done.py` | Manual |
-| `verify-ci-toolchain.sh` | Verify all required CI tools are installed (python3, node, npm, forge, slither, aderyn, semgrep, ruff, pip-audit) | CI |
+| `verify-ci-toolchain.sh` | Verify all required CI tools are installed (python3, node, npm, forge, slither, semgrep, ruff, pip-audit) | CI |
 | `bootstrap-optional-roles.sql` | Idempotently create locked `NOLOGIN` placeholders for runtime, worker, the legacy `directus` role, and the optional Kernel Directus role referenced by migration revocations; preserve existing roles | Migration CLI, `seed.sh`, `verify-clean-bootstrap.sh` |
 | `verify-clean-bootstrap.sh` | Create temp database, apply schema-only migrations, drop it. Uses the same locked optional-role bootstrap as `seed.sh`, preserving already-provisioned roles. Optional `KOKONUT_BOOTSTRAP_COMPOSE_PROJECT` and `KOKONUT_BOOTSTRAP_COMPOSE_FILE` select an isolated Compose target; set `KOKONUT_BOOTSTRAP_START_DATABASE=true` and `KOKONUT_BOOTSTRAP_REMOVE_PROJECT=true` to start and remove a disposable project. Explicit Compose-only migration runs provide database routing directly and skip workstation dotenv loading in the development CLI; this flag is rejected in production. | CI (via `ci-check.sh`), isolated acceptance |
 | `check-directus-role-disposable.py` | Provision and replay the Directus DML-only role on a temporary internal-only PostgreSQL instance; check existing/future DML, DDL denial, stale ACL removal, and database isolation; always removes its Compose project and volume. | Isolated acceptance |
@@ -73,7 +73,7 @@ published loopback ports and does not require the production worker credential.
 |--------|---------|---------|
 | `ci-preflight.sh` | Run dependency-free Python-runtime, dependency-group, source-inventory, and capability checks before CI starts long Docker/database jobs | GitHub Actions |
 | `ci-check.sh [all|--source-only|--database-only]` | Fast-fail CI gates: source/import/CLI/TypeScript checks can run without a database; the isolated clean-bootstrap check can run after PostgreSQL is ready. No argument preserves the combined local behavior. | CI |
-| `static-analysis.sh` | Slither (Solidity), Aderyn (Solidity), Semgrep (Python + Solidity) | CI |
+| `static-analysis.sh` | Slither (Solidity) and Semgrep (Python); Foundry format/build/tests are a separate CI phase | CI |
 | `check-tracked-secrets.sh` | Scan Git-tracked files for private keys and token patterns | CI |
 | `check-image-digests.sh` | Fail if Dockerfile `FROM` or Compose `image:` is not pinned by `@sha256` digest | CI |
 | `check-python-runtime.py` | Validate Python >= 3.11 and OpenSSL availability | CI (via `ci-check.sh`) |

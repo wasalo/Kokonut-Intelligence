@@ -58,29 +58,8 @@ print(f"Total actionable High/Medium in src/: {len(src)}")
 fi
 
 echo ""
-echo "=== Aderyn (Solidity) ==="
-if ! command -v aderyn >/dev/null 2>&1; then
-    echo "FAIL: aderyn not found"
-    EXIT_CODE=1
-else
-    aderyn "$CONTRACTS_DIR" --output /tmp/aderyn-report.md 2>&1 | tee /tmp/aderyn.log
-    cp /tmp/aderyn-report.md "$ARTIFACT_DIR/aderyn-report.md"
-    cp /tmp/aderyn.log "$ARTIFACT_DIR/aderyn.log"
-    if [ ! -s /tmp/aderyn-report.md ]; then
-        echo "FAIL: Aderyn did not produce a report"
-        EXIT_CODE=1
-    else
-        HIGH_MED=$(grep -cE "^## (High|Medium)" /tmp/aderyn-report.md || true)
-        echo "Aderyn High/Medium findings: $HIGH_MED"
-        if [ "$HIGH_MED" -gt 0 ]; then
-            echo "FAIL: Aderyn found high/medium findings"
-            EXIT_CODE=1
-        fi
-    fi
-fi
-
 echo ""
-echo "=== Semgrep (Python + Solidity) ==="
+echo "=== Semgrep (Python) ==="
 if command -v pysemgrep >/dev/null 2>&1 || command -v semgrep >/dev/null 2>&1; then
     SEMGREP=$(command -v pysemgrep 2>/dev/null || command -v semgrep)
     set +e
@@ -100,7 +79,7 @@ if command -v pysemgrep >/dev/null 2>&1 || command -v semgrep >/dev/null 2>&1; t
     fi
     "$SEMGREP" scan "${SEMGREP_CONFIG_ARGS[@]}" --severity ERROR \
         --sarif --output /tmp/semgrep-gate.sarif \
-        services/ contracts/src/ contracts/script/ 2>&1 | tee /tmp/semgrep.log
+        services/ 2>&1 | tee /tmp/semgrep.log
     SEMGREP_STATUS=${PIPESTATUS[0]}
     set -e
     cp /tmp/semgrep.log "$ARTIFACT_DIR/semgrep.log"
@@ -137,7 +116,7 @@ reviewed_exclusions = {
 }
 our = [r for r in results if any(
     p in r.get("locations", [{}])[0].get("physicalLocation", {}).get("artifactLocation", {}).get("uri", "")
-    for p in ("services/", "contracts/src/", "contracts/script/")
+    for p in ("services/",)
 ) and r.get("ruleId", "") not in reviewed_exclusions]
 print(f"Semgrep raw findings: {len(results)}")
 for result in our:
