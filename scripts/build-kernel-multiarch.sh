@@ -23,6 +23,12 @@ while [ "$#" -gt 0 ]; do
     esac
 done
 
+SOURCE_COMMIT="${SOURCE_COMMIT:-unknown}"
+if [[ "$SOURCE_COMMIT" != "unknown" && ! "$SOURCE_COMMIT" =~ ^[0-9a-f]{40}$ ]]; then
+    echo "SOURCE_COMMIT must be a full lowercase 40-character Git SHA or unknown" >&2
+    exit 2
+fi
+
 command -v docker >/dev/null || { echo "docker CLI is required" >&2; exit 2; }
 docker buildx version >/dev/null 2>&1 || {
     echo "Docker Buildx is required (install docker-buildx-plugin)" >&2
@@ -87,11 +93,13 @@ docker buildx build \
     --pull \
     --platform linux/amd64,linux/arm64 \
     --target kernel \
+    --build-arg "SOURCE_COMMIT=${SOURCE_COMMIT}" \
     --output "type=oci,dest=$BUILD_DIR/kernel-app.oci.tar" \
     --file Dockerfile.kernel \
     .
 python3 scripts/check-kernel-release-inputs.py \
-    --application-oci "$BUILD_DIR/kernel-app.oci.tar"
+    --application-oci "$BUILD_DIR/kernel-app.oci.tar" \
+    --expected-source-commit "$SOURCE_COMMIT"
 rm -f "$BUILD_DIR/kernel-app.oci.tar"
 
 # Verify the new opt-in minimal dependency closure on both architectures. The
@@ -101,11 +109,13 @@ docker buildx build \
     --pull \
     --platform linux/amd64,linux/arm64 \
     --target kernel-core \
+    --build-arg "SOURCE_COMMIT=${SOURCE_COMMIT}" \
     --output "type=oci,dest=$BUILD_DIR/kernel-core.oci.tar" \
     --file Dockerfile.kernel \
     .
 python3 scripts/check-kernel-release-inputs.py \
-    --core-oci "$BUILD_DIR/kernel-core.oci.tar"
+    --core-oci "$BUILD_DIR/kernel-core.oci.tar" \
+    --expected-source-commit "$SOURCE_COMMIT"
 rm -f "$BUILD_DIR/kernel-core.oci.tar"
 
 # Verify that the optional capability overlays can be composed on the lean
@@ -119,11 +129,13 @@ docker buildx build \
     --build-arg KOKONUT_CORE_WEB3=true \
     --build-arg KOKONUT_CORE_EXPORTS=true \
     --build-arg KOKONUT_CORE_LOCAL_MEDIA=true \
+    --build-arg "SOURCE_COMMIT=${SOURCE_COMMIT}" \
     --output "type=oci,dest=$BUILD_DIR/kernel-core-capabilities.oci.tar" \
     --file Dockerfile.kernel \
     .
 python3 scripts/check-kernel-release-inputs.py \
-    --core-capabilities-oci "$BUILD_DIR/kernel-core-capabilities.oci.tar"
+    --core-capabilities-oci "$BUILD_DIR/kernel-core-capabilities.oci.tar" \
+    --expected-source-commit "$SOURCE_COMMIT"
 rm -f "$BUILD_DIR/kernel-core-capabilities.oci.tar"
 
 # Verify the optional ClickHouse client profile has the same locked platform
@@ -134,11 +146,13 @@ docker buildx build \
     --platform linux/amd64,linux/arm64 \
     --target kernel \
     --build-arg KOKONUT_CLICKHOUSE=true \
+    --build-arg "SOURCE_COMMIT=${SOURCE_COMMIT}" \
     --output "type=oci,dest=$BUILD_DIR/kernel-clickhouse-app.oci.tar" \
     --file Dockerfile.kernel \
     .
 python3 scripts/check-kernel-release-inputs.py \
-    --application-oci "$BUILD_DIR/kernel-clickhouse-app.oci.tar"
+    --application-oci "$BUILD_DIR/kernel-clickhouse-app.oci.tar" \
+    --expected-source-commit "$SOURCE_COMMIT"
 rm -f "$BUILD_DIR/kernel-clickhouse-app.oci.tar"
 
 # Verify the independently locked optional ML worker on both architectures.
@@ -147,11 +161,13 @@ docker buildx build \
     --pull \
     --platform linux/amd64,linux/arm64 \
     --target ml-anomaly \
+    --build-arg "SOURCE_COMMIT=${SOURCE_COMMIT}" \
     --output "type=oci,dest=$BUILD_DIR/kernel-ml-anomaly.oci.tar" \
     --file Dockerfile.kernel \
     .
 python3 scripts/check-kernel-release-inputs.py \
-    --ml-anomaly-oci "$BUILD_DIR/kernel-ml-anomaly.oci.tar"
+    --ml-anomaly-oci "$BUILD_DIR/kernel-ml-anomaly.oci.tar" \
+    --expected-source-commit "$SOURCE_COMMIT"
 rm -f "$BUILD_DIR/kernel-ml-anomaly.oci.tar"
 
 POSTGIS_BUILD_ARGS=()

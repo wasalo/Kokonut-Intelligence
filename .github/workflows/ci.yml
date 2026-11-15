@@ -184,6 +184,8 @@ jobs:
         uses: docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c # v4
 
       - name: Build and verify Kernel images
+        env:
+          SOURCE_COMMIT: ${{ github.sha }}
         shell: bash
         run: |
           if [[ "$GITHUB_EVENT_NAME" == push && "$GITHUB_REF" == refs/heads/main ]]; then

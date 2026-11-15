@@ -26,6 +26,7 @@ services:
       target: kernel
       args:
         KOKONUT_CLICKHOUSE: "false"
+        SOURCE_COMMIT: ${SOURCE_COMMIT:-unknown}
     platform: linux/amd64
     init: true
     restart: "no"

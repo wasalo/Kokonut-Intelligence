@@ -10,6 +10,7 @@ services:
       target: kernel
       args:
         KOKONUT_CLICKHOUSE: "false"
+        SOURCE_COMMIT: ${SOURCE_COMMIT:-unknown}
     restart: "no"
     command: ["python3", "-m", "services.migration.runtime_role"]
     depends_on:

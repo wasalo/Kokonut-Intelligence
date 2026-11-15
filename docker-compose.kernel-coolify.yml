@@ -9,6 +9,8 @@ networks:
 services:
   app:
     build:
+      args:
+        SOURCE_COMMIT: ${SOURCE_COMMIT:-unknown}
       context: .
       dockerfile: Dockerfile.kernel
       target: oidc
@@ -663,6 +665,8 @@ services:
         volume: {}
   report-snapshot-export-artifact-init:
     build:
+      args:
+        SOURCE_COMMIT: ${SOURCE_COMMIT:-unknown}
       context: .
       dockerfile: Dockerfile.kernel
       target: kernel
@@ -858,6 +862,8 @@ services:
         volume: {}
   report-snapshot-export-worker:
     build:
+      args:
+        SOURCE_COMMIT: ${SOURCE_COMMIT:-unknown}
       context: .
       dockerfile: Dockerfile.kernel
       target: kernel
@@ -1076,6 +1082,7 @@ services:
     build:
       args:
         KOKONUT_CLICKHOUSE: "false"
+        SOURCE_COMMIT: ${SOURCE_COMMIT:-unknown}
       context: .
       dockerfile: Dockerfile.kernel
       target: kernel
@@ -1297,6 +1304,8 @@ services:
     restart: 'no'
   worker:
     build:
+      args:
+        SOURCE_COMMIT: ${SOURCE_COMMIT:-unknown}
       context: .
       dockerfile: Dockerfile.kernel
     command:

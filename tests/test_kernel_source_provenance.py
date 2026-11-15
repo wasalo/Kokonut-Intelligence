@@ -1,0 +1,108 @@
+"""Contracts for verifiable source metadata on Kernel image builds."""
+
+from __future__ import annotations
+
+import re
+from pathlib import Path
+from runpy import run_path
+
+import pytest
+import yaml
+
+ROOT = Path(__file__).resolve().parents[1]
+RELEASE_GATE = run_path(str(ROOT / "scripts" / "check-kernel-release-inputs.py"))
+SOURCE_REPOSITORY = RELEASE_GATE["SOURCE_REPOSITORY"]
+SOURCE_LABEL = RELEASE_GATE["SOURCE_LABEL"]
+REVISION_LABEL = RELEASE_GATE["REVISION_LABEL"]
+LOCK_ERROR = RELEASE_GATE["LockError"]
+
+
+def _image_config(*, source: str, revision: str) -> dict:
+    return {"config": {"Labels": {SOURCE_LABEL: source, REVISION_LABEL: revision}}}
+
+
+def test_kernel_oci_source_labels_accept_the_expected_repository_and_revision() -> None:
+    RELEASE_GATE["_validate_source_labels"](
+        _image_config(source=SOURCE_REPOSITORY, revision="a" * 40),
+        architecture="amd64",
+        expected_source_commit="a" * 40,
+    )
+
+
+@pytest.mark.parametrize(
+    ("source", "revision"),
+    [
+        ("https://example.invalid/wrong", "a" * 40),
+        (SOURCE_REPOSITORY, "b" * 40),
+        (SOURCE_REPOSITORY, ""),
+    ],
+)
+def test_kernel_oci_source_labels_reject_wrong_or_missing_provenance(source: str, revision: str) -> None:
+    with pytest.raises(LOCK_ERROR, match="source labels mismatch"):
+        RELEASE_GATE["_validate_source_labels"](
+            _image_config(source=source, revision=revision),
+            architecture="arm64",
+            expected_source_commit="a" * 40,
+        )
+
+
+def test_kernel_build_targets_declare_revision_only_at_the_final_image_stage() -> None:
+    dockerfile = (ROOT / "Dockerfile.kernel").read_text(encoding="utf-8")
+    stages: dict[str, list[str]] = {}
+    current_stage = None
+    for line in dockerfile.splitlines():
+        match = re.match(r"^FROM\b.*\bAS\s+(\S+)\s*$", line, re.IGNORECASE)
+        if match:
+            current_stage = match.group(1)
+            stages[current_stage] = []
+        elif current_stage:
+            stages[current_stage].append(line)
+
+    for target in ("kernel", "kernel-core", "oidc", "grpc", "mqtt", "ml-anomaly"):
+        stage = "\n".join(stages[target])
+        assert "ARG SOURCE_COMMIT=unknown" in stage
+        assert "org.opencontainers.image.source" in stage
+        assert 'org.opencontainers.image.revision="${SOURCE_COMMIT}"' in stage
+
+
+def test_coolify_standard_compose_passes_revision_to_both_runtime_images() -> None:
+    compose = yaml.safe_load((ROOT / "docker-compose.kernel-coolify.yml").read_text(encoding="utf-8"))
+    for service_name, service in compose["services"].items():
+        build = service.get("build", {})
+        if Path(str(build.get("dockerfile", "Dockerfile"))).name != "Dockerfile.kernel":
+            continue
+        build_args = build["args"]
+        assert build_args["SOURCE_COMMIT"] == "${SOURCE_COMMIT:-unknown}"
+
+
+@pytest.mark.parametrize(
+    "filename",
+    [
+        "docker-compose.kernel-candidate.yml",
+        "docker-compose.kernel-standard.yml",
+        "docker-compose.kernel-analytics-role.yml",
+        "docker-compose.kernel-directus.yml",
+        "docker-compose.kernel-grpc.yml",
+        "docker-compose.kernel-http-sensors.yml",
+        "docker-compose.kernel-metabase.yml",
+        "docker-compose.kernel-mqtt.yml",
+        "docker-compose.kernel-portability.yml",
+        "docker-compose.kernel-recovery-directus-role.yml",
+        "docker-compose.kernel-runtime-role.yml",
+        "docker-compose.kernel-sensor-anomaly-ml.yml",
+    ],
+)
+def test_kernel_compose_builds_pass_source_commit(filename: str) -> None:
+    compose = yaml.safe_load((ROOT / filename).read_text(encoding="utf-8"))
+    for service_name, service in compose["services"].items():
+        build = service.get("build", {})
+        if Path(str(build.get("dockerfile", "Dockerfile"))).name != "Dockerfile.kernel":
+            continue
+        assert build["args"]["SOURCE_COMMIT"] == "${SOURCE_COMMIT:-unknown}", service_name
+
+
+def test_ci_and_release_workflows_supply_the_checked_out_revision() -> None:
+    ci = (ROOT / ".github/workflows/ci.yml").read_text(encoding="utf-8")
+    release = (ROOT / ".github/workflows/publish-kernel-images.yml").read_text(encoding="utf-8")
+    assert "SOURCE_COMMIT: ${{ github.sha }}" in ci
+    assert '--build-arg "SOURCE_COMMIT=${GITHUB_SHA}"' in release

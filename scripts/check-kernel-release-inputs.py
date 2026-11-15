@@ -13,6 +13,9 @@ from pathlib import Path, PurePosixPath
 
 ROOT = Path(__file__).resolve().parents[1]
 LOCK_PATH = ROOT / "config/kernel/release-input-lock.json"
+SOURCE_REPOSITORY = "https://github.com/wasalo/Kokonut-Intelligence"
+SOURCE_LABEL = "org.opencontainers.image.source"
+REVISION_LABEL = "org.opencontainers.image.revision"
 ML_BASE_TOOLING = {"pip": "24.0", "setuptools": "79.0.1", "wheel": "0.46.3"}
 CORE_BASE_TOOLING = {**ML_BASE_TOOLING, "packaging": "26.2"}
 CORE_CAPABILITY_LOCKS = (
@@ -249,6 +252,38 @@ def _platform_manifests(archive: tarfile.TarFile) -> tuple[dict[str, dict], str]
     return manifests, index_digest
 
 
+def _validate_source_labels(config: dict, *, architecture: str, expected_source_commit: str) -> None:
+    image_config = config.get("config")
+    labels = image_config.get("Labels") if isinstance(image_config, dict) else None
+    if not isinstance(labels, dict):
+        labels = {}
+    actual_source = labels.get(SOURCE_LABEL)
+    actual_revision = labels.get(REVISION_LABEL)
+    if actual_source != SOURCE_REPOSITORY or actual_revision != expected_source_commit:
+        raise LockError(
+            f"{architecture} image source labels mismatch: expected source={SOURCE_REPOSITORY!r} "
+            f"revision={expected_source_commit!r}, got source={actual_source!r} revision={actual_revision!r}"
+        )
+
+
+def _verify_source_labels(
+    archive: tarfile.TarFile,
+    manifests: dict[str, dict],
+    *,
+    expected_source_commit: str,
+) -> None:
+    for architecture, manifest in manifests.items():
+        config_digest = (manifest.get("config") or {}).get("digest")
+        if not config_digest:
+            raise LockError(f"{architecture} OCI manifest has no image config")
+        config = json.loads(_blob(archive, config_digest).read().decode("utf-8"))
+        _validate_source_labels(
+            config,
+            architecture=architecture,
+            expected_source_commit=expected_source_commit,
+        )
+
+
 def _image_file(archive: tarfile.TarFile, manifest: dict, image_path: str) -> bytes:
     wanted = PurePosixPath(image_path).as_posix().lstrip("./")
     for layer_descriptor in reversed(manifest.get("layers", [])):
@@ -386,9 +421,11 @@ def _verify_ml_package_inventories(
         raise LockError("ML Python package version parity failed:\n  " + "\n  ".join(differences[:30]))
 
 
-def _verify_application(archive_path: Path) -> None:
+def _verify_application(archive_path: Path, *, expected_source_commit: str | None = None) -> None:
     with tarfile.open(archive_path, mode="r:*") as archive:
         manifests, index_digest = _platform_manifests(archive)
+        if expected_source_commit is not None:
+            _verify_source_labels(archive, manifests, expected_source_commit=expected_source_commit)
         inventories = {}
         for architecture, manifest in manifests.items():
             packages = json.loads(_image_file(archive, manifest, "app/python-packages.json"))
@@ -407,9 +444,16 @@ def _verify_application(archive_path: Path) -> None:
         )
 
 
-def _verify_core_application(archive_path: Path, *, all_capabilities: bool = False) -> None:
+def _verify_core_application(
+    archive_path: Path,
+    *,
+    all_capabilities: bool = False,
+    expected_source_commit: str | None = None,
+) -> None:
     with tarfile.open(archive_path, mode="r:*") as archive:
         manifests, index_digest = _platform_manifests(archive)
+        if expected_source_commit is not None:
+            _verify_source_labels(archive, manifests, expected_source_commit=expected_source_commit)
         inventories = {}
         for architecture, manifest in manifests.items():
             packages = json.loads(_image_file(archive, manifest, "app/python-packages.json"))
@@ -426,9 +470,11 @@ def _verify_core_application(archive_path: Path, *, all_capabilities: bool = Fal
         )
 
 
-def _verify_ml_anomaly(archive_path: Path) -> None:
+def _verify_ml_anomaly(archive_path: Path, *, expected_source_commit: str | None = None) -> None:
     with tarfile.open(archive_path, mode="r:*") as archive:
         manifests, index_digest = _platform_manifests(archive)
+        if expected_source_commit is not None:
+            _verify_source_labels(archive, manifests, expected_source_commit=expected_source_commit)
         inventories = {}
         for architecture, manifest in manifests.items():
             packages = json.loads(_image_file(archive, manifest, "app/python-packages.json"))
@@ -521,19 +567,38 @@ def main() -> int:
     )
     parser.add_argument("--ml-anomaly-oci", type=Path, help="verify the optional ML worker OCI archive")
     parser.add_argument("--postgis-oci", type=Path, help="verify a multi-platform PostGIS OCI archive")
+    parser.add_argument(
+        "--expected-source-commit",
+        help="require the app-image OCI source/revision labels to match this repository and revision",
+    )
     args = parser.parse_args()
     try:
+        if args.expected_source_commit is not None and not re.fullmatch(
+            r"(?:unknown|[0-9a-f]{40})", args.expected_source_commit
+        ):
+            raise LockError("expected source commit must be a full lowercase Git SHA or unknown")
+        if args.expected_source_commit is not None and not any((
+            args.application_oci,
+            args.core_oci,
+            args.core_capabilities_oci,
+            args.ml_anomaly_oci,
+        )):
+            raise LockError("--expected-source-commit requires a Kernel OCI archive")
         lock = _load_json(LOCK_PATH)
         _validate_inputs(lock)
         print("Kernel release inputs match config/kernel/release-input-lock.json")
         if args.application_oci:
-            _verify_application(args.application_oci)
+            _verify_application(args.application_oci, expected_source_commit=args.expected_source_commit)
         if args.core_oci:
-            _verify_core_application(args.core_oci)
+            _verify_core_application(args.core_oci, expected_source_commit=args.expected_source_commit)
         if args.core_capabilities_oci:
-            _verify_core_application(args.core_capabilities_oci, all_capabilities=True)
+            _verify_core_application(
+                args.core_capabilities_oci,
+                all_capabilities=True,
+                expected_source_commit=args.expected_source_commit,
+            )
         if args.ml_anomaly_oci:
-            _verify_ml_anomaly(args.ml_anomaly_oci)
+            _verify_ml_anomaly(args.ml_anomaly_oci, expected_source_commit=args.expected_source_commit)
         if args.postgis_oci:
             _verify_postgis(args.postgis_oci, lock)
         if not args.application_oci and not args.core_oci and not args.core_capabilities_oci and not args.ml_anomaly_oci and not args.postgis_oci:

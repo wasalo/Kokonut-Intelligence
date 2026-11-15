@@ -116,6 +116,18 @@ def _validate_coolify_build_policy(config: object) -> None:
         if service.get("pull_policy") != "build":
             raise RuntimeError(f"Coolify {name} service must rebuild its local image from source")
 
+    for name, service in services.items():
+        if not isinstance(service, dict):
+            continue
+        build = service.get("build")
+        if not isinstance(build, dict) or Path(str(build.get("dockerfile", "Dockerfile"))).name != "Dockerfile.kernel":
+            continue
+        build_args = service["build"].get("args")
+        if not isinstance(build_args, dict) or build_args.get("SOURCE_COMMIT") != "${SOURCE_COMMIT:-unknown}":
+            raise RuntimeError(
+                f"Coolify {name} build must pass the predefined SOURCE_COMMIT into its image metadata"
+            )
+
 
 def _environment_entries(environment: object) -> list[tuple[str, str | None]]:
     if isinstance(environment, dict):

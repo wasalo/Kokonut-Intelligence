@@ -587,6 +587,16 @@ explicit policy Compose may reuse an existing local image instead of building
 the checked-out source. The renderer requires this policy for both services.
 See Docker's [`pull_policy` behavior](https://docs.docker.com/reference/compose-file/services/#pull_policy).
 
+Both Coolify build definitions also pass the predefined `SOURCE_COMMIT` value
+to Docker as a build argument. In the Coolify application settings, make
+`SOURCE_COMMIT` available during builds under **Advanced → Build → Environment
+Variables**. The final Gateway and worker image stages record the repository
+and revision in OCI labels; the multi-architecture release checker verifies
+those labels against the expected Git SHA for both `amd64` and `arm64`. If
+Coolify does not provide the value, images record `unknown` and the candidate
+must be rebuilt after the setting is enabled. These labels aid source
+traceability; they are not a cryptographic attestation of the image contents.
+
 ### Coolify private media configuration
 
 Treat Coolify application environment variables as shared across every service

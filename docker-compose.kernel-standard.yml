@@ -60,6 +60,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.kernel
+      args:
+        SOURCE_COMMIT: ${SOURCE_COMMIT:-unknown}
     restart: unless-stopped
     command: ["python3", "-m", "services.core.runtime", "--workers-only", "--require-schema", "--require-runtime-role"]
     healthcheck:
@@ -192,6 +194,8 @@ services:
       context: .
       dockerfile: Dockerfile.kernel
       target: kernel
+      args:
+        SOURCE_COMMIT: ${SOURCE_COMMIT:-unknown}
     command:
       - python3
       - -m
@@ -233,6 +237,8 @@ services:
       context: .
       dockerfile: Dockerfile.kernel
       target: kernel
+      args:
+        SOURCE_COMMIT: ${SOURCE_COMMIT:-unknown}
     user: "0:0"
     command:
       - sh
