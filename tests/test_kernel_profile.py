@@ -30,6 +30,10 @@ def _run_planner(
     *arguments: str, env: dict[str, str] | None = None
 ) -> subprocess.CompletedProcess[str]:
     child_env = os.environ.copy()
+    if arguments and arguments[0] == "standard":
+        child_env.setdefault(
+            "KOKONUT_WORKER_RUNTIME_PASSWORD", "synthetic-worker-runtime-password"
+        )
     if env is not None:
         child_env.update(env)
     return subprocess.run(
@@ -74,7 +78,7 @@ def test_standard_profile_includes_loopback_caddy_by_default() -> None:
     ]
 
 
-def test_standard_profile_selects_runtime_role_after_app_and_worker_overlays() -> None:
+def test_standard_profile_defaults_to_separate_worker_runtime_identity() -> None:
     result = _run_planner("standard")
     command = shlex.split(result.stdout)
     manifests = [
@@ -87,17 +91,18 @@ def test_standard_profile_selects_runtime_role_after_app_and_worker_overlays() -
     candidate = str(ROOT / "docker-compose.kernel-candidate.yml")
     standard = str(ROOT / "docker-compose.kernel-standard.yml")
     runtime_role = str(ROOT / "docker-compose.kernel-runtime-role.yml")
+    worker_role = str(ROOT / "docker-compose.kernel-worker-runtime-role.yml")
     proxy = str(ROOT / "docker-compose.kernel-proxy.yml")
     assert manifests.count(runtime_role) == 1
+    assert manifests.count(worker_role) == 1
     assert manifests.index(candidate) < manifests.index(standard) < manifests.index(runtime_role)
-    assert manifests.index(runtime_role) < manifests.index(proxy)
+    assert manifests.index(runtime_role) < manifests.index(worker_role) < manifests.index(proxy)
     assert "--profile" not in command
 
 
-def test_standard_api_worker_login_split_is_explicit_and_requires_its_secret() -> None:
+def test_standard_api_worker_login_split_is_default_and_requires_its_secret() -> None:
     missing_secret = _run_planner(
         "standard",
-        "--separate-api-worker-logins",
         env={"KOKONUT_WORKER_RUNTIME_PASSWORD": ""},
     )
     assert missing_secret.returncode != 0
@@ -105,7 +110,6 @@ def test_standard_api_worker_login_split_is_explicit_and_requires_its_secret() -
 
     result = _run_planner(
         "standard",
-        "--separate-api-worker-logins",
         env={"KOKONUT_WORKER_RUNTIME_PASSWORD": "synthetic-worker-runtime-password"},
     )
     command = shlex.split(result.stdout)
@@ -144,7 +148,6 @@ def test_api_worker_login_split_supports_standard_analytics_and_scheduler_compos
     scheduler = _run_planner(
         "standard",
         "--scheduler-role",
-        "--separate-api-worker-logins",
         env={
             "KOKONUT_WORKER_RUNTIME_PASSWORD": "synthetic-worker-runtime-password",
             "KOKONUT_SCHEDULER_PASSWORD": "synthetic-scheduler-password",
@@ -169,7 +172,6 @@ def test_api_worker_login_split_supports_standard_analytics_and_scheduler_compos
         bootstrap_only = _run_planner(
             "standard",
             "--scheduler-role",
-            "--separate-api-worker-logins",
             "--action",
             action,
             env={

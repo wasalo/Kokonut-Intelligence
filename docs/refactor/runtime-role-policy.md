@@ -30,12 +30,12 @@ dedicated `KOKONUT_RUNTIME_USER` and `KOKONUT_RUNTIME_PASSWORD` variables when
 combined with `docker-compose.kernel-runtime-role.yml`; the app receives only
 `PG_USER` and `PG_PASSWORD`, while the one-shot bootstrap receives the admin
 credential. Standard selects this overlay automatically and requires explicit
-runtime credentials for both app and worker by default. Add the optional
-`docker-compose.kernel-worker-runtime-role.yml` overlay through
-`standard --separate-api-worker-logins` to use `kokonut_runtime` for the API
-and `kokonut_worker_runtime` for the worker. The worker login inherits the
-current runtime ACL with `SET ROLE` disabled. This is identity attribution
-only; it does not narrow grants or close C1. Each supervisor performs a
+runtime credentials for the API. Standard also composes
+`docker-compose.kernel-worker-runtime-role.yml` by default and requires a
+distinct `KOKONUT_WORKER_RUNTIME_PASSWORD`; the API uses `kokonut_runtime`
+and the general worker uses `kokonut_worker_runtime`. The worker login
+inherits the current runtime ACL with `SET ROLE` disabled. This is identity
+attribution only; it does not narrow grants or close C1. Each supervisor performs a
 read-only pre-spawn check requiring the same session/login role, LOGIN,
 NOINHERIT, and no memberships by default; the marked worker identity is
 accepted only with its one exact inheriting membership and no SET/ADMIN option.

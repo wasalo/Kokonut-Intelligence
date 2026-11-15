@@ -57,10 +57,10 @@ application-wide RLS or proof for other workers.
   claims/receipts; migration 647 bounds notification delivery; migration 723
   removes direct runtime DML from their reviewed receipt/state tables. Handler
   logs stay on stderr while JSON remains on stdout.
-- The scheduler control plane uses `kokonut_runtime` by default. The opt-in
-  `--separate-api-worker-logins` profile keeps the API on `kokonut_runtime` and
-  moves the general worker supervisor to `kokonut_worker_runtime`; adding
-  `--scheduler-role` gives the scheduler child `kokonut_scheduler_login`.
+- Standard keeps the API on `kokonut_runtime` and runs the general worker
+  supervisor on `kokonut_worker_runtime` by default. The scheduler uses the
+  general worker identity unless `--scheduler-role` selects
+  `kokonut_scheduler_login` for that child.
   These are identity boundaries, not narrowed grants: the worker login inherits
   the current runtime ACL with `SET ROLE` disabled. In isolated scheduler mode,
   enabled commands are checked against their argument contract and exact

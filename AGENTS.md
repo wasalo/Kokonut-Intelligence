@@ -72,10 +72,12 @@ Commands:
 - ClickHouse is an optional analytical projection. PostgreSQL remains the
   operational source of truth; Metabase is optional and not required by the
   Kernel base profile.
-- In the Standard profile, API and worker run as separate services but currently
-  connect with the shared `kokonut_runtime` database login. Do not describe
-  them as having distinct database identities; closing that C1 boundary is
-  still open.
+- In the Standard profile, API and general worker run as separate services
+  with distinct `kokonut_runtime` and `kokonut_worker_runtime` logins by
+  default. The worker login inherits the current runtime ACL with `SET ROLE`
+  disabled, so this improves attribution but does not narrow grants or close
+  C1. Load its distinct password from SOPS for Standard runtime actions. Do not
+  narrow access until the caller cohorts are reviewed.
 - The Standard supervisor launches the Gateway API as a child process. Its
   environment must preserve the API's configured `PG_*` runtime connection
   while filtering unrelated worker DSNs and credentials; never apply the

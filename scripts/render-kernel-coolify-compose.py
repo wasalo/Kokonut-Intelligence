@@ -15,7 +15,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 OUTPUT = ROOT / "docker-compose.kernel-coolify.yml"
 # Keep this aligned with:
-# standard --coolify --separate-api-worker-logins --scheduler-role --zitadel
+# standard --coolify --scheduler-role --zitadel
 COMPOSE_FILES = (
     "docker-compose.kernel-candidate.yml",
     "docker-compose.kernel-standard.yml",

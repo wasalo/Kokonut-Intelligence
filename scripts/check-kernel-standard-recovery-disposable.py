@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-"""Exercise the split Standard API/scheduler-role profile through a disposable DB outage.
+"""Exercise the split Standard API/worker/scheduler profile through a disposable DB outage.
 
 This is an opt-in Docker acceptance check. It composes only the Kernel
-candidate, Standard, and scheduler-role overlays, strips all published ports,
-marks the single runtime network internal, applies checksummed schema
-migrations only, and removes the unique Compose project and volumes on every
-exit path.
+candidate, Standard, separate API/worker runtime-role, proxy, and scheduler
+overlays, strips all published ports, marks the single runtime network
+internal, applies checksummed schema migrations only, and removes the unique
+Compose project and volumes on every exit path.
 """
 
 from __future__ import annotations
@@ -28,7 +28,9 @@ BASE_COMPOSE = ROOT / "docker-compose.kernel-candidate.yml"
 STANDARD_COMPOSE = ROOT / "docker-compose.kernel-standard.yml"
 PROXY_COMPOSE = ROOT / "docker-compose.kernel-proxy.yml"
 RUNTIME_ROLE_COMPOSE = ROOT / "docker-compose.kernel-runtime-role.yml"
+WORKER_RUNTIME_ROLE_COMPOSE = ROOT / "docker-compose.kernel-worker-runtime-role.yml"
 SCHEDULER_ROLE_COMPOSE = ROOT / "docker-compose.kernel-scheduler-role.yml"
+WORKER_RUNTIME_SUPERVISOR_COMPOSE = ROOT / "docker-compose.kernel-worker-runtime-supervisor.yml"
 DEFAULT_TIMEOUT_SECONDS = 180
 HEARTBEAT_PATH = "/var/lib/kokonut/worker-progress/supervisor.json"
 RUNTIME_REFERENCE_READ_ONLY_TABLES = (
@@ -223,6 +225,7 @@ def _redact_secrets(value: str, environment: dict[str, str]) -> str:
         "POSTGRES_PASSWORD",
         "KOKONUT_DB_ADMIN_PASSWORD",
         "KOKONUT_RUNTIME_PASSWORD",
+        "KOKONUT_WORKER_RUNTIME_PASSWORD",
         "KOKONUT_OPERATOR_AUTH_PASSWORD",
         "KOKONUT_RATE_LIMIT_MAINTENANCE_PASSWORD",
         "KOKONUT_RATE_LIMIT_MAINTENANCE_DSN",
@@ -293,6 +296,7 @@ def _compose_environment(sensor_root: Path, project: str) -> dict[str, str]:
     }
     password = secrets.token_urlsafe(32)
     runtime_password = secrets.token_urlsafe(32)
+    worker_runtime_password = secrets.token_urlsafe(32)
     operator_auth_password = secrets.token_urlsafe(32)
     rate_limit_maintenance_password = secrets.token_urlsafe(32)
     freshness_password = secrets.token_urlsafe(32)
@@ -310,6 +314,8 @@ def _compose_environment(sensor_root: Path, project: str) -> dict[str, str]:
             ),
             "KOKONUT_RUNTIME_USER": "kokonut_runtime",
             "KOKONUT_RUNTIME_PASSWORD": runtime_password,
+            "KOKONUT_WORKER_RUNTIME_USER": "kokonut_worker_runtime",
+            "KOKONUT_WORKER_RUNTIME_PASSWORD": worker_runtime_password,
             "KOKONUT_OPERATOR_AUTH_USER": "kokonut_operator_auth",
             "KOKONUT_OPERATOR_AUTH_PASSWORD": operator_auth_password,
             "KOKONUT_RATE_LIMIT_MAINTENANCE_USER": (
@@ -1433,9 +1439,13 @@ def _main(timeout: float) -> dict[str, Any]:
                 "-f",
                 str(RUNTIME_ROLE_COMPOSE),
                 "-f",
+                str(WORKER_RUNTIME_ROLE_COMPOSE),
+                "-f",
                 str(PROXY_COMPOSE),
                 "-f",
                 str(SCHEDULER_ROLE_COMPOSE),
+                "-f",
+                str(WORKER_RUNTIME_SUPERVISOR_COMPOSE),
                 "--profile",
                 "runtime-admin",
                 "config",
@@ -1651,10 +1661,10 @@ def _main(timeout: float) -> dict[str, Any]:
             worker = _wait_for_health(project, manifest, environment, "worker", "healthy", timeout)
             app_identity = _runtime_identity(project, manifest, environment, "app")
             worker_identity = _runtime_identity(project, manifest, environment, "worker")
-            if app_identity != "kokonut_runtime" or worker_identity != "kokonut_scheduler_login":
+            if app_identity != "kokonut_runtime" or worker_identity != "kokonut_worker_runtime":
                 raise AcceptanceError(
-                    "scheduler-role Standard app/worker identities did not resolve to "
-                    "kokonut_runtime/kokonut_scheduler_login"
+                    "Standard app/worker identities did not resolve to "
+                    "kokonut_runtime/kokonut_worker_runtime"
                 )
             _assert_runtime_write_denied(project, manifest, environment)
             _assert_gateway_rate_limit_boundary(project, manifest, environment)
@@ -1692,7 +1702,10 @@ def _main(timeout: float) -> dict[str, Any]:
                 "role_attributes": role_attributes,
                 "app_database_user": app_identity,
                 "worker_database_user": worker_identity,
+                "api_worker_login_split": True,
                 "scheduler_role_overlay": "enabled",
+                "scheduler_child_database_login_configured": "kokonut_scheduler_login",
+                "scheduler_child_database_identity_observed": False,
                 "callable_security_definer_allowlist": (
                     "kokonut_security.enqueue_scheduler_run_event(uuid,text)"
                 ),

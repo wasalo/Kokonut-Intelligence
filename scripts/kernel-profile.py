@@ -88,7 +88,7 @@ def main() -> None:
     parser.add_argument(
         "--separate-api-worker-logins",
         action="store_true",
-        help="give Standard (or separate-worker analytics) distinct API and worker logins; composes with --scheduler-role",
+        help="give analytics with --separate-workers distinct API and worker logins; Standard already does this by default",
     )
     parser.add_argument(
         "--project", help="Explicit Compose project name (for example, a unique disposable test project)"
@@ -160,11 +160,13 @@ def main() -> None:
     role_separated = args.profile == "standard" or args.separate_workers
     if args.separate_api_worker_logins and not role_separated:
         parser.error("--separate-api-worker-logins applies only to Standard or analytics with --separate-workers")
-    if args.separate_api_worker_logins and args.action not in {"database-up", "migrate"} and not os.environ.get(
+    separate_api_worker_logins = args.profile == "standard" or args.separate_api_worker_logins
+    if separate_api_worker_logins and args.action not in {"database-up", "migrate"} and not os.environ.get(
         "KOKONUT_WORKER_RUNTIME_PASSWORD"
     ):
         parser.error(
-            "--separate-api-worker-logins requires KOKONUT_WORKER_RUNTIME_PASSWORD loaded from encrypted secrets"
+            "Standard requires KOKONUT_WORKER_RUNTIME_PASSWORD loaded from encrypted secrets; "
+            "analytics requires it with --separate-api-worker-logins"
         )
     if args.action in {"database-up", "migrate", "bootstrap-runtime-role"} and not role_separated:
         parser.error(f"--action {args.action} applies only to standard or analytics with --separate-workers")
@@ -193,7 +195,7 @@ def main() -> None:
     files.extend(PROFILES[args.profile])
     if role_separated:
         files.append("docker-compose.kernel-runtime-role.yml")
-    if args.separate_api_worker_logins and args.action not in {"database-up", "migrate"}:
+    if separate_api_worker_logins and args.action not in {"database-up", "migrate"}:
         files.append(WORKER_RUNTIME_ROLE)
     if args.edge:
         # Add the Edge limits and local-media provider to the API app after
@@ -273,7 +275,7 @@ def main() -> None:
         files.append(SCHEDULER_ROLE)
     if (
         args.scheduler_role
-        and args.separate_api_worker_logins
+        and separate_api_worker_logins
         and args.action not in {"database-up", "migrate"}
     ):
         # Keep the long-lived worker supervisor on its general worker login.

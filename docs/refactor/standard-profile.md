@@ -11,14 +11,16 @@
 
 The profile planner combines `docker-compose.kernel-candidate.yml`,
 `docker-compose.kernel-standard.yml`, `docker-compose.kernel-runtime-role.yml`,
-and `docker-compose.kernel-proxy.yml` by default. The app overrides its
+`docker-compose.kernel-worker-runtime-role.yml`, and
+`docker-compose.kernel-proxy.yml` by default. The app overrides its
 command to run only the API; the worker service runs the same
 Dockerfile/package with
 `python3 -m services.core.runtime --workers-only --require-schema
 --require-runtime-role`. Both roles require schema readiness and a dedicated
-unprivileged runtime login before spawning child processes. The role gate
-requires the same session/login role, LOGIN, NOINHERIT, and no role
-memberships; it rejects superuser, database/role creation, replication,
+unprivileged runtime login before spawning child processes. The API login must
+have no role memberships. The worker login may have only its exact inheriting,
+non-SETtable membership in `kokonut_runtime`; the role gate rejects any other
+membership. Both checks reject superuser, database/role creation, replication,
 RLS-bypass, database-owner, or database-owner-member logins. The services use
 the private candidate database and explicitly disable vendor providers. No
 database port or worker port is published. The API retains its localhost
@@ -27,14 +29,15 @@ HTTP and HTTPS host ports default to loopback (`127.0.0.1:8088` and
 `127.0.0.1:8448`) with the local `localhost` domain; this is a development
 ingress, not public TLS or Internet exposure.
 
-The supervisor starts the scheduler and the event-dispatch and notification
-delivery child processes, generates distinct UUID-based identities for each
-supervisor lifetime, and refuses an empty worker role. By default the
-scheduler retains the shared control-plane login for compatibility; the
-explicit `--scheduler-role` Standard overlay selects the restricted executor
-identity described below. When composed with `--separate-api-worker-logins`,
-the supervisor stays on `kokonut_worker_runtime` while the scheduler child
-uses its dedicated connection. The event-bus and
+The API uses `kokonut_runtime`; the general worker uses the distinct
+`kokonut_worker_runtime` login. The worker login inherits the current runtime
+ACL with `SET ROLE` disabled, so the split improves attribution without
+narrowing access. The supervisor starts the scheduler and the event-dispatch
+and notification-delivery child processes, generates distinct UUID-based
+identities for each supervisor lifetime, and refuses an empty worker role. By
+default the scheduler uses the general worker identity; the explicit
+`--scheduler-role` Standard overlay selects the restricted executor identity
+described below. The event-bus and
 notification feature switches may default on, but their isolated database
 worker switches default off. In that state they remain paused without opening
 a shared database connection. Enabling either operation requires its dedicated
@@ -134,14 +137,14 @@ identity selected by its registered task key. Missing credentials fail closed
 with no shared-database fallback. A dispatched task can create a draft only;
 independent human review remains required.
 
-The scheduler profile can be combined with G2 API/worker attribution:
+The scheduler profile can use its dedicated child identity:
 
 ```sh
-python3 scripts/kernel-profile.py standard --separate-api-worker-logins --scheduler-role --action config
+python3 scripts/kernel-profile.py standard --scheduler-role --action config
 ```
 
-In the combined profile, the Gateway uses `kokonut_runtime`, the worker
-supervisor uses `kokonut_worker_runtime`, and the scheduler child uses
+In this profile, the Gateway uses `kokonut_runtime`, the worker supervisor
+uses `kokonut_worker_runtime`, and the scheduler child uses
 `kokonut_scheduler_login` through `KOKONUT_SCHEDULER_DATABASE_URL`. The final
 supervisor overlay restores the worker login after the scheduler overlay; the
 scheduler child still selects its dedicated DSN and strips inherited `PG_*`
@@ -168,9 +171,10 @@ fresh or existing target, apply the entire current ordered migration ledger,
 then confirm readiness before starting workers; do not select those historical
 IDs as a substitute for the full migration run.
 After migrations, run the Standard profile's explicit
-`bootstrap-runtime-role` action once with a database-owner credential, a
-separate `KOKONUT_RUNTIME_USER`/`KOKONUT_RUNTIME_PASSWORD`, and a separate
-operator-auth credential. The app and worker do not depend on this admin
+`bootstrap-runtime-role` action once with a database-owner credential, separate
+`KOKONUT_RUNTIME_USER`/`KOKONUT_RUNTIME_PASSWORD` and
+`KOKONUT_WORKER_RUNTIME_USER`/`KOKONUT_WORKER_RUNTIME_PASSWORD` credentials,
+and a separate operator-auth credential. The app and worker do not depend on this admin
 service and never receive its credentials. They fail closed before spawning
 children if the connected database login is privileged or owns the database.
 The compatibility DML grant runs only when the runtime login is first created.
@@ -179,21 +183,20 @@ denials without granting newly created tables to the login. Existing broad
 grants remain until a reviewed migration retires them; do not run the bootstrap
 during routine `up` or simply to add a newly migrated table.
 
-For G2 identity attribution, add `--separate-api-worker-logins` to Standard
-`config`, `build`, `up`, `release-up`, `ps`, or `bootstrap-runtime-role` after
-loading a distinct `KOKONUT_WORKER_RUNTIME_PASSWORD` from encrypted secrets.
-The runtime-role bootstrap creates the marked worker login; the worker uses
-that login while the API retains `KOKONUT_RUNTIME_USER`. Startup verifies the
-worker has only the expected inheriting membership and cannot `SET ROLE` to
-the API login. Until the caller map is reviewed, the worker inherits the same
-existing ACL as the API. This separates attribution, not capability. The flag
-can be combined with `--scheduler-role`: the worker supervisor keeps the
-general worker login while the scheduler child uses its dedicated login as
-described above. Do not describe this staged identity split as least privilege
-or as closing C1. Verify the role membership, API/worker session identities,
-inherited ACL behavior, and `SET ROLE` denial on a disposable PostgreSQL 16
-instance with `python3 scripts/check-worker-runtime-identity-disposable.py`;
-this synthetic acceptance does not change a candidate database.
+Standard `config`, `build`, `up`, `release-up`, `ps`, and
+`bootstrap-runtime-role` require the distinct worker password to be loaded from
+encrypted secrets. The runtime-role bootstrap creates the marked worker login;
+the worker uses that login while the API retains `KOKONUT_RUNTIME_USER`.
+Startup verifies the worker has only the expected inheriting membership and
+cannot `SET ROLE` to the API login. Until the caller map is reviewed, the
+worker inherits the same existing ACL as the API. This separates attribution,
+not capability. `--separate-api-worker-logins` remains available for
+Analytics compositions that opt into a separate general-worker login. Do not
+describe this staged identity split as least privilege or as closing C1.
+Verify the role membership, API/worker session identities, inherited ACL
+behavior, and `SET ROLE` denial on a disposable PostgreSQL 16 instance with
+`python3 scripts/check-worker-runtime-identity-disposable.py`; this synthetic
+acceptance does not change a candidate database.
 
 Manual ClickHouse outbox actions require migration 746, the optional
 `KOKONUT_CLICKHOUSE_OUTBOX_OPERATOR_PASSWORD`, and a separate post-migration
