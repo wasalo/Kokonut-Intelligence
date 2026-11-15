@@ -46,6 +46,7 @@ regexes = [
   '''^\s*"config/kernel/coolify-environment-key-inventory\.json": "[a-fA-F0-9]{64}",?$''',
   '''^\s*"config/kernel/coolify-service-secret-env\.json": "[a-fA-F0-9]{64}",?$''',
   '''^\s*"docker-compose.kernel-coolify-media\.yml": "[a-fA-F0-9]{64}",?$''',
+  '''^\s*"docker-compose.kernel-coolify-network\.yml": "[a-fA-F0-9]{64}",?$''',
   '''^\s*"docker-compose.kernel-coolify\.yml": "[a-fA-F0-9]{64}",?$''',
   '''^\s*"scripts/install-coolify-service-secrets\.py": "[a-fA-F0-9]{64}",?$''',
   '''^\s*"scripts/render-kernel-coolify-compose\.py": "[a-fA-F0-9]{64}",?$''',

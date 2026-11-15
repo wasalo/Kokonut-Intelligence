@@ -76,6 +76,18 @@ base = pathlib.Path("/data/coolify/applications") / application_id
 private = base / "private"
 if private.is_symlink() or not private.is_dir():
     raise SystemExit("Coolify application private directory is unavailable")
+data_root = base / "data"
+if data_root.is_symlink() or (data_root.exists() and not data_root.is_dir()):
+    raise SystemExit("Coolify application data path is not a directory")
+data_root.mkdir(mode=0o750, exist_ok=True)
+os.chown(data_root, 0, 0)
+os.chmod(data_root, 0o755)
+sensor_inputs = data_root / "sensor-inputs"
+if sensor_inputs.is_symlink() or (sensor_inputs.exists() and not sensor_inputs.is_dir()):
+    raise SystemExit("Coolify sensor-input path is not a directory")
+sensor_inputs.mkdir(mode=0o750, exist_ok=True)
+os.chown(sensor_inputs, 0, 10001)
+os.chmod(sensor_inputs, 0o750)
 directory = private / "runtime-env"
 if directory.exists() and (directory.is_symlink() or not directory.is_dir()):
     raise SystemExit("service secret directory is not a directory")

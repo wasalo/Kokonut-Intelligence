@@ -1,7 +1,6 @@
-# Coolify stores application environment variables at the Compose-resource
-# level and may inject them into every service. Keep media credentials out of
-# that shared environment. Keep the private file as an app-only relative bind
-# mount; Coolify rejects interpolated bind-mount sources in Compose files.
+# Coolify application environment variables are shared at the Compose-resource
+# level. Keep media credentials out of that shared environment. Raw Compose
+# mounts this host-managed file into the Gateway only.
 services:
   app:
     environment:
@@ -17,6 +16,6 @@ services:
       KOKONUT_API_MEDIA_CONFIG_FILE: /run/kokonut/private-media.env
     volumes:
       - type: bind
-        source: ./private/media.env
+        source: /data/coolify/applications/${COOLIFY_RESOURCE_UUID:?Coolify resource UUID is required}/private/media.env
         target: /run/kokonut/private-media.env
         read_only: true

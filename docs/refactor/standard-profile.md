@@ -581,10 +581,22 @@ isolated scheduler executor, and self-hosted ZITADEL overlays. It asks Docker
 Compose to merge those files without resolving environment variables, env-file
 contents, or absolute paths. It removes sensitive keys from Compose's
 application-wide environment mappings and adds a private env file for each
-service that owns those keys. Build and bind paths remain relative to the
-repository root. Regenerate and check the artifact whenever one of its source
-overlays or the secret-key inventory changes. Do not hand-edit
-`docker-compose.kernel-coolify.yml`.
+service that owns those keys. Build contexts remain relative to the repository
+root. Host-managed secret and sensor-input paths use Coolify's predefined
+`COOLIFY_RESOURCE_UUID` under that resource's persistent application directory.
+Regenerate and check the artifact whenever one of its source overlays or the
+secret-key inventory changes. Do not hand-edit `docker-compose.kernel-coolify.yml`.
+
+Set **Advanced → Docker compose → Compose deployment** to **Raw (deploy file as-is)**
+for this profile. Normal Coolify Compose deployment rewrites the service
+`env_file` declarations and drops the resource-owned secret files. Raw mode
+preserves those declarations, and the `kernel-coolify-network` overlay supplies
+the behavior Coolify otherwise adds: an external resource-specific Traefik
+network, the `hub` route to the Gateway on port `8099`, and the `auth` route to
+the internal Caddy proxy on port `80`. The renderer rejects a manifest missing
+either route or the external network. Keep the resource-specific network name
+and generated Traefik labels in this overlay; do not rely on Coolify's Domains
+page to add them in Raw mode.
 
 Coolify application environment variables are shared across every Compose
 service. Keep sensitive variables out of both production and preview
@@ -606,10 +618,12 @@ root-owned `0440` files for the host's Compose process to read; it prints counts
 and permissions, not secret values. Keep `private/` excluded from every Docker
 build context. `MOBILE_MEDIA_*` stays in the separately managed
 `private/media.env` file mounted into the Gateway only. Compose passes the
-other inventoried values as environment variables only to
-their owning containers, so Docker's container metadata remains visible to
+other inventoried values as environment variables only to their owning
+containers, so Docker's container metadata remains visible to
 the VPS root/Docker administrator; this boundary prevents cross-service
-injection and does not protect secrets from a host administrator. The
+injection and does not protect secrets from a host administrator. The installer
+also prepares the worker's read-only sensor-input directory under the same
+resource root. The
 `runtime-role-bootstrap` profile remains manual and one-shot; use the planner's
 `bootstrap-runtime-role` action, which runs it with `--rm`.
 
@@ -661,16 +675,15 @@ only the media keys over SSH stdin, and atomically creates a root-owned,
 never their values. The file's parent is restricted to root. Use the same
 procedure after rotating media credentials.
 
-The Coolify-only Compose overlay mounts `./private/media.env` from the
-resource root to `/run/kokonut/private-media.env`, read-only and on the `app`
-service only. Coolify's checkout keeps the Compose file at the resource root;
-the installer writes the host file to
-`/data/coolify/applications/<application-id>/private/media.env`, which is that
-relative source path. The root `private/` directory is excluded from every
-Docker build context, and the release-input check enforces that boundary so
-the host-only file cannot be baked into the Gateway or worker image. Keep the deprecated
-`KOKONUT_COOLIFY_MEDIA_SECRET_HOST_FILE` marker blank in Coolify. Do not use
-variable interpolation for the bind source: Coolify's validator rejects it.
+The Coolify-only Compose overlay mounts
+`/data/coolify/applications/${COOLIFY_RESOURCE_UUID}/private/media.env` to
+`/run/kokonut/private-media.env`, read-only and on the `app` service only. The
+installer writes the host file under that resource root. Raw Compose mode is
+required so Coolify preserves this bind and the service-scoped runtime env
+files. The root `private/` directory is excluded from every Docker build
+context, and the release-input check enforces that boundary so the host-only
+file cannot be baked into the Gateway or worker image. Keep the deprecated
+`KOKONUT_COOLIFY_MEDIA_SECRET_HOST_FILE` marker blank in Coolify.
 The installer creates a root-owned `10001`-group-readable `0440` file; the
 Gateway image runs as UID/GID `10001`, so it can read the file without being
 able to change it. The supervisor validates the file type, ownership,
@@ -685,17 +698,18 @@ app variables there. Standard Compose deployments continue to use their
 normal per-service environment declarations; this private host-file procedure
 is specific to the Coolify candidate.
 
-Create a normal Git-based Docker Compose Application in the owner-provided
-Coolify project/environment. Set Base Directory to the repository root and
-Compose Location to `docker-compose.kernel-coolify.yml`; keep normal Coolify
-deployment mode enabled so Coolify can add managed routing/network labels. In
-Domains, route `https://hub.kokonut.network:8099` to service `app` and
-`https://auth.kokonut.network:80` to service `proxy`. Coolify's Traefik handles
-public TLS; the internal Caddy site uses HTTP only for the ZITADEL upstreams.
-Enter every required Compose value and secret in the Coolify environment/secret
-store, including `KOKONUT_KERNEL_DOMAIN=hub.kokonut.network`,
+Create a Git-based Docker Compose Application in the owner-provided Coolify
+project/environment. Set Base Directory to the repository root, Compose
+Location to `docker-compose.kernel-coolify.yml`, and **Advanced → Docker
+compose → Compose deployment** to **Raw (deploy file as-is)**. The checked-in
+overlay joins `app` and the internal Caddy `proxy` to the resource-specific
+Coolify network and owns Traefik routes for `hub.kokonut.network:8099` and
+`auth.kokonut.network:80`; Coolify's Traefik handles public TLS. The internal
+Caddy site uses HTTP only for the ZITADEL upstreams. Supply the nonsecret
+`KOKONUT_KERNEL_DOMAIN=hub.kokonut.network`,
 `KOKONUT_ZITADEL_DOMAIN=auth.kokonut.network`, and
-`KOKONUT_KERNEL_HTTPS_PORT=443`. Never commit secret values.
+`KOKONUT_KERNEL_HTTPS_PORT=443` values through Coolify. Never place service
+secrets in app-wide Coolify variables or commit secret values.
 
 When an external proxy terminates public TLS, start ZITADEL with
 `--tlsMode external`. `ExternalSecure=true` and forwarded headers alone do not

@@ -14,6 +14,9 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 OUTPUT = ROOT / "docker-compose.kernel-coolify.yml"
+COOLIFY_APPLICATION_ROOT = (
+    "/data/coolify/applications/${COOLIFY_RESOURCE_UUID:?Coolify resource UUID is required}"
+)
 # Keep this aligned with:
 # standard --coolify --scheduler-role --zitadel
 COMPOSE_FILES = (
@@ -165,15 +168,109 @@ def _validate_rendered_secret_scoping(config: object, secret_environment_keys: d
             )
         if service_name in secret_environment_keys:
             env_files = service.get("env_file", [])
-            expected = f"./private/runtime-env/{service_name}.env"
+            expected = f"{COOLIFY_APPLICATION_ROOT}/private/runtime-env/{service_name}.env"
             if not any(
                 isinstance(entry, dict)
                 and entry.get("path") == expected
-                and entry.get("required") is False
+                and entry.get("required") is True
                 and entry.get("format") == "raw"
                 for entry in env_files
             ):
                 raise RuntimeError(f"Coolify service {service_name} lacks its private runtime env file")
+
+
+def _set_coolify_persistent_paths(services: dict[str, object]) -> None:
+    """Point host-managed files at the persistent Coolify resource directory."""
+    expected_sensor_source = f"{COOLIFY_APPLICATION_ROOT}/data/sensor-inputs"
+    sensor_mounts = []
+    media_mounts = []
+    for service_name, service in services.items():
+        if not isinstance(service, dict):
+            continue
+        volumes = service.get("volumes", [])
+        if not isinstance(volumes, list):
+            continue
+        for mount in volumes:
+            if not isinstance(mount, dict):
+                continue
+            target = mount.get("target")
+            if service_name == "worker" and target == "/var/lib/kokonut/sensor-inputs":
+                mount["source"] = expected_sensor_source
+                sensor_mounts.append(mount)
+            if target == "/run/kokonut/private-media.env":
+                mount["source"] = f"{COOLIFY_APPLICATION_ROOT}/private/media.env"
+                media_mounts.append((service_name, mount))
+    if len(sensor_mounts) != 1 or len(media_mounts) != 1:
+        raise RuntimeError("Coolify must define one sensor-input and one private media host mount")
+    if media_mounts[0][0] != "app" or media_mounts[0][1].get("read_only") is not True:
+        raise RuntimeError("Coolify private media must remain a read-only Gateway-only host mount")
+
+
+def _validate_coolify_raw_proxy(config: object) -> None:
+    """Require the routes and external network that Raw Compose will not add."""
+    if not isinstance(config, dict):
+        raise RuntimeError("Coolify Compose configuration must be a mapping")
+    networks = config.get("networks")
+    services = config.get("services")
+    if not isinstance(networks, dict) or not isinstance(services, dict):
+        raise RuntimeError("Coolify Compose configuration lacks networks or services")
+    proxy_network = networks.get("coolify-proxy")
+    expected_network_name = "${COOLIFY_RESOURCE_UUID:?Coolify resource UUID is required}"
+    if (
+        not isinstance(proxy_network, dict)
+        or proxy_network.get("external") is not True
+        or proxy_network.get("name") != expected_network_name
+    ):
+        raise RuntimeError("Raw Coolify Compose must attach Traefik to the resource-specific external network")
+
+    expected_routes = {
+        "app": ("kokonut-hub", "KOKONUT_KERNEL_DOMAIN", "8099"),
+        "proxy": ("kokonut-auth", "KOKONUT_ZITADEL_DOMAIN", "80"),
+    }
+    for service_name, (route_name, domain_key, port) in expected_routes.items():
+        service = services.get(service_name)
+        if not isinstance(service, dict):
+            raise RuntimeError(f"Raw Coolify Compose must contain the {service_name} route service")
+        service_networks = service.get("networks", {})
+        if not isinstance(service_networks, (dict, list)) or "coolify-proxy" not in service_networks:
+            raise RuntimeError(f"Raw Coolify {service_name} must join the resource-specific proxy network")
+        labels = service.get("labels", {})
+        if not isinstance(labels, dict):
+            raise RuntimeError(f"Raw Coolify {service_name} proxy labels must be a mapping")
+        domain_rule = labels.get(f"traefik.http.routers.{route_name}-https.rule", "")
+        required_labels = {
+            "coolify.managed": "true",
+            "coolify.applicationId": expected_network_name,
+            "coolify.applicationUuid": expected_network_name,
+            "coolify.type": "application",
+            "traefik.enable": "true",
+            "traefik.docker.network": expected_network_name,
+            f"traefik.http.routers.{route_name}-https.tls": "true",
+            f"traefik.http.routers.{route_name}-https.tls.certresolver": "letsencrypt",
+            f"traefik.http.services.{route_name}-https.loadbalancer.server.port": port,
+        }
+        missing = [key for key, value in required_labels.items() if str(labels.get(key)) != value]
+        if domain_key not in str(domain_rule) or "PathPrefix" not in str(domain_rule):
+            missing.append(f"traefik.http.routers.{route_name}-https.rule")
+        if missing:
+            raise RuntimeError(
+                f"Raw Coolify {service_name} route is incomplete: " + ", ".join(sorted(missing))
+            )
+
+
+def _add_coolify_management_labels(services: dict[str, object]) -> None:
+    """Retain Coolify resource attribution when its Compose transform is bypassed."""
+    resource_uuid = "${COOLIFY_RESOURCE_UUID:?Coolify resource UUID is required}"
+    for service_name, service in services.items():
+        if not isinstance(service, dict):
+            continue
+        labels = service.setdefault("labels", {})
+        if not isinstance(labels, dict):
+            raise RuntimeError(f"Raw Coolify service {service_name} labels must be a mapping")
+        labels.setdefault("coolify.managed", "true")
+        labels.setdefault("coolify.applicationId", resource_uuid)
+        labels.setdefault("coolify.applicationUuid", resource_uuid)
+        labels.setdefault("coolify.type", "application")
 
 
 def _environment_entries(environment: object) -> list[tuple[str, str | None]]:
@@ -269,8 +366,8 @@ def _isolate_coolify_service_environments(
             service["env_file"] = [
                 *service.get("env_file", []),
                 {
-                    "path": f"./private/runtime-env/{service_name}.env",
-                    "required": False,
+                    "path": f"{COOLIFY_APPLICATION_ROOT}/private/runtime-env/{service_name}.env",
+                    "required": True,
                     "format": "raw",
                 },
             ]
@@ -338,11 +435,11 @@ def _validate_coolify_secret_scope(
 
         if service_name in secret_environment_keys:
             env_files = service.get("env_file", [])
-            expected = f"./private/runtime-env/{service_name}.env"
+            expected = f"{COOLIFY_APPLICATION_ROOT}/private/runtime-env/{service_name}.env"
             if not any(
                 isinstance(entry, dict)
                 and entry.get("path") == expected
-                and entry.get("required") is False
+                and entry.get("required") is True
                 and entry.get("format") == "raw"
                 for entry in env_files
             ):
@@ -369,6 +466,9 @@ def _coolify_config(files: tuple[str, ...]) -> tuple[object, dict[str, list[str]
     if not isinstance(app, dict) or not isinstance(worker, dict):
         raise RuntimeError("Coolify Compose configuration must contain app and worker services")
 
+    _add_coolify_management_labels(services)
+    _set_coolify_persistent_paths(services)
+    _validate_coolify_raw_proxy(config)
     secret_environment_keys, original_environments = _isolate_coolify_service_environments(services)
     _validate_coolify_secret_scope(services, secret_environment_keys, original_environments)
     for service_name, service in services.items():

@@ -1,11 +1,59 @@
 # Shared-host overlay for an existing Coolify Traefik proxy.
-# Coolify routes to service ports over its Docker network; publish no host ports.
+# This profile is deployed with Coolify's Raw Compose mode so per-service
+# secret env files and resource-owned bind paths survive deployment unchanged.
+# Own the public routes and attach only the public services to this resource's
+# Coolify network; internal services stay on the private Kernel networks.
+networks:
+  coolify-proxy:
+    external: true
+    name: ${COOLIFY_RESOURCE_UUID:?Coolify resource UUID is required}
+
 services:
   app:
     profiles: [runtime]
     ports: !reset []
     expose:
       - "8099"
+    networks:
+      coolify-proxy: null
+    labels:
+      traefik.enable: "true"
+      traefik.docker.network: ${COOLIFY_RESOURCE_UUID:?Coolify resource UUID is required}
+      traefik.http.middlewares.kokonut-hub-redirect.redirectscheme.scheme: https
+      traefik.http.middlewares.kokonut-hub-sse.compress.excludedcontenttypes: text/event-stream
+      traefik.http.routers.kokonut-hub-http.entrypoints: http
+      traefik.http.routers.kokonut-hub-http.middlewares: kokonut-hub-redirect
+      traefik.http.routers.kokonut-hub-http.rule: Host(`${KOKONUT_KERNEL_DOMAIN:?Hub domain is required}`) && PathPrefix(`/`)
+      traefik.http.routers.kokonut-hub-http.service: kokonut-hub-http
+      traefik.http.routers.kokonut-hub-https.entrypoints: https
+      traefik.http.routers.kokonut-hub-https.middlewares: kokonut-hub-sse
+      traefik.http.routers.kokonut-hub-https.rule: Host(`${KOKONUT_KERNEL_DOMAIN:?Hub domain is required}`) && PathPrefix(`/`)
+      traefik.http.routers.kokonut-hub-https.service: kokonut-hub-https
+      traefik.http.routers.kokonut-hub-https.tls: "true"
+      traefik.http.routers.kokonut-hub-https.tls.certresolver: letsencrypt
+      traefik.http.services.kokonut-hub-http.loadbalancer.server.port: "8099"
+      traefik.http.services.kokonut-hub-https.loadbalancer.server.port: "8099"
 
   worker:
     profiles: [runtime]
+
+  proxy:
+    networks:
+      coolify-proxy: null
+    labels:
+      traefik.enable: "true"
+      traefik.docker.network: ${COOLIFY_RESOURCE_UUID:?Coolify resource UUID is required}
+      traefik.http.middlewares.kokonut-auth-redirect.redirectscheme.scheme: https
+      traefik.http.middlewares.kokonut-auth-sse.compress.excludedcontenttypes: text/event-stream
+      traefik.http.routers.kokonut-auth-http.entrypoints: http
+      traefik.http.routers.kokonut-auth-http.middlewares: kokonut-auth-redirect
+      traefik.http.routers.kokonut-auth-http.rule: Host(`${KOKONUT_ZITADEL_DOMAIN:?ZITADEL domain is required}`) && PathPrefix(`/`)
+      traefik.http.routers.kokonut-auth-http.service: kokonut-auth-http
+      traefik.http.routers.kokonut-auth-https.entrypoints: https
+      traefik.http.routers.kokonut-auth-https.middlewares: kokonut-auth-sse
+      traefik.http.routers.kokonut-auth-https.rule: Host(`${KOKONUT_ZITADEL_DOMAIN:?ZITADEL domain is required}`) && PathPrefix(`/`)
+      traefik.http.routers.kokonut-auth-https.service: kokonut-auth-https
+      traefik.http.routers.kokonut-auth-https.tls: "true"
+      traefik.http.routers.kokonut-auth-https.tls.certresolver: letsencrypt
+      traefik.http.services.kokonut-auth-http.loadbalancer.server.port: "80"
+      traefik.http.services.kokonut-auth-https.loadbalancer.server.port: "80"
