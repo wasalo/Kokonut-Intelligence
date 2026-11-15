@@ -82,6 +82,12 @@ Commands:
   environment must preserve the API's configured `PG_*` runtime connection
   while filtering unrelated worker DSNs and credentials; never apply the
   default-off worker shared-database deny marker to the API child.
+- The Coolify renderer must not backfill blank sensitive-key placeholders on
+  every service; Coolify can resolve them to the app-wide value. Preserve the
+  selected Compose overlays' explicit mappings and continue the caller review.
+  The generated G2 guard keeps raw API/worker runtime passwords only on the
+  one-shot `runtime-role-bootstrap`; the long-lived services receive their
+  respective `PG_PASSWORD` values.
 - Standard's event dispatcher and notification-delivery child require their
   dedicated migration-backed logins and explicit isolation flags. Global
   freshness and ClickHouse outbox jobs also use dedicated worker paths when
@@ -1371,7 +1377,7 @@ Commands:
 
 ### Enforced security & supply-chain gates
 
-- **Static analysis**: `scripts/static-analysis.sh` runs Slither (Solidity, High/Medium gate), Aderyn, and Semgrep (`semgrep.yml`, `python.lang.security` + `python.lang.correctness`). It runs in CI.
+- **Static analysis**: `scripts/static-analysis.sh` runs Slither (Solidity, High/Medium gate) and Semgrep with the configured Python security and correctness rule packs. Foundry format, build, and contract tests run in the source-check phase. CI no longer installs Aderyn because Cyfrin withdrew the pinned package and binaries; see `docs/ci.md`.
 - **Secret scanning**: `scripts/check-tracked-secrets.sh` fails on private keys, AWS/GitHub/Slack tokens, 64-hex (private key) strings, and `key/secret/token` assignment literals. Run it before committing.
 - **Python lint/security**: `ruff` is configured with `S` (flake8-bandit), `BLE`, and `RUF` selectors in `pyproject.toml`. `ruff` and `pip-audit` are mandatory CI gates (enforced by `scripts/verify-ci-toolchain.sh` and `scripts/ci-check.sh`); a run that skips them is not a passing build. Run `ruff check --select S,BLE services/` locally and review findings.
 - **Dependency hygiene**: generate a hash-pinned `requirements.lock` (`pip-compile --generate-hashes`) and install with `--require-hashes`. Keep dependency versions resolvable (avoid conflicts like `numpy>=2` vs `prophet<2`). `renovate.json` automates dependency + base-image digest updates.

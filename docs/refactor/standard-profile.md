@@ -61,6 +61,15 @@ access behind bounded functions. Optional maintenance uses a separate schema
 and login. Role provisioning removes `PUBLIC` execution on restricted
 credential/context functions; the maintenance login inherits only the shared
 `kokonut_security` schema usage and its explicit cleanup grant.
+
+The Coolify renderer preserves explicit environment mappings from the
+selected Compose overlays and does not backfill sensitive keys as blank
+placeholders on every service. Its G2 guard requires raw API and worker login
+password variables only on the one-shot `runtime-role-bootstrap` service; the
+API and worker receive their respective `PG_PASSWORD` settings. Other
+explicit cross-service credentials still require caller review. Do not add
+empty secret placeholders: Coolify resolves app variables by key name, so an
+empty placeholder can expose the configured secret to that container.
 An explicit provider override is available for a reviewed deployment topology;
 multi-replica APIs must retain a shared limiter.
 
