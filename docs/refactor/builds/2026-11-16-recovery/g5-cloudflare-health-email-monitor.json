@@ -1,0 +1,53 @@
+{
+  "evidence_version": 1,
+  "observed_at": "2026-11-16T18:29:35Z",
+  "source_commit": "a7b86a884b7c84a3bd762af1946b1a8b62568e33",
+  "worker": "kokonut-intelligence-health-alert",
+  "deployment": {
+    "version_id": "996f6e2c-6b3b-4aa8-a831-c2cb5d210e06",
+    "status": "100_percent",
+    "cron": "* * * * *",
+    "durable_object": "MonitorState"
+  },
+  "secret": {
+    "name": "MAILEROO_API_KEY",
+    "status": "present",
+    "value_recorded": false
+  },
+  "scheduled_observations": [
+    {
+      "observed_at": "2026-11-16T18:27:47Z",
+      "health": "healthy",
+      "http_status": 200,
+      "transition": "none",
+      "notification": "none",
+      "pending_notifications": 0
+    },
+    {
+      "observed_at": "2026-11-16T18:28:47Z",
+      "health": "healthy",
+      "http_status": 200,
+      "transition": "none",
+      "notification": "none",
+      "pending_notifications": 0
+    }
+  ],
+  "maileroo_delivery_check": {
+    "http_status": 200,
+    "provider_accepted": true,
+    "recipient": "alejandro@kokonut.network",
+    "subject": "[Kokonut Intelligence] Health email monitor delivery test",
+    "production_outage_simulated": false,
+    "inbox_receipt": "pending owner confirmation"
+  },
+  "not_yet_accepted": [
+    "confirmed outage email transition",
+    "confirmed recovery email transition",
+    "Alejandro inbox receipt",
+    "Wasabi manual primary/backup response rehearsal"
+  ],
+  "notes": [
+    "No secret values, email body, or provider response body were recorded.",
+    "Better Stack remains the independent free-tier monitor; no paid on-call or escalation feature was enabled."
+  ]
+}
