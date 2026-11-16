@@ -676,13 +676,15 @@ never their values. The file's parent is restricted to root. Use the same
 procedure after rotating media credentials.
 
 The Coolify-only Compose overlay mounts
-`/data/coolify/applications/${COOLIFY_RESOURCE_UUID}/private/media.env` to
-`/run/kokonut/private-media.env`, read-only and on the `app` service only. The
-installer writes the host file under that resource root. Raw Compose mode is
-required so Coolify preserves this bind and the service-scoped runtime env
-files. The root `private/` directory is excluded from every Docker build
-context, and the release-input check enforces that boundary so the host-only
-file cannot be baked into the Gateway or worker image. Keep the deprecated
+`./private/media.env` to `/run/kokonut/private-media.env`, read-only and on the
+`app` service only. Coolify resolves this repository-relative source from the
+configured application base directory ([Coolify Compose path behavior](https://coolify.io/docs/applications/builds/docker-compose)); the installer writes the file to the
+matching resource-root path. Relative sources avoid Coolify's bind-source
+interpolation rejection while remaining scoped to the resource directory. Raw
+Compose mode is required so Coolify preserves this bind and the service-scoped
+runtime env files. The root `private/` directory is excluded from every Docker
+build context, and the release-input check enforces that boundary so the
+host-only file cannot be baked into the Gateway or worker image. Keep the deprecated
 `KOKONUT_COOLIFY_MEDIA_SECRET_HOST_FILE` marker blank in Coolify.
 The installer creates a root-owned `10001`-group-readable `0440` file; the
 Gateway image runs as UID/GID `10001`, so it can read the file without being

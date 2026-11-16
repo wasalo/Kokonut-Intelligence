@@ -19,12 +19,12 @@ The target is **candidate acceptance**. Passing this checklist does not by itsel
 
 ### G1 — Exact-head build and CI
 
-The previous remote head `d61d0b308be7a0257e7a9e9646aeaebcca197c85` passed all required CI jobs and Security. The Coolify validator then exposed a bind-path issue before Compose loaded. A relative-path and injected-environment fix is prepared in the worktree; after it is pushed, rerun both workflows on the new exact head before deployment.
+Current PR head `b1b5cef4d72890db4e8033fd80a714c7a221cdc5` passed all required CI jobs and Security. The exact-head deployment was attempted, but Coolify marked it failed and the candidate still runs older API/worker images. G1 is passed; the deployment failure belongs to G2 and must be diagnosed before another rollout.
 
-- [ ] Confirm the required CI aggregate, integration suite, source checks, and AMD64/ARM64 image validation pass on the current PR head.
-- [ ] Confirm the Security workflow passes on that same commit.
+- [x] Confirm the required CI aggregate, integration suite, source checks, and AMD64/ARM64 image validation pass on the current PR head. Evidence: [CI #43771748250](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/43771748250).
+- [x] Confirm the Security workflow passes on that same commit. Evidence: [Security #43771748137](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/43771748137).
 - [ ] If any job fails, capture its concise failure summary, fix the cause, run the focused check, then rerun CI and Security against the new exact head.
-- [ ] Confirm PR #73 still targets develop and has an independent review before merging under the repository workflow.
+- [ ] Before merge, confirm PR #73 still targets `develop` and has an independent review under the repository workflow; this is a G7 merge condition.
 
 **Acceptance evidence:** exact commit SHA, CI and Security run links, all required job conclusions, and any repair commit.
 
@@ -32,13 +32,15 @@ The previous remote head `d61d0b308be7a0257e7a9e9646aeaebcca197c85` passed all r
 
 The source caller map has been confirmed and grants remain unchanged. Candidate acceptance is open until the current source is deployed and its runtime boundaries are verified.
 
-- [ ] After G1 passes, take and verify the approved encrypted candidate checkpoint. Record the candidate target and current migration ledger without reading operational row contents.
+- [x] After G1 passes, take and verify the approved encrypted candidate checkpoint. For the b1b5cef4 rollout, both candidate PostgreSQL archives were signed, encrypted, checked locally, uploaded, and read back with matching hashes immediately before deployment. See [checkpoint and deployment evidence](builds/2026-11-15-recovery/g2-b1b5cef4-coolify-deploy-status-2343z.json).
 - [x] Before the d61d0b30 deployment attempt, commit and read back a fresh signed, encrypted checkpoint for both PostgreSQL databases; the read-only ledger had 746 applied schema migrations through schema 755. The deployment failed before Compose loaded, so no migration or database change followed. Evidence: [checkpoint](builds/2026-11-15-recovery/g2-candidate-pre-deploy-checkpoint-2222z.json).
-- [ ] Repeat the checkpoint immediately before the next deployment, then deploy the exact tested head to the selected Coolify candidate. Confirm Compose validation succeeds, the deployed image/source revision matches that SHA, and ordered migrations have zero pending work. The d61d0b30 attempt was rejected before Compose loaded because Coolify forbids `${...}` in bind-mount sources; see [deployment failure evidence](builds/2026-11-15-recovery/g2-coolify-bind-path-failure-2232z.json).
+- [x] Diagnose the b1b5cef4 deployment failure from Wasabi's sanitized excerpt: Coolify's Compose transform produced a numeric key under `services.database.labels`, rejected as `non-string key in services.database.labels: 0`. The renderer now emits every service's labels as string sequences. Its generated-manifest check, 22 focused source tests, and local Docker Compose model validation pass; see [deployment/remediation evidence](builds/2026-11-15-recovery/g2-b1b5cef4-coolify-deploy-status-2343z.json).
+- [ ] Commit and push the label-format fix, pass exact-head CI/Security, repeat the checkpoint immediately before redeployment, and deploy that exact tested SHA. Confirm its source/image revision matches and ordered migrations have zero pending work.
 - [ ] Verify candidate health and identity discovery: Gateway readiness, ZITADEL discovery/issuer, and service health for the enabled profile.
 - [ ] Using read-only checks, record that current Standard source runs the API and general worker as kokonut_runtime; do not report them as separate identities. Confirm isolated children use their dedicated configured logins and cannot fall back to kokonut_runtime. The desired API/worker split is a C1 follow-up and stays open until implemented and verified.
 - [ ] Check service environment key presence against the source allowlist. Confirm raw runtime credentials appear only in services that need them; isolated children retain the shared-database deny marker and do not receive shared credentials. Record presence only, never values.
 - [ ] Confirm database grants have not changed. Record source/image digests, migration status, identity results, health results, and secret-presence counts in sanitized evidence.
+- [x] Restore the Gateway-only media config file to mode `0440` after Coolify reset it to `0551`; verify mode and owner/group only. Check whether the next deployment resets the mode again.
 - [ ] Keep C1 open unless its reviewed caller cohorts and grant-narrowing evidence are separately complete; this deployment check alone does not close C1.
 
 **Acceptance evidence:** exact source/image provenance, ordered migration status, read-only runtime identity checks, allowlisted secret-presence results, and no unexplained service or health failures.

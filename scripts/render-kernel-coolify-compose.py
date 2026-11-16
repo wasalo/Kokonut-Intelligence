@@ -271,9 +271,7 @@ def _validate_coolify_raw_proxy(config: object) -> None:
         service_networks = service.get("networks", {})
         if not isinstance(service_networks, (dict, list)) or "coolify-proxy" not in service_networks:
             raise RuntimeError(f"Raw Coolify {service_name} must join the resource-specific proxy network")
-        labels = service.get("labels", {})
-        if not isinstance(labels, dict):
-            raise RuntimeError(f"Raw Coolify {service_name} proxy labels must be a mapping")
+        labels = _coolify_label_mapping(service.get("labels", {}), service_name)
         domain_rule = labels.get(f"traefik.http.routers.{route_name}-https.rule", "")
         required_labels = {
             "coolify.managed": "true",
@@ -301,13 +299,41 @@ def _add_coolify_management_labels(services: dict[str, object]) -> None:
     for service_name, service in services.items():
         if not isinstance(service, dict):
             continue
-        labels = service.setdefault("labels", {})
-        if not isinstance(labels, dict):
-            raise RuntimeError(f"Raw Coolify service {service_name} labels must be a mapping")
+        labels = _coolify_label_mapping(service.setdefault("labels", {}), service_name)
         labels.setdefault("coolify.managed", "true")
         labels.setdefault("coolify.applicationId", resource_uuid)
         labels.setdefault("coolify.applicationUuid", resource_uuid)
         labels.setdefault("coolify.type", "application")
+        service["labels"] = labels
+
+
+def _coolify_label_mapping(labels: object, service_name: str) -> dict[str, str]:
+    """Normalize either Compose label syntax into the renderer's internal mapping."""
+    if isinstance(labels, dict):
+        if not all(isinstance(key, str) for key in labels):
+            raise RuntimeError(f"Coolify {service_name} label keys must be strings")
+        return {key: "" if value is None else str(value) for key, value in labels.items()}
+    if isinstance(labels, list):
+        result: dict[str, str] = {}
+        for label in labels:
+            if not isinstance(label, str) or not label:
+                raise RuntimeError(f"Coolify {service_name} labels must be strings")
+            key, separator, value = label.partition("=")
+            if not key:
+                raise RuntimeError(f"Coolify {service_name} labels must have a non-empty key")
+            result[key] = value if separator else ""
+        return result
+    raise RuntimeError(f"Coolify {service_name} labels must be a mapping or string sequence")
+
+
+def _coolify_label_sequence(labels: object, service_name: str) -> list[str]:
+    """Emit one Compose label style to avoid Coolify's numeric-key merge failure."""
+    if isinstance(labels, list):
+        if not all(isinstance(label, str) and label for label in labels):
+            raise RuntimeError(f"Coolify {service_name} labels must be non-empty strings")
+        return labels
+    mapping = _coolify_label_mapping(labels, service_name)
+    return [key if value == "" else f"{key}={value}" for key, value in mapping.items()]
 
 
 def _environment_entries(environment: object) -> list[tuple[str, str | None]]:
@@ -518,6 +544,8 @@ def _coolify_config(files: tuple[str, ...]) -> tuple[object, dict[str, list[str]
         environment = dict(_environment_entries(service.get("environment", {})))
         if any(key.startswith("MOBILE_MEDIA_") for key in environment):
             raise RuntimeError(f"Coolify service {service_name} must use the Gateway-only media file")
+        if "labels" in service:
+            service["labels"] = _coolify_label_sequence(service["labels"], service_name)
     return config, secret_environment_keys
 
 
@@ -543,7 +571,63 @@ def _write_secret_inventory(secret_environment_keys: dict[str, list[str]]) -> No
 
 
 def _render_coolify_yaml(config: object) -> str:
-    return _run_compose_config(("-",), "yaml", input_text=json.dumps(config))
+    rendered = _run_compose_config(("-",), "yaml", input_text=json.dumps(config))
+    services = config.get("services") if isinstance(config, dict) else None
+    if not isinstance(services, dict):
+        raise RuntimeError("Coolify Compose configuration must contain services")
+
+    # Keep Docker Compose's existing canonical formatting and rewrite only the
+    # service-level labels blocks. Re-dumping the whole model changes unrelated
+    # formatting throughout this large generated file.
+    lines = rendered.splitlines()
+    output: list[str] = []
+    in_services = False
+    service_name: str | None = None
+    index = 0
+    while index < len(lines):
+        line = lines[index]
+        if line == "services:":
+            in_services = True
+            service_name = None
+            output.append(line)
+            index += 1
+            continue
+        if in_services and line and not line[0].isspace():
+            in_services = False
+            service_name = None
+        if in_services and line.startswith("  ") and not line.startswith("   ") and line.endswith(":"):
+            service_name = line[2:-1]
+        if in_services and line == "    labels:":
+            if service_name not in services or not isinstance(services[service_name], dict):
+                raise RuntimeError("Docker Compose labels block has no matching Coolify service")
+            labels = _coolify_label_sequence(services[service_name].get("labels", []), service_name)
+            output.append(line)
+            quoted_labels = [json.dumps(label, ensure_ascii=False) for label in labels]
+            output.extend(f"      - {label}" for label in quoted_labels)
+            index += 1
+            while index < len(lines):
+                child = lines[index]
+                indent = len(child) - len(child.lstrip(" "))
+                if child.strip() and indent <= 4:
+                    break
+                index += 1
+            continue
+        output.append(line)
+        index += 1
+    return "\n".join(output) + ("\n" if rendered.endswith("\n") else "")
+
+
+def _validate_coolify_label_sequences(config: object) -> None:
+    if not isinstance(config, dict) or not isinstance(config.get("services"), dict):
+        raise RuntimeError("Coolify Compose configuration must contain services")
+    for service_name, service in config["services"].items():
+        if not isinstance(service, dict) or "labels" not in service:
+            continue
+        labels = service["labels"]
+        if not isinstance(labels, list) or not all(isinstance(label, str) for label in labels):
+            raise RuntimeError(
+                f"Coolify {service_name} labels must use a sequence of strings for compatible label merging"
+            )
 
 
 def _normalized_checked_in() -> object:
@@ -569,6 +653,7 @@ def main() -> int:
             generated, secret_environment_keys = _coolify_config(COMPOSE_FILES)
             _validate_coolify_interpolation(generated)
             _validate_coolify_build_policy(generated)
+            _validate_coolify_label_sequences(generated)
             checked_in = _normalized_checked_in()
             inventory = json.loads(SECRET_ENV_INVENTORY.read_text(encoding="utf-8"))
             expected_inventory = {

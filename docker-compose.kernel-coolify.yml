@@ -217,28 +217,26 @@ services:
     image: ${KOKONUT_KERNEL_OIDC_IMAGE:-kokonut-kernel-oidc:local}
     init: true
     labels:
-      coolify.applicationId: ${COOLIFY_RESOURCE_UUID:?Coolify resource UUID is required}
-      coolify.applicationUuid: ${COOLIFY_RESOURCE_UUID:?Coolify resource UUID is required}
-      coolify.managed: "true"
-      coolify.type: application
-      traefik.docker.network: ${COOLIFY_RESOURCE_UUID:?Coolify resource UUID is required}
-      traefik.enable: "true"
-      traefik.http.middlewares.kokonut-hub-redirect.redirectscheme.scheme: https
-      traefik.http.middlewares.kokonut-hub-sse.compress.excludedcontenttypes: text/event-stream
-      traefik.http.routers.kokonut-hub-http.entrypoints: http
-      traefik.http.routers.kokonut-hub-http.middlewares: kokonut-hub-redirect
-      traefik.http.routers.kokonut-hub-http.rule: Host(`${KOKONUT_KERNEL_DOMAIN:?Hub
-        domain is required}`) && PathPrefix(`/`)
-      traefik.http.routers.kokonut-hub-http.service: kokonut-hub-http
-      traefik.http.routers.kokonut-hub-https.entrypoints: https
-      traefik.http.routers.kokonut-hub-https.middlewares: kokonut-hub-sse
-      traefik.http.routers.kokonut-hub-https.rule: Host(`${KOKONUT_KERNEL_DOMAIN:?Hub
-        domain is required}`) && PathPrefix(`/`)
-      traefik.http.routers.kokonut-hub-https.service: kokonut-hub-https
-      traefik.http.routers.kokonut-hub-https.tls: "true"
-      traefik.http.routers.kokonut-hub-https.tls.certresolver: letsencrypt
-      traefik.http.services.kokonut-hub-http.loadbalancer.server.port: "8099"
-      traefik.http.services.kokonut-hub-https.loadbalancer.server.port: "8099"
+      - "traefik.docker.network=${COOLIFY_RESOURCE_UUID:?Coolify resource UUID is required}"
+      - "traefik.enable=true"
+      - "traefik.http.middlewares.kokonut-hub-redirect.redirectscheme.scheme=https"
+      - "traefik.http.middlewares.kokonut-hub-sse.compress.excludedcontenttypes=text/event-stream"
+      - "traefik.http.routers.kokonut-hub-http.entrypoints=http"
+      - "traefik.http.routers.kokonut-hub-http.middlewares=kokonut-hub-redirect"
+      - "traefik.http.routers.kokonut-hub-http.rule=Host(`${KOKONUT_KERNEL_DOMAIN:?Hub domain is required}`) && PathPrefix(`/`)"
+      - "traefik.http.routers.kokonut-hub-http.service=kokonut-hub-http"
+      - "traefik.http.routers.kokonut-hub-https.entrypoints=https"
+      - "traefik.http.routers.kokonut-hub-https.middlewares=kokonut-hub-sse"
+      - "traefik.http.routers.kokonut-hub-https.rule=Host(`${KOKONUT_KERNEL_DOMAIN:?Hub domain is required}`) && PathPrefix(`/`)"
+      - "traefik.http.routers.kokonut-hub-https.service=kokonut-hub-https"
+      - "traefik.http.routers.kokonut-hub-https.tls=true"
+      - "traefik.http.routers.kokonut-hub-https.tls.certresolver=letsencrypt"
+      - "traefik.http.services.kokonut-hub-http.loadbalancer.server.port=8099"
+      - "traefik.http.services.kokonut-hub-https.loadbalancer.server.port=8099"
+      - "coolify.managed=true"
+      - "coolify.applicationId=${COOLIFY_RESOURCE_UUID:?Coolify resource UUID is required}"
+      - "coolify.applicationUuid=${COOLIFY_RESOURCE_UUID:?Coolify resource UUID is required}"
+      - "coolify.type=application"
     networks:
       coolify-proxy: null
       kernel: null
@@ -447,10 +445,10 @@ services:
       timeout: 5s
     image: postgis/postgis:16-3.4@sha256:44126d872ac91993766c341e369c539e8196614321765d36a6f1bab0419a5fa5
     labels:
-      coolify.applicationId: ${COOLIFY_RESOURCE_UUID:?Coolify resource UUID is required}
-      coolify.applicationUuid: ${COOLIFY_RESOURCE_UUID:?Coolify resource UUID is required}
-      coolify.managed: "true"
-      coolify.type: application
+      - "coolify.managed=true"
+      - "coolify.applicationId=${COOLIFY_RESOURCE_UUID:?Coolify resource UUID is required}"
+      - "coolify.applicationUuid=${COOLIFY_RESOURCE_UUID:?Coolify resource UUID is required}"
+      - "coolify.type=application"
     networks:
       kernel: null
     restart: unless-stopped
@@ -643,28 +641,26 @@ services:
       - "80"
     image: caddy:2-alpine@sha256:5f5c8640aae01df9654968d946d8f1a56c497f1dd5c5cda4cf95ab7c14d58648
     labels:
-      coolify.applicationId: ${COOLIFY_RESOURCE_UUID:?Coolify resource UUID is required}
-      coolify.applicationUuid: ${COOLIFY_RESOURCE_UUID:?Coolify resource UUID is required}
-      coolify.managed: "true"
-      coolify.type: application
-      traefik.docker.network: ${COOLIFY_RESOURCE_UUID:?Coolify resource UUID is required}
-      traefik.enable: "true"
-      traefik.http.middlewares.kokonut-auth-redirect.redirectscheme.scheme: https
-      traefik.http.middlewares.kokonut-auth-sse.compress.excludedcontenttypes: text/event-stream
-      traefik.http.routers.kokonut-auth-http.entrypoints: http
-      traefik.http.routers.kokonut-auth-http.middlewares: kokonut-auth-redirect
-      traefik.http.routers.kokonut-auth-http.rule: Host(`${KOKONUT_ZITADEL_DOMAIN:?ZITADEL
-        domain is required}`) && PathPrefix(`/`)
-      traefik.http.routers.kokonut-auth-http.service: kokonut-auth-http
-      traefik.http.routers.kokonut-auth-https.entrypoints: https
-      traefik.http.routers.kokonut-auth-https.middlewares: kokonut-auth-sse
-      traefik.http.routers.kokonut-auth-https.rule: Host(`${KOKONUT_ZITADEL_DOMAIN:?ZITADEL
-        domain is required}`) && PathPrefix(`/`)
-      traefik.http.routers.kokonut-auth-https.service: kokonut-auth-https
-      traefik.http.routers.kokonut-auth-https.tls: "true"
-      traefik.http.routers.kokonut-auth-https.tls.certresolver: letsencrypt
-      traefik.http.services.kokonut-auth-http.loadbalancer.server.port: "80"
-      traefik.http.services.kokonut-auth-https.loadbalancer.server.port: "80"
+      - "traefik.docker.network=${COOLIFY_RESOURCE_UUID:?Coolify resource UUID is required}"
+      - "traefik.enable=true"
+      - "traefik.http.middlewares.kokonut-auth-redirect.redirectscheme.scheme=https"
+      - "traefik.http.middlewares.kokonut-auth-sse.compress.excludedcontenttypes=text/event-stream"
+      - "traefik.http.routers.kokonut-auth-http.entrypoints=http"
+      - "traefik.http.routers.kokonut-auth-http.middlewares=kokonut-auth-redirect"
+      - "traefik.http.routers.kokonut-auth-http.rule=Host(`${KOKONUT_ZITADEL_DOMAIN:?ZITADEL domain is required}`) && PathPrefix(`/`)"
+      - "traefik.http.routers.kokonut-auth-http.service=kokonut-auth-http"
+      - "traefik.http.routers.kokonut-auth-https.entrypoints=https"
+      - "traefik.http.routers.kokonut-auth-https.middlewares=kokonut-auth-sse"
+      - "traefik.http.routers.kokonut-auth-https.rule=Host(`${KOKONUT_ZITADEL_DOMAIN:?ZITADEL domain is required}`) && PathPrefix(`/`)"
+      - "traefik.http.routers.kokonut-auth-https.service=kokonut-auth-https"
+      - "traefik.http.routers.kokonut-auth-https.tls=true"
+      - "traefik.http.routers.kokonut-auth-https.tls.certresolver=letsencrypt"
+      - "traefik.http.services.kokonut-auth-http.loadbalancer.server.port=80"
+      - "traefik.http.services.kokonut-auth-https.loadbalancer.server.port=80"
+      - "coolify.managed=true"
+      - "coolify.applicationId=${COOLIFY_RESOURCE_UUID:?Coolify resource UUID is required}"
+      - "coolify.applicationUuid=${COOLIFY_RESOURCE_UUID:?Coolify resource UUID is required}"
+      - "coolify.type=application"
     networks:
       coolify-proxy: null
       kernel:
@@ -873,10 +869,10 @@ services:
       ZITADEL_TLS_ENABLED: ""
     image: ${KOKONUT_KERNEL_APP_IMAGE:-kokonut-kernel-candidate:local}
     labels:
-      coolify.applicationId: ${COOLIFY_RESOURCE_UUID:?Coolify resource UUID is required}
-      coolify.applicationUuid: ${COOLIFY_RESOURCE_UUID:?Coolify resource UUID is required}
-      coolify.managed: "true"
-      coolify.type: application
+      - "coolify.managed=true"
+      - "coolify.applicationId=${COOLIFY_RESOURCE_UUID:?Coolify resource UUID is required}"
+      - "coolify.applicationUuid=${COOLIFY_RESOURCE_UUID:?Coolify resource UUID is required}"
+      - "coolify.type=application"
     network_mode: none
     restart: 'no'
     user: '0:0'
@@ -1088,10 +1084,10 @@ services:
     image: ${KOKONUT_KERNEL_APP_IMAGE:-kokonut-kernel-candidate:local}
     init: true
     labels:
-      coolify.applicationId: ${COOLIFY_RESOURCE_UUID:?Coolify resource UUID is required}
-      coolify.applicationUuid: ${COOLIFY_RESOURCE_UUID:?Coolify resource UUID is required}
-      coolify.managed: "true"
-      coolify.type: application
+      - "coolify.managed=true"
+      - "coolify.applicationId=${COOLIFY_RESOURCE_UUID:?Coolify resource UUID is required}"
+      - "coolify.applicationUuid=${COOLIFY_RESOURCE_UUID:?Coolify resource UUID is required}"
+      - "coolify.type=application"
     networks:
       kernel: null
     profiles:
@@ -1297,10 +1293,10 @@ services:
       ZITADEL_SERVICE_USER_TOKEN_FILE: ""
       ZITADEL_TLS_ENABLED: ""
     labels:
-      coolify.applicationId: ${COOLIFY_RESOURCE_UUID:?Coolify resource UUID is required}
-      coolify.applicationUuid: ${COOLIFY_RESOURCE_UUID:?Coolify resource UUID is required}
-      coolify.managed: "true"
-      coolify.type: application
+      - "coolify.managed=true"
+      - "coolify.applicationId=${COOLIFY_RESOURCE_UUID:?Coolify resource UUID is required}"
+      - "coolify.applicationUuid=${COOLIFY_RESOURCE_UUID:?Coolify resource UUID is required}"
+      - "coolify.type=application"
     networks:
       kernel: null
     profiles:
@@ -1514,10 +1510,10 @@ services:
     image: ${KOKONUT_KERNEL_APP_IMAGE:-kokonut-kernel-candidate:local}
     init: true
     labels:
-      coolify.applicationId: ${COOLIFY_RESOURCE_UUID:?Coolify resource UUID is required}
-      coolify.applicationUuid: ${COOLIFY_RESOURCE_UUID:?Coolify resource UUID is required}
-      coolify.managed: "true"
-      coolify.type: application
+      - "coolify.managed=true"
+      - "coolify.applicationId=${COOLIFY_RESOURCE_UUID:?Coolify resource UUID is required}"
+      - "coolify.applicationUuid=${COOLIFY_RESOURCE_UUID:?Coolify resource UUID is required}"
+      - "coolify.type=application"
     networks:
       kernel: null
     profiles:
@@ -1739,10 +1735,10 @@ services:
       timeout: 30s
     image: ${KOKONUT_ZITADEL_API_IMAGE:-ghcr.io/zitadel/zitadel:v4.19.4@sha256:90a3045b80a2b5b395e1e770302076906af3a5911225af7c464b4f3bd00d0a1b}
     labels:
-      coolify.applicationId: ${COOLIFY_RESOURCE_UUID:?Coolify resource UUID is required}
-      coolify.applicationUuid: ${COOLIFY_RESOURCE_UUID:?Coolify resource UUID is required}
-      coolify.managed: "true"
-      coolify.type: application
+      - "coolify.managed=true"
+      - "coolify.applicationId=${COOLIFY_RESOURCE_UUID:?Coolify resource UUID is required}"
+      - "coolify.applicationUuid=${COOLIFY_RESOURCE_UUID:?Coolify resource UUID is required}"
+      - "coolify.type=application"
     networks:
       kernel: null
       zitadel-data: null
@@ -1936,10 +1932,10 @@ services:
       ZITADEL_TLS_ENABLED: ""
     image: ${KOKONUT_ZITADEL_POSTGRES_IMAGE:-postgres:17.10-alpine@sha256:742f40ea20b9ff2ff31db5458d127452988a2164df9e17441e191f3b72252193}
     labels:
-      coolify.applicationId: ${COOLIFY_RESOURCE_UUID:?Coolify resource UUID is required}
-      coolify.applicationUuid: ${COOLIFY_RESOURCE_UUID:?Coolify resource UUID is required}
-      coolify.managed: "true"
-      coolify.type: application
+      - "coolify.managed=true"
+      - "coolify.applicationId=${COOLIFY_RESOURCE_UUID:?Coolify resource UUID is required}"
+      - "coolify.applicationUuid=${COOLIFY_RESOURCE_UUID:?Coolify resource UUID is required}"
+      - "coolify.type=application"
     network_mode: none
     read_only: true
     restart: 'no'
@@ -2144,10 +2140,10 @@ services:
       timeout: 5s
     image: ${KOKONUT_ZITADEL_POSTGRES_IMAGE:-postgres:17.10-alpine@sha256:742f40ea20b9ff2ff31db5458d127452988a2164df9e17441e191f3b72252193}
     labels:
-      coolify.applicationId: ${COOLIFY_RESOURCE_UUID:?Coolify resource UUID is required}
-      coolify.applicationUuid: ${COOLIFY_RESOURCE_UUID:?Coolify resource UUID is required}
-      coolify.managed: "true"
-      coolify.type: application
+      - "coolify.managed=true"
+      - "coolify.applicationId=${COOLIFY_RESOURCE_UUID:?Coolify resource UUID is required}"
+      - "coolify.applicationUuid=${COOLIFY_RESOURCE_UUID:?Coolify resource UUID is required}"
+      - "coolify.type=application"
     networks:
       zitadel-data: null
     restart: unless-stopped
@@ -2356,10 +2352,10 @@ services:
       timeout: 30s
     image: ${KOKONUT_ZITADEL_LOGIN_IMAGE:-ghcr.io/zitadel/zitadel-login:v4.19.4@sha256:93ffd1395b827f685ba29c02fa70aee881fc21102519c4e2bbb0b89c0e00f42c}
     labels:
-      coolify.applicationId: ${COOLIFY_RESOURCE_UUID:?Coolify resource UUID is required}
-      coolify.applicationUuid: ${COOLIFY_RESOURCE_UUID:?Coolify resource UUID is required}
-      coolify.managed: "true"
-      coolify.type: application
+      - "coolify.managed=true"
+      - "coolify.applicationId=${COOLIFY_RESOURCE_UUID:?Coolify resource UUID is required}"
+      - "coolify.applicationUuid=${COOLIFY_RESOURCE_UUID:?Coolify resource UUID is required}"
+      - "coolify.type=application"
     networks:
       kernel: null
     restart: unless-stopped

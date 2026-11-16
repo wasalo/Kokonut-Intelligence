@@ -76,6 +76,21 @@ def test_coolify_standard_compose_passes_revision_to_both_runtime_images() -> No
         assert build_args["SOURCE_COMMIT"] == "${SOURCE_COMMIT:-unknown}"
 
 
+def test_coolify_compose_uses_string_sequence_labels_for_compatible_merging() -> None:
+    compose = yaml.safe_load((ROOT / "docker-compose.kernel-coolify.yml").read_text(encoding="utf-8"))
+    services = compose["services"]
+
+    for service_name, service in services.items():
+        labels = service.get("labels")
+        if labels is not None:
+            assert isinstance(labels, list), service_name
+            assert all(isinstance(label, str) and label for label in labels), service_name
+
+    app_labels = set(services["app"]["labels"])
+    assert "traefik.enable=true" in app_labels
+    assert "coolify.applicationUuid=${COOLIFY_RESOURCE_UUID:?Coolify resource UUID is required}" in app_labels
+
+
 def test_coolify_host_paths_are_relative_and_traversal_free() -> None:
     compose = yaml.safe_load((ROOT / "docker-compose.kernel-coolify.yml").read_text(encoding="utf-8"))
     validate_paths = COOLIFY_RENDERER["_validate_coolify_host_resource_paths"]

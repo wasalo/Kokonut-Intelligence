@@ -1,0 +1,74 @@
+{
+  "format_version": 1,
+  "gate": "G2",
+  "recorded_at": "2026-11-15T23:51:54Z",
+  "updated_at": "2026-11-16T00:34:32Z",
+  "coolify_application_uuid": "fdphpruj8jxien23ockmbw0j",
+  "deployment": {
+    "id": "r2e4atwkfytbt1badnaionjl",
+    "requested_commit": "b1b5cef4d72890db4e8033fd80a714c7a221cdc5",
+    "status": "failed",
+    "completed_at": "2026-11-15T23:43:03Z",
+    "coolify_version": "4.7.5",
+    "failure_reason": "Coolify's generated Compose model contained numeric key 0 in services.database.labels; docker compose rejected the model with non-string key in services.database.labels: 0.",
+    "sanitized_owner_excerpt_provided": true,
+    "full_logs_collected": false,
+    "api_worker_revision_changed": false
+  },
+  "ci": {
+    "head": "b1b5cef4d72890db4e8033fd80a714c7a221cdc5",
+    "ci_run": "https://github.com/wasalo/Kokonut-Intelligence/actions/runs/43771748250",
+    "ci_conclusion": "success",
+    "security_run": "https://github.com/wasalo/Kokonut-Intelligence/actions/runs/43771748137",
+    "security_conclusion": "success"
+  },
+  "candidate_observations": {
+    "schema_migrations_applied": 746,
+    "schema_migrations_pending": 0,
+    "latest_migration": "schema:755_operator_hub_relational_forms.sql",
+    "api_and_worker_revision_label": "8a5245c64797875769b484c2f63e613d7d0bcc75",
+    "api_and_worker_image_replaced_by_requested_commit": false,
+    "database_grants_changed": false,
+    "database_restore_performed": false,
+    "migration_ledger_changed": false,
+    "gateway_readiness_http_status": 403,
+    "zitadel_discovery_http_status": 503,
+    "media_config_mode_after_deployment": "0551",
+    "media_config_mode_restored": "0440",
+    "media_config_owner_group_numeric": "0:10001"
+  },
+  "source_remediation": {
+    "change": "Render every Coolify service's labels as a sequence of strings to avoid mixed mapping/sequence merge keys.",
+    "status": "implemented_locally_not_committed_or_deployed",
+    "validated_at": "2026-11-16T00:34:32Z",
+    "coolify_renderer_check": "passed",
+    "focused_source_tests": "22 passed",
+    "docker_compose_model_validation": "passed with dummy non-secret interpolation values"
+  },
+  "checkpoint": {
+    "backup_id": "candidate-pre-b1b5cef4-20261115T232932Z-retry",
+    "status": "committed",
+    "bucket": "kokonut-backups",
+    "remote_readback_hash_verified": true,
+    "signed": true,
+    "encrypted": true,
+    "postgres_archives_validated": true,
+    "databases": [
+      {
+        "name": "kokonut_intelligence",
+        "bytes": 10348320,
+        "sha256": "50aad510421995ca3ccbcc4abcae3106b4c84416a4d15cd10517313eb4f2baaf"
+      },
+      {
+        "name": "zitadel",
+        "bytes": 406624,
+        "sha256": "16fb15127a6feadabbcb78546bce9e55a490b3e9290a2d8148362bcf19fd7e6f"
+      }
+    ]
+  },
+  "scope": {
+    "grants_changed": false,
+    "full_deployment_logs_collected": false,
+    "next_action": "Commit and push the source remediation, pass exact-head CI/Security, take a fresh checkpoint, then retry deployment and verify runtime boundaries."
+  }
+}
