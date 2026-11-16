@@ -109,10 +109,11 @@ For each integration, record owner, intended use, disabled/test/live state, SOPS
 - [ ] Report-export R2: after candidate redeployment, verify the dedicated writer credential is confined to its one-shot worker, then run an authorized request, worker export, separately granted download, audience review, and disposition against populated report data.
 - [ ] Backup R2: configure the approved candidate cadence and verify upload, readback/checksum, restore, and recovery evidence. A prior checkpoint transfer or database-only restore is not full application recovery.
 - [ ] Keep optional integrations paused when their credentials, provider access, safe retry/cadence, or source parity have not passed review; the owner’s goal to enable all integrations does not mean bypassing their acceptance.
-- [ ] Configure Better Stack P1 delivery using the owner-approved five-minute acknowledgment policy: Gerkery Soto as primary and Alejandro as backup. Confirm both accounts accept their invitations and enable phone/push notifications; create the incident webhook/escalation policy; run one acknowledged-page test and one no-ack test that escalates after five minutes. Keep the P1 gate open until both outcomes and independent monitoring are evidenced.
+- [ ] Deploy and accept the scheduled Cloudflare health-email Worker: confirm a two-minute continuous readiness failure sends one Maileroo email to `alejandro@kokonut.network`, five minutes of healthy checks sends one recovery email, and retries are bounded. Confirm inbox receipt; Better Stack remains the independent monitor. This email does not satisfy acknowledgement or automatic escalation.
+- [ ] Rehearse Wasabi's manual five-minute primary/backup response procedure after an alert arrives. Keep automatic acknowledged paging and no-ack escalation deferred under the no-upgrade decision; do not enable paid Better Stack on-call features.
 - [ ] Implement and verify the selected P1–P4 routing policy, including email routing for non-page alerts, severity deduplication/grouping, and a test of the relevant escalation paths. See the policy in the canonical guide.
 
-**Acceptance evidence:** approved normalized data mapping, populated parity results, per-integration candidate evidence and operational settings, report disclosure approval, working backup/restore path, and acknowledged/no-ack P1 results.
+**Acceptance evidence:** approved normalized data mapping, populated parity results, per-integration candidate evidence and operational settings, report disclosure approval, working backup/restore path, health alert/recovery delivery, and the manual response rehearsal. Do not claim acknowledged paging under the approved free-tier direction.
 
 ### G6 — Full candidate recovery and 24-hour soak
 
