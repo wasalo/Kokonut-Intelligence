@@ -624,14 +624,20 @@ Accepted no-cost candidate scope:
    monitor is stable and the account's actual quota is confirmed. Reserve part
    of the 10-monitor/heartbeat allowance for future needs; do not add ten
    monitors just because the public cap allows it.
-3. Do not claim or test Better Stack email delivery until an entitled recipient
-   route exists. The current monitor form only routes incident notifications to
-   the primary on-call responder; no responder is assigned, and configuring an
-   on-call schedule is upgrade-gated. Email remains disabled. The accepted
-   destination is `intelligence@kokonut.network`; the earlier Maileroo test
-   proves SMTP delivery only, not Better Stack delivery. Revisit this gate if a
-   supported free-tier team-email route becomes available or Wasabi approves a
-   paid responder seat.
+3. Better Stack's monitor `email` setting is a boolean channel for the primary
+   on-call responder; it has no direct recipient field. The monitor form has no
+   assigned responder, and configuring the on-call schedule is upgrade-gated.
+   Better Stack documents a separate Outgoing e-mails integration that accepts
+   direct addresses and can send alongside the primary responder when no
+   escalation policy exists ([integration guide](https://betterstack.com/docs/uptime/integrations/integrating-with-better-uptime/outgoing-emails/),
+   [API](https://betterstack.com/docs/uptime/api/create-outgoing-email-integration/)).
+   Wasabi requested `alejandro@kokonut.network` as the first incident-email
+   recipient. In the authenticated dashboard, **Add** for Outgoing e-mails
+   redirected to the billing page with responder-license/payment setup; no
+   integration was created and billing was not changed. Better Stack email
+   remains disabled pending an available route. This is separate from the
+   application event-email recipient `intelligence@kokonut.network`; the
+   earlier Maileroo test proves only that SMTP path ([recipient-route evidence](builds/2026-11-16-recovery/g5-betterstack-free-tier-monitor.json)).
 4. Keep the approved 300-second primary-to-backup response objective as a
    **manual operator procedure**: Wasabi records alert receipt and
    acknowledgement, contacts Gerkery as primary, then contacts Alejandro if no
@@ -658,9 +664,11 @@ Free-tier gate sequence:
   `Up`. Email-only is not configured because there is no entitled recipient
   route; delivery remains open under BT-F2.
 - **BT-F2 — email delivery:** blocked/open. Do not create a synthetic incident
-  until an entitled route to `intelligence@kokonut.network` is configured.
-  Then confirm incident and recovery delivery, recording timestamps and state
-  without retaining tokens or message bodies.
+  until the requested Better Stack incident-email route to
+  `alejandro@kokonut.network` is available. Then confirm incident and recovery
+  delivery, recording timestamps and state without retaining tokens or message
+  bodies. `intelligence@kokonut.network` remains the separate application
+  event-email recipient.
 - **BT-F3 — manual response:** Wasabi accepted the 5-minute manual primary to
   backup procedure; operational rehearsal remains open until an alert reaches
   the operator and both contact paths are confirmed.
@@ -668,8 +676,8 @@ Free-tier gate sequence:
   automated no-ack escalation are deferred under the approved no-upgrade
   direction. Candidate sign-off must state that dashboard-only monitoring is
   not email alerting or 24/7 paging and name the human owner who watches it.
-  G5's Better Stack monitor slice remains open until plan eligibility, a real
-  check, and an approved notification route are evidenced. G6 soak must use
+  G5's Better Stack alert slice remains open until plan eligibility, an
+  approved notification route, and delivery are evidenced. G6 soak must use
   the accepted response runbook, and G7 must retain these limitations.
 
 The monitor configuration changed as described above; no policy, recipient, or
@@ -1218,7 +1226,7 @@ Owner inputs received on 5 November 2026: the G2 source-known caller map under B
 
 Follow-up G4–G6 inputs from Wasabi: the Cloudflare apex zone is `kokonut.network`. The candidate ZITADEL issuer and confidential client have since been configured and deployed as described above. Wasabi authorized replacing the former `hub` Baserow record and retiring Baserow, with no alternate Baserow hostname. No populated Adelphi/report reference data is available yet. Alert recipient `intelligence@kokonut.network` is configured in SOPS, and Wasabi owns the on-call rota. Candidate SMTP TLS/authentication and NOOP passed; one static message was delivered and inbox receipt confirmed. Wasabi selected Better Stack as the P1 provider on 12 November, named Gerkery Soto as primary and Alejandro as backup, and approved a 300-second acknowledgement timeout. The Incidents API token is verified and the P1 severity is configured for email only; Alejandro accepted the responder invitation, while Gerkery's invitation is pending. The 15 November API audit found no escalation policy or incoming webhook. Neither account currently reports a Better Stack mobile app. The readiness monitor is active and returned `Up`; Better Stack email routing and a controlled email/manual-handoff acceptance test remain open. Escalation policies, incoming webhooks, and automated acknowledgement/no-ack routing are deferred under Wasabi's approved no-upgrade direction. The 16 November replacement `BETTERSTACK_UPTIME_API_TOKEN` is a team-scoped Incidents API token, stored only in local SOPS, and passes both documented read endpoints with HTTP 200; no global token or resource/billing change was needed ([evidence](builds/2026-11-16-recovery/g5-betterstack-team-token-1537z.json)). Wasabi chose to use proposed G6 defaults. The working candidate-only defaults are: a 24-hour VPS soak with `/health` sampled every minute and at least 99.5% successful probes outside the planned drill; RPO no greater than 24 hours using a verified AES-256-CBC/PBKDF2-encrypted PostgreSQL checkpoint with an authenticated manifest staged to the private `kokonut-backups` R2 bucket; `BACKUP_ENCRYPTION_KEY` is managed in SOPS; recovery from a database service restart within 15 minutes; and an isolated checkpoint restore verified healthy within two hours. Wasabi will serve as the independent G6 reviewer and sign-off owner. The implementation agent (Codex) will operate the drill after G4/G5 prerequisites are met, keeping operator and reviewer separate. The controlled drill is one planned PostgreSQL stop/restart followed by restore to a new isolated recovery project, never over the serving database. Bucket-scoped R2 credentials and a fresh `BACKUP_ENCRYPTION_KEY` are now configured in SOPS. Backup cadence, transfer verification, isolated restore evidence, and the approved recovery window remain missing, so these defaults do not pass G6 and do not set production targets.
 
-Inputs still needed: independent/live confirmation of effective Directus and external caller access before narrowing grants; trusted-browser test-user/role and callback/session review; populated farm/report reference data and report disclosure owner; candidate provider activation status and approved cadence overrides; a Better Stack notification route to `intelligence@kokonut.network` and controlled incident/recovery delivery; the 5-minute manual primary/backup handoff rehearsal once alert delivery works; backup cadence, scheduled recovery window, verified bucket-scoped R2 transfer and isolated restore, and a published runbook applying candidate-only RPO/RTO defaults. Better Stack escalation policies, incoming webhooks, automatic acknowledgement/no-ack tests, and additional monitors are deferred under the approved no-upgrade direction. The existing readiness monitor is active and its first external check returned `Up` ([monitor evidence](builds/2026-11-16-recovery/g5-betterstack-free-tier-monitor.json)). Secrets go through SOPS, never the guide or chat. Reconcile historical access requests against current authorization before asking again.
+Inputs still needed: independent/live confirmation of effective Directus and external caller access before narrowing grants; trusted-browser test-user/role and callback/session review; populated farm/report reference data and report disclosure owner; candidate provider activation status and approved cadence overrides; a Better Stack direct incident-email route to `alejandro@kokonut.network` and controlled incident/recovery delivery (separate from the application event-email route to `intelligence@kokonut.network`); the 5-minute manual primary/backup handoff rehearsal once alert delivery works; backup cadence, scheduled recovery window, verified bucket-scoped R2 transfer and isolated restore, and a published runbook applying candidate-only RPO/RTO defaults. Better Stack escalation policies, incoming webhooks, automatic acknowledgement/no-ack tests, and additional monitors are deferred under the approved no-upgrade direction. The existing readiness monitor is active and its first external check returned `Up` ([monitor evidence](builds/2026-11-16-recovery/g5-betterstack-free-tier-monitor.json)). Secrets go through SOPS, never the guide or chat. Reconcile historical access requests against current authorization before asking again.
 
 **Deferred beyond candidate completion:** public DNS/TLS and production topology/RPO acceptance, production failover/scale, physical Pi thermal/storage/power-loss testing, production retention activation, release promotion and legacy retirement. Candidate scope/tenant, populated parity, backup restoration and required human review cannot be deferred by an implementer. Production pruning remains disabled until policy owners approve periods and holds; the candidate must prove no-prune and hold behavior. No hardware acceptance is claimed without hardware.
 

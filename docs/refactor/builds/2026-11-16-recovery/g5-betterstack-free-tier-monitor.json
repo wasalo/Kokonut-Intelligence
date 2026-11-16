@@ -25,6 +25,22 @@
     "accepted_email_destination": "intelligence@kokonut.network",
     "delivery_acceptance": "open; no entitled recipient route is configured"
   },
+  "recipient_assignment_follow_up": {
+    "observed_at": "2026-11-16T16:59:09Z",
+    "source_head_at_observation": "890299ce998ec2a35aa1e4474aa1b16ad425f595",
+    "requested_first_email_recipient": "alejandro@kokonut.network",
+    "monitor_email_setting": "boolean channel routed to primary on-call responder; no direct recipient field",
+    "direct_recipient_feature": "Outgoing e-mails integration supports explicit recipients and notify-alongside-primary behavior when no escalation policy is configured",
+    "documentation": [
+      "https://betterstack.com/docs/uptime/api/update-an-existing-monitor/",
+      "https://betterstack.com/docs/uptime/integrations/integrating-with-better-uptime/outgoing-emails/",
+      "https://betterstack.com/docs/uptime/api/create-outgoing-email-integration/"
+    ],
+    "dashboard_attempt": "Integrations > Exporting data > Outgoing e-mails > Add redirected to the Better Stack billing page with responder-license and payment setup",
+    "integration_created": false,
+    "billing_changed": false,
+    "result": "direct recipient could not be configured in the current account flow without entering billing"
+  },
   "plan_and_billing": {
     "free_plan_interval_limit_visible_in_ui": "3 minutes",
     "on_call_page_requires_upgrade": true,
