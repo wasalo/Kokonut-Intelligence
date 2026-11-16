@@ -51,6 +51,11 @@ SENSITIVE_ENVIRONMENT_KEYS = {
     "KOKONUT_RUNTIME_PASSWORD",
     "KOKONUT_WORKER_RUNTIME_PASSWORD",
     "MOBILE_MEDIA_LOCAL_KEY",
+    # Copernicus account identifiers are credential-routing inputs. Keep them
+    # in the remote-sensing service env file so isolated children can receive
+    # them without placing them in the shared Compose environment.
+    "KOKONUT_REMOTE_SENSING_COPERNICUS_EMAIL",
+    "KOKONUT_REMOTE_SENSING_COPERNICUS_CLIENT_ID",
 }
 COOLIFY_RUNTIME_PASSWORD_SERVICES = {
     "KOKONUT_RUNTIME_PASSWORD": {"runtime-role-bootstrap"},
