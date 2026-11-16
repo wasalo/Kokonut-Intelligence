@@ -33,6 +33,8 @@ services:
       context: .
       dockerfile: Dockerfile.kernel
       target: mqtt
+      args:
+        SOURCE_COMMIT: ${SOURCE_COMMIT:-unknown}
     init: true
     restart: unless-stopped
     stop_grace_period: 30s

@@ -151,7 +151,13 @@ def test_oidc_configuration_requires_distinct_operator_auth_credentials(monkeypa
     settings = operator_auth.OIDCSettings.from_env()
     assert settings is not None
     assert settings.operator_auth_user == "kokonut_operator_auth"
+    assert settings.ca_bundle is None
     assert "auth-role-secret" not in repr(settings)
+
+    monkeypatch.setenv("KOKONUT_OPERATOR_OIDC_CA_BUNDLE", "/run/oidc-ca/caddy-root.crt")
+    settings = operator_auth.OIDCSettings.from_env()
+    assert settings is not None
+    assert settings.ca_bundle == "/run/oidc-ca/caddy-root.crt"
 
     monkeypatch.setenv(
         "KOKONUT_OPERATOR_AUTH_PASSWORD",

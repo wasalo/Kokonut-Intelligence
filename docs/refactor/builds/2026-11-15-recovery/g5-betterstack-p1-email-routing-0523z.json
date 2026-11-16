@@ -1,0 +1,53 @@
+{
+  "date": "2026-11-15",
+  "checked_at_utc": "2026-11-15T05:23:46Z",
+  "subject": "Better Stack P1 routing resource audit and email-only severity update",
+  "credential_values_recorded": false,
+  "read_only_audit": {
+    "uptime_roles_endpoint": {
+      "method": "GET",
+      "path": "/api/v2/roles",
+      "status": 401,
+      "token_present_in_local_sops": true,
+      "token_value_recorded": false
+    },
+    "incidents_api": {
+      "policies": {"status": 200, "count": 0},
+      "incoming_webhooks": {"status": 200, "count": 0},
+      "severities": {
+        "status": 200,
+        "count": 1,
+        "existing_p1": {
+          "id": "472425",
+          "name": "Kokonut P1 Critical",
+          "channels_before_update": {
+            "email": true,
+            "call": true,
+            "push": true,
+            "critical_alert": true,
+            "sms": false
+          }
+        }
+      }
+    }
+  },
+  "update": {
+    "method": "PATCH",
+    "resource": "urgency/472425",
+    "status": 200,
+    "channels_after_update": {
+      "email": true,
+      "call": false,
+      "push": false,
+      "critical_alert": false,
+      "sms": false
+    },
+    "incident_sent": false
+  },
+  "remaining": [
+    "Create an escalation policy for Gerkery Soto with Alejandro as the 300-second backup after Gerkery accepts the pending Better Stack invitation.",
+    "Create and securely store the incoming webhook, then connect it only to approved platform P1 signals.",
+    "Replace the invalid Uptime API token or verify the Incidents token has sufficient monitor-update scope before enabling the readiness monitor.",
+    "Run acknowledged and no-ack escalation acceptance after responder enrollment."
+  ]
+}

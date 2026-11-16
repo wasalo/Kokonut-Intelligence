@@ -1,0 +1,39 @@
+{
+  "observed_at_utc": "2026-11-15T13:20:06Z",
+  "source_head": "665c28074ae9d56eb4a27eaeae5e9a0dde4871d2",
+  "ci": {
+    "workflow_run": 43714808096,
+    "conclusion": "success",
+    "security_run": 43714808097,
+    "security_conclusion": "success"
+  },
+  "coolify_application": "fdphpruj8jxien23ockmbw0j",
+  "api_operation": {
+    "method": "PATCH",
+    "path": "/api/v1/applications/fdphpruj8jxien23ockmbw0j",
+    "field_set": "include_source_commit_in_build",
+    "value_set": true,
+    "http_status": 200,
+    "response_body_retained": false,
+    "authorization": "Owner-reported instance-root token, read from mode-0600 temporary file and sent over encrypted root SSH to the host-local Coolify API. The token value was not recorded."
+  },
+  "verification": {
+    "method": "Read-only transaction against Coolify metadata; selected only the target application's include_source_commit_in_build boolean.",
+    "query_result": true
+  },
+  "state_changes": {
+    "coolify_setting_changed": true,
+    "setting_changed": "include_source_commit_in_build",
+    "deployment_triggered": false,
+    "candidate_containers_changed": false,
+    "candidate_database_contacted": false,
+    "application_secret_fields_read": false,
+    "token_value_recorded": false,
+    "other_coolify_resources_changed": false
+  },
+  "next_controls": [
+    "Do not use the instance-root token again.",
+    "Downgrade the existing token to app-scoped deploy-only before any deployment.",
+    "Review a fresh encrypted recovery checkpoint and G4/G5 prerequisites before candidate rollout."
+  ]
+}

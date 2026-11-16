@@ -1,0 +1,35 @@
+{
+  "date": "2026-11-15",
+  "checked_at_utc": "2026-11-15T05:28:10Z",
+  "subject": "Better Stack P1 monitor and responder readiness",
+  "credential_values_recorded": false,
+  "resources": {
+    "escalation_policies": {"status": 200, "count": 0},
+    "incoming_webhooks": {"status": 200, "count": 0},
+    "readiness_monitor": {
+      "status": 200,
+      "id": "5239227",
+      "name": "Kokonut Intelligence readiness",
+      "type": "status",
+      "frequency_seconds": 60,
+      "paused": true,
+      "policy_id": null,
+      "email": false,
+      "call": false,
+      "push": false
+    },
+    "responders": [
+      {
+        "email": "gerkery@kokonut.network",
+        "role": "responder",
+        "team_object_type": "team_member_invitation"
+      },
+      {
+        "email": "alejandro@kokonut.network",
+        "role": "responder",
+        "team_object_type": "team_member"
+      }
+    ]
+  },
+  "result": "The primary responder invitation is pending and the backup is an accepted responder. No escalation policy or incoming webhook exists. The readiness monitor remains paused and has no policy; it was not enabled. The team-scoped Incidents API token can read the monitor. No incident or notification was sent."
+}

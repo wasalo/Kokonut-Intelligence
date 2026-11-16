@@ -1,0 +1,22 @@
+{
+  "scope": "focused synthetic network-disabled PostgreSQL fixture; no persistent target",
+  "migration": "747_scheduler_run_event_boundary.sql",
+  "migration_sha256": "384a93fd5818da1bcf21f4e03103876883e082c20351872b88600100235a683a",
+  "result": "passed",
+  "checks": [
+    "apply and repeat apply",
+    "idempotent duplicate",
+    "wrong-worker denial",
+    "nonterminal denial",
+    "direct event write denial",
+    "receipt read denial",
+    "transaction rollback"
+  ],
+  "regression_tests": 146,
+  "candidate_changed": false,
+  "limitations": [
+    "not full-schema/RLS acceptance",
+    "scheduler execution grants and bootstrap not enabled",
+    "API/general-worker separation remains open"
+  ]
+}

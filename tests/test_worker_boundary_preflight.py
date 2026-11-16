@@ -47,7 +47,10 @@ def test_preflight_covers_every_worker_root_but_keeps_identity_gate_blocked(repo
     assert "services.events.notification_delivery_worker" in ISOLATED_WORKER_MODULES
     assert "services.events.notification_delivery_worker" not in ALLOWED_SCHEDULED_MODULES
     assert "services.agents.worker_cli" in ISOLATED_WORKER_MODULES
-    assert "services.agents.worker_cli" not in ALLOWED_SCHEDULED_MODULES
+    # Gateway-approved synthesis receipts may enter the durable scheduler;
+    # scheduled_command_contracts restricts this module to exact draft-only
+    # registered task argv shapes.
+    assert "services.agents.worker_cli" in ALLOWED_SCHEDULED_MODULES
     assert "services.export.report_snapshot_export_worker" in ISOLATED_WORKER_MODULES
     assert "services.export.report_snapshot_export_worker" not in ALLOWED_SCHEDULED_MODULES
     assert set(ISOLATED_WORKER_ENTRYPOINTS) == set(ISOLATED_WORKER_MODULES)

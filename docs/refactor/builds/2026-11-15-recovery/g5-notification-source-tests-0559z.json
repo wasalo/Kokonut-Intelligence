@@ -1,0 +1,21 @@
+{
+  "evidence_type": "g5_notification_source_contract_tests",
+  "recorded_at_utc": "2026-11-15T05:59:00Z",
+  "source_head": "60b6409a2773d4a5ddf98e18f026505894885768",
+  "command": "python3 -m pytest tests/test_notification_outbox.py tests/test_notification_delivery_worker.py tests/test_data_freshness_notification_outbox.py tests/test_event_dispatch_worker.py -q",
+  "result": {
+    "passed": 66,
+    "failed": 0,
+    "duration_seconds": 1.27
+  },
+  "scope": [
+    "Durable notification intent generation and idempotent enqueue",
+    "Isolated event-dispatch and notification-delivery worker boundaries",
+    "Email configuration validation, mocked SMTP delivery, retry behavior, and error redaction",
+    "Data-freshness alert intent handling"
+  ],
+  "external_provider_calls": false,
+  "candidate_database_contacted": false,
+  "candidate_state_changed": false,
+  "interpretation": "Source-level notification contracts pass. These tests do not configure the Better Stack policy/webhook, route a real P1 event, or prove a human acknowledgement or no-ack escalation."
+}

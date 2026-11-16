@@ -1,0 +1,65 @@
+{
+  "schema_version": 1,
+  "gate": "G5",
+  "observed_at": "2026-11-16T15:37:00Z",
+  "source_head_at_observation": "ab7bee5cc6e2ac817c1f67fb359118717a8a5932",
+  "service": "Better Stack",
+  "team_scope": {
+    "team_selector_label": "Your team",
+    "available_team_token_categories": [
+      "Incidents API",
+      "Telemetry API"
+    ],
+    "dashboard_category": "Incidents API",
+    "token_name": "Kokonut Intelligence Uptime monitor",
+    "access_level": "Read & write",
+    "purpose": "Team uptime monitor and heartbeat API access"
+  },
+  "secret_handling": {
+    "sops_key": "BETTERSTACK_UPTIME_API_TOKEN",
+    "stored_in": ".env.sops",
+    "plaintext_root_env_present": false,
+    "token_value_recorded": false,
+    "clipboard_cleared": true
+  },
+  "read_checks": [
+    {
+      "method": "GET",
+      "endpoint": "https://betterstack.com/api/v2/roles",
+      "http_status": 200,
+      "documentation": "https://betterstack.com/docs/uptime/api/roles/list/"
+    },
+    {
+      "method": "GET",
+      "endpoint": "https://incidents.betterstack.com/api/v2/monitors?page=1&per_page=1",
+      "http_status": 200,
+      "documentation": "https://betterstack.com/docs/uptime/api/list-all-existing-monitors/"
+    }
+  ],
+  "plan_and_billing": {
+    "public_pricing_reference": "https://betterstack.com/pricing",
+    "public_free_tier_features_observed": [
+      "10 monitors/heartbeats",
+      "one status page",
+      "email and Slack alerts"
+    ],
+    "public_on_call_reference": "https://betterstack.com/docs/uptime/getting-started-with-oncall-v2/",
+    "workspace_plan_and_responder_seat_count_verified": false,
+    "billing_changed": false
+  },
+  "mutations": {
+    "monitor_created_or_updated": false,
+    "incident_sent": false,
+    "policy_created_or_updated": false,
+    "webhook_created_or_updated": false,
+    "billing_changed": false
+  },
+  "acceptance": {
+    "team_api_read_authentication": "passed",
+    "monitor_management_write": "not tested",
+    "acknowledged_p1": "open",
+    "no_ack_escalation": "open",
+    "independent_availability_monitor": "open",
+    "reason_open": "No escalation policy or incoming webhook has been configured or exercised; responder invitations and seat availability remain to be confirmed."
+  }
+}

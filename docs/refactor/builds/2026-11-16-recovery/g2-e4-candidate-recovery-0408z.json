@@ -1,0 +1,112 @@
+{
+  "format_version": 1,
+  "gate": "G2",
+  "recorded_at": "2026-11-16T04:08:25Z",
+  "coolify_application_uuid": "fdphpruj8jxien23ockmbw0j",
+  "source_commit": "e4f9ee74e05fa010fc10d38bf227354f517971b3",
+  "ci": {
+    "required_workflow_run": "43791108020",
+    "required_workflow_conclusion": "success",
+    "security_workflow_run": "43791128018",
+    "security_workflow_conclusion": "success"
+  },
+  "deployment": {
+    "id": "vs39uo4iu16j6hinyzck1a1v",
+    "status": "finished",
+    "image_revision_labels_match_source_commit": true,
+    "compose_project_uses_resource_uuid": true,
+    "mounted_postgres_volumes": [
+      "fdphpruj8jxien23ockmbw0j_kernel-postgres-data",
+      "fdphpruj8jxien23ockmbw0j_kernel-zitadel-postgres-data"
+    ],
+    "migration_ledger": {
+      "applied_count": 746,
+      "latest_entry": "schema:755_operator_hub_relational_forms.sql",
+      "failed_or_pending_entries": 0
+    },
+    "database_grants_changed": false
+  },
+  "checkpoint": {
+    "backup_id": "candidate-pre-e4f9ee74-20261116T025927Z",
+    "status": "committed",
+    "bucket": "kokonut-backups",
+    "databases": ["kokonut_intelligence", "zitadel"],
+    "signature_verified": true,
+    "encryption_verified": true,
+    "archive_validation_passed": true,
+    "remote_readback_hashes_verified": true
+  },
+  "private_media_configuration": {
+    "validation_failure": "The supplied Coolify app log repeatedly reported private-media configuration validation failure (ValueError).",
+    "host_file_mode_before_repair": "0551",
+    "host_file_owner_before_and_after": "0:10001",
+    "validator_rejected_execute_bits": true,
+    "host_file_mode_after_repair": "0440",
+    "configuration_validation_after_repair": "passed",
+    "mode_still_0440_on_recheck": true,
+    "secret_values_printed_or_recorded": false
+  },
+  "runtime_snapshot": {
+    "gateway_before_repair": {
+      "container_status": "exited",
+      "exit_code": 1,
+      "restart_count": 34,
+      "oom_killed": false,
+      "hub_health_http_status": 503
+    },
+    "gateway_after_repair": {
+      "container_status": "running",
+      "restart_count": 0,
+      "oom_killed": false,
+      "health": "healthy",
+      "hub_health_http_status": 200
+    },
+    "worker_health": "healthy",
+    "application_database_health": "healthy",
+    "zitadel_database_health": "healthy",
+    "zitadel_api_health": "healthy",
+    "zitadel_login_health": "healthy",
+    "runtime_identities": {
+      "app_container_database_role": "kokonut_runtime",
+      "worker_container_database_role": "kokonut_worker_runtime",
+      "both_roles_can_login": true,
+      "worker_runtime_membership_inherits_runtime_privileges": true,
+      "worker_runtime_membership_set_role_allowed": false,
+      "database_grants_changed": false,
+      "identity_attribution_verified": true,
+      "broad_inherited_runtime_grants_narrowed": false
+    },
+    "runtime_identity_acceptance": "identity attribution verified; inherited grant review remains open",
+    "service_secret_isolation_acceptance": "open",
+    "environment_key_name_audit": {
+      "unexpected_credential_like_names_outside_source_allowlists": 0,
+      "service_counts_present_over_expected": {
+        "app": "10/13",
+        "worker": "16/52",
+        "database": "1/1",
+        "zitadel_api": "3/3",
+        "zitadel_database": "2/2",
+        "zitadel_login": "1/1"
+      },
+      "values_read": false
+    }
+  },
+  "host_resources": {
+    "observed_at_approx": "2026-11-16T03:30:00Z",
+    "vcpus": 2,
+    "load_average_1_5_15": [26.17, 18.03, 15.87],
+    "run_queue_samples": [52, 36, 57],
+    "cpu_steal_percent_samples": [4, 64, 70],
+    "available_memory_mib": 4929,
+    "root_filesystem_free_gib": 15,
+    "root_filesystem_used_percent": 86,
+    "assessment": "Severe host CPU scheduling contention was present. The Gateway exit-1 cause was the private-media config file mode; CPU contention may have contributed to delays but was not the direct failure identified in the log."
+  },
+  "log_handling": {
+    "owner_supplied_gateway_service_export": true,
+    "diagnostic": "Kernel private-media configuration failed validation (ValueError)",
+    "raw_log_lines_printed": false,
+    "sensitive_values_disclosed": false
+  },
+  "next_action": "Complete final service-level secret-isolation acceptance. Verify the host media file remains mode 0440 after future Coolify deployments; the cause of the permission reset is not yet automated or otherwise prevented. Keep inherited-grant review/C1 open and do not narrow database grants without the accepted caller evidence."
+}

@@ -84,6 +84,38 @@ def test_query_filters_every_read_to_active_generation():
     assert "SET LOCAL statement_timeout" in cur.execute.call_args_list[0].args[0]
 
 
+def test_query_recursive_cte_is_read_only_bounded_and_location_scoped():
+    conn = MagicMock()
+    cur = conn.cursor.return_value
+    cur.fetchall.side_effect = [[{"id": uuid.uuid4()}], []]
+    location_id = "a0000000-0000-0000-0000-000000000412"
+    query.query_graph(
+        conn,
+        "location:x",
+        depth=2,
+        node_cap=25,
+        edge_types=["registers"],
+        location_id=location_id,
+        audience="public",
+    )
+
+    node_sql, node_params = cur.execute.call_args_list[1].args
+    edge_sql, edge_params = cur.execute.call_args_list[2].args
+    assert node_sql.lstrip().startswith("WITH RECURSIVE")
+    assert not any(word in node_sql.upper() for word in ("INSERT", "UPDATE", "DELETE", "MERGE", "TRUNCATE"))
+    assert "w.depth < %s" in node_sql
+    assert "n.location_id = %s::uuid" in node_sql
+    assert "e.location_id = %s::uuid" in node_sql
+    assert node_params == (
+        "evidence_lineage", 1, "location:x", ["public"], location_id,
+        location_id, 2, ["registers"], ["public"], location_id, location_id,
+        25, ["public"],
+    )
+    assert edge_sql.lstrip().startswith("SELECT")
+    assert "e.location_id = %s::uuid" in edge_sql
+    assert edge_params[5:] == (["public"], location_id, location_id)
+
+
 def test_synchronized_rebuild_shares_identity_and_cutoff():
     request_id = uuid.uuid4()
     cutoff = "2026-07-23T12:00:00Z"

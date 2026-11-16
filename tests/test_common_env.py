@@ -16,6 +16,7 @@ def _reset_loader(monkeypatch, tmp_path):
     monkeypatch.setattr(env, "_LOADED", False)
     monkeypatch.delenv("KOKONUT_ALLOW_PLAINTEXT_ENV", raising=False)
     monkeypatch.delenv("KOKONUT_ENV_SECRETS_LOADED_BY_SCRIPT", raising=False)
+    monkeypatch.delenv("KOKONUT_ENV_SECRETS_INJECTED", raising=False)
     monkeypatch.delenv("KOKONUT_ENV_SECRETS_NOT_REQUIRED", raising=False)
     monkeypatch.delenv(ISOLATED_WORKER_KEY_ENV, raising=False)
     monkeypatch.delenv(DENY_SHARED_DATABASE_ENV, raising=False)
@@ -39,6 +40,54 @@ def test_sops_failure_does_not_fall_back_in_production(monkeypatch, tmp_path):
 
     with pytest.raises(env.SecretLoadError, match="SOPS decryption failed"):
         env.load_dotenv()
+    assert "FALLBACK_SECRET" not in env.os.environ
+    assert env._LOADED is False
+
+
+def test_sops_failure_does_not_fall_back_in_production_with_plaintext_flag(monkeypatch, tmp_path):
+    _reset_loader(monkeypatch, tmp_path)
+    monkeypatch.setenv("KOKONUT_ENV", "production")
+    monkeypatch.setenv("KOKONUT_ALLOW_PLAINTEXT_ENV", "true")
+    (tmp_path / ".env.sops").write_text("encrypted")
+    (tmp_path / ".env").write_text("FALLBACK_SECRET=plaintext\n")
+    monkeypatch.setattr(
+        env.subprocess,
+        "run",
+        lambda *args, **kwargs: (_ for _ in ()).throw(subprocess.CalledProcessError(1, "sops")),
+    )
+
+    with pytest.raises(env.SecretLoadError, match="SOPS decryption failed"):
+        env.load_dotenv()
+
+    assert "FALLBACK_SECRET" not in env.os.environ
+    assert env._LOADED is False
+
+
+def test_plaintext_dotenv_declaring_production_cannot_opt_into_fallback(monkeypatch, tmp_path):
+    _reset_loader(monkeypatch, tmp_path)
+    (tmp_path / ".env").write_text(
+        "export KOKONUT_ENV=production\n"
+        "export KOKONUT_ALLOW_PLAINTEXT_ENV=true\n"
+        "FALLBACK_SECRET=plaintext\n"
+    )
+
+    with pytest.raises(env.SecretLoadError, match="explicit development opt-in"):
+        env.load_dotenv()
+
+    assert "FALLBACK_SECRET" not in env.os.environ
+    assert env._LOADED is False
+
+
+def test_plaintext_fallback_requires_an_explicit_environment_mode(monkeypatch, tmp_path):
+    _reset_loader(monkeypatch, tmp_path)
+    (tmp_path / ".env").write_text(
+        "KOKONUT_ALLOW_PLAINTEXT_ENV=true\n"
+        "FALLBACK_SECRET=plaintext\n"
+    )
+
+    with pytest.raises(env.SecretLoadError, match="explicit development opt-in"):
+        env.load_dotenv()
+
     assert "FALLBACK_SECRET" not in env.os.environ
     assert env._LOADED is False
 
@@ -116,7 +165,27 @@ def test_script_loaded_marker_keeps_production_environment_validation(monkeypatc
     assert env._LOADED is False
 
 
-def test_development_plaintext_fallback_requires_explicit_flag(monkeypatch, tmp_path):
+def test_service_injected_marker_reuses_scoped_runtime_environment(monkeypatch, tmp_path):
+    _reset_loader(monkeypatch, tmp_path)
+    monkeypatch.setenv("KOKONUT_ENV", "production")
+    monkeypatch.setenv("KOKONUT_ENV_SECRETS_INJECTED", "true")
+    monkeypatch.setenv("PG_HOST", "database")
+    monkeypatch.setenv("PG_DB", "kokonut_intelligence")
+    monkeypatch.setenv("PG_USER", "kokonut_runtime")
+    monkeypatch.setenv("PG_PASSWORD", "test-password")
+    (tmp_path / ".env.sops").write_text("encrypted")
+    monkeypatch.setattr(
+        env,
+        "_sops_decrypt",
+        lambda *_args: pytest.fail("Python tried to decrypt the service-injected environment"),
+    )
+
+    env.load_dotenv()
+
+    assert env._LOADED is True
+
+
+def test_ci_plaintext_fallback_requires_explicit_flag(monkeypatch, tmp_path):
     _reset_loader(monkeypatch, tmp_path)
     monkeypatch.setenv("KOKONUT_ENV", "ci")
     monkeypatch.setenv("KOKONUT_ALLOW_PLAINTEXT_ENV", "true")

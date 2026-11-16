@@ -17,6 +17,27 @@ import psycopg2.extras
 
 from services.common.database import get_db
 
+_COORDINATION_INSERT_TABLES = frozenset({
+    "coordination_alliance",
+    "coordination_participant",
+    "coordination_objective",
+    "coordination_contribution",
+    "coordination_benefit",
+    "coordination_risk",
+    "coordination_knowledge_exchange",
+    "coordination_conflict_declaration",
+    "coordination_benefit_harm_analysis",
+    "coordination_minority_view",
+    "coordination_appeal",
+    "coordination_remedy",
+})
+
+
+def _validate_insert_table(table: str) -> str:
+    if not isinstance(table, str) or table not in _COORDINATION_INSERT_TABLES:
+        raise ValueError("unsupported coordination table")
+    return table
+
 
 def _conn():
     return get_db()
@@ -33,6 +54,7 @@ def _row(row: Optional[psycopg2.extras.RealDictRow]) -> Optional[Dict[str, Any]]
 
 
 def _insert(table: str, values: Dict[str, Any]) -> Dict[str, Any]:
+    table = _validate_insert_table(table)
     record_id = str(uuid_mod.uuid4())
     values = {"id": record_id, **values}
     columns = list(values)
@@ -208,6 +230,7 @@ def add_benefit(alliance_id: str, description: str, benefit_type: str, *, partic
 
 def _insert_idempotent(table: str, values: Dict[str, Any]) -> Dict[str, Any]:
     """Insert a coordination record once when a caller supplies an idempotency key."""
+    table = _validate_insert_table(table)
     record_id = str(uuid_mod.uuid4())
     values = {"id": record_id, **values}
     columns = list(values)

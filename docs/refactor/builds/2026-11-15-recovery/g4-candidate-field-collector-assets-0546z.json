@@ -1,0 +1,30 @@
+{
+  "evidence_type": "g4_candidate_field_collector_public_assets",
+  "recorded_at_utc": "2026-11-15T05:46:00Z",
+  "candidate": {
+    "coolify_application_id": "fdphpruj8jxien23ockmbw0j",
+    "host": "167.88.45.47"
+  },
+  "checks": [
+    {
+      "path": "/health/ready",
+      "status": 200
+    },
+    {
+      "path": "/mobile/",
+      "status": 200
+    },
+    {
+      "path": "/mobile/field-collector-vault.js",
+      "status": 200
+    },
+    {
+      "path": "/mobile/field-collector-service-worker.js",
+      "status": 200
+    }
+  ],
+  "response_bodies_read": false,
+  "database_contacted": false,
+  "candidate_state_changed": false,
+  "interpretation": "The candidate health endpoint and public Field Collector assets are reachable. Static HTTP success does not establish on-device offline storage, consent, encrypted-media transfer, reconnect sync, or deduplication acceptance."
+}

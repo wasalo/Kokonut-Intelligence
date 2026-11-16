@@ -1,0 +1,25 @@
+{
+  "version": 1,
+  "recorded_at_utc": "2026-11-09T20:40:31Z",
+  "scope": "One read-only unauthenticated request to the candidate operator login entry point; redirect was not followed.",
+  "candidate": {
+    "host": "hub.kokonut.network",
+    "path": "/operator/auth/login",
+    "request_origin": "direct non-browser probe"
+  },
+  "observation": {
+    "http_status": 403,
+    "oidc_redirect_observed": false,
+    "state_or_nonce_values_recorded": false,
+    "authorization_code_received": false,
+    "identity_or_token_received": false,
+    "query_values_recorded": false,
+    "secret_values_printed": false
+  },
+  "classification": {
+    "result": "blocked",
+    "cause": "undetermined",
+    "retry_performed": false,
+    "interpretation": "This does not establish an OIDC failure or pass. The 403 may be from an edge policy or the application route; recheck using the trusted browser when its bridge is available."
+  }
+}

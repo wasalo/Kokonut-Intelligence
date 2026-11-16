@@ -43,6 +43,12 @@ per-handler credential delivery is implemented; the actual credential and
 database identity remain unprovisioned. Bounded anomaly reads are implemented
 in migrations 412–414
 ([evidence](builds/2026-10-16-recovery/worker-database-factory-unit.json)).
+The runtime-role bootstrap now accepts an optional
+`KOKONUT_WORKER_LOGIN_PASSWORD` to make the migration-created login usable.
+It grants only a non-inheriting `SET` membership in
+`kokonut_worker_execution`; bounded functions still require their own signed
+worker credential. The bootstrap password is filtered from API and worker
+children. The candidate has not provisioned this login.
 `get_worker_credential()` now similarly reads only the named worker secret,
 requires 32–4096 UTF-8 bytes, and never normalizes or logs the opaque value.
 Do not place that secret in a shared dispatcher environment. Focused tests

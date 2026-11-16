@@ -1,0 +1,29 @@
+{
+  "evidence_type": "g4_field_collector_active_required_consent_source_contract",
+  "recorded_at_utc": "2026-11-15T07:09:27Z",
+  "source_head": "e64169a060682fe0f4f7ba3cf5a8bdc9c93cc1a5",
+  "change_under_review": "tests/test_mobile_api.py adds an active required-consent sync contract using synthetic IDs and mocked database/device state",
+  "runs": [
+    {
+      "command": "python3 -m pytest tests/test_mobile_api.py::test_sync_accepts_active_required_revision_with_current_consent -q",
+      "passed": 1,
+      "failed": 0
+    },
+    {
+      "command": "python3 -m pytest tests/test_mobile_api.py -q",
+      "passed": 54,
+      "failed": 0,
+      "duration_seconds": 31.33
+    }
+  ],
+  "covered_behavior": [
+    "An active required-consent revision requires and resolves a location-bound participant link.",
+    "A matching grant is effective at both collection and sync time with no intervening withdrawal, denial, or expiry.",
+    "The sync records the exact collection/sync consent event IDs, marks consent granted, keeps the form active, and does not require retired/unclassified review."
+  ],
+  "candidate_gateway_contacted": false,
+  "candidate_database_contacted": false,
+  "candidate_state_changed": false,
+  "live_device_offline_capture_or_sync_verified": false,
+  "interpretation": "This closes a missing mocked source branch only. Candidate browser acceptance for offline capture, consent withdrawal, encrypted media transfer, sync, and deduplication remains open."
+}

@@ -24,5 +24,11 @@ run_preflight "Report-generator helper-scope inventory" \
     python3 scripts/report_generator_helper_scope_inventory.py --check docs/refactor/report-generator-helper-scope-inventory.json
 run_preflight "Runtime SQL inventory" \
     python3 scripts/runtime_sql_inventory.py --check docs/refactor/runtime-sql-inventory.json
+run_preflight "Worker function reachability inventory" \
+    python3 scripts/worker_function_reachability.py --check docs/refactor/worker-function-reachability.json
+run_preflight "Worker SQL inventory" \
+    python3 scripts/worker_sql_inventory.py --check docs/refactor/worker-sql-inventory.json
+run_preflight "Worker SQL reachability inventory" \
+    python3 scripts/worker_sql_reachability.py --check docs/refactor/worker-sql-reachability.json
 
 echo 'CI preflight passed; starting source, integration, and image checks.'

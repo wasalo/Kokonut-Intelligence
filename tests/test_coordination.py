@@ -1,11 +1,14 @@
 """Tests for governed coordination alliances and knowledge networks."""
 
+import ast
 import uuid as uuid_mod
 from datetime import datetime, timezone
+from pathlib import Path
 
 import pytest
 
 from services.agents.safety import assess_agent_action
+from services.analytics import coordination, coordination_strategy
 from services.analytics.coordination import (
     activate_alliance,
     activate_participant,
@@ -103,3 +106,44 @@ def test_row_helper_converts_uuid_and_datetime():
 def test_row_helper_returns_none_for_none():
     from services.analytics.coordination import _row
     assert _row(None) is None
+
+
+def test_coordination_insert_call_sites_use_allowlisted_literal_tables():
+    observed_tables = set()
+
+    class InsertCallsiteVisitor(ast.NodeVisitor):
+        def visit_FunctionDef(self, node):
+            if node.name in {"_insert", "_insert_idempotent"}:
+                return
+            self.generic_visit(node)
+
+        def visit_Call(self, node):
+            if isinstance(node.func, ast.Name) and node.func.id in {"_insert", "_insert_idempotent"}:
+                assert node.args and isinstance(node.args[0], ast.Constant)
+                assert isinstance(node.args[0].value, str)
+                observed_tables.add(node.args[0].value)
+            self.generic_visit(node)
+
+    for module in (coordination, coordination_strategy):
+        source = Path(module.__file__).read_text(encoding="utf-8")
+        InsertCallsiteVisitor().visit(ast.parse(source))
+
+    assert observed_tables == set(coordination._COORDINATION_INSERT_TABLES)
+
+
+@pytest.mark.parametrize("helper_name", ["_insert", "_insert_idempotent"])
+@pytest.mark.parametrize(
+    "table",
+    ["coordination_alliance; DROP TABLE location", None, ["coordination_alliance"]],
+)
+def test_coordination_insert_helpers_reject_unallowlisted_tables_before_database_access(
+    monkeypatch, helper_name, table,
+):
+    monkeypatch.setattr(
+        coordination,
+        "_conn",
+        lambda: pytest.fail("database must remain closed"),
+    )
+
+    with pytest.raises(ValueError, match="unsupported coordination table"):
+        getattr(coordination, helper_name)(table, {})

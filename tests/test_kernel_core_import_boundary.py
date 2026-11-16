@@ -91,6 +91,7 @@ try:
         "MOBILE_MEDIA_S3_ACCESS_KEY_ID": "synthetic-access",
         "MOBILE_MEDIA_S3_SECRET_ACCESS_KEY": "synthetic-secret",
         "MOBILE_MEDIA_S3_REGION": "auto",
+        "MOBILE_MEDIA_ENCRYPTION_KEY": "01" * 32,
     })
 except MediaStorageNotConfigured as exc:
     errors["s3"] = str(exc)

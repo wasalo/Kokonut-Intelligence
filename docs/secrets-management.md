@@ -93,7 +93,7 @@ docker compose logs database
 
 `scripts/load-secrets.sh` requires `.env.sops`, verifies that `sops` is installed, sets `SOPS_AGE_KEY_FILE` automatically when `~/.config/sops/age/keys.txt` exists, decrypts to stdout, and exports the parsed dotenv values into the current shell. It does not write a plaintext `.env` file and must be sourced rather than executed in a child shell.
 
-The repository's seed, health-check, schema-snapshot, and Metabase scripts support `.env.sops` first. Plaintext fallback is limited to explicit development/test opt-in via `KOKONUT_ALLOW_PLAINTEXT_ENV=true`; production and CI should fail closed. `scripts/backup.sh` remains stricter and refuses to source a plaintext `.env`.
+The repository's seed, health-check, schema-snapshot, and Metabase scripts support `.env.sops` first. Python plaintext fallback requires both an explicit `KOKONUT_ALLOW_PLAINTEXT_ENV=true` opt-in and an explicit `KOKONUT_ENV` set to development, local, test, or CI. CI may use only its short-lived test `.env`; production and an unset/unknown environment always fail closed. `scripts/backup.sh` remains stricter and refuses to source a plaintext `.env`.
 
 ### Decrypt to stdout (read secrets)
 
@@ -125,7 +125,7 @@ source scripts/load-secrets.sh
 
 ### Python services
 
-Python services that use `services.common.env.load_dotenv()` prefer `.env.sops` and decrypt it through the `sops` CLI. In `ci` and `production`, missing SOPS, decryption errors, and missing secret sources fail closed. Development/test environments may explicitly opt into `.env` with `KOKONUT_ALLOW_PLAINTEXT_ENV=true`.
+Python services that use `services.common.env.load_dotenv()` prefer `.env.sops` and decrypt it through the `sops` CLI. Production fails closed on missing SOPS, decryption errors, and missing secret sources. CI uses a short-lived placeholder `.env` only with `KOKONUT_ENV=ci` and the explicit `KOKONUT_ALLOW_PLAINTEXT_ENV=true` flag. Development, local, and test environments may explicitly opt into `.env` with the same flag. An unset or unknown `KOKONUT_ENV` does not authorize plaintext fallback.
 
 The loader is idempotent and uses `os.environ.setdefault`, so already-exported variables are not overwritten by dotenv values.
 
@@ -256,9 +256,9 @@ SOPS can't find `.sops.yaml`. Ensure it's in the project root or a parent direct
 
 Source `scripts/load-secrets.sh` in the shell that launches Docker Compose so the decrypted variables are exported to the child process.
 
-### Python silently uses `.env`
+### Python rejects plaintext `.env`
 
-`services/common/env.py` falls back to `.env` when SOPS is unavailable or decryption fails. Remove or secure the plaintext fallback, install/configure SOPS and the correct age identity, and verify that the intended encrypted file can be decrypted before starting services.
+`services/common/env.py` prefers `.env.sops` and does not fall back after a SOPS failure in production. Plaintext `.env` is accepted only when `KOKONUT_ALLOW_PLAINTEXT_ENV=true` and `KOKONUT_ENV` is explicitly set to a development, local, test, or CI environment. An unset or unknown mode and production remain fail-closed, even if the opt-in flag is set in the process or `.env`. Repair the SOPS configuration and age identity, then verify the encrypted file before starting services.
 
 ### Loader reports `.env.sops.example` missing
 
@@ -293,7 +293,7 @@ SOPS protects repository secrets at rest; it is not a substitute for host access
 | `.sops.yaml` | SOPS recipient config (public keys only) | Yes |
 | `.env.sops` | Encrypted secrets file | Yes |
 | `scripts/load-secrets.sh` | Helper to decrypt + export env vars | Yes |
-| `services/common/env.py` | Python SOPS-first dotenv loader with plaintext fallback | Yes |
+| `services/common/env.py` | Python SOPS-first dotenv loader with an explicit mode and opt-in for plaintext fallback | Yes |
 | `.env.example` | Placeholder configuration template; never fill with real secrets | Yes |
 | `~/.config/sops/age/keys.txt` | Your private key | **Never** |
 | `.env` | Plaintext secrets (legacy fallback) | No (gitignored) |

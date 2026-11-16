@@ -3,6 +3,11 @@
 **Planning baseline:** `develop` at `ef29f193992717653251b325e99ae24afc62ccef`,
 26 October 2026 local time. This is a plan, not an acceptance record.
 
+**Current status (3 November 2026):** The baseline and dated progress below are
+historical planning context. Use the [current-state guide](current-state-and-implementation.md)
+for the latest source, tracker, and migration-746 disposable evidence. Candidate
+rollout and production acceptance remain separate, open gates.
+
 ## Sprint outcome
 
 Demonstrate one repeatable, end-to-end farm workflow on an isolated Kernel:
@@ -145,6 +150,16 @@ The combined profile, replay and tenant unit selection passes 98 tests;
 Ruff, shell syntax and capability-matrix validation pass.
 This is internal HTTP startup/discovery only: Caddy, HTTPS, client provisioning,
 browser login and Gateway session acceptance remain open.
+
+**Progress, 2 November:** in the preserved synthetic Compose project, OIDC
+discovery was verified over local HTTPS with the Caddy CA. A local Web/Code/Basic
+client and synthetic operator mapping passed the PKCE callback, Gateway session,
+CSRF rejection/logout, zero-scope denial, and audit attribution checks. The
+positive location-grant path remains untested because no verified
+location/owner fixture was present. ZITADEL Console's `environment.json`
+advertised an HTTP API base; a session-local browser route changed only that
+API URL to HTTPS for provisioning. This does not fix the server profile or
+establish candidate/production acceptance, so Batch 2 remains open.
 
 **Done when:** a reproducible browser and API run uses the real local provider
 and separate operator principals, demonstrates the positive and denial paths,

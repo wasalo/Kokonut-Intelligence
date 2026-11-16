@@ -313,6 +313,42 @@ requested. Loader paths, configuration, credentials, and disabled drivers are
 not returned. The route is an explicit anonymous read policy and has no write
 methods.
 
+## Location setup and farm activity relationship routes
+
+The Control Plane uses signed operator sessions for location onboarding and
+farm activity. These routes return private, no-store responses; public API keys
+and Field Collector device credentials are not interchangeable with operator
+identity.
+
+| Method and path | Purpose | Required operator capability |
+|---|---|---|
+| `GET /operator/api/location-setup/organizations` | List tenant organizations available for setup | Global `location_setup:create` |
+| `GET /operator/api/location-setup/locations?organization_id=<UUID>` | List up to 200 active, verified locations for that tenant that already have an active owned farm | Global `location_setup:create` |
+| `POST /operator/api/location-setup` | Atomically create a location and its first farm | Global `location_setup:create` |
+| `POST /operator/api/location-setup/existing-location-farms` | Add a farm beneath an existing location without changing the location | Global `location_setup:create` |
+| `GET /operator/api/farm-activity-records?location_id=<UUID>&limit=50` | List non-Collector activity summaries (limit 1–100) | Exact-location `farm_activity:read` |
+| `GET /operator/api/farm-activity-records/relations?location_id=<UUID>` | List bounded farm, plot, crop-cycle, and task choices validated for the location | Exact-location `farm_activity:read` |
+| `POST /operator/api/farm-activity-records?location_id=<UUID>` | Create an unsubmitted Gateway draft | Exact-location `farm_activity:create_draft` and `farm_activity:read_detail` |
+| `GET /operator/api/farm-activity-records/{activity_id}?location_id=<UUID>` | Read private detail and operator event history | Exact-location `farm_activity:read_detail` |
+| `PATCH /operator/api/farm-activity-records/{activity_id}/draft?location_id=<UUID>` | Correct a draft with a reason | Exact-location `farm_activity:edit_draft` and `farm_activity:read_detail` |
+| `POST /operator/api/farm-activity-records/{activity_id}/{action}?location_id=<UUID>` | Record one governed lifecycle decision | Exact-location grant: `farm_activity:submit`, `farm_activity:verify`, `farm_activity:reject`, `farm_activity:rework`, `farm_activity:publish`, or `farm_activity:close_exception`, selected by action |
+
+Location setup requests require an owner/tenant decision reference and explicit
+confirmation. New-location coordinates are WGS84 latitude and longitude; the
+representative point does not replace the required location polygon. Existing
+location farm polygons must be fully covered by the selected location
+boundary. Location-setup routes never verify or publish farm activity.
+
+Relation choices are optional for a general location-level activity. When a
+plot, crop cycle, or task is selected, the database validates its parent farm
+and location relationship; contradictory links fail closed. The activity
+collection excludes Field Collector submissions, which retain their separate
+device identity, consent, and offline sync contract. See the
+[Control Plane guide](../../apps/frontend/README.md) for form behavior and the
+[candidate completion guide](../../docs/refactor/current-state-and-implementation.md)
+for deployment and acceptance status. All mutating operator requests require
+the authenticated session's CSRF token in `X-CSRF-Token`.
+
 ## Modules
 
 - `app` — Gateway application — FastAPI app with auth, routing, rate limiting, and audit.

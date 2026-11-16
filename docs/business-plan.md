@@ -427,7 +427,7 @@ python3 -m services.analytics.competitive_report report --plan-id UUID
 
 The 9-building-block Osterwalder/Painer BMC, per location or organization,
 with Value Proposition Canvas support (customer jobs, pain points, gain
-creators) and 1-click auto-populate from platform data.
+creators) and one-click draft generation from location-scoped platform data.
 
 ### The 9 blocks
 
@@ -437,56 +437,61 @@ creators) and 1-click auto-populate from platform data.
 
 ### Health scoring
 
-Composite 0–100 score across all 9 blocks with bonus modifiers. Computed on demand via `compute_health()`.
+Composite 0–100 score across all 9 blocks with bonus modifiers. `health` and
+`compute_health()` calculate it from canvas data on demand; the score is not
+persisted.
 
 ### 1-click auto-populate
 
-`create_from_data()` derives all 9 blocks from existing platform data:
+Use the authenticated Gateway route
+`POST /operator/api/business-planning/{location_id}/canvases/from-data` to
+create a location-owned draft from the location-bound suggestion sources below.
+The operation requires an authenticated OIDC operator, CSRF validation, and the
+active `business_planning:create` grant for that location. The Python
+`create_from_data()` helper remains available; its direct-write caller boundary
+is not covered by CLI retirement. See the
+[business planning write contract](refactor/business-planning-kernel-write-contract.md).
 
 | Block | Data Sources |
 |-------|-------------|
-| Key Partners | `federation_node`, `cooperative`, `supplier_profile` |
-| Key Activities | `process_map` |
-| Key Resources | `sensor_device`, `energy_source`, `cooperative_asset` |
-| Value Propositions | `impact_claim` |
+| Key Partners | `cooperative`, `supplier_profile`, `supply_agreement` |
+| Key Activities | verified or published `farm_activity` |
+| Key Resources | `sensor_device`, `energy_source`, `shared_asset` |
+| Value Propositions | verified or published `impact_claim` |
 | Channels | `content_delivery` |
-| Customer Segments | `buyer_segment` |
-| Revenue Streams | `revenue_event` |
-| Cost Structure | `expense_event` |
-| Customer Relationships | `stakeholder_feedback` |
+| Customer Segments | verified or published `buyer_segment` |
+| Revenue Streams | verified or published `revenue_event` |
+| Cost Structure | verified or published `expense_event` |
+| Customer Relationships | consented public `stakeholder_feedback` aggregates |
 
 ### Version tracking
 
-Each update creates a `canvas_version` snapshot with diff tracking.
+Authenticated Gateway edits create versioned changes. Read version history with
+`GET /operator/api/business-planning/{location_id}/canvases/{canvas_id}/versions`
+or the read-only `list-versions` CLI command.
 
 ### CLI
 
+The persistence commands `create`, `create-from-data`, `update-block`, and
+`version` are retired and fail before database access. Use the authenticated,
+location-scoped Gateway routes for draft creation and edits. Their authorization
+contract is documented in the
+[business planning write contract](refactor/business-planning-kernel-write-contract.md)
+and [edit contract](refactor/business-planning-kernel-edit-contract.md).
+
+Read-only CLI operations remain available:
+
 ```bash
-# Create an empty canvas
-python3 -m services.analytics.business_model_canvas create --location-id UUID
-
-# 1-click auto-populate from platform data
-python3 -m services.analytics.business_model_canvas create-from-data --location-id UUID
-
-# List canvases
 python3 -m services.analytics.business_model_canvas list --location-id UUID
-
-# Get a canvas
 python3 -m services.analytics.business_model_canvas get --canvas-id UUID
-
-# Update a specific block
-python3 -m services.analytics.business_model_canvas update-block \
-  --canvas-id UUID --block key_partners --items '[{"name":"Coop A"}]'
-
-# Create a version snapshot
-python3 -m services.analytics.business_model_canvas version --canvas-id UUID
-
-# Compute health score
+python3 -m services.analytics.business_model_canvas list-versions --canvas-id UUID
 python3 -m services.analytics.business_model_canvas health --canvas-id UUID
-
-# Read-only suggestion preview
 python3 -m services.analytics.business_model_canvas suggest --location-id UUID
 ```
+
+`health` calculates the score on demand and does not persist it. The Python
+create/edit helpers remain direct-write sources and still require separate caller
+and ACL review.
 
 ## Revenue Model
 

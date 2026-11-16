@@ -61,3 +61,30 @@ def test_dimension_failure_is_redacted_and_analysis_continues(monkeypatch):
     assert len(result.dimensions) == 10
     assert result.total_opportunity_usd == 900
     connection.close.assert_called_once()
+
+
+def test_regional_cluster_query_returns_only_distance_and_uses_read_only_lookups(monkeypatch):
+    module = importlib.import_module("services.revenue_multiplier.dimensions.regional_clusters")
+    connection = MagicMock()
+    cursor = connection.cursor.return_value
+    cursor.fetchall.side_effect = [
+        [{"distance_km": 5.0}, {"distance_km": 12.0}],
+        [{"resource_type": "synthetic", "capacity": 0, "usage_count": 0}],
+    ]
+    cursor.fetchone.return_value = None
+    monkeypatch.setattr(module, "get_config", lambda _conn, _key: 1.0)
+
+    result = module.analyze(connection, "location-1")
+
+    query, params = cursor.execute.call_args_list[0].args
+    assert query.lstrip().upper().startswith("WITH TARGET")
+    assert "l.name" not in query
+    assert "l.id," not in query
+    assert not any(token in query.upper() for token in ("INSERT INTO", "UPDATE ", "DELETE FROM", "MERGE INTO"))
+    assert params == ("location-1", "location-1")
+    assert result.details["nearby_farm_count"] == 2
+    assert result.details["nearest_farm_km"] == 5.0
+    connection.commit.assert_not_called()
+    connection.rollback.assert_not_called()
+    connection.close.assert_not_called()
+    cursor.close.assert_called_once()

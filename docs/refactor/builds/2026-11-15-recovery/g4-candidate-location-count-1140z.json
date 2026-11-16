@@ -1,0 +1,9 @@
+{
+  "checked_at_utc": "2026-11-15T11:40:45Z",
+  "scope": "read-only repeatable transaction on the candidate database using the application runtime identity",
+  "locations": 1,
+  "farms": 1,
+  "row_identifiers_recorded": false,
+  "data_written": false,
+  "result": "second-location prerequisite remains absent"
+}

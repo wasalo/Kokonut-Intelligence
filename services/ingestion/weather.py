@@ -153,7 +153,7 @@ def build_weather_clickhouse_projection(records: list[dict]) -> dict:
 
 
 def insert_weather_clickhouse(records: list[dict], conn=None) -> None:
-    """Queue canonical weather rows; direct writes are demo-only when conn is absent."""
+    """Queue source-linked weather rows; direct writes are demo-only without a DB transaction."""
     projection = build_weather_clickhouse_projection(records)
     rows = projection["rows"]
     if not rows:
@@ -161,6 +161,27 @@ def insert_weather_clickhouse(records: list[dict], conn=None) -> None:
 
     try:
         if conn is not None:
+            source_ids = [record.get("id") for record in records]
+            if any(source_ids) and not all(source_ids):
+                raise ValueError("Weather projection rows must all include their persisted IDs")
+            if all(source_ids):
+                for record, row in zip(records, rows):
+                    source_id = str(record["id"])
+                    payload_hash = hash_payload({"source_id": source_id, "row": row})
+                    enqueue(
+                        conn,
+                        event_key=f"weather:weather_events:{source_id}",
+                        source_table="weather_observation",
+                        source_id=source_id,
+                        target_table="weather_events",
+                        columns=projection["columns"],
+                        rows=[row],
+                        payload_hash=payload_hash,
+                    )
+                return
+
+            # Compatibility for older callers that provide transient records
+            # without a persisted weather_observation ID.
             payload_hash = projection["payload_hash"]
             enqueue(conn, event_key=f"weather:weather_events:{payload_hash}",
                     source_table="weather_observation", source_id=payload_hash,
@@ -241,6 +262,7 @@ def run(location_id: str = None, *, all_locations: bool = False):
                 cur.execute("SAVEPOINT weather_location")
             savepoint_created = True
             pg_id = insert_weather(db, record, source_raw=raw)
+            record["id"] = pg_id
             log_ingestion(
                 source_system="openweathermap",
                 source_table="weather_api",

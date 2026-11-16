@@ -1,0 +1,72 @@
+{
+  "title": "Exact-head CI and candidate migration 754 rollout",
+  "recorded_date": "2026-11-09",
+  "scope": "Coolify Kernel candidate only; this is not production acceptance.",
+  "source_commit": "9d361bd1aab5ec8c483af8e2f04d3ae736e8fc41",
+  "github": {
+    "ci_run_id": "42712645509",
+    "ci_status": "completed",
+    "ci_conclusion": "success",
+    "jobs": {
+      "preflight": "success",
+      "collection-diagnostics": "skipped",
+      "integration-ci": "success",
+      "source-checks": "success",
+      "kernel-image": "success",
+      "ci": "success"
+    },
+    "integration_ci_duration": "38m11s",
+    "security_run_id": "42712644967",
+    "security_status": "completed",
+    "security_conclusion": "success"
+  },
+  "pre_migration_checkpoint": {
+    "backup_id": "candidate-pre-migration-754-20261109T224539Z",
+    "created_at": "2026-11-09T22:45:39Z",
+    "source_commit": "9d361bd1aab5ec8c483af8e2f04d3ae736e8fc41",
+    "databases": [
+      "kokonut_intelligence",
+      "zitadel"
+    ],
+    "encryption": "AES-256-CBC with PBKDF2; authenticated manifest",
+    "local_verification": "passed",
+    "r2_bucket": "kokonut-backups",
+    "r2_prefix": "kokonut-kernel-backups",
+    "upload": "committed after uploaded artifact length and SHA-256 readback verification",
+    "restore_performed": false
+  },
+  "coolify_deployment": {
+    "application_uuid": "fdphpruj8jxien23ockmbw0j",
+    "deployment_uuid": "6e78rgtuuy4ntns3hbuoc9cm",
+    "source_commit": "9d361bd1aab5ec8c483af8e2f04d3ae736e8fc41",
+    "status": "finished",
+    "created_at": "2026-11-09T23:12:15Z",
+    "updated_at": "2026-11-09T23:14:16Z"
+  },
+  "migration": {
+    "ordered_runner": true,
+    "plan_before": [
+      "schema:754_readonly_operator_tenant_context.sql"
+    ],
+    "applied": 1,
+    "failed": 0,
+    "plan_after_pending": 0
+  },
+  "runtime": {
+    "gateway_container": "healthy",
+    "worker_container": "healthy",
+    "health_endpoint_status": 200,
+    "positive_adelphi_farm_activity_read": {
+      "status": 200,
+      "confirmed_by": "Wasabi",
+      "response_count": "not reported",
+      "recorded_date": "2026-11-09"
+    },
+    "g5_weather_one_shot_evidence": "g5-weather-candidate-one-shot.json"
+  },
+  "not_performed_at_rollout": [
+    "No database role bootstrap or grant change was performed as part of the migration rollout",
+    "No provider job, schedule, email, or reference-data import was performed during the rollout; the later single weather request is recorded separately",
+    "No farm-activity record creation or publication"
+  ]
+}

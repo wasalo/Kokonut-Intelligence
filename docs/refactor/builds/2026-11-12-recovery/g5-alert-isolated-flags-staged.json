@@ -1,0 +1,37 @@
+{
+  "version": 1,
+  "recorded_at_utc": "2026-11-12T16:27:48Z",
+  "scope": "Stage the email event-delivery isolation flags in Coolify through its app-scoped API. No deployment or email delivery occurred.",
+  "candidate": {
+    "application_id": "fdphpruj8jxien23ockmbw0j",
+    "project_id": "qwo0g0o40c48s4ccwcowwcw0",
+    "environment_id": "b84s4c8k8w48kscows4w8cw4"
+  },
+  "temporary_api_token": {
+    "permissions": ["read", "write", "deploy"],
+    "resource_scope": "fdphpruj8jxien23ockmbw0j",
+    "expires_at_utc": "2026-11-19T16:22:05Z",
+    "value_printed_or_recorded": false,
+    "local_file_mode": "0600"
+  },
+  "environment_update": {
+    "method": "PATCH",
+    "endpoint": "/api/v1/applications/{uuid}/envs",
+    "production_flags_set_true": [
+      "KOKONUT_FEATURE_ISOLATED_EVENT_DISPATCH",
+      "KOKONUT_FEATURE_ISOLATED_NOTIFICATION_ENQUEUE",
+      "KOKONUT_FEATURE_ISOLATED_NOTIFICATION_DELIVERY"
+    ],
+    "preview_variables_changed": false,
+    "api_updates_succeeded": true,
+    "deployment_triggered": false
+  },
+  "ci_run": {
+    "run_id": 43255839046,
+    "head_sha": "e17f7aab54123264310e4475af40e60a67cbde8b",
+    "status_at_recording": "in_progress"
+  },
+  "email_sent": false,
+  "secret_values_printed": false,
+  "next_step": "After exact-head CI passes, deploy the candidate, confirm all three flags in the running worker, and perform one synthetic event-to-email acceptance against the approved inbox."
+}

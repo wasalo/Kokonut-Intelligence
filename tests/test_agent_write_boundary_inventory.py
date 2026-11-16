@@ -24,7 +24,7 @@ def test_current_inventory_pins_no_direct_agent_writes_and_authenticated_routes(
     assert len(operator_draft_calls) == 1
     assert operator_draft_calls[0]["source"] == "services/gateway/ai_summary_draft.py"
     assert inventory["authenticated_operator_task_request_function_calls"] == [
-        {"source": "services/gateway/ai_summary_task_request.py", "line": 76}
+        {"source": "services/gateway/ai_summary_task_request.py", "line": 61}
     ]
     assert inventory["authenticated_operator_task_review_function_calls"] == [
         {"source": "services/gateway/ai_summary_review.py", "line": 70}

@@ -41,9 +41,18 @@ check() {
     fi
 }
 
+run_disposable_clean_bootstrap() {
+    POSTGRES_PASSWORD=ci-bootstrap-placeholder \
+        KOKONUT_BOOTSTRAP_COMPOSE_FILE="$PROJECT_DIR/docker-compose.schema-bootstrap.yml" \
+        KOKONUT_BOOTSTRAP_COMPOSE_PROJECT="kokonut-bootstrap-$$" \
+        KOKONUT_BOOTSTRAP_START_DATABASE=true \
+        KOKONUT_BOOTSTRAP_REMOVE_PROJECT=true \
+        bash "$SCRIPT_DIR/verify-clean-bootstrap.sh"
+}
+
 if [ "$CHECK_MODE" = --database-only ]; then
     echo "[DB] Clean PostgreSQL bootstrap..."
-    check "Clean PostgreSQL bootstrap" "bash $SCRIPT_DIR/verify-clean-bootstrap.sh"
+    check "Clean PostgreSQL bootstrap" "run_disposable_clean_bootstrap"
     echo ""
 else
 # 1. Python runtime and imports
@@ -141,7 +150,7 @@ fi
 
 if [ "$CHECK_MODE" = all ]; then
     echo "[DB] Clean PostgreSQL bootstrap..."
-    check "Clean PostgreSQL bootstrap" "bash $SCRIPT_DIR/verify-clean-bootstrap.sh"
+    check "Clean PostgreSQL bootstrap" "run_disposable_clean_bootstrap"
     echo ""
 fi
 

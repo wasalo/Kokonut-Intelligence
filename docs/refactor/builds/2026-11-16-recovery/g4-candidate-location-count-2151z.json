@@ -1,0 +1,13 @@
+{
+  "evidence_version": 1,
+  "observed_at_utc": "2026-11-16T22:09:00Z",
+  "environment": "Coolify candidate",
+  "scope": "Read-only aggregate SQL over the candidate database; no location rows or private fields returned.",
+  "counts": {
+    "locations": 1,
+    "farms": 1,
+    "locations_named_los_saladillos": 0
+  },
+  "writes_performed": false,
+  "interpretation": "Los Saladillos is not yet present in the candidate; G4 cross-location denial remains pending that location's creation."
+}

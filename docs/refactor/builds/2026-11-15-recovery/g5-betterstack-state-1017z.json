@@ -1,0 +1,42 @@
+{
+  "checked_at": "2026-11-15T10:17:06Z",
+  "service": "Better Stack",
+  "credential_source": "SOPS-encrypted .env.sops",
+  "credential_value_recorded": false,
+  "incidents_api_token": "present",
+  "urgencies": {
+    "http_status": 200,
+    "records": [
+      {
+        "id": "472425",
+        "name": "Kokonut P1 Critical",
+        "email": true,
+        "call": false,
+        "push": false,
+        "sms": false
+      }
+    ]
+  },
+  "policies": {
+    "http_status": 200,
+    "count": 0,
+    "resources": []
+  },
+  "incoming_webhooks": {
+    "http_status": 200,
+    "count": 0,
+    "resources": []
+  },
+  "gerkery": {
+    "http_status": 200,
+    "record_type": "team_member_invitation",
+    "role": "responder"
+  },
+  "alejandro": {
+    "http_status": 200,
+    "record_type": "team_member",
+    "role": "responder",
+    "mobile_app_platform_count": 0
+  },
+  "side_effects": "read-only; no Better Stack resources changed"
+}

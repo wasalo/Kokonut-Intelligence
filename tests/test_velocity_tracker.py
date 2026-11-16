@@ -2,11 +2,8 @@
 
 from __future__ import annotations
 
-import uuid
 from datetime import datetime, timezone
-from unittest.mock import MagicMock, patch
-
-import pytest
+from unittest.mock import MagicMock
 
 
 def _make_mock_conn(mock_cursor):
@@ -140,3 +137,40 @@ class TestAdaptationVelocityTracker:
         assert result["trend_direction"] == "improving"
         assert result["trend_strength"] == 0.8
         assert result["data_points"] == 1
+
+    def test_feedback_trend_filters_to_the_requested_location(self):
+        tracker, _, mock_cursor = self._make_tracker()
+        mock_cursor.fetchall.return_value = [
+            {"period": "current", "cnt": 4},
+            {"period": "prior", "cnt": 2},
+        ]
+
+        result = tracker._compute_feedback_trend(mock_cursor, "location-1", 30)
+
+        query, params = mock_cursor.execute.call_args.args
+        assert "WHERE location_id = %s" in query
+        assert params == (30, "location-1", 60)
+        assert result == 100.0
+
+    def test_cycle_and_time_to_action_trends_filter_to_location(self):
+        cases = (
+            (
+                "_compute_cycle_time_trend",
+                [{"period": "current", "avg_ms": 100.0}, {"period": "prior", "avg_ms": 200.0}],
+            ),
+            (
+                "_compute_time_to_action_trend",
+                [{"period": "current", "avg_hours": 2.0}, {"period": "prior", "avg_hours": 4.0}],
+            ),
+        )
+        for method_name, rows in cases:
+            tracker, _, mock_cursor = self._make_tracker()
+            mock_cursor.fetchall.return_value = rows
+
+            result = getattr(tracker, method_name)(mock_cursor, "location-1", 30)
+
+            query, params = mock_cursor.execute.call_args.args
+            assert "WHERE location_id = %s" in query
+            assert params == (30, "location-1", 60)
+            assert "UPDATE " not in query.upper()
+            assert result == -50.0

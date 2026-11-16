@@ -1,5 +1,6 @@
 """OIDC routes for authenticated AI-summary and synthesis draft requests."""
 
+import os
 from typing import Literal
 from uuid import UUID
 
@@ -73,6 +74,8 @@ class AiSummaryTaskReceipt(_AiSummaryTaskContract):
     created_at: AwareDatetime
     replayed: bool = Field(strict=True)
     status: Literal["authorized"]
+    scheduled_task_id: UUID
+    dispatch_status: Literal["queued", "running", "retrying", "completed", "failed"]
 
     @model_validator(mode="after")
     def summary_type_matches_task(self):
@@ -249,7 +252,7 @@ def register_ai_summary_draft_routes(router, provider, run_in_threadpool, psycop
             404: "Operator OIDC is disabled.",
             409: "The retry ID conflicts with a different task intent.",
             500: "The task receipt failed its response contract.",
-            503: "The task request service is unavailable.",
+            503: "Authenticated synthesis dispatch is disabled or unavailable.",
         }.items()
     }
 
@@ -281,6 +284,12 @@ def register_ai_summary_draft_routes(router, provider, run_in_threadpool, psycop
                 status_code=400,
                 content={"error": "Synthesis task request is invalid"},
                 headers=headers,
+            )
+        if os.getenv("KOKONUT_FEATURE_AUTHENTICATED_SYNTHESIS_DISPATCH", "false").lower() != "true":
+            return JSONResponse(
+                status_code=503,
+                content={"error": "Authenticated synthesis dispatch is disabled"},
+                headers={**headers, "Retry-After": "30"},
             )
         try:
             result = await run_in_threadpool(

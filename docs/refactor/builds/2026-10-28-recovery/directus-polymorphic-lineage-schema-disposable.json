@@ -3,7 +3,7 @@
   "candidate_or_legacy_touched": false,
   "cleanup": "completed_and_verified",
   "host_ports_published": false,
-  "latest_schema_migration_id": "schema:680_runtime_yield_benchmark_read_only.sql",
+  "latest_schema_migration_id": "schema:755_operator_hub_relational_forms.sql",
   "network_mode": "none",
   "populated_row_acceptance": "not_run",
   "required_columns_expected": 60,
@@ -23,8 +23,8 @@
       "aggregate_group_count": 0
     }
   },
-  "schema_migrations_applied": 671,
-  "schema_migrations_discovered": 671,
+  "schema_migrations_applied": 746,
+  "schema_migrations_discovered": 746,
   "seed_migrations_applied": 0,
   "source_relations_expected": 29,
   "source_relations_present": 29,

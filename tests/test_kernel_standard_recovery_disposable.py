@@ -40,6 +40,10 @@ def _resolved_compose_model() -> dict:
                 "profiles": ["runtime-admin"],
                 "networks": {"kernel": {}},
             },
+            "report-snapshot-export-artifact-init": {
+                "network_mode": "none",
+                "networks": {},
+            },
             "unrelated": {"networks": {"kernel": {}}},
         },
         "networks": {"kernel": {"name": "synthetic_standard_kernel"}},
@@ -50,7 +54,14 @@ def _resolved_compose_model() -> dict:
 def test_isolated_model_preserves_split_standard_roles_without_published_ports() -> None:
     model = CHECK._isolated_compose_model(_resolved_compose_model())
 
-    assert set(model["services"]) == {"database", "app", "worker", "proxy", "runtime-role-bootstrap"}
+    assert set(model["services"]) == {
+        "database",
+        "app",
+        "worker",
+        "proxy",
+        "runtime-role-bootstrap",
+        "report-snapshot-export-artifact-init",
+    }
     assert all("ports" not in service for service in model["services"].values())
     assert model["networks"]["kernel"]["internal"] is True
     assert model["services"]["app"]["command"] == [
@@ -363,17 +374,30 @@ def test_directus_reference_boundary_checks_optional_role_select_and_mutation_de
         "quality_grade",
         "readiness_dimension",
     )
-    output = "\n".join(["t"] * len(targets) + ["t|f|f|f|f|f|f|t"] * len(targets))
+    read_output = "\n".join(["t"] * len(targets))
+    privilege_output = "\n".join(["t|f|f|f|f|f|f|t"] * len(targets))
 
     def fake_run(command, **kwargs):
         calls.append(command)
         if "--no-deps" in command:
             stdout = '{"status":"provisioned"}'
-        elif command[-1].startswith("SET ROLE kokonut_directus_runtime; "):
-            stdout = ""
-            return subprocess.CompletedProcess(command, 1, stdout, "permission denied for table probe")
+        elif command[-1].startswith("SET ROLE kokonut_directus_runtime;"):
+            if any(
+                statement in command[-1]
+                for statement in (
+                    "UPDATE public.",
+                    "INSERT INTO public.",
+                    "DELETE FROM public.",
+                    "TRUNCATE public.",
+                )
+            ):
+                stdout = ""
+                return subprocess.CompletedProcess(command, 1, stdout, "permission denied for table probe")
+            stdout = read_output
+        elif "WITH targets(ordinal, relation_name) AS (VALUES" in command[-1]:
+            stdout = privilege_output
         else:
-            stdout = output
+            stdout = ""
         return subprocess.CompletedProcess(command, 0, stdout, "")
 
     monkeypatch.setattr(CHECK, "_run", fake_run)
@@ -386,17 +410,19 @@ def test_directus_reference_boundary_checks_optional_role_select_and_mutation_de
     )
 
     assert provisioned["status"] == "provisioned"
-    assert len(calls) == 2 + 4 * len(targets)
+    assert len(calls) == 3 + 4 * len(targets)
     provisioning_command = calls[0]
     assert "app" in provisioning_command
     assert "services.migration.directus_role" in provisioning_command
     assert "directus" not in CHECK._isolated_compose_model(_resolved_compose_model())["services"]
-    query = calls[1][-1]
-    assert "SET ROLE kokonut_directus_runtime" in query
-    assert "has_table_privilege('kokonut_directus_runtime'" in query
-    assert all(relation in query for relation in targets)
-    assert query.count(";") == 2 + 2 * len(targets)
-    assert all("kokonut_directus_runtime" in call[-1] for call in calls[2:])
+    read_query = calls[1][-1]
+    assert "SET ROLE kokonut_directus_runtime" in read_query
+    assert all(relation in read_query for relation in targets)
+    assert read_query.count(";") == 2 + len(targets)
+    privilege_query = calls[2][-1]
+    assert "has_table_privilege('kokonut_directus_runtime'" in privilege_query
+    assert all(relation in privilege_query for relation in targets)
+    assert all("kokonut_directus_runtime" in call[-1] for call in calls[3:])
     assert all(
         any(
             statement in call[-1]
@@ -407,7 +433,7 @@ def test_directus_reference_boundary_checks_optional_role_select_and_mutation_de
                 "TRUNCATE public.",
             )
         )
-        for call in calls[2:]
+        for call in calls[3:]
     )
 
 
@@ -415,10 +441,18 @@ def test_directus_reference_boundary_rejects_any_mutating_effective_privilege(
     monkeypatch, tmp_path
 ) -> None:
     def fake_run(command, **kwargs):
+        if command[-1].startswith("SET ROLE kokonut_directus_runtime;"):
+            output = "\n".join(["t"] * 6)
+        else:
+            output = "\n".join(
+                ["t"] * 6
+                + ["t|f|t|f|f|f|f|t"]
+                + ["t|f|f|f|f|f|f|t"] * 5
+            )
         return subprocess.CompletedProcess(
             command,
             0,
-            "\n".join(["t"] * 6 + ["t|f|t|f|f|f|f|t"] + ["t|f|f|f|f|f|f|t"] * 5),
+            output,
             "",
         )
 

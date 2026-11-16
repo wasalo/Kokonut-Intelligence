@@ -31,7 +31,7 @@ SNAPSHOT_EVIDENCE = ROOT / "docs/refactor/builds/2026-10-23-recovery/directus-ef
 DASHBOARD_EVIDENCE = ROOT / "docs/refactor/builds/2026-10-26-recovery/directus-dashboard-field-allowlist-disposable.json"
 METRIC_VALUE_EVIDENCE = ROOT / "docs/refactor/builds/2026-10-26-recovery/directus-metric-value-location-scope.json"
 PERMISSION_SEED = ROOT / "config/directus/permissions.sql"
-EXPECTED_PERMISSION_ROWS = 175
+EXPECTED_PERMISSION_ROWS = 176
 EXPECTED_DASHBOARD_AUDITOR_FIELDS = (
     "id,name,description,dataset_type,location_id,query_id,refresh_interval_minutes,"
     "last_refreshed_at,status,metadata,created_at,updated_at,updated_by"
@@ -287,6 +287,73 @@ def main() -> int:
         )
         require_success(agent_task_setup, "synthetic Directus agent_task collection", env)
 
+        # The role bootstrap is intentionally migration-gated. Apply the
+        # migration-owned policy registry, then materialize its referenced
+        # relations as synthetic tables so this profile smoke can exercise
+        # effective grants without replaying unrelated application schemas.
+        policy_migration = run(
+            [
+                *compose,
+                "exec",
+                "-T",
+                "database",
+                "psql",
+                "-U",
+                "kokonut",
+                "-d",
+                "kokonut_intelligence",
+                "-v",
+                "ON_ERROR_STOP=1",
+            ],
+            env=env,
+            input_text=(ROOT / "schemas/postgres/705_directus_relation_privilege_policy.sql").read_text(
+                encoding="utf-8"
+            ),
+        )
+        require_success(policy_migration, "Directus relation policy migration fixture", env)
+
+        policy_relations = run(
+            [
+                *compose,
+                "exec",
+                "-T",
+                "database",
+                "psql",
+                "-U",
+                "kokonut",
+                "-d",
+                "kokonut_intelligence",
+                "-v",
+                "ON_ERROR_STOP=1",
+                "-c",
+                """
+                DO $fixture$
+                DECLARE policy record;
+                BEGIN
+                    FOR policy IN
+                        SELECT schema_name, relation_name
+                          FROM kokonut_security.directus_relation_privilege_policy
+                    LOOP
+                        IF pg_catalog.to_regclass(
+                            pg_catalog.format('%I.%I', policy.schema_name, policy.relation_name)
+                        ) IS NULL THEN
+                            EXECUTE pg_catalog.format(
+                                'CREATE TABLE %I.%I ('
+                                'id uuid PRIMARY KEY DEFAULT gen_random_uuid(), '
+                                'value text NOT NULL DEFAULT ''fixture'')',
+                                policy.schema_name,
+                                policy.relation_name
+                            );
+                        END IF;
+                    END LOOP;
+                END;
+                $fixture$;
+                """,
+            ],
+            env=env,
+        )
+        require_success(policy_relations, "synthetic Directus policy relation fixtures", env)
+
         role = run([*compose, "--profile", "directus-admin", "run", "--rm", "directus-role-bootstrap"], env=env)
         require_success(role, "Directus role bootstrap", env)
         bootstrap = run([*compose, "--profile", "directus-admin", "run", "--rm", "directus-bootstrap"], env=env)
@@ -381,7 +448,8 @@ def main() -> int:
         first_permission_rows = effective_permission_rows()
         if len(first_permission_rows) != EXPECTED_PERMISSION_ROWS:
             raise RuntimeError(
-                "fresh Directus seed effective row count differs from its curated source inventory"
+                "fresh Directus seed effective row count differs from its curated source inventory "
+                f"(expected {EXPECTED_PERMISSION_ROWS}, got {len(first_permission_rows)})"
             )
         dashboard_permissions = [
             row for row in first_permission_rows

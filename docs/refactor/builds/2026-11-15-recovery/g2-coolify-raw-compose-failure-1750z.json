@@ -1,0 +1,34 @@
+{
+  "observed_at": "2026-11-15T17:50:58Z",
+  "application_id": "fdphpruj8jxien23ockmbw0j",
+  "deployment_id": "an7ff60vik7hruogscl0jp00",
+  "source_commit": "8a5245c64797875769b484c2f63e613d7d0bcc75",
+  "deployment_status": "failed",
+  "public_checks": {
+    "https://hub.kokonut.network/health": 503,
+    "https://auth.kokonut.network/.well-known/openid-configuration": 503
+  },
+  "container_status": {
+    "app": "restarting",
+    "worker": "restarting",
+    "zitadel-api": "restarting",
+    "proxy": "created",
+    "zitadel-login": "created",
+    "database": "healthy",
+    "zitadel-db": "healthy"
+  },
+  "deployable_compose": {
+    "service_scoped_runtime_env_files_present": false,
+    "shared_application_env_file_present": true
+  },
+  "zitadel_runtime_environment": {
+    "database_dsn_key_present": false,
+    "values_inspected": false,
+    "sanitized_startup_result": "ZITADEL attempted PostgreSQL at 127.0.0.1:5432 instead of the healthy zitadel-db service"
+  },
+  "root_cause": "Normal Coolify Compose deployment omitted the source service-scoped env_file declarations from the deployable Compose. The runtime services therefore started without their SOPS-derived service environment files.",
+  "read_only_observation": true,
+  "secret_values_retained": false,
+  "candidate_database_volumes_preserved": true,
+  "next_action": "Use Raw Compose with repository-owned Traefik routes, the resource-specific external network, and resource-rooted host secret mounts; require exact-head CI and Security before redeploying."
+}

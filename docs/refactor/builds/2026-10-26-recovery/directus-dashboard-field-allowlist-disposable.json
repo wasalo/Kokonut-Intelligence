@@ -2,7 +2,7 @@
   "candidate_or_legacy_database_used": false,
   "database": "fresh isolated Kernel PostgreSQL volume",
   "database_identity": "kokonut_directus_runtime",
-  "date": "2026-10-26",
+  "date": "2026-11-12",
   "legacy_dashboard_wildcard_repaired": true,
   "limitations": [
     "Fresh repository-managed policy fixture only; custom/operator-edited policies are excluded.",

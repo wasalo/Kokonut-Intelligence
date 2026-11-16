@@ -1,6 +1,11 @@
-# Directus API Reference
+# Directus Compatibility API Reference
 
-This document and `openapi.yaml` describe the Directus REST/GraphQL adapter. They do not describe the native Kokonut FastAPI Gateway; its routes and auth policies are documented separately.
+This document describes only the optional Directus REST/GraphQL adapter and its
+compatibility schema. It is not the native Kokonut FastAPI Gateway contract.
+For the native API, see the [Gateway policy guide](gateway.md) and the
+[implemented Gateway route reference](../services/gateway/README.md). Directus
+is not required by the Kernel base or the Standard VPS profile; its permission
+and compatibility acceptance remain separate.
 
 ## Directus REST API
 

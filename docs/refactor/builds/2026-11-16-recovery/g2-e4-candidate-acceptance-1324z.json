@@ -1,0 +1,92 @@
+{
+  "format_version": 1,
+  "gate": "G2",
+  "recorded_at": "2026-11-16T13:24:38Z",
+  "pull_request": {
+    "number": 73,
+    "head_commit": "8b7be1b4fadca8b321ada07961b94696cdc79aed",
+    "ci_run": "43802789934",
+    "ci_conclusion": "success",
+    "security_run": "43802789906",
+    "security_conclusion": "success",
+    "head_commit_changes_product_source": false
+  },
+  "candidate": {
+    "coolify_application_uuid": "fdphpruj8jxien23ockmbw0j",
+    "deployment_id": "vs39uo4iu16j6hinyzck1a1v",
+    "deployed_source_commit": "e4f9ee74e05fa010fc10d38bf227354f517971b3",
+    "image_revision_labels_match_deployed_source": true,
+    "mounted_postgres_volumes": [
+      "fdphpruj8jxien23ockmbw0j_kernel-postgres-data",
+      "fdphpruj8jxien23ockmbw0j_kernel-zitadel-postgres-data"
+    ],
+    "migration_ledger": {
+      "applied_count": 746,
+      "latest_entry": "schema:755_operator_hub_relational_forms.sql",
+      "pending_or_failed": 0
+    },
+    "checkpoint_id": "candidate-pre-e4f9ee74-20261116T025927Z",
+    "database_grants_changed": false
+  },
+  "health_at_2026_11_16_1322z": {
+    "app_gateway": {"state": "running", "health": "healthy", "restart_count": 0, "oom_killed": false},
+    "worker": {"state": "running", "health": "healthy", "restart_count": 0, "oom_killed": false},
+    "database": {"state": "running", "health": "healthy", "restart_count": 0, "oom_killed": false},
+    "zitadel_api": {"state": "running", "health": "healthy", "restart_count": 0, "oom_killed": false},
+    "zitadel_database": {"state": "running", "health": "healthy", "restart_count": 0, "oom_killed": false},
+    "zitadel_login": {"state": "running", "health": "healthy", "restart_count": 0, "oom_killed": false},
+    "hub_health_http_status": 200
+  },
+  "private_media_configuration": {
+    "startup_failure_cause": "Coolify host file mode 0551 violated the Gateway validator's no-execute permission policy.",
+    "repaired_mode": "0440",
+    "owner_and_group": "0:10001",
+    "validator_passed_after_repair": true,
+    "mode_still_correct_on_2026_11_16_1322z_recheck": true,
+    "automatic_post_deploy_correction": false
+  },
+  "runtime_database_identity": {
+    "api_role": "kokonut_runtime",
+    "worker_role": "kokonut_worker_runtime",
+    "database": "kokonut_intelligence",
+    "api_and_worker_pg_passwords_distinct": true,
+    "worker_inherits_runtime_membership": true,
+    "membership_inherit_option": true,
+    "membership_set_option": false,
+    "grants_narrowed": false,
+    "c1_status": "open"
+  },
+  "service_secret_isolation": {
+    "source_allowlist": "config/kernel/coolify-service-secret-env.json",
+    "nonempty_sensitive_names_outside_service_allowlist": [],
+    "media_environment_keys_present_in_containers": [],
+    "raw_runtime_password_names_in_app_or_worker": [],
+    "required_secret_keys_present": ["app", "worker", "database", "zitadel-api", "zitadel-db", "zitadel-login"],
+    "nonempty_allowlisted_key_counts": {
+      "app": "10/23",
+      "worker": "16/68",
+      "database": "1/1",
+      "zitadel-api": "3/3",
+      "zitadel-db": "2/2",
+      "zitadel-login": "1/1",
+      "proxy": "0/0"
+    },
+    "service_secret_directory": {"mode": "0700", "owner_and_group": "0:0"},
+    "service_secret_files": {"mode": "0440", "owner_and_group": "0:10001"},
+    "secret_values_printed_or_saved": false,
+    "optional_unconfigured_keys_remain_for_g5": true
+  },
+  "host_cpu_snapshot_at_2026_11_16_1322z": {
+    "vcpus": 2,
+    "load_average_1_5_15": [11.86, 13.53, 13.31],
+    "run_queue_samples": [25, 31, 25],
+    "cpu_steal_percent_samples": [5, 72, 72],
+    "candidate_services_remained_healthy": true
+  },
+  "acceptance": {
+    "g2_candidate_status": "passed",
+    "c1_grant_narrowing": "open; no grants changed",
+    "g5_optional_provider_configuration": "open",
+    "post_deploy_media_mode_check": "required after each Coolify deployment until mode reset is prevented"
+  }
+}

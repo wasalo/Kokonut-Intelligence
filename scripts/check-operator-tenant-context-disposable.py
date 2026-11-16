@@ -16,6 +16,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 FIXTURE = ROOT / "tests/fixtures/operator_tenant_context_disposable.sql"
 MIGRATION = ROOT / "schemas/postgres/394_signed_operator_tenant_context.sql"
+READONLY_CONTEXT_MIGRATION = ROOT / "schemas/postgres/754_readonly_operator_tenant_context.sql"
 DEFAULT_OUTPUT = (
     ROOT
     / "docs/refactor/builds/2026-10-14-recovery/operator-tenant-context-disposable.json"
@@ -241,6 +242,56 @@ def run_acceptance(container: str) -> list[str]:
     docker_sql(
         container,
         f"""
+        SET ROLE kokonut_runtime;
+        BEGIN READ ONLY;
+        DO $$
+        DECLARE context_row RECORD; row_count INTEGER;
+        BEGIN
+            SELECT * INTO context_row
+              FROM kokonut_security.set_operator_tenant_context(
+                  '{OWNER_SESSION_HASH}', '{OWNER_OPERATOR_ID}'::uuid, '{LOCATION_ID}'::uuid,
+                  'farm_activity', 'read', '[]'::jsonb
+              );
+            IF NOT FOUND THEN
+                RAISE EXCEPTION 'read-only transaction denied a valid owner context';
+            END IF;
+            IF context_row.tenant_id IS DISTINCT FROM '{OWNER_ORG_ID}'::uuid
+               OR context_row.actor_id IS DISTINCT FROM '{OWNER_OPERATOR_ID}'::uuid
+               OR context_row.actor_type IS DISTINCT FROM 'operator' THEN
+                RAISE EXCEPTION 'read-only transaction returned incorrect context claims';
+            END IF;
+            SELECT count(*) INTO row_count FROM public.operator_context_probe;
+            IF row_count <> 1 OR
+               (SELECT value FROM public.operator_context_probe) <> 'owner-row' THEN
+                RAISE EXCEPTION 'read-only signed context did not enforce forced RLS';
+            END IF;
+
+            SELECT * INTO context_row
+              FROM kokonut_security.set_operator_tenant_context(
+                  '{OWNER_SESSION_HASH}', '{OWNER_OPERATOR_ID}'::uuid, '{LOCATION_ID}'::uuid,
+                  'farm_activity', 'ungranted_read', '[]'::jsonb
+              );
+            IF FOUND THEN
+                RAISE EXCEPTION 'read-only transaction accepted an ungranted scope';
+            END IF;
+            SELECT count(*) INTO row_count
+              FROM kokonut_security.current_tenant_context();
+            IF row_count <> 0 THEN
+                RAISE EXCEPTION 'denied read-only scope retained signed context';
+            END IF;
+            SELECT count(*) INTO row_count FROM public.operator_context_probe;
+            IF row_count <> 0 THEN
+                RAISE EXCEPTION 'denied read-only scope retained forced-RLS visibility';
+            END IF;
+        END;
+        $$;
+        COMMIT;
+        """,
+    )
+
+    docker_sql(
+        container,
+        f"""
         UPDATE public.location_organization_share
            SET revoked_at = NOW()
          WHERE location_id = '{LOCATION_ID}'
@@ -346,6 +397,7 @@ def run_acceptance(container: str) -> list[str]:
         "current owner session and tenant-qualified grant establish signed forced-RLS context",
         "active location share plus operator membership and grant establish partner context",
         "cross-tenant required scopes, legacy grants, disabled identity, revoked/expired sessions, and expired share are denied",
+        "read-only transactions establish valid signed context without row locks and deny an ungranted scope under forced RLS",
         "denied scope clears prior signed context and application row visibility",
         "caller-controlled GUC and tampered HMAC payload cannot forge tenant visibility",
         "share revocation immediately removes shared tenant context",
@@ -376,6 +428,9 @@ def main() -> int:
         migration_sql = MIGRATION.read_text()
         docker_sql(container, migration_sql)
         docker_sql(container, migration_sql)
+        readonly_context_sql = READONLY_CONTEXT_MIGRATION.read_text()
+        docker_sql(container, readonly_context_sql)
+        docker_sql(container, readonly_context_sql)
         enable_forced_rls(container)
         checks = run_acceptance(container)
         report = {
@@ -385,6 +440,8 @@ def main() -> int:
             "migrations": [
                 "394_signed_operator_tenant_context.sql",
                 "394_signed_operator_tenant_context.sql (idempotency replay)",
+                "754_readonly_operator_tenant_context.sql",
+                "754_readonly_operator_tenant_context.sql (idempotency replay)",
             ],
             "checks": checks,
             "candidate_database_touched": False,

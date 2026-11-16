@@ -1,0 +1,23 @@
+{
+  "evidence_type": "read_only_candidate_data_readiness_aggregate_refresh",
+  "observed_at_utc": "2026-11-12T08:49:13Z",
+  "coolify_application_uuid": "fdphpruj8jxien23ockmbw0j",
+  "candidate_generation": "20261112T070854",
+  "query_scope": "exact row counts only, executed in a read-only PostgreSQL transaction",
+  "counts": {
+    "locations": 1,
+    "farms": 1,
+    "farm_activities": 2,
+    "weather_observations": 1,
+    "yield_observations": 0,
+    "irrigation_events": 0,
+    "soil_samples": 0,
+    "metric_values": 0,
+    "report_snapshots": 0
+  },
+  "interpretation": "No second location has been added yet. Adelphi measurement and report reference data are still not populated, so G4 cross-location denial and the G5 populated-data gate remain open.",
+  "limitations": [
+    "No row contents, personal data, or identifiers were read or recorded.",
+    "No database writes, provider requests, or reference-data imports were performed."
+  ]
+}

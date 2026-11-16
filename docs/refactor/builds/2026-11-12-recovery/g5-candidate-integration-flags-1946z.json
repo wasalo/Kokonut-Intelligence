@@ -1,0 +1,45 @@
+{
+  "captured_at_utc": "2026-11-12T19:46:43Z",
+  "candidate_source_commit": "da6dd018350da0ccdd89860e3034a67d258374d4",
+  "method": "Read services.core.features.list_features() inside the existing application and worker containers; record names and boolean states only",
+  "components": {
+    "app": {
+      "isolated_event_dispatch": true,
+      "isolated_notification_enqueue": true,
+      "isolated_notification_delivery": true,
+      "signed_weather_worker": false,
+      "signed_weather_forecast_worker": false,
+      "signed_climate_worker": false,
+      "signed_remote_sensing_worker": false,
+      "isolated_market_data_worker": false,
+      "isolated_eas_indexer_worker": false,
+      "isolated_rpc_indexer_worker": false,
+      "isolated_gnosis_indexer_worker": false,
+      "isolated_baal_indexer_worker": false,
+      "isolated_report_snapshot_export_worker": false,
+      "isolated_clickhouse_outbox_worker": false
+    },
+    "worker": {
+      "isolated_event_dispatch": true,
+      "isolated_notification_enqueue": true,
+      "isolated_notification_delivery": true,
+      "signed_weather_worker": false,
+      "signed_weather_forecast_worker": false,
+      "signed_climate_worker": false,
+      "signed_remote_sensing_worker": false,
+      "isolated_market_data_worker": false,
+      "isolated_eas_indexer_worker": false,
+      "isolated_rpc_indexer_worker": false,
+      "isolated_gnosis_indexer_worker": false,
+      "isolated_baal_indexer_worker": false,
+      "isolated_report_snapshot_export_worker": false,
+      "isolated_clickhouse_outbox_worker": false
+    }
+  },
+  "acceptance": {
+    "event_and_notification_outboxes": "empty in the latest read-only candidate checks",
+    "candidate_email_delivery": "not demonstrated by the current flag snapshot",
+    "provider_integrations": "remain off pending populated-data, credential, and operation acceptance"
+  },
+  "secret_values_recorded": false
+}

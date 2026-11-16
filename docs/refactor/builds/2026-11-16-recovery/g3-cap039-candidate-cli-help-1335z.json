@@ -1,0 +1,28 @@
+{
+  "version": 1,
+  "observed_at_utc": "2026-11-16T13:35:26Z",
+  "gate": "G3",
+  "capability": "CAP-039",
+  "classification": "partial candidate availability check",
+  "candidate": {
+    "application_uuid": "fdphpruj8jxien23ockmbw0j",
+    "deployment_uuid": "vs39uo4iu16j6hinyzck1a1v",
+    "component": "app",
+    "image_revision": "e4f9ee74e05fa010fc10d38bf227354f517971b3",
+    "health": "healthy"
+  },
+  "check": {
+    "command": "python3 -m services.cli --help",
+    "execution": "docker exec in the deployed candidate app container over the authorized SSH session",
+    "exit_code": 0,
+    "result": "The unified CLI usage and registered service groups were displayed, including the native kernel, DAO, and treasury groups.",
+    "database_or_provider_access": false,
+    "candidate_writes": false,
+    "secret_values_printed": false
+  },
+  "limitations": [
+    "This check does not execute every mounted legacy parser help path or verify argument forwarding.",
+    "It does not establish service-command behavior, source/caller parity, or full CAP-039 acceptance.",
+    "Exact-head CI on documentation commit bedfb913 has source checks and Security green; integration and image jobs were still running at observation time."
+  ]
+}

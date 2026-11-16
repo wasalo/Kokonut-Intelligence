@@ -1,0 +1,9 @@
+{
+  "checked_at_utc": "2026-11-15T11:48:35Z",
+  "probe": "https://hub.kokonut.network/health/ready",
+  "source": "VPS host",
+  "http_status": 200,
+  "response_body_retained": false,
+  "data_written": false,
+  "interpretation": "The current candidate readiness endpoint responded successfully; this does not prove source/image parity or soak acceptance."
+}

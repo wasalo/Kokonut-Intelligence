@@ -1,0 +1,56 @@
+{
+  "version": 1,
+  "recorded_date": "2026-11-10",
+  "scope": "One bounded signed Copernicus worker invocation for Kokonut Adelphi on the Coolify Kernel candidate.",
+  "candidate": {
+    "coolify_application_id": "fdphpruj8jxien23ockmbw0j",
+    "deployment_id": "bf8swctp02pxlxlyhcscyyzt",
+    "source_commit": "7a2b0547f915bd83bd65daf534e0e05fda1b5c17",
+    "location_id": "1b1775d2-3043-42f9-9967-5d3f18db7ae0"
+  },
+  "database_identity": {
+    "login": "kokonut_remote_sensing_login",
+    "password_source": "local encrypted SOPS environment",
+    "password_authentication": "passed over PostgreSQL TCP",
+    "database_connect": true,
+    "worker_execution_membership": "SET-only kokonut_worker_execution",
+    "direct_remote_sensing_job_select": false,
+    "direct_remote_sensing_job_insert": false
+  },
+  "one_shot": {
+    "provider": "Copernicus Data Space",
+    "candidate_jobs_created": 1,
+    "provider_attempts": 1,
+    "provider_outcome": "no_data",
+    "job_last_run_status": "success",
+    "job_final_status": "paused",
+    "cloud_cover_ceiling_pct": 20,
+    "lookback_days": 14,
+    "observations_fetched": 0,
+    "observations_written": 0,
+    "fallback_enabled": false,
+    "recurring_schedule_created": false,
+    "persistent_worker_feature_flag": false
+  },
+  "cleanup": {
+    "temporary_worker_credential_revoked": true,
+    "temporary_location_scope_revoked": true,
+    "temporary_principal_disabled": true,
+    "active_temporary_principals": 0,
+    "unrevoked_temporary_credentials": 0,
+    "unrevoked_temporary_scope_grants": 0,
+    "sops_managed_database_login_retained": true,
+    "database_connect_retained": true
+  },
+  "verification": {
+    "database_job_and_cleanup_postflight": "read-only aggregate query passed",
+    "worker_stdout_summary_parser": "did not parse extra non-JSON stdout; database state was independently verified",
+    "secret_values_printed": false,
+    "boundary_values_or_product_ids_recorded": false
+  },
+  "limitations": [
+    "The worker completed successfully but Copernicus returned no observations under the existing 20% cloud ceiling and 14-day lookback.",
+    "The prior read-only catalog query used a 100% cloud ceiling and matched five products; it is not positive ingestion evidence for this worker configuration.",
+    "Positive-data ingestion, populated-data parity, recurring execution, climate-job acceptance, and production acceptance remain open."
+  ]
+}

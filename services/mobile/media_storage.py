@@ -9,6 +9,13 @@ from datetime import datetime, timezone
 from typing import Protocol
 from urllib.parse import urlsplit
 
+from services.mobile.media_encryption import (
+    MEDIA_ENVELOPE_OVERHEAD,
+    MediaEnvelopeError,
+    encrypt_media_envelope,
+    parse_media_encryption_key,
+)
+
 MAX_MEDIA_BYTES = 2_000_000
 ALLOWED_CONTENT_TYPES = frozenset({"image/jpeg"})
 
@@ -57,9 +64,15 @@ def _utc_datetime(value: datetime) -> datetime:
 
 
 class S3CompatibleMediaStore:
-    """Small provider-neutral adapter around an S3-compatible private bucket."""
+    """Application-encrypted media adapter for an S3-compatible private bucket."""
 
-    def __init__(self, client, bucket: str):
+    def __init__(self, client, bucket: str, encryption_key: str):
+        try:
+            self._encryption_key = parse_media_encryption_key(encryption_key)
+        except MediaEnvelopeError:
+            raise MediaStorageNotConfigured(
+                "Private media encryption key must be a 32-byte hexadecimal value"
+            ) from None
         self._client = client
         self._bucket = bucket
 
@@ -69,16 +82,43 @@ class S3CompatibleMediaStore:
             raise ValueError("Unsupported private media type")
         if not body or len(body) > MAX_MEDIA_BYTES:
             raise ValueError("Private media size is outside the allowed range")
+        envelope = encrypt_media_envelope(
+            body,
+            self._encryption_key,
+            key,
+            random_bytes=os.urandom,
+        )
         self._client.put_object(
             Bucket=self._bucket,
             Key=key,
-            Body=body,
-            ContentType=content_type,
+            Body=envelope,
+            ContentType="application/octet-stream",
+            Metadata={
+                "kokonut-media-format": "KKM1",
+                "kokonut-media-content-type": content_type,
+                "kokonut-media-size": str(len(body)),
+            },
         )
 
     def head_private(self, key: str) -> dict:
         key = _validated_private_key(key)
-        return self._client.head_object(Bucket=self._bucket, Key=key)
+        result = self._client.head_object(Bucket=self._bucket, Key=key)
+        metadata = result.get("Metadata") if isinstance(result, dict) else None
+        if not isinstance(metadata, dict) or metadata.get("kokonut-media-format") != "KKM1":
+            raise MediaStorageNotConfigured("Private media envelope metadata is unavailable")
+        content_type = metadata.get("kokonut-media-content-type")
+        size = metadata.get("kokonut-media-size")
+        if content_type not in ALLOWED_CONTENT_TYPES or not isinstance(size, str) or not size.isdecimal():
+            raise MediaStorageNotConfigured("Private media envelope metadata is invalid")
+        plaintext_size = int(size)
+        if not 3 <= plaintext_size <= MAX_MEDIA_BYTES:
+            raise MediaStorageNotConfigured("Private media envelope size is invalid")
+        if (
+            result.get("ContentType") != "application/octet-stream"
+            or result.get("ContentLength") != plaintext_size + MEDIA_ENVELOPE_OVERHEAD
+        ):
+            raise MediaStorageNotConfigured("Private media envelope metadata is inconsistent")
+        return {"ContentLength": plaintext_size, "ContentType": content_type}
 
     def delete_private(self, key: str) -> None:
         key = _validated_private_key(key)
@@ -133,7 +173,10 @@ def create_media_store(environ=None, *, client_factory=None) -> PrivateMediaStor
         from services.mobile.local_media import LocalMediaStore
 
         directory = source.get("MOBILE_MEDIA_LOCAL_DIRECTORY", "").strip()
-        key = source.get("MOBILE_MEDIA_LOCAL_KEY", "").strip()
+        key = (
+            source.get("MOBILE_MEDIA_ENCRYPTION_KEY")
+            or source.get("MOBILE_MEDIA_LOCAL_KEY", "")
+        ).strip()
         if not directory or not key:
             raise MediaStorageNotConfigured("Local media directory and encryption key are required")
         return LocalMediaStore(directory, key)
@@ -148,8 +191,20 @@ def create_media_store(environ=None, *, client_factory=None) -> PrivateMediaStor
     )
     values = {name: str(source.get(name, "")).strip() for name in names}
     missing = [name for name, value in values.items() if not value]
+    encryption_key = str(
+        source.get("MOBILE_MEDIA_ENCRYPTION_KEY")
+        or source.get("MOBILE_MEDIA_LOCAL_KEY", "")
+    ).strip()
+    if not encryption_key:
+        missing.append("MOBILE_MEDIA_ENCRYPTION_KEY")
     if missing:
         raise MediaStorageNotConfigured("Private media storage is not configured")
+    try:
+        parse_media_encryption_key(encryption_key)
+    except MediaEnvelopeError:
+        raise MediaStorageNotConfigured(
+            "Private media encryption key must be a 32-byte hexadecimal value"
+        ) from None
 
     endpoint = urlsplit(values["MOBILE_MEDIA_S3_ENDPOINT"])
     local_http = endpoint.scheme == "http" and endpoint.hostname in {"localhost", "127.0.0.1", "::1"}
@@ -163,4 +218,8 @@ def create_media_store(environ=None, *, client_factory=None) -> PrivateMediaStor
         aws_access_key_id=values["MOBILE_MEDIA_S3_ACCESS_KEY_ID"],
         aws_secret_access_key=values["MOBILE_MEDIA_S3_SECRET_ACCESS_KEY"],
     )
-    return S3CompatibleMediaStore(client, values["MOBILE_MEDIA_S3_BUCKET"])
+    return S3CompatibleMediaStore(
+        client,
+        values["MOBILE_MEDIA_S3_BUCKET"],
+        encryption_key,
+    )

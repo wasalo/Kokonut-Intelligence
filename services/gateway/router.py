@@ -201,6 +201,7 @@ logger = get_logger("gateway.router")
 # Public access is deliberately opt-in. Unknown routes remain protected.
 _ROUTE_POLICIES = (
     ("GET", re.compile(r"^/health$"), "gateway", "read", True),
+    ("GET", re.compile(r"^/health/ready$"), "gateway", "read", True),
     ("GET", re.compile(r"^/mobile/?$"), "mobile_app", "read", True),
     ("GET", re.compile(r"^/mobile/field-collector-vault\.js$"), "mobile_app", "read", True),
     ("GET", re.compile(r"^/field-collector-vault\.js$"), "mobile_app", "read", True),
@@ -249,7 +250,8 @@ _ROUTE_POLICIES = (
     ("GET", re.compile(r"^/api/drivers$"), "driver", "read", True),
     # Detailed dependency health reveals optional-service topology and probes
     # PostgreSQL/ClickHouse/Directus. Keep it behind an explicit capability;
-    # the lightweight `/health` liveness endpoint remains public.
+    # public `/health` liveness and `/health/ready` database readiness responses
+    # expose no dependency detail.
     ("GET", re.compile(r"^/api/health/services$"), "service_health", "read", False),
     ("GET", re.compile(r"^/api/data-stream/posts$"), "data_stream_post", "read", False),
     ("GET", re.compile(r"^/api/data-stream/posts/[^/]+/files$"), "data_stream_file", "read", False),

@@ -25,6 +25,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.kernel
+      args:
+        SOURCE_COMMIT: ${SOURCE_COMMIT:-unknown}
     restart: unless-stopped
     ports:
       - "127.0.0.1:${KOKONUT_KERNEL_PORT:-8098}:8099"

@@ -1,0 +1,13 @@
+{
+  "observed_at": "2026-11-15T12:51:39Z",
+  "provider": "Better Stack Uptime API",
+  "endpoint": "GET https://betterstack.com/api/v2/roles",
+  "credential_source": ".env.sops",
+  "credential_variable_present": true,
+  "http_status": 401,
+  "response_body_retained": false,
+  "credential_value_retained": false,
+  "resource_changes": false,
+  "interpretation": "The current encrypted Uptime API token was not accepted by the read-only roles endpoint. This does not verify the newly described token unless it is the value currently stored in SOPS.",
+  "official_endpoint_reference": "https://betterstack.com/docs/uptime/api/roles/list/"
+}

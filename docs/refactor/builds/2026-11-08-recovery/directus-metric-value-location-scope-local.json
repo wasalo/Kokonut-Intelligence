@@ -1,0 +1,27 @@
+{
+  "candidate_or_legacy_database_used": false,
+  "database": "fresh isolated Kernel PostgreSQL volume",
+  "database_identity": "kokonut_directus_runtime",
+  "date": "2026-11-08",
+  "legacy_wildcard_repaired": true,
+  "limitations": [
+    "Fresh repository-managed policy fixture only; custom/operator-edited policies are excluded.",
+    "No metric rows, populated tenant grants, or live API read were used.",
+    "The source hook enforces exact location grants and denies null-location results; this profile verifies stored permission state only."
+  ],
+  "permission": {
+    "action": "read",
+    "collection": "metric_value",
+    "fields": "id,metric_id,location_id,period_start,period_end,value,unit,computation_method,computed_at,verified,verified_at",
+    "policy": "Auditor Policy",
+    "roles": [
+      "Auditor"
+    ],
+    "row_filter": {},
+    "validation": {}
+  },
+  "permission_seed_applied_and_replayed": true,
+  "replay_snapshot_unchanged": true,
+  "result": "passed",
+  "runtime": "Directus 12.1.1"
+}

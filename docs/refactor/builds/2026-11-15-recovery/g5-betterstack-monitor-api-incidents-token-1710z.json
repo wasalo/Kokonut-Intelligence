@@ -1,0 +1,14 @@
+{
+  "observed_at": "2026-11-15T17:10:05Z",
+  "provider": "Better Stack",
+  "endpoint": "GET https://incidents.betterstack.com/api/v2/monitors?per_page=1",
+  "credential_source": ".env.sops",
+  "credential_variable": "BETTERSTACK_INCIDENTS_API_TOKEN",
+  "credential_type": "team-scoped Incidents API token",
+  "http_status": 200,
+  "response_body_retained": false,
+  "credential_value_retained": false,
+  "resource_changes": false,
+  "interpretation": "The existing team-scoped Incidents token authenticates for read-only monitor-list access. This does not establish monitor write access or incident-routing acceptance; a global token is not needed for this read.",
+  "official_endpoint_reference": "https://betterstack.com/docs/uptime/api/list-all-existing-monitors/"
+}

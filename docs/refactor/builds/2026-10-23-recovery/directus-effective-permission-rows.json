@@ -10,7 +10,7 @@
     "No candidate or legacy database, provider credentials, or business records were used."
   ],
   "permission_seed": "config/directus/permissions.sql",
-  "permission_seed_sha256": "f6eb39725bd2d025369123ed08d759f3a8832ec7ca21fa68fefad4707f0b9362",
+  "permission_seed_sha256": "18a859f28248d091c906b395999f62d0a0ee0899b66f30214ace6c042dbed41e",
   "permissions": [
     {
       "action": "create",
@@ -865,7 +865,7 @@
     {
       "action": "read",
       "collection": "stakeholder_feedback",
-      "fields": "*",
+      "fields": "id,location_id,farm_id,feedback_type,stakeholder_group,feedback_date,sentiment,themes,public_summary,evidence_maturity",
       "policy": "Analyst Policy",
       "roles": [
         "Analyst"
@@ -1156,6 +1156,17 @@
       "action": "read",
       "collection": "report_snapshot",
       "fields": "*",
+      "policy": "Auditor Policy",
+      "roles": [
+        "Auditor"
+      ],
+      "row_filter": {},
+      "validation": {}
+    },
+    {
+      "action": "read",
+      "collection": "retirement_certificate",
+      "fields": "id,retirement_id,credit_id,credit_class_id,credit_batch_id,location_id,certificate_number,retired_tonnes,vintage_year,methodology,attestation_uid,chain,issued_at,status,created_at",
       "policy": "Auditor Policy",
       "roles": [
         "Auditor"
@@ -2095,8 +2106,8 @@
   "result": "passed",
   "runtime": "Directus 12.1.1",
   "summary": {
-    "explicit_field_rows": 52,
-    "permission_rows": 175,
+    "explicit_field_rows": 54,
+    "permission_rows": 176,
     "rows_by_collection_action": {
       "agent_action_log:create": 2,
       "agent_action_log:read": 3,
@@ -2147,6 +2158,7 @@
       "mrv_claim:update": 1,
       "noi_snapshot:read": 3,
       "report_snapshot:read": 1,
+      "retirement_certificate:read": 1,
       "revenue_event:read": 3,
       "revenue_event:update": 2,
       "sales_event:create": 1,
@@ -2164,13 +2176,13 @@
       "Agent Read-Only Policy": 14,
       "Agent Write Policy": 19,
       "Analyst Policy": 12,
-      "Auditor Policy": 28,
+      "Auditor Policy": 29,
       "Field Worker Policy": 28,
       "Finance Policy": 14,
       "Manager Policy": 19,
       "Supervisor Policy": 15
     },
-    "snapshot_sha256": "466012a7cb7bdc1b301ed7e1def31dedce4dbf8ab737c3d78b6b3cc888ed5244",
-    "wildcard_field_rows": 123
+    "snapshot_sha256": "a5b90003932a58248fe8a94b6f6612544df2bea5d00a0b28d72dc71f0831eee9",
+    "wildcard_field_rows": 122
   }
 }

@@ -1,0 +1,34 @@
+{
+  "$schema": "../../../apps/frontend/node_modules/wrangler/config-schema.json",
+  "name": "kokonut-intelligence-health-alert",
+  "main": "src/index.mjs",
+  "compatibility_date": "2026-11-16",
+  "workers_dev": false,
+  "observability": {
+    "enabled": true,
+    "head_sampling_rate": 1
+  },
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "MONITOR_STATE",
+        "class_name": "MonitorState"
+      }
+    ]
+  },
+  "migrations": [
+    {
+      "tag": "v1",
+      "new_sqlite_classes": ["MonitorState"]
+    }
+  ],
+  "triggers": {
+    "crons": ["* * * * *"]
+  },
+  "vars": {
+    "HEALTH_URL": "https://hub.kokonut.network/health/ready",
+    "ALERT_EMAIL_TO": "alejandro@kokonut.network",
+    "ALERT_EMAIL_FROM": "auth@mail.kokonut.network",
+    "ALERT_EMAIL_FROM_NAME": "Kokonut Intelligence Monitor"
+  }
+}

@@ -1,0 +1,44 @@
+{
+  "completed_at_utc": "2026-11-10T17:58:32Z",
+  "command": "KOKONUT_STANDARD_RECOVERY_TIMEOUT=900 python3 scripts/check-kernel-standard-recovery-disposable.py",
+  "checked_out_commit": "faa6c03b541d7ec27e001ffba6537c7aafffee9b",
+  "script_sha256": "e0bd78dd2dc80727a0135d4b790ed9d8bbdd8705446ca835a8b428ba2e32b143",
+  "result": "passed",
+  "profile": "Standard with scheduler-role overlay and optional Directus database role",
+  "disposable_project": "kokonut-standard-recovery-03e58afbcb",
+  "candidate_legacy_or_production_touched": false,
+  "host_ports_published": false,
+  "runtime_network_internal": true,
+  "database_image": "postgis/postgis:16-3.4@sha256:44126d872ac91993766c341e369c539e8196614321765d36a6f1bab0419a5fa5",
+  "schema_replay": {
+    "applied": 745,
+    "failed": 0,
+    "seed_rows": 0,
+    "latest": "schema:754_readonly_operator_tenant_context.sql",
+    "source_snapshot_sha256": "64a0c3c1ba1df86c2706a9f1bbfb693b9402280e47ebc56ad2491f0246e410d",
+    "app_and_worker_images_match_snapshot": true
+  },
+  "runtime_roles": {
+    "api_database_user": "kokonut_runtime",
+    "worker_database_user": "kokonut_scheduler_login",
+    "directus_runtime_role": "kokonut_directus_runtime",
+    "directus_reference_reads": "passed",
+    "directus_reference_write_privileges": "denied",
+    "directus_boundary_after_initial_provision_and_reapply": "passed"
+  },
+  "recovery": {
+    "api_healthy_after_database_restart": true,
+    "worker_healthy_after_database_restart": true,
+    "database_healthy_after_restart": true,
+    "worker_degraded_state_observed": "unhealthy",
+    "stalled_event_child_recovered": true,
+    "active_work_leases_after_shutdown": 0,
+    "private_supervisor_heartbeat_removed": true
+  },
+  "disposable_project_removed": true,
+  "limitations": [
+    "This is a short local disposable recovery check, not the candidate Coolify recovery rehearsal or 24-hour soak.",
+    "The runtime network had no Internet egress, and no real providers, seeds, candidate, legacy, or production data were used.",
+    "The test does not establish populated Directus permission parity, production Directus deployment, or scale acceptance."
+  ]
+}

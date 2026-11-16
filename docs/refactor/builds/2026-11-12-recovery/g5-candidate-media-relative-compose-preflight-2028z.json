@@ -1,0 +1,19 @@
+{
+  "captured_at_utc": "2026-11-12T20:28:50Z",
+  "application_uuid": "fdphpruj8jxien23ockmbw0j",
+  "candidate_branch": "chore/finalize-kokonut-intelligence-refactor",
+  "deployed_candidate_commit": "da6dd018350da0ccdd89860e3034a67d258374d4",
+  "resource_root": "/data/coolify/applications/fdphpruj8jxien23ockmbw0j",
+  "compose_location": "/docker-compose.kernel-coolify.yml",
+  "media_host_path": "/data/coolify/applications/fdphpruj8jxien23ockmbw0j/private/media.env",
+  "compose_relative_source": "./private/media.env",
+  "container_destination": "/run/kokonut/private-media.env",
+  "coolify_storage_api_record": "present; source and destination match the Compose bind",
+  "media_file_owner": "root:10001",
+  "media_file_mode": "0440",
+  "candidate_image_uid_gid_10001_can_read": true,
+  "candidate_image_uid_gid_10001_can_write": false,
+  "gateway_health_http_status": 200,
+  "candidate_containers_replaced": false,
+  "secret_values_recorded": false
+}

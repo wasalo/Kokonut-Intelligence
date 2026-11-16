@@ -1,0 +1,29 @@
+{
+  "format_version": 1,
+  "recorded_at_utc": "2026-11-15T02:43:21Z",
+  "target": "Coolify candidate app fdphpruj8jxien23ockmbw0j",
+  "status": "credential_scope_failed",
+  "method": "Read-only PostgreSQL identity queries and in-memory boolean credential comparisons inside the running API and worker containers. Secret values were never printed or recorded.",
+  "api": {
+    "session_user": "kokonut_runtime",
+    "current_user": "kokonut_runtime",
+    "pg_password_matches_api_login": true,
+    "api_password_environment_present": true,
+    "worker_password_environment_present": true
+  },
+  "worker": {
+    "session_user": "kokonut_worker_runtime",
+    "current_user": "kokonut_worker_runtime",
+    "inherits_runtime_role_membership": true,
+    "inherits_runtime_privileges": true,
+    "pg_password_matches_worker_login": true,
+    "api_password_environment_present": true,
+    "worker_password_environment_present": true,
+    "set_role_to_kokonut_runtime_denied": true
+  },
+  "runtime_passwords_are_distinct": true,
+  "database_grants_changed": false,
+  "database_data_changed": false,
+  "source_revision": "not established; running images use local tags without a source revision label",
+  "finding": "The database identities are distinct, but Coolify resolved both app-wide runtime-password placeholders into both long-lived containers. The source fix removes empty secret placeholders from unrelated service environments and scopes raw login passwords to the one-shot runtime-role bootstrap. Candidate rollout and post-deployment verification remain required."
+}

@@ -102,9 +102,14 @@ def test_runtime_role_preflight_reports_privilege_risk_without_role_name():
     assert report["dml_relation_with_rls_bypass_risk_count"] == 2
     assert report["role_name_emitted"] is False
     assert "kokonut_runtime" not in json.dumps(report)
+    assert connection.queries[0].startswith("with runtime_role as")
     assert "rolname = :runtime_role_name" in connection.queries[0]
     assert connection.params[0] == {"runtime_role_name": "kokonut_runtime"}
     assert "rolbypassrls" in connection.queries[0]
+    assert not any(
+        token in connection.queries[0]
+        for token in ("insert into", "update ", "delete from", "merge into", "truncate ")
+    )
 
 
 def test_preflight_execution_identity_requires_dedicated_direct_read_only_login():
@@ -139,6 +144,11 @@ def test_preflight_execution_identity_requires_dedicated_direct_read_only_login(
     assert "kokonut_tenant_preflight" not in json.dumps(report)
     assert connection.params[0]["expected_role"] == "kokonut_tenant_preflight"
     assert "mobile_device" in connection.params[0]["inventory_relation_names"]
+    assert connection.queries[0].startswith("with execution_role as")
+    assert not any(
+        token in connection.queries[0]
+        for token in ("insert into", "update ", "delete from", "merge into", "truncate ")
+    )
 
 
 def test_preflight_execution_identity_rejects_role_switch_and_write_privileges():

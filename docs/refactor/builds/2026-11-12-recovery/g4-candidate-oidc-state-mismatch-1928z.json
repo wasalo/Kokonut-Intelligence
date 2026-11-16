@@ -1,0 +1,18 @@
+{
+  "evidence_type": "candidate_live_oidc_state_mismatch",
+  "observed_at_utc": "2026-11-12T19:28:33Z",
+  "candidate_source_commit": "da6dd018350da0ccdd89860e3034a67d258374d4",
+  "checks": {
+    "authorization_login_status": 302,
+    "authorization_state_parameter_present": true,
+    "authorization_nonce_parameter_present": true,
+    "callback_state": "synthetic mismatch; actual state not recorded",
+    "callback_status": 401,
+    "callback_error_is_generic": true,
+    "operator_session_status_after_callback": 401,
+    "operator_session_created": false
+  },
+  "writes_performed": false,
+  "secret_or_transient_state_values_recorded": false,
+  "interpretation": "Live candidate handling rejects a mismatched OIDC state and does not create an operator session. This does not test live ID-token nonce mismatch; Authlib's signed RS256 nonce-mismatch contract remains source-level evidence only."
+}

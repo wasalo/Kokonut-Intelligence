@@ -1,0 +1,21 @@
+{
+  "evidence_type": "g6_candidate_read_only_container_health_and_provenance",
+  "recorded_at_utc": "2026-11-15T07:25:07Z",
+  "coolify_application_id": "fdphpruj8jxien23ockmbw0j",
+  "inspection": "SSH root to VPS; docker ps filtered to the application resource name; docker inspect read only the Gateway and worker image plus OCI source/revision labels",
+  "services": [
+    {"service": "app", "status": "running", "health": "healthy", "image": "kokonut-kernel-oidc:local", "source_label_present": false, "revision_label_present": false},
+    {"service": "worker", "status": "running", "health": "healthy", "image": "kokonut-kernel-candidate:local", "source_label_present": false, "revision_label_present": false},
+    {"service": "proxy", "status": "running", "health": "not-configured", "image": "caddy:2-alpine"},
+    {"service": "zitadel-login", "status": "running", "health": "healthy", "image": "ghcr.io/zitadel/zitadel-login:v4.19.4"},
+    {"service": "zitadel-api", "status": "running", "health": "healthy", "image": "ghcr.io/zitadel/zitadel:v4.19.4"},
+    {"service": "database", "status": "running", "health": "healthy", "image": "postgis/postgis:16-3.4"},
+    {"service": "zitadel-db", "status": "running", "health": "healthy", "image": "postgres:17.10-alpine"}
+  ],
+  "summary": {"containers_running": 7, "healthchecks_healthy": 6, "healthchecks_unconfigured": 1},
+  "candidate_database_contacted": false,
+  "candidate_data_changed": false,
+  "secrets_or_environment_values_read": false,
+  "containers_or_volumes_changed": false,
+  "interpretation": "The candidate services are running, but the local Gateway and worker image tags have no OCI source or revision labels. This check cannot prove that the deployed binaries match a repository commit and does not establish the current G2 source fix."
+}

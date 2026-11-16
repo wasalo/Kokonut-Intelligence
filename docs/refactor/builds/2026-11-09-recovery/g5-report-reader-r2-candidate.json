@@ -1,0 +1,34 @@
+{
+  "version": 1,
+  "recorded_at_utc": "2026-11-09T19:12:00Z",
+  "scope": "Candidate-only private report-artifact reader check against the deployed Coolify Gateway container.",
+  "candidate": {
+    "coolify_application_id": "fdphpruj8jxien23ockmbw0j",
+    "deployment_id": "vrumrlexudsdjsv9xf6zbcrn",
+    "source_commit": "0c69f39f5cb598c08c45a204f90eb331dbb9ccdb",
+    "schema_version": 753,
+    "health_http_status": 200,
+    "deployment_status": "finished"
+  },
+  "configuration": {
+    "scope": "Gateway production environment only",
+    "gateway_reader_settings_synced": true,
+    "worker_writer_settings_synced": false,
+    "one_shot_export_worker_enabled": false,
+    "recurring_export_schedule_enabled": false,
+    "secret_values_printed": false
+  },
+  "reader_acceptance": {
+    "result": "passed",
+    "private_report_prefix_list": true,
+    "objects_found": 0,
+    "reader_write_denied": true,
+    "object_names_recorded": false,
+    "report_content_read": false
+  },
+  "limitations": [
+    "No report artifacts or populated report-reference data exist in the candidate prefix.",
+    "This proves candidate reader list access and read-only enforcement only; it does not exercise report authorization, artifact download, writer credentials, one-shot export execution, or disclosure review.",
+    "No database rows or report objects were created or changed."
+  ]
+}

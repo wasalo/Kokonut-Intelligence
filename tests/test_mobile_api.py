@@ -97,6 +97,32 @@ def _retired_required_form_revision():
     )
 
 
+def _active_required_form_revision():
+    return (
+        "active-required-revision-1",
+        "field-note",
+        "consent-v1",
+        "field_note",
+        None,
+        "active",
+        "required",
+        "field_observation",
+        "regenerative_research",
+        "location",
+        None,
+        "kokonut_operations",
+        None,
+        "consent-v1",
+        datetime(2000, 1, 1, tzinfo=timezone.utc),
+        {
+            "type": "object",
+            "required": ["content"],
+            "properties": {"content": {"type": "string"}},
+            "additionalProperties": False,
+        },
+    )
+
+
 def _client(monkeypatch):
     monkeypatch.setattr(
         "services.gateway.audit.GatewayAudit.log",
@@ -936,6 +962,104 @@ def test_sync_accepts_retired_required_revision_only_into_unassessed_review_queu
     assert connection.committed is True
 
 
+def test_sync_accepts_active_required_revision_with_current_consent(monkeypatch):
+    location_id = "11111111-1111-4111-8111-111111111111"
+    participant_ref = "opaque-participant-reference-1234567890"
+
+    class Cursor:
+        def __init__(self):
+            self.one = None
+            self.consent_decisions = 0
+            self.executed = []
+
+        def execute(self, sql, params=None):
+            normalized = sql.lower()
+            self.executed.append((sql, params))
+            if "from offline_collection where client_id" in normalized:
+                self.one = None
+            elif "from mobile_form_version" in normalized:
+                self.one = _active_required_form_revision()
+            elif "from mobile_participant_link" in normalized:
+                self.one = ("participant-link-1", "party-1", None)
+            elif "from stakeholder_consent" in normalized:
+                if "select exists" in normalized:
+                    self.one = (False,)
+                else:
+                    self.consent_decisions += 1
+                    self.one = (
+                        f"active-consent-grant-{self.consent_decisions}",
+                        "grant",
+                        None,
+                    )
+            elif "insert into offline_collection" in normalized:
+                self.one = ("collection-1",)
+
+        def fetchone(self):
+            value, self.one = self.one, None
+            return value
+
+        def close(self):
+            pass
+
+    class Connection:
+        def __init__(self):
+            self.cur = Cursor()
+            self.committed = False
+
+        def cursor(self):
+            return self.cur
+
+        def commit(self):
+            self.committed = True
+
+        def rollback(self):
+            raise AssertionError("valid active-consent collection must commit")
+
+        def close(self):
+            pass
+
+    connection = Connection()
+    monkeypatch.setattr(mobile_api, "get_db", lambda: connection)
+    monkeypatch.setattr(
+        mobile_api,
+        "_device_for_token",
+        lambda token: ("device-1", "worker-1", location_id),
+    )
+
+    with _client(monkeypatch) as client:
+        response = client.post(
+            "/api/mobile/sync",
+            headers={"x-device-token": "opaque-device-token"},
+            json={
+                "device_id": "device-1",
+                "collections": [{
+                    "client_id": "active-consent-client-1",
+                    "collection_type": "field_note",
+                    "form_id": "field-note",
+                    "form_version": "consent-v1",
+                    "participant_ref": participant_ref,
+                    "payload": {"content": "synthetic field note"},
+                }],
+            },
+        )
+
+    assert response.status_code == 200
+    assert response.json()["accepted_client_ids"] == ["active-consent-client-1"]
+    insert = next(
+        call for call in connection.cur.executed
+        if "insert into offline_collection" in call[0].lower()
+    )
+    assert insert[1][13] == "active-required-revision-1"
+    assert insert[1][14] == "participant-link-1"
+    assert insert[1][15] == "active-consent-grant-1"
+    assert insert[1][16] == "active-consent-grant-2"
+    assert insert[1][17] == "active"
+    assert insert[1][18] == "granted"
+    assert insert[1][19] is False
+    assert insert[1][20] is not None
+    assert connection.committed is True
+
+
 def test_sync_rejects_retired_required_record_after_withdrawal_even_if_regranted(monkeypatch):
     location_id = "11111111-1111-4111-8111-111111111111"
     participant_ref = "opaque-participant-reference-1234567890"
@@ -1382,7 +1506,9 @@ def test_gateway_mobile_context_requires_exact_authenticated_route_marker(
     setter.assert_not_called()
 
 
-def test_participant_link_api_key_route_keeps_gateway_scope_and_skips_oidc_context(monkeypatch):
+def test_participant_link_api_key_route_revalidates_gateway_scope(monkeypatch):
+    import hashlib
+
     location_id = "11111111-1111-4111-8111-111111111111"
     connection = MagicMock()
     connection.cursor.return_value.fetchone.side_effect = [
@@ -1392,6 +1518,14 @@ def test_participant_link_api_key_route_keeps_gateway_scope_and_skips_oidc_conte
     monkeypatch.setattr(mobile_api, "get_db", lambda: connection)
     tenant_context = MagicMock()
     monkeypatch.setattr(mobile_api, "set_operator_tenant_context", tenant_context)
+    gateway_context = MagicMock(
+        return_value=GatewayTenantContext(
+            "a0000000-0000-0000-0000-000000000801",
+            location_id,
+            "a0000000-0000-0000-0000-000000000910",
+        )
+    )
+    monkeypatch.setattr(mobile_api, "set_gateway_tenant_context", gateway_context)
     monkeypatch.setenv("KOKONUT_API_KEYS", "participant-secret:field-reviewer")
     monkeypatch.setenv(
         "KOKONUT_API_KEY_SCOPES",
@@ -1411,6 +1545,14 @@ def test_participant_link_api_key_route_keeps_gateway_scope_and_skips_oidc_conte
     assert response.status_code == 201, response.text
     assert response.headers["cache-control"] == "no-store"
     assert response.json()["link_id"] == "link-id"
+    gateway_context.assert_called_once_with(
+        connection,
+        credential_type="api_key",
+        credential_hash=hashlib.sha256(b"participant-secret").hexdigest(),
+        location_id=location_id,
+        resource="mobile_participant",
+        action="create",
+    )
     insert = next(
         call for call in connection.cursor.return_value.execute.call_args_list
         if "INSERT INTO mobile_participant_link" in call.args[0]

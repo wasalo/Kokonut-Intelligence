@@ -49,7 +49,7 @@ _UNRESOLVED_WRITE_REVIEW_PATH = (
 # site to this legacy set requires an intentional source change as well as a
 # ledger edit; new reviewed sites belong in the explicit reviewed list.
 _LEGACY_UNRESOLVED_WRITE_FINGERPRINTS_SHA256 = (
-    "6a008bb860b38e3ce8d8fb8b797bdf540b2851a2a255a9e3acb1af96004b2589"
+    "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
 )
 
 
@@ -608,6 +608,32 @@ def _validate_write_review_ledger(
     current_by_fingerprint = {
         site["fingerprint"]: site for site in current_candidates
     }
+    legacy_metadata_fields = (
+        "source",
+        "line",
+        "scope",
+        "method",
+        "statement_kind",
+        "expression_kind",
+    )
+    for entry in legacy_entries:
+        if not isinstance(entry, dict):
+            continue
+        fingerprint = entry.get("fingerprint")
+        if not isinstance(fingerprint, str):
+            continue
+        site = current_by_fingerprint.get(fingerprint)
+        if site is None:
+            continue
+        stale_fields = [
+            field for field in legacy_metadata_fields
+            if field in site and entry.get(field) != site.get(field)
+        ]
+        if stale_fields:
+            errors.append(
+                "legacy unresolved-write metadata is stale for "
+                f"{fingerprint}: {', '.join(stale_fields)}"
+            )
     current_set = set(current_by_fingerprint)
     tracked_set = legacy_set | reviewed_set
     for fingerprint in sorted(current_set - tracked_set):

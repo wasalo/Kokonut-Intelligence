@@ -1,0 +1,20 @@
+{
+  "evidence_type": "g4_candidate_location_farm_count",
+  "recorded_at_utc": "2026-11-15T07:11:07Z",
+  "candidate": {
+    "coolify_application_id": "fdphpruj8jxien23ockmbw0j",
+    "host": "167.88.45.47"
+  },
+  "query": {
+    "transaction": "read-only",
+    "returned": "aggregate counts only",
+    "row_contents_returned": false,
+    "row_identifiers_returned": false
+  },
+  "counts": {
+    "locations": 1,
+    "farms": 1
+  },
+  "candidate_data_changed": false,
+  "interpretation": "The second-location denial prerequisite is still unavailable. Los Saladillos must be entered before that candidate acceptance can run."
+}

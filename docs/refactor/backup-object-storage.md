@@ -1,8 +1,11 @@
 # Encrypted checkpoint object-storage transport
 
-Status: local transfer tooling is implemented; no live R2 credentials or
-objects have been used. This prepares an independent-copy path but does not
-close populated recovery, production backup, retention, or cutover acceptance.
+Status: the transfer tooling and bucket-scoped R2 credentials have been used
+for candidate checkpoint upload, readback, and isolated restore. The current
+candidate evidence and remaining G5/G6 gates live in the [canonical refactor
+guide](current-state-and-implementation.md). This document describes the
+transfer interface and safety behavior; it does not certify recurring backup,
+production recovery, retention, or cutover acceptance.
 
 ## Configuration
 
@@ -27,8 +30,8 @@ BACKUP_ENCRYPTION_KEY=<existing checkpoint encryption key>
 The remote token should be scoped to read and write only in the backup bucket;
 the transfer CLI has no delete operation. The `AWS_*` variables are consumed
 only by the optional transfer CLI. Boto3 is already in the repository's runtime
-dependency groups. The remote operation remains unavailable until credentials
-are provisioned separately.
+dependency groups. Keep all values in SOPS or the runtime secret manager; see
+the canonical guide for current candidate credential and checkpoint status.
 
 ## Commands
 
