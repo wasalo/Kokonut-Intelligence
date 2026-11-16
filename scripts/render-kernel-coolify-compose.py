@@ -18,6 +18,7 @@ OUTPUT = ROOT / "docker-compose.kernel-coolify.yml"
 # host-managed files relative because its bind-source validator rejects all
 # `${...}` interpolation before Compose is loaded.
 COOLIFY_PRIVATE_ENV_ROOT = "./private/runtime-env"
+COOLIFY_RESOURCE_UUID_REFERENCE = "${COOLIFY_RESOURCE_UUID:?Coolify resource UUID is required}"
 # Keep this aligned with:
 # standard --coolify --scheduler-role --zitadel
 COMPOSE_FILES = (
@@ -65,6 +66,8 @@ COOLIFY_REPORT_EXPORT_STORAGE_SECRET_SERVICES = {
 
 
 def _compose_command(files: tuple[str, ...], output_format: str) -> list[str]:
+    # Do not pin a project name here: Coolify's runtime project must come from
+    # COOLIFY_RESOURCE_UUID, and its named resources are normalized below.
     command = [
         "docker",
         "compose",
@@ -72,8 +75,6 @@ def _compose_command(files: tuple[str, ...], output_format: str) -> list[str]:
         str(ROOT),
         "--env-file",
         "/dev/null",
-        "-p",
-        "kokonut-kernel-coolify",
     ]
     for filename in files:
         command.extend(("-f", "-" if filename == "-" else str(ROOT / filename)))
@@ -252,7 +253,7 @@ def _validate_coolify_raw_proxy(config: object) -> None:
     if not isinstance(networks, dict) or not isinstance(services, dict):
         raise RuntimeError("Coolify Compose configuration lacks networks or services")
     proxy_network = networks.get("coolify-proxy")
-    expected_network_name = "${COOLIFY_RESOURCE_UUID:?Coolify resource UUID is required}"
+    expected_network_name = COOLIFY_RESOURCE_UUID_REFERENCE
     if (
         not isinstance(proxy_network, dict)
         or proxy_network.get("external") is not True
@@ -295,7 +296,7 @@ def _validate_coolify_raw_proxy(config: object) -> None:
 
 def _add_coolify_management_labels(services: dict[str, object]) -> None:
     """Retain Coolify resource attribution when its Compose transform is bypassed."""
-    resource_uuid = "${COOLIFY_RESOURCE_UUID:?Coolify resource UUID is required}"
+    resource_uuid = COOLIFY_RESOURCE_UUID_REFERENCE
     for service_name, service in services.items():
         if not isinstance(service, dict):
             continue
@@ -523,6 +524,7 @@ def _coolify_config(files: tuple[str, ...]) -> tuple[object, dict[str, list[str]
     config = _normalized_config(files)
     if not isinstance(config, dict) or not isinstance(config.get("services"), dict):
         raise RuntimeError("Coolify Compose configuration must contain services")
+    _scope_coolify_resource_names(config)
     services = config["services"]
     app = services.get("app")
     worker = services.get("worker")
@@ -547,6 +549,61 @@ def _coolify_config(files: tuple[str, ...]) -> tuple[object, dict[str, list[str]
         if "labels" in service:
             service["labels"] = _coolify_label_sequence(service["labels"], service_name)
     return config, secret_environment_keys
+
+
+def _scope_coolify_resource_names(config: object) -> None:
+    """Bind persistent Compose resources to Coolify's stable application UUID."""
+    if not isinstance(config, dict):
+        raise RuntimeError("Coolify Compose configuration must be a mapping")
+    config["name"] = COOLIFY_RESOURCE_UUID_REFERENCE
+
+    networks = config.get("networks", {})
+    if not isinstance(networks, dict):
+        raise RuntimeError("Coolify Compose networks must be a mapping")
+    for network_name, network in networks.items():
+        if not isinstance(network, dict) or network.get("external") is True:
+            continue
+        network["name"] = f"{COOLIFY_RESOURCE_UUID_REFERENCE}_{network_name}"
+
+    volumes = config.get("volumes", {})
+    if not isinstance(volumes, dict):
+        raise RuntimeError("Coolify Compose volumes must be a mapping")
+    for volume_name, volume in volumes.items():
+        if not isinstance(volume, dict) or volume.get("external") is True:
+            continue
+        volume["name"] = f"{COOLIFY_RESOURCE_UUID_REFERENCE}_{volume_name}"
+
+
+def _validate_coolify_resource_names(config: object) -> None:
+    """Reject project-global names that could detach Coolify from existing data."""
+    if not isinstance(config, dict):
+        raise RuntimeError("Coolify Compose configuration must be a mapping")
+    if config.get("name") != COOLIFY_RESOURCE_UUID_REFERENCE:
+        raise RuntimeError("Coolify Compose project name must come from COOLIFY_RESOURCE_UUID")
+
+    networks = config.get("networks", {})
+    if not isinstance(networks, dict):
+        raise RuntimeError("Coolify Compose networks must be a mapping")
+    for network_name, network in networks.items():
+        if not isinstance(network, dict) or network.get("external") is True:
+            continue
+        expected = f"{COOLIFY_RESOURCE_UUID_REFERENCE}_{network_name}"
+        if network.get("name") != expected:
+            raise RuntimeError(
+                f"Coolify internal network {network_name} must be scoped to COOLIFY_RESOURCE_UUID"
+            )
+
+    volumes = config.get("volumes", {})
+    if not isinstance(volumes, dict):
+        raise RuntimeError("Coolify Compose volumes must be a mapping")
+    for volume_name, volume in volumes.items():
+        if not isinstance(volume, dict) or volume.get("external") is True:
+            continue
+        expected = f"{COOLIFY_RESOURCE_UUID_REFERENCE}_{volume_name}"
+        if volume.get("name") != expected:
+            raise RuntimeError(
+                f"Coolify named volume {volume_name} must be scoped to COOLIFY_RESOURCE_UUID"
+            )
 
 
 def _write_secret_inventory(secret_environment_keys: dict[str, list[str]]) -> None:
@@ -586,6 +643,11 @@ def _render_coolify_yaml(config: object) -> str:
     index = 0
     while index < len(lines):
         line = lines[index]
+        # Compose adds a directory-derived project name while rendering stdin.
+        # Coolify supplies the stable resource UUID when it loads the file.
+        if line.startswith("name: "):
+            index += 1
+            continue
         if line == "services:":
             in_services = True
             service_name = None
@@ -614,6 +676,7 @@ def _render_coolify_yaml(config: object) -> str:
             continue
         output.append(line)
         index += 1
+    output.insert(0, f"name: {json.dumps(COOLIFY_RESOURCE_UUID_REFERENCE)}")
     return "\n".join(output) + ("\n" if rendered.endswith("\n") else "")
 
 
@@ -634,7 +697,9 @@ def _normalized_checked_in() -> object:
     if not OUTPUT.is_file():
         return None
     try:
-        return json.loads(_run_compose_config((OUTPUT.name,), "json"))
+        config = json.loads(_run_compose_config((OUTPUT.name,), "json"))
+        _scope_coolify_resource_names(config)
+        return config
     except json.JSONDecodeError as exc:
         raise RuntimeError("Docker Compose returned invalid JSON while checking the Coolify manifest") from exc
 
@@ -653,6 +718,7 @@ def main() -> int:
             generated, secret_environment_keys = _coolify_config(COMPOSE_FILES)
             _validate_coolify_interpolation(generated)
             _validate_coolify_build_policy(generated)
+            _validate_coolify_resource_names(generated)
             _validate_coolify_label_sequences(generated)
             checked_in = _normalized_checked_in()
             inventory = json.loads(SECRET_ENV_INVENTORY.read_text(encoding="utf-8"))
@@ -667,6 +733,7 @@ def main() -> int:
             if checked_in is not None:
                 _validate_coolify_interpolation(checked_in)
                 _validate_coolify_build_policy(checked_in)
+                _validate_coolify_resource_names(checked_in)
                 _validate_rendered_secret_scoping(checked_in, secret_environment_keys)
         except RuntimeError as exc:
             print(f"error: {exc}", file=sys.stderr)
@@ -681,6 +748,7 @@ def main() -> int:
         generated, secret_environment_keys = _coolify_config(COMPOSE_FILES)
         _validate_coolify_interpolation(generated)
         _validate_coolify_build_policy(generated)
+        _validate_coolify_resource_names(generated)
         compose_yaml = _render_coolify_yaml(generated)
         rendered = HEADER + compose_yaml
     except RuntimeError as exc:

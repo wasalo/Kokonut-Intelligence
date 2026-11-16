@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import re
+from copy import deepcopy
 from pathlib import Path
 from runpy import run_path
 
@@ -89,6 +90,28 @@ def test_coolify_compose_uses_string_sequence_labels_for_compatible_merging() ->
     app_labels = set(services["app"]["labels"])
     assert "traefik.enable=true" in app_labels
     assert "coolify.applicationUuid=${COOLIFY_RESOURCE_UUID:?Coolify resource UUID is required}" in app_labels
+
+
+def test_coolify_compose_scopes_project_networks_and_volumes_to_resource_uuid() -> None:
+    compose = yaml.safe_load((ROOT / "docker-compose.kernel-coolify.yml").read_text(encoding="utf-8"))
+    resource_uuid = "${COOLIFY_RESOURCE_UUID:?Coolify resource UUID is required}"
+
+    assert compose["name"] == resource_uuid
+    for network_name, network in compose["networks"].items():
+        if network.get("external") is True:
+            continue
+        assert network["name"] == f"{resource_uuid}_{network_name}"
+    for volume_name, volume in compose["volumes"].items():
+        if volume.get("external") is True:
+            continue
+        assert volume["name"] == f"{resource_uuid}_{volume_name}"
+
+    invalid = deepcopy(compose)
+    invalid["volumes"]["kernel-postgres-data"]["name"] = (
+        "kokonut-kernel-coolify_kernel-postgres-data"
+    )
+    with pytest.raises(RuntimeError, match="must be scoped to COOLIFY_RESOURCE_UUID"):
+        COOLIFY_RENDERER["_validate_coolify_resource_names"](invalid)
 
 
 def test_coolify_host_paths_are_relative_and_traversal_free() -> None:

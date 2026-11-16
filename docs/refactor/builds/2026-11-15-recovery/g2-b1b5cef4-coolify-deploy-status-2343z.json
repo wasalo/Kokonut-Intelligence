@@ -2,7 +2,7 @@
   "format_version": 1,
   "gate": "G2",
   "recorded_at": "2026-11-15T23:51:54Z",
-  "updated_at": "2026-11-16T00:34:32Z",
+  "updated_at": "2026-11-16T01:04:46Z",
   "coolify_application_uuid": "fdphpruj8jxien23ockmbw0j",
   "deployment": {
     "id": "r2e4atwkfytbt1badnaionjl",
@@ -16,11 +16,16 @@
     "api_worker_revision_changed": false
   },
   "ci": {
-    "head": "b1b5cef4d72890db4e8033fd80a714c7a221cdc5",
-    "ci_run": "https://github.com/wasalo/Kokonut-Intelligence/actions/runs/43771748250",
+    "head": "cbef09aaa9d02a99abb17788f3b1c87bc463f588",
+    "ci_run": "https://github.com/wasalo/Kokonut-Intelligence/actions/runs/43781282509",
     "ci_conclusion": "success",
-    "security_run": "https://github.com/wasalo/Kokonut-Intelligence/actions/runs/43771748137",
-    "security_conclusion": "success"
+    "preflight": "success",
+    "integration": "success",
+    "source_checks": "success",
+    "kernel_image_amd64_arm64": "success",
+    "security_run": "https://github.com/wasalo/Kokonut-Intelligence/actions/runs/43781282559",
+    "security_conclusion": "success",
+    "aggregate": "success"
   },
   "candidate_observations": {
     "schema_migrations_applied": 746,
@@ -39,11 +44,13 @@
   },
   "source_remediation": {
     "change": "Render every Coolify service's labels as a sequence of strings to avoid mixed mapping/sequence merge keys.",
-    "status": "implemented_locally_not_committed_or_deployed",
+    "status": "committed_and_pushed_not_deployed",
     "validated_at": "2026-11-16T00:34:32Z",
     "coolify_renderer_check": "passed",
     "focused_source_tests": "22 passed",
-    "docker_compose_model_validation": "passed with dummy non-secret interpolation values"
+    "docker_compose_model_validation": "passed with dummy non-secret interpolation values",
+    "commit": "cbef09aaa9d02a99abb17788f3b1c87bc463f588",
+    "commit_message": "fix: normalize Coolify compose labels"
   },
   "checkpoint": {
     "backup_id": "candidate-pre-b1b5cef4-20261115T232932Z-retry",
@@ -69,6 +76,65 @@
   "scope": {
     "grants_changed": false,
     "full_deployment_logs_collected": false,
-    "next_action": "Commit and push the source remediation, pass exact-head CI/Security, take a fresh checkpoint, then retry deployment and verify runtime boundaries."
+    "next_action": "G1 is green on cbef09aaa9d02a99abb17788f3b1c87bc463f588. The current runtime crash-loop cause is unresolved and sanitized final errors were requested. Create a fresh signed and encrypted two-database checkpoint immediately before deploying this exact tested SHA; then verify provenance, migration status, health, runtime identities, service-level secret isolation, and whether the old-image crash loops clear."
+  },
+  "deployment_ci": {
+    "head": "b1b5cef4d72890db4e8033fd80a714c7a221cdc5",
+    "ci_run": "https://github.com/wasalo/Kokonut-Intelligence/actions/runs/43771748250",
+    "ci_conclusion": "success",
+    "security_run": "https://github.com/wasalo/Kokonut-Intelligence/actions/runs/43771748137",
+    "security_conclusion": "success"
+  },
+  "runtime_snapshot_2026_11_16T0053Z": {
+    "source": "read-only SSH/Docker metadata query",
+    "environment_values_read": false,
+    "application_logs_read": false,
+    "gateway": {
+      "status": "exited",
+      "exit_code": 1,
+      "oom_killed": false,
+      "restart_count": 763,
+      "health": "unhealthy",
+      "docker_state_error": "runtime reported an existing container task",
+      "image_revision": "8a5245c64797875769b484c2f63e613d7d0bcc75"
+    },
+    "general_worker": {
+      "status": "restarting",
+      "exit_code": 1,
+      "oom_killed": false,
+      "restart_count": 787,
+      "health": "unhealthy",
+      "image_revision": "8a5245c64797875769b484c2f63e613d7d0bcc75"
+    },
+    "zitadel_api": {
+      "status_during_ps": "restarting",
+      "status_during_inspect": "running",
+      "exit_code": 0,
+      "oom_killed": false,
+      "restart_count": 710,
+      "health_during_inspect": "starting"
+    },
+    "postgresql": {
+      "candidate_database": {
+        "status": "running",
+        "health": "healthy",
+        "restart_count": 0
+      },
+      "zitadel_database": {
+        "status": "running",
+        "health": "healthy",
+        "restart_count": 0
+      }
+    },
+    "cause": "unresolved; sanitized final error lines requested from owner"
+  },
+  "migration_ledger_recheck": {
+    "method": "read-only SQL in a transaction over SSH",
+    "schema_migrations_applied": 746,
+    "schema_migrations_pending_or_failed": 0,
+    "seed_migration_records": 0,
+    "latest_schema_migration": "schema:755_operator_hub_relational_forms.sql",
+    "grants_changed": false,
+    "database_rows_changed": false
   }
 }
