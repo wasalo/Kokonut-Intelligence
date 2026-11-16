@@ -1,19 +1,24 @@
 {
   "evidence_version": 1,
-  "observed_at": "2026-11-16T22:01:54Z",
-  "source_commit_under_test": "22fc577cf94190723b94b0ea340831ae32670b58",
+  "observed_at": "2026-11-16T22:16:35Z",
+  "source_commit_base": "93295a283b38e1134f58f7a1a85f0bd6d965c2a2",
+  "tested_files_sha256": {
+    "infra/cloudflare/health-alert/src/monitoring.mjs": "e2f9b86bab67ec84066ee6c1e8ac9e2641b8c3c379ac9772e73a4ca7a7b61623",
+    "tests/test_health_alert_monitoring.mjs": "09f443579286c461c63122cef0fb43db55316dd48cbbe53b7b1cca32bb1f688e"
+  },
   "command": "node --test tests/test_health_alert_monitoring.mjs",
   "runtime": "Node.js 26.5.0",
   "result": {
-    "tests": 2,
-    "passed": 2,
+    "tests": 3,
+    "passed": 3,
     "failed": 0,
     "coverage": [
       "two-minute outage confirmation and one-time notification",
       "continued-outage duplicate suppression",
       "five-minute recovery confirmation and one-time notification",
       "five-minute and fifteen-minute retry delays",
-      "abandon after three failed delivery attempts"
+      "abandon after three failed delivery attempts",
+      "do not resend an uncertain final attempt after simulated Worker restart"
     ]
   },
   "external_calls": false,

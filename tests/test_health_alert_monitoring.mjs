@@ -15,6 +15,19 @@ class MemoryStorage {
   }
 }
 
+class CrashBeforeFinalSendStorage extends MemoryStorage {
+  crashed = false;
+
+  async put(key, value) {
+    await super.put(key, value);
+    const pending = value.outbox[0];
+    if (!this.crashed && pending?.attempts === 3 && pending.nextAttemptAt === null) {
+      this.crashed = true;
+      throw new Error("simulated worker termination before final send");
+    }
+  }
+}
+
 async function cycle(storage, now, healthy, sendEmail) {
   return runMonitorCycle({
     storage,
@@ -90,4 +103,30 @@ test("transient email failures use bounded retries and eventually leave the outb
   assert.equal(third.pendingNotifications, 0);
   assert.equal(attempts.length, 3);
   assert.equal(storage.value.lastDeliveryFailure.attempts, 3);
+});
+
+test("a restart after the final attempt is claimed does not send beyond the retry limit", async () => {
+  const storage = new CrashBeforeFinalSendStorage();
+  let sendCount = 0;
+  const sendEmail = async () => {
+    sendCount += 1;
+    return { ok: false, retryable: true, reason: "test_provider_unavailable" };
+  };
+  const start = 3_000_000;
+
+  await cycle(storage, start, false, sendEmail);
+  await cycle(storage, start + 120_000, false, sendEmail);
+  await cycle(storage, start + 420_000, false, sendEmail);
+
+  await assert.rejects(
+    cycle(storage, start + 1_320_000, false, sendEmail),
+    /simulated worker termination/,
+  );
+  assert.equal(sendCount, 2, "the claimed final attempt has not crossed the email boundary");
+
+  const afterRestart = await cycle(storage, start + 1_320_000, false, sendEmail);
+  assert.equal(afterRestart.notification, "abandoned");
+  assert.equal(afterRestart.pendingNotifications, 0);
+  assert.equal(sendCount, 2, "an uncertain final attempt must not be resent after restart");
+  assert.equal(storage.value.lastDeliveryFailure.reason, "delivery_attempt_outcome_unknown");
 });

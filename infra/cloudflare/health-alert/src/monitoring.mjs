@@ -39,7 +39,9 @@ function validateState(state) {
         Number.isFinite(item.occurredAt) &&
         Number.isInteger(item.attempts) &&
         item.attempts >= 0 &&
-        (item.nextAttemptAt === null || Number.isFinite(item.nextAttemptAt)),
+        item.attempts <= MAX_DELIVERY_ATTEMPTS &&
+        (item.nextAttemptAt === null || Number.isFinite(item.nextAttemptAt)) &&
+        (item.nextAttemptAt !== null || item.attempts === MAX_DELIVERY_ATTEMPTS),
     )
   );
 }
@@ -137,7 +139,19 @@ function recordDeliveryFailure(state, event, now, reason) {
 
 async function attemptPendingNotification({ state, storage, now, sendEmail }) {
   const event = state.outbox[0];
-  if (!event || event.nextAttemptAt > now) {
+  if (!event) return "none";
+
+  // The final attempt is persisted before crossing the external email
+  // boundary. After a Worker restart, a null due time means its result is
+  // uncertain; abandon rather than risk sending a duplicate final alert.
+  if (event.attempts >= MAX_DELIVERY_ATTEMPTS || event.nextAttemptAt === null) {
+    state.outbox.shift();
+    recordDeliveryFailure(state, event, now, "delivery_attempt_outcome_unknown");
+    await storage.put(STATE_KEY, state);
+    return "abandoned";
+  }
+
+  if (event.nextAttemptAt > now) {
     return "none";
   }
 

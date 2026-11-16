@@ -19,6 +19,9 @@ recipient is `alejandro@kokonut.network`; existing application event mail to
   email outbox. Each notification gets at most three attempts; temporary
   provider errors wait five minutes and then fifteen minutes before retrying.
   It never sends repeat emails just because an outage continues.
+- Persists each attempt before calling Maileroo. If the Worker restarts after
+  claiming the final attempt but before persisting its result, the delivery is
+  recorded as uncertain and abandoned rather than risk a duplicate email.
 - Logs only health status, HTTP status, transition, and bounded delivery
   outcome. It does not log addresses, email bodies, provider response bodies,
   or credentials.
@@ -32,6 +35,13 @@ sender uses `ALERT_EMAIL_FROM` (`auth@mail.kokonut.network`) and the recipient
 is configured as `ALERT_EMAIL_TO`.
 
 ## Local build check
+
+Run the isolated transition/retry state-machine tests (no Cloudflare or
+Maileroo requests are made):
+
+```sh
+node --test tests/test_health_alert_monitoring.mjs
+```
 
 From the repository root:
 
