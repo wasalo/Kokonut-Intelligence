@@ -1,0 +1,80 @@
+{
+  "version": 1,
+  "recorded_at_utc": "2026-11-16T14:07:35Z",
+  "gate": "G3",
+  "capability": "CAP-001",
+  "classification": "candidate non-Collector lifecycle paths passed; full MAN-CAP acceptance remains open",
+  "candidate": {
+    "application_uuid": "fdphpruj8jxien23ockmbw0j",
+    "location_id": "1b1775d2-3043-42f9-9967-5d3f18db7ae0",
+    "source_revision_at_acceptance": "not independently recorded"
+  },
+  "method": "Manual authenticated browser workflows reported and confirmed by Wasabi; record detail and append-only audit history were supplied in chat.",
+  "records": [
+    {
+      "id": "7cc0b343-dd6a-405d-a25a-3f3e9dc0596a",
+      "label": "A testing draft",
+      "accepted_path": [
+        {
+          "action": "submit",
+          "actor_role": "Operations",
+          "from": "draft",
+          "to": "submitted"
+        },
+        {
+          "action": "verify",
+          "actor_role": "Verifier",
+          "from": "submitted",
+          "to": "verified"
+        },
+        {
+          "action": "publish",
+          "actor_role": "Publisher",
+          "from": "verified",
+          "to": "published"
+        }
+      ],
+      "distinct_transition_actors": 3,
+      "audit_reasons_present_for_verify_and_publish": true,
+      "owner_confirmed": true
+    },
+    {
+      "id": "f50423c8-c6f9-40e1-982e-40d826045f19",
+      "label": "A rejection test",
+      "accepted_path": [
+        {
+          "action": "submit",
+          "actor_role": "Operations",
+          "from": "draft",
+          "to": "submitted"
+        },
+        {
+          "action": "verify",
+          "actor_role": "Verifier",
+          "from": "submitted",
+          "to": "verified"
+        },
+        {
+          "action": "reject",
+          "actor_role": "Publisher",
+          "from": "verified",
+          "to": "rejected"
+        },
+        {
+          "action": "rework",
+          "actor_role": "Operations",
+          "from": "rejected",
+          "to": "draft"
+        }
+      ],
+      "distinct_transition_actors": 3,
+      "audit_reasons_present_for_rejection_and_rework": true,
+      "owner_confirmed": true
+    }
+  ],
+  "limitations": [
+    "This covers the candidate non-Collector farm-activity lifecycle only.",
+    "It does not accept Field Collector enrollment, offline capture, media/consent/sync, populated farm-data parity, all CAP-001 source features, or final MAN-CAP owner disposition.",
+    "The evidence is owner-reported browser/audit output; no independent database query was run for this record."
+  ]
+}
