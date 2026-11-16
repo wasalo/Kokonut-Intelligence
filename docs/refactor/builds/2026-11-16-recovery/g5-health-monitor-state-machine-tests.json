@@ -1,0 +1,23 @@
+{
+  "evidence_version": 1,
+  "observed_at": "2026-11-16T22:01:54Z",
+  "source_commit_under_test": "22fc577cf94190723b94b0ea340831ae32670b58",
+  "command": "node --test tests/test_health_alert_monitoring.mjs",
+  "runtime": "Node.js 26.5.0",
+  "result": {
+    "tests": 2,
+    "passed": 2,
+    "failed": 0,
+    "coverage": [
+      "two-minute outage confirmation and one-time notification",
+      "continued-outage duplicate suppression",
+      "five-minute recovery confirmation and one-time notification",
+      "five-minute and fifteen-minute retry delays",
+      "abandon after three failed delivery attempts"
+    ]
+  },
+  "external_calls": false,
+  "email_sent": false,
+  "candidate_durable_object_exercised": false,
+  "interpretation": "Deterministic local state-machine coverage only. It does not establish deployed Durable Object behavior, live outage/recovery email delivery, inbox receipt for transition messages, or the manual response rehearsal."
+}

@@ -10,7 +10,7 @@ The workflow has dependency-free preflight followed by three gates:
 | Job | What it checks | Limit |
 |---|---|---:|
 | `preflight` | Release-input hashes and fast source inventories before expensive work starts. | 10 minutes |
-| `source-checks` | Ruff security scan, Python dependency audit, fast-fail imports/CLI/hooks, static analysis, Solidity, and Directus hook tests through `scripts/run-github-ci.sh --source-only`. | 45 minutes |
+| `source-checks` | Ruff security scan, Python dependency audit, fast-fail imports/CLI/hooks, Cloudflare health-monitor state-machine tests, static analysis, Solidity, and Directus hook tests through `scripts/run-github-ci.sh --source-only`. | 45 minutes |
 | `integration-ci` | Strict database-backed integration and full test checks through `scripts/run-github-ci.sh --integration-only`; PostgreSQL, ClickHouse, and related services run under `ki-ci`. | 90 minutes |
 | `kernel-image` | Locked AMD64 and ARM64 Kernel image builds and image checks. | 45 minutes |
 

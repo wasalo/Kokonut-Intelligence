@@ -283,6 +283,10 @@ if [ "$RUN_MODE" != --integration-only ]; then
     ci_phase_start 'Fast-fail source, import, CLI, and hook checks'
     echo '=== Fast-fail source checks ==='
     ./scripts/ci-check.sh --source-only
+
+    ci_phase_start 'Cloudflare health monitor tests'
+    echo '=== Cloudflare health monitor state-machine tests ==='
+    node --test tests/test_health_alert_monitoring.mjs
 fi
 
 if [ "$RUN_MODE" = --source-only ]; then
