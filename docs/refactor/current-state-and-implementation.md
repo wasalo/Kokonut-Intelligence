@@ -2,7 +2,7 @@
 
 **Authority:** this guide is the canonical source for gate status, decisions, and acceptance evidence. The dedicated [closure checklist](closure-checklist.md) tracks action items but cannot accept a gate or override this guide.
 
-**Latest fully green exact-head snapshot (16 November 2026):** PR #73 remains open to `develop`. Head `ab7bee5c` passed full CI [#43890296888](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/43890296888) and Security [#43890296856](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/43890296856), including the required integration and multi-architecture image gates. This is the latest verified green source head; the documentation/evidence update in this worktree will need exact-head CI and Security after it is pushed. The candidate remains on the separately recorded `e4f9ee74` deployment; do not infer that this source head is deployed. The signed, encrypted, archive-validated, remote-readback-verified checkpoint of both existing databases is `candidate-pre-e4f9ee74-20261116T025927Z`. Read-only inspection confirmed UUID-scoped PostgreSQL volumes are mounted and the migration ledger has 746 applied entries through `schema:755_operator_hub_relational_forms.sql`.
+**Latest fully green exact-head snapshot (16 November 2026):** PR #73 remains open to `develop`. Head `ab7bee5c` passed full CI [#43890296888](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/43890296888) and Security [#43890296856](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/43890296856), including the required integration and multi-architecture image gates. These results apply only to that SHA; later commits need their own exact-head CI and Security results. The candidate remains on the separately recorded `e4f9ee74` deployment; do not infer that this source head is deployed. The signed, encrypted, archive-validated, remote-readback-verified checkpoint of both existing databases is `candidate-pre-e4f9ee74-20261116T025927Z`. Read-only inspection confirmed UUID-scoped PostgreSQL volumes are mounted and the migration ledger has 746 applied entries through `schema:755_operator_hub_relational_forms.sql`.
 
 **G1 follow-up (16 November 2026):** CI [#43890296888](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/43890296888) and Security [#43890296856](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/43890296856) passed on `ab7bee5c`, closing the earlier release-input-lock preflight failure recorded below. The lock now includes the updated Coolify Compose renderer, generated Compose output, service-secret inventory, and installer digests. Any new source or documentation commit requires a fresh exact-head run before G1 is current again.
 
@@ -591,6 +591,81 @@ will not detect suspected compromise, data-integrity loss, or a backup/RPO
 breach. Those P1 trigger sources remain unmapped, so a passing uptime page test
 alone will not close full P1 coverage.
 
+
+### Free-tier alerting and escalation design (proposal; owner acceptance pending)
+
+Better Stack's public pricing page lists the Free plan as intended for personal
+projects, with up to 10 monitors/heartbeats, one status page, and email/Slack
+alerts. It lists on-call, incident management, and call/SMS capability under
+paid Responder licensing. The Kokonut workspace's current plan, Free-plan
+eligibility, and feature enforcement have not been verified. Do not assume the
+organization qualifies for the personal-project plan, and do not enable billing
+or upgrade without Wasabi's approval ([pricing](https://betterstack.com/pricing),
+[on-call setup](https://betterstack.com/docs/uptime/getting-started-with-oncall-v2/),
+[escalation policies](https://betterstack.com/docs/uptime/escalation-policies/)).
+
+Proposed no-cost candidate scope:
+
+1. Use Better Stack as an external availability monitor and email alert source,
+   not as a proven automatic pager. Reuse paused monitor `5239227` for
+   `https://hub.kokonut.network/health/ready`; keep its 60-second check interval,
+   require a 120-second failure confirmation period before opening an incident,
+   and allow 300 seconds of healthy recovery before auto-resolving. Keep it
+   email-only. The current monitor must be read back after any change; it is
+   paused today and does not count as active availability coverage. Better
+   Stack's monitor API supports confirmation and recovery periods
+   ([monitor settings](https://betterstack.com/docs/uptime/api/create-a-new-monitor/)).
+2. Treat one external monitor as the initial quota budget. Add a separate Hub
+   landing-page, ZITADEL discovery, or worker heartbeat only after the first
+   monitor is stable and the account's actual quota is confirmed. Reserve part
+   of the 10-monitor/heartbeat allowance for future needs; do not add ten
+   monitors just because the public cap allows it.
+3. Route the monitor's email alert and recovery message to
+   `intelligence@kokonut.network`. Acceptance requires a controlled monitor
+   incident and recovery to reach that inbox. The earlier Maileroo test proves
+   SMTP delivery only; it does not prove Better Stack monitor delivery.
+4. Keep the approved 300-second primary-to-backup response objective as a
+   **manual operator procedure** under the free-tier proposal: Wasabi records
+   alert receipt and acknowledgement, contacts Gerkery as primary, then
+   contacts Alejandro if no acknowledgement is recorded within five minutes.
+   First verify that both responders have a working, owner-approved contact
+   path and that the monitor email reaches the person operating the rota. This
+   sequence is not system-enforced by a free email alert. If only the shared
+   intelligence inbox is routable, the backup-response test remains open.
+5. Limit automatic detection claims to externally observable availability.
+   Free HTTP monitoring cannot by itself generate source events for suspected
+   compromise, data-integrity loss, an RPO breach, or the current application
+   `sensor_alert`/`data_stale` notifications. Those triggers require separate
+   source mapping and delivery acceptance; do not label them as covered by the
+   uptime monitor.
+
+Free-tier gate sequence:
+
+- **BT-F0 — plan and eligibility:** read the workspace plan/quota and confirm
+  organizational use is allowed, without changing billing.
+- **BT-F1 — monitor:** activate the existing monitor only after confirming the
+  target, 60-second cadence, failure/recovery windows, and email-only channel.
+  Read back the saved config and confirm an external check actually ran.
+- **BT-F2 — email delivery:** run one controlled failure/recovery check and
+  confirm both messages arrive at the approved inbox; record timestamps and
+  monitor state without retaining tokens or message bodies.
+- **BT-F3 — manual response:** rehearse one controlled alert against the
+  primary/backup contact path and record receipt, acknowledgement, and manual
+  handoff times. The five-minute objective is an operator SLA, not an automated
+  Better Stack escalation guarantee.
+- **BT-F4 — explicit limitation:** keep automatic acknowledged paging and
+  automated no-ack escalation open/deferred until an entitled responder plan or
+  another verified paging channel is available. Candidate sign-off must state
+  that email-only monitoring is not 24/7 paging and name the human owner who
+  watches the inbox. G5's Better Stack email-monitor slice may pass only after
+  BT-F0–F2; BT-F3 and the full P1 gate need Wasabi's explicit acceptance of the
+  manual procedure. G6 soak must use the accepted response runbook, and G7 must
+  retain this limitation in the sign-off.
+
+No Better Stack monitor, policy, recipient, or billing setting is changed by
+this proposal. Existing P1 acceptance remains open until Wasabi accepts the
+manual substitute or automatic paging is provisioned and tested.
+
 Cloudflare's official `cf` CLI is installed and OAuth-authenticated; a host-access
 check on 8 November verified its default profile and R2/account-token scopes.
 The repository sandbox cannot read the macOS Keychain that unlocks this profile,
@@ -898,7 +973,7 @@ Only this register changes active status. Status vocabulary: **open**, **in prog
 
 | Gate / status | Responsible role; dependencies | Next action and acceptance criteria |
 | --- | --- | --- |
-| **G1 — passed on head 801e6af5; current G5 follow-up needs a fresh run** | Implementer + reviewer; none | Head 801e6af5 passed preflight, source checks, database integration, AMD64/ARM64 image validation, aggregate CI [#43882740894](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/43882740894), and Security [#43882740746](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/43882740746). The current G5 source follow-up fixes private Copernicus credential routing and needs a fresh exact-head run after push. Candidate image remains source revision e4f9ee74; PR #73 still needs independent review before merge. |
+| **G1 — passed on last fully green head `ab7bee5c`; later commits require exact-head checks** | Implementer + reviewer; none | Head `ab7bee5c` passed preflight, source checks, database integration, AMD64/ARM64 image validation, aggregate CI [#43890296888](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/43890296888), and Security [#43890296856](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/43890296856). This closes the release-input-lock preflight failure. Any later source or documentation change, including the free-tier proposal in this revision, needs its own exact-head CI and Security pass before G1 is current on that revision. Candidate image remains source revision `e4f9ee74`; PR #73 still needs independent review before merge. |
 | **G2 — Database security: passed (candidate)** | Security implementer + caller owners; G1 | Wasabi confirmed the source caller map and grants remain unchanged. Deployment vs39uo4iu16j6hinyzck1a1v runs the exact e4f9ee74 image on the original UUID-scoped volumes, with the signed/encrypted checkpoint candidate-pre-e4f9ee74-20261116T025927Z and 746 applied migrations through schema 755. The Gateway's exit-1 cause was private/media.env mode 0551; restoring 0440 made validation pass, and the candidate has remained healthy. Read-only probes verified API kokonut_runtime and worker kokonut_worker_runtime; the worker's runtime membership inherits but cannot SET ROLE. The service-secret audit found required keys present, no out-of-scope sensitive names or media environment values, no raw runtime passwords in the long-lived app/worker, and distinct API/worker PG passwords. Secret files are 0440 under a 0700 directory. Evidence: [G2 candidate acceptance](builds/2026-11-16-recovery/g2-e4-candidate-acceptance-1324z.json). Coolify has reset the media file mode before; verify/restore 0440 after future deployments. C1 remains open because inherited grants were not narrowed. Optional provider configuration/parity remains in G5. |
 | **G3 — Capability/compatibility parity: in progress** | Domain implementers; accountable MAN-CAP owner and cross-cutting reviewer: Wasabi, Secretary of Kokonut, across all five groups; G1, with G2 for security acceptance | Wasabi accepted source outcomes for all 67 capabilities and confirmed the 13 cross-cutting source reviews. Close candidate/live evidence gaps and record final MAN-CAP owner outcomes. Audit routes, SDK, console, CLI, retained scopes and Directus fields/rows/hooks/schedules; preserve credit custody and independent retirement confirmation. Prepared integrations remain explicitly unaccepted until candidate evidence and owner disposition exist. |
 | **G4 — Identity/workflows: in progress** | Wasabi; G2/G3, identity inputs, second authorized test location | Authenticated login/callback, administration/session read, scheduler denial, CSRF denial, logout, Adelphi read, draft UI/detail, account chooser, and the distinct Operations → Verifier → Publisher lifecycle paths passed. Operations has an exact Adelphi `farm_activity:create_draft` scope; the published test and rejected-then-reworked test both retain distinct actors/reasons in audit history. The new Hub relational setup and farm/plot/crop-cycle/task selectors are deployed; form loading passed, but relation-write acceptance remains open. Local Field Collector source suites pass (12 Node tests, 117 Python tests plus 5 subtests, and 13 additional Python tests; [evidence](builds/2026-11-15-recovery/g4-field-collector-source-tests-0714z.json)). These do not prove real-device behavior. A signed wrong-nonce ID-token regression passes through the source Gateway callback; the trusted candidate issuer cannot supply a deliberately wrong-nonce token, so live nonce mismatch is unverified and a separate disposable issuer would be required for live end-to-end exercise. Wasabi is entering Los Saladillos as the second location; candidate creation and authorization are not yet confirmed. Once it appears in the candidate, run the second-location denial check. The latest recorded candidate count is one location and one farm ([count evidence](builds/2026-11-15-recovery/g4-candidate-location-count-0928z.json)). Field Collector device enrollment/revocation, offline capture, encrypted media, consent withdrawal, sync/deduplication, and downstream disposition remain open. |
