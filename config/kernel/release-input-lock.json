@@ -55,8 +55,8 @@
     "docker-compose.kernel-coolify-network.yml": "b08c190b0a3ffa203f9333919fc44abcfa5352c01e1e48f888ab8bed99606b9d",
     "docker-compose.kernel-coolify-zitadel.yml": "6944c961d7044b235c6b10dac0ff33f228114489aca26fd30566bdb8c98bdd4a",
     "docker-compose.kernel-coolify-build.yml": "faf9dd842e1d809718d69e8125d5f8ad51fe04b4f7f8692c8015890ba4b4d8f6",
-    "docker-compose.kernel-coolify.yml": "db7559abe983a7227c1ec34a851e15c997439cec46ad5735b778e9af26c54322",
-    "scripts/render-kernel-coolify-compose.py": "54e7357c116a4f2358add6ca3877fb00288968c1eb1b3afcd7adae21606c279e",
+    "docker-compose.kernel-coolify.yml": "86f36c7d346c7fa11b19dde5afe2b44566c0135337fd434b6878b223a552dc87",
+    "scripts/render-kernel-coolify-compose.py": "586fb5e0d8c92c4295b1e6b275ede7cb432b065f48eb4e13f50ba350eddfb860",
     "config/kernel/coolify-environment-key-inventory.json": "48a05b8934e96672753b29f6ca71328fe340b064a62588358a745315cf78871a",
     "docker-compose.kernel-coolify-media.yml": "7102c79ae4b01d8db8ea77c167a15fbbf827abd142ffc172f2078af5ffa719da",
     ".dockerignore": "02ea91f43589f3fde3fa4d899fa8489fd48d2e5897084dc093508651f7008ff1",
@@ -71,8 +71,8 @@
     "docker-compose.kernel-portability.yml": "041a44b4cd1105259c4b589aaf67e5c95375d746351263a042f9d939cbbb566a",
     "docker-compose.kernel-recovery-directus-role.yml": "dcb5d1229a47a4f46b76304293b5e4935e1c505cf891a3dcf0a1ca70a901be8f",
     "docker-compose.kernel-sensor-anomaly-ml.yml": "91bbf0352c5b18082f25f1e641ad924b64f35ac79ec836d90561d3883f625ff4",
-    "config/kernel/coolify-service-secret-env.json": "7d136852a770d17caa5981ba4d4526668cbd9da1bc83012a222cde3b42c06b03",
-    "scripts/install-coolify-service-secrets.py": "52dee7ab5e011d318fe1936314fa7c89f83a8fb07a47ebafd1ff822aec8ce9c4"
+    "config/kernel/coolify-service-secret-env.json": "f75ab6b39896ea75c89c5157f6809f11a5794f792621a938732a5293ac090740",
+    "scripts/install-coolify-service-secrets.py": "7f95807c01d7d9e26a157a6ef460914934be7458badc478dbef87a0507dc7b3b"
   },
   "postgis_packages": {
     "POSTGIS_PACKAGE_VERSION": "3.6.4+dfsg-2.pgdg12+1",
