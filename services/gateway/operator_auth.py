@@ -16,7 +16,7 @@ import ssl
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 from typing import Protocol
-from urllib.parse import urlsplit
+from urllib.parse import urlsplit, urlunsplit
 from uuid import UUID
 
 from starlette.requests import Request
@@ -273,6 +273,47 @@ class OIDCOperatorProvider:
             client_kwargs=client_kwargs,
         )
         self.client = oauth.create_client("operator")
+        self._server_metadata_prepared = False
+
+    async def prepare_server_metadata(self) -> None:
+        """Validate issuer metadata and route OIDC back-channel calls internally."""
+        metadata = await self.client.load_server_metadata()
+        if metadata.get("issuer") != self.settings.issuer:
+            raise OperatorAuthConfigurationError(
+                "OIDC discovery issuer does not match the configured issuer"
+            )
+
+        discovery_url = self.settings.discovery_url
+        if not discovery_url or urlsplit(discovery_url).scheme != "http":
+            return
+        if self._server_metadata_prepared:
+            return
+
+        discovery = urlsplit(discovery_url)
+        issuer = urlsplit(self.settings.issuer)
+        for endpoint_name in ("token_endpoint", "userinfo_endpoint", "jwks_uri"):
+            endpoint_value = metadata.get(endpoint_name)
+            if not isinstance(endpoint_value, str):
+                raise OperatorAuthConfigurationError(
+                    f"OIDC discovery is missing {endpoint_name}"
+                )
+            endpoint = urlsplit(endpoint_value)
+            if (
+                endpoint.scheme not in {"http", "https"}
+                or endpoint.hostname != issuer.hostname
+                or endpoint.username
+                or endpoint.password
+                or endpoint.query
+                or endpoint.fragment
+                or not endpoint.path.startswith("/")
+            ):
+                raise OperatorAuthConfigurationError(
+                    f"OIDC discovery has an invalid {endpoint_name}"
+                )
+            metadata[endpoint_name] = urlunsplit(
+                ("http", discovery.netloc, endpoint.path, "", "")
+            )
+        self._server_metadata_prepared = True
 
     def create_session(self, claims: dict) -> tuple[OperatorPrincipal, str, str] | None:
         issuer = claims.get("iss")
@@ -4378,6 +4419,7 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
         request.session.clear()
         request.session["operator_return_to"] = return_to
         try:
+            await provider.prepare_server_metadata()
             authorization_options = (
                 {"prompt": "select_account"} if prompt == "select_account" else {}
             )
@@ -4386,7 +4428,7 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
                 redirect_uri=provider.settings.redirect_uri,
                 **authorization_options,
             )
-        except RequestError as exc:
+        except (RequestError, OperatorAuthConfigurationError) as exc:
             from services.common.logging import get_logger
 
             get_logger("gateway.operator_auth").warning(
@@ -4404,6 +4446,7 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
         if provider is None:
             return JSONResponse(status_code=404, content={"error": "Operator OIDC is disabled"})
         try:
+            await provider.prepare_server_metadata()
             token = await provider.client.authorize_access_token(request)
             claims = token.get("userinfo")
             if not isinstance(claims, Mapping):
