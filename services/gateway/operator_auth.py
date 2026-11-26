@@ -4393,6 +4393,11 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
 
     router = APIRouter()
 
+    async def prepare_provider_metadata() -> None:
+        prepare = getattr(provider, "prepare_server_metadata", None)
+        if callable(prepare):
+            await prepare()
+
     @router.get("/operator/")
     async def operator_console():
         if provider is None:
@@ -4419,7 +4424,7 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
         request.session.clear()
         request.session["operator_return_to"] = return_to
         try:
-            await provider.prepare_server_metadata()
+            await prepare_provider_metadata()
             authorization_options = (
                 {"prompt": "select_account"} if prompt == "select_account" else {}
             )
@@ -4446,7 +4451,7 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
         if provider is None:
             return JSONResponse(status_code=404, content={"error": "Operator OIDC is disabled"})
         try:
-            await provider.prepare_server_metadata()
+            await prepare_provider_metadata()
             token = await provider.client.authorize_access_token(request)
             claims = token.get("userinfo")
             if not isinstance(claims, Mapping):
