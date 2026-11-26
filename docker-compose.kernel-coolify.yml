@@ -145,6 +145,8 @@ services:
       KOKONUT_OPERATOR_OIDC_CA_BUNDLE: ${KOKONUT_OPERATOR_OIDC_CA_BUNDLE:-}
       KOKONUT_OPERATOR_OIDC_CLIENT_ID: ${KOKONUT_OPERATOR_OIDC_CLIENT_ID:?OIDC client
         ID must be configured}
+      KOKONUT_OPERATOR_OIDC_DISCOVERY_URL: ${KOKONUT_OPERATOR_OIDC_DISCOVERY_URL:-http://${KOKONUT_ZITADEL_DOMAIN:?Set
+        the ZITADEL public hostname}/.well-known/openid-configuration}
       KOKONUT_OPERATOR_OIDC_ENABLED: "true"
       KOKONUT_OPERATOR_OIDC_ISSUER: ${KOKONUT_OPERATOR_OIDC_ISSUER:?Set the exact
         HTTPS issuer shown by ZITADEL}
@@ -368,6 +370,7 @@ services:
       KOKONUT_OPERATOR_AUTH_USER: ""
       KOKONUT_OPERATOR_OIDC_CA_BUNDLE: ""
       KOKONUT_OPERATOR_OIDC_CLIENT_ID: ""
+      KOKONUT_OPERATOR_OIDC_DISCOVERY_URL: ""
       KOKONUT_OPERATOR_OIDC_ENABLED: ""
       KOKONUT_OPERATOR_OIDC_ISSUER: ""
       KOKONUT_OPERATOR_OIDC_REDIRECT_URI: ""
@@ -568,6 +571,7 @@ services:
       KOKONUT_OPERATOR_AUTH_USER: ""
       KOKONUT_OPERATOR_OIDC_CA_BUNDLE: ""
       KOKONUT_OPERATOR_OIDC_CLIENT_ID: ""
+      KOKONUT_OPERATOR_OIDC_DISCOVERY_URL: ""
       KOKONUT_OPERATOR_OIDC_ENABLED: ""
       KOKONUT_OPERATOR_OIDC_ISSUER: ""
       KOKONUT_OPERATOR_OIDC_REDIRECT_URI: ""
@@ -796,6 +800,7 @@ services:
       KOKONUT_OPERATOR_AUTH_USER: ""
       KOKONUT_OPERATOR_OIDC_CA_BUNDLE: ""
       KOKONUT_OPERATOR_OIDC_CLIENT_ID: ""
+      KOKONUT_OPERATOR_OIDC_DISCOVERY_URL: ""
       KOKONUT_OPERATOR_OIDC_ENABLED: ""
       KOKONUT_OPERATOR_OIDC_ISSUER: ""
       KOKONUT_OPERATOR_OIDC_REDIRECT_URI: ""
@@ -866,8 +871,8 @@ services:
       - "coolify.applicationUuid=${COOLIFY_RESOURCE_UUID:?Coolify resource UUID is required}"
       - "coolify.type=application"
     network_mode: none
-    restart: 'no'
-    user: '0:0'
+    restart: "no"
+    user: "0:0"
     volumes:
       - source: report-snapshot-export-artifacts
         target: /var/lib/kokonut/report-snapshot-exports
@@ -1008,6 +1013,7 @@ services:
       KOKONUT_OPERATOR_AUTH_USER: ""
       KOKONUT_OPERATOR_OIDC_CA_BUNDLE: ""
       KOKONUT_OPERATOR_OIDC_CLIENT_ID: ""
+      KOKONUT_OPERATOR_OIDC_DISCOVERY_URL: ""
       KOKONUT_OPERATOR_OIDC_ENABLED: ""
       KOKONUT_OPERATOR_OIDC_ISSUER: ""
       KOKONUT_OPERATOR_OIDC_REDIRECT_URI: ""
@@ -1082,7 +1088,7 @@ services:
       kernel: null
     profiles:
       - report-snapshot-export
-    restart: 'no'
+    restart: "no"
     stop_grace_period: 20s
     user: appuser
     volumes:
@@ -1217,6 +1223,7 @@ services:
       KOKONUT_OPERATOR_AUTH_USER: ${KOKONUT_OPERATOR_AUTH_USER:-kokonut_operator_auth}
       KOKONUT_OPERATOR_OIDC_CA_BUNDLE: ""
       KOKONUT_OPERATOR_OIDC_CLIENT_ID: ""
+      KOKONUT_OPERATOR_OIDC_DISCOVERY_URL: ""
       KOKONUT_OPERATOR_OIDC_ENABLED: ""
       KOKONUT_OPERATOR_OIDC_ISSUER: ""
       KOKONUT_OPERATOR_OIDC_REDIRECT_URI: ""
@@ -1289,7 +1296,7 @@ services:
       kernel: null
     profiles:
       - runtime-admin
-    restart: 'no'
+    restart: "no"
   worker:
     build:
       args:
@@ -1419,6 +1426,7 @@ services:
       KOKONUT_OPERATOR_AUTH_USER: ""
       KOKONUT_OPERATOR_OIDC_CA_BUNDLE: ""
       KOKONUT_OPERATOR_OIDC_CLIENT_ID: ""
+      KOKONUT_OPERATOR_OIDC_DISCOVERY_URL: ""
       KOKONUT_OPERATOR_OIDC_ENABLED: ""
       KOKONUT_OPERATOR_OIDC_ISSUER: ""
       KOKONUT_OPERATOR_OIDC_REDIRECT_URI: ""
@@ -1640,6 +1648,7 @@ services:
       KOKONUT_OPERATOR_AUTH_USER: ""
       KOKONUT_OPERATOR_OIDC_CA_BUNDLE: ""
       KOKONUT_OPERATOR_OIDC_CLIENT_ID: ""
+      KOKONUT_OPERATOR_OIDC_DISCOVERY_URL: ""
       KOKONUT_OPERATOR_OIDC_ENABLED: ""
       KOKONUT_OPERATOR_OIDC_ISSUER: ""
       KOKONUT_OPERATOR_OIDC_REDIRECT_URI: ""
@@ -1849,6 +1858,7 @@ services:
       KOKONUT_OPERATOR_AUTH_USER: ""
       KOKONUT_OPERATOR_OIDC_CA_BUNDLE: ""
       KOKONUT_OPERATOR_OIDC_CLIENT_ID: ""
+      KOKONUT_OPERATOR_OIDC_DISCOVERY_URL: ""
       KOKONUT_OPERATOR_OIDC_ENABLED: ""
       KOKONUT_OPERATOR_OIDC_ISSUER: ""
       KOKONUT_OPERATOR_OIDC_REDIRECT_URI: ""
@@ -1920,10 +1930,10 @@ services:
       - "coolify.type=application"
     network_mode: none
     read_only: true
-    restart: 'no'
+    restart: "no"
     security_opt:
       - no-new-privileges:true
-    user: '0:0'
+    user: "0:0"
     volumes:
       - source: kernel-zitadel-bootstrap
         target: /zitadel/bootstrap
@@ -2047,6 +2057,7 @@ services:
       KOKONUT_OPERATOR_AUTH_USER: ""
       KOKONUT_OPERATOR_OIDC_CA_BUNDLE: ""
       KOKONUT_OPERATOR_OIDC_CLIENT_ID: ""
+      KOKONUT_OPERATOR_OIDC_DISCOVERY_URL: ""
       KOKONUT_OPERATOR_OIDC_ENABLED: ""
       KOKONUT_OPERATOR_OIDC_ISSUER: ""
       KOKONUT_OPERATOR_OIDC_REDIRECT_URI: ""
@@ -2255,6 +2266,7 @@ services:
       KOKONUT_OPERATOR_AUTH_USER: ""
       KOKONUT_OPERATOR_OIDC_CA_BUNDLE: ""
       KOKONUT_OPERATOR_OIDC_CLIENT_ID: ""
+      KOKONUT_OPERATOR_OIDC_DISCOVERY_URL: ""
       KOKONUT_OPERATOR_OIDC_ENABLED: ""
       KOKONUT_OPERATOR_OIDC_ISSUER: ""
       KOKONUT_OPERATOR_OIDC_REDIRECT_URI: ""

@@ -5,6 +5,7 @@ services:
   app:
     environment:
       KOKONUT_OPERATOR_OIDC_ISSUER: ${KOKONUT_OPERATOR_OIDC_ISSUER:?Set the exact HTTPS issuer shown by ZITADEL}
+      KOKONUT_OPERATOR_OIDC_DISCOVERY_URL: ${KOKONUT_OPERATOR_OIDC_DISCOVERY_URL:-http://${KOKONUT_ZITADEL_DOMAIN:?Set the ZITADEL public hostname}/.well-known/openid-configuration}
 
   proxy:
     environment:

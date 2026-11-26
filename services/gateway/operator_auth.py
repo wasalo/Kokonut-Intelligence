@@ -76,6 +76,7 @@ class OIDCSettings:
     operator_auth_user: str = field(repr=False)
     operator_auth_password: str = field(repr=False)
     ca_bundle: str | None = None
+    discovery_url: str | None = None
     session_ttl_seconds: int = 43200
 
     @classmethod
@@ -99,6 +100,7 @@ class OIDCSettings:
         }
         values = {field: os.environ.get(variable, "").strip() for field, variable in required.items()}
         ca_bundle = os.environ.get("KOKONUT_OPERATOR_OIDC_CA_BUNDLE", "").strip() or None
+        discovery_url = os.environ.get("KOKONUT_OPERATOR_OIDC_DISCOVERY_URL", "").strip() or None
         missing = [variable for field, variable in required.items() if not values[field]]
         if missing:
             raise OperatorAuthConfigurationError(
@@ -136,6 +138,22 @@ class OIDCSettings:
                 raise OperatorAuthConfigurationError(f"{variable} must be an HTTPS URL")
             if parsed.fragment or (setting == "issuer" and parsed.query):
                 raise OperatorAuthConfigurationError(f"{variable} must not include a query or fragment")
+        if discovery_url:
+            discovery = urlsplit(discovery_url)
+            issuer = urlsplit(values["issuer"])
+            if (
+                discovery.scheme not in {"http", "https"}
+                or not discovery.netloc
+                or discovery.username
+                or discovery.password
+                or discovery.hostname != issuer.hostname
+                or discovery.path != "/.well-known/openid-configuration"
+                or discovery.query
+                or discovery.fragment
+            ):
+                raise OperatorAuthConfigurationError(
+                    "KOKONUT_OPERATOR_OIDC_DISCOVERY_URL must use the issuer host and standard discovery path"
+                )
         redirect = urlsplit(values["redirect_uri"])
         if redirect.path != "/operator/auth/callback" or redirect.query:
             raise OperatorAuthConfigurationError(
@@ -151,7 +169,7 @@ class OIDCSettings:
             raise OperatorAuthConfigurationError(
                 "KOKONUT_OPERATOR_SESSION_TTL_SECONDS must be between 300 and 43200"
             )
-        return cls(**values, ca_bundle=ca_bundle, session_ttl_seconds=ttl)
+        return cls(**values, ca_bundle=ca_bundle, discovery_url=discovery_url, session_ttl_seconds=ttl)
 
 
 @dataclass(frozen=True)
@@ -248,7 +266,10 @@ class OIDCOperatorProvider:
             name="operator",
             client_id=settings.client_id,
             client_secret=settings.client_secret,
-            server_metadata_url=(settings.issuer.rstrip("/") + "/.well-known/openid-configuration"),
+            server_metadata_url=(
+                getattr(settings, "discovery_url", None)
+                or (settings.issuer.rstrip("/") + "/.well-known/openid-configuration")
+            ),
             client_kwargs=client_kwargs,
         )
         self.client = oauth.create_client("operator")
