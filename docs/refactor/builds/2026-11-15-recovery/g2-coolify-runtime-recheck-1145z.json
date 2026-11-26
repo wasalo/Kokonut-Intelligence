@@ -1,0 +1,26 @@
+{
+  "checked_at_utc": "2026-11-15T11:45:52Z",
+  "coolify_application_id": "fdphpruj8jxien23ockmbw0j",
+  "candidate_container_count": 7,
+  "containers_running": 7,
+  "healthchecks_healthy": 6,
+  "healthchecks_unconfigured": 1,
+  "gateway": {
+    "image": "kokonut-kernel-oidc:local",
+    "health": "healthy",
+    "source_label_present": false,
+    "revision_label_present": false
+  },
+  "worker": {
+    "image": "kokonut-kernel-candidate:local",
+    "health": "healthy",
+    "source_label_present": false,
+    "revision_label_present": false
+  },
+  "runtime_password_variable_names_present_in_all_candidate_containers": true,
+  "coolify_include_source_commit_in_build": false,
+  "values_read": false,
+  "candidate_database_contacted": false,
+  "mutations_performed": false,
+  "interpretation": "The source isolation/provenance changes remain undeployed; Coolify still omits SOURCE_COMMIT from build environments."
+}

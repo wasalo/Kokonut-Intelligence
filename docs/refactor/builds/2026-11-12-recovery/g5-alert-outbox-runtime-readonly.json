@@ -1,0 +1,35 @@
+{
+  "version": 1,
+  "recorded_at_utc": "2026-11-12T16:11:47Z",
+  "scope": "Read-only inspection of the Coolify candidate notification configuration and durable outbox. No configuration change or delivery attempt was made.",
+  "candidate": {
+    "application_id": "fdphpruj8jxien23ockmbw0j",
+    "deployment_id": "yr4y2ece2ji3n10fsxrwgedx",
+    "worker_container": "worker-fdphpruj8jxien23ockmbw0j-20261112T070855"
+  },
+  "configuration_presence": {
+    "smtp_settings": true,
+    "event_dispatch_database_url": true,
+    "notification_enqueue_database_url": true,
+    "notification_delivery_database_url": true
+  },
+  "feature_flags": {
+    "event_bus": true,
+    "isolated_event_dispatch": false,
+    "isolated_notification_enqueue": false,
+    "notification_delivery": true,
+    "isolated_notification_delivery": false
+  },
+  "outbox": {
+    "pending": 0,
+    "processing": 0,
+    "retryable": 0,
+    "succeeded": 0,
+    "dead_letter": 0,
+    "total_rows": 0,
+    "storage_state": "ok"
+  },
+  "delivery_attempted": false,
+  "secret_values_printed": false,
+  "result": "Email transport was previously accepted by the candidate SMTP server and inbox receipt was confirmed for one static message. Event-driven notification delivery is not active because the isolated dispatch, enqueue, and delivery flags are off."
+}

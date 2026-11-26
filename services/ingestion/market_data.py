@@ -17,10 +17,13 @@ Usage:
 """
 
 import argparse
+import math
 import os
 import re
 import sys
+from html.parser import HTMLParser
 from io import BytesIO
+from urllib.parse import urljoin, urlsplit
 
 from services.common.cli import print_json
 from services.common.http import http
@@ -30,15 +33,73 @@ from ..common.logging import get_logger
 
 logger = get_logger("ingestion.market")
 
-# World Bank Pink Sheet XLS URL pattern
-# Updated periodically; the exact URL changes each month
-WORLD_BANK_BASE_URL = "https://thedocs.worldbank.org/en/1c3f894e-2c54-48b5-a79d-2e6c9c47b3af"
-
-# Fallback URL for the latest available Pink Sheet
-WORLD_BANK_FALLBACK_URL = os.environ.get(
-    "WORLD_BANK_PINK_SHEET_URL",
-    f"{WORLD_BANK_BASE_URL}/CMO-Historical-Data-Monthly.xlsx",
+# World Bank's stable publication page links to its current historical workbook.
+# The attachment URL includes a rotating document ID, so keep a direct URL as an
+# optional operator override rather than pinning an expired attachment path.
+WORLD_BANK_LANDING_PAGE_URL = "https://www.worldbank.org/en/research/commodity-markets"
+WORLD_BANK_FALLBACK_URL = (
+    os.environ.get("WORLD_BANK_PINK_SHEET_URL", "").strip()
+    or WORLD_BANK_LANDING_PAGE_URL
 )
+WORLD_BANK_WORKBOOK_NAME = "CMO-Historical-Data-Monthly.xlsx"
+
+
+class _PinkSheetLinkParser(HTMLParser):
+    """Collect World Bank page links to the monthly historical workbook."""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.links: list[str] = []
+
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        if tag != "a":
+            return
+        href = dict(attrs).get("href")
+        if href and urlsplit(href).path.endswith(WORLD_BANK_WORKBOOK_NAME):
+            self.links.append(href)
+
+
+def _validated_pink_sheet_url(url: str) -> str:
+    """Accept only HTTPS World Bank links to the expected workbook."""
+    parsed = urlsplit(url)
+    hostname = (parsed.hostname or "").lower()
+    try:
+        port = parsed.port
+    except ValueError as error:
+        raise ValueError("World Bank Pink Sheet URL must be an HTTPS workbook link") from error
+    if (
+        parsed.scheme.lower() != "https"
+        or not (hostname == "worldbank.org" or hostname.endswith(".worldbank.org"))
+        or port not in (None, 443)
+        or parsed.username is not None
+        or parsed.password is not None
+        or parsed.query
+        or parsed.fragment
+        or not parsed.path.endswith(WORLD_BANK_WORKBOOK_NAME)
+    ):
+        raise ValueError("World Bank Pink Sheet URL must be an HTTPS workbook link")
+    return url
+
+
+def resolve_pink_sheet_url(url: str | None = None) -> str:
+    """Resolve the current official workbook link or validate an explicit URL."""
+    configured_url = url or os.environ.get("WORLD_BANK_PINK_SHEET_URL", "").strip()
+    if configured_url:
+        return _validated_pink_sheet_url(configured_url)
+
+    response = http.get(WORLD_BANK_LANDING_PAGE_URL, timeout=20)
+    try:
+        response.raise_for_status()
+        parser = _PinkSheetLinkParser()
+        parser.feed(response.text)
+        for link in parser.links:
+            try:
+                return _validated_pink_sheet_url(urljoin(WORLD_BANK_LANDING_PAGE_URL, link))
+            except ValueError:
+                continue
+        raise RuntimeError("World Bank Pink Sheet workbook link was not found")
+    finally:
+        response.close()
 
 # Commodity seed data (fallback when live download unavailable)
 COMMODITY_SEED_DATA = {
@@ -157,6 +218,20 @@ _PINK_SHEET_MONTHS = [
     "july", "august", "september", "october", "november", "december",
 ]
 
+# Canonical single-series choices from the current monthly historical sheet.
+# The source contains multiple regional/quality series for several products;
+# these explicit headers avoid combining different market quotes as one price.
+_WORLD_BANK_MONTHLY_COLUMNS = {
+    "cocoa": ("COCOA", "Cocoa"),
+    "coffee arabica": ("COFFEE", "Coffee, Arabica"),
+    "tea avg 3 auctions": ("TEA", "Tea, avg 3 auctions"),
+    "palm oil": ("PALM_OIL", "Palm oil"),
+    "maize": ("MAIZE", "Maize"),
+    "rice thai a 1": ("RICE", "Rice, Thai A.1"),
+    "sugar world": ("SUGAR", "Sugar, world"),
+    "banana us": ("BANANA", "Banana, US"),
+}
+
 
 def normalize_name(value: str) -> str:
     """Normalize crop and commodity names for forgiving matching."""
@@ -183,18 +258,93 @@ def download_pink_sheet(url: str = None) -> bytes:
     Returns the raw bytes of the XLS file.
     Raises requests.RequestException on network errors.
     """
-    target_url = url or WORLD_BANK_FALLBACK_URL
+    target_url = resolve_pink_sheet_url(url)
     logger.info("Downloading Pink Sheet from %s...", target_url)
 
     resp = http.get(target_url, timeout=60)
-    resp.raise_for_status()
+    try:
+        resp.raise_for_status()
 
-    content_type = resp.headers.get("Content-Type", "")
-    if "spreadsheet" not in content_type and "excel" not in content_type and "octet-stream" not in content_type:
-        logger.warning("Unexpected Content-Type: %s (proceeding anyway)", content_type)
+        content_type = resp.headers.get("Content-Type", "")
+        if "spreadsheet" not in content_type and "excel" not in content_type and "octet-stream" not in content_type:
+            logger.warning("Unexpected Content-Type: %s (proceeding anyway)", content_type)
 
-    logger.info("Downloaded %d bytes", len(resp.content))
-    return resp.content
+        logger.info("Downloaded %d bytes", len(resp.content))
+        return resp.content
+    finally:
+        resp.close()
+
+
+def _parse_current_monthly_layout(
+    rows: list[tuple],
+    *,
+    target_month: int = None,
+    target_year: int = None,
+) -> list[dict] | None:
+    """Parse the current period-row/commodity-column workbook layout.
+
+    ``None`` means the workbook uses a different, legacy layout and should be
+    handled by the compatibility parser. An empty list means the current
+    layout was recognized but its required series are incomplete or empty.
+    """
+    header_idx = None
+    selected_columns: dict[str, tuple[int, str]] = {}
+    best_match_count = 0
+
+    for row_idx, row in enumerate(rows[:20]):
+        if row and row[0] is not None and str(row[0]).strip():
+            continue
+        matches = {}
+        for column_idx, header in enumerate(row):
+            if not header:
+                continue
+            normalized = normalize_name(str(header))
+            if normalized in _WORLD_BANK_MONTHLY_COLUMNS:
+                matches[_WORLD_BANK_MONTHLY_COLUMNS[normalized][0]] = (
+                    column_idx,
+                    _WORLD_BANK_MONTHLY_COLUMNS[normalized][1],
+                )
+        if len(matches) > best_match_count:
+            header_idx = row_idx
+            selected_columns = matches
+            best_match_count = len(matches)
+
+    if not best_match_count:
+        return None
+    if best_match_count != len(_WORLD_BANK_MONTHLY_COLUMNS):
+        logger.warning("World Bank monthly sheet is missing supported commodity columns")
+        return []
+
+    records = []
+    for row in rows[header_idx + 1:]:
+        period = str(row[0]).strip() if row and row[0] is not None else ""
+        match = re.fullmatch(r"(\d{4})M(\d{2})", period, re.IGNORECASE)
+        if not match:
+            continue
+        year, month = int(match.group(1)), int(match.group(2))
+        if not 1 <= month <= 12:
+            continue
+        if target_month is not None and month != target_month:
+            continue
+        if target_year is not None and year != target_year:
+            continue
+
+        for commodity_code, (column_idx, source_name) in selected_columns.items():
+            if column_idx >= len(row) or row[column_idx] is None:
+                continue
+            try:
+                price = float(row[column_idx])
+            except (TypeError, ValueError):
+                continue
+            if not math.isfinite(price) or price <= 0:
+                continue
+            records.append({
+                "commodity_code": commodity_code,
+                "commodity_name": source_name,
+                "price_date": f"{year}-{month:02d}-01",
+                "price_per_unit": price,
+            })
+    return records
 
 
 def parse_pink_sheet(xls_bytes: bytes, target_month: int = None, target_year: int = None) -> list:
@@ -212,13 +362,21 @@ def parse_pink_sheet(xls_bytes: bytes, target_month: int = None, target_year: in
 
     wb = openpyxl.load_workbook(BytesIO(xls_bytes), read_only=True, data_only=True)
 
-    # Try common sheet names
-    sheet_name = None
-    for name in wb.sheetnames:
-        name_lower = name.lower()
-        if "monthly" in name_lower or "pink" in name_lower or "commodity" in name_lower:
-            sheet_name = name
-            break
+    # Prefer the actual prices tab; current files put "Mismatch Details" first,
+    # and that tab also contains the word "Commodity".
+    sheet_name = next(
+        (name for name in wb.sheetnames if normalize_name(name) == "monthly prices"),
+        None,
+    )
+    if sheet_name is None:
+        sheet_name = next(
+            (
+                name for name in wb.sheetnames
+                if "monthly" in name.lower()
+                and not any(term in name.lower() for term in ("mismatch", "index", "description"))
+            ),
+            None,
+        )
     if not sheet_name:
         sheet_name = wb.sheetnames[0]
 
@@ -229,6 +387,12 @@ def parse_pink_sheet(xls_bytes: bytes, target_month: int = None, target_year: in
     if not rows:
         logger.warning("Empty sheet: %s", sheet_name)
         return []
+
+    current_layout = _parse_current_monthly_layout(
+        rows, target_month=target_month, target_year=target_year
+    )
+    if current_layout is not None:
+        return current_layout
 
     # Find header row (contains "Commodity" or "Unit")
     header_idx = None

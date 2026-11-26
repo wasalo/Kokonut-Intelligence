@@ -84,8 +84,10 @@ def test_seeded_proxy_parties_and_landscape_report():
         assert location_row is not None
         report = generate_stakeholder_landscape(conn, location_id=str(location_row[0]))
         assert report["report_type"] == "stakeholder_landscape"
-        assert report["party_count"] >= 5
-        assert any(row["open_interest_count"] > 0 for row in report["parties"])
+        assert report["party_count"] == 1
+        party_names = {row["display_name"] for row in report["parties"]}
+        assert party_names == {"Kokonut Adelphi"}
+        assert all(row["open_interest_count"] == 0 for row in report["parties"])
         with conn.cursor() as cur:
             cur.execute("SELECT COUNT(*) FROM v_stakeholder_source_candidates")
             assert cur.fetchone()[0] >= 0

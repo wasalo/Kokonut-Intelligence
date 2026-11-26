@@ -1,0 +1,115 @@
+{
+  "date": "2026-11-02",
+  "evidence_level": "disposable_acceptance",
+  "source_revision": "672c8b2d062e81e20d848be637f61e1710b6f6dc",
+  "source_worktree_clean": false,
+  "runner": "scripts/check-kernel-standard-recovery-disposable.py",
+  "profile": "standard",
+  "result": "passed",
+  "project": "kokonut-standard-recovery-c39428d344",
+  "candidate_legacy_production_touched": false,
+  "host_ports_published": false,
+  "runtime_network_internal": true,
+  "migration_snapshot": {
+    "schema_count": 736,
+    "latest_migration": "schema:745_runtime_public_wellbeing_metric_summary_read_only.sql",
+    "sha256": "a09aa7b8dc2b271fa6f489f54da4e82a78beee3a0a176d69a600f264d4e96e0f",
+    "app_image_matches": true,
+    "worker_image_matches": true
+  },
+  "migrations": {
+    "schemas_applied": 736,
+    "schemas_failed": 0,
+    "seed_rows": 0,
+    "latest_schema_migration": "schema:745_runtime_public_wellbeing_metric_summary_read_only.sql",
+    "source_snapshot_sha256": "a09aa7b8dc2b271fa6f489f54da4e82a78beee3a0a176d69a600f264d4e96e0f"
+  },
+  "required_schema_missing_fails_closed": true,
+  "api_worker_split": true,
+  "runtime_role": {
+    "bootstrap_profile": "runtime-admin",
+    "bootstrap_ran_explicitly_after_migrations": true,
+    "app_database_user": "kokonut_runtime",
+    "worker_database_user": "kokonut_runtime",
+    "role_attributes": {
+      "bypass_rls": false,
+      "create_database": false,
+      "create_role": false,
+      "has_role_memberships": false,
+      "inherit": false,
+      "login": true,
+      "member_of_database_owner": false,
+      "owns_database": false,
+      "replication": false,
+      "superuser": false
+    },
+    "schema_version_insert_denied_after_initial_provision": true,
+    "schema_version_insert_denied_after_provisioner_reapply": true,
+    "runtime_reference_tables_read_only_after_initial_provision": true,
+    "runtime_reference_tables_read_only_after_provisioner_reapply": true,
+    "optional_directus_role": "provisioned",
+    "directus_reference_tables_read_only_after_initial_provision": true,
+    "directus_reference_tables_read_only_after_provisioner_reapply": true,
+    "freshness_worker_login_and_bounded_config_read_after_initial_provision": true,
+    "freshness_worker_login_and_bounded_config_read_after_provisioner_reapply": true,
+    "role_attributes_preserved_after_reapply": true
+  },
+  "startup": {
+    "api_healthy": true,
+    "worker_healthy": true,
+    "proxy_running": true,
+    "worker_probe": "healthy",
+    "worker_children_alive": true,
+    "worker_children_progressing": true,
+    "private_supervisor_heartbeat": {
+      "child_files_private": true,
+      "child_shapes_valid": true,
+      "directory_private": true,
+      "file_private": true,
+      "shape_valid": true
+    }
+  },
+  "stalled_child_healthcheck": {
+    "database_unavailable_during_probe": true,
+    "health_state": "worker_child_stalled",
+    "process_alive_during_stall": true,
+    "pulse_restored": true,
+    "worker": "events",
+    "database_healthy_after_restore": true,
+    "worker_healthy_after_restore": true,
+    "health_state_after_restore": "healthy"
+  },
+  "database_outage_recovery": {
+    "worker_degraded_state_observed": "unhealthy",
+    "database_healthy_after_restart": true,
+    "api_healthy_after_restart": true,
+    "worker_healthy_after_restart": true,
+    "worker_restart_count": 0,
+    "private_supervisor_heartbeat_after_restart": {
+      "child_files_private": true,
+      "child_shapes_valid": true,
+      "directory_private": true,
+      "file_private": true,
+      "shape_valid": true
+    }
+  },
+  "shutdown": {
+    "worker_container_stopped": true,
+    "supervisor_heartbeat_removed": true,
+    "active_work_leases_after_shutdown": 0
+  },
+  "cleanup": {
+    "containers": 0,
+    "volumes": 0,
+    "networks": 0
+  },
+  "limitations": [
+    "This is a short disposable restart/recovery check, not 24-hour endurance or scale acceptance.",
+    "The internal Compose network has no Internet egress; no real providers, seeds, candidate, legacy, or production data are used.",
+    "Child heartbeat freshness shows the supervised process is responsive, not that individual tasks completed or business work succeeded.",
+    "The seed-free run verifies that shutdown leaves no active leases; it does not claim to exercise lease recovery during a long-running handler.",
+    "The source worktree was dirty, so this record is not a clean committed-head release gate.",
+    "Standard API and general worker both use kokonut_runtime; this run does not close C1 identity separation.",
+    "This run does not establish browser login, end-to-end Field Collector sync, populated-data parity, candidate rollout, or production acceptance."
+  ]
+}

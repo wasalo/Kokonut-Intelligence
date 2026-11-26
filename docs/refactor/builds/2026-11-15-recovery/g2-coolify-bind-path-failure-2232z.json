@@ -1,0 +1,37 @@
+{
+  "format_version": 1,
+  "gate": "G2",
+  "observed_at": "2026-11-15T22:33:10Z",
+  "coolify_application_uuid": "fdphpruj8jxien23ockmbw0j",
+  "deployment_uuid": "ai8q1d7ffuby0tu6rfhbrxy1",
+  "target_commit": "d61d0b308be7a0257e7a9e9646aeaebcca197c85",
+  "deployment_status": "failed_before_compose_load",
+  "coolify_configuration": {
+    "git_branch": "chore/finalize-kokonut-intelligence-refactor",
+    "git_commit_sha_setting": "HEAD",
+    "include_source_commit_in_build": true,
+    "raw_compose_deployment": true
+  },
+  "failure": "Coolify rejected variable interpolation in a Docker bind-mount source as unsafe. The Compose validator did not load the candidate file.",
+  "candidate_impact": {
+    "containers_replaced": false,
+    "volumes_changed": false,
+    "database_state_changed": false,
+    "migrations_run": false,
+    "grants_changed": false
+  },
+  "preexisting_service_state": {
+    "postgresql": "healthy",
+    "zitadel_postgresql": "healthy",
+    "gateway": "restarting on previous image",
+    "general_worker": "restarting on previous image",
+    "zitadel_api": "restarting on previous image"
+  },
+  "diagnosed_configuration": {
+    "gateway_media_file_mode_before_correction": "0551",
+    "gateway_media_file_mode_after_correction": "0440",
+    "worker_secret_loader": "existing worker exited with SecretLoadError: no encrypted or plaintext environment source found",
+    "zitadel_database_dsn_source": "existing container attempted localhost before the new Compose definition loaded"
+  },
+  "follow_up": "Use relative, traversal-checked Coolify host paths; mark trusted service-scoped environment injection for API and worker startup; rerun exact-head CI and Security before retrying deployment."
+}

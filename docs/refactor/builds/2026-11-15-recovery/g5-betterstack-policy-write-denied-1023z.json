@@ -1,0 +1,18 @@
+{
+  "attempted_at_utc": "2026-11-15T10:22:00Z",
+  "verified_at_utc": "2026-11-15T10:23:14Z",
+  "service": "Better Stack",
+  "credential_source": "SOPS-encrypted .env.sops",
+  "credential_value_recorded": false,
+  "operation": "POST /api/v3/policies",
+  "write_http_status": 403,
+  "policy_created": false,
+  "incident_sent": false,
+  "readback": {
+    "policies_http_status": 200,
+    "policy_count": 0,
+    "incoming_webhooks_http_status": 200,
+    "incoming_webhook_count": 0
+  },
+  "side_effects": "no Better Stack resources changed"
+}

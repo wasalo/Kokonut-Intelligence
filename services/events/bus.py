@@ -238,7 +238,7 @@ class EventBus:
                             WHERE created_at > NOW() - INTERVAL '24 hours' GROUP BY status""")
             return dict(cur.fetchall())
 
-    def cleanup_old_events(self, actor: str = "cli"):
+    def cleanup_old_events(self, actor: str | None = None):
         if not isinstance(actor, str) or not actor.strip():
             raise ValueError("actor is required for retention audit")
         from services.events.retention import require_event_retention_cleanup

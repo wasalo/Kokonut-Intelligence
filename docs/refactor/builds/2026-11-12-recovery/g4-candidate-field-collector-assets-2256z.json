@@ -1,0 +1,43 @@
+{
+  "evidence_type": "g4_candidate_field_collector_static_assets",
+  "recorded_at_utc": "2026-11-12T22:56:02Z",
+  "candidate": {
+    "pull_request": 73,
+    "branch_head": "32ca961b4796bf6b6c48d7b4ac3b980d2c1fe7a8",
+    "deployed_application_source": "d8f2b9aa98181944cf26896e9f613a2f11be7737",
+        "coolify_application_id": "fdphpruj8jxien23ockmbw0j"
+  },
+  "data_counts": {
+    "query": "SELECT count(*) from public.location and public.farm in an explicit read-only transaction",
+    "locations": 1,
+    "farms": 1,
+    "row_contents_returned": false,
+    "database_changes": false
+  },
+  "public_http_checks": [
+    {
+      "path": "/mobile/",
+      "status": 200,
+      "content_type": "text/html; charset=utf-8"
+    },
+    {
+      "path": "/mobile/field-collector-vault.js",
+      "status": 200,
+      "content_type": "application/javascript"
+    },
+    {
+      "path": "/mobile/field-collector-service-worker.js",
+      "status": 200,
+      "content_type": "application/javascript"
+    }
+  ],
+  "interpretation": "The public Field Collector shell, encrypted-vault helper, and service-worker assets are served by the candidate. Only one location and one farm currently exist, so the second-location denial test cannot run yet.",
+  "not_verified": [
+    "Browser vault creation/unlock and offline shell reopen",
+    "Offline capture and encrypted local queue persistence",
+    "Trusted device enrollment and revocation",
+    "Consent-required participant workflow and withdrawal behavior",
+    "Encrypted media upload and attachment",
+    "Reconnect sync, duplicate retry, and downstream disposition"
+  ]
+}

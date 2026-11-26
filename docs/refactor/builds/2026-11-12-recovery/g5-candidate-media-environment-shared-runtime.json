@@ -1,0 +1,123 @@
+{
+  "acceptance": "failed; remediation required",
+  "candidate": {
+    "coolify_application_id": "fdphpruj8jxien23ockmbw0j",
+    "container_group_created_at": "2026-11-12T18:28:54Z",
+    "source_commit": "da6dd018350da0ccdd89860e3034a67d258374d4"
+  },
+  "check": {
+    "method": "read-only docker inspect Config.Env; emitted key names only",
+    "secret_values_recorded": false,
+    "observed_at": "2026-11-12T19:04:24Z"
+  },
+  "containers": [
+    {
+      "health": "healthy",
+      "nonempty_media_keys": [
+        "MOBILE_MEDIA_ENCRYPTION_KEY",
+        "MOBILE_MEDIA_LOCAL_KEY",
+        "MOBILE_MEDIA_PROVIDER",
+        "MOBILE_MEDIA_S3_ACCESS_KEY_ID",
+        "MOBILE_MEDIA_S3_BUCKET",
+        "MOBILE_MEDIA_S3_ENDPOINT",
+        "MOBILE_MEDIA_S3_REGION",
+        "MOBILE_MEDIA_S3_SECRET_ACCESS_KEY"
+      ],
+      "service": "database",
+      "state": "running"
+    },
+    {
+      "health": "healthy",
+      "nonempty_media_keys": [
+        "MOBILE_MEDIA_ENCRYPTION_KEY",
+        "MOBILE_MEDIA_LOCAL_KEY",
+        "MOBILE_MEDIA_PROVIDER",
+        "MOBILE_MEDIA_S3_ACCESS_KEY_ID",
+        "MOBILE_MEDIA_S3_BUCKET",
+        "MOBILE_MEDIA_S3_ENDPOINT",
+        "MOBILE_MEDIA_S3_REGION",
+        "MOBILE_MEDIA_S3_SECRET_ACCESS_KEY"
+      ],
+      "service": "zitadel-api",
+      "state": "running"
+    },
+    {
+      "health": "healthy",
+      "nonempty_media_keys": [
+        "MOBILE_MEDIA_ENCRYPTION_KEY",
+        "MOBILE_MEDIA_LOCAL_KEY",
+        "MOBILE_MEDIA_PROVIDER",
+        "MOBILE_MEDIA_S3_ACCESS_KEY_ID",
+        "MOBILE_MEDIA_S3_BUCKET",
+        "MOBILE_MEDIA_S3_ENDPOINT",
+        "MOBILE_MEDIA_S3_REGION",
+        "MOBILE_MEDIA_S3_SECRET_ACCESS_KEY"
+      ],
+      "service": "zitadel-db",
+      "state": "running"
+    },
+    {
+      "health": "healthy",
+      "nonempty_media_keys": [
+        "MOBILE_MEDIA_ENCRYPTION_KEY",
+        "MOBILE_MEDIA_LOCAL_KEY",
+        "MOBILE_MEDIA_PROVIDER",
+        "MOBILE_MEDIA_S3_ACCESS_KEY_ID",
+        "MOBILE_MEDIA_S3_BUCKET",
+        "MOBILE_MEDIA_S3_ENDPOINT",
+        "MOBILE_MEDIA_S3_REGION",
+        "MOBILE_MEDIA_S3_SECRET_ACCESS_KEY"
+      ],
+      "service": "zitadel-login",
+      "state": "running"
+    },
+    {
+      "health": "healthy",
+      "nonempty_media_keys": [
+        "MOBILE_MEDIA_LOCAL_KEY",
+        "MOBILE_MEDIA_PROVIDER",
+        "MOBILE_MEDIA_S3_BUCKET",
+        "MOBILE_MEDIA_S3_REGION"
+      ],
+      "service": "app",
+      "state": "running"
+    },
+    {
+      "health": "healthy",
+      "nonempty_media_keys": [
+        "MOBILE_MEDIA_ENCRYPTION_KEY",
+        "MOBILE_MEDIA_LOCAL_KEY",
+        "MOBILE_MEDIA_PROVIDER",
+        "MOBILE_MEDIA_S3_ACCESS_KEY_ID",
+        "MOBILE_MEDIA_S3_BUCKET",
+        "MOBILE_MEDIA_S3_ENDPOINT",
+        "MOBILE_MEDIA_S3_REGION",
+        "MOBILE_MEDIA_S3_SECRET_ACCESS_KEY"
+      ],
+      "service": "worker",
+      "state": "running"
+    },
+    {
+      "health": "none",
+      "nonempty_media_keys": [
+        "MOBILE_MEDIA_ENCRYPTION_KEY",
+        "MOBILE_MEDIA_LOCAL_KEY",
+        "MOBILE_MEDIA_PROVIDER",
+        "MOBILE_MEDIA_S3_ACCESS_KEY_ID",
+        "MOBILE_MEDIA_S3_BUCKET",
+        "MOBILE_MEDIA_S3_ENDPOINT",
+        "MOBILE_MEDIA_S3_REGION",
+        "MOBILE_MEDIA_S3_SECRET_ACCESS_KEY"
+      ],
+      "service": "proxy",
+      "state": "running"
+    }
+  ],
+  "interpretation": "The app-wide Coolify environment populated media variables in all seven candidate services. The Gateway had four nonempty media settings; each other service had eight. This supersedes the earlier environment-presence evidence that reported empty media settings outside the Gateway. Coolify production and preview app-level media rows must be removed after the Gateway-only host file is installed and before redeployment.",
+  "runtime_health": {
+    "candidate_containers_running": 7,
+    "healthy_containers": 6,
+    "public_gateway_health_http_status": 200,
+    "proxy_healthcheck": "not configured"
+  }
+}

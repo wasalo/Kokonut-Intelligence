@@ -1,0 +1,29 @@
+{
+  "date": "2026-11-15",
+  "checked_at_utc": "2026-11-15T08:59:05Z",
+  "subject": "Better Stack responder acceptance recheck",
+  "credential_values_recorded": false,
+  "request": {
+    "method": "GET",
+    "url": "https://betterstack.com/api/v2/team-members?email=<named-responder>",
+    "token_variable": "BETTERSTACK_INCIDENTS_API_TOKEN",
+    "token_source": "local .env.sops; request made from VPS over SSH",
+    "response_body_recorded": false
+  },
+  "results": {
+    "primary": {
+      "http_status": 200,
+      "record": "team_member_invitation",
+      "role": "responder",
+      "mobile_app_count": 0
+    },
+    "backup": {
+      "http_status": 200,
+      "record": "team_member",
+      "role": "responder",
+      "mobile_app_count": 0
+    }
+  },
+  "state_changes": false,
+  "source": "https://betterstack.com/docs/uptime/api/team-members/list/"
+}

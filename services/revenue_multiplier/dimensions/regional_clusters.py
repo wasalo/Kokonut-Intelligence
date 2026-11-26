@@ -6,8 +6,9 @@ Analyzes cluster density, infrastructure sharing, and collective bargaining.
 """
 
 import psycopg2.extras
-from ..models import OpportunityDimension
+
 from ..config import get_config
+from ..models import OpportunityDimension
 
 
 def analyze(conn, location_id: str) -> OpportunityDimension:
@@ -19,10 +20,6 @@ def analyze(conn, location_id: str) -> OpportunityDimension:
             SELECT latitude, longitude FROM location WHERE id = %s
         ), nearby AS (
             SELECT
-                l.id,
-                l.name,
-                l.latitude,
-                l.longitude,
                 ST_Distance(
                     ST_SetSRID(ST_MakePoint(l.longitude, l.latitude), 4326)::geography,
                     ST_SetSRID(ST_MakePoint(target.longitude, target.latitude), 4326)::geography

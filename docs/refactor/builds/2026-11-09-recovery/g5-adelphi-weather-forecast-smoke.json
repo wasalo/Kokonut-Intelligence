@@ -1,0 +1,34 @@
+{
+  "version": 1,
+  "recorded_at_utc": "2026-11-09T19:43:49Z",
+  "scope": "Read-only OpenWeatherMap five-day forecast fetch and in-memory parse for the candidate Kokonut Adelphi location.",
+  "candidate": {
+    "coolify_application_id": "fdphpruj8jxien23ockmbw0j",
+    "deployment_id": "vrumrlexudsdjsv9xf6zbcrn",
+    "source_commit": "0c69f39f5cb598c08c45a204f90eb331dbb9ccdb",
+    "schema_version": 753,
+    "location_id": "1b1775d2-3043-42f9-9967-5d3f18db7ae0"
+  },
+  "request": {
+    "provider": "OpenWeatherMap",
+    "operation": "five-day forecast read",
+    "credential_source": "local encrypted SOPS environment",
+    "credential_variable_name": "OpenWeatherMap_API_KEY",
+    "response_shape_valid": true,
+    "forecast_intervals_parsed": 40,
+    "coordinate_values_recorded": false,
+    "forecast_values_recorded": false,
+    "credential_value_printed": false
+  },
+  "data_handling": {
+    "candidate_location_query": "read-only transaction; latitude and longitude only",
+    "forecast_parse": "in memory",
+    "database_write_attempted": false,
+    "provider_response_persisted": false,
+    "import_or_schedule_run": false
+  },
+  "limitations": [
+    "This was a host-run provider check using coordinates read from the candidate database; it does not exercise the candidate worker, signed worker identity, or ingestion path.",
+    "Forecast intervals were counted after successful parsing; no values or forecast timestamps were retained."
+  ]
+}

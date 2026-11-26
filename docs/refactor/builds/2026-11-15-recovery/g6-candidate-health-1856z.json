@@ -1,0 +1,12 @@
+{
+  "observed_at_utc_minute": "2026-11-15T18:56Z",
+  "check_type": "public HTTPS status-only probe",
+  "checks": {
+    "https://hub.kokonut.network/health": 503,
+    "https://auth.kokonut.network/.well-known/openid-configuration": 503
+  },
+  "response_bodies_retained": false,
+  "credentials_used": false,
+  "candidate_changes": false,
+  "interpretation": "The candidate remains unavailable after Coolify rejected the prior deployment before Compose load."
+}

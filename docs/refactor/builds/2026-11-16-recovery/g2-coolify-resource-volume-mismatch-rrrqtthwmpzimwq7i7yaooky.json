@@ -1,0 +1,67 @@
+{
+  "format_version": 1,
+  "gate": "G2",
+  "recorded_at": "2026-11-16T02:02:00Z",
+  "coolify_application_uuid": "fdphpruj8jxien23ockmbw0j",
+  "source_commit": "cbef09aaa9d02a99abb17788f3b1c87bc463f588",
+  "deployment": {
+    "id": "rrrqtthwmpzimwq7i7yaooky",
+    "status": "finished",
+    "finished_at": "2026-11-16T01:47:22Z",
+    "reported_build_revision": "cbef09aaa9d02a99abb17788f3b1c87bc463f588",
+    "owner_sanitized_compose_trace_received": true,
+    "full_logs_collected": false
+  },
+  "finding": {
+    "hardcoded_compose_project_name": "kokonut-kernel-coolify",
+    "resource_project_name": "fdphpruj8jxien23ockmbw0j",
+    "wrong_volume_prefix": "kokonut-kernel-coolify_",
+    "existing_volume_prefix": "fdphpruj8jxien23ockmbw0j_",
+    "wrong_project_volumes_created": [
+      "kokonut-kernel-coolify_kernel-postgres-data",
+      "kokonut-kernel-coolify_kernel-zitadel-postgres-data"
+    ],
+    "existing_resource_volumes_still_present": [
+      "fdphpruj8jxien23ockmbw0j_kernel-postgres-data",
+      "fdphpruj8jxien23ockmbw0j_kernel-zitadel-postgres-data"
+    ],
+    "wrong_project_database_ledger_relation_present": false,
+    "existing_volumes_mounted_by_wrong_project": false,
+    "wrong_project_containers_stopped": true,
+    "volumes_deleted_or_pruned": false
+  },
+  "runtime_snapshot_before_stop": {
+    "gateway_image_revision": "cbef09aaa9d02a99abb17788f3b1c87bc463f588",
+    "worker_image_revision": "cbef09aaa9d02a99abb17788f3b1c87bc463f588",
+    "gateway_health": "unhealthy_restart_loop",
+    "worker_health": "unhealthy_restart_loop",
+    "zitadel_api_health": "healthy",
+    "candidate_database_health": "healthy_on_new_volume",
+    "zitadel_database_health": "healthy_on_new_volume",
+    "hub_health_http_status": 503,
+    "zitadel_discovery_http_status": 200,
+    "migration_ledger": "public.schema_migration absent from the newly created database volume",
+    "environment_values_read": false,
+    "application_logs_read": false
+  },
+  "checkpoint": {
+    "backup_id": "candidate-pre-cbef09aa-20261116T011022Z",
+    "status": "committed",
+    "bucket": "kokonut-backups",
+    "signature_verified": true,
+    "encryption_verified": true,
+    "archive_validation_passed": true,
+    "remote_readback_hashes_verified": true,
+    "represents_existing_resource_volumes": true
+  },
+  "source_remediation": {
+    "change": "Derive the Compose project name, internal networks, and every named volume from COOLIFY_RESOURCE_UUID so Coolify reuses its existing resource-scoped storage.",
+    "status": "implemented_locally_not_committed",
+    "coolify_renderer_check": "passed",
+    "focused_source_tests": "23 passed",
+    "docker_compose_model_validation": "passed",
+    "uuid_expansion_validation": "passed; project, kernel network, and both PostgreSQL volume names resolve to the existing fdphpruj8jxien23ockmbw0j prefix",
+    "database_grants_changed": false
+  },
+  "next_action": "Commit and push the resource-scoping fix, wait for exact-head CI and Security, verify the existing resource-scoped volumes and take a fresh checkpoint before redeployment, then confirm those exact volumes are mounted before allowing database/application startup. Check migrations, health, runtime identities, and service-level secret isolation. Keep the incorrectly named volumes untouched until recovery is complete."
+}

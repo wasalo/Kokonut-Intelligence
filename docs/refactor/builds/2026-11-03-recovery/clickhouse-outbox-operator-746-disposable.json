@@ -1,0 +1,26 @@
+{
+  "date": "2026-11-03",
+  "checked_at": "2026-11-03T01:49:52.155637+00:00",
+  "source_revision": "9c1bd501f8c7e2928b777926d55c78c6c9b559b4",
+  "source_worktree_clean": false,
+  "evidence_level": "disposable_acceptance",
+  "kind": "clickhouse-outbox-operator-migration-acceptance",
+  "migration_id": "schema:746_clickhouse_outbox_operator_actions.sql",
+  "migration_sha256": "e8b7a5d7e2e29abd921aaad7ff083a3ff41780e6a7d0d19952773f4242c426aa",
+  "database_image": "postgis/postgis:16-3.4@sha256:44126d872ac91993766c341e369c539e8196614321765d36a6f1bab0419a5fa5",
+  "requested_platform": null,
+  "container_architecture": "x86_64",
+  "network": "disabled; no host ports published",
+  "checks": [
+    "migration 746 creates the separated NOLOGIN owners and a provisionable action login",
+    "capability grants and revocations are DBA-only, session-bound, audited, and enforced by bounded functions",
+    "operator-auth can check only the global capability function and cannot read operator tables directly",
+    "the action login can list only bounded dead-letter projections and cannot access tables directly",
+    "replay, resolve, and discard require distinct capabilities and append operator-attributed audit rows",
+    "NULL/oversized page limits, NULL/unknown actions, and oversized reasons fail closed",
+    "runtime retains outbox enqueue plus updated_at only and cannot transition rows or write operator audit",
+    "operator and capability function ownership matches runtime-role declarations"
+  ],
+  "candidate_legacy_production_touched": false,
+  "result": "passed"
+}

@@ -16,6 +16,14 @@ def _db():
         pytest.skip(f"no database available: {exc}")
 
 
+def _assert_read_only_cte(sql: str) -> None:
+    assert sql.lstrip().upper().startswith("WITH")
+    assert not any(
+        token in sql.upper()
+        for token in ("INSERT INTO ", "UPDATE ", "DELETE FROM ", "MERGE INTO ", "TRUNCATE ")
+    )
+
+
 def test_module_shape():
     assert len(vs._PIPELINE) == 8
     assert set(vs.STAGES) == {"draft", "submitted", "verified", "published", "rejected"}
@@ -101,6 +109,7 @@ def test_wip_query_keeps_pipeline_location_and_review_status_rules():
     result = vs.wip_by_stage(conn, "location-1")
 
     sql, params = cur.execute.call_args.args
+    _assert_read_only_cte(sql)
     assert result == [{"entity_type": "farm_activity", "status": "draft", "wip": 2}]
     assert params == ("location-1",)
     assert "farm_activity_source_eligible_for_use" in sql
@@ -127,6 +136,7 @@ def test_lead_time_query_uses_location_cte_and_exact_named_parameters():
     )
 
     sql, params = cur.execute.call_args.args
+    _assert_read_only_cte(sql)
     assert result == [{"entity_type": "farm_activity", "avg_lead_days": 2.5}]
     assert params == {
         "loc": "location-1",
@@ -158,6 +168,7 @@ def test_first_time_through_query_uses_location_cte_and_exact_named_parameters()
     )
 
     sql, params = cur.execute.call_args.args
+    _assert_read_only_cte(sql)
     assert result == {
         "published_count": 4,
         "first_time_through": 3,

@@ -1,0 +1,28 @@
+{
+  "captured_at_utc": "2026-11-15T08:27:53+00:00",
+  "candidate_container_count": 7,
+  "all_candidate_containers_have_both_raw_password_names": true,
+  "gateway": {
+    "state": "running",
+    "health": "healthy",
+    "image": "kokonut-kernel-oidc:local",
+    "source_label": null,
+    "revision_label": null,
+    "pg_password_name_present": true,
+    "api_raw_password_name_present": true,
+    "worker_raw_password_name_present": true
+  },
+  "worker": {
+    "state": "running",
+    "health": "healthy",
+    "image": "kokonut-kernel-candidate:local",
+    "source_label": null,
+    "revision_label": null,
+    "pg_password_name_present": true,
+    "api_raw_password_name_present": true,
+    "worker_raw_password_name_present": true
+  },
+  "values_read": false,
+  "mutations_performed": false,
+  "interpretation": "The current Gateway and worker images have no source/revision labels, and all seven candidate containers expose both raw runtime password variable names. Candidate rollout of the source isolation and provenance fixes remains open."
+}

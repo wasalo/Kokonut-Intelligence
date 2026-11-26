@@ -1,0 +1,9 @@
+{
+  "captured_at_utc": "2026-11-15T08:33:03Z",
+  "query_scope": "candidate public.location and public.farm row counts",
+  "transaction_mode": "read-only",
+  "location_count": 1,
+  "farm_count": 1,
+  "record_contents_returned": false,
+  "transaction_committed": false
+}

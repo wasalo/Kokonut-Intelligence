@@ -3,9 +3,11 @@
 **Status:** Gateway routes and a separate operator-console panel are implemented
 in source; migration 404 and database acceptance are limited to a fresh
 disposable PostgreSQL 16 database. Six focused console contract and inline
-JavaScript syntax checks pass. The local candidate has not been migrated or
-rebuilt for this slice; browser and live authenticated Gateway acceptance
-remain open.
+JavaScript syntax checks pass. A 2 November dirty-checkout rerun passed all 13
+listed disposable checks with migrations 359/404
+([evidence](builds/2026-11-02-recovery/gateway-farm-activity-operations-disposable.json)).
+The local candidate has not been migrated or rebuilt for this slice; browser
+and live authenticated Gateway acceptance remain open.
 
 ## Boundary
 

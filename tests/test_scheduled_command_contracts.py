@@ -84,6 +84,20 @@ def test_every_scheduled_module_has_a_command_contract():
             "services.analytics.carbon_credit_adjustment_check",
             ["--location-id", str(uuid4())],
         ),
+        (
+            "services.agents.worker_cli",
+            [
+                "--location-id", str(uuid4()), "--task-key", "feedback_synthesis",
+                "--request-id", str(uuid4()), "--persist-draft", "--source-only",
+            ],
+        ),
+        (
+            "services.agents.worker_cli",
+            [
+                "--location-id", str(uuid4()), "--summary-type", "combined",
+                "--request-id", str(uuid4()), "--persist-draft", "--deterministic-only",
+            ],
+        ),
     ],
 )
 def test_supported_operations_accept_valid_argv(module, arguments):
@@ -189,6 +203,32 @@ def test_supported_operations_accept_valid_argv(module, arguments):
         ("services.export.dataset_refresh", ["--all", "--dataset-id", str(uuid4())]),
         ("services.ingestion.weather", ["--all-locations"]),
         ("services.ingestion.weather_worker", ["--all-locations"]),
+        (
+            "services.agents.worker_cli",
+            ["--location-id", str(uuid4()), "--task-key", "feedback_synthesis"],
+        ),
+        (
+            "services.agents.worker_cli",
+            [
+                "--location-id", str(uuid4()), "--task-key", "feedback_synthesis",
+                "--summary-type", "stakeholder_feedback", "--request-id", str(uuid4()),
+                "--persist-draft", "--source-only",
+            ],
+        ),
+        (
+            "services.agents.worker_cli",
+            [
+                "--location-id", str(uuid4()), "--summary-type", "stakeholder_feedback",
+                "--request-id", str(uuid4()), "--persist-draft", "--deterministic-only",
+            ],
+        ),
+        (
+            "services.agents.worker_cli",
+            [
+                "--location-id", str(uuid4()), "--task-key", "unknown_synthesis",
+                "--request-id", str(uuid4()), "--persist-draft", "--source-only",
+            ],
+        ),
     ],
 )
 def test_unsupported_or_incomplete_operations_are_rejected(module, arguments):

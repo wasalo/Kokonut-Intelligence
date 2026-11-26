@@ -1,8 +1,9 @@
 # Legacy Compose production runbook (not the Kernel Standard profile)
 
-This document describes the legacy integration stack only. The current
-production target is the Kernel deployment at `hub.kokonut.network`; production
-has not passed its deployment and operational acceptance gates. Use the
+This document describes the legacy integration stack only. The Kernel
+candidate is currently served at `hub.kokonut.network`; this is not an accepted
+production cutover, and the Kernel has not passed its deployment and
+operational acceptance gates. Use the
 [current architecture and implementation guide](../../docs/refactor/current-state-and-implementation.md)
 for the current profile status.
 

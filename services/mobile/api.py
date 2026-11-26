@@ -97,7 +97,7 @@ class ParticipantLinkRevokeRequest(BaseModel):
 
 
 def _set_participant_operator_context(conn, request: Request, location_id: str, action: str) -> None:
-    """Bind OIDC participant administration to its validated tenant grant."""
+    """Bind participant administration to its database-verified tenant grant."""
     session = getattr(request.state, "operator_session", None)
     operator = getattr(session, "operator", None)
     operator_id = getattr(operator, "operator_id", None)
@@ -109,9 +109,22 @@ def _set_participant_operator_context(conn, request: Request, location_id: str, 
             resource="mobile_participant",
             action=action,
         )
+        return
+    _set_gateway_mobile_context(
+        conn,
+        request,
+        location_id,
+        "mobile_participant",
+        action,
+    )
 
 
-def _gateway_mobile_device_credential(request: Request, location_id: str, action: str):
+def _gateway_mobile_credential(
+    request: Request,
+    location_id: str,
+    resource: str,
+    action: str,
+):
     """Return a validated Gateway credential selector for a mobile mutation."""
     authorization = getattr(request.state, "gateway_authorization", None)
     try:
@@ -121,7 +134,7 @@ def _gateway_mobile_device_credential(request: Request, location_id: str, action
         raise TenantContextDenied("database-verifiable Gateway credential is required") from None
     if (
         not isinstance(authorization, dict)
-        or authorization.get("resource") != "mobile_device"
+        or authorization.get("resource") != resource
         or authorization.get("action") != action
         or authorized_location != expected_location
         or authorization.get("credential_type") not in {"api_key", "capability_token"}
@@ -136,10 +149,16 @@ def _gateway_mobile_device_credential(request: Request, location_id: str, action
     )
 
 
-def _set_gateway_mobile_device_context(conn, request: Request, location_id: str, action: str):
-    """Bind a Gateway-authenticated mobile-device mutation to its owner tenant."""
-    expected_location, credential_type, credential_hash = _gateway_mobile_device_credential(
-        request, location_id, action
+def _set_gateway_mobile_context(
+    conn,
+    request: Request,
+    location_id: str,
+    resource: str,
+    action: str,
+):
+    """Bind a Gateway-authenticated mobile mutation to its owner tenant."""
+    expected_location, credential_type, credential_hash = _gateway_mobile_credential(
+        request, location_id, resource, action
     )
     try:
         return set_gateway_tenant_context(
@@ -147,11 +166,20 @@ def _set_gateway_mobile_device_context(conn, request: Request, location_id: str,
             credential_type=credential_type,
             credential_hash=credential_hash,
             location_id=expected_location,
-            resource="mobile_device",
+            resource=resource,
             action=action,
         )
     except ValueError as exc:
         raise TenantContextDenied("verified Gateway identity is invalid") from exc
+
+
+def _set_gateway_mobile_device_context(
+    conn, request: Request, location_id: str, action: str
+):
+    """Bind a Gateway-authenticated mobile-device mutation to its owner tenant."""
+    return _set_gateway_mobile_context(
+        conn, request, location_id, "mobile_device", action
+    )
 
 
 def _set_mobile_mutation_timeouts(conn) -> None:
@@ -1077,7 +1105,12 @@ async def _revoke_device(
                 raise TenantContextDenied("authenticated operator session is required")
         elif request is not None:
             _, gateway_credential_type, gateway_credential_hash = (
-                _gateway_mobile_device_credential(request, str(location_id), "revoke")
+                _gateway_mobile_credential(
+                    request,
+                    str(location_id),
+                    "mobile_device",
+                    "revoke",
+                )
             )
             operator_session_token_hash = None
             _set_gateway_mobile_device_context(conn, request, str(location_id), "revoke")

@@ -1,0 +1,48 @@
+{
+  "evidence_type": "g4_field_collector_source_contract_tests",
+  "recorded_at_utc": "2026-11-15T07:14:00Z",
+  "source_head": "895fa2432a73aaf387f32bde1ac434514506b56b",
+  "node": {
+    "command": "node --test tests/test_mobile_offline_shell.mjs tests/test_mobile_vault.mjs",
+    "tests": 12,
+    "passed": 12,
+    "failed": 0
+  },
+  "python_runs": [
+    {
+      "command": "python3 -m pytest tests/test_mobile_offline.py tests/test_mobile_api.py tests/test_mobile_media_storage.py tests/test_mobile_media_reconcile.py tests/test_mobile_form_validation.py -q",
+      "tests": 117,
+      "subtests": 5,
+      "passed": 117,
+      "failed": 0
+    },
+    {
+      "command": "python3 -m pytest tests/test_mobile_device_revocation.py tests/test_mobile_tenant_binding.py tests/test_mobile_credential_functions.py -q",
+      "tests": 13,
+      "passed": 13,
+      "failed": 0
+    }
+  ],
+  "python_summary": {
+    "passed": 130,
+    "subtests_passed": 5,
+    "failed": 0
+  },
+  "coverage": [
+    "Offline service-worker shell caching and app navigation fallback",
+    "Encrypted local vault persistence, lock/unlock, and queue state",
+    "Mobile offline API and sync contracts, including an active required-consent revision with current consent",
+    "Owner-bound device enrollment, tenant isolation, and bounded revocation source contracts",
+    "Media storage, reconciliation, and form validation source behavior"
+  ],
+  "acceptance_boundary": {
+    "candidate_gateway_contacted": false,
+    "candidate_database_contacted": false,
+    "candidate_state_changed": false,
+    "live_device_offline_capture_verified": false,
+    "live_consent_withdrawal_verified": false,
+    "candidate_media_transfer_verified": false,
+    "candidate_sync_and_deduplication_verified": false
+  },
+  "interpretation": "All selected local source-contract suites pass. This does not establish Field Collector behavior on a real device or against the deployed candidate; G4 candidate browser acceptance remains open."
+}

@@ -210,8 +210,9 @@ def _create_location_business_model_canvas(
             if suggestion_factory is None:
                 from services.analytics.business_model_canvas import suggest
 
-                suggestion_factory = suggest
-            suggestion = suggestion_factory(connection, location_id)
+                suggestion = suggest(connection, location_id)
+            else:
+                suggestion = suggestion_factory(connection, location_id)
             if not isinstance(suggestion, dict) or not isinstance(suggestion.get("blocks"), dict):
                 raise RuntimeError("Business canvas suggestion source returned invalid data")
             sources = suggestion.get("generated_from", [])

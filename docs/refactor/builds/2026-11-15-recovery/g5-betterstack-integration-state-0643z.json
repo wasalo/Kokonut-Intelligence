@@ -1,0 +1,28 @@
+{
+  "date": "2026-11-15",
+  "checked_at_utc": "2026-11-15T06:43:25Z",
+  "subject": "Better Stack read-only P1 integration state refresh",
+  "credential_values_recorded": false,
+  "read_only_audit": {
+    "incidents_api": {
+      "escalation_policies": {"status": 200, "count": 0},
+      "incoming_webhooks": {"status": 200, "count": 0}
+    }
+  },
+  "responders": [
+    {
+      "email": "gerkery@kokonut.network",
+      "role": "responder",
+      "team_object_type": "team_member_invitation",
+      "invitation_accepted": false
+    },
+    {
+      "email": "alejandro@kokonut.network",
+      "role": "responder",
+      "team_object_type": "team_member",
+      "invitation_accepted": true
+    }
+  ],
+  "state_changes": false,
+  "incident_or_notification_sent": false
+}

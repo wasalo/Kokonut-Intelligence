@@ -93,6 +93,21 @@ establish live OIDC acceptance.
   images' nonzero IDs. Back up and review any existing partially initialized
   identity database before attempting recovery; do not reset it automatically.
 
+## Local Management Console provisioning
+
+With ZITADEL 4.19.4, the embedded Management Console can return an `api` URL
+using `http://` while the `issuer` is HTTPS, even when
+`ZITADEL_EXTERNALSECURE=true` and the proxy forwards HTTPS. Browser requests to
+that HTTP API URL from the HTTPS console fail. The repository has no confirmed
+server-side override for this field.
+
+For local provisioning only, the accepted browser test used a session-local
+agent-browser route for `/ui/console/assets/environment.json` that changed only
+the `api` URL scheme to HTTPS, preserving the issuer and Console client ID. This
+is a test-only workaround; it does not change ZITADEL's response or establish a
+profile-level fix. Remove the route and clear the browser session after
+provisioning. Do not add a plaintext browser API listener or disable TLS.
+
 ## Configuration and acceptance
 
 Before live acceptance, record the identity hostname and provision the
@@ -105,6 +120,16 @@ For the database DSN's URL-safe password, generate a 32-byte hexadecimal
 value (for example, with `openssl rand -hex 32`) and store it only in the
 encrypted secret file. Compose config uses synthetic values in tests; the
 profile does not generate or provision production/local secrets automatically.
+
+The Gateway resolves the configured issuer from its container network. The
+self-hosted profile aliases the identity hostname to Caddy and listens on the
+configured issuer port internally while keeping host publication loopback-only.
+For a local private CA, set `KOKONUT_OPERATOR_OIDC_CA_BUNDLE` to a PEM bundle
+mounted read-only inside the app container. The OIDC HTTP client adds this CA to
+system trust without disabling chain or hostname verification. Mount only the
+public Caddy root certificate; never mount the Caddy data volume or private CA
+key into the app. Leave this setting unset for publicly trusted provider
+certificates.
 
 Then configure the non-secret issuer, client ID, HTTPS callback, and logout
 redirect; create synthetic operator accounts; and verify discovery, PKCE,

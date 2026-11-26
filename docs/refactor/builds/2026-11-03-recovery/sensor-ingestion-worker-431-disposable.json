@@ -1,0 +1,20 @@
+{
+  "checked_at": "2026-11-03T03:46:08.012654+00:00",
+  "source_revision": "46fe10e4aefbe1bb2ebca261ae4370ba1f086c1e",
+  "source_worktree_clean": false,
+  "container_image": "postgis/postgis@sha256:44126d872ac91993766c341e369c539e8196614321765d36a6f1bab0419a5fa5",
+  "network_mode": "bridge",
+  "host_port_binding": "127.0.0.1:ephemeral->5432/tcp",
+  "external_network_isolated": false,
+  "candidate_legacy_production_touched": false,
+  "status": "passed",
+  "migration": 431,
+  "checks": [
+    "migrations 405, 419, and 431 apply in order and migration 431 replays with the configured login",
+    "signed driver and sensor catalog functions return only the granted location under forced RLS",
+    "accepted, exact duplicate, unknown sensor rejection, and conflicting timestamp preserve atomic effects",
+    "cross-location reads fail closed; the bounded status function appends a run audit",
+    "dedicated login can SET ROLE only into bounded execution and has no direct sensor-table or function access"
+  ],
+  "scope": "synthetic records on an ephemeral PostgreSQL 16 container with forced RLS; no candidate, legacy, or production database used"
+}

@@ -272,59 +272,6 @@ def reconcile_pending(conn, limit: int = 1000) -> dict[str, int]:
     return {"pending": pending or 0, "dead_letter": dead or 0, "succeeded": succeeded or 0, "limit": limit}
 
 
-def _operator_transition(conn, row_id: str, action: str, actor: str, reason: str) -> dict[str, Any]:
-    if action not in {"replayed", "resolved", "discarded"}:
-        raise ValueError("Unsupported outbox disposition")
-    if not isinstance(actor, str) or not actor.strip() or len(actor.strip()) > 255:
-        raise ValueError("Operator actor must contain 1 to 255 characters")
-    if not isinstance(reason, str) or not reason.strip() or len(reason.strip()) > 2000:
-        raise ValueError("Operator reason must contain 1 to 2000 characters")
-    try:
-        with conn.cursor() as cur:
-            cur.execute(
-                """
-                WITH eligible AS (
-                    SELECT id, attempt_count FROM clickhouse_outbox
-                    WHERE id = %s AND status = 'dead_letter' FOR UPDATE
-                ), transitioned AS (
-                    UPDATE clickhouse_outbox o
-                    SET status = %s, attempt_count = CASE WHEN %s THEN 0 ELSE o.attempt_count END,
-                        available_at = NOW(), updated_at = NOW(),
-                        last_error = CASE WHEN %s THEN NULL ELSE o.last_error END,
-                        lease_owner = NULL, lease_token = NULL, lease_expires_at = NULL
-                    FROM eligible e WHERE o.id = e.id AND o.status = 'dead_letter'
-                    RETURNING o.id, o.event_key, o.payload_hash, e.attempt_count
-                )
-                INSERT INTO clickhouse_outbox_operator_audit
-                    (outbox_id, event_key, action, actor, reason, prior_attempt_count, payload_hash)
-                SELECT id, event_key, %s, %s, %s, attempt_count, payload_hash FROM transitioned
-                RETURNING outbox_id, event_key
-                """,
-                (row_id, "pending" if action == "replayed" else action,
-                 action == "replayed", action == "replayed", action, actor.strip(), reason.strip()),
-            )
-            row = cur.fetchone()
-        conn.commit()
-    except Exception:
-        conn.rollback()
-        raise
-    if row is None:
-        return {"status": "error", "message": "Outbox row is not dead-lettered"}
-    return {"status": action, "id": str(row[0]), "event_key": row[1]}
-
-
-def replay_dead_letter(conn, row_id: str, actor: str, reason: str) -> dict[str, Any]:
-    """Re-enqueue once, retaining an audited operator identity and reason."""
-    return _operator_transition(conn, row_id, "replayed", actor, reason)
-
-
-def dispose_dead_letter(conn, row_id: str, disposition: str, actor: str, reason: str) -> dict[str, Any]:
-    """Close a dead letter without deleting its source or projection payload."""
-    if disposition not in {"resolved", "discarded"}:
-        raise ValueError("Disposition must be resolved or discarded")
-    return _operator_transition(conn, row_id, disposition, actor, reason)
-
-
 def list_dead_letters(conn, limit: int = 50) -> list[dict[str, Any]]:
     """List dead-lettered rows for operator review."""
     with conn.cursor() as cur:
@@ -347,6 +294,10 @@ def list_dead_letters(conn, limit: int = 50) -> list[dict[str, Any]]:
 
 
 def command(args):
+    if args.replay_dead_letter or args.dispose_dead_letter:
+        raise ValueError(
+            "Manual dead-letter actions require an authenticated Gateway operator"
+        )
     if args.run_once:
         if not 1 <= args.limit <= 100:
             raise ValueError("Limit must be between 1 and 100")
@@ -355,18 +306,12 @@ def command(args):
         if not 1 <= args.limit <= 1000:
             raise ValueError("Limit must be between 1 and 1000")
         with get_connection() as conn:
-            if args.replay_dead_letter:
-                result = replay_dead_letter(conn, args.replay_dead_letter, args.actor, args.reason)
-            elif args.dispose_dead_letter:
-                result = dispose_dead_letter(conn, args.dispose_dead_letter, args.disposition, args.actor, args.reason)
-            elif args.list_dead_letter:
+            if args.list_dead_letter:
                 result = list_dead_letters(conn, args.limit)
             else:
                 result = reconcile_pending(conn, args.limit)
     print_json(result)
     if args.run_once and result.get("failed", 0):
-        raise SystemExit(1)
-    if (args.replay_dead_letter or args.dispose_dead_letter) and result.get("status") == "error":
         raise SystemExit(1)
 
 
@@ -378,14 +323,22 @@ def main():
     group.add_argument("--run-once", action="store_true")
     group.add_argument("--reconcile", action="store_true")
     group.add_argument("--list-dead-letter", action="store_true", help="List dead-lettered rows")
-    group.add_argument("--replay-dead-letter", metavar="ROW_ID", help="Re-enqueue a dead-lettered row for retry")
-    group.add_argument("--dispose-dead-letter", metavar="ROW_ID")
-    parser.add_argument("--disposition", choices=["resolved", "discarded"])
-    parser.add_argument("--actor", help="Required operator identity for replay/disposal")
-    parser.add_argument("--reason", help="Required review reason for replay/disposal")
+    group.add_argument(
+        "--replay-dead-letter",
+        metavar="ROW_ID",
+        help="Retired; use the authenticated Gateway operator",
+    )
+    group.add_argument(
+        "--dispose-dead-letter",
+        metavar="ROW_ID",
+        help="Retired; use the authenticated Gateway operator",
+    )
     parser.add_argument("--worker-id", default=f"clickhouse-{uuid.uuid4().hex[:8]}")
     parser.add_argument("--limit", type=int, default=100)
-    run(command, parser.parse_args())
+    args = parser.parse_args()
+    if args.replay_dead_letter or args.dispose_dead_letter:
+        parser.error("Manual dead-letter actions require an authenticated Gateway operator")
+    run(command, args)
 
 
 if __name__ == "__main__":

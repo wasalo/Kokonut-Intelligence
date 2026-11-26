@@ -1,0 +1,12 @@
+{
+  "checked_at": "2026-11-15T09:48:10Z",
+  "service": "Better Stack Uptime API",
+  "credential_variable": "BETTERSTACK_UPTIME_API_TOKEN",
+  "credential_source": "SOPS-encrypted .env.sops",
+  "credential_value_recorded": false,
+  "endpoint": "GET https://betterstack.com/api/v2/roles",
+  "http_status": 401,
+  "result": "authentication rejected",
+  "plaintext_override_in_repo_root_env": false,
+  "side_effects": "read-only request; no Better Stack resources changed"
+}

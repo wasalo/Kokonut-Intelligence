@@ -1,0 +1,31 @@
+{
+  "status": "passed",
+  "checked_at": "2026-11-10",
+  "candidate": {
+    "coolify_application": "Kokonut Intelligence Kernel Candidate",
+    "worker_container": "worker-fdphpruj8jxien23ockmbw0j-20261110T023317",
+    "deployment_commit": "404d8c61b41a2536fcdb6dfa65ab118f4246c494"
+  },
+  "check": {
+    "transport": "SMTP STARTTLS",
+    "authentication_code": 235,
+    "noop_code": 250,
+    "noop_message_sent": false,
+    "secret_values_printed": false
+  },
+  "delivery_test": {
+    "status": "smtp_delivery_and_inbox_receipt_confirmed",
+    "recipient": "intelligence@kokonut.network",
+    "messages_sent": 1,
+    "server_accepted": true,
+    "inbox_receipt_confirmed": true,
+    "receipt_confirmed_by": "Wasabi",
+    "receipt_confirmed_on": "2026-11-10",
+    "content": "Static transport-check message; no operational alert or user data"
+  },
+  "acceptance": {
+    "candidate_credentials": "verified for SMTP authentication",
+    "email_delivery": "candidate SMTP server accepted one static message and Wasabi confirmed receipt at the approved inbox; event-driven notification routing remains unverified",
+    "p1_acknowledged_paging": "open; no paging channel selected"
+  }
+}

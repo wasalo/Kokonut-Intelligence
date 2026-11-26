@@ -174,12 +174,12 @@ aligned with that image. This removes the previous Directus 11 versus 12
 compatibility declaration mismatch; it does not establish runtime hook loading
 or permission parity.
 
-The curated permission seed now has a repeatable source inventory at
-[`builds/2026-10-20-recovery/directus-permission-source-inventory.json`](builds/2026-10-20-recovery/directus-permission-source-inventory.json),
+The curated permission seed has a repeatable source inventory at
+[`builds/2026-11-10-recovery/directus-permission-source-inventory.json`](builds/2026-11-10-recovery/directus-permission-source-inventory.json),
 generated and freshness-checked by `scripts/directus_permission_inventory.py`.
-The current source inventory finds 175 literal permission insert declarations:
-124 use `fields = '*'` and 51 name explicit fields. The Auditor policy accounts
-for 27 wildcard declarations; Field Worker stakeholder-feedback read is one
+The 10 November source inventory finds 176 literal permission insert declarations:
+122 use `fields = '*'` and 54 name explicit fields. The Auditor policy accounts
+for 26 wildcard declarations; Field Worker stakeholder-feedback read is one
 concrete example.
 No `farm_activity` permission insert is present in the seed, consistent with
 the Gateway-only decision. The inventory also records five literal
@@ -189,13 +189,13 @@ declarations and mutations only. It does not compute the effective result of con
 updates/deletes, built-in or operator-created policies, or a running Directus
 database, and it does not itself authorize narrowing any role's access.
 
-A separate pinned-runtime acceptance now captures the effective rows produced by
+A 10 November pinned-runtime acceptance captures the effective rows produced by
 the seed in a fresh disposable profile. The nine repository-managed policies
-produce 175 rows (124 wildcard-field, 51 explicit-field); the Auditor
-`dashboard_dataset:read` permission uses the explicit safe field list without
-`query_sql`. Reapplying the seed also repairs a synthetic prior wildcard and
-preserves the complete normalized snapshot; no managed `farm_activity` rows
-remain.
+produce 176 rows (122 wildcard-field, 54 explicit-field); Auditor reads for
+`dashboard_dataset`, `metric_value`, and `retirement_certificate` use explicit
+safe field lists. Reapplying the seed repairs synthetic prior dashboard and
+metric-value wildcards and preserves the complete normalized snapshot; no
+managed `farm_activity` rows remain.
 The profile starts healthy and authenticates a synthetic owner under the
 dedicated `kokonut_directus_runtime` database identity. This closes the gap
 between literal source declarations and effective stored rows for one clean

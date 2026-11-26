@@ -1,0 +1,29 @@
+{
+  "candidate_or_legacy_database_used": false,
+  "candidate_configuration_changed": false,
+  "date": "2026-11-08",
+  "provider": "Cloudflare R2 through the S3-compatible adapter",
+  "adapter": "services.export.artifact_storage.S3PrivateArtifactStore",
+  "access": {
+    "worker": "separate bucket-scoped read/write credential",
+    "reader": "separate bucket-scoped read-only credential"
+  },
+  "object": {
+    "content": "synthetic 47-byte JSON payload",
+    "key_policy": "private/report-snapshot-exports/<random-uuid>.artifact",
+    "secret_values_logged": false
+  },
+  "operations": {
+    "worker_write": "passed",
+    "reader_readback_match": "passed",
+    "worker_delete": "passed",
+    "read_after_delete_denied": "passed",
+    "prefix_inventory_after_cleanup": "zero objects"
+  },
+  "limitations": [
+    "This validates the local S3 adapter and the two scoped R2 credentials only.",
+    "The candidate still uses local report-artifact storage by default; credentials were not synced to Coolify.",
+    "No Gateway authorization, report-generation workflow, populated artifact, or candidate application path was exercised."
+  ],
+  "result": "passed"
+}

@@ -78,3 +78,14 @@ def test_explicit_clean_bootstrap_does_not_load_workstation_dotenv_secrets() -> 
     assert "PG_USER=kokonut" in script
     assert 'PG_DB="$DB_NAME"' in script
 
+
+def test_ci_clean_bootstrap_uses_an_isolated_removable_compose_project() -> None:
+    script = (ROOT / "scripts" / "ci-check.sh").read_text()
+
+    assert 'KOKONUT_BOOTSTRAP_COMPOSE_FILE="$PROJECT_DIR/docker-compose.schema-bootstrap.yml"' in script
+    assert 'KOKONUT_BOOTSTRAP_COMPOSE_PROJECT="kokonut-bootstrap-$$"' in script
+    assert "KOKONUT_BOOTSTRAP_START_DATABASE=true" in script
+    assert "KOKONUT_BOOTSTRAP_REMOVE_PROJECT=true" in script
+    assert "POSTGRES_PASSWORD=ci-bootstrap-placeholder" in script
+    assert script.count('check "Clean PostgreSQL bootstrap" "run_disposable_clean_bootstrap"') == 2
+

@@ -27,7 +27,7 @@
   "authenticated_operator_task_request_function_calls": [
     {
       "source": "services/gateway/ai_summary_task_request.py",
-      "line": 76
+      "line": 61
     }
   ],
   "authenticated_operator_task_review_function_calls": [

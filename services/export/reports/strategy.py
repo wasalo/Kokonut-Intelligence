@@ -80,22 +80,16 @@ def _require_location_scope(report_type: str, location_id: str | None) -> None:
 def generate_business_model_canvas(conn, location_id: str, period_start: str = None, period_end: str = None) -> dict:
     """Generate a Business Model Canvas report for a location."""
     _require_location_scope("business_model_canvas", location_id)
-    from services.analytics.business_model_canvas import compute_health, get, list_canvas
+    from services.analytics.business_model_canvas import _calculate_health, get, list_canvas
 
     canvases = list_canvas(conn, location_id=location_id)
     canvas_data = []
     for c in canvases:
-        full = get(conn, str(c["id"]))
+        full = get(conn, str(c["id"]), location_id=location_id)
         if full:
             canvas_data.append(full)
 
-    # Get latest health score
-    health = None
-    if canvas_data:
-        try:
-            health = compute_health(conn, str(canvas_data[0]["id"]))
-        except Exception:
-            health = None
+    health = _calculate_health(canvas_data[0]) if canvas_data else None
 
     return {
         "report_type": "business_model_canvas",

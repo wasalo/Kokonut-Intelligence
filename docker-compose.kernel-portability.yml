@@ -43,6 +43,7 @@ services:
         - ${KOKONUT_DATABASE_PLATFORM:-linux/amd64}
       args:
         KOKONUT_CLICKHOUSE: "false"
+        SOURCE_COMMIT: ${SOURCE_COMMIT:-unknown}
     init: true
     restart: "no"
     stop_grace_period: 40s
@@ -156,7 +157,10 @@ services:
       KOKONUT_SENSOR_CSV_ROOT: /var/lib/kokonut/sensor-inputs
     volumes:
       - portability-gateway-audit-spool:/var/lib/kokonut/gateway-audit
-      - ${KOKONUT_SENSOR_CSV_HOST_DIR:-./data/sensor-inputs}:/var/lib/kokonut/sensor-inputs:ro
+      - type: bind
+        source: ${KOKONUT_SENSOR_CSV_HOST_DIR:-./data/sensor-inputs}
+        target: /var/lib/kokonut/sensor-inputs
+        read_only: true
     # The image HTTP probe belongs to the API; durable records track worker progress.
     healthcheck:
       disable: true

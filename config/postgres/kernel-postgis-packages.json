@@ -3,15 +3,23 @@
   "base_image": "postgres:16-bookworm@sha256:0ea6700a3b4f0ae6ce746519073558aed4d88a79d8d07622a9a644946c7319c4",
   "repository_suite": "bookworm-pgdg-archive",
   "apt_sources": {
-    "debian_snapshot_timestamp": "20261012T000000Z",
-    "debian_suites": ["bookworm", "bookworm-updates", "bookworm-security"],
+    "debian_suites": [
+      "bookworm",
+      "bookworm-updates",
+      "bookworm-security"
+    ],
     "bootstrap_source_file": "config/postgres/kernel-bootstrap.sources",
     "pgdg_archive_uri": "https://apt-archive.postgresql.org/pub/repos/apt",
     "pgdg_archive_suite": "bookworm-pgdg-archive",
     "source_file": "config/postgres/kernel-apt.sources",
-    "preferences_file": "config/postgres/kernel-pgdg.pref"
+    "preferences_file": "config/postgres/kernel-pgdg.pref",
+    "debian_repository_policy": "maintained signed bookworm repositories; resolved inventory belongs to the immutable image",
+    "historical_debian_snapshot_timestamp": "20261012T000000Z"
   },
-  "verified_package_catalog_architectures": ["amd64", "arm64"],
+  "verified_package_catalog_architectures": [
+    "amd64",
+    "arm64"
+  ],
   "architecture_specific_package_differences": {
     "libquadmath0": {
       "amd64": "12.2.0-14+deb12u1",

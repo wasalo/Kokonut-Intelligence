@@ -1,0 +1,82 @@
+{
+  "recorded_at_utc": "2026-11-12T07:48:25Z",
+  "gate": "G5",
+  "result": "candidate_non_gateway_media_isolated_by_temporary_override_permanent_coolify_configuration_pending",
+  "candidate": {
+    "coolify_application": "fdphpruj8jxien23ockmbw0j",
+    "deployed_revision": "a819cab04723cc4fc230ac8f61ac011a2001ea50",
+    "deployment_uuid": "yr4y2ece2ji3n10fsxrwgedx",
+    "services": {
+      "gateway": "healthy",
+      "worker": "healthy",
+      "postgres_postgis": "healthy",
+      "postgres_health": "healthy",
+      "zitadel_database": "healthy",
+      "zitadel_api": "healthy",
+      "zitadel_login": "healthy",
+      "zitadel_proxy": "running; no healthcheck configured"
+    }
+  },
+  "gateway_environment_presence": {
+    "MOBILE_MEDIA_PROVIDER": "present",
+    "MOBILE_MEDIA_ENCRYPTION_KEY": "present",
+    "MOBILE_MEDIA_S3_ENDPOINT": "present",
+    "MOBILE_MEDIA_S3_BUCKET": "present",
+    "MOBILE_MEDIA_S3_ACCESS_KEY_ID": "present",
+    "MOBILE_MEDIA_S3_SECRET_ACCESS_KEY": "present",
+    "MOBILE_MEDIA_S3_REGION": "present"
+  },
+  "worker_environment_presence": {
+    "MOBILE_MEDIA_PROVIDER": "empty",
+    "MOBILE_MEDIA_LOCAL_DIRECTORY": "empty",
+    "MOBILE_MEDIA_LOCAL_KEY": "empty",
+    "MOBILE_MEDIA_ENCRYPTION_KEY": "empty",
+    "MOBILE_MEDIA_S3_ENDPOINT": "empty",
+    "MOBILE_MEDIA_S3_BUCKET": "empty",
+    "MOBILE_MEDIA_S3_ACCESS_KEY_ID": "empty",
+    "MOBILE_MEDIA_S3_SECRET_ACCESS_KEY": "empty",
+    "MOBILE_MEDIA_S3_REGION": "empty"
+  },
+  "gateway_mounts": [
+    "/var/lib/kokonut/gateway-audit",
+    "/var/lib/kokonut/report-snapshot-exports"
+  ],
+  "non_gateway_environment_presence": {
+    "worker": "all nine MOBILE_MEDIA_* values empty",
+    "postgres_postgis": "all nine MOBILE_MEDIA_* values empty",
+    "zitadel_api": "all nine MOBILE_MEDIA_* values empty",
+    "zitadel_login": "all nine MOBILE_MEDIA_* values empty",
+    "zitadel_database": "all nine MOBILE_MEDIA_* values empty",
+    "zitadel_proxy": "all nine MOBILE_MEDIA_* values empty"
+  },
+  "temporary_non_gateway_override": {
+    "path": "/tmp/kokonut-worker-media-isolation-20261112.yml",
+    "mode": "0600",
+    "active": true,
+    "scope": "worker, PostgreSQL, ZITADEL API/login/database/proxy, and candidate init services; app/Gateway is excluded",
+    "removal_condition": "remove shared Coolify MOBILE_MEDIA_* variables, deploy the Gateway-only encrypted file-storage configuration, and verify every service"
+  },
+  "source_fix": {
+    "files": [
+      "docker-compose.kernel-standard.yml",
+      "docker-compose.kernel-coolify.yml",
+      "docker-compose.kernel-coolify-media.yml",
+      "scripts/render-kernel-coolify-compose.py",
+      "services/common/worker_environment.py",
+      "services/core/runtime.py",
+      "docs/refactor/standard-profile.md"
+    ],
+    "previous_worker-only_source_revision": "a77751708816b43fa05cfb21051c00f098508fc4",
+    "exact_head_ci": "CI run 43163503484 passed",
+    "exact_head_security": "Security run 43163503464 passed",
+    "root_cause": "Coolify 4.7.5 merges application-wide runtime variables into every Compose service after service-level environment entries and resets each service env_file list to .env during deployment, so blank worker entries and a custom env_file did not isolate globally configured media credentials.",
+    "current_source_change": "Renderer strips MOBILE_MEDIA_* from Compose service environment values and mounts an encrypted Coolify File Storage file read-only in the Gateway. The Coolify deployment configuration must also remove those names from the shared application environment. The runtime validates the 0400 owner-only file, accepts only the MOBILE_MEDIA_* allowlist, validates the configured provider, and passes the values only to the API child; other workers receive neither the path nor media values. This avoids Coolify replacing Compose env_file lists during deployment. Generated Compose check passed locally; exact-head CI/Security and candidate rollout remain pending.",
+    "deployment": "Coolify deployment yr4y2ece2ji3n10fsxrwgedx finished on a819cab04723cc4fc230ac8f61ac011a2001ea50. It deployed the prior worker-only Compose change; temporary override was expanded to clear all non-Gateway services.",
+    "runtime_recheck": "At 2026-11-12T07:48:25Z, all seven running services were healthy except the proxy (running without a healthcheck); Gateway health and ZITADEL discovery returned HTTP 200. The Gateway retained seven required media values; the worker, both databases, ZITADEL API/login, and proxy had all nine media settings empty. The temporary override remains mode 0600."
+  },
+  "limitations": [
+    "The current isolation depends on a temporary override. Remove MOBILE_MEDIA_* from Coolify's shared application variables and deploy the Gateway-only Coolify File Storage configuration before removing the override.",
+    "This is environment presence evidence, not an end-to-end media upload, consent, attachment, or offline-sync acceptance.",
+    "Candidate populated farm/report reference data and the rest of G5 acceptance remain open."
+  ]
+}

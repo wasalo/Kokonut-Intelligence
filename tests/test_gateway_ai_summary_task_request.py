@@ -17,6 +17,7 @@ from starlette.testclient import TestClient  # noqa: E402
 OPERATOR_ID = str(uuid4())
 LOCATION_ID = str(uuid4())
 REQUEST_ID = str(uuid4())
+SCHEDULED_TASK_ID = str(uuid4())
 CREATED_AT = datetime(2026, 10, 29, 12, 0, tzinfo=timezone.utc)
 
 
@@ -56,7 +57,7 @@ class _Cursor:
         self.connection.operations.append((self.query, params))
 
     def fetchone(self):
-        if "create_location_ai_summary_operator_task_request" in self.query:
+        if "enqueue_location_ai_summary_operator_task_request" in self.query:
             return (
                 REQUEST_ID,
                 LOCATION_ID,
@@ -64,6 +65,8 @@ class _Cursor:
                 "stakeholder_feedback",
                 CREATED_AT,
                 False,
+                SCHEDULED_TASK_ID,
+                "queued",
             )
         return None
 
@@ -88,7 +91,7 @@ def test_receipt_sets_operator_scope_then_calls_bounded_function_and_commits():
         action="draft",
     )
     query, params = connection.operations[-1]
-    assert "create_location_ai_summary_operator_task_request" in query
+    assert "enqueue_location_ai_summary_operator_task_request" in query
     assert params == (LOCATION_ID, "feedback_synthesis", "stakeholder_feedback", REQUEST_ID)
     assert result == {
         "request_id": REQUEST_ID,
@@ -98,6 +101,8 @@ def test_receipt_sets_operator_scope_then_calls_bounded_function_and_commits():
         "created_at": CREATED_AT,
         "replayed": False,
         "status": "authorized",
+        "scheduled_task_id": SCHEDULED_TASK_ID,
+        "dispatch_status": "queued",
     }
     assert connection.committed and connection.rolled_back and connection.closed
 
@@ -143,13 +148,14 @@ def test_operator_scope_denial_rolls_back_and_closes_before_request_function():
                 connection_factory=lambda: connection,
             )
     assert connection.rolled_back and connection.closed
-    assert not any("create_location_ai_summary_operator_task_request" in q
+    assert not any("enqueue_location_ai_summary_operator_task_request" in q
                    for q, _params in connection.operations)
 
 
 def test_task_receipt_route_is_oidc_only_no_store_and_returns_only_receipt(monkeypatch):
     from services.gateway.ai_summary_draft_routes import register_ai_summary_draft_routes
 
+    monkeypatch.setenv("KOKONUT_FEATURE_AUTHENTICATED_SYNTHESIS_DISPATCH", "true")
     router = APIRouter()
     expected = {
         "request_id": REQUEST_ID,
@@ -159,6 +165,8 @@ def test_task_receipt_route_is_oidc_only_no_store_and_returns_only_receipt(monke
         "created_at": "2026-10-29T12:00:00+00:00",
         "replayed": False,
         "status": "authorized",
+        "scheduled_task_id": str(uuid4()),
+        "dispatch_status": "queued",
     }
     monkeypatch.setattr(
         "services.gateway.ai_summary_task_request.create_operator_ai_summary_task_request",
@@ -191,6 +199,40 @@ def test_task_receipt_route_is_oidc_only_no_store_and_returns_only_receipt(monke
     assert response.headers["cache-control"] == "no-store"
     assert response.headers["vary"] == "Cookie"
     assert response.json() == expected
+
+
+def test_task_receipt_route_fails_closed_when_dispatch_profile_is_disabled(monkeypatch):
+    from services.gateway.ai_summary_draft_routes import register_ai_summary_draft_routes
+
+    monkeypatch.delenv("KOKONUT_FEATURE_AUTHENTICATED_SYNTHESIS_DISPATCH", raising=False)
+    router = APIRouter()
+    calls = []
+
+    async def run_in_threadpool(function, *args, **kwargs):
+        calls.append((function, args, kwargs))
+        return {}
+
+    register_ai_summary_draft_routes(router, object(), run_in_threadpool, __import__("psycopg2"))
+    app = FastAPI()
+    app.include_router(router)
+
+    @app.middleware("http")
+    async def add_operator_session(request, call_next):
+        request.state.operator_session = SimpleNamespace(
+            operator=SimpleNamespace(operator_id=OPERATOR_ID)
+        )
+        return await call_next(request)
+
+    response = TestClient(app).post(
+        f"/operator/api/ai-summaries/{LOCATION_ID}/synthesis-requests",
+        json={
+            "task_key": "feedback_synthesis",
+            "summary_type": "stakeholder_feedback",
+            "request_id": REQUEST_ID,
+        },
+    )
+    assert response.status_code == 503
+    assert calls == []
 
 
 def test_task_receipt_route_rejects_extra_fields_without_dispatch():
@@ -230,6 +272,7 @@ def test_task_receipt_route_rejects_extra_fields_without_dispatch():
 def _task_receipt_app(monkeypatch, writer):
     from services.gateway.ai_summary_draft_routes import register_ai_summary_draft_routes
 
+    monkeypatch.setenv("KOKONUT_FEATURE_AUTHENTICATED_SYNTHESIS_DISPATCH", "true")
     monkeypatch.setattr(
         "services.gateway.ai_summary_task_request.create_operator_ai_summary_task_request",
         writer,
@@ -274,7 +317,7 @@ def test_task_receipt_openapi_publishes_registry_and_strict_result_contract(monk
     assert response_schema["additionalProperties"] is False
     assert set(response_schema["properties"]) == {
         "request_id", "location_id", "task_key", "summary_type", "created_at",
-        "replayed", "status",
+        "replayed", "status", "scheduled_task_id", "dispatch_status",
     }
     assert operation["responses"]["201"]["content"]["application/json"]["schema"]["$ref"].endswith(
         "AiSummaryTaskReceipt"
@@ -327,6 +370,8 @@ def test_task_receipt_validates_service_result_and_preserves_replay_status(
         "created_at": CREATED_AT,
         "replayed": replayed,
         "status": "authorized",
+        "scheduled_task_id": str(uuid4()),
+        "dispatch_status": "queued",
     }
     calls = []
 
@@ -374,6 +419,8 @@ def test_malformed_or_mismatched_task_receipt_fails_closed(monkeypatch, changes)
         "created_at": CREATED_AT,
         "replayed": False,
         "status": "authorized",
+        "scheduled_task_id": str(uuid4()),
+        "dispatch_status": "queued",
     }
     result.update(changes)
     app = _task_receipt_app(monkeypatch, lambda *_args, **_kwargs: result)

@@ -1,6 +1,6 @@
 {
   "candidate_or_legacy_database_used": false,
-  "checked_at": "2026-10-26T20:47:32.036551+00:00",
+  "checked_at": "2026-11-12T17:53:45.840796+00:00",
   "cleanup": "passed",
   "database": "fresh isolated Kernel PostgreSQL volume",
   "directus_health": 200,
@@ -8,12 +8,12 @@
   "owner_backed_bootstrap": "passed",
   "owner_login": 200,
   "permission_seed": {
-    "explicit_field_rows": 52,
+    "explicit_field_rows": 54,
     "first_application": "passed",
     "legacy_dashboard_wildcard_repaired": true,
     "legacy_metric_value_wildcard_repaired": true,
     "other_curated_permissions": 14,
-    "permission_rows": 175,
+    "permission_rows": 176,
     "replay": "passed",
     "replay_snapshot_unchanged": true,
     "repository_managed_farm_activity_permissions": 0,
@@ -67,6 +67,7 @@
       "mrv_claim:update": 1,
       "noi_snapshot:read": 3,
       "report_snapshot:read": 1,
+      "retirement_certificate:read": 1,
       "revenue_event:read": 3,
       "revenue_event:update": 2,
       "sales_event:create": 1,
@@ -84,17 +85,17 @@
       "Agent Read-Only Policy": 14,
       "Agent Write Policy": 19,
       "Analyst Policy": 12,
-      "Auditor Policy": 28,
+      "Auditor Policy": 29,
       "Field Worker Policy": 28,
       "Finance Policy": 14,
       "Manager Policy": 19,
       "Supervisor Policy": 15
     },
-    "snapshot_sha256": "466012a7cb7bdc1b301ed7e1def31dedce4dbf8ab737c3d78b6b3cc888ed5244",
-    "wildcard_field_rows": 123
+    "snapshot_sha256": "a5b90003932a58248fe8a94b6f6612544df2bea5d00a0b28d72dc71f0831eee9",
+    "wildcard_field_rows": 122
   },
   "profile": "optional Directus overlay",
-  "project": "kokonut-directus-profile-check-79cdbe6ba1",
+  "project": "kokonut-directus-profile-check-ae69048580",
   "role_api_acceptance": {
     "agent_write_allowlisted_create_status": 403,
     "agent_write_effective_permissions": {

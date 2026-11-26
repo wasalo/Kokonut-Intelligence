@@ -1,0 +1,193 @@
+{
+  "observed_at": "2026-11-15T12:10:01Z",
+  "scope": "Local read-only provider availability checks using the effective process environment after scripts/load-secrets.sh was sourced; presence indicators describe environment variables only. No endpoint URLs, secrets, response bodies, or farm data were retained.",
+  "rpc": [
+    {
+      "network": "ethereum",
+      "configured_environment_variable_present": true,
+      "http_status": 403,
+      "chain_id": null,
+      "expected_chain_id": 1,
+      "expected_match": null
+    },
+    {
+      "network": "optimism",
+      "configured_environment_variable_present": true,
+      "http_status": 200,
+      "chain_id": 10,
+      "expected_chain_id": 10,
+      "expected_match": true
+    },
+    {
+      "network": "base",
+      "configured_environment_variable_present": true,
+      "http_status": 403,
+      "chain_id": null,
+      "expected_chain_id": 8453,
+      "expected_match": null
+    },
+    {
+      "network": "arbitrum",
+      "configured_environment_variable_present": true,
+      "http_status": 403,
+      "chain_id": null,
+      "expected_chain_id": 42161,
+      "expected_match": null
+    },
+    {
+      "network": "gnosis",
+      "configured_environment_variable_present": true,
+      "http_status": 200,
+      "chain_id": 100,
+      "expected_chain_id": 100,
+      "expected_match": true
+    },
+    {
+      "network": "celo",
+      "configured_environment_variable_present": false,
+      "http_status": 403,
+      "chain_id": null,
+      "expected_chain_id": 42220,
+      "expected_match": null
+    },
+    {
+      "network": "celo-alfajores",
+      "configured_environment_variable_present": false,
+      "http_status": null,
+      "chain_id": null,
+      "expected_chain_id": 44787,
+      "expected_match": null,
+      "transport_error": "URLError"
+    }
+  ],
+  "eas_graphql": [
+    {
+      "network": "optimism",
+      "http_status": 200,
+      "query_ok": true
+    },
+    {
+      "network": "base",
+      "http_status": 200,
+      "query_ok": true
+    },
+    {
+      "network": "celo",
+      "http_status": 200,
+      "query_ok": true
+    }
+  ],
+  "eas_attestation_query": {
+    "observed_at": "2026-11-15T12:20:00Z",
+    "query": "repository bounded attestations-by-recipient query",
+    "requested_recipient": "zero address",
+    "results": {
+      "optimism": {
+        "query_ok": true,
+        "rows": 100,
+        "all_rows_match_requested_recipient": true
+      },
+      "base": {
+        "query_ok": true,
+        "rows": 100,
+        "all_rows_match_requested_recipient": true
+      },
+      "celo": {
+        "query_ok": true,
+        "rows": 100,
+        "all_rows_match_requested_recipient": true
+      }
+    },
+    "limitations": "Row contents were used only for the in-memory filter check and were not retained or printed. This does not establish candidate indexer parity."
+  },
+  "gnosis_contracts": {
+    "observed_at": "2026-11-15T12:16:00Z",
+    "chain_id": 100,
+    "code_present": {
+      "baal": true,
+      "shares": true,
+      "loot": true,
+      "treasury": true
+    },
+    "limitation": "Contract-code presence only; this does not establish indexer parity or governance event completeness."
+  },
+  "candidate_worker_recheck": {
+    "observed_at": "2026-11-15T12:22:00Z",
+    "execution": "Read-only inside the existing Coolify candidate worker over root SSH.",
+    "rpc": {
+      "environment_overrides_present": false,
+      "ethereum": {
+        "http_status": 403,
+        "chain_id": null
+      },
+      "optimism": {
+        "http_status": 200,
+        "chain_id": 10,
+        "expected_match": true
+      },
+      "base": {
+        "http_status": 403,
+        "chain_id": null
+      },
+      "arbitrum": {
+        "http_status": 403,
+        "chain_id": null
+      },
+      "gnosis": {
+        "http_status": 200,
+        "chain_id": 100,
+        "expected_match": true
+      },
+      "celo": {
+        "http_status": 403,
+        "chain_id": null
+      },
+      "celo-alfajores": {
+        "transport_error": "URLError",
+        "chain_id": null
+      }
+    },
+    "eas_attestation_query": {
+      "optimism": {
+        "query_ok": true,
+        "rows": 100,
+        "all_rows_match_requested_recipient": true
+      },
+      "base": {
+        "query_ok": true,
+        "rows": 100,
+        "all_rows_match_requested_recipient": true
+      },
+      "celo": {
+        "query_ok": true,
+        "rows": 100,
+        "all_rows_match_requested_recipient": true
+      }
+    },
+    "database_contacted": false,
+    "candidate_state_changed": false,
+    "secrets_or_response_rows_retained": false
+  },
+  "world_bank": {
+    "pink_sheet_resolver": "transport_error",
+    "landing_page_head_status": 403,
+    "official_workbook_head_result": "TLS certificate verification error",
+    "validated": false
+  },
+  "rpc_403_diagnostic": {
+    "observed_at": "2026-11-15T12:14:00Z",
+    "networks": {
+      "ethereum": "empty response body",
+      "base": "empty response body",
+      "arbitrum": "empty response body",
+      "celo": "empty response body"
+    },
+    "classification": "unresolved"
+  },
+  "limitations": [
+    "HTTP 403 with empty response bodies does not establish that an RPC credential is invalid; provider policy, network filtering, quota, and endpoint configuration remain possible causes.",
+    "EAS success establishes minimal GraphQL endpoint reachability only, not attestation parity or candidate worker behavior.",
+    "The World Bank source remains unverified from this host because the landing-page and workbook requests did not complete with a trusted response.",
+    "No database, candidate setting, provider dataset, or external resource was written."
+  ]
+}

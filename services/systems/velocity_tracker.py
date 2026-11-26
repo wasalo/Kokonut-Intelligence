@@ -36,10 +36,6 @@ class AdaptationVelocityTracker:
         conn = self._get_conn()
         cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
-        now = datetime.now(timezone.utc)
-        period_start = now
-        period_end = now
-
         # --- OODA velocity ---
         cur.execute("""
             SELECT
@@ -374,11 +370,12 @@ class AdaptationVelocityTracker:
                         THEN 'current' ELSE 'prior' END as period,
                     COUNT(*) as cnt
                 FROM feedback_loop
-                WHERE created_at > NOW() - INTERVAL '%s days'
+                WHERE location_id = %s
+                  AND created_at > NOW() - INTERVAL '%s days'
                 GROUP BY period
             )
             SELECT period, cnt FROM periods
-        """, (period_days, period_days * 2))
+        """, (period_days, location_id, period_days * 2))
         rows = {r["period"]: r["cnt"] for r in cur.fetchall()}
 
         if "current" in rows and "prior" in rows and rows["prior"] > 0:

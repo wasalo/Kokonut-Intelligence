@@ -100,6 +100,7 @@ jobs:
               --pull \
               --platform linux/amd64,linux/arm64 \
               --target "$target" \
+              --build-arg "SOURCE_COMMIT=${GITHUB_SHA}" \
               --label "org.opencontainers.image.source=https://github.com/${GITHUB_REPOSITORY}" \
               --label "org.opencontainers.image.revision=${GITHUB_SHA}" \
               --tag "${repository}:${release_tag}" \

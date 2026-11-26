@@ -6,6 +6,8 @@ import os
 import re
 from typing import Mapping, Sequence
 
+from services.agents.task_registry import TASK_WORKER_KEYS
+
 _WORKER_SECRET_ENV = re.compile(
     r"^KOKONUT_([A-Z][A-Z0-9_]*)_(?:DATABASE_URL|WORKER_CREDENTIAL|RPC_ENDPOINTS?|OPENWEATHERMAP_API_KEY|GEE_SERVICE_ACCOUNT_KEY|COPERNICUS_EMAIL|COPERNICUS_PASSWORD|COPERNICUS_CLIENT_ID|COPERNICUS_CLIENT_SECRET)$"
 )
@@ -13,6 +15,8 @@ _WORKER_KEY = re.compile(r"^[A-Za-z][A-Za-z0-9_]*$")
 _ISOLATED_WORKER_KEY = re.compile(r"^[a-z][a-z0-9_]{0,40}$")
 ISOLATED_WORKER_KEY_ENV = "KOKONUT_ISOLATED_WORKER_KEY"
 DENY_SHARED_DATABASE_ENV = "KOKONUT_DENY_SHARED_DATABASE"
+API_MEDIA_CONFIG_FILE_ENV = "KOKONUT_API_MEDIA_CONFIG_FILE"
+COOLIFY_MEDIA_SECRET_HOST_FILE_ENV = "KOKONUT_COOLIFY_MEDIA_SECRET_HOST_FILE"
 _SHARED_DATABASE_ENV = frozenset({
     "DATABASE_URL",
     "PG_DB",
@@ -27,6 +31,7 @@ _SHARED_DATABASE_ENV = frozenset({
     "KOKONUT_OPERATOR_AUTH_USER",
     "KOKONUT_RUNTIME_PASSWORD",
     "KOKONUT_RUNTIME_USER",
+    "KOKONUT_RUNTIME_PARENT_ROLE",
 })
 
 # A scheduled operation receives worker credentials only when its exact
@@ -66,6 +71,7 @@ _SCHEDULED_MODULE_WORKERS = {
 # so it cannot be represented as a static module-to-worker entry above.
 SCHEDULED_WORKER_KEYS = tuple(dict.fromkeys((
     *_SCHEDULED_MODULE_WORKERS.values(),
+    *TASK_WORKER_KEYS.values(),
     "notification_delivery",
 )))
 
@@ -98,10 +104,27 @@ _GLOBAL_PROVIDER_SECRETS = frozenset({
     "CELO_ALFAJORES_RPC_URL",
     "GNOSIS_RPC_URL",
 })
+_API_ONLY_MEDIA_ENV = frozenset({
+    "MOBILE_MEDIA_PROVIDER",
+    "MOBILE_MEDIA_ENCRYPTION_KEY",
+    "MOBILE_MEDIA_LOCAL_DIRECTORY",
+    "MOBILE_MEDIA_LOCAL_KEY",
+    "MOBILE_MEDIA_S3_ENDPOINT",
+    "MOBILE_MEDIA_S3_BUCKET",
+    "MOBILE_MEDIA_S3_ACCESS_KEY_ID",
+    "MOBILE_MEDIA_S3_SECRET_ACCESS_KEY",
+    "MOBILE_MEDIA_S3_REGION",
+})
 _ISOLATED_WORKER_PROVIDER_SECRETS = {
     # The outbox worker is the only isolated child that writes to ClickHouse.
     "clickhouse_outbox": frozenset({"CLICKHOUSE_PASSWORD"}),
 }
+_REPORT_EXPORT_STORAGE_SECRETS = frozenset({
+    "KOKONUT_PRIVATE_EXPORT_S3_READER_ACCESS_KEY_ID",
+    "KOKONUT_PRIVATE_EXPORT_S3_READER_SECRET_ACCESS_KEY",
+    "KOKONUT_PRIVATE_EXPORT_S3_WORKER_ACCESS_KEY_ID",
+    "KOKONUT_PRIVATE_EXPORT_S3_WORKER_SECRET_ACCESS_KEY",
+})
 _NOTIFICATION_PROVIDER_SECRETS = frozenset({
     "ALERT_WEBHOOK_URL",
     "DIRECTUS_ADMIN_TOKEN",
@@ -127,12 +150,19 @@ _EVENT_HANDLER_ISOLATION_FEATURES = {
 def scheduled_module_worker_key(
     module_path: str, command_args: Sequence[str] | None = None
 ) -> str | None:
-    """Return the one worker identity mapped to an exact scheduled module."""
+    """Return the database worker identity mapped to one scheduled operation."""
     if module_path == "services.events" and command_args is not None:
-        # Route notification delivery through its dedicated identity while
-        # preserving the independent event-dispatch operation policy.
+        if "--process" in command_args:
+            return "event_dispatch"
         if "--notification-process" in command_args:
             return "notification_delivery"
+    if module_path == "services.agents.worker_cli" and command_args is not None:
+        try:
+            task_index = command_args.index("--task-key")
+            task_key = command_args[task_index + 1]
+        except (ValueError, IndexError):
+            task_key = "ai_summary_synthesis"
+        return TASK_WORKER_KEYS.get(task_key)
     return _SCHEDULED_MODULE_WORKERS.get(module_path)
 
 
@@ -143,9 +173,11 @@ def scheduled_module_worker_environment(
     environ: Mapping[str, str] | None = None,
 ) -> dict[str, str]:
     """Build the least-privilege environment for one validated scheduled operation."""
+    source = os.environ if environ is None else environ
     arguments = tuple(command_args or ())
+    worker_key = scheduled_module_worker_key(module_path, arguments)
     if module_path == "services.events":
-        if "--process" in arguments:
+        if worker_key == "event_dispatch":
             # The dispatcher needs its own database identity and the exact
             # handler identities that its source-controlled registry may spawn.
             return worker_subprocess_environment(
@@ -153,18 +185,25 @@ def scheduled_module_worker_environment(
                 isolated_worker_key="event_dispatch",
                 environ=environ,
             )
-        if "--notification-process" in arguments:
+        if worker_key == "notification_delivery":
             return worker_subprocess_environment(
                 allowed_worker_keys=("notification_delivery",),
                 isolated_worker_key="notification_delivery",
-                environ=environ,
+                environ=source,
             )
-
-    worker_key = scheduled_module_worker_key(module_path, arguments)
+    scheduler_is_isolated = (
+        source.get(DENY_SHARED_DATABASE_ENV, "").strip().lower() == "true"
+        or source.get(ISOLATED_WORKER_KEY_ENV) == "scheduler"
+        # The scheduler runtime selects its dedicated connection based on
+        # variable presence, so an explicitly configured empty value must
+        # still keep unmapped children isolated from shared PG credentials.
+        or "KOKONUT_SCHEDULER_DATABASE_URL" in source
+    )
     return worker_subprocess_environment(
         allowed_worker_keys=(worker_key,) if worker_key is not None else (),
         isolated_database_credentials=worker_key is not None,
-        environ=environ,
+        strip_shared_database_credentials=(worker_key is None and scheduler_is_isolated),
+        environ=source,
     )
 
 
@@ -225,11 +264,14 @@ def worker_subprocess_environment(
     isolated_database_credentials: bool = False,
     strip_shared_database_credentials: bool = False,
     isolated_worker_key: str | None = None,
+    include_api_only_media_environment: bool = False,
     environ: Mapping[str, str] | None = None,
 ) -> dict[str, str]:
     """Copy the environment while allowing only explicitly named worker secrets.
 
-    Standard application settings are preserved. Variables shaped like
+    Standard application settings are preserved except for private-media
+    configuration, which only the API child receives when explicitly enabled.
+    Variables shaped like
     ``KOKONUT_<WORKER>_DATABASE_URL`` or
     ``KOKONUT_<WORKER>_WORKER_CREDENTIAL`` are removed unless that worker key
     is explicitly allowed for the child. An empty allowlist is appropriate for
@@ -248,6 +290,8 @@ def worker_subprocess_environment(
         raise ValueError("isolated_database_credentials must be a boolean")
     if not isinstance(strip_shared_database_credentials, bool):
         raise ValueError("strip_shared_database_credentials must be a boolean")
+    if not isinstance(include_api_only_media_environment, bool):
+        raise ValueError("include_api_only_media_environment must be a boolean")
     allowed: set[str] = set()
     normalized_keys: list[str] = []
     for key in allowed_worker_keys:
@@ -285,9 +329,17 @@ def worker_subprocess_environment(
     enqueue_only = "event_dispatch" in allowed or "notification_enqueue" in allowed
     child_environment: dict[str, str] = {}
     for name, value in source.items():
+        if name in _API_ONLY_MEDIA_ENV and not include_api_only_media_environment:
+            continue
+        if name in _REPORT_EXPORT_STORAGE_SECRETS:
+            continue
+        if name in {"KOKONUT_SCHEDULER_PASSWORD", "KOKONUT_WORKER_LOGIN_PASSWORD"}:
+            continue  # Bootstrap-only credential; children use filtered connection settings.
         if name in {
             ISOLATED_WORKER_KEY_ENV,
             DENY_SHARED_DATABASE_ENV,
+            API_MEDIA_CONFIG_FILE_ENV,
+            COOLIFY_MEDIA_SECRET_HOST_FILE_ENV,
             "KOKONUT_WORKER_PROGRESS_NAME",
         }:
             continue
@@ -300,6 +352,14 @@ def worker_subprocess_environment(
             and name in _GLOBAL_PROVIDER_SECRETS
             and name not in allowed_provider_secrets
         ):
+            continue
+        if name in {"KOKONUT_OPERATOR_AUTH_USER", "KOKONUT_OPERATOR_AUTH_PASSWORD"}:
+            if not isolated and "OPERATOR_AUTH" in allowed:
+                child_environment[name] = value
+            continue
+        if name == "KOKONUT_CLICKHOUSE_OUTBOX_OPERATOR_PASSWORD":
+            if not isolated and "CLICKHOUSE_OUTBOX_OPERATOR" in allowed:
+                child_environment[name] = value
             continue
         match = _WORKER_SECRET_ENV.fullmatch(name)
         if match is None or match.group(1) in allowed:

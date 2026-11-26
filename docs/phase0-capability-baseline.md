@@ -5,6 +5,7 @@
 - **Working branch:** `chore/ki-21-phase-0-baseline`
 - **Source revision:** `18ae8cf` (`Pause automatic Staging deployment`)
 - **Scope:** Existing KI repository contracts, deployment declarations, test references, data ownership, and recovery gaps. This source baseline does not claim live application, data, or restore validation. A supplemental read-only inventory of retained Staging Docker volume metadata, apparent sizes, and container references was captured on 2026-10-01 in [`Phase 1 Staging retained-volume inventory`](phase1-staging-volume-inventory.md); no volume contents or database rows were read.
+- **Current refactor/candidate status:** See the [canonical refactor guide](refactor/current-state-and-implementation.md); this Phase 0 review remains a historical source baseline.
 
 ## 1. How to read this baseline
 
@@ -112,12 +113,26 @@ No secret file contents or live environment values were read for this baseline. 
 
 ### Backup/restore evidence and limitations
 
+The following findings were captured for the 2026-09-26 source baseline. They do
+not describe current candidate acceptance; see the dated follow-up below.
+
 - `scripts/backup.sh` defaults to PostgreSQL database `kokonut_intelligence`, exports ClickHouse schema/table data, encrypts the resulting database artifacts and writes checksums/manifest. It does **not** archive the Directus uploads, Metabase application database/volume, Mosquitto data, or Caddy volumes in its inspected default path.
 - `scripts/verify-backup.sh` checks manifest presence, non-empty files and SHA-256 equality. It does not decrypt artifacts or perform a restore.
 - `scripts/restore.sh` requires explicit `--confirm`, decrypts and restores PostgreSQL dumps and ClickHouse exports into the configured targets. It does not restore the file/broker/proxy volumes listed above. Run only against a disposable, isolated project/database for rehearsal.
 - `deploy/production/backup-policy.md` describes full checkpoints including volumes, off-host copies, decrypt verification and monthly restore rehearsals, but its log says no rehearsals because Production is not deployed. The checked-in general scripts do not implement that full stated scope. This is a pre-pilot release blocker until coverage and rehearsal evidence are reconciled.
 - Earlier Staging work stopped/removed containers while retaining eight named volumes. Those volumes remain **unclassified retained data**; do not delete/prune them until a volume-by-volume inventory, seed/historical-data comparison, archive, and Wasabi-approved disposition are recorded.
 - The platform is pre-Production per Wasabi. No Production dashboard dependency or Production user reliance is asserted. This does not prove Staging volumes contain no unique historical/manual data.
+
+**Current follow-up (2026-11-15):** Checkpoint manifests now carry an HMAC-SHA-256
+signature and exact artifact inventory. `scripts/verify-backup.sh` validates
+the signature, paths, sizes, and hashes but does not decrypt archives or prove
+a restore. `scripts/backup_remote.py` supports a dedicated bucket-scoped R2
+upload/download path with readback verification and no delete/prune operation.
+The candidate has one R2 checkpoint whose PostgreSQL archives were readback-
+verified and restored into isolated containers; recurring capture, complete
+multi-service coverage, full Coolify recovery, and the G6 soak remain open.
+See [`backup-object-storage.md`](refactor/backup-object-storage.md) and the
+[canonical G6 evidence](refactor/current-state-and-implementation.md).
 
 ## 5. Repository documentation drift found during source review
 
@@ -128,7 +143,7 @@ Treat implementation/configuration and tests as the Phase 0 baseline where docum
 3. The Gateway guide describes HTTP-verb audit actions as violating the DB constraint. Current audit code maps its database action and tests assert `GET → read` while preserving the original HTTP method in metadata. Durable insert behavior still needs a PostgreSQL integration test; the unit test mocks the audit logger.
 4. [`docs/grpc-api.md`](grpc-api.md) describes transport as plaintext-only. Current server code can configure TLS using runtime cert/key settings, but defaults to insecure transport when they are absent. Document this as optional capability, not as evidence TLS is enabled in any environment. Scope helper call sites exist; enumerate and test every write RPC before relying on that authorization guarantee.
 5. [`docs/deployment-topology.md`](deployment-topology.md) and some operational skill/runbook prose still describe automatic Staging deployment. KI-21 records the pause at `18ae8cf2…`. The repository has removed its OneDev buildspec and added GitHub Actions CI, Security, and manually dispatched deployment workflows. Full-history Security passed on `cf5bcd3`; CI run 281 is still in progress and predates the apt snapshot update. Staging remains source-disabled pending architecture/data gates. Once GitHub checks and repository settings are active, retire any remaining remote OneDev triggers or runner service; this repository change did not modify the remote OneDev instance.
-6. [`deploy/production/backup-policy.md`](../deploy/production/backup-policy.md) promises volume coverage, decrypt verification and restore rehearsals that are not demonstrated by the inspected general backup/verify/restore scripts. Reconcile policy, scripts, environment-specific backup tooling and actual retained volumes.
+6. [`deploy/production/backup-policy.md`](../deploy/production/backup-policy.md) was rewritten on 2026-11-15 to remove its stale Hostinger/B2 destination, fixed 30-day retention, volume-archive claim, and legacy cron instructions. It now describes the candidate R2 contract and current script limitations. Recurring backup cadence, full multi-service coverage, production retention, and full Coolify restore remain open in the canonical G6 gate.
 
 ## 6. Phase 0 disposition and gates
 

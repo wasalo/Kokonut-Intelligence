@@ -13,6 +13,7 @@ import sys
 import tempfile
 import time
 import uuid
+from datetime import datetime, timezone
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -20,7 +21,10 @@ MIGRATION_IDS = (
     "schema:401_dynamic_retention_and_legal_holds.sql",
     "schema:402_retention_policy_scope_codes.sql",
 )
-DEFAULT_OUTPUT = ROOT / "docs/refactor/builds/2026-10-15-recovery/retention-policy-disposable.json"
+DEFAULT_OUTPUT = ROOT / (
+    f"docs/refactor/builds/{datetime.now(timezone.utc):%Y-%m-%d}-recovery/"
+    "retention-policy-disposable.json"
+)
 
 
 def run(args: list[str], *, input_text: str | None = None) -> str:
@@ -544,8 +548,28 @@ def main() -> None:
     image = image_match.group(1)
     project = f"kokonut-retention-{uuid.uuid4().hex[:10]}"
     password = secrets.token_urlsafe(24)
+    checked_at = datetime.now(timezone.utc).isoformat(timespec="seconds")
+    source_revision = subprocess.run(
+        ["git", "rev-parse", "HEAD"],
+        cwd=ROOT,
+        text=True,
+        capture_output=True,
+        check=True,
+    ).stdout.strip()
+    source_worktree_clean = not subprocess.run(
+        ["git", "status", "--porcelain"],
+        cwd=ROOT,
+        text=True,
+        capture_output=True,
+        check=True,
+    ).stdout.strip()
     result = {
-        "date": "2026-10-15",
+        "evidence_level": "disposable_acceptance",
+        "date": checked_at[:10],
+        "checked_at": checked_at,
+        "source_revision": source_revision,
+        "source_worktree_clean": source_worktree_clean,
+        "project": project,
         "kind": "disposable-postgresql-migration-and-retention-acceptance",
         "migration_ids": list(MIGRATION_IDS),
         "docker_image": image,

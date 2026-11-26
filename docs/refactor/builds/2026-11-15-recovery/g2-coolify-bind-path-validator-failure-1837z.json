@@ -1,0 +1,17 @@
+{
+  "observed_at": "2026-11-15T18:37:31Z",
+  "application_id": "fdphpruj8jxien23ockmbw0j",
+  "deployment_id": "etqa2ip946kdcedrbjzesloz",
+  "source_commit": "ee592b911713a80e55e1f82cb91035da98288494",
+  "deployment_status": "failed",
+  "failure_stage": "Coolify safety validation before Compose load",
+  "validator_result": "Coolify rejected the resource-rooted bind source because `${COOLIFY_RESOURCE_UUID:?…}` contains the forbidden `${` form for a volume source.",
+  "validator_source_review": "The installed Coolify validator accepts bare `${COOLIFY_RESOURCE_UUID}` interpolation for resource-rooted bind paths and rejects the required-message modifier form.",
+  "compose_loaded": false,
+  "candidate_services_changed": false,
+  "candidate_volumes_or_data_changed": false,
+  "secret_values_inspected_or_retained": false,
+  "corrective_source_change": "Use bare resource UUID interpolation for Coolify resource-rooted bind and env-file paths, and reject traversal or alternate interpolation in the renderer.",
+  "follow_up_status": "Local renderer, release-lock, and focused provenance checks pass; exact-head CI/Security and deployment are pending.",
+  "read_only_observation": true
+}

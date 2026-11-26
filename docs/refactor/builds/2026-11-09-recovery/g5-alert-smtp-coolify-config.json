@@ -1,0 +1,36 @@
+{
+  "version": 1,
+  "recorded_at_utc": "2026-11-09T20:33:44Z",
+  "scope": "Redacted configuration staging for candidate Maileroo SMTP settings; no delivery was enabled or attempted.",
+  "candidate": {
+    "coolify_application_id": "fdphpruj8jxien23ockmbw0j",
+    "deployment_triggered": false,
+    "candidate_containers_restarted": false
+  },
+  "production_environment": {
+    "settings_synced_from_sops": [
+      "ALERT_EMAIL_FROM",
+      "ALERT_EMAIL_TO",
+      "ALERT_SMTP_HOST",
+      "ALERT_SMTP_PASSWORD",
+      "ALERT_SMTP_PORT",
+      "ALERT_SMTP_TLS_MODE",
+      "ALERT_SMTP_USER"
+    ],
+    "runtime_only": true,
+    "buildtime": false,
+    "secret_values_shown_once": true,
+    "secret_values_visible_in_api": false,
+    "preview_rows_changed": false
+  },
+  "delivery": {
+    "notification_delivery_worker_started": false,
+    "email_sent": false,
+    "paging_channel_configured": false,
+    "secret_values_printed": false
+  },
+  "limitations": [
+    "The environment update is staged in Coolify and has not been applied to running containers because no deployment was triggered.",
+    "This does not accept notification routing, SMTP delivery, an acknowledged P1 paging path, or the database-backed notification worker."
+  ]
+}

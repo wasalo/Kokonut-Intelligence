@@ -1,0 +1,63 @@
+{
+  "recorded_at_utc": "2026-11-12T05:41:58Z",
+  "gate": "G6",
+  "result": "passed_within_database_restore_scope",
+  "checkpoint": {
+    "id": "candidate-pre-migration-755-20261111T171322Z",
+    "bucket": "kokonut-backups",
+    "source_revision": "cbc758f58966184306ea8ff700ab50aeab567c44",
+    "artifacts": [
+      "encrypted kokonut_intelligence PostgreSQL archive",
+      "encrypted ZITADEL PostgreSQL archive"
+    ],
+    "manifest_and_encrypted_artifact_integrity": "passed"
+  },
+  "restore_target": {
+    "host": "local disposable Docker host",
+    "architecture": "linux/amd64",
+    "compose_project": "kokonut-g6-restore-20261112",
+    "network": "internal only",
+    "published_ports": 0,
+    "database_storage": "temporary filesystem (tmpfs)",
+    "persistent_volumes": 0,
+    "kokonut_image": "postgis/postgis:16-3.4@sha256:44126d872ac91993766c341e369c539e8196614321765d36a6f1bab0419a5fa5",
+    "zitadel_database_image": "postgres:17.10-alpine@sha256:742f40ea20b9ff2ff31db5458d127452988a2164df9e17441e191f3b72252193"
+  },
+  "kokonut_restore": {
+    "pre_restore_public_tables": 0,
+    "post_restore": {
+      "postgresql": "16.4",
+      "postgis": "3.4.3",
+      "applied_migration_records": 745,
+      "latest_schema_migration": "schema:754",
+      "public_relations": 1521,
+      "locations": 1,
+      "farms": 1
+    },
+    "ordered_migration_plan_before_replay": [
+      "schema:755_operator_hub_relational_forms.sql"
+    ],
+    "replayed_migrations": [
+      "schema:755_operator_hub_relational_forms.sql"
+    ],
+    "migration_result": "Applied 1; failed 0.",
+    "post_replay_applied_migration_records": 746,
+    "post_replay_latest_schema_migration": "schema:755_operator_hub_relational_forms.sql",
+    "pending_schema_migrations": 0
+  },
+  "zitadel_restore": {
+    "postgresql": "17.10",
+    "restored_non_system_relations": 150,
+    "migration_replay": "not applicable to the application schema migration runner"
+  },
+  "cleanup": {
+    "disposable_containers_and_network": "stopped and removed after evidence capture",
+    "temporary_download_and_scratch_directory": "removed after evidence capture",
+    "candidate_data_or_configuration_changed": false
+  },
+  "limitations": [
+    "Database-only restore; Gateway, worker, ZITADEL application, and Cloudflare recovery were not exercised.",
+    "No restore-duration, outage-duration, acknowledged-write loss, or RPO measurement was produced.",
+    "This does not satisfy the candidate-only 24-hour soak, failure injection, or full G6 acceptance."
+  ]
+}

@@ -1,7 +1,7 @@
 """RPC wallet rows, projections, and chain status share one transaction."""
 
 from decimal import Decimal
-from unittest.mock import MagicMock, call, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -116,6 +116,8 @@ def test_legacy_rpc_run_passes_exact_decimal_balance_to_postgres_write():
 
 
 def test_legacy_rpc_run_uses_one_block_anchor_for_all_wallets_on_chain():
+    from unittest.mock import call
+
     connection = MagicMock()
     status_calls = []
     events = []

@@ -256,7 +256,7 @@ def test_s3_inventory_is_prefix_scoped_and_hides_delete_handle():
     key = "private/field-collector/location/device/item.jpg"
     modified = NOW - timedelta(days=2)
     client = FakeS3Client([{"Contents": [{"Key": key, "LastModified": modified}]}])
-    store = S3CompatibleMediaStore(client, "private-media")
+    store = S3CompatibleMediaStore(client, "private-media", "42" * 32)
 
     items = store.list_private_objects()
     store.delete_orphan(items[0])
@@ -269,7 +269,7 @@ def test_s3_inventory_is_prefix_scoped_and_hides_delete_handle():
 
 def test_s3_inventory_rejects_objects_outside_private_prefix():
     client = FakeS3Client([{"Contents": [{"Key": "public/image.jpg", "LastModified": NOW}]}])
-    store = S3CompatibleMediaStore(client, "private-media")
+    store = S3CompatibleMediaStore(client, "private-media", "42" * 32)
 
     with pytest.raises(ValueError, match="Invalid private media key"):
         store.list_private_objects()

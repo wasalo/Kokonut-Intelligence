@@ -5,6 +5,8 @@ services:
       context: .
       dockerfile: Dockerfile.kernel
       target: grpc
+      args:
+        SOURCE_COMMIT: ${SOURCE_COMMIT:-unknown}
     init: true
     restart: unless-stopped
     stop_grace_period: 40s

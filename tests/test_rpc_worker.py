@@ -3,7 +3,7 @@
 import hashlib
 import json
 from decimal import Decimal
-from unittest.mock import MagicMock, call, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -143,7 +143,13 @@ def test_isolated_worker_commits_each_snapshot_with_its_outbox_and_status():
     connection.close.assert_called_once_with()
 
 
+def test_mock_call_is_not_a_module_global():
+    assert "call" not in globals()
+
+
 def test_isolated_worker_anchors_all_wallets_to_one_block():
+    from unittest.mock import call
+
     second_wallet_id = "22222222-2222-4222-8222-222222222222"
     second_address = "0x" + "c" * 40
     connection, cursor = _connection(

@@ -1,0 +1,103 @@
+{
+  "evidence_type": "g5_candidate_media_credential_rotation",
+  "recorded_at_utc": "2026-11-12T22:12:23Z",
+  "candidate": {
+    "pull_request": 73,
+    "branch": "chore/finalize-kokonut-intelligence-refactor",
+    "source_commit": "d8f2b9aa98181944cf26896e9f613a2f11be7737",
+    "coolify_deployment_id": "9vpumlp3y70baidks3cpavkg",
+    "coolify_application_id": "fdphpruj8jxien23ockmbw0j"
+  },
+  "hosted_checks": {
+    "ci": {
+      "run_id": "43301455555",
+      "conclusion": "success",
+      "head_sha": "d8f2b9aa98181944cf26896e9f613a2f11be7737"
+    },
+    "security": {
+      "run_id": "43301455664",
+      "conclusion": "success",
+      "head_sha": "d8f2b9aa98181944cf26896e9f613a2f11be7737"
+    }
+  },
+  "targeted_gateway_recreation": {
+    "observed_at_utc": "2026-11-12T22:02:03Z",
+    "service": "app",
+    "method": "docker compose up --no-deps --force-recreate app using the active Coolify resource directory",
+    "image": "kokonut-kernel-oidc:local",
+    "image_id": "sha256:22283cc7890dabef490b3fadd6e0ea6f2e23b9e17242e1b08e50821e7e676b70",
+    "provenance_limit": "The resource directory has no Git metadata and the image has no revision label. The media adapter, worker environment boundary, and .dockerignore source hashes match the PR head; the targeted local build is not an immutable release artifact."
+  },
+  "runtime": {
+    "candidate_services_running": 7,
+    "configured_healthchecks_healthy": 6,
+    "proxy_healthcheck": "not configured",
+    "public_health_http_status": 200,
+    "unauthenticated_operator_session_http_status": 401,
+    "service_states": {
+      "app": "running, healthy",
+      "worker": "running, healthy",
+      "zitadel-api": "running, healthy",
+      "zitadel-login": "running, healthy",
+      "zitadel-db": "running, healthy",
+      "database": "running, healthy",
+      "proxy": "running, no healthcheck"
+    },
+    "database_or_migration_changes": false
+  },
+  "media_boundary": {
+    "host_file": {
+      "path": "/data/coolify/applications/fdphpruj8jxien23ockmbw0j/private/media.env",
+      "owner_uid_gid": "0:10001",
+      "mode_octal": "0440"
+    },
+    "mount": {
+      "service": "app",
+      "source": "/data/coolify/applications/fdphpruj8jxien23ockmbw0j/private/media.env",
+      "destination": "/run/kokonut/private-media.env",
+      "read_only": true
+    },
+    "nonempty_container_media_environment_keys": {
+      "app": [],
+      "worker": [],
+      "other_services": []
+    },
+    "process_media_environment_keys": {
+      "gateway_child": [
+        "MOBILE_MEDIA_LOCAL_KEY",
+        "MOBILE_MEDIA_S3_ACCESS_KEY_ID",
+        "MOBILE_MEDIA_S3_BUCKET",
+        "MOBILE_MEDIA_S3_ENDPOINT",
+        "MOBILE_MEDIA_S3_REGION",
+        "MOBILE_MEDIA_S3_SECRET_ACCESS_KEY"
+      ],
+      "worker_process": []
+    }
+  },
+  "r2_credential": {
+    "provider": "Cloudflare R2",
+    "token_name": "kokonut-kernel-media-gateway-2026-11",
+    "status": "active",
+    "expires_at": "2027-02-10T00:00:00Z",
+    "bucket_scope": "kokonut-kernel-media only",
+    "permission_group": "Workers R2 Storage Bucket Item Write",
+    "secret_values_recorded": false,
+    "credential_values_encrypted_in_local_sops": true,
+    "superseded_media_token_revoked_and_absent_from_token_list": true
+  },
+  "synthetic_provider_probe": {
+    "implementation": "application S3-compatible media adapter with its encryption envelope",
+    "object_prefix": "private/field-collector/_ops-probe/",
+    "payload": "synthetic three-byte JPEG signature; no user data",
+    "put": "passed",
+    "bounded_list": "passed",
+    "head_metadata": "passed",
+    "delete": "passed",
+    "probe_object_removed": true
+  },
+  "known_open_items": [
+    "Coolify's matching storage API row remains; verify mode 0440 after a full Coolify deployment or remove the redundant row before G6 soak.",
+    "The targeted local image rebuild does not have immutable release-image provenance; capture and verify digest-pinned source/image identity before G6 soak.",
+    "Candidate media upload, attachment consent, offline browser sync, and populated-data acceptance remain open."
+  ]
+}

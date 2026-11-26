@@ -30,6 +30,14 @@ class _Cursor:
         self.connection.operations.append(("execute", query, parameters))
 
     def fetchone(self):
+        query = self.connection.operations[-1][1]
+        if "set_operator_tenant_context(" in query:
+            return (
+                "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee",
+                LOCATION_ID,
+                OPERATOR_ID,
+                "operator",
+            )
         return (
             "dddddddd-dddd-4ddd-8ddd-dddddddddddd",
             "draft",
@@ -38,9 +46,13 @@ class _Cursor:
             False,
         )
 
+    def fetchall(self):
+        return []
+
 
 class _Connection:
     def __init__(self):
+        self.autocommit = False
         self.operations = []
         self.commits = 0
         self.rollbacks = 0
@@ -164,6 +176,86 @@ def test_from_data_reads_suggestions_after_signed_context_on_same_connection():
         "suggested-from:location_cooperative/supply_agreement",
     ]
     assert '"Genesis Cooperative"' in create_call[2][6]
+    assert connection.commits == 1
+    assert connection.closed
+
+
+def test_from_data_post_route_runs_signed_location_suggestions_on_one_connection(monkeypatch):
+    from services.gateway.business_planning_routes import register_business_planning_routes
+
+    connection = _Connection()
+    monkeypatch.setattr(writes, "_connection_factory", lambda: lambda: connection)
+    monkeypatch.setattr(
+        "services.common.tenant_context.current_operator_session_token_hash",
+        lambda: "a" * 64,
+    )
+
+    app = FastAPI()
+    router = APIRouter()
+
+    async def run_in_threadpool(function, *args, **kwargs):
+        return function(*args, **kwargs)
+
+    register_business_planning_routes(router, object(), run_in_threadpool, SimpleNamespace(Error=Exception))
+    app.include_router(router)
+
+    @app.middleware("http")
+    async def add_operator(request, call_next):
+        request.state.operator_session = SimpleNamespace(
+            operator=SimpleNamespace(operator_id=OPERATOR_ID)
+        )
+        return await call_next(request)
+
+    with TestClient(app) as client:
+        response = client.post(
+            f"/operator/api/business-planning/{LOCATION_ID}/canvases/from-data",
+            json=_payload(),
+        )
+
+    context_index = next(
+        index for index, operation in enumerate(connection.operations)
+        if operation[0] == "execute"
+        and "set_operator_tenant_context(" in operation[1]
+    )
+    source_relations = (
+        "FROM cooperative AS c",
+        "FROM farm_activity",
+        "FROM sensor_device AS device",
+        "FROM impact_claim",
+        "FROM content_delivery",
+        "FROM buyer_segment",
+        "FROM revenue_event",
+        "FROM expense_event",
+        "FROM stakeholder_feedback",
+    )
+    suggestion_queries = [
+        (index, operation)
+        for index, operation in enumerate(connection.operations)
+        if operation[0] == "execute"
+        and any(source_relation in operation[1] for source_relation in source_relations)
+    ]
+    create_index = next(
+        index for index, operation in enumerate(connection.operations)
+        if operation[0] == "execute"
+        and "create_location_business_model_canvas" in operation[1]
+    )
+
+    assert response.status_code == 201
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["vary"] == "Cookie"
+    assert response.json()["generated_from"] == []
+    assert len(suggestion_queries) == 9
+    assert context_index < min(index for index, _operation in suggestion_queries)
+    assert max(index for index, _operation in suggestion_queries) < create_index
+    assert all(LOCATION_ID in operation[2] for _index, operation in suggestion_queries)
+    assert connection.operations[context_index][2] == (
+        "a" * 64,
+        OPERATOR_ID,
+        LOCATION_ID,
+        "business_planning",
+        "create",
+        "[]",
+    )
     assert connection.commits == 1
     assert connection.closed
 

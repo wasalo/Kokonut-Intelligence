@@ -41,8 +41,44 @@ def test_anonymous_gateway_health_is_allowed():
     assert response.json()["status"] == "ok"
 
 
+def test_anonymous_gateway_readiness_checks_postgres_and_returns_minimal_status(monkeypatch):
+    connection = MagicMock()
+    connection.cursor.return_value.__enter__.return_value.fetchone.return_value = (1,)
+    monkeypatch.setattr("services.common.database.get_db", lambda: connection)
+
+    with TestClient(create_app()) as client:
+        response = client.get("/health/ready")
+
+    assert response.status_code == 200
+    assert response.json() == {"status": "ready"}
+    assert response.headers["cache-control"] == "no-store"
+    connection.cursor.return_value.__enter__.return_value.execute.assert_called_once_with("SELECT 1")
+    connection.close.assert_called_once()
+
+
+def test_anonymous_gateway_readiness_fails_closed_without_leaking_database_error(
+    monkeypatch, caplog
+):
+    secret_detail = "private database connection details"
+
+    def fail_database():
+        raise RuntimeError(secret_detail)
+
+    monkeypatch.setattr("services.common.database.get_db", fail_database)
+    with TestClient(create_app()) as client:
+        response = client.get("/health/ready")
+        liveness = client.get("/health")
+
+    assert response.status_code == 503
+    assert response.json() == {"status": "not_ready"}
+    assert secret_detail not in response.text
+    assert secret_detail not in caplog.text
+    assert liveness.status_code == 200
+    assert liveness.json()["status"] == "ok"
+
+
 def test_anonymous_detailed_service_health_is_denied_without_probing(monkeypatch):
-    """Only the lightweight liveness route is public; dependency topology is not."""
+    """Public health reveals a binary status, while dependency topology stays private."""
     from unittest.mock import MagicMock
 
     monkeypatch.delenv("KOKONUT_API_KEYS", raising=False)

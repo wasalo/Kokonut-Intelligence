@@ -11,6 +11,7 @@ import shutil
 import subprocess
 import sys
 import time
+from datetime import date, datetime, timezone
 from pathlib import Path
 
 import psycopg2
@@ -26,7 +27,14 @@ FIXTURE_SENSOR = ROOT / "tests/fixtures/sensor_ingestion_worker_disposable.sql"
 MIGRATION_CONTEXT = ROOT / "schemas/postgres/405_signed_worker_tenant_context.sql"
 MIGRATION_ACL = ROOT / "schemas/postgres/419_private_worker_context_functions.sql"
 MIGRATION_SENSOR = ROOT / "schemas/postgres/431_signed_sensor_driver_worker.sql"
-DEFAULT_OUTPUT = ROOT / "docs/refactor/builds/2026-10-17-recovery/signed-sensor-ingestion-worker-disposable.json"
+DEFAULT_OUTPUT = (
+    ROOT
+    / "docs"
+    / "refactor"
+    / "builds"
+    / f"{date.today().isoformat()}-recovery"
+    / "sensor-ingestion-worker-431-disposable.json"
+)
 
 WORKER_ID = "a0000000-0000-0000-0000-000000000951"
 TENANT_ID = "a0000000-0000-0000-0000-000000000801"
@@ -44,7 +52,14 @@ LOGIN_PASSWORD = "synthetic-sensor-login-password-for-disposable-check"
 
 
 def run(command: list[str], *, input_text: str | None = None) -> str:
-    result = subprocess.run(command, input=input_text, text=True, capture_output=True, check=False)
+    result = subprocess.run(
+        command,
+        input=input_text,
+        text=True,
+        capture_output=True,
+        check=False,
+        cwd=ROOT,
+    )
     if result.returncode:
         details = "\n".join(part for part in (result.stdout, result.stderr) if part)
         raise RuntimeError(f"disposable command failed ({result.returncode}): {details}")
@@ -191,6 +206,9 @@ def main() -> int:
         raise RuntimeError("Docker CLI is unavailable")
     container = f"kokonut-sensor-ingestion-{os.getpid()}-{secrets.token_hex(3)}"
     image = os.getenv("SENSOR_INGESTION_TEST_IMAGE", "postgis/postgis:16-3.4")
+    source_revision = run(["git", "rev-parse", "HEAD"]).strip()
+    source_worktree_clean = not run(["git", "status", "--porcelain"]).strip()
+    checked_at = datetime.now(timezone.utc).isoformat()
     admin_password = secrets.token_urlsafe(24)
     output = Path(sys.argv[1]) if len(sys.argv) > 1 else DEFAULT_OUTPUT
     keep_container = os.getenv("SENSOR_INGESTION_KEEP_CONTAINER") == "true"
@@ -377,10 +395,18 @@ def main() -> int:
         checks.append("dedicated login can SET ROLE only into bounded execution and has no direct sensor-table or function access")
 
         evidence = {
+            "checked_at": checked_at,
+            "source_revision": source_revision,
+            "source_worktree_clean": source_worktree_clean,
+            "container_image": image,
+            "network_mode": "bridge",
+            "host_port_binding": "127.0.0.1:ephemeral->5432/tcp",
+            "external_network_isolated": False,
+            "candidate_legacy_production_touched": False,
             "status": "passed",
             "migration": 431,
             "checks": checks,
-            "scope": "synthetic records on an ephemeral PostgreSQL 16 container with forced RLS; no candidate or legacy database used",
+            "scope": "synthetic records on an ephemeral PostgreSQL 16 container with forced RLS; no candidate, legacy, or production database used",
         }
         output.parent.mkdir(parents=True, exist_ok=True)
         output.write_text(json.dumps(evidence, indent=2) + "\n", encoding="utf-8")

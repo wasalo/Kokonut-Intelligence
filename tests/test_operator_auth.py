@@ -1554,6 +1554,7 @@ def test_mobile_disposition_inventory_requires_both_grants_and_is_audited(monkey
 def test_mobile_disposition_inventory_sanitizes_malformed_service_response(
     monkeypatch, malformation
 ):
+    monkeypatch.setenv("KOKONUT_GATEWAY_CORS_ORIGINS", "https://operator.example")
     provider = _DispositionProvider(
         allowed_scopes={
             ("mobile_collection_retention", "inventory"),
@@ -1586,6 +1587,7 @@ def test_mobile_disposition_inventory_sanitizes_malformed_service_response(
             "/operator/api/mobile-collection-review-queue/"
             "22222222-2222-4222-8222-222222222222/disposition-inventory",
             params={"location_id": LOCATION_ID},
+            headers={"Origin": "https://operator.example"},
         )
 
     assert response.status_code == 500
@@ -1604,6 +1606,7 @@ def test_mobile_disposition_inventory_sanitizes_malformed_service_response(
 def test_mobile_disposition_inventory_binds_success_to_requested_scope(
     monkeypatch, mismatched_field
 ):
+    monkeypatch.setenv("KOKONUT_GATEWAY_CORS_ORIGINS", "https://operator.example")
     provider = _DispositionProvider(
         allowed_scopes={
             ("mobile_collection_retention", "inventory"),
@@ -1633,6 +1636,7 @@ def test_mobile_disposition_inventory_binds_success_to_requested_scope(
             "/operator/api/mobile-collection-review-queue/"
             "22222222-2222-4222-8222-222222222222/disposition-inventory",
             params={"location_id": LOCATION_ID},
+            headers={"Origin": "https://operator.example"},
         )
 
     assert response.status_code == 500

@@ -1,0 +1,20 @@
+{
+  "date": "2026-11-15",
+  "checked_at_utc": "2026-11-15T06:10:58Z",
+  "subject": "Better Stack Uptime API token authentication recheck",
+  "credential_values_recorded": false,
+  "request": {
+    "method": "GET",
+    "url": "https://betterstack.com/api/v2/roles",
+    "token_variable": "BETTERSTACK_UPTIME_API_TOKEN",
+    "token_source": "local .env.sops",
+    "token_present": true
+  },
+  "response": {
+    "http_status": 401,
+    "interpretation": "Better Stack did not accept the supplied token.",
+    "response_body_recorded": false
+  },
+  "state_changes": false,
+  "source": "https://betterstack.com/docs/uptime/api/roles/list/"
+}

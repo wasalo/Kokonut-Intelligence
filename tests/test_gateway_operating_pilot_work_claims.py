@@ -184,7 +184,13 @@ def test_work_opportunity_and_claim_routes_are_protected_no_store_contracts(monk
         }
     )
     claim_action = MagicMock(
-        return_value={"work_item_id": WORK_ITEM_ID, "claim_id": CLAIM_ID, "status": "proposed", "replayed": False}
+        return_value={
+            "location_id": LOCATION_ID,
+            "work_item_id": WORK_ITEM_ID,
+            "claim_id": CLAIM_ID,
+            "status": "proposed",
+            "replayed": False,
+        }
     )
     client = _route_app(monkeypatch, read_action, claim_action)
 

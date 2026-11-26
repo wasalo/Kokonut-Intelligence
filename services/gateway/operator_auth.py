@@ -12,10 +12,11 @@ import hmac
 import os
 import re
 import secrets
+import ssl
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 from typing import Protocol
-from urllib.parse import urlsplit
+from urllib.parse import urlsplit, urlunsplit
 from uuid import UUID
 
 from starlette.requests import Request
@@ -32,6 +33,33 @@ CSRF_COOKIE = "kokonut_operator_csrf"
 SESSION_COOKIE_PATH = "/operator"
 _TOKEN_BYTES = 32
 _IDENTIFIER_RE = re.compile(r"^[a-z][a-z0-9_]{0,62}$")
+_OPERATOR_RETURN_PATHS = ("/operator", "/ops", "/field", "/governance")
+
+
+def _operator_return_path(value: object) -> str:
+    """Accept only local operator app paths as post-login destinations."""
+    if (
+        not isinstance(value, str)
+        or len(value) > 512
+        or "\\" in value
+        or any(ord(character) < 0x20 or ord(character) == 0x7F for character in value)
+    ):
+        return "/operator/"
+    try:
+        parsed = urlsplit(value)
+    except ValueError:
+        return "/operator/"
+    path = parsed.path
+    if parsed.scheme or parsed.netloc or not path.startswith("/") or path.startswith("//"):
+        return "/operator/"
+    if not any(
+        path == prefix or path.startswith(prefix + "/")
+        for prefix in _OPERATOR_RETURN_PATHS
+    ):
+        return "/operator/"
+    if path in _OPERATOR_RETURN_PATHS:
+        return path + "/"
+    return path
 
 
 class OperatorAuthConfigurationError(RuntimeError):
@@ -47,7 +75,9 @@ class OIDCSettings:
     state_secret: str
     operator_auth_user: str = field(repr=False)
     operator_auth_password: str = field(repr=False)
-    session_ttl_seconds: int = 1800
+    ca_bundle: str | None = None
+    discovery_url: str | None = None
+    session_ttl_seconds: int = 43200
 
     @classmethod
     def from_env(cls) -> OIDCSettings | None:
@@ -69,6 +99,8 @@ class OIDCSettings:
             "operator_auth_password": "KOKONUT_OPERATOR_AUTH_PASSWORD",
         }
         values = {field: os.environ.get(variable, "").strip() for field, variable in required.items()}
+        ca_bundle = os.environ.get("KOKONUT_OPERATOR_OIDC_CA_BUNDLE", "").strip() or None
+        discovery_url = os.environ.get("KOKONUT_OPERATOR_OIDC_DISCOVERY_URL", "").strip() or None
         missing = [variable for field, variable in required.items() if not values[field]]
         if missing:
             raise OperatorAuthConfigurationError(
@@ -106,13 +138,29 @@ class OIDCSettings:
                 raise OperatorAuthConfigurationError(f"{variable} must be an HTTPS URL")
             if parsed.fragment or (setting == "issuer" and parsed.query):
                 raise OperatorAuthConfigurationError(f"{variable} must not include a query or fragment")
+        if discovery_url:
+            discovery = urlsplit(discovery_url)
+            issuer = urlsplit(values["issuer"])
+            if (
+                discovery.scheme not in {"http", "https"}
+                or not discovery.netloc
+                or discovery.username
+                or discovery.password
+                or discovery.hostname != issuer.hostname
+                or discovery.path != "/.well-known/openid-configuration"
+                or discovery.query
+                or discovery.fragment
+            ):
+                raise OperatorAuthConfigurationError(
+                    "KOKONUT_OPERATOR_OIDC_DISCOVERY_URL must use the issuer host and standard discovery path"
+                )
         redirect = urlsplit(values["redirect_uri"])
         if redirect.path != "/operator/auth/callback" or redirect.query:
             raise OperatorAuthConfigurationError(
                 "KOKONUT_OPERATOR_OIDC_REDIRECT_URI must end at /operator/auth/callback"
             )
         try:
-            ttl = int(os.environ.get("KOKONUT_OPERATOR_SESSION_TTL_SECONDS", "1800"))
+            ttl = int(os.environ.get("KOKONUT_OPERATOR_SESSION_TTL_SECONDS", "43200"))
         except ValueError as exc:
             raise OperatorAuthConfigurationError(
                 "KOKONUT_OPERATOR_SESSION_TTL_SECONDS must be an integer"
@@ -121,7 +169,7 @@ class OIDCSettings:
             raise OperatorAuthConfigurationError(
                 "KOKONUT_OPERATOR_SESSION_TTL_SECONDS must be between 300 and 43200"
             )
-        return cls(**values, session_ttl_seconds=ttl)
+        return cls(**values, ca_bundle=ca_bundle, discovery_url=discovery_url, session_ttl_seconds=ttl)
 
 
 @dataclass(frozen=True)
@@ -150,7 +198,11 @@ class OperatorIdentityProvider(Protocol):
 
     def has_scope(self, operator_id: str, resource: str, action: str, location_id: str) -> bool: ...
 
+    def has_global_capability(self, session_token_hash: str, capability: str) -> bool: ...
+
     def list_scopes(self, operator_id: str) -> list[dict]: ...
+
+    def list_location_options(self, operator_id: str) -> list[dict]: ...
 
     def revoke_session(self, session_id: str) -> None: ...
 
@@ -202,14 +254,66 @@ class OIDCOperatorProvider:
             ) from exc
         self.settings = settings
         oauth = OAuth()
+        client_kwargs = {
+            "scope": "openid profile email",
+            "code_challenge_method": "S256",
+        }
+        if settings.ca_bundle is not None:
+            ssl_context = ssl.create_default_context()
+            ssl_context.load_verify_locations(cafile=settings.ca_bundle)
+            client_kwargs["verify"] = ssl_context
         oauth.register(
             name="operator",
             client_id=settings.client_id,
             client_secret=settings.client_secret,
-            server_metadata_url=(settings.issuer.rstrip("/") + "/.well-known/openid-configuration"),
-            client_kwargs={"scope": "openid profile email", "code_challenge_method": "S256"},
+            server_metadata_url=(
+                getattr(settings, "discovery_url", None)
+                or (settings.issuer.rstrip("/") + "/.well-known/openid-configuration")
+            ),
+            client_kwargs=client_kwargs,
         )
         self.client = oauth.create_client("operator")
+        self._server_metadata_prepared = False
+
+    async def prepare_server_metadata(self) -> None:
+        """Validate issuer metadata and route OIDC back-channel calls internally."""
+        metadata = await self.client.load_server_metadata()
+        if metadata.get("issuer") != self.settings.issuer:
+            raise OperatorAuthConfigurationError(
+                "OIDC discovery issuer does not match the configured issuer"
+            )
+
+        discovery_url = self.settings.discovery_url
+        if not discovery_url or urlsplit(discovery_url).scheme != "http":
+            return
+        if self._server_metadata_prepared:
+            return
+
+        discovery = urlsplit(discovery_url)
+        issuer = urlsplit(self.settings.issuer)
+        for endpoint_name in ("token_endpoint", "userinfo_endpoint", "jwks_uri"):
+            endpoint_value = metadata.get(endpoint_name)
+            if not isinstance(endpoint_value, str):
+                raise OperatorAuthConfigurationError(
+                    f"OIDC discovery is missing {endpoint_name}"
+                )
+            endpoint = urlsplit(endpoint_value)
+            if (
+                endpoint.scheme not in {"http", "https"}
+                or endpoint.hostname != issuer.hostname
+                or endpoint.username
+                or endpoint.password
+                or endpoint.query
+                or endpoint.fragment
+                or not endpoint.path.startswith("/")
+            ):
+                raise OperatorAuthConfigurationError(
+                    f"OIDC discovery has an invalid {endpoint_name}"
+                )
+            metadata[endpoint_name] = urlunsplit(
+                ("http", discovery.netloc, endpoint.path, "", "")
+            )
+        self._server_metadata_prepared = True
 
     def create_session(self, claims: dict) -> tuple[OperatorPrincipal, str, str] | None:
         issuer = claims.get("iss")
@@ -312,8 +416,36 @@ class OIDCOperatorProvider:
             return False
         return hmac.compare_digest(_digest(header), session.csrf_token_hash)
 
-    @staticmethod
-    def has_scope(operator_id: str, resource: str, action: str, location_id: str) -> bool:
+    def has_global_capability(self, session_token_hash: str, capability: str) -> bool:
+        if (
+            not re.fullmatch(r"[0-9a-f]{64}", session_token_hash)
+            or capability
+            not in {
+                "clickhouse_outbox:read",
+                "clickhouse_outbox:replay",
+                "clickhouse_outbox:resolve",
+                "clickhouse_outbox:discard",
+                "scheduler:read",
+                "scheduler:enable",
+                "scheduler:disable",
+                "location_setup:create",
+            }
+        ):
+            return False
+        conn = _get_operator_auth_db(self.settings)
+        try:
+            with conn.cursor() as cur:
+                cur.execute(
+                    "SELECT kokonut_security.operator_global_capability_allows(%s, %s)",
+                    (session_token_hash, capability),
+                )
+                row = cur.fetchone()
+            conn.rollback()
+            return bool(row and row[0])
+        finally:
+            conn.close()
+
+    def has_scope(self, operator_id: str, resource: str, action: str, location_id: str) -> bool:
         if not all(_IDENTIFIER_RE.fullmatch(value) for value in (resource, action)):
             return False
         try:
@@ -321,26 +453,30 @@ class OIDCOperatorProvider:
             operator_id = str(UUID(operator_id))
         except ValueError:
             return False
-        conn = _get_db()
+        conn = _get_operator_auth_db(self.settings)
         try:
             with conn.cursor() as cur:
+                cur.execute("SET TRANSACTION READ ONLY")
+                cur.execute("SET LOCAL statement_timeout = '5s'")
+                cur.execute("SET LOCAL lock_timeout = '2s'")
                 cur.execute(
-                    """SELECT operator_scope_grant_allows(
+                    """SELECT kokonut_security.operator_scope_grant_read_allows(
                            %s::uuid, %s, %s, %s::uuid
                        )""",
                     (operator_id, resource, action, location_id),
                 )
-                return bool(cur.fetchone()[0])
+                allowed = bool(cur.fetchone()[0])
+            conn.rollback()
+            return allowed
         finally:
             conn.close()
 
-    @staticmethod
-    def list_scopes(operator_id: str) -> list[dict]:
+    def list_scopes(self, operator_id: str) -> list[dict]:
         try:
             operator_id = str(UUID(operator_id))
         except ValueError:
             return []
-        conn = _get_db()
+        conn = _get_operator_auth_db(self.settings)
         try:
             with conn.cursor() as cur:
                 cur.execute("SET TRANSACTION READ ONLY")
@@ -348,18 +484,47 @@ class OIDCOperatorProvider:
                 cur.execute("SET LOCAL lock_timeout = '2s'")
                 cur.execute(
                     """SELECT resource, action, location_id
-                         FROM operator_scope_grant
-                        WHERE operator_id = %s AND revoked_at IS NULL
-                          AND operator_scope_grant_allows(
-                              operator_id, resource, action, location_id
-                          )
+                         FROM kokonut_security.operator_scope_grant_read_scopes(%s::uuid)
                         ORDER BY resource, action, location_id""",
                     (operator_id,),
                 )
-                return [
+                scopes = [
                     {"resource": row[0], "action": row[1], "location_id": str(row[2])}
                     for row in cur.fetchall()
                 ]
+            conn.rollback()
+            return scopes
+        finally:
+            conn.close()
+
+    def list_location_options(self, operator_id: str) -> list[dict]:
+        try:
+            operator_id = str(UUID(operator_id))
+        except ValueError:
+            return []
+        conn = _get_operator_auth_db(self.settings)
+        try:
+            with conn.cursor() as cur:
+                cur.execute("SET TRANSACTION READ ONLY")
+                cur.execute("SET LOCAL statement_timeout = '5s'")
+                cur.execute("SET LOCAL lock_timeout = '2s'")
+                cur.execute(
+                    """SELECT id, name, country, region
+                         FROM kokonut_security.operator_scope_grant_read_location_options(%s::uuid)
+                        ORDER BY name, region, country, id""",
+                    (operator_id,),
+                )
+                options = [
+                    {
+                        "id": str(row[0]),
+                        "name": row[1],
+                        "country": row[2],
+                        "region": row[3],
+                    }
+                    for row in cur.fetchall()
+                ]
+            conn.rollback()
+            return options
         finally:
             conn.close()
 
@@ -383,6 +548,77 @@ def create_provider() -> OIDCOperatorProvider | None:
 
 def auth_route_policy(method: str, path: str, *, enabled: bool) -> dict | None:
     """Return middleware policy only for the small, explicit OIDC endpoint set."""
+    outbox_routes = {
+        ("GET", "/operator/api/clickhouse-outbox/dead-letters"): (
+            "read",
+            "clickhouse_outbox:read",
+        ),
+        ("POST", "/operator/api/clickhouse-outbox/dead-letters/{outbox_id}/replay"): (
+            "replay",
+            "clickhouse_outbox:replay",
+        ),
+        ("POST", "/operator/api/clickhouse-outbox/dead-letters/{outbox_id}/resolve"): (
+            "resolve",
+            "clickhouse_outbox:resolve",
+        ),
+        ("POST", "/operator/api/clickhouse-outbox/dead-letters/{outbox_id}/discard"): (
+            "discard",
+            "clickhouse_outbox:discard",
+        ),
+    }
+    scheduler_routes = {
+        ("GET", "/operator/api/scheduler/tasks"): ("read", "scheduler:read"),
+        ("POST", "/operator/api/scheduler/tasks/{task_id}/enable"): (
+            "enable",
+            "scheduler:enable",
+        ),
+        ("POST", "/operator/api/scheduler/tasks/{task_id}/disable"): (
+            "disable",
+            "scheduler:disable",
+        ),
+    }
+    normalized_method = method.upper()
+    if enabled:
+        for routes, resource in (
+            (outbox_routes, "clickhouse_outbox"),
+            (scheduler_routes, "scheduler"),
+        ):
+            for (route_method, route_path), (action, capability) in routes.items():
+                path_parameter = "outbox_id" if resource == "clickhouse_outbox" else "task_id"
+                match = re.fullmatch(
+                    re.escape(route_path).replace(
+                        rf"\{{{path_parameter}\}}", r"([0-9a-fA-F-]{36})"
+                    ),
+                    path,
+                )
+                if route_method == normalized_method and match:
+                    return {
+                        "resource": resource,
+                        "action": action,
+                        "public": False,
+                        "location_id": None,
+                        "scope_required": False,
+                        "operator_auth": True,
+                        "global_capability": capability,
+                    }
+
+        if (normalized_method, path) in {
+            ("GET", "/operator/api/location-setup/organizations"),
+            ("GET", "/operator/api/location-setup/locations"),
+            ("POST", "/operator/api/location-setup"),
+            ("POST", "/operator/api/location-setup/existing-location-farms"),
+        }:
+            action = "read_organizations" if normalized_method == "GET" else "create"
+            return {
+                "resource": "location_setup",
+                "action": action,
+                "public": False,
+                "location_id": None,
+                "scope_required": False,
+                "operator_auth": True,
+                "global_capability": "location_setup:create",
+            }
+
     environmental_baseline_capture_match = re.fullmatch(
         r"/operator/api/environmental-baselines/([0-9a-fA-F-]{36})/captures", path
     )
@@ -3897,6 +4133,19 @@ def auth_route_policy(method: str, path: str, *, enabled: bool) -> dict | None:
             "scope_required": True,
             "operator_auth": True,
         }
+    farm_activity_relation_choices_match = re.fullmatch(
+        r"/operator/api/farm-activity-records/relations",
+        path,
+    )
+    if farm_activity_relation_choices_match and method.upper() == "GET" and enabled:
+        return {
+            "resource": "farm_activity",
+            "action": "read",
+            "public": False,
+            "location_id": None,
+            "scope_required": True,
+            "operator_auth": True,
+        }
     farm_activity_record_edit_match = re.fullmatch(
         r"/operator/api/farm-activity-records/([0-9a-fA-F-]{36})/draft",
         path,
@@ -4061,6 +4310,29 @@ def authorize_auth_request(
                 "scope_checked": True,
                 **policy,
             }
+    required_global_capability = policy.get("global_capability")
+    if required_global_capability is not None:
+        try:
+            capability_allowed = provider.has_global_capability(
+                session_token_hash,
+                required_global_capability,
+            )
+        except Exception:
+            return {
+                "authenticated": False,
+                "caller": f"operator:{operator_session.operator.operator_id}",
+                "reason": "operator_global_capability_unavailable",
+                "scope_checked": scope_checked,
+                **policy,
+            }
+        if not capability_allowed:
+            return {
+                "authenticated": False,
+                "caller": f"operator:{operator_session.operator.operator_id}",
+                "reason": "operator_global_capability_denied",
+                "scope_checked": scope_checked,
+                **policy,
+            }
     if request.method.upper() not in {"GET", "HEAD", "OPTIONS"} and not provider.csrf_valid(
         request, operator_session
     ):
@@ -4121,6 +4393,11 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
 
     router = APIRouter()
 
+    async def prepare_provider_metadata() -> None:
+        prepare = getattr(provider, "prepare_server_metadata", None)
+        if callable(prepare):
+            await prepare()
+
     @router.get("/operator/")
     async def operator_console():
         if provider is None:
@@ -4140,16 +4417,41 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
     async def login(request: Request):
         if provider is None:
             return JSONResponse(status_code=404, content={"error": "Operator OIDC is disabled"})
+        from httpx2 import RequestError
+
+        return_to = _operator_return_path(request.query_params.get("return_to"))
+        prompt = request.query_params.get("prompt")
         request.session.clear()
-        return await provider.client.authorize_redirect(
-            request, redirect_uri=provider.settings.redirect_uri
-        )
+        request.session["operator_return_to"] = return_to
+        try:
+            await prepare_provider_metadata()
+            authorization_options = (
+                {"prompt": "select_account"} if prompt == "select_account" else {}
+            )
+            return await provider.client.authorize_redirect(
+                request,
+                redirect_uri=provider.settings.redirect_uri,
+                **authorization_options,
+            )
+        except (RequestError, OperatorAuthConfigurationError) as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.operator_auth").warning(
+                "OIDC login redirect unavailable (%s)", type(exc).__name__
+            )
+            request.session.clear()
+            return JSONResponse(
+                status_code=503,
+                content={"error": "Operator identity provider unavailable"},
+                headers={"Retry-After": "30", "Cache-Control": "no-store"},
+            )
 
     @router.get("/operator/auth/callback")
     async def callback(request: Request):
         if provider is None:
             return JSONResponse(status_code=404, content={"error": "Operator OIDC is disabled"})
         try:
+            await prepare_provider_metadata()
             token = await provider.client.authorize_access_token(request)
             claims = token.get("userinfo")
             if not isinstance(claims, Mapping):
@@ -4177,12 +4479,13 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
             )
             request.session.clear()
             return JSONResponse(status_code=401, content={"error": "OIDC login failed"})
+        return_to = _operator_return_path(request.session.get("operator_return_to"))
         request.session.clear()
         if created is None:
             return JSONResponse(status_code=403, content={"error": "Operator identity is not provisioned"})
         _, session_token, csrf_token = created
         request.state.operator_audit_caller = f"operator:{created[0].operator_id}"
-        response = RedirectResponse(url="/operator/", status_code=303)
+        response = RedirectResponse(url=return_to, status_code=303)
         response.set_cookie(
             SESSION_COOKIE,
             session_token,
@@ -4212,6 +4515,12 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
         session = request.state.operator_session
         try:
             scopes = await run_in_threadpool(provider.list_scopes, session.operator.operator_id)
+            list_location_options = getattr(provider, "list_location_options", None)
+            location_options = (
+                await run_in_threadpool(list_location_options, session.operator.operator_id)
+                if callable(list_location_options)
+                else []
+            )
         except psycopg2.Error as exc:
             from services.common.logging import get_logger
 
@@ -4223,12 +4532,22 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
                 content={"error": "Operator session service unavailable"},
                 headers={"Retry-After": "30", "Cache-Control": "no-store"},
             )
+        headers = {"Cache-Control": "no-store", "Vary": "Cookie, Origin"}
+        csrf_token = request.cookies.get(CSRF_COOKIE, "")
+        if (
+            re.fullmatch(r"[A-Za-z0-9_-]{1,128}", csrf_token)
+            and hmac.compare_digest(_digest(csrf_token), session.csrf_token_hash)
+        ):
+            # Keep the cookie scoped to /operator while allowing same-origin
+            # vertical apps to submit the matching double-submit header.
+            headers["X-Operator-CSRF-Token"] = csrf_token
         return JSONResponse(
             {
                 "operator": asdict(session.operator),
                 "scopes": scopes,
+                "locations": location_options,
             },
-            headers={"Cache-Control": "no-store", "Vary": "Cookie"},
+            headers=headers,
         )
 
     @router.get(
@@ -4387,6 +4706,9 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
             detail = SubmittedReportDetailResponse.model_validate({"data": row})
             if detail.data.id != requested_report_id:
                 raise ValueError("Submitted report does not match the requested identifier")
+            from fastapi.encoders import jsonable_encoder
+
+            response_content = jsonable_encoder(detail.model_dump(mode="python"))
         except (ValidationError, TypeError, ValueError, RecursionError) as exc:
             from services.common.logging import get_logger
 
@@ -4398,12 +4720,8 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
                 content={"error": "Report review service unavailable"},
                 headers=detail_headers,
             )
-        from fastapi.encoders import jsonable_encoder
 
-        return JSONResponse(
-            jsonable_encoder(detail.model_dump(mode="python")),
-            headers=detail_headers,
-        )
+        return JSONResponse(response_content, headers=detail_headers)
 
     @router.post(
         "/operator/api/report-exports",
@@ -6097,4 +6415,12 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
     register_stakeholder_identity_resolution_routes(
         router, provider, run_in_threadpool, psycopg2
     )
+    from services.gateway.clickhouse_outbox_operator import create_clickhouse_outbox_router
+    from services.gateway.scheduler_operator import create_scheduler_operator_router
+
+    router.include_router(create_clickhouse_outbox_router())
+    router.include_router(create_scheduler_operator_router())
+    from services.gateway.location_setup_routes import register_location_setup_routes
+
+    register_location_setup_routes(router, provider, run_in_threadpool, psycopg2)
     return router

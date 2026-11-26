@@ -1,0 +1,66 @@
+{
+  "schema_version": 1,
+  "gate": "G5",
+  "observed_at": "2026-11-16T16:28:26Z",
+  "source_head_at_observation": "937447d6da108ddd67c953ffc153ab541062a8fc",
+  "service": "Better Stack",
+  "monitor": {
+    "id": "5239227",
+    "name": "Kokonut Intelligence readiness",
+    "target": "https://hub.kokonut.network/health/ready",
+    "state": "up",
+    "active": true,
+    "check_frequency_seconds": 180,
+    "confirmation_period_seconds": 120,
+    "recovery_period_seconds": 300,
+    "last_check_age_seconds_at_observation": 41
+  },
+  "notification_route": {
+    "email": false,
+    "phone": false,
+    "sms": false,
+    "push": false,
+    "primary_responder_assigned": false,
+    "on_call_configuration": "upgrade required",
+    "accepted_email_destination": "intelligence@kokonut.network",
+    "delivery_acceptance": "open; no entitled recipient route is configured"
+  },
+  "recipient_assignment_follow_up": {
+    "observed_at": "2026-11-16T16:59:09Z",
+    "source_head_at_observation": "890299ce998ec2a35aa1e4474aa1b16ad425f595",
+    "requested_first_email_recipient": "alejandro@kokonut.network",
+    "monitor_email_setting": "boolean channel routed to primary on-call responder; no direct recipient field",
+    "direct_recipient_feature": "Outgoing e-mails integration supports explicit recipients and notify-alongside-primary behavior when no escalation policy is configured",
+    "documentation": [
+      "https://betterstack.com/docs/uptime/api/update-an-existing-monitor/",
+      "https://betterstack.com/docs/uptime/integrations/integrating-with-better-uptime/outgoing-emails/",
+      "https://betterstack.com/docs/uptime/api/create-outgoing-email-integration/"
+    ],
+    "dashboard_attempt": "Integrations > Exporting data > Outgoing e-mails > Add redirected to the Better Stack billing page with responder-license and payment setup",
+    "integration_created": false,
+    "billing_changed": false,
+    "result": "direct recipient could not be configured in the current account flow without entering billing"
+  },
+  "plan_and_billing": {
+    "free_plan_interval_limit_visible_in_ui": "3 minutes",
+    "on_call_page_requires_upgrade": true,
+    "workspace_plan_and_organizational_eligibility_independently_verified": false,
+    "billing_changed": false
+  },
+  "mutations": {
+    "monitor_timing_updated": true,
+    "monitor_unpaused": true,
+    "incident_created": false,
+    "test_alert_sent": false,
+    "policy_or_webhook_changed": false,
+    "billing_changed": false
+  },
+  "acceptance": {
+    "monitor_active": "passed",
+    "external_health_check": "passed; dashboard showed Up",
+    "email_delivery": "open",
+    "manual_primary_backup_rehearsal": "open",
+    "automatic_acknowledgement_and_no_ack_escalation": "deferred under Wasabi-approved no-upgrade direction"
+  },
+  "source": "Authenticated Better Stack dashboard; no tokens, incident payloads, or message bodies retained."
+}

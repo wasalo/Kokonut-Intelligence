@@ -1,0 +1,19 @@
+{
+  "observed_at": "2026-11-05T03:39:01.800359+00:00",
+  "source_revision": "5b7b8ccf5f440c95e7dfe71bee985c72d90bbeb2",
+  "dirty_checkout": true,
+  "scope": "local multiarchitecture image build and package-inventory acceptance only; no database started or deployed",
+  "platforms": [
+    "linux/amd64",
+    "linux/arm64"
+  ],
+  "archive_sha256": "d78b7bf4cc367a12fe7f278032b5ec26a4f362f96be34b4bf94b1c32b884ad8b",
+  "release_input_lock_sha256": "c8c12f2e5e1cb7a4cc7299cbc8d34861df820367a58263abbcb5ee99dd6b727e",
+  "verification_output": "Kernel release inputs match config/kernel/release-input-lock.json\nPostGIS OCI build verified: linux/amd64 + linux/arm64, 229 amd64 and 228 arm64 installed packages including selected PostGIS versions, 1 documented architecture-specific package difference(s), index sha256:5cbeaa5b70b8d821177527a397a20f15c728e0ab2a00e6b81f3fd9a31e78b7c3\n",
+  "tests": {
+    "kernel_profile": 104,
+    "postgis_and_core_release_gates": 30
+  },
+  "published": false,
+  "candidate_changed": false
+}
