@@ -334,10 +334,12 @@ identity.
 | `POST /operator/api/farm-activity-records/{activity_id}/{action}?location_id=<UUID>` | Record one governed lifecycle decision | Exact-location grant: `farm_activity:submit`, `farm_activity:verify`, `farm_activity:reject`, `farm_activity:rework`, `farm_activity:publish`, or `farm_activity:close_exception`, selected by action |
 
 Location setup requests require an owner/tenant decision reference and explicit
-confirmation. New-location coordinates are WGS84 latitude and longitude; the
-representative point does not replace the required location polygon. Existing
-location farm polygons must be fully covered by the selected location
-boundary. Location-setup routes never verify or publish farm activity.
+confirmation. New-location coordinates are WGS84 latitude and longitude; a
+broader location-area polygon is optional. The farm polygon is required and
+describes the parcel; it need not fit inside an administrative or
+parent-location polygon. Tenant and authorization scope follows the
+relational `location_id`. Location-setup routes never verify or publish farm
+activity.
 
 Relation choices are optional for a general location-level activity. When a
 plot, crop cycle, or task is selected, the database validates its parent farm

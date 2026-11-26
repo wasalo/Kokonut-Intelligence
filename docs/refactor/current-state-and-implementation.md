@@ -105,8 +105,10 @@ governance rules.
 Wasabi entered Kokonut Adelphi through the Control Plane on 9 November 2026,
 exercising the operator setup workflow before provider acceptance. The
 authenticated form accepts representative latitude/longitude values and a
-WGS84 GeoJSON Polygon by upload or paste, or a boundary as manually entered
-longitude/latitude pairs. Migration 752 saves the location, farm, tenant-owner
+required farm WGS84 GeoJSON Polygon by upload or paste, or manually entered
+longitude/latitude perimeter pairs. A broader location-area Polygon is
+optional; the location point identifies the administrative/geographic scope.
+Migration 752 saves the location, farm, tenant-owner
 decision, append-only setup evidence, and limited location-read and draft-only
 field-activity grants atomically. It never verifies or publishes field records.
 Same-slug setup rows can be completed while preserving baseline and historical
@@ -117,9 +119,12 @@ is `https://hub.kokonut.network/ops/administration`.
 
 The current `chore/finalize-kokonut-intelligence-refactor` work adds a second
 location-setup path for adding a farm beneath an existing, active, verified
-tenant location. It lists only locations with an active owned farm, preserves
-the parent location, and requires the new farm polygon to be covered by that
-location boundary. Farm-activity draft entry now offers bounded, readable
+tenant location. It lists only locations with an active owned farm and
+preserves the parent location. Source migration 756 makes location area
+optional and validates the farm parcel polygon independently; this source
+change is pending CI and candidate rollout. Location membership and
+database authorization define the scope, not geometric containment in a city
+or parent polygon. Farm-activity draft entry now offers bounded, readable
 choices for farm, plot, crop cycle, and farm task; the database trigger checks
 that the selected relations remain location- and parent-consistent. Hub
 location selectors use bounded names and region/country labels instead of

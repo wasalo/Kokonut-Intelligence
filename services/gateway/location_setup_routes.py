@@ -94,7 +94,7 @@ class LocationSetupLocation(_StrictRequest):
     timezone: str = Field(min_length=1, max_length=50)
     latitude: float = Field(ge=-90, le=90)
     longitude: float = Field(ge=-180, le=180)
-    boundary_geojson: dict[str, Any]
+    boundary_geojson: dict[str, Any] | None = None
 
     @field_validator("slug")
     @classmethod
@@ -121,8 +121,8 @@ class LocationSetupLocation(_StrictRequest):
 
     @field_validator("boundary_geojson")
     @classmethod
-    def validate_boundary(cls, value: dict[str, Any]) -> dict[str, Any]:
-        return _validate_polygon(value)
+    def validate_boundary(cls, value: dict[str, Any] | None) -> dict[str, Any] | None:
+        return _validate_polygon(value) if value is not None else None
 
 class LocationSetupFarm(_StrictRequest):
     name: str = Field(min_length=1, max_length=255)
@@ -312,7 +312,8 @@ def register_location_setup_routes(router: APIRouter, provider, run_in_threadpoo
             if sqlstate == "55000":
                 return _error(409, "The selected location is not available to this tenant or needs an ownership review.", "location_setup_conflict")
             if isinstance(sqlstate, str) and sqlstate.startswith("22"):
-                return _error(400, "The farm details are invalid. Check the boundary and area.", "invalid_location_setup")
+                _LOGGER.info("Existing-location farm setup rejected by database validation (SQLSTATE %s)", sqlstate)
+                return _error(400, "Review the farm area and farm boundary.", "invalid_location_setup")
             _LOGGER.warning("Existing-location farm setup unavailable (%s)", type(exc).__name__)
             return _error(503, "Farm setup is temporarily unavailable.", "location_setup_unavailable")
         except Exception as exc:
@@ -374,7 +375,8 @@ def register_location_setup_routes(router: APIRouter, provider, run_in_threadpoo
             if sqlstate == "55000":
                 return _error(409, "The requested location has an existing tenant or farm assignment that needs review.", "location_setup_conflict")
             if isinstance(sqlstate, str) and sqlstate.startswith("22"):
-                return _error(400, "The location or farm details are invalid. Check the boundary and coordinates.", "invalid_location_setup")
+                _LOGGER.info("Location setup rejected by database validation (SQLSTATE %s)", sqlstate)
+                return _error(400, "Review the location point, optional location area, farm area, and farm boundary.", "invalid_location_setup")
             if sqlstate == "23514":
                 return _error(400, "The location or farm details do not satisfy the database constraints.", "invalid_location_setup")
             _LOGGER.warning("Location setup transaction unavailable (%s)", type(exc).__name__)

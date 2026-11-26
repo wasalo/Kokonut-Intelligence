@@ -441,7 +441,6 @@ export function LocationSetupPage() {
   const [farmDescription, setFarmDescription] = useState("");
   const [farmBoundary, setFarmBoundary] = useState<PolygonGeoJSON | null>(null);
   const [farmBoundaryError, setFarmBoundaryError] = useState("");
-  const [sameBoundary, setSameBoundary] = useState(false);
   const [ownerDecisionReference, setOwnerDecisionReference] = useState("");
   const [ownerDecisionConfirmed, setOwnerDecisionConfirmed] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -573,8 +572,7 @@ export function LocationSetupPage() {
         setResult(parseSetupResult(response));
         return;
       }
-      if (!locationBoundary) throw new Error("The map pin is only a location point. Before saving, provide a location boundary with at least three perimeter vertices as GeoJSON or coordinate points.");
-      if (!sameBoundary && !farmBoundary) throw new Error("Provide the farm boundary as GeoJSON or at least three perimeter points, or confirm that it matches the location boundary.");
+      if (!farmBoundary) throw new Error("Provide the farm boundary as GeoJSON or at least three perimeter points.");
       const latitudeValue = Number(latitude);
       const longitudeValue = Number(longitude);
       if (!Number.isFinite(latitudeValue) || !Number.isFinite(longitudeValue)) {
@@ -596,7 +594,7 @@ export function LocationSetupPage() {
           longitude: longitudeValue,
           boundary_geojson: locationBoundary,
         },
-        farm: { ...farm, boundary_geojson: sameBoundary ? locationBoundary : farmBoundary },
+        farm: { ...farm, boundary_geojson: farmBoundary },
       };
       const response = await requestOperatorJson<unknown>("/operator/api/location-setup", {
         method: "POST",
@@ -667,7 +665,7 @@ export function LocationSetupPage() {
         Create a new operating location with its first farm, or add a farm to an existing verified location.
       </p>
       <p className="migration-note" role="note">
-        Existing locations are read-only in this form. A new farm must fit inside its selected parent location boundary; if its boundary is outside that area, create or review a separate location instead. Existing baseline and historical records are preserved. The creator receives location read and draft-only farm activity access, without review or publication permissions.
+        Existing locations are read-only in this form. Each farm records its own boundary; the location is an administrative and geographic reference point, not a parcel boundary. Existing baseline and historical records are preserved. The creator receives location read and draft-only farm activity access, without review or publication permissions.
       </p>
 
       {organizationError ? <p className="location-setup__alert" role="alert">{organizationError}</p> : null}
@@ -733,7 +731,7 @@ export function LocationSetupPage() {
                     </select>
                     <p className="location-setup__help">The selected location’s name, boundary, ownership and history are kept as they are.</p>
                   </div>
-                  <p className="location-setup__field-wide location-setup__help">Farm boundaries must be completely inside the selected location boundary. A neighboring parcel outside that boundary needs its own location record.</p>
+                  <p className="location-setup__field-wide location-setup__help">The farm boundary describes the parcel. The selected location supplies its administrative context and representative point; it does not restrict the farm polygon.</p>
                 </div>
               ) : null}
             </fieldset>
@@ -768,7 +766,7 @@ export function LocationSetupPage() {
                 {googleMapsPointUrl ? <a href={googleMapsPointUrl} target="_blank" rel="noreferrer">View this point in Google Maps</a> : <a href="https://www.google.com/maps/" target="_blank" rel="noreferrer">Find a point in Google Maps</a>}
               </div>
               <div className="location-setup__field location-setup__field-wide"><label htmlFor="location-description">Description</label><textarea id="location-description" value={locationDescription} onChange={(event) => setLocationDescription(event.target.value)} rows={3} maxLength={2000} /></div>
-              <BoundaryUploadField id="location-boundary" label="Location boundary" helpText="This defines the farm’s spatial extent; the representative coordinates must fall inside it." boundary={locationBoundary} onChange={(value, message) => { setLocationBoundary(value); setLocationBoundaryError(message); if (sameBoundary) setFarmBoundary(value); }} />
+              <BoundaryUploadField id="location-boundary" label="Optional location area" helpText="Optional broader geographic context. The location pin is enough to identify where it is; enter the farm parcel boundary below." boundary={locationBoundary} onChange={(value, message) => { setLocationBoundary(value); setLocationBoundaryError(message); }} />
               {locationBoundaryError ? <p className="location-setup__field-wide location-setup__alert" role="alert">{locationBoundaryError}</p> : null}
             </div>
           </fieldset>
@@ -783,13 +781,7 @@ export function LocationSetupPage() {
               <div className="location-setup__field"><label htmlFor="farm-area">Farm area</label><input id="farm-area" type="number" min="0.0001" step="0.0001" value={farmArea} onChange={(event) => setFarmArea(event.target.value)} required /></div>
               <div className="location-setup__field"><label htmlFor="farm-area-unit">Area unit</label><select id="farm-area-unit" value={farmAreaUnit} onChange={(event) => setFarmAreaUnit(event.target.value)}><option value="hectares">Hectares</option><option value="acres">Acres</option><option value="square_meters">Square meters</option></select></div>
               <div className="location-setup__field location-setup__field-wide"><label htmlFor="farm-description">Description</label><textarea id="farm-description" value={farmDescription} onChange={(event) => setFarmDescription(event.target.value)} rows={3} maxLength={2000} /></div>
-              {setupMode === "new_location" ? <div className="location-setup__field location-setup__field-wide">
-                <label className="location-setup__check">
-                  <input type="checkbox" checked={sameBoundary} onChange={(event) => { const checked = event.target.checked; setSameBoundary(checked); setFarmBoundary(checked ? locationBoundary : null); setFarmBoundaryError(""); }} disabled={!locationBoundary} />
-                  <span>The farm boundary is the same as the location boundary.</span>
-                </label>
-              </div> : null}
-              {(setupMode === "existing_location" || !sameBoundary) ? <BoundaryUploadField id="farm-boundary" label="Farm boundary" helpText={setupMode === "existing_location" ? "This polygon must fit inside the existing location boundary." : "This polygon must fit inside the location boundary."} boundary={farmBoundary} onChange={(value, message) => { setFarmBoundary(value); setFarmBoundaryError(message); }} /> : null}
+              <BoundaryUploadField id="farm-boundary" label="Farm boundary" helpText="Required: this polygon describes the farm parcel itself." boundary={farmBoundary} onChange={(value, message) => { setFarmBoundary(value); setFarmBoundaryError(message); }} />
               {farmBoundaryError ? <p className="location-setup__field-wide location-setup__alert" role="alert">{farmBoundaryError}</p> : null}
             </div>
           </fieldset>
@@ -799,11 +791,10 @@ export function LocationSetupPage() {
             <button
               className="button-link"
               type="submit"
-              disabled={
-                submitting || !ownerDecisionConfirmed ||
-                (setupMode === "new_location" && (!locationBoundary || (!sameBoundary && !farmBoundary))) ||
-                (setupMode === "existing_location" && (!selectedLocationId || !farmBoundary))
-              }
+                disabled={
+                  submitting || !ownerDecisionConfirmed || !farmBoundary ||
+                  (setupMode === "existing_location" && !selectedLocationId)
+                }
             >
               {submitting ? "Saving setup…" : setupMode === "existing_location" ? "Add farm to existing location" : "Save location and farm setup"}
             </button>

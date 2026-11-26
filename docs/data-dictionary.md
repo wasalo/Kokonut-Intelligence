@@ -19,6 +19,12 @@ plot associations for a multi-plot activity. The Hub exposes bounded choices
 for these relations, but a form selector is not itself an authorization
 boundary. See the [Gateway route contract](../services/gateway/README.md#location-setup-and-farm-activity-relationship-routes).
 
+`location.center` and its latitude/longitude fields represent the location's
+point. `location.boundary` is optional geographic context. The farm's own
+`boundary` describes its parcel; farm membership is based on the relational
+`location_id`, not whether the farm polygon fits inside a city or location
+polygon.
+
 ## Governed Metric Definitions
 
 | Metric Key | Display Name | Formula | Source Tables | Update Freq | Report Usage | Validation |
